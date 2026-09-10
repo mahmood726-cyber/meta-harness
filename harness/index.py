@@ -1,0 +1,87 @@
+"""Generated front page + index. Never hand-maintained.
+
+Scans docs/reviews/*/manifest.json and writes docs/index.html. Deterministic:
+reviews are sorted by slug. The front page states what this surface is and is not.
+"""
+from __future__ import annotations
+import glob
+import html
+import json
+import os
+
+_E = lambda x: html.escape("" if x is None else str(x), quote=True)
+
+_FRONT = """<div class="banner">
+<h2>What this is</h2>
+<p>A reproducible harness that builds meta-analyses from a committed protocol, and
+publishes each as a tabbed, auditable page. Every page here passed a two-limb gate:
+it reproduces from a fresh clone with zero census failures and its served analysis
+method equals its declared method; and it names a published open-access comparator
+with the trial-set overlap stated.</p>
+<h2>What this is not</h2>
+<p>It is <strong>not</strong> a claim of stronger evidence than the peer-reviewed
+comparators. The offer is <strong>greater auditability</strong>: every number is
+traceable to a committed source, every absence is declared rather than left blank,
+and any hand-edit breaks the gate. A page whose estimate matches its comparator on
+an identical trial set is arithmetic, not corroboration &mdash; so the overlap is
+stated on every page.</p>
+</div>"""
+
+_CSS = """body{font:15px/1.55 system-ui,Segoe UI,Arial,sans-serif;margin:0;color:#12232e;background:#f7f8fa}
+header{background:#12232e;color:#fff;padding:20px 22px}header h1{margin:0;font-size:21px}
+main{max-width:900px;margin:0 auto;padding:22px}
+.banner{background:#eaf4fb;border-left:4px solid #4ea1d3;padding:2px 16px 12px;margin:0 0 20px;border-radius:6px}
+.banner h2{font-size:15px;margin:14px 0 4px;color:#1d3b4d}
+table{border-collapse:collapse;width:100%}th,td{border:1px solid #dbe3e8;padding:7px 9px;text-align:left;font-size:13.5px}
+th{background:#eef2f5}a{color:#1f6f9c;text-decoration:none}a:hover{text-decoration:underline}
+.empty{color:#7a4b00;background:#fff4e5;border:1px solid #f0c27b;padding:12px;border-radius:6px}
+"""
+
+
+def build_index(docs_dir: str) -> str:
+    rows = []
+    for mpath in sorted(glob.glob(os.path.join(docs_dir, "reviews", "*", "manifest.json"))):
+        with open(mpath, encoding="utf-8") as f:
+            m = json.load(f)
+        slug = m.get("slug") or os.path.basename(os.path.dirname(mpath))
+        comp = m.get("comparator") or {}
+        ov = comp.get("overlap") or {}
+        ident = comp.get("pmid") and f"PMID {comp['pmid']}" or (comp.get("doi") and f"DOI {comp['doi']}") or "—"
+        rows.append((slug, m, comp, ov, ident))
+
+    if rows:
+        body = "<table><tr><th>Review</th><th>Method</th><th>Comparator</th>"\
+               "<th>Overlap (ours / theirs / shared)</th></tr>"
+        for slug, m, comp, ov, ident in rows:
+            body += (
+                f"<tr><td><a href='reviews/{_E(slug)}/index.html'>{_E(m.get('title') or slug)}</a></td>"
+                f"<td>{_E(m.get('served_method'))}</td>"
+                f"<td>{_E(comp.get('name'))} ({_E(ident)})</td>"
+                f"<td>{_E(ov.get('ours_k'))} / {_E(ov.get('theirs_k'))} / {_E(ov.get('shared_k'))}</td></tr>"
+            )
+        body += "</table>"
+    else:
+        body = ("<div class='empty'>No harness-produced pages have passed the gate yet. "
+                "This index is generated, never hand-maintained.</div>")
+
+    return (
+        "<!doctype html><html lang=en><head><meta charset=utf-8>"
+        "<meta name=viewport content='width=device-width,initial-scale=1'>"
+        f"<title>Reproducible meta-analysis harness</title><style>{_CSS}</style></head><body>"
+        "<header><h1>Reproducible meta-analysis harness</h1></header>"
+        f"<main>{_FRONT}{body}</main></body></html>"
+    )
+
+
+def write_index(docs_dir: str) -> str:
+    html_text = build_index(docs_dir)
+    out = os.path.join(docs_dir, "index.html")
+    with open(out, "w", encoding="utf-8", newline="") as f:
+        f.write(html_text)
+    return out
+
+
+if __name__ == "__main__":
+    import sys
+    d = sys.argv[1] if len(sys.argv) > 1 else "docs"
+    print("wrote", write_index(d))

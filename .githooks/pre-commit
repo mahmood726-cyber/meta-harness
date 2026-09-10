@@ -1,0 +1,50 @@
+#!/bin/sh
+# Two-limb publication gate. Fail-closed: if the gate cannot execute, it REFUSES.
+# Never edit this to get past a refusal - fix the harness that produced the page.
+set -u
+ROOT="$(git rev-parse --show-toplevel)" || { echo "GATE: not in a repo - refusing"; exit 1; }
+cd "$ROOT" || { echo "GATE: cannot cd to repo root - refusing"; exit 1; }
+
+PY="python"
+command -v "$PY" >/dev/null 2>&1 || { echo "GATE: 'python' not found - refusing (fail closed)"; exit 1; }
+
+DIRS=$(git diff --cached --name-only --diff-filter=ACM \
+        | grep -E '^docs/reviews/[^/]+/index\.html$' \
+        | sed -E 's#/index\.html$##' | sort -u)
+
+if [ -z "$DIRS" ]; then
+  echo "GATE: executed - no staged review pages to gate."
+  exit 0
+fi
+
+echo "GATE: executing two-limb gate on staged review page(s):"
+FAIL=0
+N=0
+for d in $DIRS; do
+  N=$((N+1))
+  "$PY" -m harness.gate "$d" || FAIL=1
+done
+echo "GATE: gated $N page(s)."
+if [ "$FAIL" -ne 0 ]; then
+  echo "GATE: REFUSED. Fix the harness, never the gate. (SENTINEL: no --no-verify)"
+  exit 1
+fi
+
+# The index is generated, never hand-maintained: refuse a stale/hand-edited index.
+"$PY" - <<'PYEOF' || exit 1
+import io, sys
+from harness.index import build_index
+want = build_index("docs")
+try:
+    cur = io.open("docs/index.html", encoding="utf-8").read()
+except OSError:
+    cur = None
+if cur != want:
+    print("GATE: docs/index.html is stale or hand-edited. Regenerate & stage:")
+    print("      python -m harness.index docs && git add docs/index.html")
+    sys.exit(1)
+print("GATE: generated index is current.")
+PYEOF
+
+echo "GATE: executed OK - all limbs passed."
+exit 0
