@@ -131,20 +131,58 @@ GENERIC_ANCHORS = {"primary outcome", "primary end point", "primary endpoint",
                    "primary study outcome", "primary study end point"}
 
 
+# Words excluded from the outcome-overlap test. Two groups:
+#  - syntactic glue ("or", "for", "composite", "endpoint"...)
+#  - GENERIC MEDICAL NOUNS that appear in many unrelated outcomes and therefore do NOT
+#    discriminate one outcome from another: death, failure, causes, disease, mortality,
+#    hospitalization... These are why plain bag-of-words is unsafe here: "death from
+#    CARDIOVASCULAR causes / heart FAILURE" and "death from RENAL causes / kidney FAILURE"
+#    share death/causes/failure while meaning opposite things. Only a DISCRIMINATING word
+#    (cardiovascular vs renal/kidney) should count, so a trial's primary is treated as ours
+#    only when a topic-specific term actually overlaps -- verified on FIGARO-DKD, whose CV
+#    primary must NOT be read as the kidney-composite topic's outcome.
+_KW_STOP = {"or", "and", "of", "for", "the", "to", "in", "with", "at", "a", "an", "due",
+            "rate", "outcome", "endpoint", "end", "point", "composite", "least", "one",
+            "study", "than", "from", "per", "first", "time", "event", "events",
+            "death", "deaths", "cause", "causes", "disease", "failure", "mortality",
+            "hospitalization", "hospitalisation", "hospitalized", "hospitalised",
+            "patients", "risk", "treatment", "therapy", "clinical", "trial", "group",
+            "groups", "placebo", "nonfatal", "fatal", "adverse", "serious", "major"}
+
+
+def _content_words(phrases):
+    return {w for p in phrases for w in p.lower().replace(",", " ").replace("-", " ").split()
+            if len(w) > 4 and w not in _KW_STOP}
+
+
 def _effective_kws(abstract, outcome_kws):
     """Generic 'primary outcome/endpoint' anchors are used ONLY when the trial's primary
-    outcome IS our outcome (a sentence links a generic anchor to a disease keyword). This
-    stops us reading a trial's PRIMARY result when its primary endpoint is a different
-    outcome than ours (e.g. COPPS-2's primary is postpericardiotomy syndrome, not AF)."""
+    outcome IS our outcome. Linked either by (a) a full disease-keyword substring in a
+    primary-definition sentence, or (b) that sentence sharing >=2 DISCRIMINATING content
+    words with our outcome keywords (generic medical nouns like death/failure/causes are
+    excluded via _KW_STOP). So a trial that phrases our outcome differently ('worsening
+    heart failure ... or cardiovascular death' vs our 'cardiovascular death or
+    hospitalisation for heart failure') still links on {worsening, heart, cardiovascular},
+    while a genuinely different primary does NOT: COPPS-2's postpericardiotomy syndrome vs
+    AF, and -- the case that broke plain bag-of-words -- FIGARO-DKD's CV primary (death
+    from cardiovascular causes, MI, stroke, HF hosp) vs a kidney-composite topic, which
+    now shares no renal/kidney term and is correctly rejected so its number is taken from
+    the SECONDARY (kidney) sentence, not the CV primary. The anchor is enabled only when
+    the primary IS ours; the number then comes from the 'primary outcome occurred in N of
+    M' sentence, so there is no wrong-outcome selection."""
     disease = [k for k in outcome_kws if k.lower() not in GENERIC_ANCHORS]
     generic = [k for k in outcome_kws if k.lower() in GENERIC_ANCHORS]
     if not generic:
         return disease
-    low = abstract.lower()
+    dwords = _content_words(disease)
     for s in _sentences(abstract):
         sl = s.lower()
-        if any(g in sl for g in generic) and any(dk.lower() in sl for dk in disease):
-            return disease + generic  # the trial's primary outcome is ours
+        if not any(g in sl for g in generic):
+            continue
+        if any(dk.lower() in sl for dk in disease):
+            return disease + generic
+        if sum(1 for w in dwords if w in sl) >= 2:
+            return disease + generic
     return disease
 
 

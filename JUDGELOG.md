@@ -151,3 +151,13 @@ auto-extracted from its own PubMed abstract by the SAME pipeline, so it is no lo
   when config keywords are disease-broad rather than outcome-specific (do not publish a wrong-outcome number).
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+
+## Wave-4 BLIND VERDICTS (4 of 4 wins) — recorded 2026-09-11
+Neutral opaque-token pair per topic; subagent judge, /35 on 7 criteria, ours = the reproducible page.
+- **pcsk9-mace**: OURS 27 vs comparator 8. Named FOURIER(28304224)+ODYSSEY(30403574), arm counts, PM+HKSJ, SHA/census. Judge caveats (against us, both visible): k=2 HKSJ t_1 CI 0.585-1.23 crosses null (known small-k pathology); flagged a likely trial-label mixup (30403574 = ODYSSEY/alirocumab). Comparator = unauditable transcription.
+- **sglt2-ckd-progression**: OURS 28 vs 8. Named DAPA-CKD(32970396)+CREDENCE(30990260)+EMPA-KIDNEY(36331190), PM tau2=0.00509, PI, SHA/hash/census; distinguished 3 data-bearing from 7 ongoing NCTs. Comparator claimed k=10 with zero identifiers.
+- **noac-vs-warfarin-af-stroke**: OURS 24 vs 10. Named RE-LY/ROCKET/ARISTOTLE by PMID; declared pairwise-subset-of-NMA honestly. Judge caveat: our HKSJ CI 0.681-1.08 crosses null (omits ENGAGE from primary) — visible/auditable vs comparator's unverifiable HR 0.81.
+- **tocilizumab-covid19-mortality**: OURS 25 vs 9. RECOVERY(33933206) 621/2022 vs 729/2094; SAE pooled k=2; SHA/hash/census. **Judge-flagged real defect (extraction-coverage): 13 trials screened in but primary rests on k=1 — REMAP-CAP/EMPACTA reported 28-day mortality yet were "declared absent". This is the keyword-brittleness class; the class fix should recover them and raise k.**
+
+### Blind record to date: 16 of 16 topics judged, ours higher on all 16.
+### Standing gap unchanged: we win the AUDITABILITY limb every time; DATA-completeness (k) is the limb to close — tocilizumab is the sharpest live example (k=1 where k could be ~5+).

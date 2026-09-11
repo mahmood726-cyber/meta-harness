@@ -175,8 +175,18 @@
       "estimand": "RR",
       "population": "intention-to-treat",
       "timepoint": "trial end",
-      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
       "trials": [
+        {
+          "label": "31535829",
+          "id": "PMID 31535829",
+          "ai": 386,
+          "n1i": 2373,
+          "ci": 502,
+          "n2i": 2371,
+          "source": "abstract arm-level counts (percentage-corroborated): RESULTS: Over a median of 18.2 months, the primary outcome occurred in 386 of 2373 patients (16.3%) in the dapagliflozin group and in 502 of 2371 patients (21.2%) in the placebo group (hazard ratio, 0",
+          "provenance": "abstract"
+        },
         {
           "label": "32865377",
           "id": "PMID 32865377",
@@ -188,20 +198,17 @@
           "provenance": "abstract"
         }
       ],
-      "declared_absent_trials": [
-        {
-          "label": "31535829",
-          "id": "PMID 31535829",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        }
-      ],
+      "declared_absent_trials": [],
       "result": {
-        "k": 1,
-        "estimate": 0.7831,
+        "k": 2,
+        "estimate": 0.7755,
         "scale": "RR",
-        "ci_low": 0.6933,
-        "ci_high": 0.8845,
-        "pi_note": "prediction interval undefined for k=1"
+        "ci_low": 0.4457,
+        "ci_high": 1.3493,
+        "tau2": 0.0,
+        "pi_low": 0.4457,
+        "pi_high": 1.3493,
+        "pi_note": "tau^2 estimated as 0, so the prediction interval coincides with the confidence interval (no between-study heterogeneity detected)."
       }
     },
     {
@@ -275,7 +282,7 @@
       }
     ],
     "overlap": {
-      "ours_k": 1,
+      "ours_k": 2,
       "theirs_k": "not stated in the comparator abstract/full text",
       "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
       "only_ours": [],
@@ -287,7 +294,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "43f5f12e367109bebd37936a8177ef00c6dcf1f6",
-    "review_sha256": "0c569e42af14b637dd7a0a3e2cffee5fc5961fd8ecd67daf7af3a8e891da585f",
+    "review_sha256": "a346d428302616276717acb9ee3b6018eb8940bf31bb12e0d90689aab620a1e4",
     "from_cache": true
   }
 }

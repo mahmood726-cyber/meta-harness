@@ -74,15 +74,35 @@ def _overview(r, neutral):
         res = prim.get("result") or {}
         if _absent(res) is None:
             parts.append("<h3>Primary outcome</h3>")
-            parts.append(_kv([
+            pooled = _pooled_ids(prim)
+            k = res.get("k")
+            kdisp = f"{k} — {'; '.join(pooled)}" if pooled else k
+            n_inc = _n_included(r)
+            n_absent = len(prim.get("declared_absent_trials") or [])
+            recon = None
+            if n_inc is not None and k is not None and isinstance(k, int):
+                if n_inc != k:
+                    recon = (f"{n_inc} trials met P/I/C/design (screening); {k} reported this "
+                             f"outcome with an extractable number and were pooled; the remaining "
+                             f"{n_inc - k} are listed as declared-absent in Results (they were "
+                             f"included but reported no poolable value for this outcome).")
+                else:
+                    recon = (f"all {n_inc} screened-in trials reported this outcome and were "
+                             f"pooled (screening count = k).")
+            rows = [
                 ("Outcome", prim.get("name")),
                 ("Estimand", prim.get("estimand")),
-                ("Trials pooled (k)", (res.get("k"))),
-                ("Pooled effect", _ci(res)),
-                ("Prediction interval", f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}"),
-                ("Between-study τ²", _num(res.get("tau2"))),
-                ("Method", prim.get("method") or r.get("method_declared")),
-            ]))
+                ("Trials pooled (k)", kdisp),
+            ]
+            if recon:
+                rows.append(("Screened-in → pooled", recon))
+            rows.append(("Pooled effect", _ci(res)))
+            if res.get("pi_low") is not None:
+                rows.append(("Prediction interval", f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}"))
+            if res.get("tau2") is not None:
+                rows.append(("Between-study τ²", _num(res.get("tau2"))))
+            rows.append(("Method", prim.get("method") or r.get("method_declared")))
+            parts.append(_kv(rows))
     return "".join(parts)
 
 
@@ -92,6 +112,21 @@ def _primary(r):
             return o
     outs = r.get("outcomes") or []
     return outs[0] if outs else None
+
+
+def _pooled_ids(o):
+    """Human labels+ids of the trials actually pooled for this outcome, so a k is never
+    shown container-only (a k with no trials named is the container-vs-contents defect)."""
+    ids = []
+    for t in o.get("trials", []) or []:
+        lbl, idv = t.get("label"), t.get("id")
+        ids.append(f"{lbl} ({idv})" if lbl and str(lbl) != str(idv) else str(idv))
+    return ids
+
+
+def _n_included(r):
+    recs = ((r.get("screening") or {}).get("records")) or []
+    return sum(1 for x in recs if x.get("decision") == "include") if recs else None
 
 
 def _protocol(r, neutral):
@@ -201,7 +236,21 @@ def _outcome_block(o, show_inputs=True):
             ("τ²", _num(res.get("tau2")) if res.get("tau2") is not None else None),
             ("Note", res.get("pi_note")),
         ] if v is not None])
-    if show_inputs and (o.get("trials") or o.get("declared_absent_trials")):
+        # A k stated without the contributing trials named is the container-vs-contents
+        # defect. When trials are enumerable, name them (below). When they are not (a
+        # transcribed comparator), say so plainly so the bare k is not mistaken for auditable.
+        if (res.get("k") is not None and not o.get("trials")
+                and not o.get("declared_absent_trials")):
+            body += ("<p class='note'>k is as reported by the source; the individual trials "
+                     "behind it were not machine-extracted from the transcription, so this "
+                     "count cannot be audited on this page.</p>")
+    n_pool = len(o.get("trials") or [])
+    n_abs = len(o.get("declared_absent_trials") or [])
+    if show_inputs and (n_pool or n_abs):
+        if n_abs and n_pool:
+            body += (f"<p class='note'>k = {n_pool}: the {n_pool} trial(s) named below were "
+                     f"pooled; {n_abs} further screened-in trial(s) reported no poolable value "
+                     f"for this outcome and are shown as <em>declared absent</em>.</p>")
         body += _trial_inputs(o)
     return body
 
@@ -284,6 +333,7 @@ table.recs th,table.recs td,table.arms th,table.arms td{border:1px solid #dbe3e8
 .absent{background:#fff4e5;border:1px solid #f0c27b;padding:10px 14px;border-radius:6px;color:#7a4b00}
 .absent-cell{color:#7a4b00}
 .banner{background:#eaf4fb;border-left:4px solid #4ea1d3;padding:10px 14px;margin:12px 0;font-size:13.5px}
+.note{color:#4a5b66;font-size:12.5px;margin:6px 0;font-style:italic}
 .q{font-size:16px;color:#2a4b5c}pre{background:#0f1c24;color:#d6e6f2;padding:10px;overflow:auto;border-radius:6px;font-size:12px;white-space:pre-wrap}
 h2{margin-top:0}h4{margin:16px 0 4px}
 """
