@@ -333,3 +333,18 @@ Every added trial verified true against source before it pools.
   page byte-matches on replay. Fixed reproduce_review to load it (caught a byte-mismatch first).
 - 102 tests, 23/23 reproduce, gate PASS. SUCCESS: item 1 converted from limitation to measurement +
   explicit disclosure.
+
+## Cycle 21 — Items 7,8,9,10 DISCLOSED (disclosure is the differentiator; no comparator does it)
+- Per-page Stated limitations extended: (8) registry snapshot is dated — trials/results after the AACT
+  snapshot are invisible to recall/ghost/RoB2; re-search mode measures the drift. (7) dual screening
+  not fully independent (shared author; model adjudicator on disagreements). (10) the blind comparison
+  is judged by an AI and transparency is what we optimise for — partly circular; the PRISMA/AMSTAR-2
+  instrument comparison is the cross-check, and auditability is the axis we claim, not superior evidence.
+- INDEX (item 9): a "Selection effect (stated, not hidden)" banner — built N of M preregistered topics;
+  the unbuilt were disproportionately the HARD cases (continuous/recurrent/composite/paywalled/
+  unregistered) which the harness correctly declined, so the build success rate flatters us; the set is
+  preregistered and declines recorded, so the selection is visible not silent.
+- Rebuilt all 23 + index; 102 tests, 23/23 reproduce, gate PASS. Limitations text is render-only (no
+  estimate/core-sha change). All queue items 3,6,7,8,9,10 are now disclosed on the pages/index.
+- SUCCESS: every disclosed-limitation item is now actually rendered — the differentiator no published
+  comparator offers.

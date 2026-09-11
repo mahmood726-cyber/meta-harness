@@ -64,6 +64,23 @@ def build_index(docs_dir: str) -> str:
         body = ("<div class='empty'>No harness-produced pages have passed the gate yet. "
                 "This index is generated, never hand-maintained.</div>")
 
+    # SELECTION EFFECT (item 9): the preregistered topic set vs what actually built. Stated on the
+    # index so a reader is not misled by a build success rate that flatters us — the topics that
+    # declined were disproportionately the hard cases.
+    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    n_prereg = len(glob.glob(os.path.join(_root, "topics", "*.json")))
+    n_built = len(rows)
+    if n_prereg:
+        body = (f"<div class='banner'><h2>Selection effect (stated, not hidden)</h2>"
+                f"<p>Of <strong>{n_built} of {n_prereg}</strong> preregistered topics, the built pages are "
+                "shown below. The unbuilt topics were disproportionately the HARD cases — continuous or "
+                "recurrent-event outcomes, composite-only endpoints, percentage-only or paywalled reports, "
+                "and older or unregistered literature — which the harness correctly declined rather than "
+                "extract unverifiably. So the build success rate <strong>flatters the harness</strong>: it "
+                "reflects a sample selected toward clean binary-outcome registered trials, not the whole "
+                "field. The topic set is preregistered and the declines are recorded (JUDGELOG), so the "
+                "selection is visible rather than silent.</p></div>") + body
+
     return (
         "<!doctype html><html lang=en><head><meta charset=utf-8>"
         "<meta name=viewport content='width=device-width,initial-scale=1'>"

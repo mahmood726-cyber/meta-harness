@@ -164,7 +164,18 @@ def _overview(r, neutral):
             "literature were declined — so the success rate reflects a selected sample, not the whole "
             "field.</li>"
             "<li><strong>Risk of bias is partial.</strong> RoB2 domains are computed from machine-"
-            "available registry fields; domains needing human reading are marked not-assessed.</li></ul>")
+            "available registry fields; domains needing human reading are marked not-assessed.</li>"
+            "<li><strong>Registry snapshot is dated.</strong> AACT is a fixed local snapshot; trials "
+            "registered, or results posted, after it are invisible to the registry-first recall, ghost "
+            "and RoB2 signals (the snapshot date is shown on those blocks). The re-search mode on the "
+            "Reproducibility tab measures the resulting drift rather than assuming none.</li>"
+            "<li><strong>Dual screening is not fully independent.</strong> The two rule screeners share "
+            "an author and criteria, so their agreement overstates reliability; an independent model "
+            "adjudicator is used on disagreements (see Reporting, PRISMA item 8).</li>"
+            "<li><strong>The blind comparison is judged by an AI, and transparency is what we optimise "
+            "for.</strong> A model scoring auditability will reward auditability — so that win is partly "
+            "circular. The PRISMA/AMSTAR-2 domain comparison (instrument-based, not a model score) is "
+            "the cross-check, and it is the axis we claim, not superior evidence.</li></ul>")
     return "".join(parts)
 
 
