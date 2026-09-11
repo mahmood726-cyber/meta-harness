@@ -120,7 +120,8 @@ def build_review_core(slug, config, records, protocol_sha):
             reported.append({"outcome": co["name"], "estimate": eff["effect"], "scale": eff["scale"],
                              "ci_low": eff["ci_low"], "ci_high": eff["ci_high"]})
     theirs_k = (extract.extract_meta(comp_abstract, config["primary_outcome"]["keywords"]).get("k")
-                or extract.extract_meta(comp_full, config["primary_outcome"]["keywords"]).get("k"))
+                or extract.extract_meta(comp_full, config["primary_outcome"]["keywords"]).get("k")
+                or "not stated in the comparator abstract/full text")
     oa = records.get("comparator_oa") or {}
     comp_year = comp_rec.get("year")
     ours_k = primary["result"].get("k") if isinstance(primary["result"], dict) and primary["result"].get("k") else len(primary["trials"])
