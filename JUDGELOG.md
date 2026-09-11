@@ -493,3 +493,19 @@ finerenone k=1->2); CONFIRM-HF 25176939 HF-hosp HR 0.39 (0.19-0.82); tocilizumab
 counts). IMPLICATION: the model-extraction path recovers real trials the regex missed (vindicating it
 as a primary path), but rigorous identity/estimand/exact-count gating means pooling needs per-trial
 verification, not auto-pool. cache/recover_spans_sample.json retains the located spans.
+
+## Cycle 33 — sacubitril-valsartan-hfref DECLINED (Codex scaffold failed verification)
+Codex produced topics/ + cache/ + protocol + VERIFY for sacubitril. Verify-before-build found TWO
+fatal flaws: (1) the fetched cache (57 records) does NOT contain PARADIGM-HF (PMID 25176015) — the
+single pivotal HFrEF trial — so build_topic yields k=None (empty included set); (2) the chosen
+comparator (PMID 36722326) is a multi-class SGLT2+RAS+ARNI network meta-analysis, a scope mismatch,
+not a sacubitril-vs-ACEi meta. A generated config is a HYPOTHESIS, not a specification. DECLINED;
+broken build artifacts removed. To build honestly: re-fetch with a query that retrieves PARADIGM-HF,
+pick a same-scope comparator (or state none exists, k=1 complete single-drug evidence like semaglutide).
+
+STANDING LESSON (all 4 Codex-scaffolded topics verified this session had a real flaw the config missed):
+sacubitril = pivotal trial absent from fetch + scope-mismatched comparator; hfnc = a trial with no
+per-arm counts (RINO) + a secondary-outcome mismatch (Maggiore); metformin-pcos = crossover/continuous/
+%-only/mixed-population; corticosteroids-cap = timepoint mixture (28-day vs in-hospital vs 60-day).
+Verify-before-build is not optional; a rush-built page from any of these would have shipped a wrong or
+empty result. Build only the topic whose flaw is resolvable honestly; decline and record the rest.
