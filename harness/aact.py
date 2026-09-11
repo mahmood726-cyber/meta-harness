@@ -19,6 +19,31 @@ Public surface (all local, no network, no rate limit):
 from __future__ import annotations
 
 import os
+import re
+
+# AACT param_type/units CANNOT be trusted to mean "patients" for recurrent-event outcomes: HEART-FID's
+# "Number of Hospitalizations for Heart Failure" is tagged COUNT_OF_PARTICIPANTS/units "Participants",
+# but the trial reports "a total of 297 hospitalizations" — EVENTS, not patients. Treating that count
+# as a binomial numerator over the arm size would over-count (a patient hospitalised twice is counted
+# twice) and produce a wrong RR that passes every downstream gate. This regex flags an outcome whose
+# TITLE denotes counts of EVENTS, so a caller must NOT pool it as a binomial (needs person-time / IRR).
+_RECURRENT_TITLE = re.compile(
+    r"\bnumber of\b.{0,30}\b(?:hospitali|admission|exacerbation|event|episode|visit|occurrence|attack|relapse)"
+    r"|\b(?:total|recurrent|annuali[sz]ed|annual|yearly)\b.{0,25}\b(?:hospitali|exacerbation|admission|event|rate)"
+    r"|\brate of\b.{0,25}\b(?:hospitali|exacerbation|admission|event|death)"
+    r"|\bhospitali[sz]ations\b", re.I)
+# A count is PATIENTS (binomial-safe) — not recurrent — when the title says so explicitly.
+_PARTICIPANT_TITLE = re.compile(r"\bparticipants? (?:with|who)\b|\bnumber of participants\b|\bpatients? with\b", re.I)
+
+
+def is_recurrent_event_title(title: str) -> bool:
+    """True if the outcome TITLE denotes counts of EVENTS (recurrent), not patients-with-event.
+    Such an AACT count must never be pooled as a binomial proportion regardless of its param_type.
+    An explicit 'participants with ...' phrasing overrides (that IS a binomial patient count)."""
+    t = title or ""
+    if _PARTICIPANT_TITLE.search(t):
+        return False
+    return bool(_RECURRENT_TITLE.search(t))
 
 # Trial's OWN publications: RESULT (a results paper) and DERIVED (PubMed-linked via the NCT).
 # BACKGROUND is cited literature, NOT the trial's report, so it is excluded from linkage.
@@ -146,8 +171,12 @@ def outcome_arms(ncts, root: str | None = None) -> dict[str, list]:
     for o in oc.values():
         arms = [{"group": rg.get(gid, gid), "events": a.get("events"), "denom": a.get("denom")}
                 for gid, a in o["arms"].items()]
-        out[o["nct"]].append({"title": o["title"], "type": o["type"],
-                              "param_type": o["param_type"], "arms": arms})
+        # GUARD: flag recurrent-event outcomes so no caller pools the count as a binomial (the
+        # HEART-FID trap). A recurrent-event count needs person-time (IRR), never events/arm-size RR.
+        recurrent = is_recurrent_event_title(o["title"])
+        out[o["nct"]].append({"title": o["title"], "type": o["type"], "param_type": o["param_type"],
+                              "is_recurrent_event": recurrent,
+                              "binomial_safe": not recurrent, "arms": arms})
     return out
 
 
