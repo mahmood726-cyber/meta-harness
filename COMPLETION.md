@@ -7,9 +7,15 @@ number on every page traces to a committed source; every decline is named on its
 
 - **26 of 33 preregistered topics LIVE** and passing the two-limb gate, reproducing byte-for-byte
   from a committed protocol SHA on a fresh clone.
-- **Blind-judged: 15 clean same-scope wins / 0 losses / 0 draws** on the ORIGINAL (abstract-based)
-  comparison. A **fair full-text re-judge is in progress**; whatever it returns replaces 15 as the
-  headline, and the before/after belongs on the index. (See "not done" below.)
+- **Blind-judged — restated on the FAIR basis.** The original abstract-based comparison gave 15 clean
+  wins / 0 / 0. The **fair full-text re-judge (8-topic sample, order-randomised)** supersedes that with
+  a domain split: our pages are more **auditable on 8/8** (search reproducibility, per-number
+  traceability, declared-absence, overall), the comparator more **complete on 8/8** (larger k), RoB
+  reporting 5/2/1. **We win transparency/auditability; we lose completeness/k** — the same conclusion
+  the parity table reaches, now confirmed blind on full text. The judge also flagged genuine defects in
+  our pages (RoB table covering a subset of pooled trials without a stated reason; a retraction line
+  whose N ≠ k; a denosumab secondary labelled RR beside an HR source; omega3 stating comparator k three
+  ways) — recorded in `docs/fair_judge.json`, to be fixed.
 
 ## The result (thesis), stated once
 

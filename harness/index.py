@@ -143,7 +143,18 @@ def build_index(docs_dir: str) -> str:
              "there is <strong>no reporting item a comparator's full text presents that our page lacks "
              "(0 of 150)</strong>, while we present <strong>79</strong> that even their full text does not "
              "(chiefly per-record exclusion reasons and a machine-checkable registration SHA). The margin "
-             "narrowed under fair measurement, as it should; the direction held.</p></div>")
+             "narrowed under fair measurement, as it should; the direction held.</p>"
+             "<p><strong>Fair blind re-judge (full-text vs full-page, 8-topic sample, order-randomised).</strong> "
+             "Restating the record on the fair basis, whatever it shows: our pages are judged more "
+             "<strong>auditable on 8 of 8</strong> (search reproducibility, per-number traceability, "
+             "declared-absence, overall), and the comparator more <strong>complete on 8 of 8</strong> "
+             "(larger k); risk-of-bias reporting split 5/2/1. So the earlier abstract-based &lsquo;15 "
+             "clean wins&rsquo; is superseded by a domain split: <strong>we win transparency and "
+             "auditability; we lose completeness/<em>k</em></strong> &mdash; the same conclusion the "
+             "parity table reaches, now confirmed by a blind reader on full text. The judge also flagged "
+             "real defects in our pages (a risk-of-bias table covering only a subset of pooled trials "
+             "without a stated reason; a retraction line whose trial count did not equal k); those are "
+             "recorded, not hidden.</p></div>")
     body = _parity_section(docs_dir) + _stance + _fair + body
 
     return (
