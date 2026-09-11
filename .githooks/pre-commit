@@ -12,22 +12,31 @@ DIRS=$(git diff --cached --name-only --diff-filter=ACM \
         | grep -E '^docs/reviews/[^/]+/index\.html$' \
         | sed -E 's#/index\.html$##' | sort -u)
 
-if [ -z "$DIRS" ]; then
-  echo "GATE: executed - no staged review pages to gate."
+# Pipeline INPUTS: a live page is a pure function of these, so a change to any of them can leave a
+# page stale even when no page itself is staged. Computed up front so the dependency rule below
+# runs whether or not a review page is in this commit (a machinery-only commit is the case that
+# matters most, and an early "no pages" exit used to skip it -- a fail-open hole).
+MACHINERY=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '^(harness/.*\.py|topics/.*\.json|protocols/.*\.md|cache/.*\.json)$' || true)
+
+if [ -z "$DIRS" ] && [ -z "$MACHINERY" ]; then
+  echo "GATE: executed - nothing to gate (no review pages or pipeline inputs staged)."
   exit 0
 fi
 
-echo "GATE: executing two-limb gate on staged review page(s):"
-FAIL=0
-N=0
-for d in $DIRS; do
-  N=$((N+1))
-  "$PY" -m harness.gate "$d" || FAIL=1
-done
-echo "GATE: gated $N page(s)."
-if [ "$FAIL" -ne 0 ]; then
-  echo "GATE: REFUSED. Fix the harness, never the gate. (SENTINEL: no --no-verify)"
-  exit 1
+if [ -n "$DIRS" ]; then
+  echo "GATE: executing two-limb gate on staged review page(s):"
+  FAIL=0
+  N=0
+  for d in $DIRS; do
+    N=$((N+1))
+    "$PY" -m harness.gate "$d" || FAIL=1
+  done
+  echo "GATE: gated $N page(s)."
+  if [ "$FAIL" -ne 0 ]; then
+    echo "GATE: REFUSED. Fix the harness, never the gate. (SENTINEL: no --no-verify)"
+    exit 1
+  fi
 fi
 
 # The index is generated, never hand-maintained: refuse a stale/hand-edited index.
@@ -46,13 +55,10 @@ if cur != want:
 print("GATE: generated index is current.")
 PYEOF
 
-# DEPENDENCY RULE (not memory): a live page is a pure function of the pipeline code AND its
-# committed INPUTS (topic config, protocol, cache incl. outcome_judgments). If any of those is
-# staged, EVERY live page must still replay byte-for-byte -- a change that leaves a page stale is a
-# silent invariant failure (the multi-arm guard once left colchicine-postop stale; an edited
-# outcome_judgments cache would do the same). Watch all inputs, not just harness/*.py.
-MACHINERY=$(git diff --cached --name-only --diff-filter=ACM \
-  | grep -E '^(harness/.*\.py|topics/.*\.json|protocols/.*\.md|cache/.*\.json)$' || true)
+# DEPENDENCY RULE (not memory): if any pipeline input is staged, EVERY live page must still replay
+# byte-for-byte -- a change that leaves a page stale is a silent invariant failure (the multi-arm
+# guard once left colchicine-postop stale; an edited outcome_judgments cache would do the same).
+# MACHINERY is computed at the top so this runs even on a machinery-only commit (no page staged).
 if [ -n "$MACHINERY" ]; then
   echo "GATE: pipeline inputs changed -> re-verifying ALL live pages reproduce (dependency rule)"
   "$PY" scripts/reproduce_review.py || {
