@@ -317,7 +317,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if va and va.get("outcome") == spec.get("name") and all(
                 va.get(k) is not None for k in ("ai", "n1i", "ci", "n2i")):
             trials.append({"label": label, "id": idstr, "ai": va["ai"], "n1i": va["n1i"],
-                           "ci": va["ci"], "n2i": va["n2i"], "provenance": "aact_verified",
+                           "ci": va["ci"], "n2i": va["n2i"],
+                           "provenance": va.get("provenance", "aact_verified"),
                            "source": va.get("source", "hand-verified structured arm-level counts")})
             continue
         # FULL-TEXT-VERIFIED EFFECT (committed): the declared-outcome effect+CI is reported only in

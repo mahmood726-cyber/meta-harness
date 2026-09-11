@@ -7,7 +7,7 @@
     "sha": "17664842dc5363f3aec2ddee42828835bad05ef6",
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
-    "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['atrial fibrillation']; and none of ['ablation', 'pulmonary vein', 'pericarditis', 'myocardial infarction', 'coronary artery', 'covid']; randomised intervention is one of ['colchicine'] (named in title/conditions); a comparator among ['placebo', 'usual care', 'standard']. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator.",
+    "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['atrial fibrillation']; and none of ['ablation', 'pulmonary vein', 'pericarditis', 'myocardial infarction', 'coronary artery', 'covid']; randomised intervention is one of ['colchicine'] (named in title/conditions); a comparator among ['placebo', 'usual care', 'standard', 'no colchicine', 'no-colchicine']. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator.",
     "text": "# Protocol — colchicine for prevention of postoperative atrial fibrillation\n\n**Registration.** The commit adding/updating this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs. Same machinery as topic 1.\n\n## PICO\n- **P** — adults undergoing cardiac (cardiothoracic) surgery.\n- **I** — colchicine (peri-operative), added to usual care.\n- **C** — placebo / usual care.\n- **O (primary)** — postoperative atrial fibrillation (POAF).\n- **O (harms)** — gastrointestinal adverse effects; treatment discontinuation.\n\n## Estimand / population / timepoint\n- RR of POAF, intention-to-treat, in-hospital / index-admission follow-up.\n\n## Eligibility — P/I/C/DESIGN only\n- **I1** RCT; **I2** cardiac-surgery population with POAF as an outcome; **I3** colchicine vs\n  placebo/usual care; **design** double-blind OR placebo-controlled RCT.\n- Exclude: **X1** not RCT; **X2** wrong population (ablation/pulmonary-vein-isolation AF,\n  pericarditis, coronary-disease AF); **X3** no colchicine-vs-control contrast; **X5** off-topic\n  (a primary trial of another topic in this set — negative control).\n- Eligibility is NOT on the outcome axis; a published effect+CI is a poolable input.\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log(RR); Paule-Mandel τ²; HKSJ 95% CI on t_{k-1}\n(floor max(1,Q/(k-1))); PI μ ± t_{k-1}·√(τ²+se²). DerSimonian-Laird forbidden. metafor-validated.\n(Note: the comparator used DerSimonian-Laird; we report theirs as published and pool ours under the declared method.)\n\n## Comparator (resolved; OA confirmed)\nZhao et al., *J Cardiothorac Surg* 2022, \"A meta-analysis of colchicine in prevention of atrial\nfibrillation following cardiothoracic surgery or cardiac intervention\" (PMID 36050741,\nPMC9438305, DOI 10.1186/s13019-022-01958-9; open access). Reports POAF RR 0.62 (0.52–0.74) over 9 RCTs.\n\n## Controls\n- **Positive** — the search recovers the colchicine-vs-placebo cardiac-surgery POAF RCTs the comparator pools.\n- **Negative** — CORP (colchicine for recurrent pericarditis, PMID 21873705 — another topic in this set)\n  must be recovered and EXCLUDED (wrong population).\n"
   },
   "search": {
@@ -506,10 +506,10 @@
       {
         "id": "27502857",
         "id_type": "pmid",
-        "decision": "exclude",
-        "rule_id": "X3",
-        "reason": "no eligible comparator (none of ['placebo', 'usual care', 'standard']).",
-        "span": "examined: “Effect of ColchiciNe on the InciDence of Atrial Fibrillation in Open Heart Surgery Patient…”"
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of colchicine vs placebo in atrial fibrillation; double-blind placebo-controlled — P/I/C/design met.",
+        "span": "population “…iNe on the InciDence of Atrial Fibrillation in Open Heart Surgery P…”; comparator “…colchicine (n = 179) or no-colchicine (n = 181). Main exclusi…”"
       },
       {
         "id": "27378573",
@@ -524,7 +524,7 @@
         "id_type": "pmid",
         "decision": "exclude",
         "rule_id": "X3",
-        "reason": "no eligible comparator (none of ['placebo', 'usual care', 'standard']).",
+        "reason": "no eligible comparator (none of ['placebo', 'usual care', 'standard', 'no colchicine', 'no-colchicine']).",
         "span": "examined: “Colchicine to Reduce Atrial Fibrillation in the Postoperative Period of Myocardial Revascu…”"
       },
       {
@@ -604,7 +604,7 @@
         "id_type": "nct",
         "decision": "exclude",
         "rule_id": "X3",
-        "reason": "no eligible comparator (none of ['placebo', 'usual care', 'standard']).",
+        "reason": "no eligible comparator (none of ['placebo', 'usual care', 'standard', 'no colchicine', 'no-colchicine']).",
         "span": "examined: “Prophylaxis Against Postoperative Atrial Fibrillation in Patients Undergoing On-pump CABG …”"
       },
       {
@@ -730,6 +730,18 @@
           "provenance": "abstract",
           "verified": "verified",
           "verify_basis": "arm counts present in committed source"
+        },
+        {
+          "label": "27502857",
+          "id": "PMID 27502857",
+          "ai": 26,
+          "n1i": 180,
+          "ci": 37,
+          "n2i": 180,
+          "provenance": "abstract_verified",
+          "source": "END-AF (PMID 27502857) abstract: 'consecutive patients ... scheduled to undergo elective cardiac surgery (n = 360) were randomized ... The primary end point of AF occurred in 63 patients (17.5%): 26 (14.5%) in the colchicine group and 37 (20.5%) in the no-colchicine group (relative risk reduction 29.3% [P = .14])'. n=360 randomized 1:1 => 180 per arm; 26/180=14.4% and 37/180=20.6% corroborate the stated 14.5% and 20.5%. Extractor could not auto-pool: the per-arm denominator (180) is implied by n=360 1:1 + the percentages, not stated, and 'no-colchicine' is not a comparator term.",
+          "verified": "verified",
+          "verify_basis": "arm counts present in committed source"
         }
       ],
       "declared_absent_trials": [
@@ -750,35 +762,39 @@
         }
       ],
       "result": {
-        "k": 4,
-        "estimate": 0.8348,
+        "k": 5,
+        "estimate": 0.8165,
         "scale": "RR",
-        "ci_low": 0.6276,
-        "ci_high": 1.1104,
+        "ci_low": 0.6472,
+        "ci_high": 1.03,
         "tau2": 0.0,
-        "pi_low": 0.6276,
-        "pi_high": 1.1104,
+        "pi_low": 0.6472,
+        "pi_high": 1.03,
         "pi_note": "tau^2 estimated as 0, so the prediction interval coincides with the confidence interval (no between-study heterogeneity detected).",
         "leave_one_out": {
-          "min": 0.817,
-          "max": 0.8514,
+          "min": 0.7902,
+          "max": 0.8348,
           "most_influential": "37640035",
           "per_trial": [
             {
               "dropped": "37640035",
-              "estimate": 0.817
+              "estimate": 0.7902
             },
             {
               "dropped": "32720823",
-              "estimate": 0.832
+              "estimate": 0.8131
             },
             {
               "dropped": "29237033",
-              "estimate": 0.8374
+              "estimate": 0.8183
             },
             {
               "dropped": "25172965",
-              "estimate": 0.8514
+              "estimate": 0.8184
+            },
+            {
+              "dropped": "27502857",
+              "estimate": 0.8348
             }
           ],
           "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."
@@ -792,7 +808,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
       "trials": [
         {
           "label": "37640035",
@@ -802,6 +818,18 @@
           "ci": 38,
           "n2i": 1601,
           "source": "abstract arm-level counts (percentage-corroborated): Non-infectious diarrhoea was more common in the colchicine group (134 [8.3%] events) than the placebo group (38 [2.4%]; HR 3.64, 2.54-5.22).",
+          "provenance": "abstract",
+          "verified": "verified",
+          "verify_basis": "arm counts present in committed source"
+        },
+        {
+          "label": "27502857",
+          "id": "PMID 27502857",
+          "ai": 44,
+          "n1i": 179,
+          "ci": 10,
+          "n2i": 181,
+          "source": "abstract arm-level counts (percentage-corroborated): Diarrhea occurred in 54 patients, 44 (24.6%) on colchicine and 10 (5.5%) on no-colchicine (P < .001).",
           "provenance": "abstract",
           "verified": "verified",
           "verify_basis": "arm counts present in committed source"
@@ -840,14 +868,17 @@
         }
       ],
       "result": {
-        "k": 1,
-        "estimate": 3.511,
+        "k": 2,
+        "estimate": 3.7037,
         "scale": "RR",
-        "ci_low": 2.4655,
-        "ci_high": 4.9998,
-        "pi_note": "prediction interval undefined for k=1",
+        "ci_low": 0.493,
+        "ci_high": 27.8264,
+        "tau2": 0.0,
+        "pi_low": 0.493,
+        "pi_high": 27.8264,
+        "pi_note": "tau^2 estimated as 0, so the prediction interval coincides with the confidence interval (no between-study heterogeneity detected).",
         "leave_one_out": {
-          "note": "not assessable at k=1 (leave-one-out needs k>=3)"
+          "note": "not assessable at k=2 (leave-one-out needs k>=3)"
         }
       }
     },
@@ -893,6 +924,11 @@
           "label": "22090167",
           "id": "PMID 22090167",
           "reason": "multi-arm dose-ranging trial (>1 intervention dose arm vs one comparator): the effect cannot be attributed to a single pre-specified comparison; refused (multi-arm guard). Specify the dose in the topic's intervention terms to pin the arm."
+        },
+        {
+          "label": "27502857",
+          "id": "PMID 27502857",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
         },
         {
           "label": "NCT07287345",
@@ -951,7 +987,7 @@
       "note": "same-question comparator (matching intervention level and population)"
     },
     "overlap": {
-      "ours_k": 4,
+      "ours_k": 5,
       "theirs_k": 9,
       "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
       "only_ours": [
@@ -1105,7 +1141,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "17664842dc5363f3aec2ddee42828835bad05ef6",
-    "review_sha256": "f26206e12c392ef60eb7c50dfb8ecf2ae57473e283888d94090ebc0d0f7db414",
+    "review_sha256": "bead1baca6333d29143a9c83f92fd872954d2b3447a5051615a16358145fa7b6",
     "from_cache": true
   }
 }
