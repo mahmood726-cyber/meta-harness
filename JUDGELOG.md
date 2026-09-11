@@ -118,3 +118,12 @@ auto-extracted from its own PubMed abstract by the SAME pipeline, so it is no lo
 ### Fix applied this round (judge-flagged, general): F5 k=1 honest presentation
 - Showing Paule-Mandel/HKSJ/tau2/PI on a single pooled trial is incoherent (flagged on TXA, statins, sglt2). k=1 outcomes now state "single included trial — the trial's own effect; no random-effects pooling" and omit tau2. Applied to all 4 k=1 live topics; multi-k unchanged; tests green.
 - **Standing priority remains raising k** (search recall + extraction depth) so the data limb catches up — that is what "equal" actually needs.
+
+## Topic — prone positioning in ARDS — DECLINED (uninformative at k=2)
+- k=2 (PROSEVA HR 0.44 severe ARDS; an older mixed-severity trial RR 0.97) — genuine clinical
+  heterogeneity by ARDS severity. Naive RE pool: RR 0.67 but tau2=0.29 with t_{k-1}=t_1 gives a CI of
+  0.005-100 — correct under the declared method but uninformative and reader-hostile. Declining rather
+  than publishing a nonsense-CI page; an honest synthesis needs severity stratification (harness gap).
+## Topic — omega-3 for CV events — LIVE (honest k=3)
+- k=3 (VITAL 785/6539 vs 795/6539; REDUCE-IT HR 0.75; a null trial HR 1.01) RR 0.91 (0.60-1.37);
+  comparator PMID 35905212 (OA) major CV 0.94. Neg control excluded. Direction matches; honest wide CI.
