@@ -71,3 +71,13 @@ No `--no-verify`; never edit a refusing gate; never bump a baseline; no tuning t
 hollow tabs; no comparator that is us; honest k over inflated k; every extraction TRUE vs
 source; a landing isn't landed until the LIVE URL is fetched; a wrong number that
 gate-passes is the only failure mode that matters — keep declining.
+
+## Lane artefact durability (added after empagliflozin was lost to a clone reset)
+A Codex lane cannot commit (sandbox blocks .git), so its output exists ONLY as untracked files
+in its clone. Therefore:
+- **Never `git reset --hard`, `git clean`, or re-dispatch into a clone that holds uncommitted
+  lane output.** Harvest first: `sh scripts/harvest_lane.sh <clone> <scratch/harvest/<job>>`.
+- **Harvest a lane's artefacts to durable scratch the moment it completes**, before any reuse.
+- **Cleanup is scoped and never touches a tree another lane holds. Never `prune`.**
+- A lane whose output exists only uncommitted is a lane you may have to run twice — the two
+  losses this project took (empagliflozin, the gated statins page) were both this exact shape.
