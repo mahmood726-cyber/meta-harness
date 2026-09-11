@@ -70,3 +70,29 @@ Every added trial verified true against source before it pools.
 - REGRESS: rebuilt all 23; 23/23 reproduce (review_sha256 unchanged => NO estimate moved), 98 tests,
   gate all PASS. deficit=transparency: moved from unmeasured to a measured, rendered 100%/0-gap score
   and a countable ~740-vs-~35 claim advantage — the one axis we are unambiguously ahead on. SUCCESS.
+
+## Cycle 5 — PICK: hfnc k=1 → real extraction gap found, fix ATTEMPTED, REVERTED (would ship wrong denominators)
+- hfnc reintubation has 12 declared-absent, incl. Hernández 2016 JAMA (26975498): "Reintubation
+  within 72h... high-flow group (13 patients [4.9%] vs 32 [12.2%])" with arm sizes "264 received
+  high-flow... 263 conventional". A clean percentage-corroborated 2x2 the extractor MISSED because
+  denom candidates came only from "(n=X)" / "assigned to each", and Hernández states arm sizes as
+  prose. GENUINE extraction gap, not the wall.
+- FIX attempted (general): _arm_size_candidates() adds denominators from "N received/assigned/
+  randomized" and "N <arm-term>", merged into denom_each (corroboration + round-trip gates validate).
+  Hernández then extracted EXACTLY: ai=13/264, ci=32/263 (verified true against source). hfnc k 1->2.
+- REGRESS caught the problem: 4 topics changed; source-verification found TWO WRONG denominators the
+  gate did NOT catch:
+  * LoDoCo2 (32865380): source "2762 colchicine and 2760 placebo" — fix paired placebo's 264 with
+    2762 (the colchicine arm size). n2=2762 WRONG (true 2760).
+  * SELECT (37952131): source "8803 semaglutide and 8801 placebo" — fix used 8803 for the placebo
+    AE count. WRONG (true 8801).
+  Root cause: when the two arms are near-equal (2762 vs 2760, 8803 vs 8801), percentage-corroboration
+  (1.0pp) cannot distinguish them, so the count is paired with the WRONG arm's denominator. (Two other
+  changes were correct: RECOVERY counts 621/2022+729/2094 -> OR 0.83, a genuine improvement over the
+  mislabeled IRR 0.85; colchicine-postop diarrhoea 134/1608+38/1601, correct because arms differ.)
+- ACTION: REVERTED harness/extract.py (a wrong number that gate-passes is THE failure mode; off-by-2
+  is still not true against source). 23 reviews restored byte-identical; hfnc removed.
+- k delta: 0 (reverted). FAILED cycle for committed k, but high value: found a real recoverable gap
+  AND the exact reason the naive fix is unsafe. The CORRECT fix is per-arm denominator IDENTITY
+  (pair intervention-count with n_i, comparator-count with n_c, by arm label) so near-equal arms
+  can't cross — a larger careful change queued as cycle 6, to be REGRESS-verified per change.
