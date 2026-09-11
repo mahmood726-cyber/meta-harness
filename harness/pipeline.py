@@ -81,6 +81,13 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp):
                          n2i=t.get("n2i"), effect=t.get("effect"), ci_low=t.get("ci_low"),
                          ci_high=t.get("ci_high"), source=t.get("source", ""), measure=meas) for t in trials]
         out["result"] = _pool_result(studies, scale=spec.get("estimand", "RR"))
+        if out["result"].get("k") == 1:
+            # A single trial is not a random-effects meta-analysis: present it honestly as the
+            # trial's own effect, and do not display tau^2 / HKSJ / prediction-interval machinery.
+            out["method"] = ("Single included trial that reported this outcome — the estimate is that "
+                             "trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction "
+                             "interval are not applicable at k=1).")
+            out["result"].pop("tau2", None)
     else:
         out["result"] = {"present": False,
                          "reason": "no included trial reported this outcome with a percentage-corroborated "
