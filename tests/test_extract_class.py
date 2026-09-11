@@ -105,6 +105,45 @@ def test_substudy_narrative_mention_does_not_enable_anchor():
     assert fx.get("absent"), fx
 
 
+# --- component-as-composite class (the dangerous one: a component and the MACE composite can
+#     share a point estimate; only endpoint identity separates them). SUSTAIN-6 primary MACE is
+#     HR 0.74 (0.58-0.95) / 108 of 1648 vs 146 of 1649; its nonfatal-MI COMPONENT is HR 0.74
+#     (0.51-1.08). A 3-point-MACE topic whose keywords INCLUDE the component names must still pool
+#     the composite, never the component.
+MACE_KWS = ["major adverse cardiovascular events", "MACE", "3-point MACE",
+            "cardiovascular death", "nonfatal myocardial infarction", "nonfatal stroke",
+            "primary composite outcome", "primary outcome", "primary endpoint", "primary end point"]
+SUSTAIN6 = ("The primary composite outcome was the first occurrence of cardiovascular death, "
+            "nonfatal myocardial infarction, or nonfatal stroke. The primary outcome occurred in "
+            "108 of 1648 patients (6.6%) in the semaglutide group and in 146 of 1649 patients "
+            "(8.9%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.58 "
+            "to 0.95; P<0.001). Nonfatal myocardial infarction occurred in 2.9% of patients in the "
+            "semaglutide group and 3.9% in the placebo group (hazard ratio, 0.74; 95% CI, 0.51 to "
+            "1.08). Nonfatal stroke occurred in 1.6% vs 2.7% (hazard ratio, 0.61; 95% CI, 0.38 to 0.99).")
+
+
+def test_sustain6_pools_primary_mace_not_mi_component():
+    fx = _xt(SUSTAIN6, MACE_KWS, ["semaglutide"], ["placebo"], declared_composite=True)
+    assert not fx.get("absent"), fx
+    # counts path preferred: the primary MACE 2x2, NOT the MI-component effect (CI 0.51-1.08)
+    if "ai" in fx and fx["ai"] is not None:
+        assert (fx["ai"], fx["n1i"], fx["ci"], fx["n2i"]) == (108, 1648, 146, 1649), fx
+    else:
+        assert fx.get("ci_low") == 0.58 and fx.get("ci_high") == 0.95, fx
+        assert fx.get("ci_low") != 0.51, "pooled the nonfatal-MI component, not the MACE composite"
+
+
+# --- FIGARO kidney SECONDARY composite IS the correct pool for a kidney-composite topic (its CV
+#     primary must be rejected -- covered above -- and its kidney secondary is our target).
+def test_figaro_pools_kidney_secondary_not_cv_primary():
+    fx = _xt(FIGARO, KIDNEY_KWS, ["finerenone"], ["placebo"], declared_composite=True)
+    # FIGARO in test_extract_class's fixture states the CV primary counts (458/3686); those must
+    # NOT be pooled for a kidney topic. Either absent or the kidney secondary -- never 458/3686.
+    if not fx.get("absent"):
+        assert not (fx.get("ai") == 458 and fx.get("n1i") == 3686), \
+            "pooled FIGARO's CV primary counts for a kidney-composite topic"
+
+
 # --- scale-label correctness: the conjunction "or" must not be read as an odds ratio ---
 from harness.extract import _EFFECT, _effect_from_match
 
