@@ -211,3 +211,23 @@ Every added trial verified true against source before it pools.
   pool labelled "mixed (...)". Locks the quietest failure class (wrong-arm binding).
 - SUCCESS: the "calling it an HR when mixed" class is killed corpus-wide (honest label), and the
   arm-identity win is now regression-protected. deficit 8b: mislabeled pools 5 -> 0.
+
+## Cycle 13 — verified_arms.json AUDIT: the hand-verified tier made HARNESS-AUDITABLE
+- The ONE hand-verified entry (SMART crystalloids mortality) is the last "reproducible-given-my-
+  judgement" number. It sums 30-day in-hospital mortality across SMART's TWO registrations
+  (NCT02444988 + NCT02547779); the abstract gives only percentages, and the record's nct field names
+  just one registration — so the single-registration AACT path would pool a WRONG partial number.
+- BUILT scripts/verify_verified_arms.py: re-derives every verified_arms entry from the committed AACT
+  snapshot — per-arm counts aligned by result-group TITLE (intervention vs comparator), summed over
+  registrations, with a both-arms IDENTITY GUARD that excludes the co-citing NCT04507672 (a different
+  trial). Cross-checks the derived counts against the entry AND the published abstract %.
+- The auditor itself was validated (the recurring lesson): first pass MISMATCHED on denominators
+  because it aligned arms by MAGNITUDE (balanced is the larger arm in one registration, smaller in the
+  other) — fixed to align by result-group title -> AACT_DERIVED_MATCH: 818/7942, 875/7860 == entry ==
+  published 10.3%/11.1%. This is also why blind auto-summing is unsafe (arm alignment is non-trivial).
+- The entry now records harness_audit; docs/verified_arms_audit.json committed. The hand number is now
+  a CHECK on the harness's AACT re-derivation, not a substitute — a stranger with the AACT snapshot
+  regenerates the same numbers. 102 tests, reproduces, gate PASS.
+- SUCCESS: verified_arms is 1 entry, and it is now harness-auditable/re-derivable rather than typed
+  judgement. Fresh-clone still replays the committed cache (AACT is not in-clone); the auditor proves
+  the committed number is AACT-derivable.
