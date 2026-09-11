@@ -249,3 +249,20 @@ Every added trial verified true against source before it pools.
   speculative build — a cycle that moves no verified deficit is a failed cycle for k.
 - The architecture stays documented as the correct next build for a FUTURE genuine unusual-phrasing
   case WITH a round-trip anchor; it is not built speculatively under an expiring budget.
+
+## Cycle 15 — verified_arms.json → STRUCTURED / HARNESS-DERIVED (front 2; the hand tier shrinks)
+- Generalised cycle 13's arm-identity mechanism into harness/aact.py::summed_arms(pmid, interv, comp,
+  outcome_terms): discovers a trial's registrations from study_references (own-pub link to the PMID),
+  aligns arms by RESULT-GROUP TITLE (intervention vs comparator terms), sums per arm over registrations
+  reporting BOTH arms (identity gate excludes co-citing NCTs), refuses recurrent-event titles. Only
+  inputs are the committed PMID + topic terms — no NCT list, no typed number.
+- scripts/build_aact_arms.py regenerates cache/<slug>/verified_arms.json from the committed
+  `aact_arm_trials` spec (pmid + outcome terms = a committed query): summed_arms + abstract-% cross-check
+  (round-trip) + recurrent guard; writes an entry ONLY if it reconciles with the published %.
+- RESULT: SMART regenerated to the SAME numbers (818/7942, 875/7860) but now HARNESS-GENERATED from
+  committed AACT and cross-checked, not typed. **0 estimates moved.** verify_verified_arms audit still
+  MATCH; 102 tests; reproduces; gate PASS. The hand-verified tier is now a DERIVED+AUDITED tier — a
+  stranger with the AACT snapshot re-runs build_aact_arms.py and regenerates the identical file.
+- Also wrote BURN_PLAN.md (rate target + sequence; standards unchanged).
+- SUCCESS: the last "reproducible-given-my-judgement" number is now produced by committed code from
+  committed AACT via a committed query — committed query -> committed cache -> replay -> gate.

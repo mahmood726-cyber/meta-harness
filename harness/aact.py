@@ -180,6 +180,88 @@ def outcome_arms(ncts, root: str | None = None) -> dict[str, list]:
     return out
 
 
+def _arm_of(title, interv_terms, comp_terms):
+    t = (title or "").lower()
+    if any(x and x.lower() in t for x in interv_terms or []):
+        return "i"
+    if any(x and x.lower() in t for x in comp_terms or []):
+        return "c"
+    return None
+
+
+def summed_arms(pmid, interv_terms, comp_terms, outcome_terms, root: str | None = None) -> dict | None:
+    """DETERMINISTIC per-arm 2x2 for a trial, summed across its NCT registrations, from the committed
+    AACT snapshot. Generalises the arm-IDENTITY mechanism: a trial's registrations are discovered from
+    study_references (own-publication link to this PMID); within each, the outcome-matching
+    COUNT_OF_PARTICIPANTS measure and the arm 'Participants' denominators are aligned to
+    intervention/comparator by RESULT-GROUP TITLE (never by magnitude). A registration contributes
+    ONLY if it reports BOTH arms for the outcome AND its arm titles match this topic's terms — the
+    identity gate that excludes a different trial that merely cites the same paper. Refuses (None) on a
+    recurrent-event outcome title (needs person-time, not a binomial). No hand-typed number: the counts
+    come from committed AACT, and the caller cross-checks them against the abstract %.
+
+    Returns {"ai","n1i","ci","n2i","registrations":[...],"outcome_title":...,"provenance"} or None.
+    """
+    pmid = str(pmid).strip()
+    # 1) discover this trial's own-publication registrations
+    om_p, oc_p, rg_p, sr_p = (_table(t, root) for t in ("outcome_measurements", "outcome_counts",
+                                                        "result_groups", "study_references"))
+    if not all((om_p, oc_p, rg_p, sr_p)):
+        return None
+    ncts = set()
+    for r in _iter_rows(sr_p):
+        if (r.get("pmid") or "").strip() == pmid and (r.get("reference_type") or "").upper() in OWN_PUB_TYPES:
+            ncts.add((r.get("nct_id") or "").upper())
+    if not ncts:
+        return None
+    # 2) result-group titles per (nct, code)
+    titles = {}
+    for r in _iter_rows(rg_p):
+        n = (r.get("nct_id") or "").upper()
+        if n in ncts and r.get("ctgov_group_code"):
+            titles[(n, r["ctgov_group_code"])] = r.get("title") or ""
+    # 3) per-arm event counts (outcome-matched COUNT_OF_PARTICIPANTS) + denominators, per registration
+    per = {n: {"i": {}, "c": {}, "otitle": None} for n in ncts}
+    for r in _iter_rows(om_p):
+        n = (r.get("nct_id") or "").upper()
+        if n not in ncts:
+            continue
+        ot = (r.get("title") or "")
+        if any(k in ot.lower() for k in outcome_terms) and (r.get("param_type") or "").upper() == "COUNT_OF_PARTICIPANTS":
+            if is_recurrent_event_title(ot):
+                return None  # recurrent-event outcome -> not a binomial; refuse
+            arm = _arm_of(titles.get((n, r.get("ctgov_group_code")), ""), interv_terms, comp_terms)
+            if arm:
+                try:
+                    per[n][arm]["events"] = int(float(r.get("param_value")))
+                    per[n]["otitle"] = ot
+                except (TypeError, ValueError):
+                    pass
+    for r in _iter_rows(oc_p):
+        n = (r.get("nct_id") or "").upper()
+        if n in ncts and (r.get("units") or "").lower().startswith("participant"):
+            arm = _arm_of(titles.get((n, r.get("ctgov_group_code")), ""), interv_terms, comp_terms)
+            if arm and "denom" not in per[n][arm]:
+                try:
+                    per[n][arm]["denom"] = int(r.get("count"))
+                except (TypeError, ValueError):
+                    pass
+    # 4) sum only registrations with BOTH arms complete for this outcome (identity gate)
+    used, ai = [], 0
+    n1i = ci = n2i = 0
+    otitle = None
+    for n in sorted(ncts):
+        a = per[n]
+        if all(k in a["i"] for k in ("events", "denom")) and all(k in a["c"] for k in ("events", "denom")):
+            ai += a["i"]["events"]; n1i += a["i"]["denom"]
+            ci += a["c"]["events"]; n2i += a["c"]["denom"]
+            used.append(n); otitle = otitle or a["otitle"]
+    if not used or n1i == 0 or n2i == 0:
+        return None
+    return {"ai": ai, "n1i": n1i, "ci": ci, "n2i": n2i, "registrations": used,
+            "outcome_title": otitle, "provenance": "aact_structured_summed"}
+
+
 def study_dates(ncts, root: str | None = None) -> dict[str, dict]:
     """Per-NCT registration/enrolment/results dates + status, for the prospective-registration and
     ghost-protocol checks. ONE streaming pass over studies."""
