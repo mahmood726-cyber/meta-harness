@@ -82,6 +82,45 @@ def _enrollment_floor(abstract):
     return int(0.6 * max(ns)) if ns else None
 
 
+def _rr_cs(ai, n1, ci, n2):
+    if None in (ai, n1, ci, n2) or ai in (0,) or ci in (0,) or not n1 or not n2:
+        return None
+    return (ai / n1) / (ci / n2)
+
+
+def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
+    """SECOND INDEPENDENT EXTRACTOR + adjudication. A trial pooled from its abstract is corroborated
+    against CT.gov structured results (a different source, extracted independently) when the trial
+    has both. Count-vs-count gets an agree verdict within tolerance; a gross DIRECTION FLIP is a
+    flagged discrepancy (not auto-refused, because a difference can be a legitimate timepoint/
+    definition mismatch — it is surfaced for the reader and for hand-investigation). The cross-source
+    number NEVER replaces the pooled number; it only corroborates it."""
+    oms = ctgov_results.get(nct)
+    if not oms:
+        return None
+    cg = extract_ctgov(oms, spec["keywords"], interv, comp)
+    if not cg:
+        return None
+    c_rr = _rr_cs(cg.get("ai"), cg.get("n1i"), cg.get("ci"), cg.get("n2i"))
+    a_rr = _rr_cs(ex.get("ai"), ex.get("n1i"), ex.get("ci"), ex.get("n2i"))
+    out = {"ctgov_rr": round(c_rr, 3) if c_rr else None, "ctgov_source": cg.get("source", "")}
+    if a_rr and c_rr:
+        import math
+        ratio = a_rr / c_rr
+        flip = (a_rr - 1) * (c_rr - 1) < 0 and abs(math.log(ratio)) > 0.2
+        gross = ratio > 1.5 or ratio < (1 / 1.5)
+        out["abstract_rr"] = round(a_rr, 3)
+        out["agree"] = not (flip and gross)
+        out["note"] = ("independently corroborated by CT.gov structured results"
+                       if out["agree"] else
+                       "DISCREPANCY vs CT.gov structured results (direction flip) — investigate before trusting")
+    else:
+        out["agree"] = None
+        out["note"] = ("CT.gov structured result present; measures are not both count-derived "
+                       "(abstract effect vs registry counts), shown for corroboration only")
+    return out
+
+
 def _pool_result(studies, scale="RR"):
     r = pool(studies, scale=scale)
     res = {"k": r.k, "estimate": round(r.estimate, 4), "scale": r.scale,
@@ -126,7 +165,12 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         ex = extract.extract_trial(rec.get("abstract", ""), spec["keywords"], interv, comp)
         if not ex.get("absent"):
             ex["provenance"] = "abstract"
-            trials.append({"label": label, "id": idstr, **ex})
+            t = {"label": label, "id": idstr, **ex}
+            if nct and nct in ctgov_results:
+                cs = _cross_source(ex, nct, ctgov_results, spec, interv, comp)
+                if cs:
+                    t["cross_source"] = cs
+            trials.append(t)
             continue
         cg = (extract_ctgov(ctgov_results.get(nct), spec["keywords"], interv, comp,
                             min_total=_enrollment_floor(rec.get("abstract", "")),

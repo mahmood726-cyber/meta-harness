@@ -217,6 +217,18 @@ def _trial_inputs(o):
         else:
             inp = "—"
         src = _e(t.get("source"))
+        cs = t.get("cross_source")
+        if cs:
+            # Second independent extractor (CT.gov structured) corroborating the abstract number.
+            verd = ("✓ corroborated" if cs.get("agree") else
+                    ("⚠ DISCREPANCY" if cs.get("agree") is False else "· corroboration"))
+            bits = []
+            if cs.get("abstract_rr") is not None and cs.get("ctgov_rr") is not None:
+                bits.append(f"abstract RR {cs['abstract_rr']} vs CT.gov RR {cs['ctgov_rr']}")
+            elif cs.get("ctgov_rr") is not None:
+                bits.append(f"CT.gov RR {cs['ctgov_rr']}")
+            src += (f"<div class='xsrc'><em>second source ({verd}):</em> "
+                    + (_e("; ".join(bits) + ". ") if bits else "") + _e(cs.get("note", "")) + "</div>")
         j = t.get("identity_judgment")
         if j:
             # Model-derived outcome-identity judgment (checkable, 5 fields). It admitted this
