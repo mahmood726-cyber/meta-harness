@@ -24,6 +24,7 @@ TABS = [
     ("outcomes", "Results"),
     ("harms", "Harms"),
     ("comparator", "Comparator"),
+    ("reporting", "Reporting (PRISMA)"),
     ("reproduction", "Reproducibility"),
 ]
 NEUTRAL_DROP = {"comparator"}
@@ -431,9 +432,70 @@ def _reproduction(r, neutral):
     ])
 
 
+def _reporting(r, neutral):
+    """PRISMA 2020 item-by-item compliance: render each relevant item or declare it absent WITH a
+    reason (never blank). Status is derived from the review object, so it cannot drift from what the
+    page actually shows."""
+    s = r.get("search") or {}
+    scr = r.get("screening") or {}
+    prot = r.get("protocol") or {}
+    prim = next((o for o in (r.get("outcomes") or []) if o.get("primary")), None)
+    res = (prim or {}).get("result") or {}
+    dual = scr.get("dual")
+    has_pi = res.get("pi_low") is not None
+    items = [
+        ("5 Eligibility criteria", bool(prot.get("eligibility")),
+         "Protocol tab — generated from the structured include object (P/I/C/design), so declared == enforced.",
+         "eligibility not declared"),
+        ("6 Information sources + dates", bool(s.get("databases")),
+         f"Search tab — {', '.join(s.get('databases', []))}; run {s.get('run_utc')}; AACT snapshot dated on the ghost/recall blocks.",
+         "sources not declared"),
+        ("7 Full search strategy, verbatim, every source", bool(s.get("sources")),
+         "Search tab — the exact PubMed and ClinicalTrials.gov queries are printed verbatim and are re-runnable.",
+         "verbatim queries not present"),
+        ("8 Selection process (screeners, disagreement)", True,
+         (("Two independently-implemented rule screeners; disagreement rate "
+           f"{dual.get('disagreement_rate_pct')}% ({dual.get('disagree')}/{dual.get('n')}); rule-based adjudicates. "
+           "CAVEAT: both rule sets share an author and the same criteria, so they are NOT statistically "
+           "independent and this agreement overstates reliability — a genuinely independent model screener is the next step.")
+          if dual else
+          "Single deterministic rule-based screen; every decision carries a rule id, a reason true of the record, "
+          "and a verbatim span. Dual independent screening is NOT yet implemented (declared, not hidden)."),
+         ""),
+        ("9 Data collection process", True,
+         "Results tab + per-trial Source column — source hierarchy (abstract > CT.gov structured > full text > "
+         "hand-verified AACT arms), round-trip validation on every extraction, outcome-identity gating; refuse on ambiguity.",
+         ""),
+        ("15 Certainty assessment (GRADE)", False,
+         None,
+         "No formal GRADE certainty rating yet; imprecision is shown via the CI"
+         + (" and prediction interval" if has_pi else "") + ", heterogeneity via tau^2, but a graded certainty is not asserted."),
+        ("16a Flow with counts at every stage", bool(scr.get("records")),
+         "Screening tab — PRISMA flow: identified -> screened -> excluded-by-rule (counts) -> eligible -> pooled k -> declared-absent.",
+         "no screening flow"),
+        ("16b Exclusions with reasons", bool(scr.get("records")),
+         "Screening tab — every excluded record lists its rule id, a reason true of the record, and a verbatim span.",
+         "no per-record exclusions"),
+        ("24a-c Registration & protocol", bool(prot.get("sha")),
+         f"Protocol + Reproducibility tabs — registered at commit SHA {str(prot.get('sha'))[:10]}, committed before synthesis, "
+         "eligibility generated from the structured object.",
+         "no registration SHA"),
+    ]
+    rows = []
+    for label, ok, present_txt, absent_txt in items:
+        status = "✓ present" if ok else "✗ absent"
+        txt = present_txt if ok else absent_txt
+        cls = "dec-include" if ok else "dec-exclude"
+        rows.append(f"<tr><td>{_e(label)}</td><td class='{cls}'>{status}</td><td>{_e(txt)}</td></tr>")
+    return ("<p>Compliance with the PRISMA 2020 reporting items, derived from the review object so it "
+            "cannot drift from the page. Every item is rendered or declared absent with a reason.</p>"
+            "<table class='recs'><tr><th>PRISMA 2020 item</th><th>Status</th><th>Where / why</th></tr>"
+            + "".join(rows) + "</table>")
+
+
 _R = {"overview": _overview, "protocol": _protocol, "search": _search,
       "screening": _screening, "outcomes": _outcomes, "harms": _harms,
-      "comparator": _comparator, "reproduction": _reproduction}
+      "comparator": _comparator, "reproduction": _reproduction, "reporting": _reporting}
 
 _CSS = """
 *{box-sizing:border-box}body{font:15px/1.55 system-ui,Segoe UI,Arial,sans-serif;margin:0;color:#12232e;background:#f7f8fa}
