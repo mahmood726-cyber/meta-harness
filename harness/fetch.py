@@ -264,6 +264,16 @@ def run(config: dict) -> dict:
     comparator_fulltext = ""
     if config.get("comparator_pmid"):
         comparator_fulltext = _pmc_fulltext(config["comparator_pmid"])
+    # Per-trial PMC OA full text (FREE): the pipeline uses it as a fallback when a trial's ABSTRACT
+    # yields no poolable number — this is where per-arm SD / person-time / rate-ratio+CI live that
+    # abstracts omit (Albert's azithromycin IRR 0.73 is in its full text, not its abstract). Gated
+    # by fulltext:true so existing caches are unaffected until a topic opts in and re-fetches.
+    fulltext_by_pmid = {}
+    if config.get("fulltext"):
+        for r in pubmed[:config.get("max_fulltext", 40)]:
+            ft = _pmc_fulltext(r["id"])
+            if ft:
+                fulltext_by_pmid[r["id"]] = ft
     # AACT/registry-results adapter: structured arm-level outcome tables per NCT with results.
     ncts = []
     for r in pubmed:
@@ -282,8 +292,11 @@ def run(config: dict) -> dict:
             "ctgov_query": cg, "records": pubmed, "ctgov": ctgov,
             "comparator_pmid": config.get("comparator_pmid"), "comparator_oa": comparator_oa,
             "comparator_fulltext": comparator_fulltext, "ctgov_results": ctgov_results,
+            "fulltext_by_pmid": fulltext_by_pmid,
             "source_status": {"pubmed": "RAN_OK", "europepmc": "RAN_OK",
-                              "citation_chase": cite_status}}
+                              "citation_chase": cite_status,
+                              "fulltext": ("RAN_OK" if fulltext_by_pmid else
+                                           ("RAN_ZERO" if config.get("fulltext") else "NOT_RUN"))}}
 
 
 def cache_path(slug: str) -> str:

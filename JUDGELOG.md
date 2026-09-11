@@ -287,3 +287,16 @@ limit as the recurrent-event class: **abstracts lack the per-arm variance (SD/IQ
 pooling needs; that data lives in FULL TEXT.** UNIFYING NEXT LEVER = per-trial PMC OA full-text extraction
 (free, already in the adapter set as _pmc_fulltext) — it unblocks BOTH the continuous (zinc/melatonin) and
 rate (azithromycin/iv-iron/ENGAGE) classes. Synth+extractors are ready to receive full-text numbers.
+
+## azithromycin full-text re-attempt DECLINED again (2026-09-11) — full-text lever real, but noisy-source extraction produced wrong numbers
+Enabled estimand IRR + full-text on azithromycin. Result k=2 but BOTH extractions WRONG:
+- Albert (21864166) pooled via CT.gov "Number of Emergency Department Visits" OM — WRONG outcome (my
+  broadened keywords let ctgov title-match an ED-visits measure); the correct full-text IRR 0.73
+  (0.63-0.84) was never reached because ctgov is tried before full text and matched wrong.
+- 28558695 gave a SUBGROUP hazard ratio ("lowest in the HP+/AZ group"), not the main comparison.
+DECLINED (reverted). The full-text lever is REAL (Albert's IRR 0.73 IS in the PMC full text), but
+recovering these topics safely needs: (a) CT.gov OM outcome-IDENTITY tightening (ED-visits != our
+exacerbation outcome), (b) subgroup detection in full-text/abstract extraction, (c) full-text tried
+with the same outcome-scoping care. These are careful hardening steps, not a turn-tail rush. The
+full-text acquisition adapter + rate/continuous extractors are committed (tested, opt-in via
+fulltext:true, 0 regression) and ready once that hardening lands. Bar held: no wrong number published.

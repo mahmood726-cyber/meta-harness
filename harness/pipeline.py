@@ -96,8 +96,9 @@ def _pool_result(studies, scale="RR"):
     return res
 
 
-def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None):
+def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None, fulltext_by_pmid=None):
     ctgov_results = ctgov_results or {}
+    fulltext_by_pmid = fulltext_by_pmid or {}
     trials, absent = [], []
     for d in included:
         rec = rec_by_id.get(d["id"], {})
@@ -120,6 +121,16 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if cg:
             cg["provenance"] = "ctgov_results"
             trials.append({"label": label, "id": idstr, **cg})
+            continue
+        # FULL-TEXT FALLBACK: per-arm SD / person-time / rate-ratio+CI that the abstract omits
+        # often live in the PMC OA full text (Albert's azithromycin IRR 0.73). Same extractors,
+        # same round-trip + refuse-on-ambiguity guards; keyword-scoped so it reads the outcome's
+        # own sentences, not the whole document.
+        ft = fulltext_by_pmid.get(d["id"]) if d["id_type"] == "pmid" else None
+        fx = extract.extract_trial(ft, spec["keywords"], interv, comp) if ft else None
+        if fx and not fx.get("absent"):
+            fx["provenance"] = "pmc_fulltext"
+            trials.append({"label": label, "id": idstr, **fx})
         else:
             absent.append({"label": label, "id": idstr, "reason": ex["reason"]})
     out = {"name": spec["name"], "kind": kind, "primary": bool(spec.get("primary")),
@@ -183,7 +194,8 @@ def build_review_core(slug, config, records, protocol_sha):
     comp = config.get("comparator_terms", ["placebo", "control"])
 
     cgr = records.get("ctgov_results") or {}
-    outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr)
+    ftbp = records.get("fulltext_by_pmid") or {}
+    outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp)
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 
