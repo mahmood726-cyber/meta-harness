@@ -196,3 +196,12 @@ Verdicts: A=real extraction miss (recoverable), B=reach (bare %/full-text only),
 - **probiotics-aad (≈19 pub-unext): A=5, B=12, C=1, D=6.** 12 report AAD as bare % (reach), 6 ineligible (2 protocols, treatment-not-prevention, observational). Genuine misses with explicit per-arm N/M: 22472744 (13/98 vs 16/106), 18949181 (4/41 vs 5/45), 16572062 (7/78 vs 1/73). 30149135 reports diarrhoea under MULTIPLE definitions (ambiguous — do NOT auto-extract, wrong-number risk). 24044687 needs effect inversion (risky).
 - **Conclusion: our pooled k is largely CORRECT for the strict outcome** — PUB-UNEXT is dominated by different-outcome/surrogate studies and bare-% reporting, not extraction defects. The real, safe misses are few (~2 colchicine + ~3 probiotics with explicit N/M).
 - **Extraction-pattern gaps identified (front-four #3):** (1) "P% (N/M)" percentage-FIRST order (e.g. "9% (7/78) ... 1.4% (1/73)"); (2) generic arm labels "study group"/"treatment group"/"intervention group" not assigned to intervention; (3) counts without inline denominators ("8 events ... 28 events"); (4) multi-definition outcomes (must pick the right definition or skip). To be fixed carefully with per-trial verification; probiotics stays k=13 (verified flagship) until then.
+
+## Wave-5 BLIND VERDICTS (3 of 3 wins) — 2026-09-11
+Neutral opaque-token pairs, URL-only subagent judges, /35.
+- ticagrelor-vs-clopidogrel-acs: OURS 28 vs comparator 9. Named PLATO (19717846) HR 0.84 + major-bleeding arm counts (961/9235 vs 929/9186); 31-record screening log; SHA/hash/census. Comparator = unnamed 2017 transcription (OR 0.83, no trials).
+- semaglutide-obesity-mace: OURS 23 vs 9. SELECT (37952131) 569/8803 vs 701/8801, HR 0.80; SHA/hash/census. Comparator claimed k=16 with zero identifiers, OR 0.79 (implausibly near SELECT alone). Judge nit: our k=1 method boilerplate says log(RR) while estimand is HR — label precision.
+- denosumab-vertebral-fracture: OURS 27 vs 9. FREEDOM (19671655) RR 0.32 (2.3% vs 7.2%); SHA/hash/census. Judge nit: at k=1 "Pooled effect" oversells (single-trial); rendered % not n/N.
+
+### BLIND RECORD: 19 of 19 topics judged, ours higher on all 19 (all auditability wins).
+### k=1-labeling polish queued: label single-trial result as "Single-trial effect", generalise method string beyond log(RR).
