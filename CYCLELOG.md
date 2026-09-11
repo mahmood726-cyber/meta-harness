@@ -194,3 +194,20 @@ Every added trial verified true against source before it pools.
   is 1/84 (1.2%) and must reach 0. 8 FRAGILITY: 19/23 topics k<=2 or tau2=0 (small-k dominant, as
   expected). 8b MIXED-SCALE POOLS: 6 (next cycle). 9 TRANSPARENCY: 0 gaps.
 - SUCCESS: the survey is a committed, rendered, regenerable artefact and the live set is verified clean.
+
+## Cycle 12 — ESTIMAND HOMOGENEITY: honest mixed-scale label + arm-identity regression tests
+- Survey dim 8b found 6 pools mixing ratio scales. VERIFIED each: none egregious — all same-direction,
+  close-valued RR/HR mixes (colchicine-secondary 0.71/0.77, noac 0.79-0.91, sglt2-ckd 0.63-0.77,
+  spironolactone 0.70/0.76, omega3 ~null, probiotics 1 OR among 12 RR). NOT the opposite-direction
+  hfnc case nor a Peto-OR+Cox-HR masquerade. A blanket refuse would wrongly gut 5 primary outcomes.
+- The real defect is the LABEL: 5 of 6 were shown as a single clean scale ("HR"/"RR") while mixing —
+  the "calling it an HR" lie. FIX (general, label-only): a pooled result whose trials do not share one
+  ratio estimand is now labelled "mixed (X/Y)" (e.g. colchicine-secondary "mixed (HR/RR)", omega3
+  "mixed (HR/IRR/RR)"), with a scale_mixed flag. Pooling math unchanged.
+- REGRESS: rebuilt all 23; **0 estimates moved**; only the 6 mixed pools' SCALE LABELS changed to
+  honest. 102 tests, 23/23 reproduce, gate PASS.
+- Added tests/test_arm_identity.py (4 permanent cases, per Mahmood): Hernandez 13/264+32/263;
+  LoDoCo2 comparator = 2760 NOT 2762 (the off-by-2 anti-regression); factorial trial refused; mixed
+  pool labelled "mixed (...)". Locks the quietest failure class (wrong-arm binding).
+- SUCCESS: the "calling it an HR when mixed" class is killed corpus-wide (honest label), and the
+  arm-identity win is now regression-protected. deficit 8b: mislabeled pools 5 -> 0.

@@ -338,6 +338,24 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         else:
             pooled_scale = spec.get("estimand", "RR")
         out["result"] = _pool_result(studies, scale=pooled_scale)
+        # HONEST MIXED-SCALE LABEL (estimand homogeneity): if the pooled trials do NOT share one
+        # ratio estimand, the label must SAY so — never present a heterogeneous pool as a single
+        # clean scale ("calling it an HR" when it mixed a count-RR and a Cox HR is the shipped defect
+        # this kills). The pooling math is unchanged (per-study log-effects); only the displayed scale
+        # becomes truthful, and scale_mixed flags it for the page and the weakness survey.
+        eff = set()
+        for t in trials:
+            if t.get("e1i") is not None:
+                eff.add("IRR")
+            elif t.get("mean1") is not None:
+                eff.add("MD")
+            elif t.get("ai") is not None:
+                eff.add(meas)
+            elif t.get("scale"):
+                eff.add(t["scale"])
+        if len(eff) > 1:
+            out["result"]["scale"] = "mixed (" + "/".join(sorted(eff)) + ")"
+            out["result"]["scale_mixed"] = sorted(eff)
         if out["result"].get("k") == 1:
             # A single trial is not a random-effects meta-analysis: present it honestly as the
             # trial's own effect, and do not display tau^2 / HKSJ / prediction-interval machinery.
