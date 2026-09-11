@@ -1,0 +1,393 @@
+{
+  "slug": "ticagrelor-vs-clopidogrel-acs",
+  "title": "Ticagrelor vs clopidogrel for major adverse cardiovascular events in acute coronary syndrome",
+  "question": "In adults with acute coronary syndrome, does ticagrelor reduce major adverse cardiovascular events, defined as the composite of cardiovascular death, myocardial infarction, or stroke, compared with clopidogrel?",
+  "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+  "protocol": {
+    "sha": "3fb64a1e01434eb6ee9ea8a764a84c749270dfff",
+    "committed_utc": "2026-09-11",
+    "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+    "eligibility": "Double-blind randomized controlled trials in adults with acute coronary syndrome, NSTE-ACS, or STEMI, with ticagrelor/AZD6140 versus clopidogrel. Eligibility is P/I/C/design only; exact MACE reporting is handled during extraction.",
+    "text": "# Protocol - ticagrelor vs clopidogrel for MACE in acute coronary syndrome\n\n**Registration.** The commit that adds this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and Reproducibility tab.\nThe integrator will commit this working-tree protocol on main.\n\n## PICO\n- **Population** - adults with acute coronary syndrome, including non-ST-elevation\n  acute coronary syndrome and ST-elevation myocardial infarction.\n- **Intervention** - ticagrelor, including the development name AZD6140.\n- **Comparator** - clopidogrel.\n- **Primary outcome** - major adverse cardiovascular events, defined as the composite\n  of cardiovascular or vascular death, myocardial infarction, or stroke.\n- **Secondary outcomes** - none prespecified for this micro-topic.\n- **Harm outcomes** - major bleeding and dyspnea when extractable from the same source\n  hierarchy.\n\n## Eligibility - P/I/C/design only\nInclude a record iff all criteria hold:\n- randomized controlled trial;\n- adults with acute coronary syndrome, NSTE-ACS, or STEMI, judged from title,\n  registry conditions, or acronym;\n- ticagrelor/AZD6140 is the randomized intervention;\n- clopidogrel is the randomized comparator;\n- double-blind design.\n\nExclude records for wrong population, wrong intervention or comparator, non-randomized\ndesign, non-double-blind design, reviews/meta-analyses, protocols without randomized\noutcome results, or same-drug wrong-topic trials such as acute stroke/TIA. Prasugrel\ncomparisons are wrong-comparator trials for this PICO.\n\nEligibility is not based on whether the MACE outcome is reported. A screened-in trial\nthat does not report the exact primary outcome in its abstract with arm counts or an\neffect plus 95% CI is declared target-result absent.\n\n## Outcome Identity Discipline\nThe primary pooled value must be the trial result for MACE: cardiovascular or vascular\ndeath, myocardial infarction, or stroke. Do not substitute a different primary endpoint,\nplatelet reactivity, myocardial infarction alone, bleeding, dyspnea, pharmacokinetics,\nbody weight, kidney outcomes, a subgroup result, or a design/rationale paper.\n\nPLATO's outcomes paper is PMID 19717846. The PLATO rationale/design paper and early\npharmacodynamic or pharmacokinetic substudies are not outcome-result sources for this\nreview unless their abstracts state the exact MACE endpoint with a valid extractable\neffect or count.\n\n## Analysis Method\nRandom-effects inverse-variance synthesis on log ratio effects, using the harness\nimplementation declared in the served review: Paule-Mandel tau^2, HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1,Q/(k-1))`, and prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. A trial-level published HR plus 95% CI is the\npreferred input for the primary outcome. If no HR is reported but percentage-\ncorroborated arm counts are available for the exact MACE outcome, those counts may be\nused by the harness fallback; otherwise the trial is declared absent.\n\n## Comparator\nComparator PMID 28545073 is Tan et al., *PLoS One* 2017, \"The clinical efficacy and\nsafety evaluation of ticagrelor for acute coronary syndrome in general ACS patients and\ndiabetic patients: A systematic review and meta-analysis\" (PMCID PMC5435320, DOI\n10.1371/journal.pone.0177872). It is an open-access meta-analysis of ticagrelor versus\nclopidogrel/prasugrel in ACS; the comparator extraction uses the ticagrelor-versus-\nclopidogrel composite endpoint reported in the abstract.\n"
+  },
+  "search": {
+    "n_records": 31,
+    "cache_ref": "cache/ticagrelor-vs-clopidogrel-acs/records.json",
+    "run_utc": "2026-09-11",
+    "databases": [
+      "PubMed",
+      "ClinicalTrials.gov"
+    ],
+    "sources": [
+      {
+        "name": "PubMed",
+        "queries": [
+          "19717846[uid]",
+          "17980250[uid]"
+        ]
+      },
+      {
+        "name": "ClinicalTrials.gov",
+        "queries": [
+          "{\"cond\": \"STEMI fibrinolysis\", \"intr\": \"ticagrelor\"}"
+        ]
+      }
+    ]
+  },
+  "screening": {
+    "records": [
+      {
+        "id": "19717846",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of ticagrelor vs clopidogrel in acute coronary syndrome; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "17980250",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of ticagrelor vs clopidogrel in acute coronary syndrome; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "27160892",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'stroke'."
+      },
+      {
+        "id": "28545073",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 28545073)."
+      },
+      {
+        "id": "27576777",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['acute coronary syndrome', 'acute coronary syndromes', 'ACS', 'non-ST-segment elevation acute coronary syndrome', 'non-ST-segment elevation acute coronary syndromes', 'non-ST-elevation acute coronary syndrome', 'non-ST-elevation acute coronary syndromes', 'NSTE-ACS', 'STEMI', 'ST-segment elevation myocardial infarction', 'ST-elevation myocardial infarction', 'ST elevation myocardial infarction'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "27134057",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 27134057)."
+      },
+      {
+        "id": "26440227",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'stable coronary'."
+      },
+      {
+        "id": "26119655",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 26119655)."
+      },
+      {
+        "id": "25728845",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 25728845)."
+      },
+      {
+        "id": "25085573",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 25085573)."
+      },
+      {
+        "id": "24820749",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 24820749)."
+      },
+      {
+        "id": "24768873",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 24768873)."
+      },
+      {
+        "id": "24482383",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X-DESIGN",
+        "reason": "not double-blind/placebo-controlled (record: 24482383)."
+      },
+      {
+        "id": "24333493",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'stable coronary'."
+      },
+      {
+        "id": "24291273",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X-DESIGN",
+        "reason": "not double-blind/placebo-controlled (record: 24291273)."
+      },
+      {
+        "id": "24154787",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['clopidogrel'])."
+      },
+      {
+        "id": "23712633",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 23712633)."
+      },
+      {
+        "id": "23500251",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['clopidogrel'])."
+      },
+      {
+        "id": "23491524",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['acute coronary syndrome', 'acute coronary syndromes', 'ACS', 'non-ST-segment elevation acute coronary syndrome', 'non-ST-segment elevation acute coronary syndromes', 'non-ST-elevation acute coronary syndrome', 'non-ST-elevation acute coronary syndromes', 'NSTE-ACS', 'STEMI', 'ST-segment elevation myocardial infarction', 'ST-elevation myocardial infarction', 'ST elevation myocardial infarction'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "23268703",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 23268703)."
+      },
+      {
+        "id": "23212803",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 23212803)."
+      },
+      {
+        "id": "23169985",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['acute coronary syndrome', 'acute coronary syndromes', 'ACS', 'non-ST-segment elevation acute coronary syndrome', 'non-ST-segment elevation acute coronary syndromes', 'non-ST-elevation acute coronary syndrome', 'non-ST-elevation acute coronary syndromes', 'NSTE-ACS', 'STEMI', 'ST-segment elevation myocardial infarction', 'ST-elevation myocardial infarction', 'ST elevation myocardial infarction'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "23070079",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 23070079)."
+      },
+      {
+        "id": "22789884",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X-DESIGN",
+        "reason": "not double-blind/placebo-controlled (record: 22789884)."
+      },
+      {
+        "id": "22197180",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 22197180)."
+      },
+      {
+        "id": "21831410",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 21831410)."
+      },
+      {
+        "id": "20828843",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 20828843)."
+      },
+      {
+        "id": "20805624",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 20805624)."
+      },
+      {
+        "id": "20802246",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X-DESIGN",
+        "reason": "not double-blind/placebo-controlled (record: 20802246)."
+      },
+      {
+        "id": "NCT01950416",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X-DESIGN",
+        "reason": "not double-blind/placebo-controlled (record: NCT01950416)."
+      },
+      {
+        "id": "TACAT · NCT02048085",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X-DESIGN",
+        "reason": "not double-blind/placebo-controlled (record: TACAT)."
+      }
+    ],
+    "positive_control": "Recovered & included the canonical trials ['19717846'] that a comparator includes; none missed.",
+    "negative_control": "Cross-topic trial(s) ['27160892'] recovered by the search and correctly EXCLUDED ['27160892'] by rule (same drug/design, wrong topic)."
+  },
+  "outcomes": [
+    {
+      "name": "Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke",
+      "kind": "efficacy",
+      "primary": true,
+      "estimand": "HR",
+      "population": "intention-to-treat",
+      "timepoint": "12 months or longest reported trial follow-up",
+      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "trials": [
+        {
+          "label": "19717846",
+          "id": "PMID 19717846",
+          "effect": 0.84,
+          "ci_low": 0.77,
+          "ci_high": 0.92,
+          "scale": "HR",
+          "source": "abstract effect+CI (HR): RESULTS: At 12 months, the primary end point--a composite of death from vascular causes, myocardial infarction, or stroke--had occurred in 9.8% of patients receiving ticagrelor as compared with 11.7% ",
+          "provenance": "abstract"
+        }
+      ],
+      "declared_absent_trials": [
+        {
+          "label": "17980250",
+          "id": "PMID 17980250",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "k": 1,
+        "estimate": 0.84,
+        "scale": "HR",
+        "ci_low": 0.7685,
+        "ci_high": 0.9182,
+        "pi_note": "prediction interval undefined for k=1"
+      }
+    },
+    {
+      "name": "Major bleeding",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "RR",
+      "population": null,
+      "timepoint": null,
+      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "trials": [
+        {
+          "label": "19717846",
+          "id": "PMID 19717846",
+          "ai": 961,
+          "n1i": 9235,
+          "ci": 929,
+          "n2i": 9186,
+          "source": "ClinicalTrials.gov results (structured): outcome 'Participants With Any Major Bleeding Event' 961/9235 (TICAGRELOR) vs 929/9186 (CLOPIDOGREL)",
+          "provenance": "ctgov_results"
+        }
+      ],
+      "declared_absent_trials": [
+        {
+          "label": "17980250",
+          "id": "PMID 17980250",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "k": 1,
+        "estimate": 1.029,
+        "scale": "RR",
+        "ci_low": 0.9447,
+        "ci_high": 1.1207,
+        "pi_note": "prediction interval undefined for k=1"
+      }
+    },
+    {
+      "name": "Dyspnea",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "RR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [],
+      "declared_absent_trials": [
+        {
+          "label": "19717846",
+          "id": "PMID 19717846",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "17980250",
+          "id": "PMID 17980250",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "present": false,
+        "reason": "no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract"
+      }
+    }
+  ],
+  "comparator": {
+    "name": "The clinical efficacy and safety evaluation of ticagrelor for acute coronary syndrome in general ACS patients and diabetic patients: A systematic review and meta-analysis.",
+    "year": "2017",
+    "journal": "PLoS One",
+    "pmid": "28545073",
+    "doi": "10.1371/journal.pone.0177872",
+    "url": "https://doi.org/10.1371/journal.pone.0177872",
+    "open_access": true,
+    "reported": [
+      {
+        "outcome": "Composite endpoint of cardiovascular death, myocardial infarction, or stroke",
+        "estimate": 0.83,
+        "scale": "OR",
+        "ci_low": 0.77,
+        "ci_high": 0.9
+      }
+    ],
+    "overlap": {
+      "ours_k": 1,
+      "theirs_k": "not stated in the comparator abstract/full text",
+      "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
+      "only_ours": [],
+      "only_theirs": [],
+      "method": "publication-date + design identity (comparator trial list not extracted from source)",
+      "note": "Trials newer than the comparator (2017) cannot be in it (only-ours, verifiable by date). Exact shared count not asserted."
+    }
+  },
+  "reproduction": {
+    "failures": 0,
+    "protocol_sha": "3fb64a1e01434eb6ee9ea8a764a84c749270dfff",
+    "review_sha256": "d9432bad26d63588be86fb7a6820e12a82a3e29103aa464583ac10ef27c80f1e",
+    "from_cache": true
+  }
+}

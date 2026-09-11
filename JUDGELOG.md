@@ -178,3 +178,14 @@ SECONDARY outcome-measure "all-cause mortality (day 28)" tables (structured, arm
 careful reach pass, NOT a keyword change. Deferred; must never substitute a composite for the estimand.
 No code changed (no wrong-number risk taken). Discipline: I was inclined to ACCEPT the judge's
 coverage-gap framing and "fix" it; the data showed it was largely correct — test the finding you accept.
+
+## Wave-5 integrated (2026-09-11): 3 published, 1 declined — all numbers verified TRUE vs source
+Codex lanes authored config+protocol+cache+VERIFY (source-quoted); I verified every number, gated, published.
+- **ticagrelor-vs-clopidogrel-acs**: k=1 PLATO (PMID 19717846) HR 0.84 (9.8% vs 11.7%); comparator PMID 28545073 (OA). Neg control (a stroke trial) excluded; DISPERSE-2 declared-absent (reports bleeding/MI/pauses, not MACE composite). Lane's earlier HR 1.25 was an intermediate state; final = correct 0.84.
+- **semaglutide-obesity-mace**: k=1 SELECT (PMID 37952131) HR 0.80 (569/8803=6.5% vs 701/8801=8.0%); comparator PMID 39345822 (OA, GLP-1/tirzepatide MACE OR 0.79). The surrogate-warning worked: it extracted the MACE HR, NOT the body-weight MD that corrupted the earlier exploration.
+- **denosumab-vertebral-fracture**: k=1 FREEDOM (PMID 19671655) RR 0.32 (2.3% vs 7.2%); comparator PMID 36852077 (OA) RR 0.33. DIRECT (24646104) excluded per PRE-SPECIFIED protocol rule (excludes mixed women-and-men trials) — protocol-consistent, not a bug.
+- **sacubitril-valsartan-hfref DECLINED (k=0 on the honest pipeline)**: PARADIGM-HF's abstract HR "hazard ratio in the LCZ696 group, 0.80" is UNPARSEABLE because the drug code LCZ696 carries DIGITS inside the effect-parser gap (`[^0-9]` cannot cross "696"); per-arm denominators are not in the abstract (only total 8442 + rounded %); and pooling a count-derived RR against an HR-estimand topic is not clean. The lane's claimed k=1 did NOT reproduce on the committed pipeline. No page (decline).
+  - **GATE HARDENED as a result**: check_primary_result now REFUSES any page whose primary outcome has no pooled result (k=0/None) — a hollow page is refused automatically, not by a human noticing. Regression test added; sacubitril now refuses, all live pages pass.
+  - **Documented extraction defect (deferred, general): drug codes containing digits (LCZ696, AZD6140, ...) between an effect-kind token and its value break _EFFECT.** A safe fix must not let the digits be read as the value. Until fixed, such trials fall back to counts (if per-arm denominators exist) or decline.
+
+### After wave-5: 19 live, 9 declined.

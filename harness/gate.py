@@ -107,13 +107,38 @@ def check_limb2(manifest, html):
     return reasons
 
 
+def check_primary_result(review_dir):
+    """A page whose PRIMARY outcome has no pooled result cannot make its central claim and
+    must not publish (this is what a k=0 decline looks like — the gate refuses it here rather
+    than relying on a human to notice and not commit it)."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1: no review.json to verify the primary outcome has a result"]
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json: {exc}"]
+    outs = rev.get("outcomes") or []
+    prim = next((o for o in outs if o.get("primary")), outs[0] if outs else None)
+    if not prim:
+        return ["L1: review has no primary outcome"]
+    res = prim.get("result") or {}
+    if res.get("present") is False or not res.get("k"):
+        return [f"L1: primary outcome {prim.get('name')!r} has no pooled result "
+                f"(k={res.get('k')}) — a page whose primary claim is absent must not publish"]
+    return []
+
+
 def gate_page(review_dir):
     """Return (ok: bool, reasons: list[str]). ok == True only if both limbs pass."""
     try:
         manifest, html, rep = _load(review_dir)
     except (OSError, ValueError) as exc:
         return False, [f"gate: cannot load review dir: {exc}"]
-    reasons = check_limb1(review_dir, manifest, html, rep) + check_limb2(manifest, html)
+    reasons = (check_limb1(review_dir, manifest, html, rep)
+               + check_primary_result(review_dir)
+               + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons
 
 

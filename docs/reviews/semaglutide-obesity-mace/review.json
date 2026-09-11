@@ -1,0 +1,613 @@
+{
+  "slug": "semaglutide-obesity-mace",
+  "title": "Semaglutide vs placebo for 3-point MACE in obesity without diabetes",
+  "question": "In adults with overweight or obesity and established cardiovascular disease but without diabetes, does semaglutide reduce 3-point major adverse cardiovascular events versus placebo? (Double-blind placebo-controlled RCTs.)",
+  "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+  "protocol": {
+    "sha": "3fb64a1e01434eb6ee9ea8a764a84c749270dfff",
+    "committed_utc": "2026-09-11",
+    "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+    "eligibility": "RCT; adults with overweight/obesity and established cardiovascular disease without diabetes by title/registry conditions; semaglutide vs placebo; double-blind placebo-controlled. P/I/C/design only.",
+    "text": "# Protocol - semaglutide for 3-point MACE in obesity without diabetes\n\n**Registration.** The commit that adds this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with overweight or obesity and established cardiovascular disease but\n  without diabetes.\n- **I** - once-weekly subcutaneous semaglutide 2.4 mg added to standard care.\n- **C** - placebo added to standard care.\n- **O (primary)** - 3-point major adverse cardiovascular events, defined as\n  cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke.\n- **O (harms / secondary)** - gastrointestinal adverse events, adverse events leading to\n  permanent discontinuation, and any further outcome the resolved comparator reports.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio (HR), semaglutide vs placebo.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / mean follow-up 39.8 months.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - adults with overweight or obesity and established cardiovascular disease but\n  without diabetes, judged from the title or registry conditions;\n- **I3** - semaglutide vs placebo contrast;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (e.g. type 2 diabetes, type 1 diabetes, chronic kidney\n  disease, heart failure, sleep apnea, or obesity trials without established\n  cardiovascular disease);\n- **X3** - wrong intervention/comparison (no semaglutide-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports 3-point MACE, or gives\n> a 2x2 vs only an effect+CI, is recorded as target-result status at extraction - never as\n> an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/search.json; screening replays offline)\n- PubMed: exact SELECT title/PMID sweeps for the main MACE report. Later SELECT secondary\n  analyses are not configured as positive controls because they share NCT03574597 and the\n  fixed harness deduplicates same-NCT PubMed records to the latest-year publication.\n- ClinicalTrials.gov: condition \"cardiovascular disease obesity without diabetes\",\n  intervention \"semaglutide\".\n- Comparator/reference seeding is disabled so the broader comparator's reference list does\n  not pull in semaglutide obesity trials outside the established-CVD SELECT population.\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. DerSimonian-Laird forbidden. Engine validated vs\nmetafor 5.0.1 (<1e-6). For this topic, the poolable input is the published HR + 95% CI\npath on the same ratio/log scale; 2x2 extraction is available but is not required when a\ntrial reports an HR + CI.\n\n## Comparator (resolved; open-access confirmed)\nStefanou et al., *Therapeutic Advances in Neurological Disorders* 2024, \"Risk of major\nadverse cardiovascular events and all-cause mortality under treatment with GLP-1 RAs or\nthe dual GIP/GLP-1 receptor agonist tirzepatide in overweight or obese adults without\ndiabetes: a systematic review and meta-analysis\" (PMID 39345822, DOI\n10.1177/17562864241281903; Unpaywall is_oa=true; PubMed Central PMC11437580). It reports\npooled MACE OR 0.79 (95% CI 0.71-0.89) over 16 RCTs in overweight or obese adults\nwithout diabetes. This comparator is broader than the registered lane's semaglutide-only\nSELECT population; the exact registered lane has one landmark eligible RCT.\n\n## Controls\n- **Positive** - SELECT main MACE report (PMID 37952131), the verified eligible landmark\n  trial report. Only this positive control is configured to avoid same-NCT secondary\n  SELECT reports superseding the main MACE paper during fixed harness deduplication.\n- **Negative** - SUSTAIN-6 (PMID 27633186: semaglutide, randomized, placebo-controlled,\n  but type 2 diabetes rather than obesity without diabetes) must be recovered and\n  EXCLUDED by the population rule.\n"
+  },
+  "search": {
+    "n_records": 66,
+    "cache_ref": "cache/semaglutide-obesity-mace/records.json",
+    "run_utc": "2026-09-11",
+    "databases": [
+      "PubMed",
+      "ClinicalTrials.gov"
+    ],
+    "sources": [
+      {
+        "name": "PubMed",
+        "queries": [
+          "37952131[uid]",
+          "\"Semaglutide and Cardiovascular Outcomes in Obesity without Diabetes\"[Title]",
+          "semaglutide[Title] AND cardiovascular outcomes[Title] AND obesity[Title] AND \"without diabetes\"[Title]"
+        ]
+      },
+      {
+        "name": "ClinicalTrials.gov",
+        "queries": [
+          "{\"cond\": \"cardiovascular disease obesity without diabetes\", \"intr\": \"semaglutide\"}"
+        ]
+      }
+    ]
+  },
+  "screening": {
+    "records": [
+      {
+        "id": "37952131",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of semaglutide vs placebo in cardiovascular outcomes in obesity without diabetes; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "42670242",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42670242)."
+      },
+      {
+        "id": "42677221",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42677221)."
+      },
+      {
+        "id": "42339050",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42339050)."
+      },
+      {
+        "id": "42653733",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42653733)."
+      },
+      {
+        "id": "42403733",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42403733)."
+      },
+      {
+        "id": "42536519",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42536519)."
+      },
+      {
+        "id": "42644855",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42644855)."
+      },
+      {
+        "id": "42437874",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42437874)."
+      },
+      {
+        "id": "42163419",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42163419)."
+      },
+      {
+        "id": "42443711",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42443711)."
+      },
+      {
+        "id": "42603234",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42603234)."
+      },
+      {
+        "id": "42403263",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "42654433",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42654433)."
+      },
+      {
+        "id": "42555627",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42555627)."
+      },
+      {
+        "id": "42580680",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42580680)."
+      },
+      {
+        "id": "42118699",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42118699)."
+      },
+      {
+        "id": "42337824",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42337824)."
+      },
+      {
+        "id": "42427356",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42427356)."
+      },
+      {
+        "id": "42452586",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42452586)."
+      },
+      {
+        "id": "42100257",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42100257)."
+      },
+      {
+        "id": "42470502",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42470502)."
+      },
+      {
+        "id": "42304551",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42304551)."
+      },
+      {
+        "id": "42091772",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42091772)."
+      },
+      {
+        "id": "41883191",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41883191)."
+      },
+      {
+        "id": "42590035",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42590035)."
+      },
+      {
+        "id": "42668799",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42668799)."
+      },
+      {
+        "id": "42304554",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42304554)."
+      },
+      {
+        "id": "42382865",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42382865)."
+      },
+      {
+        "id": "42536323",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42536323)."
+      },
+      {
+        "id": "42588312",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42588312)."
+      },
+      {
+        "id": "42225300",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "42225305",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42225305)."
+      },
+      {
+        "id": "42353331",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42353331)."
+      },
+      {
+        "id": "42158845",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42158845)."
+      },
+      {
+        "id": "42250076",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42250076)."
+      },
+      {
+        "id": "41969188",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41969188)."
+      },
+      {
+        "id": "42046181",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42046181)."
+      },
+      {
+        "id": "42653816",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42653816)."
+      },
+      {
+        "id": "42207966",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42207966)."
+      },
+      {
+        "id": "42429319",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42429319)."
+      },
+      {
+        "id": "38907684",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['cardiovascular outcomes in obesity without diabetes', 'obesity without diabetes', 'overweight or obesity and established cardiovascular disease', 'cardiovascular disease and overweight or obesity', 'heart disease and stroke in patients with overweight or obesity', 'cardiovascular diseases'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "38157134",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 38157134)."
+      },
+      {
+        "id": "42074711",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42074711)."
+      },
+      {
+        "id": "42220875",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42220875)."
+      },
+      {
+        "id": "41808133",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41808133)."
+      },
+      {
+        "id": "41969169",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41969169)."
+      },
+      {
+        "id": "42219272",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42219272)."
+      },
+      {
+        "id": "42033283",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42033283)."
+      },
+      {
+        "id": "42410309",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42410309)."
+      },
+      {
+        "id": "42529614",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42529614)."
+      },
+      {
+        "id": "42549049",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42549049)."
+      },
+      {
+        "id": "42195357",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42195357)."
+      },
+      {
+        "id": "42297751",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42297751)."
+      },
+      {
+        "id": "41889157",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41889157)."
+      },
+      {
+        "id": "41693033",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41693033)."
+      },
+      {
+        "id": "41787495",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41787495)."
+      },
+      {
+        "id": "42483679",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42483679)."
+      },
+      {
+        "id": "41365841",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41365841)."
+      },
+      {
+        "id": "41968220",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41968220)."
+      },
+      {
+        "id": "42608657",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42608657)."
+      },
+      {
+        "id": "42348164",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42348164)."
+      },
+      {
+        "id": "27633186",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'type 2 diabetes'."
+      },
+      {
+        "id": "39345822",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 39345822)."
+      },
+      {
+        "id": "NCT07619508",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT07619508)."
+      },
+      {
+        "id": "INTERCEPT · NCT07417618",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: INTERCEPT)."
+      }
+    ],
+    "positive_control": "Recovered & included the canonical trials ['37952131'] that a comparator includes; none missed.",
+    "negative_control": "Cross-topic trial(s) ['27633186'] recovered by the search and correctly EXCLUDED ['27633186'] by rule (same drug/design, wrong topic)."
+  },
+  "outcomes": [
+    {
+      "name": "3-point major adverse cardiovascular events",
+      "kind": "efficacy",
+      "primary": true,
+      "estimand": "HR",
+      "population": "intention-to-treat",
+      "timepoint": "trial end / mean follow-up 39.8 months",
+      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "trials": [
+        {
+          "label": "37952131",
+          "id": "PMID 37952131",
+          "effect": 0.8,
+          "ci_low": 0.72,
+          "ci_high": 0.9,
+          "scale": "HR",
+          "source": "abstract effect+CI (HR): A primary cardiovascular end-point event occurred in 569 of the 8803 patients (6.5%) in the semaglutide group and in 701 of the 8801 patients (8.0%) in the placebo group (hazard ratio, 0.80; 95% confi",
+          "provenance": "abstract"
+        }
+      ],
+      "declared_absent_trials": [],
+      "result": {
+        "k": 1,
+        "estimate": 0.8,
+        "scale": "HR",
+        "ci_low": 0.7155,
+        "ci_high": 0.8944,
+        "pi_note": "prediction interval undefined for k=1"
+      }
+    },
+    {
+      "name": "Gastrointestinal adverse events",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "RR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [],
+      "declared_absent_trials": [
+        {
+          "label": "37952131",
+          "id": "PMID 37952131",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "present": false,
+        "reason": "no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract"
+      }
+    },
+    {
+      "name": "Adverse events leading to permanent discontinuation",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "RR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [],
+      "declared_absent_trials": [
+        {
+          "label": "37952131",
+          "id": "PMID 37952131",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "present": false,
+        "reason": "no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract"
+      }
+    }
+  ],
+  "comparator": {
+    "name": "Risk of major adverse cardiovascular events and all-cause mortality under treatment with GLP-1 RAs or the dual GIP/GLP-1 receptor agonist tirzepatide in overweight or obese adults without diabetes: a systematic review and meta-analysis.",
+    "year": "2024",
+    "journal": "Ther Adv Neurol Disord",
+    "pmid": "39345822",
+    "doi": "10.1177/17562864241281903",
+    "url": "https://doi.org/10.1177/17562864241281903",
+    "open_access": true,
+    "reported": [
+      {
+        "outcome": "Major adverse cardiovascular events",
+        "estimate": 0.79,
+        "scale": "OR",
+        "ci_low": 0.71,
+        "ci_high": 0.89
+      }
+    ],
+    "overlap": {
+      "ours_k": 1,
+      "theirs_k": 16,
+      "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
+      "only_ours": [],
+      "only_theirs": [],
+      "method": "publication-date + design identity (comparator trial list not extracted from source)",
+      "note": "Trials newer than the comparator (2024) cannot be in it (only-ours, verifiable by date). Exact shared count not asserted."
+    }
+  },
+  "reproduction": {
+    "failures": 0,
+    "protocol_sha": "3fb64a1e01434eb6ee9ea8a764a84c749270dfff",
+    "review_sha256": "bc92e9733bd3d719d7a649ef9ab346e0c81b08498ab44b845f84c98efa513a26",
+    "from_cache": true
+  }
+}

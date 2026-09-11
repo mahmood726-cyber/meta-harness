@@ -206,3 +206,24 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# --- primary outcome must have a result (a k=0 page is a decline, not a publish) ---
+import tempfile, json as _json, os as _os
+from harness.gate import check_primary_result
+
+
+def test_gate_refuses_primary_with_no_result():
+    d = tempfile.mkdtemp()
+    _json.dump({"outcomes": [{"name": "X", "primary": True,
+                              "result": {"present": False, "reason": "no trial reported it"}}]},
+               open(_os.path.join(d, "review.json"), "w", encoding="utf-8"))
+    assert check_primary_result(d), "a resultless primary must be refused"
+
+
+def test_gate_accepts_primary_with_result():
+    d = tempfile.mkdtemp()
+    _json.dump({"outcomes": [{"name": "X", "primary": True,
+                              "result": {"k": 2, "estimate": 0.8}}]},
+               open(_os.path.join(d, "review.json"), "w", encoding="utf-8"))
+    assert check_primary_result(d) == []
