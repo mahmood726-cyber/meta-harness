@@ -152,3 +152,19 @@ def test_spelled_out_confidence_interval_parses():
     ex = _xt("The relative risk of death was 0.70; 95 percent confidence interval, 0.60 to 0.82.",
              ["death", "mortality"], ["spironolactone"], ["placebo"])
     assert ex.get("effect") == 0.70 and ex.get("ci_low") == 0.60, ex
+
+
+# --- multi-arm dose guard: refuse dose-ranging trials unless the dose is specified (CANTOS class) ---
+def test_multi_arm_dose_guard_refuses_unspecified():
+    ab = ("In the 50-mg group the hazard ratio was 0.93 (95% CI 0.80 to 1.07); in the 150-mg "
+          "group 0.85 (95% CI 0.74 to 0.98); in the 300-mg group 0.86 (95% CI 0.75 to 0.99).")
+    ex = _xt(ab, ["major adverse cardiovascular"], ["canakinumab"], ["placebo"])
+    assert ex.get("absent") and "multi-arm" in ex.get("reason", "")
+
+
+def test_multi_arm_guard_inert_on_single_dose():
+    # a single-dose trial must NOT trip the guard
+    ab = ("Patients received empagliflozin 10 mg daily or placebo. A primary event occurred in "
+          "361 of 1863 (19.4%) vs 462 of 1867 (24.7%).")
+    ex = _xt(ab, ["primary"], ["empagliflozin"], ["placebo"])
+    assert not (ex.get("absent") and "multi-arm" in (ex.get("reason") or ""))

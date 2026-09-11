@@ -242,10 +242,26 @@ def _roundtrip_ok(ai, n1i, ci, n2i, scale, point):
 
 
 _FACTORIAL = re.compile(r"\bfactorial\b|\b2\s*[x×]\s*2\b|\btwo[- ]by[- ]two\b|\bpartial factorial\b", re.I)
+_DOSE_ARM = re.compile(r"(\d+(?:\.\d+)?)\s*-?\s*mg\b(?:[^.]{0,20}?(?:group|arm|dose|daily|twice|once))?", re.I)
 
 
 def _is_factorial(abstract):
     return bool(_FACTORIAL.search(abstract or ""))
+
+
+def _multi_dose_arms(abstract):
+    """Distinct intervention DOSE values reported (e.g. CANTOS '50-mg group ... 150-mg group ...
+    300-mg group'). A trial with >1 dose arm vs one comparator is multi-arm: picking one dose's
+    effect without a pre-specified rule is ambiguous, so we refuse unless the intervention is
+    dose-specified. Returns the set of distinct doses seen with an arm/group/dose context."""
+    doses = set()
+    for m in re.finditer(r"(\d+(?:\.\d+)?)\s*-?\s*mg\b[^.]{0,25}?(?:group|arm|dose|daily|twice daily|once daily|regimen)", abstract or "", re.I):
+        doses.add(m.group(1))
+    return doses
+
+
+def _intervention_dose_specified(interv_terms):
+    return any(re.search(r"\d", t) for t in interv_terms)
 
 
 def _interv_in(sentence, interv_terms):
@@ -267,6 +283,14 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
     # only accept an extraction from a sentence that explicitly names OUR intervention, so the
     # number is provably for our comparison, not the co-randomised one.
     factorial = _is_factorial(abstract)
+    # MULTI-ARM GUARD: a dose-ranging trial (>1 intervention dose arm vs one comparator, e.g.
+    # CANTOS 50/150/300 mg) makes picking one dose's effect ambiguous. Refuse unless the topic's
+    # intervention is dose-specified (then the arm is pinned). Generalises the factorial guard.
+    if len(_multi_dose_arms(abstract)) >= 2 and not _intervention_dose_specified(interv_terms):
+        return {"absent": True, "reason": (
+            "multi-arm dose-ranging trial (>1 intervention dose arm vs one comparator): the effect "
+            "cannot be attributed to a single pre-specified comparison; refused (multi-arm guard). "
+            "Specify the dose in the topic's intervention terms to pin the arm.")}
     sents = _outcome_sentences(abstract, _effective_kws(abstract, outcome_kws))
     for s in sents:
         if factorial and not _interv_in(s, interv_terms):
