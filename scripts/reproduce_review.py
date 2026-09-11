@@ -88,6 +88,37 @@ def _fresh_clone_check():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def _primary(slug):
+    """(k, estimate, scale) of the committed primary outcome, for a before/after number diff."""
+    try:
+        rev = json.load(open(os.path.join(ROOT, "docs", "reviews", slug, "review.json"), encoding="utf-8"))
+        prim = next((o for o in rev.get("outcomes", []) if o.get("primary")), None)
+        r = (prim or {}).get("result") or {}
+        return (r.get("k"), r.get("estimate"), r.get("scale"))
+    except (OSError, ValueError):
+        return (None, None, None)
+
+
+def _rebuild_stale(bad):
+    """For each stale page, rebuild it and print how its NUMBERS move. Does NOT stage anything --
+    a machinery change can legitimately correct a number OR corrupt one, and only a human may
+    decide which; the reviewable diff is the point. Stage the rebuilds yourself after reviewing."""
+    print("\nREBUILD-STALE: rebuilding stale pages and reporting number movement (NOT staged):")
+    for slug in bad:
+        before = _primary(slug)
+        r = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "build_topic.py"), slug],
+                           cwd=ROOT, capture_output=True, text=True)
+        if r.returncode != 0:
+            print(f"  BUILD-FAIL {slug}: {r.stderr.strip()[-200:]}")
+            continue
+        after = _primary(slug)
+        moved = "  <-- NUMBER MOVED" if before != after else ""
+        print(f"  {slug}: k {before[0]}->{after[0]}, {before[2]} {before[1]}->{after[1]}{moved}")
+    print("\nReview each diff. If every move is correct, stage the rebuilt pages:")
+    print("      git add docs/ registry/blind_map.json && git commit")
+    print("A NUMBER MOVED line is where to look hardest -- confirm the new number is TRUE against source.")
+
+
 def main(argv):
     if "--fresh-clone" in argv:
         print("FRESH-CLONE reproduction (git clone HEAD -> rebuild -> byte-compare):")
@@ -102,6 +133,8 @@ def main(argv):
         if not ok:
             bad.append(slug)
     print(f"\n{len(slugs) - len(bad)}/{len(slugs)} reproduce" + (f" — FAILED: {', '.join(bad)}" if bad else " (all reproducible)"))
+    if bad and "--rebuild-stale" in argv:
+        _rebuild_stale(bad)
     return 1 if bad else 0
 
 

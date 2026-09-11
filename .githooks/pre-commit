@@ -46,15 +46,19 @@ if cur != want:
 print("GATE: generated index is current.")
 PYEOF
 
-# DEPENDENCY RULE (not memory): if any pipeline/harness code is staged, EVERY live page must still
-# replay from its committed cache -- a machinery change that leaves a page stale is a silent
-# invariant failure (the multi-arm guard once left colchicine-postop stale). Re-verify all pages.
-MACHINERY=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^harness/.*\.py$' || true)
+# DEPENDENCY RULE (not memory): a live page is a pure function of the pipeline code AND its
+# committed INPUTS (topic config, protocol, cache incl. outcome_judgments). If any of those is
+# staged, EVERY live page must still replay byte-for-byte -- a change that leaves a page stale is a
+# silent invariant failure (the multi-arm guard once left colchicine-postop stale; an edited
+# outcome_judgments cache would do the same). Watch all inputs, not just harness/*.py.
+MACHINERY=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '^(harness/.*\.py|topics/.*\.json|protocols/.*\.md|cache/.*\.json)$' || true)
 if [ -n "$MACHINERY" ]; then
-  echo "GATE: harness code changed -> re-verifying ALL live pages reproduce (dependency rule)"
+  echo "GATE: pipeline inputs changed -> re-verifying ALL live pages reproduce (dependency rule)"
   "$PY" scripts/reproduce_review.py || {
-    echo "GATE: REFUSED. A machinery change left a live page stale — rebuild every affected page"
-    echo "      (python scripts/build_topic.py <slug>) and stage it. Never ship a stale page."
+    echo "GATE: REFUSED. A change to code/config/cache left a live page stale. See exactly which"
+    echo "      pages and how their NUMBERS move, then review & stage the rebuilds:"
+    echo "      python scripts/reproduce_review.py --rebuild-stale"
     exit 1
   }
 fi
