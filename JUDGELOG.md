@@ -61,3 +61,12 @@ auto-extracted from its own PubMed abstract by the SAME pipeline, so it is no lo
 - The blind judge ranked ours higher on process **but explicitly judged the comparator better on completeness and point-estimate correctness**: we pooled **3 of ~9** trials → **underpowered null RR 0.82 (0.48–1.40)** vs the established RR 0.62 (0.52–0.74). Per "equal has both limbs," **topic 2 does NOT match k and is NOT equal on data.**
 - **Next harness priority (F4 — search recall):** our search/screen recover far fewer trials than the comparator (retmax caps, query breadth, and NCT-registration-only records with no results). Raising recall so k approaches the comparator's is the top fix before more topics — a data-limb fix, which is what actually decides "equal."
 - Also flagged: page shows k=3 pooled but 6 screened-in (reconcile the overview count); minor blinding leak (our Screening tab lists the comparator's PMID as an excluded meta — not mappable since the comparator page shows no PMID).
+
+---
+
+## Topic 1 — re-judge after F2/F3/F4 (pages improved)
+- Blind verdict (order swapped): ours **25** vs comparator **17 / 35** — ours higher (was 25 vs 11 pre-F2/F3; comparator rose to 17 because it now shows 3 outcomes incl 2 harms via full-text).
+- **Two persistent cross-topic limbs the judge named (track across all topics):**
+  1. **Harms depth** — our GI harm in CORP-2 is reported word-form ("nine ... vs nine", no %), so the conservative extractor declares it absent; the comparator pools 2 harms. Ours loses the harms limb until harms extraction is deepened (word-form counts / count-only pairs). Weigh against fabrication risk.
+  2. **Include-list precision** — 6 screened-in, 3 pooled; the 3 extras are design/rationale/duplicate reports of already-included trials. Pool stays correct (they're declared-absent), but the include count reads high. Fix generally only if it recurs on the lane topics.
+- Data-completeness/provenance win is stable and is the genuine value proposition.
