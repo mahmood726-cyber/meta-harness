@@ -461,3 +461,44 @@ Every added trial verified true against source before it pools.
   wrong-timepoint, subgroup, %-only, treatment-trial, 97.5% CI). Genuine clean candidates (FIDELIO-DKD,
   CONFIRM-HF, CORIMUNO-TOCI, ...) queued for per-trial verification (NOT auto-pooled — the bar).
 - Fable lane count this stretch: 21 (7 defect + 7 dual + 7 recover), all on the 99%-unused Fable bucket.
+
+## Cycle 30 (commit cbdd0e6) — NEJM "primary composite outcome" anchor recovery + declared-absent audit
+- ROOT CAUSE (span-recovery lever): extract._effective_kws enabled the generic "primary outcome"
+  anchor only on a literal substring. NEJM/Lancet write "the primary COMPOSITE outcome ... was ...";
+  "composite" splits the literal "primary outcome" so the anchor never enabled and the results
+  sentence ("a primary outcome event occurred in N of M") was never selected -> trial wrongly absent.
+- FIX (general, 2 guards): _ANCHOR_RX matches PRIMARY family with optional inserted adjective; PRIMARY
+  only (a secondary def must not enable the primary anchor -> FIGARO CV primary 458/3686 stays rejected);
+  relaxed match requires a DEFINITION cue (was/were/composite of) so a substudy's narrative result
+  mention (ticagrelor PMID 20802246 "reduced the primary composite endpoint of ...") does not enable it
+  and pull a median-split subgroup HR.
+- CELLS MOVED: exactly 1 recovered, verified TRUE vs source: FIDELIO-DKD (33264825) declared-absent ->
+  504/2833 vs 600/2841 (kidney composite primary). finerenone k 1->2, scale "mixed (HR/RR)", both trials
+  verified against committed source, LOO not-assessable at k=2. (SUSTAIN-6 27633186 component->primary
+  MACE correction is real but the trial is screened out of the obesity topic, so no pooled effect.)
+- DECLARED-ABSENT AUDIT (deterministic, free): of 95 primary declared-absent cells with a real abstract,
+  19 contain ANY corroborated number; triage = ~17 CORRECT REFUSALS (recurrent-event AFFIRM-AHF/IRONMAN
+  per-100-py; subgroups "no prior ACS"/"statin users"; wrong endpoints treatment-failure/6MWT/SAE/
+  clinical-failure/mech-vent; factorial B-vitamin arm; adjusted regression OR; nested meta-analysis).
+  2 borderline: probiotics 38258024 (clean AAD 16/57 vs 6/56 but "presented with diarrhea" is topic-
+  specific phrasing = NOT a general fix, and probiotics already k=13 = moves no deficit -> NOT tuned);
+  CORIMUNO-TOCI 33080017 (28-day mortality but 7 vs 8 deaths, adjusted Bayesian HR, no in-sentence
+  denominators -> refuse on ambiguity). VERDICT: declared-absent set is overwhelmingly correct; the k
+  deficit is SOURCE-LEVEL (absence / estimand-mismatch), not extraction failure. Confirms R2/R3-dead.
+- 106 tests (+3 regression), 23/23 reproduce, 23/23 gate PASS.
+
+## Cycle 30 — measured "how good vs published OA metas" (per domain, incl. losses)
+- REPRODUCIBILITY (categorical WIN, no confound): 23/23 replay byte-for-byte from committed protocol
+  SHA (gate-enforced); 0 of 84 pooled numbers unverified against committed source. No published meta
+  offers replay-from-source or per-number digit verification.
+- PRISMA countable items (measured; partial confound: comparators are abstract-derived ~8k pages vs our
+  full reviews): ours 23/23 on all of {search strategy, verbatim re-runnable, dual screening, flow,
+  exclusions-with-reasons, registration}; comparator 17/16/15/17/5/10 of 23. Cleanest separation:
+  exclusions-with-reasons 23 vs 5, registration 23 vs 10.
+- k / EVIDENCE COMPLETENESS (measured LOSS, dominant): our k median 2, mean 2.8, 15/23 topics k<=2;
+  behind on ALL 7 topics where comparator k is stated (sglt2-ckd 3v10, spironolactone 2v9,
+  colchicine-postop 4v9, iv-iron 1v6, colchicine-pericarditis 3v5, crystalloids 5v6, omega3 7v8).
+- RoB (measured, NEAR PARITY — not the predicted loss): all 5 RoB2 domains assessed; D1 46/46, D5 46/46,
+  D2 39/46, D4 39/46, D3 (attrition) 29/46 = the only coverage gap.
+- A fully-fair blind judged page-vs-page comparison is NOT runnable from current data (comparator=abstract
+  only); running it would measure acquisition asymmetry, not method. Enabler = comparator OA full-text.
