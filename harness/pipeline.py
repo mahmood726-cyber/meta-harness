@@ -442,6 +442,7 @@ def build_review_core(slug, config, records, protocol_sha):
         "outcomes": outcomes,
         "comparator": comparator,
         "estimand_exclusions": config.get("estimand_exclusions", []),
+        **({"comparator_scope_note": config["comparator_scope_note"]} if config.get("comparator_scope_note") else {}),
         **({"rob2": _rb} if (_rb := _load_rob2(slug)) else {}),
         **({"integrity": _integ} if (_integ := _load_integrity(slug)) else {}),
     }

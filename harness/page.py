@@ -120,7 +120,9 @@ def _overview(r, neutral):
             "<li><strong>Open-access comparator only.</strong> The benchmark meta is restricted to an "
             "OA-retrievable publication, a narrower and sometimes weaker comparator set than the full "
             "literature.</li>"
-            "<li><strong>Favourable topic sample.</strong> Topics were chosen by us; clean binary "
+            + (f"<li><strong>Comparator scope.</strong> {_e(r.get('comparator_scope_note'))}</li>"
+               if r.get("comparator_scope_note") else "")
+            + "<li><strong>Favourable topic sample.</strong> Topics were chosen by us; clean binary "
             "outcomes with registered trials succeeded, while continuous, recurrent-event and older "
             "literature were declined — so the success rate reflects a selected sample, not the whole "
             "field.</li>"
