@@ -15,8 +15,10 @@ NEG = ("not ", "non-", "non ", "never ", "no ")
 _ARM = re.compile(r"(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*\)\s*(?:of|/)\s*(\d+)")
 _ARM2 = re.compile(r"(\d+)\s*/\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*\)")
 # "N [patients] (P%)" with the denominator stated elsewhere in the sentence/abstract.
-_ARMP = re.compile(r"(\d+)\s+(?:patients?|participants?|cases?)?\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*\)")
+# "N [patients] (P%)" or "N [patients] [P%]" — parentheses OR square brackets.
+_ARMP = re.compile(r"(\d+)\s+(?:patients?|participants?|cases?|subjects?)?\s*[\(\[]\s*(\d+(?:\.\d+)?)\s*%\s*[\)\]]")
 _DENOM_EACH = re.compile(r"(\d+)\s+(?:patients?\s+|were\s+)?(?:randomly\s+)?(?:assigned|allocated|randomi[sz]ed)\s+to\s+each", re.I)
+_NEQ = re.compile(r"n\s*=\s*(\d+)", re.I)
 _WORDNUM = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
             "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
             "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
@@ -63,12 +65,21 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None):
         if n > 0 and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
             groups.append((m.start(), ev, n))
     if len(groups) < 2 and denom_each:
-        # "N [patients] (P%)" with a shared denominator inferred from the abstract;
-        # accept only if the inferred denominator corroborates the stated percentage.
+        # "N [patients] (P%)"/"[P%]" with the denominator inferred from the abstract; accept
+        # only if some candidate denominator corroborates the stated percentage for that arm.
+        cands = denom_each if isinstance(denom_each, (list, tuple, set)) else [denom_each]
+        cands = [int(c) for c in cands if c]
         for m in _ARMP.finditer(sentence):
             ev, pct = int(m.group(1)), float(m.group(2))
-            if abs(ev / denom_each * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
-                groups.append((m.start(), ev, denom_each))
+            if _negated(sentence, m.start()):
+                continue
+            best = None
+            for den in cands:
+                if den > 0 and ev <= den and abs(ev / den * 100 - pct) <= 1.0:
+                    if best is None or abs(ev / den * 100 - pct) < abs(ev / best * 100 - pct):
+                        best = den
+            if best:
+                groups.append((m.start(), ev, best))
     # de-duplicate overlapping matches at the same position
     seen, uniq = set(), []
     for g in sorted(groups):
@@ -110,12 +121,36 @@ def extract_effect(sentence):
     return _effect_from_match(m) if m else None
 
 
+GENERIC_ANCHORS = {"primary outcome", "primary end point", "primary endpoint",
+                   "primary study outcome", "primary study end point"}
+
+
+def _effective_kws(abstract, outcome_kws):
+    """Generic 'primary outcome/endpoint' anchors are used ONLY when the trial's primary
+    outcome IS our outcome (a sentence links a generic anchor to a disease keyword). This
+    stops us reading a trial's PRIMARY result when its primary endpoint is a different
+    outcome than ours (e.g. COPPS-2's primary is postpericardiotomy syndrome, not AF)."""
+    disease = [k for k in outcome_kws if k.lower() not in GENERIC_ANCHORS]
+    generic = [k for k in outcome_kws if k.lower() in GENERIC_ANCHORS]
+    if not generic:
+        return disease
+    low = abstract.lower()
+    for s in _sentences(abstract):
+        sl = s.lower()
+        if any(g in sl for g in generic) and any(dk.lower() in sl for dk in disease):
+            return disease + generic  # the trial's primary outcome is ours
+    return disease
+
+
 def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
     """Best conservative extraction for one trial's outcome. Returns dict or a reason."""
     abstract = _norm(abstract)
     dm = _DENOM_EACH.search(abstract)
-    denom_each = int(dm.group(1)) if dm else None
-    sents = _outcome_sentences(abstract, outcome_kws)
+    cand = [int(x) for x in _NEQ.findall(abstract)]
+    if dm:
+        cand.append(int(dm.group(1)))
+    denom_each = sorted(set(cand)) or None
+    sents = _outcome_sentences(abstract, _effective_kws(abstract, outcome_kws))
     for s in sents:
         arms = extract_arm_counts(s, interv_terms, comp_terms, denom_each)
         if arms:
