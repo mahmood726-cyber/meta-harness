@@ -365,3 +365,15 @@ Every added trial verified true against source before it pools.
   architecture stays documented for a FUTURE genuinely-anchored unusual-phrasing case; not built to
   recover 0. k delta 0, recorded as a measured wall (not dressed up).
 - ALL 10 flaw-queue items now addressed: 1,2 built; 4 closed; 3,6,7,8,9,10 disclosed; 5 measured wall.
+
+## Cycle 23 — Span-location defect test (item 5 REVERSED) + flaw #3 stale-record fix
+- Per Mahmood: tested whether locating the span FIRST prevents the known wrong-number defects (not
+  whether it finds more trials). Fable span-location + identity judgment on 4 defect/control cases:
+  4/4 correct — REJECTED appendicitis (30-day-resolution) and vitamin-D (influenza-A-as-ARI) wrong-
+  endpoint binds; CONFIRMED Hernandez + LoDoCo2. So the model extractor prevents the wrong-endpoint
+  class and is worth building as an identity gate. My cycle-14/22 dismissal tested the wrong set;
+  REVERSED and recorded (JUDGELOG).
+- Flaw #3: annotated the two stale "19-0 / 19 of 19" JUDGELOG lines as SUPERSEDED (record is 15 clean
+  + 4 set-aside). The correction already existed below; now the stale lines point to it.
+- k delta 0 (a methods finding + record fix). Next: BUILD the locate-parse-round-trip identity gate
+  (model span + identity, cached/model-derived, code parses, round-trip decides) — now justified.
