@@ -221,10 +221,13 @@ def _screening(r, neutral):
             integ_html = (f"<div class='absent'><strong>RETRACTED TRIAL POOLED:</strong> {_e(', '.join(retracted))} "
                           "— this page must not stand until resolved.</div>")
         else:
+            retro = integ.get("retrospectively_registered", [])
             msg = (f"<p class='note'><strong>Trial integrity:</strong> none of the {_e(integ.get('n_pooled'))} "
                    f"pooled trials is retracted"
                    + (f"; {len(concern)} under an expression of concern ({_e(', '.join(concern))})" if concern else "")
-                   + f" (checked {_e(integ.get('checked_utc'))} via {_e(integ.get('source'))}).</p>")
+                   + (f"; {len(retro)} registered retrospectively — after enrolment began, a reporting-bias "
+                      f"signal, not disqualifying ({_e(', '.join(retro))})" if retro else "")
+                   + f" (checked {_e(integ.get('checked_utc'))} via {_e(integ.get('source'))} + AACT dates).</p>")
             integ_html = msg
     body = (integ_html + f"<p>{len(recs)} records screened; <strong>{n_inc} included</strong>. "
             "Eligibility is on P/I/C/design only; every record carries a rule id, a "

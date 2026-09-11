@@ -36,14 +36,11 @@ def _pmid_to_nct(slug):
     return {str(r.get("id")): r.get("nct") for r in recs if r.get("nct")}
 
 
-def _prospective(pmids, slug):
+def _prospective(pmids, slug, dates):
     """Per pooled trial with an NCT: was it registered BEFORE enrolment started? Retrospective
-    registration (registered after the start date) is a documented reporting-bias signal. Uses the
-    local AACT dates; returns {pmid: {nct, registered, start, prospective|None}}. None = undeterminable
-    (missing dates or no NCT)."""
+    registration is a documented reporting-bias signal. `dates` is a pre-fetched AACT study_dates map
+    (one pass for all topics). None = undeterminable (missing dates or no NCT)."""
     p2n = _pmid_to_nct(slug)
-    ncts = [p2n[p] for p in pmids if p2n.get(p)]
-    dates = aact.study_dates(ncts) if ncts else {}
     out = {}
     for p in pmids:
         nct = p2n.get(p)
@@ -60,6 +57,14 @@ def _prospective(pmids, slug):
 def main(argv):
     slugs = argv or [s for s in sorted(os.listdir(os.path.join(ROOT, "docs", "reviews")))
                      if os.path.exists(os.path.join(ROOT, "docs", "reviews", s, "review.json"))]
+    # ONE AACT pass for every pooled trial's NCT across all topics (studies.txt is 400MB+).
+    all_ncts = set()
+    for slug in slugs:
+        p2n = _pmid_to_nct(slug)
+        for p in pooled_pmids(slug):
+            if p2n.get(p):
+                all_ncts.add(p2n[p])
+    all_dates = aact.study_dates(all_ncts) if (aact.snapshot_dir() and all_ncts) else {}
     for slug in slugs:
         pmids = pooled_pmids(slug)
         if not pmids:
@@ -71,7 +76,7 @@ def main(argv):
             continue
         retracted = [p for p in pmids if status.get(p, {}).get("retracted")]
         concern = [p for p in pmids if status.get(p, {}).get("concern")]
-        prospective = _prospective(pmids, slug) if aact.snapshot_dir() else {}
+        prospective = _prospective(pmids, slug, all_dates) if all_dates else {}
         retro = [p for p in prospective if prospective[p].get("prospective") is False]
         out = {"checked_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                "source": "PubMed efetch (PublicationType + CommentsCorrections)",
