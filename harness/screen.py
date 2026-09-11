@@ -102,6 +102,35 @@ def _quote(raw: str, limit: int = 90) -> str:
     return (s[:limit] + "…") if len(s) > limit else s
 
 
+def describe_eligibility(inc: dict) -> str:
+    """Render the eligibility statement FROM the structured include object that screen_record
+    actually enforces, so the served/declared eligibility on the page cannot drift from the code
+    that screens (the "declared method == served method" invariant, at the eligibility level).
+    Every clause below corresponds one-to-one to a branch of screen_record."""
+    inc = inc or {}
+    clauses = ["a randomised controlled trial"]
+    pa = inc.get("population_any")
+    if pa:
+        clauses.append(f"population (in title/registry conditions) mentions one of {pa}")
+    pn = inc.get("population_none")
+    if pn:
+        clauses.append(f"and none of {pn}")
+    ia = inc.get("intervention_any")
+    if ia:
+        loc = "named in title/conditions" if inc.get("intervention_in_title") else "present in the record"
+        clauses.append(f"randomised intervention is one of {ia} ({loc})")
+    ca = inc.get("comparator_any")
+    if ca:
+        clauses.append(f"a comparator among {ca}")
+    if inc.get("design_double_blind"):
+        clauses.append("double-blind or placebo-controlled")
+    excl = ["X1 not an RCT", "X2 wrong/off-topic population", "X3 wrong intervention/comparator"]
+    if inc.get("design_double_blind"):
+        excl.append("X-DESIGN not double-blind/placebo-controlled")
+    return ("Included iff ALL hold: " + "; ".join(clauses)
+            + ". Excluded (rule id + verbatim span on each record): " + " · ".join(excl) + ".")
+
+
 def screen_record(rec, inc, neg_pmids):
     """Return (decision, rule_id, reason, span). `span` is a VERBATIM excerpt of the record's own
     text evidencing the decision (a real substring), so every decision is checkable against source."""

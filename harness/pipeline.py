@@ -260,8 +260,9 @@ def build_review_core(slug, config, records, protocol_sha):
         "method_declared": METHOD,
         "protocol": {"sha": protocol_sha, "committed_utc": records.get("fetched_utc"),
                      "method_declared": METHOD,
-                     "eligibility": config.get("eligibility_summary", "RCT; intervention vs placebo; "
-                                    "on-topic population; double-blind placebo-controlled. P/I/C/design only."),
+                     # Eligibility is GENERATED from the include object the screen enforces, so the
+                     # declared eligibility on the page cannot drift from the code that screens.
+                     "eligibility": screen.describe_eligibility(config.get("include", {})),
                      "text": _read_text("protocols", slug + ".md")},
         "search": {"n_records": len(merged), "cache_ref": f"cache/{slug}/records.json",
                    "run_utc": records.get("fetched_utc"), "databases": ["PubMed", "ClinicalTrials.gov"],

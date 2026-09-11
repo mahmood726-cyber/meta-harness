@@ -64,3 +64,25 @@ def test_run_attaches_span_to_every_decision():
     out = run(recs, {"include": INC})
     assert all("span" in d for d in out["decisions"])
     assert all(isinstance(d["span"], str) for d in out["decisions"])
+
+
+# --- eligibility generated from the include object (no drift) ---------------------
+from harness.screen import describe_eligibility  # noqa: E402
+
+
+def test_describe_eligibility_reflects_include_faithfully():
+    d = describe_eligibility(INC)
+    assert "randomised controlled trial" in d
+    assert "cardiovascular" in d and "myocardial" in d  # population_any
+    assert "depression" in d  # population_none
+    assert "omega-3" in d  # intervention_any
+    assert "placebo" in d  # comparator_any
+    assert "double-blind" in d  # design_double_blind => X-DESIGN clause present
+    assert "X-DESIGN" in d
+
+
+def test_describe_eligibility_omits_xdesign_when_not_required():
+    inc = {k: v for k, v in INC.items() if k != "design_double_blind"}
+    d = describe_eligibility(inc)
+    assert "X-DESIGN" not in d
+    assert "double-blind" not in d  # no double-blind clause when the config does not require it
