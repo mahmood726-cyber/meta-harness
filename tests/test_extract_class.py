@@ -202,3 +202,19 @@ def test_extract_continuous_refuses_without_n_or_two_arms():
     assert extract_continuous(s, ["zinc"], ["placebo"], None) is None  # no per-arm n
     one = "Mean cold duration was 4.0 days (SD 1.5) in the zinc group."
     assert extract_continuous(one, ["zinc"], ["placebo"], {"i": 50, "c": 52}) is None  # one arm
+
+
+# --- subgroup guard: refuse subgroup/per-protocol/post-hoc effects; keep the main ITT result ---
+def test_subgroup_guard_refuses_subgroup_effect():
+    s = ("Hazard ratio for exacerbations was lowest in the HP+/AZ subgroup at 0.61 "
+         "(95% CI 0.45 to 0.83).")
+    ex = _xt(s, ["exacerbation"], ["azithromycin"], ["placebo"])
+    assert ex.get("absent")
+
+
+def test_subgroup_guard_keeps_main_itt():
+    # a main-analysis sentence (no subgroup marker) with a real disease keyword still extracts
+    s = ("Recurrent pericarditis occurred in 26 of 120 vs 51 of 120 (relative risk 0.44, "
+         "95% CI 0.27 to 0.73).")
+    ex = _xt(s, ["recurrent pericarditis", "pericarditis"], ["colchicine"], ["placebo"])
+    assert ex.get("ai") == 26 or ex.get("effect") == 0.44, ex

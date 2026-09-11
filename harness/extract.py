@@ -263,6 +263,19 @@ def _is_factorial(abstract):
     return bool(_FACTORIAL.search(abstract or ""))
 
 
+_SUBGROUP = re.compile(
+    r"\bper[-\s]?protocol\b|\bpost[-\s]?hoc\b|\bsubgroup\b|\bsensitivity analysis\b|"
+    r"\bas[-\s]?treated\b|\blowest in\b|\bhighest in\b|\bamong (?:those|patients) (?:with|who)\b|"
+    r"\brestricted to\b|\bexploratory analysis\b", re.I)
+
+
+def _is_subgroup_sentence(sentence):
+    """An effect from a subgroup / per-protocol / post-hoc / sensitivity sentence is NOT the main
+    ITT comparison and must not be pooled as it (a trial full text is full of these — the azithromycin
+    28558695 HR was 'lowest in the HP+/AZ group', a subgroup). Refuse extraction from such a sentence."""
+    return bool(_SUBGROUP.search(sentence or ""))
+
+
 def _multi_dose_arms(abstract):
     """Distinct intervention DOSE values reported (e.g. CANTOS '50-mg group ... 150-mg group ...
     300-mg group'). A trial with >1 dose arm vs one comparator is multi-arm: picking one dose's
@@ -390,7 +403,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
             "Specify the dose in the topic's intervention terms to pin the arm.")}
     sents = _outcome_sentences(abstract, _effective_kws(abstract, outcome_kws))
     for s in sents:
-        if factorial and not _interv_in(s, interv_terms):
+        if _is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms)):
             continue
         arms = extract_arm_counts(s, interv_terms, comp_terms, denom_each)
         if arms:
@@ -412,7 +425,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
             return {"ai": arms[0], "n1i": arms[1], "ci": arms[2], "n2i": arms[3],
                     "source": "abstract arm-level counts (percentage-corroborated): " + s.strip()[:200]}
     for s in sents:
-        if factorial and not _interv_in(s, interv_terms):
+        if _is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms)):
             continue
         eff = extract_effect(s)
         if eff:
@@ -421,7 +434,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
     # Incidence-rate fallback: explicit per-arm events + person-time (recurrent-event class).
     # Lowest priority so binary counts / ratio effects are preferred; refuses ambiguous rates.
     for s in sents:
-        if factorial and not _interv_in(s, interv_terms):
+        if _is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms)):
             continue
         rate = extract_rate(s, interv_terms, comp_terms)
         if rate:
@@ -431,7 +444,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
     # Continuous fallback: mean-difference from per-arm mean+/-SD (+ per-arm n from the abstract).
     ns = _arm_ns(abstract, interv_terms, comp_terms)
     for s in sents:
-        if factorial and not _interv_in(s, interv_terms):
+        if _is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms)):
             continue
         cont = extract_continuous(s, interv_terms, comp_terms, ns)
         if cont:
