@@ -262,6 +262,46 @@ def summed_arms(pmid, interv_terms, comp_terms, outcome_terms, root: str | None 
             "outcome_title": otitle, "provenance": "aact_structured_summed"}
 
 
+def attrition(ncts, root: str | None = None) -> dict[str, dict]:
+    """Per-NCT participant-flow attrition from AACT milestones (Overall Study STARTED vs COMPLETED,
+    per result group) — the machine-available signal for RoB2 D3 (missing outcome data). Returns
+    {nct: {"overall_pct": float, "differential_pct": float, "groups": [(started, completed), ...]}}.
+    Overall = 1 - sum(completed)/sum(started); differential = spread of per-group attrition. Only the
+    availability axis is machine-derivable; whether missingness depends on the outcome stays human."""
+    want = {str(n).strip().upper() for n in ncts}
+    p = _table("milestones", root)
+    if not p or not want:
+        return {}
+    started: dict = {n: {} for n in want}
+    completed: dict = {n: {} for n in want}
+    for r in _iter_rows(p):
+        n = (r.get("nct_id") or "").upper()
+        if n not in want or (r.get("period") or "") != "Overall Study":
+            continue
+        t = (r.get("title") or "").upper()
+        g = r.get("ctgov_group_code")
+        try:
+            c = int(r.get("count"))
+        except (TypeError, ValueError):
+            continue
+        if t == "STARTED":
+            started[n][g] = c
+        elif t == "COMPLETED":
+            completed[n][g] = c
+    out: dict = {}
+    for n in want:
+        groups = [(started[n][g], completed[n].get(g, 0)) for g in started[n] if started[n][g] > 0]
+        if not groups:
+            continue
+        tot_s = sum(s for s, _ in groups)
+        tot_c = sum(c for _, c in groups)
+        per = [1 - c / s for s, c in groups]
+        out[n] = {"overall_pct": round(100 * (1 - tot_c / tot_s), 1) if tot_s else None,
+                  "differential_pct": round(100 * (max(per) - min(per)), 1) if per else None,
+                  "groups": groups}
+    return out
+
+
 def study_dates(ncts, root: str | None = None) -> dict[str, dict]:
     """Per-NCT registration/enrolment/results dates + status, for the prospective-registration and
     ghost-protocol checks. ONE streaming pass over studies."""

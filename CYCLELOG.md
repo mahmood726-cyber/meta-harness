@@ -404,3 +404,17 @@ Every added trial verified true against source before it pools.
   ==False (DAPA-HF is is_target_outcome=true but wrong population). Pipeline reason names which failed.
 - +regression test (locate.rejects on identity OR population). 103 tests, 23/23 reproduce (gate inert
   for the 23). Item 6 (prose-pattern) fix now evidenced across 6 defect cases; item 5 fully built.
+
+## Cycle 26 — Extraction fill-rate matrix (0 silent gaps) + RoB2 D3 automated (items A + 6)
+- scripts/fill_matrix.py: for every included trial x every protocol outcome, the cell is FILLED
+  (number+provenance), DECLARED_ABSENT (reason), or SILENT_GAP (screened-in but neither). RESULT across
+  620 cells: 84 filled, 536 declared-absent, **0 SILENT_GAP -> 100% accounted**. The "zero silent
+  cells" target is MET. (Fill rate 13.5% is not a defect — each trial measures a subset of the protocol
+  outcomes; the rest are declared-absent-with-reason, not silently empty.) docs/fill_matrix.json.
+- RoB2 D3 automated (item 6/4): harness/aact.py::attrition (milestones STARTED vs COMPLETED per result
+  group) -> rob2._d3: low when overall<5% and differential<5%, some-concerns when notable, not-assessed
+  only without flow data. D3 went 0 assessed -> 10 low + 4 some-concerns (32 not-assessed are PMID-only
+  or no-posted-flow, honestly). The outcome-dependence axis stays human-noted. Fixed my --write omission.
+- 0 estimates moved; 103 tests; 23/23 reproduce; gate PASS.
+- SUCCESS: extraction has zero silent gaps (measured + rendered), and D3 is machine-assessed where the
+  registry provides flow data.

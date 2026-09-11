@@ -39,6 +39,8 @@ def main(argv):
     for r in aact._iter_rows(aact._table("designs")):
         if (r.get("nct_id") or "").upper() in alln:
             designs[(r.get("nct_id") or "").upper()] = r
+    # participant-flow attrition for D3 (one pass over milestones)
+    attr = aact.attrition(alln)
     # one pass: registered PRIMARY outcomes (design_outcomes.outcome_type == 'Primary')
     regprim = {n: [] for n in alln}
     for r in aact._iter_rows(aact._table("design_outcomes")):
@@ -50,7 +52,8 @@ def main(argv):
             continue
         assess = {}
         for nct, pid in d.items():
-            dom = rob2.assess(designs.get(nct.upper()), regprim.get(nct.upper(), []), pooled_out, _match)
+            design = dict(designs.get(nct.upper()) or {}, attrition=attr.get(nct.upper()))
+            dom = rob2.assess(design, regprim.get(nct.upper(), []), pooled_out, _match)
             assess[pid] = {"nct": nct, "overall": rob2.overall(dom), "domains": dom}
         print(f"{slug}: " + "; ".join(f"{p}={a['overall'].split('(')[0].strip()}" for p, a in assess.items()))
         if write:

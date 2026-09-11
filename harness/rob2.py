@@ -26,6 +26,25 @@ def _b(v):
     return None
 
 
+def _d3(attr) -> dict:
+    """RoB2 D3 (missing outcome data), AVAILABILITY axis from AACT participant-flow attrition. Low when
+    outcome data is near-complete and balanced (overall <5% and differential <5%); some concerns when
+    attrition is notable or differential; not assessed when no flow data. Whether missingness DEPENDS
+    on the outcome still needs human reading, and the basis says so — machine signal, not a full D3."""
+    if not attr or attr.get("overall_pct") is None:
+        return {"level": "not assessed",
+                "basis": "no AACT participant-flow (milestones) data; attrition needs human judgement"}
+    o, d = attr["overall_pct"], attr.get("differential_pct") or 0
+    if o < 5 and d < 5:
+        lvl = "low"
+    elif o < 20 and d < 10:
+        lvl = "some concerns"
+    else:
+        lvl = "some concerns"
+    return {"level": lvl, "basis": (f"AACT flow: overall attrition {o}%, between-arm differential {d}% "
+                                    "(availability axis; outcome-dependence of missingness needs human judgement)")}
+
+
 def assess(design: dict, registered_primaries: list, pooled_outcome: str, matches) -> dict:
     """design: AACT designs row (allocation, subject_masked, caregiver_masked, outcomes_assessor_masked).
     registered_primaries: the trial's AACT-registered PRIMARY outcome titles.
@@ -52,8 +71,7 @@ def assess(design: dict, registered_primaries: list, pooled_outcome: str, matche
     return {
         "D1_randomisation": {"level": d1, "basis": f"AACT allocation = {alloc or 'unstated'}"},
         "D2_deviations": {"level": d2, "basis": f"blinding: subject_masked={sm}, caregiver_masked={cm}"},
-        "D3_missing_outcome_data": {"level": "not assessed",
-                                    "basis": "attrition/participant-flow needs human judgement — not automated"},
+        "D3_missing_outcome_data": _d3(design.get("attrition")),
         "D4_outcome_measurement": {"level": d4, "basis": f"outcome-assessor blinded = {oa}"},
         "D5_selective_reporting": {"level": d5, "basis": d5b},
     }
