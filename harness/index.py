@@ -116,7 +116,20 @@ def build_index(docs_dir: str) -> str:
                 "field. The topic set is preregistered and the declines are recorded (JUDGELOG), so the "
                 "selection is visible rather than silent.</p></div>") + body
 
-    body = _parity_section(docs_dir) + body
+    _stance = ("<div class='banner'><h2>Methodological stance (measured, not asserted)</h2>"
+               "<p><strong>We decline where the comparator imputed.</strong> On continuous outcomes "
+               "(e.g. zinc for cold duration) the published comparator reconstructed per-arm variances "
+               "from Kaplan&ndash;Meier curves and figures, or used paywalled values; of its 7 pooled "
+               "trials, 0 report a verifiable per-arm SD in accessible primary text. We pool only what "
+               "we can verify against source, so we decline those cells rather than impute &mdash; a "
+               "genuine methodological difference, not a shortfall.</p>"
+               "<p><strong>Registry-and-regulatory reach under-covers older literature (measured).</strong> "
+               "FDA/EMA and multi-registry (ISRCTN/EU-CTR/ICTRP) adapters reach newer approval-label and "
+               "registered trials, but cannot reach old published RCTs that predate the registries and "
+               "were never before FDA/EMA (DART 1989, GISSI-Prevenzione 1999, JELIS 2007, GISSI-HF 2008). "
+               "For those the only reach is bibliographic (citation chasing). Each affected page names "
+               "which trials are out of registry-and-regulatory reach and why.</p></div>")
+    body = _parity_section(docs_dir) + _stance + body
 
     return (
         "<!doctype html><html lang=en><head><meta charset=utf-8>"
