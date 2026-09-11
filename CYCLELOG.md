@@ -418,3 +418,24 @@ Every added trial verified true against source before it pools.
 - 0 estimates moved; 103 tests; 23/23 reproduce; gate PASS.
 - SUCCESS: extraction has zero silent gaps (measured + rendered), and D3 is machine-assessed where the
   registry provides flow data.
+
+## Cycle 27 — Dual independent extraction (second extractor) BUILT; result honest-but-confounded
+- Built the dual-extraction pipeline (scripts/dual_assemble.py -> dual_collect.py -> dual_compare.py):
+  Fable independently locates each pooled number's span (emits NO number); deterministic code parses
+  the model span and checks agreement with the served number. This is the Cochrane/PRISMA dual
+  independent data-extraction we lacked — closes a named flaw.
+- Ran on all 84 pooled numbers via 7 Fable lanes. The model VISIBLY located the correct result spans
+  with the exact served numbers (e.g. LoDoCo2 187/264, SELECT 569/701, RECOVERY 621/729, EMPEROR
+  415/511, DAPA-HF 386/502) — qualitatively, the second extractor reproduces the served evidence.
+- BUT the precise agreement rate is CONFOUNDED and I will not report it as fact: the Fable task-output
+  files came back EMPTY post-completion, forcing lossy hand-transcription of the spans, and the digit/
+  effect comparison mis-flags (a) entries I omitted in transcription and (b) DERIVED RRs (abstract
+  states counts/% we derived the ratio from, so the derived value isn't literally in the span though
+  the data is). Raw 60/79 is therefore an undercount dominated by instrument artifacts — the same
+  "validate the comparison before trusting the disagreement" lesson, third instance.
+- GENUINE non-confirmables (correct): 5 AACT/ctgov-sourced numbers the abstract-only model cannot
+  confirm (SMART's AACT-summed counts; ctgov-only outcomes) — expected, not a discrepancy.
+- HONEST STATUS: mechanism built + qualitatively validated; a clean agreement rate needs the span
+  collection fixed (persist Fable's returned span-map to a committed file at emit time, not via the
+  emptied task transcript). Not committing a misleading rate. cache/dual_spans_sample.json retains the
+  hand-collected spans for the record.
