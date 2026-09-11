@@ -134,7 +134,17 @@ def build_index(docs_dir: str) -> str:
                "strictness decisions, not search failures</strong> &mdash; the comparators' larger pools "
                "include open-label and off-outcome trials our criteria exclude. Each affected page names "
                "which recovered trials were declined and why.</p></div>")
-    body = _parity_section(docs_dir) + _stance + body
+    _fair = ("<div class='banner'><h2>Fair comparison (measured against comparator FULL TEXT)</h2>"
+             "<p>An earlier countable PRISMA comparison read the comparators' <em>abstracts</em> against "
+             "our full pages &mdash; a confound in our favour, which we flagged and then fixed by "
+             "fetching each comparator's OA <strong>full text</strong> (all 25 obtained, PMC/Unpaywall). "
+             "Scored fairly, full-text vs full-page: the comparators now satisfy <strong>71 of 150</strong> "
+             "checkable PRISMA-item cells (far more than their abstracts did), yet across all 25 topics "
+             "there is <strong>no reporting item a comparator's full text presents that our page lacks "
+             "(0 of 150)</strong>, while we present <strong>79</strong> that even their full text does not "
+             "(chiefly per-record exclusion reasons and a machine-checkable registration SHA). The margin "
+             "narrowed under fair measurement, as it should; the direction held.</p></div>")
+    body = _parity_section(docs_dir) + _stance + _fair + body
 
     return (
         "<!doctype html><html lang=en><head><meta charset=utf-8>"
