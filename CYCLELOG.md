@@ -289,3 +289,15 @@ Every added trial verified true against source before it pools.
   coverage; the gaps (D2/D4) are honest metadata-absence, and D3 is honestly not-automated.
 - Survey json + html regenerated. 102 tests. No page bytes / estimates changed (artefact-only).
 - SUCCESS: front 8 now measured and rendered in the survey, not asserted.
+
+## Cycle 18 — Front 9 + new-topic candidate: preregistration discipline HELD (not padded)
+- Front 9 (the preregistered unbuilt topics) is complete: 9 unbuilt configs, all attempted (cycle 3) —
+  5 correct k=0 gate-declines, 3 wrong-endpoint (removed), 1 not-credible pool (hfnc). Recorded.
+- Evaluated a NEW topic candidate (bempedoic acid MACE, CLEAR Outcomes / Nissen 2023 NEJM): data is
+  clean and verifiable (bempedoic 819/6992 [11.7%] vs placebo 927/6978 [13.3%], HR 0.87). But it is
+  NOT in the 30-topic preregistration, and it is a k=1 single-pivotal-trial topic that would need a
+  class-level comparator (a 5th scope-mismatch). Adding ad-hoc topics to raise the count would VIOLATE
+  the preregistration discipline that is part of the harness's integrity, and would be padding, not a
+  deficit-move. NOT added — the straight path is to hold the preregistered set, not inflate it.
+- k delta: 0. Recorded as a principled decline, not dressed up. (Source: PubMed, CLEAR Outcomes,
+  DOI 10.1056/NEJMoa2215024.)
