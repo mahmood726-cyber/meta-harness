@@ -198,6 +198,63 @@ def screen_record(rec, inc, neg_pmids):
             ev or _quote(raw_pop))
 
 
+_RANDOM_TEXT = _re.compile(r"randomi[sz]ed|randomly (?:assigned|allocated)", _re.I)
+
+
+def screen_record_2(rec, inc):
+    """SECOND, independently-implemented rule screener (for dual screening). Deliberately uses a
+    DIFFERENT information basis than screen_record: it judges population/intervention/comparator from
+    the FULL abstract body (not title/registry-conditions only) and accepts an RCT from a
+    'randomised/randomly assigned' statement anywhere. It is therefore BROADER, and disagreements with
+    screener 1 are exactly the title-anchored-vs-body question that caused past defects. NOT
+    independent of screener 1 in the statistical sense (same author, same criteria) — that caveat is
+    stated on the page; the rule-based screener 1 remains the adjudicator."""
+    if _is_review(rec):
+        return "exclude"
+    text = _text(rec)
+    is_rct = (rec["id_type"] != "pmid"
+              or any("randomized controlled trial" in p.lower() for p in rec.get("pubtypes", []))
+              or _title_says_rct(rec) or bool(_RANDOM_TEXT.search(rec.get("abstract", "") or "")))
+    if not is_rct:
+        return "exclude"
+    if _has(text, inc.get("population_none")):
+        return "exclude"
+    if inc.get("population_any") and not _has(text, inc.get("population_any")):
+        return "exclude"
+    if inc.get("intervention_any") and not _has_intervention(text, inc["intervention_any"]):
+        return "exclude"
+    if inc.get("comparator_any") and not _has(text, inc["comparator_any"]):
+        return "exclude"
+    if inc.get("design_double_blind") and not _double_blind(rec, text):
+        return "exclude"
+    return "include"
+
+
+def run_dual(all_recs: list, config: dict) -> dict:
+    """Run both rule screeners and report the disagreement rate (PRISMA item 8). Deterministic, so it
+    regenerates on replay with no committed cache. Adjudicator = screener 1 (the served decisions)."""
+    inc = config.get("include", {})
+    neg = set(config.get("negative_control_pmids", []))
+    dis = []
+    agree = 0
+    for rec in all_recs:
+        d1 = screen_record(rec, inc, neg)[0]
+        d2 = screen_record_2(rec, inc)
+        if d1 == d2:
+            agree += 1
+        else:
+            dis.append({"id": rec["id"], "screener1": d1, "screener2": d2})
+    n = len(all_recs)
+    return {"n": n, "agree": agree, "disagree": len(dis),
+            "disagreement_rate_pct": round(100 * len(dis) / n, 1) if n else None,
+            "disagreements": dis[:60],
+            "method": "two independently-implemented rule screeners (screener 2 judges from the full "
+                      "abstract body; screener 1 from title/registry-conditions). Adjudicator: screener 1.",
+            "caveat": "the two rule sets share an author and the same eligibility criteria, so they are "
+                      "NOT statistically independent; this agreement overstates inter-rater reliability. "
+                      "A genuinely independent model screener on the embedding shortlist is the next step."}
+
+
 def run(all_recs: list, config: dict) -> dict:
     inc = config.get("include", {})
     neg = set(config.get("negative_control_pmids", []))

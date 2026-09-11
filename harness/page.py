@@ -247,8 +247,15 @@ def _screening(r, neutral):
             f"<tr><td>Eligible but outcome not extractable (declared-absent)</td><td>{_e(n_inc - (pooled_k or 0))}</td></tr>"
             "</table>"
             "<p class='note'>Every excluded record's rule id, reason and verbatim span are listed below "
-            "(PRISMA item 16b: exclusions with reasons). Screening is single deterministic rule-based; a "
-            "dual independent human/model screener with a disagreement rate is not yet implemented.</p>")
+            "(PRISMA item 16b: exclusions with reasons).</p>")
+    dual = s.get("dual")
+    if dual:
+        flow += ("<h4>Dual independent screening (PRISMA item 8)</h4>"
+                 f"<p>Two independently-implemented rule screeners over {_e(dual.get('n'))} records: "
+                 f"agreement <strong>{_e(dual.get('agree'))}/{_e(dual.get('n'))}</strong>, "
+                 f"disagreement <strong>{_e(dual.get('disagreement_rate_pct'))}%</strong> "
+                 f"({_e(dual.get('disagree'))} records). {_e(dual.get('method'))} "
+                 f"<em>{_e(dual.get('caveat'))}</em></p>")
     body = (flow + integ_html + f"<p>{len(recs)} records screened; <strong>{n_inc} included</strong>. "
             "Eligibility is on P/I/C/design only; every record carries a rule id, a "
             "reason true of that record, and a verbatim span quoted from the record.</p>"
