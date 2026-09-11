@@ -209,22 +209,128 @@ def nct_to_pmids(nct: str) -> list[str]:
     return _dedupe(pmids)
 
 
-def registry_first_pmids(cond: str, intr: str) -> dict:
-    """Return {'status': RAN_OK|RAN_ZERO|RAN_ERROR, 'pmids': [...]}.
+# --- ISRCTN adapter (multi-registry) -------------------------------------------------
+# ISRCTN is a WHO primary registry that indexes many UK/EU trials that never get an NCT.
+# The free-text API (https://www.isrctn.com/api/query/format/default?q=...) returns an
+# <allTrials> document in the 67bricks namespace; each trial's canonical id lives in the
+# <trial publicIdentifierCanonical="ISRCTN########"> attribute. Free text is deliberately
+# broad (reach, not precision) -- the screen decides eligibility downstream.
 
-    Any HTTP or parse failure is RAN_ERROR, not RAN_ZERO. On error, pmids is
-    empty so downstream code cannot accidentally treat a partial harvest as
-    source-complete evidence.
-    """
+ISRCTN = "https://www.isrctn.com/api/query/format/default"
+_ISRCTN_RE = re.compile(r"^ISRCTN\d{8}$")
+_ISRCTN_CANONICAL_RE = re.compile(r'publicIdentifierCanonical="(ISRCTN\d{8})"')
+
+
+def _normalise_isrctn(rid: str) -> str:
+    rid = str(rid or "").strip().upper()
+    if not _ISRCTN_RE.fullmatch(rid):
+        raise ValueError(f"invalid ISRCTN id: {rid!r}")
+    return rid
+
+
+def _parse_isrctn_ids(xml_text: str) -> list[str]:
+    """Pure parser: canonical ISRCTN ids from an <allTrials> API document. Namespace-agnostic
+    (reads the publicIdentifierCanonical attribute), so a 67bricks-namespace change does not
+    silently drop every id. Offline-testable against tests/fixtures/isrctn_sample.xml."""
+    ids = _ISRCTN_CANONICAL_RE.findall(xml_text or "")
+    if not ids:  # fall back to the <isrctn>NNNN</isrctn> element via ElementTree (namespace-tolerant)
+        try:
+            root = ET.fromstring(xml_text)
+        except ET.ParseError:
+            return []
+        for el in root.iter():
+            if el.tag.rsplit("}", 1)[-1] == "isrctn":
+                num = (el.text or "").strip()
+                if num.isdigit() and len(num) == 8:
+                    ids.append("ISRCTN" + num)
+    return _dedupe(ids)
+
+
+def enumerate_isrctn(cond: str, intr: str, limit: int = 100) -> list[str]:
+    """Return deduped ISRCTN ids for a free-text query, paging by offset. ISRCTN's free-text q
+    matches only when the whole string co-occurs, so a multi-term intervention+condition query is
+    far too strict ('colchicine pericarditis' -> 0 while 'colchicine' -> 31). We therefore query by
+    the INTERVENTION alone (the discriminating term) for reach, and let the screen enforce the
+    condition downstream -- reach-first, precision-downstream, as everywhere in the harness.
+    Raises on HTTP/parse trouble; the union wrapper converts that to a per-registry RAN_ERROR."""
+    terms = (intr or cond or "").strip()
+    if not terms:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    offset = 0
+    while True:
+        xml = get_text(ISRCTN, {"q": terms, "limit": limit, "offset": offset})
+        m = re.search(r'totalCount="(\d+)"', xml or "")
+        total = int(m.group(1)) if m else 0
+        page = _parse_isrctn_ids(xml)
+        for rid in page:
+            if rid not in seen:
+                seen.add(rid)
+                out.append(rid)
+        offset += limit
+        if offset >= total or not page:
+            break
+        time.sleep(0.3)
+    return out
+
+
+def registry_id_to_pmids(rid: str) -> list[str]:
+    """Resolve ANY WHO-registry id to PMIDs. PubMed's [si] field indexes NCT, ISRCTN, EudraCT,
+    ChiCTR ... so the [si] search generalises across registries; for NCT we also read CT.gov
+    referencesModule (ISRCTN publication links are not exposed as PMIDs by the API)."""
+    rid = str(rid or "").strip().upper()
+    pmids: list[str] = []
+    if _NCT_RE.fullmatch(rid):
+        pmids.extend(_ctgov_reference_pmids(rid))
+        time.sleep(0.2)
+    pmids.extend(_pubmed_secondary_id_pmids(rid))
+    return _dedupe(pmids)
+
+
+def registry_first_pmids(cond: str, intr: str, include_isrctn: bool = False) -> dict:
+    """Return {'status': RAN_OK|RAN_ZERO|RAN_ERROR, 'pmids': [...], 'registries': {...}}.
+
+    Unions enumeration across the enabled WHO registries (CT.gov always; ISRCTN when
+    include_isrctn), each resolved to PMIDs via registry_id_to_pmids. Any HTTP or parse failure
+    in ANY enabled registry is RAN_ERROR for the whole run, not RAN_ZERO -- a partial harvest must
+    never be mistaken for source-complete evidence. Per-registry status is reported in 'registries'
+    so a single flaky source is diagnosable (rate-limit != found-nothing)."""
+    registries: dict[str, dict] = {}
+    pmids: list[str] = []
+    any_error = False
+    # CT.gov
     try:
         ncts = enumerate_nct(cond, intr)
-        pmids: list[str] = []
+        cg = []
         for nct in ncts:
-            pmids.extend(nct_to_pmids(nct))
-        pmids = _dedupe(pmids)
-        return {"status": RAN_OK if pmids else RAN_ZERO, "pmids": pmids}
-    except Exception:  # noqa: BLE001 - fail-closed source status surface
-        return {"status": RAN_ERROR, "pmids": []}
+            cg.extend(nct_to_pmids(nct))
+        cg = _dedupe(cg)
+        registries["ctgov"] = {"status": RAN_OK if cg else RAN_ZERO, "n_ids": len(ncts), "n_pmids": len(cg)}
+        pmids.extend(cg)
+    except Exception:  # noqa: BLE001
+        registries["ctgov"] = {"status": RAN_ERROR, "n_ids": 0, "n_pmids": 0}
+        any_error = True
+    # ISRCTN (optional)
+    if include_isrctn:
+        try:
+            rids = enumerate_isrctn(cond, intr)
+            ip = []
+            for rid in rids:
+                ip.extend(registry_id_to_pmids(rid))
+                time.sleep(0.2)
+            ip = _dedupe(ip)
+            registries["isrctn"] = {"status": RAN_OK if ip else RAN_ZERO, "n_ids": len(rids), "n_pmids": len(ip)}
+            pmids.extend(ip)
+        except Exception:  # noqa: BLE001
+            registries["isrctn"] = {"status": RAN_ERROR, "n_ids": 0, "n_pmids": 0}
+            any_error = True
+    pmids = _dedupe(pmids)
+    if any_error:
+        # Fail-closed: an incomplete union must not be mistaken for source-complete evidence.
+        # Per-registry status is still reported so the caller can re-run only the flaky source.
+        return {"status": RAN_ERROR, "pmids": [], "registries": registries}
+    return {"status": RAN_OK if pmids else RAN_ZERO, "pmids": pmids, "registries": registries}
 
 
 def _txt(el: ET.Element | None) -> str:

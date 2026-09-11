@@ -249,7 +249,11 @@ def run(config: dict) -> dict:
     rf_cfg = config.get("registry_first")
     if rf_cfg:
         from . import registry_first as _rf
-        res = _rf.registry_first_pmids(rf_cfg.get("cond", ""), rf_cfg.get("intr", ""))
+        # include_isrctn adds the ISRCTN registry to the enumeration union (WHO trials without an
+        # NCT). Opt-in per topic (registry_first.isrctn: true) since it is a second network source;
+        # default off keeps every current topic's fetch unchanged.
+        res = _rf.registry_first_pmids(rf_cfg.get("cond", ""), rf_cfg.get("intr", ""),
+                                       include_isrctn=bool(rf_cfg.get("isrctn")))
         regfirst_status = res.get("status", "RAN_ERROR")
         for pid in res.get("pmids", []):
             if pid not in pmids:
