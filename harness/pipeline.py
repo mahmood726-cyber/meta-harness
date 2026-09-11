@@ -219,6 +219,13 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             pooled_scale = "IRR"
         elif all(t.get("mean1") is not None for t in trials):
             pooled_scale = "MD"
+        elif all(t.get("scale") for t in trials) and len({t["scale"] for t in trials}) == 1:
+            # Every pooled trial reported an explicit effect on the SAME scale -> display that scale,
+            # not the topic's declared estimand. This stops a rate ratio (FAIR-HF2 total HF
+            # hospitalizations, scale IRR) being labelled a risk ratio just because the topic
+            # declared RR. Mixed scales fall through to the declared estimand (and are a known
+            # heterogeneity the label makes visible, e.g. spironolactone RR/HR).
+            pooled_scale = trials[0]["scale"]
         else:
             pooled_scale = spec.get("estimand", "RR")
         out["result"] = _pool_result(studies, scale=pooled_scale)
