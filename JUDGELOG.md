@@ -161,3 +161,20 @@ Neutral opaque-token pair per topic; subagent judge, /35 on 7 criteria, ours = t
 
 ### Blind record to date: 16 of 16 topics judged, ours higher on all 16.
 ### Standing gap unchanged: we win the AUDITABILITY limb every time; DATA-completeness (k) is the limb to close — tocilizumab is the sharpest live example (k=1 where k could be ~5+).
+
+## Tocilizumab k=1 investigated (2026-09-11) — judge's "coverage gap" is mostly CORRECT behavior
+The tocilizumab-covid19-mortality judge flagged "13 screened, k=1 primary; REMAP-CAP/EMPACTA
+reported 28-day mortality yet declared absent." Investigated the 12 declared-absent: sampled 5,
+ALL report a DIFFERENT primary than our strict "28-day all-cause mortality":
+ - 34609549 REMDACTA: primary = time to hospital discharge.
+ - 33631066: primary = clinical status on a day-28 ordinal scale (1-7).
+ - 33332779 EMPACTA: primary = COMPOSITE "mechanical ventilation OR death by day 28" (12.0% vs 19.x%).
+ - 40232661: is itself a META-ANALYSIS ("death or IMV" RR 0.83), not a primary RCT.
+RECOVERY is the one trial reporting 28-day ALL-CAUSE mortality as a clean per-arm count (621/2022 vs
+729/2094). Reading a composite (MV-or-death), ordinal, or discharge outcome as "all-cause mortality"
+would be a WRONG-OUTCOME error — the only failure mode that matters. So k=1 is DEFENSIBLE for the
+strict estimand; the page's declared-absent list is honest. Legitimate lever to raise k = CT.gov
+SECONDARY outcome-measure "all-cause mortality (day 28)" tables (structured, arm-level, TRUE) — a
+careful reach pass, NOT a keyword change. Deferred; must never substitute a composite for the estimand.
+No code changed (no wrong-number risk taken). Discipline: I was inclined to ACCEPT the judge's
+coverage-gap framing and "fix" it; the data showed it was largely correct — test the finding you accept.
