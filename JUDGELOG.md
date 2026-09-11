@@ -259,3 +259,9 @@ Not every decline becomes buildable; re-attempting with better machinery is corr
   which is the exact place wrong numbers hide. Per the standing rule (a wrong number that gate-passes is the only
   failure that matters), this extraction must be built with explicit unit parsing + refuse-on-ambiguity and
   verified per trial, NOT rushed. azithromycin/iv-iron stay declined until then. The synth is ready to receive it.
+
+## New-topic BLIND VERDICTS (3 of 3 wins) — 2026-09-11
+- spironolactone-hfref-mortality: OURS 28 vs comparator 11. Named RALES (10471456, 284/818 vs 386/838) + EMPHASIS-HF (21073363); PM/HKSJ, SHA/hash/census; even extracted a harm (hyperkalemia RR 1.34). Comparator: unauditable HR 0.78 (9 trials, no identifiers). Judge note: k=2 CI 0.32-1.61 correctly wide (HKSJ t_1), "a verifiable wide-and-uncertain answer beats an unverifiable precise-looking one."
+- dapagliflozin-hfpef-hosp: OURS 25 vs 10. DELIVER (36027570) 512/3131 vs 610/3132, count-RR 0.84; SHA/hash/census; honest k=1. Comparator: unauditable HR 0.80, no trials — "could even be an off-population pool, no way to rule out."
+- empagliflozin-hfpef-hosp: OURS 23 vs 8. EMPEROR-Preserved (34449189) 415/2997 vs 511/2991, RR 0.81 (recomputable from the stated incidences); SHA/hash/census. Comparator: unauditable HR 0.74.
+### BLIND RECORD: 22 of 22 topics judged, ours higher on all 22 (all auditability wins; the standing data-limb pattern holds — we pool fewer, honestly, and win on verifiability).
