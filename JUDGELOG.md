@@ -219,3 +219,16 @@ went through screening + extraction + round-trip, then hand-verified against the
   the gap to comparator's ~28 is mostly our double-blind design strictness + extraction limits, not missing search.
 - NOTE: SU.FOL.OM3 shows round-trip's blind spot (effect-only, no counts). Extending round-trip to effect-only
   factorial trials (or refusing effect-only when the abstract has multiple factors) is a deferred hardening.
+
+## sglt2-ckd recall NOT integrated (2026-09-11) — estimand heterogeneity, declined (k stays 3)
+Recall audit named 6 double-blind SGLT2 CV/HF trials reporting a kidney composite as a SECONDARY (EMPA-REG,
+CANVAS, DECLARE, DELIVER, VERTIS, SCORED). Attempted integration via extra_pmids + cite_chase; result rejected:
+- EMPA-REG (27299675) pooled with the WRONG endpoint — our extractor grabbed "doubling of serum creatinine
+  70/4645", NOT our kidney composite (sustained eGFR decline/ESKD/renal death). Estimand mismatch. Excluded.
+- The other 5 correctly declared-absent (composite reported as HR the keyword-extractor couldn't safely bind).
+These trials define the kidney composite DIFFERENTLY (nephropathy incl. albuminuria; ≥40% vs ≥50% eGFR; some
+include CV death). Pooling them with our 3 landmark CKD trials (DAPA-CKD/CREDENCE/EMPA-KIDNEY, matching
+composite) would mix estimands — the wrong-outcome class. DECLINED: k stays 3 (honest, matching-composite pool).
+Deferred: an estimand-aware extractor (verify the composite DEFINITION matches, not just a kidney keyword)
+would be needed to safely add secondary-outcome kidney data. This is the omega3-vs-sglt2ckd contrast: omega3's
+missed trials report the SAME MACE endpoint (safely poolable, +1 verified); sglt2-ckd's report DIFFERENT composites.
