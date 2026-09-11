@@ -1,0 +1,207 @@
+{
+  "_meta": {
+    "judge": "blind methodological comparison, 8 topics, repo C:/meta-harness",
+    "date": "2026-09-12",
+    "doc_a": "our page: C:/meta-harness/docs/reviews/<slug>/index.html, <script>/<style> removed, tags stripped (<[^>]+>), HTML entities unescaped, whitespace collapsed",
+    "doc_b": "comparator full text: C:/meta-harness/cache/<slug>/comparator_fulltext.txt",
+    "order_rule": "ord(slug[0]) % 2 == 0 -> ours shown FIRST (balanced, finerenone, pcsk9, denosumab); odd -> ours shown SECOND (colchicine, glp1, omega3, spironolactone). Deterministic from the slug, not random; recorded so it can be re-derived.",
+    "blinding_caveat": "Presentation order was blinded but the documents self-identify by genre (one is a harness page that says 'Reproducible meta-analysis harness', the other reads as a journal article). Dimension judgements were made strictly on document content; the reader should treat 'blind' as 'order-blinded', not 'identity-blinded'.",
+    "structural_caveat_for_comparators": "The comparator files are text-only extractions. Forest plots (per-trial event counts / effect sizes), RoB summary figures and supplementary tables are referenced but NOT present in the judged document. This structurally lowers comparator scores on 'per-number traceability' and 'risk-of-bias reporting' relative to what the published article shows a reader who has the PDF. Scores below are 'what is IN the judged text', as instructed.",
+    "recurring_findings_against_ours": [
+      "RoB table covers only a subset of the pooled trials: balanced 4/5 pooled trials shown (SPLIT 26444692 missing), colchicine 3/5 (29237033, 27502857 missing), finerenone 1/2 (FIDELIO 33264825 missing), omega3 6/8 (20929341, 38184150 missing), spironolactone 1/2 (RALES 10471456 missing). The page text does not say why these rows are absent.",
+      "'Trial integrity: none of the N pooled trials is retracted' uses an N that does not equal k on 4 pages: balanced N=3 vs k=5; colchicine N=4 vs k=5; finerenone N=1 vs k=2; omega3 N=7 vs k=8.",
+      "Mixed estimands pooled on one log scale and labelled 'mixed (HR/RR)' or 'mixed (HR/IRR/RR)': finerenone (FIDELIO as count-derived RR + FIGARO as HR), omega3, spironolactone (RALES RR + EMPHASIS HR). Declared, but a reader cannot audit a single named estimand.",
+      "omega3 page states three different comparator k values: Comparator tab 'k in the comparator 8', Reproducibility tab 'comparator k = 15 - GAP', and 'comparator pooled 22 for MACE'. The comparator text itself says 22 RCTs for MACE (28 overall).",
+      "Search strings on glp1, spironolactone and (partly) denosumab/pcsk9 are PMID [uid] lists or exact-title lookups of already-known trials. They are verbatim and re-runnable (reproducible) but cannot discover trials the author did not already name; the pages' own protocol text says 'exact-title sweeps' / 'UID-anchored queries'. Judged as reproducible but flagged as not a discovery search.",
+      "denosumab page labels nonvertebral and hip fracture rows 'Estimand RR' and prints '0.8 (RR)' / '0.6 (RR)' beside a source span that is a hazard ratio."
+    ],
+    "recurring_findings_against_comparators": [
+      "Per-trial inputs live in forest plots / Table 1 / supplements; the text gives pooled numbers only (balanced, colchicine, finerenone, glp1, omega3, pcsk9, spironolactone, denosumab all).",
+      "Exclusions are aggregate counts in a flow diagram, never per-record with reasons (all 8).",
+      "Search strategies are keyword lists or 'available in Supplementary Appendix / on request' rather than verbatim Boolean strings (all 8; finerenone, pcsk9, denosumab say the full strategy is in a supplement).",
+      "Internal inconsistencies: finerenone comparator reports renal composite HR 0.86 in Results and 0.84 in Discussion, and a hyperkalaemia CI of 1.93-2.24 around a point of 2.22; spironolactone comparator labels EPHESUS and EMPHASIS-HF as 'HFpEF' with LVEF <=40% in Table 1, says the search was confined to HFmrEF/HFpEF yet pools HFrEF trials, and gives hypotension CI 1.15-1.47 in text vs 1.25-1.47 in the figure legend; colchicine comparator says DerSimonian-Laird random effects if I2>=50 else fixed, then 'combined by fixed-effects'; omega3 comparator's Table 1 reference numbers are offset by one from the citation range [24-51]."
+    ]
+  },
+
+  "balanced-crystalloids-vs-saline-mortality": {
+    "order": {"first": "A", "second": "B", "rule": "ord('b')%2==0 -> ours first"},
+    "per_dimension": {
+      "search_reproducibility": {"winner": "first", "reason": "First prints re-runnable query strings ('(Balanced Crystalloids[Title] AND Saline[Title] AND Critically Ill Adults[Title] AND 2018[dp] ...)', CT.gov {cond, intr}) plus a committed cache path and run date; second names databases and a date ('PubMed, ClinicalTrials.gov, and Cochrane library from inception through March 01, 2018') but says the search 'was archived through Mendeley program and is available on request'."},
+      "per_number_source_traceability": {"winner": "first", "reason": "First gives arm counts with a verbatim source sentence per trial ('530 of 2433 patients (21.8%) in the BMES group and in 530 of 2413 patients (22.0%) in the saline group'); second's per-trial event counts are only in Fig. 3/Fig. 4 forest plots, which are not in the text; Table 1 gives arm sizes only."},
+      "completeness_of_evidence": {"winner": "second", "reason": "For mortality both pool 5 trials (first: PLUS, BaSICS, SMART, SALT, SPLIT; second: Young 2015, Verma, SMART, SALT, Young 2014), but second pools AKI over ~5 trials (18,337 patients) and new RRT over ~5, where first has AKI k=1 and RRT k=2 and declares Verma 2016 and Young 2014 absent for mortality because the abstract lacks counts. First's set carries far more patients (PLUS+BaSICS); second's set is more complete per outcome."},
+      "risk_of_bias_reporting": {"winner": "first", "reason": "First shows domain-level judgements in the text for 4 trials (D3 'not assessed' declared), but omits SPLIT 26444692 although it is pooled; second applied the full Cochrane tool to all but Ratanarat yet the judgements exist only as 'Quality assessment results are shown in Fig. 2' - none are in the text."},
+      "declared_absence_exclusion_transparency": {"winner": "first", "reason": "First lists every excluded record with rule id and quoted span (e.g. '36534387 ... X2 wrong population: title/conditions mention children') and lists each declared-absent trial per outcome with a reason; second reports 'Forty studies were excluded due to lack of outcome of interest' in aggregate."},
+      "overall_auditability": {"winner": "first", "reason": "A reader can re-run first's queries, open each PMID, and check each pooled count against the quoted sentence; second's inputs require the forest-plot figures and the authors' Mendeley archive. Deductions against first: the retraction line says '3 pooled trials' while k=5, and the RoB table lists 4 of 5 pooled trials."}
+    },
+    "more_auditable": "A",
+    "comparator_stronger_on": [
+      "Harms completeness: AKI pooled over ~5 trials vs k=1; new RRT over ~5 vs k=2; ICU mortality outcome reported (absent in ours)",
+      "Full-text extraction: Verma 2016 and Young 2014 pooled where ours declares them absent from the abstract; Ratanarat 2017 not in our corpus at all",
+      "Human risk-of-bias assessment with all seven Cochrane domains (in a figure) and three independent human reviewers with a fourth adjudicator",
+      "Broader search reach: 1124 electronic + 21 hand-searched records, Cochrane Library and reference lists, vs 29 records from PubMed/CT.gov"
+    ],
+    "verdict": "First (ours) is materially more auditable: verbatim queries, per-number quoted spans, per-record exclusion reasons, per-outcome declared absences. Second (comparator) is the more complete synthesis for harms and uses full-text extraction and human RoB; on mortality the two are at parity in k with disjoint modern trials on our side. Ours has two self-consistency defects a reader would catch (retraction N=3 vs k=5; RoB table missing SPLIT).",
+    "resolved": {"A": "ours", "B": "comparator", "more_auditable": "ours", "per_dimension": {"search_reproducibility": "ours", "per_number_source_traceability": "ours", "completeness_of_evidence": "comparator", "risk_of_bias_reporting": "ours", "declared_absence_exclusion_transparency": "ours", "overall_auditability": "ours"}}
+  },
+
+  "colchicine-postop-af": {
+    "order": {"first": "B", "second": "A", "rule": "ord('c')%2==1 -> ours second"},
+    "per_dimension": {
+      "search_reproducibility": {"winner": "second", "reason": "Second prints the queries verbatim ('colchicine AND atrial fibrillation AND (postoperative OR cardiac surgery OR postpericardiotomy) AND (randomized OR randomised OR trial)') with a committed cache; first gives keywords ('\"colchicine\" AND (\"atrial fibrillation\" OR \"AF\")'), five databases including Google Scholar, a date ('until January 2022') and an INPLASY registration, but no per-database strings."},
+      "per_number_source_traceability": {"winner": "second", "reason": "Second quotes the source for each count ('POAF occurred in 13 patients (16.1%) in the colchicine group and 13 patients (18.3%) in the placebo group') and explains the one manual derivation (END-AF 180 per arm 'implied by n=360 1:1'); first's Table 1 gives sample size and ADR counts (E/C) but POAF event counts are only in the Fig. 2 forest plot."},
+      "completeness_of_evidence": {"winner": "first", "reason": "First pools 9 RCTs / 2031 patients (RR 0.62, 0.52-0.74) including COPPS, Sarzaeem, Zarpelon, two post-PVI Deftereos trials; second pools 5 (RR 0.82, 0.65-1.03) and declares COPPS 22090167 absent because the abstract has no counts. Second does add COP-AF 37640035 (3209 patients, 2023), which post-dates the comparator, so second has more patients; first has more trials."},
+      "risk_of_bias_reporting": {"winner": "first", "reason": "First states per-domain findings in the text for all nine trials ('Two RCTs did not describe the random sequence generation ... Four RCTs did not describe whether the result evaluator was blinded'; 8 unclear, 1 high) plus a GRADE rating; second's RoB2 table shows only 3 of the 5 pooled trials (25172965, 32720823, 37640035) and marks D3 'not assessed'."},
+      "declared_absence_exclusion_transparency": {"winner": "second", "reason": "Second lists all 59 exclusions with rule and span and names its comparator gaps ('Deftereos x2 post-PVI (scope), Zarpelon (multi-arm dose, refused)'); first goes from 149 identified to 9 included with no per-record reasons in the text."},
+      "overall_auditability": {"winner": "second", "reason": "Second's every pooled number, exclusion and absence can be checked from the text; first's can be checked only for pooled results and ADR counts. Deductions against second: 'none of the 4 pooled trials is retracted' while k=5; RoB covers 3/5. Deduction against first: it calls all 9 trials 'blinded and placebo-controlled' while second quotes END-AF's abstract as 'no-colchicine group', an open control."}
+    },
+    "more_auditable": "A",
+    "comparator_stronger_on": [
+      "k=9 trials vs 5, including COPPS (2011) which ours declares absent for lack of abstract counts",
+      "Full seven-domain Cochrane RoB with a per-domain narrative in the text, plus GRADE (moderate) and a funnel plot",
+      "Prospective registration (INPLASY202190004)",
+      "Subgroups by medication duration and surgical approach; adverse-event pooling over multiple trials (RR 2.65) vs ours k=2 with CI 0.49-27.8"
+    ],
+    "verdict": "Second (ours) is more auditable at the number and record level; first (comparator) is the more complete and better risk-of-bias-reported synthesis. The pooled estimates disagree in direction of significance (0.62 significant vs 0.82 non-significant), driven by ours excluding post-PVI and open-control trials and adding COP-AF; a reader can trace why on our page, not on theirs.",
+    "resolved": {"A": "ours", "B": "comparator", "more_auditable": "ours", "per_dimension": {"search_reproducibility": "ours", "per_number_source_traceability": "ours", "completeness_of_evidence": "comparator", "risk_of_bias_reporting": "comparator", "declared_absence_exclusion_transparency": "ours", "overall_auditability": "ours"}}
+  },
+
+  "finerenone-ckd-t2d-renal": {
+    "order": {"first": "A", "second": "B", "rule": "ord('f')%2==0 -> ours first"},
+    "per_dimension": {
+      "search_reproducibility": {"winner": "first", "reason": "First prints three exact-title PubMed queries ('Effect[Title] AND Finerenone[Title] AND Chronic Kidney Disease Outcomes[Title] AND Type 2 Diabetes[Title] AND 2020[Date - Publication]') and a CT.gov query; second names Cochrane/PubMed/Embase and keyword groups but says 'The full search strategy is available in Supplementary Appendix 1'. Caveat: first's queries are name-targeted lookups of three known trials, not a discovery search."},
+      "per_number_source_traceability": {"winner": "first", "reason": "First quotes the source for both inputs ('504 of 2833 patients (17.8%) in the finerenone group and 600 of 2841 patients (21.1%) in the placebo group'; 'hazard ratio, 0.87; 95% CI, 0.76 to 1.01'); second's Table 1 gives arm sizes but the per-trial HRs are in Figure 2 only."},
+      "completeness_of_evidence": {"winner": "second", "reason": "Renal composite is k=2 in both (FIDELIO+FIGARO). Second additionally pools UACR and eGFR over 4 citations (13,943 patients), any adverse event, AKI and hyperkalaemia (RR 2.22); first declares both harm outcomes absent for every included trial."},
+      "risk_of_bias_reporting": {"winner": "first", "reason": "First shows domain judgements for FIGARO 34449181 only (1 of 2 pooled trials; FIDELIO row missing); second says both authors scored Cochrane RoB 'along with their supplementary data' but reports no judgement in the text. Narrow call: one visible row beats none."},
+      "declared_absence_exclusion_transparency": {"winner": "first", "reason": "First lists all 17 exclusions with rule and span and declares ARTS-DN, ARTS-DN Japan, NCT07775846, FineCaRe absent per outcome; second names one exclusion with a reason (Pitt 2013 'not conducted on patients with diagnosed T2D') and otherwise reports 2130 -> 4 via Figure 1."},
+      "overall_auditability": {"winner": "first", "reason": "First is checkable end to end but has real defects: the pooled effect is labelled 'mixed (HR/RR)' (a count-derived RR from FIDELIO pooled with FIGARO's HR), the retraction line says '1 pooled trials' while k=2, and RoB shows 1 of 2. Second is PROSPERO-registered but carries internal contradictions a reader cannot resolve: HR 0.86 (Results) vs 0.84 (Discussion/abstract) and a hyperkalaemia CI 1.93-2.24 around 2.22."}
+    },
+    "more_auditable": "A",
+    "comparator_stronger_on": [
+      "Harms: hyperkalaemia RR 2.22, any adverse event RR 1.00, AKI RR 0.98 pooled; ours declares hyperkalaemia and hyperkalaemia-related discontinuation absent for all trials",
+      "Secondary outcomes UACR and eGFR over 4 citations",
+      "PROSPERO registration (CRD42022360003) and 2130 records screened across Cochrane, PubMed and Embase",
+      "Human two-author data entry with cross-check and Cochrane RoB using supplementary data"
+    ],
+    "verdict": "First (ours) is more auditable and, for the renal composite, pools exactly the same two trials. Second (comparator) is the more complete review (harms, UACR, eGFR) and is registered, but its text contains two numerical self-contradictions. Ours' mixed HR/RR pooling and the 1-of-2 RoB coverage are its own audit findings.",
+    "resolved": {"A": "ours", "B": "comparator", "more_auditable": "ours", "per_dimension": {"search_reproducibility": "ours", "per_number_source_traceability": "ours", "completeness_of_evidence": "comparator", "risk_of_bias_reporting": "ours", "declared_absence_exclusion_transparency": "ours", "overall_auditability": "ours"}}
+  },
+
+  "glp1-ra-mace-t2d": {
+    "order": {"first": "B", "second": "A", "rule": "ord('g')%2==1 -> ours second"},
+    "per_dimension": {
+      "search_reproducibility": {"winner": "second", "reason": "Second's PubMed strings are exactly re-runnable but are PMID lists ('27295427[uid] OR 27633186[uid] OR 31185157[uid] ...'), i.e. a lookup of eight known CVOTs, which the page's own protocol calls 'exact-title sweeps'; first lists search terms, four databases and 'Searches were done up until June 30, 2021' but no Boolean string and 'The protocol has not been registered in any platform'. Reproducible-as-printed favours second; as a discovery search first is the genuine one."},
+      "per_number_source_traceability": {"winner": "second", "reason": "Second quotes each trial's HR sentence ('hazard ratio, 0.87; 95% confidence ...', 'HR 0.78 (0.68-0.9)' with the albiglutide sentence); first gives pooled HRs per outcome in Table 2 and per-trial n in Table 1, with per-trial HRs only in Figs. 3-10."},
+      "completeness_of_evidence": {"winner": "first", "reason": "First pools 8 CVOTs (60,080 patients) for MACE and reports 9 further outcomes (CV death, MI, stroke, HF, all-cause death, renal composite, macroalbuminuria, CVD/no-CVD subgroups); second pools 7 (ELIXA declared absent as a 4-point MACE) for MACE only, and both harm outcomes are declared absent for every trial."},
+      "risk_of_bias_reporting": {"winner": "second", "reason": "Second shows per-domain RoB2 judgements for all 7 pooled trials with D5 computed from the registered primary outcome; first states only 'there was no major risk of bias in any study (Fig. 2)'."},
+      "declared_absence_exclusion_transparency": {"winner": "second", "reason": "Second lists both exclusions with rule and span and declares ELIXA absent with the estimand reason; first lists exclusion criteria but no excluded records or reasons in the text."},
+      "overall_auditability": {"winner": "second", "reason": "Every number on second's page can be checked against a quoted abstract sentence; first's per-trial inputs need the figures. The two use the same estimator (Paule-Mandel with Hartung-Knapp) and reach 0.85 vs 0.86. Deduction against second: 10 records screened from a PMID list is not evidence that the field was searched."}
+    },
+    "more_auditable": "A",
+    "comparator_stronger_on": [
+      "k=8 vs 7 (ELIXA included with its 4-point MACE) and 60,080 patients quoted",
+      "Nine additional outcomes and a CVD/no-CVD subgroup analysis with interaction test",
+      "A genuine multi-database keyword search (PubMed, EMBASE, Cochrane, CT.gov) rather than a PMID enumeration",
+      "Uses primary reports 'and their accompanying supplementary materials' as sources, i.e. full-text extraction"
+    ],
+    "verdict": "Second (ours) is more auditable on every reporting dimension except completeness; first (comparator) is far more complete and is the only one of the two that actually searched. The pooled MACE estimates agree (0.85 vs 0.86) with the same method, so the difference here is auditability and scope, not result.",
+    "resolved": {"A": "ours", "B": "comparator", "more_auditable": "ours", "per_dimension": {"search_reproducibility": "ours", "per_number_source_traceability": "ours", "completeness_of_evidence": "comparator", "risk_of_bias_reporting": "ours", "declared_absence_exclusion_transparency": "ours", "overall_auditability": "ours"}}
+  },
+
+  "omega3-cardiovascular-events": {
+    "order": {"first": "B", "second": "A", "rule": "ord('o')%2==1 -> ours second"},
+    "per_dimension": {
+      "search_reproducibility": {"winner": "second", "reason": "Second prints two verbatim title-word PubMed blocks and a CT.gov query with a committed cache and run date; first gives search terms ('\"omega-3 FA,\" \"omega-3 polyunsaturated fat,\" \"fish oils,\" \"omega-3 FA,\" and \"randomized controlled trial\"'), three databases, an end date (September 2020) and an English-only restriction, with no registration."},
+      "per_number_source_traceability": {"winner": "second", "reason": "Second quotes the source sentence for each of 8 inputs and shows a CT.gov cross-check ('abstract RR 0.987 vs CT.gov RR 0.987'); first's per-trial RRs are only in Figs. 2-6; Table 1 gives arm sizes."},
+      "completeness_of_evidence": {"winner": "first", "reason": "First pools 22 RCTs for MACE (28 overall, 136,965 patients) plus all-cause mortality (24), cardiac death (19), MI (18), stroke (15), subgroups, sensitivity and Egger/Begg; second pools 8 for MACE, atrial fibrillation k=1, bleeding absent, and declares 14 screened-in trials absent. Second's own Reproducibility tab names DART, GISSI-P, JELIS and GISSI-HF as located but not pooled."},
+      "risk_of_bias_reporting": {"winner": "equal", "reason": "First gives a Jadad score (3-5) for every one of 28 trials in Table 1 but no domain-level detail in the text; second gives RoB2 domain judgements with a stated basis for 6 of the 8 pooled trials (20929341 and 38184150 missing) with D3 largely 'not assessed'. Complete-but-coarse versus partial-but-granular."},
+      "declared_absence_exclusion_transparency": {"winner": "second", "reason": "Second lists all 92 exclusions with rule and span, 14 declared-absent trials with reasons including a factorial-design refusal, and a 'Verified but not pooled' table naming four large trials and why; first reports '217 studies were excluded because of insufficient data (n = 89), absence of an RCT design (n = 76), and other intervention (n = 52)' in aggregate."},
+      "overall_auditability": {"winner": "second", "reason": "Second is checkable per number and per decision; first is checkable only at the pooled level. Deductions against second: the page states the comparator's k three ways (8 on the Comparator tab, 15 and 22 on the Reproducibility tab); the retraction line says 7 pooled trials while k=8; the effect is labelled 'mixed (HR/IRR/RR)'. Deduction against first: Table 1 citation numbers are offset from the [24-51] range and the subgroup table thresholds are garbled ('= 1000')."}
+    },
+    "more_auditable": "A",
+    "comparator_stronger_on": [
+      "Evidence base: 22 trials for MACE and 28 overall vs 8; includes the pre-registry landmark trials (DART, GISSI-P, JELIS, GISSI-HF) that ours located and refused",
+      "Five outcomes, extensive subgroup analysis with interaction tests, sensitivity analysis and Egger/Begg publication-bias tests",
+      "A quality score for every included trial in the text (Jadad, Table 1)",
+      "Full-text extraction (e.g. GISSI-HF, ORIGIN counts) where ours relies on the abstract and declares absence"
+    ],
+    "verdict": "Second (ours) is the more auditable document by a wide margin, and is unusually candid about what it did not pool. First (comparator) is a much larger synthesis (28 trials, 5 outcomes) whose inputs cannot be checked from the text. Ours' three inconsistent statements of the comparator's k on one page is a reportable defect.",
+    "resolved": {"A": "ours", "B": "comparator", "more_auditable": "ours", "per_dimension": {"search_reproducibility": "ours", "per_number_source_traceability": "ours", "completeness_of_evidence": "comparator", "risk_of_bias_reporting": "equal", "declared_absence_exclusion_transparency": "ours", "overall_auditability": "ours"}}
+  },
+
+  "pcsk9-mace": {
+    "order": {"first": "A", "second": "B", "rule": "ord('p')%2==0 -> ours first"},
+    "per_dimension": {
+      "search_reproducibility": {"winner": "first", "reason": "First prints two exact title queries ('Evolocumab[Title] AND Clinical Outcomes[Title] AND Cardiovascular Disease[Title] AND 2017:2017[pdat]') and a CT.gov query, and reports a live re-run diff ('4 retrieved live vs 6 committed'); second is PROSPERO-registered, names four databases, an end date (May 23, 2022), keywords and per-database hit counts, but 'The search strategy was presented in the Supplementary materials'. First is exactly reproducible; second is the genuine search whose strings are not in the document."},
+      "per_number_source_traceability": {"winner": "first", "reason": "First quotes both HR sentences ('1344 patients [9.8%] vs. 1563 patients [11.3%]; hazard ratio, 0.85') and shows a CT.gov corroboration; second's Table 1 lists NCT IDs and baseline characteristics for all 12 trials, which is good identity traceability, but per-trial effects are in Supplementary Figures 3-8 only."},
+      "completeness_of_evidence": {"winner": "second", "reason": "Second pools 12 RCTs (53,486 patients) for MACE and five further outcomes with NNTs and meta-regression; first pools 2 (FOURIER, ODYSSEY) and declares both harm outcomes absent. First's own Reproducibility tab concedes '2/12 but our 2 ... = ~87% of comparator patients'."},
+      "risk_of_bias_reporting": {"winner": "first", "reason": "First shows domain judgements for both pooled trials with D3 assessed for ODYSSEY; second used the Cochrane tool with two reviewers but the result is only 'Supplementary Figure 2'."},
+      "declared_absence_exclusion_transparency": {"winner": "first", "reason": "First lists all 7 exclusions with rule and span (e.g. 'PCSK9-DUO ... X3 no eligible comparator (none of [placebo])'); second reports 1,738 -> 12 via Figure 1 without per-record reasons in the text."},
+      "overall_auditability": {"winner": "first", "reason": "First is fully checkable but small: the pooled HR 0.85 carries an HKSJ CI of 0.585-1.23 at k=2 that spans no-effect although both inputs exclude it, and the page labels this 'PARITY-effective' with a k=12 comparator. Second is registered, larger and lists NCT IDs per trial, but its inputs and RoB are in supplements and its text has a slip ('lowered the occurrence of heart failure' in the stroke paragraph)."}
+    },
+    "more_auditable": "A",
+    "comparator_stronger_on": [
+      "k=12 trials / 53,486 patients vs 2; six outcomes; drug-specific subgroups; NNT with follow-up adjustment",
+      "PROSPERO registration (CRD42022344908) and a four-database search with per-database counts",
+      "Per-trial NCT identifiers and baseline characteristics for all 12 trials in Table 1",
+      "Meta-regression on seven trial-level covariates and funnel/Egger/Begg publication-bias assessment",
+      "Two independent human extractors with a third adjudicator"
+    ],
+    "verdict": "First (ours) is more auditable; second (comparator) is a far more complete and registered review. With k=2 ours is a two-trial summary whose HKSJ interval is uninformative; the comparator's pooled RR 0.83 (0.79-0.87) rests on inputs a reader cannot see in the text.",
+    "resolved": {"A": "ours", "B": "comparator", "more_auditable": "ours", "per_dimension": {"search_reproducibility": "ours", "per_number_source_traceability": "ours", "completeness_of_evidence": "comparator", "risk_of_bias_reporting": "ours", "declared_absence_exclusion_transparency": "ours", "overall_auditability": "ours"}}
+  },
+
+  "spironolactone-hfref-mortality": {
+    "order": {"first": "B", "second": "A", "rule": "ord('s')%2==1 -> ours second"},
+    "per_dimension": {
+      "search_reproducibility": {"winner": "second", "reason": "Second prints its queries verbatim, but they are PMID lookups ('10471456[uid] 21073363[uid] 40959489[uid]') plus a CT.gov query and citation chasing from the comparator; first is PROSPERO-registered, names PubMed, Web of Science, WANFANG and Cochrane 'from January 1, 1987 through September 10, 2024' with six search terms but no Boolean string. As printed, second is re-runnable; as a search, first is the real one."},
+      "per_number_source_traceability": {"winner": "second", "reason": "Second quotes both inputs ('relative risk of death, 0.70; 95 percent confidence interval, 0.60 to 0.82'; 'hazard ratio, 0.76; 95% CI, 0.62 to 0.93') and the EPHESUS refusal with its numbers ('RR 0.87 (0.79-0.95), 478 vs 554 deaths'); first's per-trial HRs appear only in figure descriptions (e.g. 'EMPHASIS-HF2011 has a ratio of 0.63 ... RALES2000 has a ratio of 0.68' for the CV composite), not for all-cause mortality."},
+      "completeness_of_evidence": {"winner": "first", "reason": "First pools 9 RCTs (33,128 participants) across the EF spectrum, reports HFrEF all-cause mortality from three trials (HR 0.78, 0.72-0.85) and five pooled safety outcomes (hyperkalaemia RR 2.19 from multiple trials); second pools 2 (RALES, EMPHASIS), hyperkalaemia k=1 from a CT.gov 'hospitalization due to hyperkalemia' field (4/1367 vs 3/1376), gynecomastia absent."},
+      "risk_of_bias_reporting": {"winner": "first", "reason": "First states 'most trials ... are at a low risk of bias across most domains' and names TOPCAT as high risk 'particularly in allocation concealment and other bias' (details in Supplementary Figure S2); second shows RoB2 for EMPHASIS only (1 of 2 pooled; RALES row absent) with three domains 'not assessed'."},
+      "declared_absence_exclusion_transparency": {"winner": "second", "reason": "Second lists all 223 exclusions with rule and span and explains the EPHESUS refusal as a preregistered scope exclusion; first gives aggregate exclusion counts by category in the flow diagram text ('4,954 records including reviews, letters, and comments, 1,328 non-process trials, and 705 records lacking endpoint definitions')."},
+      "overall_auditability": {"winner": "second", "reason": "Second's numbers and decisions are traceable; its pooled 0.72 (0.32-1.61) at k=2 is a 'mixed (HR/RR)' estimand whose HKSJ interval spans no-effect while both inputs exclude it. First has more evidence but internal contradictions a reader cannot resolve from the text: Table 1 labels EPHESUS and EMPHASIS-HF 'HFpEF' with LVEF <=40%, the Methods say the search was confined to HFmrEF/HFpEF yet HFrEF trials are pooled, FIDELIO/FIGARO (CKD trials) are treated as HF trials, and the hypotension CI is 1.15-1.47 in the text vs 1.25-1.47 in the legend."}
+    },
+    "more_auditable": "A",
+    "comparator_stronger_on": [
+      "k=9 trials / 33,128 participants vs 2; HFrEF mortality pooled over RALES, EPHESUS and EMPHASIS-HF",
+      "Five pooled safety outcomes with heterogeneity reported (hyperkalaemia, hypokalaemia, hypotension, AKI, SAE) vs ours k=1 / absent",
+      "PROSPERO registration (CRD 42022304966) and a four-database search over a stated date range, 10,963 records",
+      "Sensitivity analysis identifying EPHESUS as the heterogeneity source; subgroup analysis by EF category and by steroidal vs non-steroidal MRA"
+    ],
+    "verdict": "Second (ours) is more auditable and is honest about its scope (EPHESUS refused by preregistered population rule); first (comparator) is the more complete synthesis but its text contains population-label and scope contradictions that undercut its own auditability. Ours' RoB table covers 1 of 2 pooled trials and the pooled estimand is mixed.",
+    "resolved": {"A": "ours", "B": "comparator", "more_auditable": "ours", "per_dimension": {"search_reproducibility": "ours", "per_number_source_traceability": "ours", "completeness_of_evidence": "comparator", "risk_of_bias_reporting": "comparator", "declared_absence_exclusion_transparency": "ours", "overall_auditability": "ours"}}
+  },
+
+  "denosumab-vertebral-fracture": {
+    "order": {"first": "A", "second": "B", "rule": "ord('d')%2==0 -> ours first"},
+    "per_dimension": {
+      "search_reproducibility": {"winner": "first", "reason": "First prints '19671655[uid]' and 'denosumab[Title] AND prevention[Title] AND fractures[Title] AND postmenopausal[Title] AND osteoporosis[Title]' plus a CT.gov query with committed cache; second is PROSPERO-registered (CRD42020201167), names PubMed/Embase/Cochrane and dates (through February 15, 2021, updated May 10, 2021) but the strategy is 'eTable 1 in the Supplement'."},
+      "per_number_source_traceability": {"winner": "first", "reason": "First quotes the FREEDOM sentence ('cumulative incidence of 2.3% in the denosumab group, versus 7.2% in the placebo group') and a CT.gov corroboration (RR 0.325); second reports network estimates ('denosumab (RR, 0.30; [95% CI, 0.14 to 0.61])') with all per-trial data in supplementary eTables and figures."},
+      "completeness_of_evidence": {"winner": "second", "reason": "Second is a 55-RCT (n=104,580) network across 16 interventions with consistency testing, follow-up subgroups and serious-adverse-event and adverse-event networks; first has a single trial (FREEDOM) and declares both harm outcomes absent. The number of trials behind second's denosumab node is not stated in the text."},
+      "risk_of_bias_reporting": {"winner": "first", "reason": "First shows domain judgements for the one pooled trial; second says the Cochrane tool was applied by two reviewers with a third adjudicator but 'The assessment of the risk of bias is shown in eTable 5 in the supplement'."},
+      "declared_absence_exclusion_transparency": {"winner": "first", "reason": "First lists all 70 exclusions with rule and span and declares SAE and serious infection absent; second reports 'Eighty-eight trials were excluded for the reasons listed in eTable 4 in the Supplement'."},
+      "overall_auditability": {"winner": "first", "reason": "First is checkable end to end but is a single-trial page whose 'meta-analysis' is FREEDOM's own RR; it also labels nonvertebral and hip rows 'Estimand RR' beside sources that are hazard ratios, and its registry recall was 0/1. Second's headline for denosumab differs between the body (0.30) and the abstract value ours quotes (0.33), and none of its inputs, exclusions or RoB are in the text."}
+    },
+    "more_auditable": "A",
+    "comparator_stronger_on": [
+      "Evidence base: 55 RCTs / 104,580 women across 16 interventions, with node-splitting consistency checks; ours is k=1",
+      "Serious-adverse-event and adverse-event networks (ours declares SAE and serious infection absent)",
+      "PROSPERO registration and a three-database search updated in 2021",
+      "Subgroup analysis by follow-up duration (<=18 vs >18 months)"
+    ],
+    "verdict": "First (ours) is fully auditable but is a one-trial summary; second (comparator) is a large network meta-analysis whose every input lives in a supplement. The two estimates for denosumab vs placebo are close (0.32 vs 0.30/0.33), but only ours can be checked from the page, and ours' RR/HR labelling on the secondary rows is a defect.",
+    "resolved": {"A": "ours", "B": "comparator", "more_auditable": "ours", "per_dimension": {"search_reproducibility": "ours", "per_number_source_traceability": "ours", "completeness_of_evidence": "comparator", "risk_of_bias_reporting": "ours", "declared_absence_exclusion_transparency": "ours", "overall_auditability": "ours"}}
+  },
+
+  "_summary": {
+    "more_auditable_tally": {"ours": 8, "comparator": 0},
+    "per_dimension_tally": {
+      "search_reproducibility": {"ours": 8, "comparator": 0, "equal": 0, "note": "4 of ours' wins are PMID/exact-title lookups, reproducible but not discovery searches (glp1, spironolactone, pcsk9, denosumab; finerenone is 3 name-targeted title queries)"},
+      "per_number_source_traceability": {"ours": 8, "comparator": 0, "equal": 0, "note": "structurally favoured: comparator forest plots are not in the judged text"},
+      "completeness_of_evidence": {"ours": 0, "comparator": 8, "equal": 0, "note": "balanced is parity on mortality k but comparator wins on harms; glp1 8 vs 7; the rest are large gaps (colchicine 9 vs 5, omega3 22 vs 8, pcsk9 12 vs 2, spironolactone 9 vs 2, denosumab 55-RCT NMA vs 1)"},
+      "risk_of_bias_reporting": {"ours": 5, "comparator": 2, "equal": 1, "note": "ours wins mostly because comparator RoB is in figures/supplements; ours' tables cover only a subset of pooled trials on 5 of 8 pages"},
+      "declared_absence_exclusion_transparency": {"ours": 8, "comparator": 0, "equal": 0},
+      "overall_auditability": {"ours": 8, "comparator": 0, "equal": 0}
+    },
+    "honest_reading": "Ours wins auditability on all 8 topics and loses completeness on all 8. The comparators are registered (5 of 8: colchicine INPLASY; finerenone, pcsk9, spironolactone, denosumab PROSPERO), run genuine multi-database searches, and pool 1.1x to 55x more trials. Ours' pages carry self-consistency defects that an auditor would flag (subset RoB tables, retraction-line N != k, mixed estimands, three comparator-k values on the omega3 page, RR/HR label on denosumab secondary rows, 'PARITY' labels on pcsk9 and spironolactone where the comparator pooled 12 and 3 trials respectively)."
+  }
+}
