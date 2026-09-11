@@ -37,20 +37,27 @@ def _primacy(r):
     return 2  # an ordinary journal article
 
 
-def _dedup(records):
+def _dedup(records, pivotal=None):
     """Drop the CT.gov twin of a PubMed record (same NCT); then collapse PubMed records that
     share an NCT to the most-primary, latest-year one: a trial's RCT report beats a
     Letter/Comment/Erratum on the same NCT, and among peers the results paper (latest year)
-    supersedes an earlier design/rationale paper."""
+    supersedes an earlier design/rationale paper.
+
+    PIVOTAL PIN: 'latest year' is the WRONG tie-break when a trial's MAIN results paper (earlier)
+    shares its NCT with later SUB-ANALYSES (by-subgroup, pooled re-analysis) — it silently drops the
+    landmark report for a secondary paper (sacubitril: PARADIGM-HF 25176015 (2014) was dropped for a
+    2025 sub-analysis of the same NCT). When the topic preregisters pivotal_trials, a record whose id
+    is a declared pivotal wins its NCT outright, so the landmark report always survives dedup."""
+    pivotal = {str(p) for p in (pivotal or [])}
     pubmed = list(records.get("records", []))
     by_nct = {}
+    def _key(r):
+        return (1 if str(r.get("id")) in pivotal else 0, _primacy(r), str(r.get("year") or "0"))
     for r in pubmed:
         n = r.get("nct")
         if n:
             keep = by_nct.get(n)
-            r_key = (_primacy(r), str(r.get("year") or "0"))
-            keep_key = (_primacy(keep), str(keep.get("year") or "0")) if keep else None
-            if keep is None or r_key > keep_key:
+            if keep is None or _key(r) > _key(keep):
                 by_nct[n] = r
     deduped = []
     for r in pubmed:
@@ -473,7 +480,7 @@ def _source_status(slug, config, records, merged):
 
 
 def build_review_core(slug, config, records, protocol_sha):
-    merged = _dedup(records)
+    merged = _dedup(records, config.get("pivotal_trials"))
     scr = screen.run(merged, config)
     rec_by_id = {r["id"]: r for r in merged}
     included = [d for d in scr["decisions"] if d["decision"] == "include"]
