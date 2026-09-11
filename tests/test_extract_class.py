@@ -330,3 +330,23 @@ def test_percent_with_inparen_ci_still_corroborates():
          "hydrocortisone group and in 47 of 395 patients (11.9%; 95% CI, 8.7 to 15.1) in the placebo group.")
     arms = _eac(s, ["hydrocortisone"], ["placebo"])
     assert arms == (25, 400, 47, 395), arms
+
+
+# --- multi-arm dose guard must be INTERVENTION-aware: a BACKGROUND drug's dose escalation
+#     (clomiphene 50->150 mg while metformin is fixed) must NOT trigger the multi-dose refusal. ---
+from harness.extract import _multi_dose_arms as _mda
+
+
+def test_regimen_doses_do_not_trigger_multiarm_guard():
+    # ADMINISTRATION regimens ("500 mg three times daily", "50 mg daily") are how a single arm is
+    # dosed, NOT randomized dose-arms — they must NOT trigger the multi-arm guard (metformin-pcos:
+    # metformin 500 mg TID + background clomiphene 50 mg daily were mis-counted as two dose arms).
+    s = ("Metformin 500 mg three times daily was given; clomiphene was started at 50 mg daily and "
+         "titrated to 150 mg daily.")
+    assert len(_mda(s)) < 2, _mda(s)
+
+
+def test_true_dose_arms_still_trigger_multiarm_guard():
+    # randomized dose ARMS are labelled "X-mg group/arm" -> still counted (CANTOS)
+    s = "In the 50-mg group ..., the 150-mg group ..., and the 300-mg group ..."
+    assert len(_mda(s)) >= 2, _mda(s)

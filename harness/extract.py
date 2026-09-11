@@ -390,7 +390,7 @@ def _multi_dose_arms(abstract):
     effect without a pre-specified rule is ambiguous, so we refuse unless the intervention is
     dose-specified. Returns the set of distinct doses seen with an arm/group/dose context."""
     doses = set()
-    for m in re.finditer(r"(\d+(?:\.\d+)?)\s*-?\s*mg\b[^.]{0,25}?(?:group|arm|dose|daily|twice daily|once daily|regimen)", abstract or "", re.I):
+    for m in re.finditer(r"(\d+(?:\.\d+)?)\s*-?\s*mg\b[^.]{0,20}?(?:group|arm)\b", abstract or "", re.I):
         doses.add(m.group(1))
     return doses
 
