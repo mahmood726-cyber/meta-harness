@@ -1,0 +1,586 @@
+{
+  "slug": "corticosteroids-covid19-mortality",
+  "title": "Systemic corticosteroids vs usual care or placebo for 28-day mortality in hospitalised COVID-19",
+  "question": "In hospitalised adults with COVID-19, do systemic corticosteroids reduce 28-day all-cause mortality versus usual care or placebo?",
+  "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+  "protocol": {
+    "sha": "dce99b4135d953e0363d519ff078bc6e1311289c",
+    "committed_utc": "2026-09-11",
+    "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+    "eligibility": "RCT; hospitalised/severe COVID-19 by title or registry conditions; systemic corticosteroid vs usual care, standard care, no hydrocortisone, or placebo; P/I/C/design only.",
+    "text": "# Protocol - systemic corticosteroids for 28-day mortality in hospitalised COVID-19\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs.\n\n## PICO\n- **P** - adults hospitalised with COVID-19.\n- **I** - systemic corticosteroids, including dexamethasone, hydrocortisone,\n  methylprednisolone, prednisone, or prednisolone.\n- **C** - usual care, standard care, standard treatment, no hydrocortisone, or placebo.\n- **O (primary)** - 28-day all-cause mortality.\n- **O (harms)** - serious adverse events.\n\n## Estimand / population / timepoint\n- **Estimand** - odds ratio (OR), systemic corticosteroid vs usual care/placebo.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - 28 days.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **I1** - randomised controlled trial;\n- **I2** - hospitalised, severe, ICU, hypoxic, or pneumonia/ARDS COVID-19 population by\n  title or registry conditions;\n- **I3** - systemic corticosteroid vs usual care, standard care, no hydrocortisone, or\n  placebo;\n- **design** - randomised comparison; double-blinding is not required because the\n  target comparator includes open-label usual-care trials as well as placebo trials.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, meta-analysis, guideline, observational study, or\n  protocol-only);\n- **X2** - wrong population (for example post-COVID sequelae, non-COVID community-\n  acquired pneumonia, influenza, paediatric MIS-C, pericarditis, or atrial fibrillation);\n- **X3** - wrong intervention/comparison (no systemic corticosteroid-vs-control\n  contrast, or a steroid-dose/active-steroid comparison without usual-care/placebo\n  control);\n- **X5** - off-topic: a primary trial of another topic/disease in this set\n  (negative control).\n\n> Eligibility is NOT on the outcome axis. Whether an included trial reports\n> 28-day all-cause mortality in an abstract-extractable form is recorded as\n> target-result status at extraction, never as an exclusion. A published effect\n> plus 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/corticosteroids-covid19-mortality/records.json; screening replays offline)\n- PubMed: targeted trial-report queries for dexamethasone, hydrocortisone, and\n  methylprednisolone COVID-19 randomised trials.\n- ClinicalTrials.gov: condition \"COVID-19\", intervention \"dexamethasone\".\n- Comparator-reference seeding is enabled so the WHO REACT trial references are\n  replayed through the same P/I/C/design screen.\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on the configured log ratio scale; for the primary\noutcome this is log(OR). Paule-Mandel tau^2; HKSJ 95% CI on `t_{k-1}` with variance\nfloor `max(1, Q/(k-1))`; prediction interval `mu +/- t_{k-1}*sqrt(tau^2+se^2)`.\n0.5 continuity correction to all four cells of a study only if it has a zero cell.\nDerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nWHO REACT Working Group, *JAMA* 2020, \"Association Between Administration of\nSystemic Corticosteroids and Mortality Among Critically Ill Patients With COVID-19:\nA Meta-analysis\" (PMID 32876694, DOI 10.1001/jama.2020.17023; Unpaywall\nis_oa=true; PubMed Central PMCID PMC7489434). Its abstract reports 7 randomised\nclinical trials and 28-day all-cause mortality summary OR 0.66 (95% CI 0.53-0.82)\nby fixed-effect meta-analysis, with a random-effects OR 0.70 (95% CI 0.48-1.01).\n\n## Controls\n- **Positive** - the search must recover and include RECOVERY dexamethasone\n  (PMID 32678530), REMAP-CAP hydrocortisone (PMID 32876697), and METCOVID\n  methylprednisolone (PMID 32785710).\n- **Negative** - Torres/JAMA methylprednisolone for severe community-acquired\n  pneumonia (PMID 25688779) must be recovered and excluded as the wrong population.\n"
+  },
+  "search": {
+    "n_records": 56,
+    "cache_ref": "cache/corticosteroids-covid19-mortality/records.json",
+    "run_utc": "2026-09-11",
+    "databases": [
+      "PubMed",
+      "ClinicalTrials.gov"
+    ],
+    "sources": [
+      {
+        "name": "PubMed",
+        "queries": [
+          "Dexamethasone[Title] Covid-19[Title] randomized controlled trial mortality usual care",
+          "Hydrocortisone[Title] COVID-19[Title] randomized clinical trial mortality",
+          "Metcovid methylprednisolone hospitalized COVID-19 randomized placebo mortality"
+        ]
+      },
+      {
+        "name": "ClinicalTrials.gov",
+        "queries": [
+          "{\"cond\": \"COVID-19\", \"intr\": \"dexamethasone\"}"
+        ]
+      }
+    ]
+  },
+  "screening": {
+    "records": [
+      {
+        "id": "32678530",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of dexamethasone vs placebo in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "36624180",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['placebo', 'usual care', 'standard care', 'standard therapy', 'standard treatment', 'no hydrocortisone'])."
+      },
+      {
+        "id": "34138478",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of dexamethasone vs placebo in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "32876697",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of dexamethasone vs placebo in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "32876689",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of dexamethasone vs placebo in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "32779728",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 32779728)."
+      },
+      {
+        "id": "32785710",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of dexamethasone vs placebo in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "25688779",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'community-acquired pneumonia'."
+      },
+      {
+        "id": "32876694",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 32876694)."
+      },
+      {
+        "id": "34566088",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 34566088)."
+      },
+      {
+        "id": "32876695",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of dexamethasone vs placebo in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "32649661",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 32649661)."
+      },
+      {
+        "id": "32444460",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 32444460)."
+      },
+      {
+        "id": "32426753",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 32426753)."
+      },
+      {
+        "id": "32043983",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 32043983)."
+      },
+      {
+        "id": "31939808",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 31939808)."
+      },
+      {
+        "id": "31808551",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 31808551)."
+      },
+      {
+        "id": "31462531",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 31462531)."
+      },
+      {
+        "id": "28940011",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 28940011)."
+      },
+      {
+        "id": "28258124",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 28258124)."
+      },
+      {
+        "id": "27060925",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 27060925)."
+      },
+      {
+        "id": "24548571",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 24548571)."
+      },
+      {
+        "id": "22797452",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 22797452)."
+      },
+      {
+        "id": "19509383",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 19509383)."
+      },
+      {
+        "id": "18436948",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 18436948)."
+      },
+      {
+        "id": "11782040",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 11782040)."
+      },
+      {
+        "id": "4593200",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 4593200)."
+      },
+      {
+        "id": "NATADEX · NCT04452565",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['placebo', 'usual care', 'standard care', 'standard therapy', 'standard treatment', 'no hydrocortisone'])."
+      },
+      {
+        "id": "NCT04871633",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "COVIDICUS · NCT04344730",
+        "id_type": "nct",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of dexamethasone vs placebo in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "COPPER · NCT04746430",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT04926571",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT04926571)."
+      },
+      {
+        "id": "EPIC · NCT05182515",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "SELECT · NCT05403359",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: SELECT)."
+      },
+      {
+        "id": "NCT04380818",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "ICASARS · NCT05407597",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "H4COVID · NCT05277285",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT05770466",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT05195749",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "IDEA · NCT04425863",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: IDEA)."
+      },
+      {
+        "id": "NCT04513184",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['placebo', 'usual care', 'standard care', 'standard therapy', 'standard treatment', 'no hydrocortisone'])."
+      },
+      {
+        "id": "NCT04561180",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT04970719",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "Neptuno · NCT04784559",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "COVER3 · NCT05249790",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT04890626",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "CortiCORONA · NCT04619693",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: CortiCORONA)."
+      },
+      {
+        "id": "NCT06402279",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT06402279)."
+      },
+      {
+        "id": "NCT04468646",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "I-SPY_COVID · NCT04488081",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "APLICOV-PC · NCT04382066",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "COLTREXONE · NCT04756128",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "HIBISCUS · NCT04860518",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "TOCIDEX · NCT04476979",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['placebo', 'usual care', 'standard care', 'standard therapy', 'standard treatment', 'no hydrocortisone'])."
+      },
+      {
+        "id": "NCT05279391",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dexamethasone', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "CoDEX · NCT04996784",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: CoDEX)."
+      }
+    ],
+    "positive_control": "Recovered & included the canonical trials ['32678530', '32876697', '32785710'] that a comparator includes; none missed.",
+    "negative_control": "Cross-topic trial(s) ['25688779'] recovered by the search and correctly EXCLUDED ['25688779'] by rule (same drug/design, wrong topic)."
+  },
+  "outcomes": [
+    {
+      "name": "28-day all-cause mortality",
+      "kind": "efficacy",
+      "primary": true,
+      "estimand": "OR",
+      "population": "intention-to-treat",
+      "timepoint": "28 days",
+      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "trials": [
+        {
+          "label": "32678530",
+          "id": "PMID 32678530",
+          "effect": 0.83,
+          "ci_low": 0.75,
+          "ci_high": 0.93,
+          "scale": "RR",
+          "source": "abstract effect+CI (RR): Overall, 482 patients (22.9%) in the dexamethasone group and 1110 patients (25.7%) in the usual care group died within 28 days after randomization (age-adjusted rate ratio, 0.83; 95% confidence interv"
+        }
+      ],
+      "declared_absent_trials": [
+        {
+          "label": "34138478",
+          "id": "PMID 34138478",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "32876697",
+          "id": "PMID 32876697",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "32876689",
+          "id": "PMID 32876689",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "32785710",
+          "id": "PMID 32785710",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "32876695",
+          "id": "PMID 32876695",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "COVIDICUS",
+          "id": "NCT04344730",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "k": 1,
+        "estimate": 0.83,
+        "scale": "OR",
+        "ci_low": 0.7454,
+        "ci_high": 0.9242,
+        "pi_note": "prediction interval undefined for k=1"
+      }
+    },
+    {
+      "name": "Serious adverse events",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "OR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [],
+      "declared_absent_trials": [
+        {
+          "label": "32678530",
+          "id": "PMID 32678530",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "34138478",
+          "id": "PMID 34138478",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "32876697",
+          "id": "PMID 32876697",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "32876689",
+          "id": "PMID 32876689",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "32785710",
+          "id": "PMID 32785710",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "32876695",
+          "id": "PMID 32876695",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "COVIDICUS",
+          "id": "NCT04344730",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "present": false,
+        "reason": "no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract"
+      }
+    }
+  ],
+  "comparator": {
+    "name": "Association Between Administration of Systemic Corticosteroids and Mortality Among Critically Ill Patients With COVID-19: A Meta-analysis.",
+    "year": "2020",
+    "journal": "JAMA",
+    "pmid": "32876694",
+    "doi": "10.1001/jama.2020.17023",
+    "url": "https://doi.org/10.1001/jama.2020.17023",
+    "open_access": true,
+    "reported": [
+      {
+        "outcome": "28-day all-cause mortality",
+        "estimate": 0.66,
+        "scale": "OR",
+        "ci_low": 0.53,
+        "ci_high": 0.82
+      }
+    ],
+    "overlap": {
+      "ours_k": 1,
+      "theirs_k": "not stated in the comparator abstract/full text",
+      "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
+      "only_ours": [
+        "32678530",
+        "34138478",
+        "32785710"
+      ],
+      "only_theirs": [],
+      "method": "publication-date + design identity (comparator trial list not extracted from source)",
+      "note": "Trials newer than the comparator (2020) cannot be in it (only-ours, verifiable by date). Exact shared count not asserted."
+    }
+  },
+  "reproduction": {
+    "failures": 0,
+    "protocol_sha": "dce99b4135d953e0363d519ff078bc6e1311289c",
+    "review_sha256": "490d2f94eefeb532110318101db56958dde3039422621bc2f5c773d0bf8a3770",
+    "from_cache": true
+  }
+}

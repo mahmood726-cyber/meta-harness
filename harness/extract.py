@@ -31,7 +31,7 @@ def _norm(text: str) -> str:
     # Lancet et al. use a middle dot as the decimal separator (21·6%). Normalise.
     return (text or "").replace("·", ".").replace("‧", ".").replace("∙", ".")
 _EFFECT = re.compile(
-    r"(relative risk reduction|relative risk|risk ratio|\bRR\b|odds ratio|\bOR\b|hazard ratio|\bHR\b)"
+    r"(relative risk reduction|relative risk|risk ratio|incidence rate ratio|rate ratio|\bRR\b|odds ratio|\bOR\b|hazard ratio|\bHR\b)"
     r"[^0-9]{0,25}?(\d+(?:\.\d+)?)[^0-9]{0,28}?(?:95%\s*(?:confidence interval|CI)|\bCI\b)"
     r"[^0-9]{0,10}?(\d+(?:\.\d+)?)\s*(?:to|[-–—,])\s*(\d+(?:\.\d+)?)", re.I)
 _K = re.compile(r"(\d+|[A-Za-z]+)\s+(?:randomi[sz]ed\s+(?:controlled\s+)?trials|controlled\s+(?:clinical\s+)?trials|RCTs)", re.I)
