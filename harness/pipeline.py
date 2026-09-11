@@ -199,6 +199,39 @@ def _load_verified_arms(slug):
         return None
 
 
+def _with_model_adjudication(slug, dual, decisions):
+    """Attach the committed independent-model adjudication of the rule-screener disagreements
+    (cache/<slug>/screen_adjudication.json) to the dual block, with the model-vs-served agreement.
+    ADVISORY only — the served decision is the rule screener's; this is the genuinely-independent
+    third reader (different information + method) that earns the PRISMA item-8 independence claim."""
+    p = os.path.join(ROOT, "cache", slug, "screen_adjudication.json")
+    if not os.path.exists(p):
+        return dual
+    try:
+        j = json.load(open(p, encoding="utf-8")).get("judgments", {})
+    except (OSError, ValueError):
+        return dual
+    served = {str(d["id"]): d["decision"] for d in decisions}
+    n = agree = 0
+    flags = []
+    for pid, jr in j.items():
+        if pid not in served:
+            continue
+        n += 1
+        model_inc = jr.get("is_eligible") is True
+        if model_inc == (served[pid] == "include"):
+            agree += 1
+        else:
+            flags.append({"id": pid, "served": served[pid],
+                          "model": "include" if model_inc else "exclude", "rationale": jr.get("rationale")})
+    dual["model_adjudication"] = {
+        "n": n, "agree_with_served": agree, "flags": flags,
+        "note": "an independent capable-model reader adjudicated the rule-screener disagreements "
+                "(different information + method than the two correlated rule sets). Advisory: the rule "
+                "screener remains the served decision; flags are surfaced for review."}
+    return dual
+
+
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None):
     ctgov_results = ctgov_results or {}
@@ -393,7 +426,7 @@ def build_review_core(slug, config, records, protocol_sha):
                                    "rule_id": d["rule_id"], "reason": d["reason"],
                                    "span": d.get("span", "")} for d in scr["decisions"]],
                       "positive_control": scr["positive_control"], "negative_control": scr["negative_control"],
-                      "dual": screen.run_dual(merged, config)},
+                      "dual": _with_model_adjudication(slug, screen.run_dual(merged, config), scr["decisions"])},
         "outcomes": outcomes,
         "comparator": comparator,
         "estimand_exclusions": config.get("estimand_exclusions", []),

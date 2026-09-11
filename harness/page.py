@@ -256,6 +256,16 @@ def _screening(r, neutral):
                  f"disagreement <strong>{_e(dual.get('disagreement_rate_pct'))}%</strong> "
                  f"({_e(dual.get('disagree'))} records). {_e(dual.get('method'))} "
                  f"<em>{_e(dual.get('caveat'))}</em></p>")
+        ma = dual.get("model_adjudication")
+        if ma:
+            fl = ma.get("flags", [])
+            flag_txt = ("; ".join(f"{f['id']} (served {f['served']}, model {f['model']}: {f['rationale']})" for f in fl)
+                        if fl else "none — the model agrees with the served rule screener on all of them")
+            flow += ("<h5>Independent model adjudication of the disagreements</h5>"
+                     f"<p>A capable model (different information + method than the two correlated rule sets) "
+                     f"adjudicated {_e(ma.get('n'))} content-bearing disagreements; it agrees with the served "
+                     f"rule screener on <strong>{_e(ma.get('agree_with_served'))}/{_e(ma.get('n'))}</strong>. "
+                     f"{_e(ma.get('note'))} Flags: {_e(flag_txt)}</p>")
     body = (flow + integ_html + f"<p>{len(recs)} records screened; <strong>{n_inc} included</strong>. "
             "Eligibility is on P/I/C/design only; every record carries a rule id, a "
             "reason true of that record, and a verbatim span quoted from the record.</p>"
@@ -467,7 +477,11 @@ def _reporting(r, neutral):
            "independent and this agreement overstates reliability — a genuinely independent model screener is the next step.")
           if dual else
           "Single deterministic rule-based screen; every decision carries a rule id, a reason true of the record, "
-          "and a verbatim span. Dual independent screening is NOT yet implemented (declared, not hidden)."),
+          "and a verbatim span. Dual independent screening is NOT yet implemented (declared, not hidden).")
+         + (f" An independent capable-model reader adjudicated the disagreements and agrees with the served "
+            f"screener on {dual['model_adjudication'].get('agree_with_served')}/{dual['model_adjudication'].get('n')} "
+            "(genuinely independent — different information + method)."
+            if dual and dual.get("model_adjudication") else ""),
          ""),
         ("9 Data collection process", True,
          "Results tab + per-trial Source column — source hierarchy (abstract > CT.gov structured > full text > "
