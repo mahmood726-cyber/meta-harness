@@ -189,8 +189,24 @@ def _search(r, neutral):
         status = rc.get("status")
         line = (f"Registry-first RECALL: recovered <strong>{_e(rc.get('recovered'))}/{_e(rc.get('known'))}</strong> "
                 f"of this topic's known trials (enumerated {_e(rc.get('enumerated'))}; status {_e(status)}).")
+        # A bare recall reads every non-recovery as a search failure. Split the missed trials by CAUSE
+        # so the number is honest: trials with no own-publication registry linkage are UNREACHABLE by a
+        # registry-first search (the literature predates or omits trial registration), while trials that
+        # ARE registered but were not enumerated are the improvable ceiling of the committed query.
+        ceil, nolink = rc.get("reachable_ceiling"), rc.get("no_registry_link")
+        reasons = rc.get("missed_reasons") or {}
         if rc.get("missed"):
-            line += f" Missed: {_e(', '.join(str(m) for m in rc.get('missed', [])))} — a reach gap, not an inclusion decision."
+            reg_ne = [m for m in rc.get("missed", []) if reasons.get(str(m)) == "registered_not_enumerated"]
+            unreg = [m for m in rc.get("missed", []) if reasons.get(str(m)) == "no_registry_link"]
+            if ceil is not None and ceil != rc.get("recovered"):
+                line += (f" Reachable ceiling <strong>{_e(ceil)}/{_e(rc.get('known'))}</strong>: "
+                         f"{_e(len(reg_ne))} trial(s) are registered but not enumerated by the committed "
+                         f"query (registry vocabulary limit — improvable).")
+            if nolink:
+                line += (f" {_e(nolink)} missed trial(s) have <strong>no own-publication registry "
+                         f"linkage</strong> — unregistered / pre-registration-era, so unreachable by any "
+                         f"registry-first search (a property of the literature, not a search failure).")
+            line += f" <span class='muted'>Missed: {_e(', '.join(str(m) for m in rc.get('missed', [])))}.</span>"
         if rc.get("measured_utc"):
             line += f" <span class='muted'>Measured {_e(rc.get('measured_utc'))}.</span>"
         body += ("<h4>Registry-first recall (reach)</h4><p>" + line
@@ -430,6 +446,13 @@ def _comparator(r, neutral):
                  f"(match: {_e(sc.get('intervention_level_match'))}); population match: {_e(sc.get('population_match'))}. "
                  f"{_e(sc.get('note'))} <span class='muted'>Decided by one uniform rule applied to every topic "
                  "before the k was seen.</span></p>")
+        # When the uniform rule flags a mismatch, resolving a VALID (same-scope) comparator is required.
+        # This per-topic note records the resolution: either a single-agent benchmark exists and is
+        # used, or none exists (k=1 is the complete single-drug evidence base — itself a finding), or
+        # the mismatch coincides with a genuine single-drug reach gap that must be ground down, not
+        # excused as scope. Sourced from the topic config; shown verbatim beside the uniform verdict.
+        if r.get("comparator_scope_note"):
+            body += f"<p><strong>Comparator resolution.</strong> {_e(r.get('comparator_scope_note'))}</p>"
     ov = c.get("overlap") or {}
     body += "<h4>Trial-set overlap (an identical estimate on an identical set is arithmetic, not corroboration)</h4>"
     body += _kv([

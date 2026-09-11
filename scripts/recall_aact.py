@@ -82,14 +82,22 @@ def main(argv):
     # Pass 3: resolve every enumerated NCT (union across topics) to own-publication PMIDs.
     all_ncts = set().union(*enum.values()) if enum else set()
     want = all_ncts
+    all_known = set().union(*[k for *_, k in topics]) if topics else set()
     nct_pmids = {n: [] for n in want}
+    # Reverse index for every KNOWN pmid: which NCTs cite it, and with what reference_type. This
+    # lets a MISSED trial be classified by WHY the registry-first route did not reach it, instead of
+    # collapsing three different causes into one scalar. Captured for ALL reference types (a trial's
+    # own NCT is by definition NOT in the enumerated set, so we cannot restrict to `want` here).
+    known_ref = {p: [] for p in all_known}
     sp = aact._table("study_references")
     for r in aact._iter_rows(sp):
         nct = (r.get("nct_id") or "").upper()
-        if nct in want and (r.get("reference_type") or "").upper() in aact.OWN_PUB_TYPES:
-            pmid = (r.get("pmid") or "").strip()
-            if pmid.isdigit():
-                nct_pmids[nct].append(pmid)
+        typ = (r.get("reference_type") or "").upper()
+        pmid = (r.get("pmid") or "").strip()
+        if nct in want and typ in aact.OWN_PUB_TYPES and pmid.isdigit():
+            nct_pmids[nct].append(pmid)
+        if pmid in known_ref:
+            known_ref[pmid].append((nct, typ))
 
     snap_name = os.path.basename(snap)
     print(f"{'topic':42} {'enumNCT':8} {'recall':10} recovered/known   (AACT {snap_name})")
@@ -100,13 +108,30 @@ def main(argv):
             resolved.update(nct_pmids.get(n, []))
         found = known & resolved
         rec = round(len(found) / len(known), 3) if known else None
+        # Classify each missed trial by the CAUSE of non-recovery (the metric otherwise reads a
+        # non-recovery as a search failure even when the trial predates trial registration):
+        #   no_registry_link       -> no own-publication (RESULT/DERIVED) NCT anywhere; the trial has
+        #                              no registry entry to reach (pre-registration-era/unregistered),
+        #                              or is only cited as BACKGROUND by other trials. A registry-first
+        #                              search CANNOT recover it — this is a property of the literature.
+        #   registered_not_enumerated -> an own-publication NCT exists but the committed cond&intr query
+        #                              did not enumerate it (registry vocabulary/precision limit) -> the
+        #                              improvable bucket; a broader committed query could reach it.
+        missed_reasons = {}
+        for p in sorted(known - resolved):
+            own_pub = [n for n, t in known_ref.get(p, []) if t in aact.OWN_PUB_TYPES]
+            missed_reasons[p] = "registered_not_enumerated" if own_pub else "no_registry_link"
+        reachable_ceiling = len(found) + sum(1 for v in missed_reasons.values() if v == "registered_not_enumerated")
+        no_link = sum(1 for v in missed_reasons.values() if v == "no_registry_link")
         rows.append((s, cond, intr, known, enum[s], resolved, found, rec))
         print(f"{s:42} {len(enum[s]):<8} {str(rec):10} {len(found)}/{len(known)}"
-              + (f"  missed {sorted(known-resolved)}" if (known - resolved) else ""))
+              + (f"  [ceiling {reachable_ceiling}/{len(known)}, {no_link} unregistered/unlinked]" if (known - resolved) else ""))
         if "--write" in argv:
             out = {"status": "RAN_OK", "source": f"AACT {snap_name} (local snapshot)",
                    "enumerated": len(enum[s]), "known": len(known), "recovered": len(found),
                    "recall": rec, "missed": sorted(known - resolved),
+                   "missed_reasons": missed_reasons,
+                   "reachable_ceiling": reachable_ceiling, "no_registry_link": no_link,
                    "measured_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
             json.dump(out, open(os.path.join(ROOT, "cache", s, "recall.json"), "w",
                                 encoding="utf-8", newline=""), indent=2, ensure_ascii=False)
