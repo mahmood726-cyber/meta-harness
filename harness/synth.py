@@ -39,10 +39,24 @@ class Study:
     t1i: Optional[float] = None         # intervention person-time
     e2i: Optional[float] = None         # comparator events
     t2i: Optional[float] = None         # comparator person-time
+    # Continuous data: mean/SD/n per arm -> mean difference (raw scale).
+    mean1: Optional[float] = None
+    sd1: Optional[float] = None
+    nc1: Optional[float] = None
+    mean2: Optional[float] = None
+    sd2: Optional[float] = None
+    nc2: Optional[float] = None
     source: str = ""
     measure: str = "RR"
 
     def yi_vi(self) -> tuple[float, float]:
+        # Mean difference from means/SDs/n per arm: yi = mean1 - mean2, vi = sd1^2/n1 + sd2^2/n2
+        # (raw scale; pool() back-transforms with identity for scale MD). Standard continuous
+        # meta-analysis (matches metafor measure='MD').
+        if self.mean1 is not None and self.sd1 is not None and self.nc1 and self.mean2 is not None:
+            y = self.mean1 - self.mean2
+            v = (self.sd1 ** 2) / self.nc1 + (self.sd2 ** 2) / self.nc2
+            return y, v
         # Rate ratio (IRR) from events + person-time: yi = log((e1/t1)/(e2/t2)),
         # vi = 1/e1 + 1/e2 (person-time is an offset, not a source of variance). Standard
         # incidence-rate meta-analysis (matches metafor measure='IRR'). 0.5 correction on a
@@ -146,11 +160,14 @@ def pool(studies: Sequence[Study], scale: str = "RR", alpha: float = 0.05) -> Po
     pi_half = tcrit * math.sqrt(tau2 + se ** 2)
     mu0, w0, _ = _wmean(yi, vi, 0.0)
     Q = sum(wi * (y - mu0) ** 2 for wi, y in zip(w0, yi))
+    # Ratio scales (RR/OR/HR/IRR) pool on the log scale and back-transform with exp; additive
+    # scales (mean difference / standardised mean difference) pool on the raw scale (identity).
+    bt = (lambda x: x) if scale.upper() in ("MD", "SMD") else math.exp
     return PoolResult(
         scale=scale, k=k, tau2=tau2, mu_log=mu, se_log=se,
-        ci_low=math.exp(ci_low), ci_high=math.exp(ci_high),
-        pi_low=math.exp(mu - pi_half), pi_high=math.exp(mu + pi_half),
-        Q=Q, estimate=math.exp(mu),
+        ci_low=bt(ci_low), ci_high=bt(ci_high),
+        pi_low=bt(mu - pi_half), pi_high=bt(mu + pi_half),
+        Q=Q, estimate=bt(mu),
         per_study=[(s.label, y, v) for s, (y, v) in zip(studies, yv)],
     )
 

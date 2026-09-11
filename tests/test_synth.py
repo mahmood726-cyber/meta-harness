@@ -91,3 +91,15 @@ def test_irr_zero_event_correction():
     from harness.synth import Study
     y, v = Study('Z', e1i=0, t1i=500, e2i=5, t2i=500, measure='IRR').yi_vi()
     assert v == 1.0 / 0.5 + 1.0 / 5.5  # 0.5 correction on the zero event arm only
+
+
+def test_md_pooling_matches_metafor_point_and_tau2():
+    # Mean difference; point + tau2 match metafor measure='MD' (rma PM+knha): -1.744541, tau2 0.
+    from harness.synth import Study, pool
+    s = [Study('A', mean1=5.0, sd1=2.0, nc1=50, mean2=7.0, sd2=2.5, nc2=50, measure='MD'),
+         Study('B', mean1=4.5, sd1=1.8, nc1=40, mean2=6.0, sd2=2.2, nc2=42, measure='MD')]
+    r = pool(s, scale='MD')
+    assert abs(r.estimate - (-1.744541)) < 1e-5, r.estimate
+    assert r.tau2 == 0.0 and r.k == 2
+    # additive scale: estimate is NOT exp-transformed (would be ~0.17 if it were)
+    assert r.estimate < 0
