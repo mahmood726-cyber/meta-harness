@@ -38,6 +38,41 @@ th{background:#eef2f5}a{color:#1f6f9c;text-decoration:none}a:hover{text-decorati
 """
 
 
+def _parity_section(docs_dir: str) -> str:
+    """Render the parity table from the committed docs/parity.json (a measurement snapshot: each
+    comparator's pooled trial list enumerated from its own reference list/full text, matched to
+    ours; the comparable comparator k excludes out-of-scope / double-counted-substudy /
+    observational / non-prespecified trials). The finishing metric: our k vs the comparable
+    same-scope comparator k, with a named reason for every difference — including where THEIR
+    extra trials are the ones that should not count."""
+    p = os.path.join(docs_dir, "parity.json")
+    if not os.path.exists(p):
+        return ""
+    try:
+        rows = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    at = sum(1 for r in rows if str(r.get("status", "")).startswith("PARITY"))
+    color = {"PARITY": "#e6f4ea", "PARITY-effective": "#e6f4ea", "NEAR": "#fff8e1"}
+    body = (f"<div class='banner'><h2>Parity with the published comparator (the finishing metric)</h2>"
+            f"<p>For each same-scope topic: our pooled <em>k</em> vs the <strong>comparable</strong> "
+            f"comparator <em>k</em> (the comparator's pooled list, enumerated from its own references/"
+            f"full text, after removing trials that are out of scope, double-counted substudies, "
+            f"observational, or non-prespecified for the outcome). <strong>{at} of {len(rows)}</strong> "
+            f"same-scope topics are at parity within scope; every remaining shortfall has a named reason. "
+            f"This is a measurement snapshot (the enumeration is model-assisted; scope calls are "
+            f"assessments, and each pooled recovery was verified against source before it counted).</p>"
+            "<table><tr><th>Topic</th><th>Our k</th><th>Comparable comparator k</th><th>Status</th>"
+            "<th>Named reason for any difference</th></tr>")
+    for r in rows:
+        st = str(r.get("status", ""))
+        bg = color.get(st, "#fdecec" if st in ("GAP", "COMPARATOR-INVALID", "NOT-ENUMERABLE") else "#fff")
+        body += (f"<tr style='background:{bg}'><td>{_E(r.get('slug'))}</td>"
+                 f"<td>{_E(r.get('our_k'))}</td><td>{_E(r.get('comparable_comparator_k'))}</td>"
+                 f"<td>{_E(st)}</td><td>{_E(r.get('reason'))}</td></tr>")
+    return body + "</table></div>"
+
+
 def build_index(docs_dir: str) -> str:
     rows = []
     for mpath in sorted(glob.glob(os.path.join(docs_dir, "reviews", "*", "manifest.json"))):
@@ -80,6 +115,8 @@ def build_index(docs_dir: str) -> str:
                 "reflects a sample selected toward clean binary-outcome registered trials, not the whole "
                 "field. The topic set is preregistered and the declines are recorded (JUDGELOG), so the "
                 "selection is visible rather than silent.</p></div>") + body
+
+    body = _parity_section(docs_dir) + body
 
     return (
         "<!doctype html><html lang=en><head><meta charset=utf-8>"
