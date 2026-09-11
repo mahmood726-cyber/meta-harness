@@ -80,3 +80,17 @@ def test_mixed_scale_pool_labelled_honestly():
     prim = next((o for o in rev["outcomes"] if o.get("primary")), None)
     sc = (prim.get("result") or {}).get("scale", "")
     assert sc.startswith("mixed ("), f"mixed RR/HR pool must be labelled mixed, got {sc!r}"
+
+
+def test_locate_gate_rejects_on_identity_or_population():
+    """The locate identity gate declares a trial absent when the model judged its evidence is not the
+    target outcome, OR its population does not match — and passes a clean judgment. Locks the class
+    that prevents right-number/wrong-endpoint (appendicitis/vitamin-D) and wrong-population (DAPA-HF)."""
+    from harness import locate
+    j = {"1": {"MACE": {"is_target_outcome": True, "population_matches": True}},
+         "2": {"MACE": {"is_target_outcome": False, "population_matches": True, "why": "x"}},
+         "3": {"MACE": {"is_target_outcome": True, "population_matches": False, "why": "y"}}}
+    assert locate.rejects(j, "1", "MACE") is None            # clean -> kept
+    assert locate.rejects(j, "2", "MACE") is not None         # wrong outcome -> rejected
+    assert locate.rejects(j, "3", "MACE") is not None         # wrong population -> rejected
+    assert "population" in locate.rejects(j, "3", "MACE")["reject_reason"]

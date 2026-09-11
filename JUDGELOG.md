@@ -462,3 +462,12 @@ Mahmood's challenge: my cycle-14/22 dismissal of the model extractor tested the 
 - Hernandez 26975498 (reintubation, correct): Fable TRUE, located the correct 72h reintubation span. -> CONFIRM.
 - LoDoCo2 32865380 (MACE, correct): Fable TRUE, located the correct primary-composite span. -> CONFIRM.
 RESULT 4/4: span-location + identity judgment correctly REJECTED both wrong-endpoint binds and CONFIRMED both correct cases. So the locate-parse-round-trip model extractor IS worth building — as an IDENTITY GATE that prevents the right-number/wrong-endpoint class (the class that gate-passed on the 3 unbuilt topics), even at k gain of zero. My earlier "measured wall" conclusion was right about trial RECOVERY and WRONG about defect PREVENTION; corrected. (Fable emitted only spans + identity booleans, never a number — the safe contract.)
+
+## Span-location defect-prevention: 6 of 6 known defect cases prevented/confirmed (2026-09-12)
+Ran Fable span-location + identity (model locates a verbatim span + judges outcome/population identity, emits NO number) against the named defect cases. 6/6 correct:
+- appendicitis 33017106 (prose bound 30-day-resolution for 1-yr-failure): is_target_outcome=FALSE -> PREVENTED.
+- vitamin-D 20219962 (influenza-A bound as any-ARI): FALSE -> PREVENTED.
+- EMPEROR-Preserved 34449189 (ctgov risk: 15-event secondary over the composite): located the PRIMARY composite 415/511 and explicitly distinguished the recurrent "407 vs 541" total-hospitalizations secondary -> CONFIRMED correct, secondary NOT bound.
+- DAPA-HF 31535829 (HFrEF trial in an HFpEF topic): is_target_outcome=TRUE but population_matches=FALSE (EF<=40% vs topic EF>40%) -> PREVENTED on population.
+- Hernandez 26975498 (reintubation) + LoDoCo2 32865380 (MACE): both CONFIRMED, correct spans located.
+CONCLUSION: locating the span FIRST + an identity/population judgment prevents the right-number/wrong-endpoint AND wrong-population classes — the quietest, most-cited defect families — while confirming correct extractions. The gate (harness/locate.py) now rejects on is_target_outcome==False OR population_matches==False. Model emits only spans + identity booleans, never a number; cached with provenance, replay-safe. This is the evidence that the class is preventable, and the fix is in the harness.

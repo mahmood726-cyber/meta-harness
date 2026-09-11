@@ -395,3 +395,12 @@ Every added trial verified true against source before it pools.
 - SUCCESS: item 5 built as an identity gate that structurally prevents the right-number/wrong-endpoint
   class (the quietest, most-cited defect family), model-derived + cached + replay-safe. My earlier
   dismissal is fully reversed and the fix is in the harness.
+
+## Cycle 25 — Model extractor: 6/6 defect-prevention + gate extended to population identity
+- Extended the defect-case test to EMPEROR-Preserved (primary-composite-vs-recurrent-secondary) and
+  DAPA-HF (HFrEF-in-HFpEF population). Both correct: EMPEROR located the primary composite and named
+  the recurrent secondary as distinct; DAPA-HF flagged population_matches=FALSE. Full result 6/6.
+- Extended harness/locate.py: the gate now rejects on is_target_outcome==False OR population_matches
+  ==False (DAPA-HF is is_target_outcome=true but wrong population). Pipeline reason names which failed.
+- +regression test (locate.rejects on identity OR population). 103 tests, 23/23 reproduce (gate inert
+  for the 23). Item 6 (prose-pattern) fix now evidenced across 6 defect cases; item 5 fully built.

@@ -31,9 +31,16 @@ def load(slug: str) -> dict:
 
 
 def rejects(judgments: dict, pmid: str, outcome_name: str) -> dict | None:
-    """Return the judgment if the model identified this (pmid, outcome) as NOT the target outcome
-    (is_target_outcome False) — the gate then declares the trial absent. Else None (inert)."""
+    """Return the judgment (with a 'reject_reason') if the model identified this (pmid, outcome) as an
+    IDENTITY FAILURE — the located evidence is NOT the target outcome (is_target_outcome False) OR the
+    trial's population does not match the review (population_matches False, e.g. DAPA-HF's HFrEF in an
+    HFpEF topic). The gate then declares the trial absent. Else None (inert). It can only REMOVE a
+    mis-identified number, never add one."""
     j = (judgments.get(str(pmid)) or {}).get(outcome_name)
-    if j and j.get("is_target_outcome") is False:
-        return j
+    if not j:
+        return None
+    if j.get("is_target_outcome") is False:
+        return {**j, "reject_reason": "located evidence is not the target outcome"}
+    if j.get("population_matches") is False:
+        return {**j, "reject_reason": "trial population does not match the review population"}
     return None

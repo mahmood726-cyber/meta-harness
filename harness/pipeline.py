@@ -313,7 +313,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             j = locate.rejects(locate_judgments, pid, spec["name"])
             if j:
                 absent.append({"label": t["label"], "id": t["id"],
-                               "reason": "model outcome-identity gate (model-derived): " + j.get("why", ""),
+                               "reason": (f"model outcome-identity gate (model-derived) — {j.get('reject_reason','')}: "
+                                          + j.get("why", "")),
                                "locate_judgment": j})
             else:
                 kept.append(t)
