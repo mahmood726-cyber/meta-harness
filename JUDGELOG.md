@@ -277,3 +277,13 @@ unambiguously. A careful extractor correctly REFUSES them (missing/ambiguous com
 denominator or guess a unit. Recovering these needs FULL-TEXT acquisition (person-time tables), a larger deferred
 change; the synth+extraction are ready to receive it. Honest state: synth IRR ready, safe extraction wired,
 azithromycin/iv-iron/ENGAGE stay declined until full-text acquisition — not a wrong number substituted.
+
+## zinc-common-cold-duration DECLINED (2026-09-11) — continuous class blocked at abstract acquisition
+Continuous MD synth + extractor are built/validated, but zinc trials report cold duration as MEDIANS
+WITHOUT IQR (Mossad 4.4 vs 7.6), MEANS WITHOUT SD (Prasad 4.0 vs 7.1, P-value only), or proportions —
+none carry per-arm SD/IQR, so MD variance cannot be computed. extract_continuous correctly REFUSES all
+21 screened-in trials; gate's primary-result limb refuses the k=0 page. No wrong number. Same acquisition
+limit as the recurrent-event class: **abstracts lack the per-arm variance (SD/IQR) and person-time the
+pooling needs; that data lives in FULL TEXT.** UNIFYING NEXT LEVER = per-trial PMC OA full-text extraction
+(free, already in the adapter set as _pmc_fulltext) — it unblocks BOTH the continuous (zinc/melatonin) and
+rate (azithromycin/iv-iron/ENGAGE) classes. Synth+extractors are ready to receive full-text numbers.
