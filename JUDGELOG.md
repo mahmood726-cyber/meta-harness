@@ -300,3 +300,13 @@ exacerbation outcome), (b) subgroup detection in full-text/abstract extraction, 
 with the same outcome-scoping care. These are careful hardening steps, not a turn-tail rush. The
 full-text acquisition adapter + rate/continuous extractors are committed (tested, opt-in via
 fulltext:true, 0 regression) and ready once that hardening lands. Bar held: no wrong number published.
+
+## Registry-first enumeration spike (2026-09-11) — adapter built; broad enumeration FLOODS, needs tight scoping
+Codex spike built harness/registry_first.py (enumerate_nct via CT.gov v2 query.cond/query.intr; nct_to_pmids
+via CT.gov referencesModule + PubMed "<NCT>[si]" secondary-source-id; four-state RAN_OK/ZERO/ERROR). Harvested
+to scratch (lane-hygiene rule). Demo on omega3 (cond='cardiovascular', intr='omega-3/fish oil/icosapent'):
+enumerated ~312 NCTs, resolved to ~1,114 uncached candidate PMIDs. That FLOOD is the finding: registry-first
+by broad condition x intervention over-returns; to be useful it needs (a) tight PICO-scoped enumeration
+(specific condition + intervention, not 'cardiovascular'), (b) screening every candidate by P/I/C/design,
+(c) the extraction hardening (rate/continuous/full-text outcome-identity) that is still pending. Not a clean
+turn-tail integration; the adapter is ready for a careful scoped pass. Reproducibility unaffected (unwired).
