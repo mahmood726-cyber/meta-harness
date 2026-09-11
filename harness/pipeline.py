@@ -22,17 +22,35 @@ def _read_text(*p):
         return f.read().replace("\r\n", "\n").replace("\r", "\n")
 
 
+_NONPRIMARY = ("letter", "comment", "editorial", "erratum", "news", "biography")
+
+
+def _primacy(r):
+    """How primary a PubMed record is as a trial report. A Letter/Comment/Erratum that shares
+    a trial's NCT must NOT displace the trial's own RCT report during dedup — that dropped the
+    canonical SMART RCT (PMID 29485925) in favour of a Comment (29768150) and lost the trial."""
+    pts = [p.lower() for p in r.get("pubtypes", [])]
+    if any("randomized controlled trial" in p for p in pts):
+        return 3
+    if any(x in p for p in pts for x in _NONPRIMARY):
+        return 0
+    return 2  # an ordinary journal article
+
+
 def _dedup(records):
-    """Drop the CT.gov twin of a PubMed record (same NCT); then collapse PubMed records
-    that share an NCT to the latest-year one (a trial's results paper supersedes its
-    earlier design/rationale paper)."""
+    """Drop the CT.gov twin of a PubMed record (same NCT); then collapse PubMed records that
+    share an NCT to the most-primary, latest-year one: a trial's RCT report beats a
+    Letter/Comment/Erratum on the same NCT, and among peers the results paper (latest year)
+    supersedes an earlier design/rationale paper."""
     pubmed = list(records.get("records", []))
     by_nct = {}
     for r in pubmed:
         n = r.get("nct")
         if n:
             keep = by_nct.get(n)
-            if keep is None or (str(r.get("year") or "0") > str(keep.get("year") or "0")):
+            r_key = (_primacy(r), str(r.get("year") or "0"))
+            keep_key = (_primacy(keep), str(keep.get("year") or "0")) if keep else None
+            if keep is None or r_key > keep_key:
                 by_nct[n] = r
     deduped = []
     for r in pubmed:
@@ -45,6 +63,23 @@ def _dedup(records):
         if c.get("id") not in seen_nct:
             deduped.append(c)
     return deduped
+
+
+import re as _re
+_ENROLL = _re.compile(r"([\d,]{2,})\s+(?:adults?|patients?|participants?|subjects?|women|men)\b", _re.I)
+
+
+def _enrollment_floor(abstract):
+    """~0.6x the trial's abstract-stated enrollment, used to reject a CT.gov SUBGROUP outcome
+    measure from being pooled as the whole trial (see extract_ctgov min_total). Returns None
+    when no enrollment count is stated (then no floor is applied)."""
+    ns = []
+    for m in _ENROLL.finditer(abstract or ""):
+        try:
+            ns.append(int(m.group(1).replace(",", "")))
+        except ValueError:
+            pass
+    return int(0.6 * max(ns)) if ns else None
 
 
 def _pool_result(studies, scale="RR"):
@@ -79,7 +114,9 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             ex["provenance"] = "abstract"
             trials.append({"label": label, "id": idstr, **ex})
             continue
-        cg = extract_ctgov(ctgov_results.get(nct), spec["keywords"], interv, comp) if nct and nct in ctgov_results else None
+        cg = (extract_ctgov(ctgov_results.get(nct), spec["keywords"], interv, comp,
+                            min_total=_enrollment_floor(rec.get("abstract", "")))
+              if nct and nct in ctgov_results else None)
         if cg:
             cg["provenance"] = "ctgov_results"
             trials.append({"label": label, "id": idstr, **cg})

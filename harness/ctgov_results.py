@@ -15,12 +15,19 @@ def _num(x):
         return None
 
 
-def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms):
+def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_total=None):
     """Return dict {ai,n1i,ci,n2i,source} for the outcome measure matching our outcome, else None.
 
     Chooses the outcome measure whose TITLE contains one of our outcome keywords (so we do not
     read a trial's PRIMARY when its primary is a different endpoint than ours). Assigns the two
     arms to intervention/comparator by group title. Accepts only integer counts <= denominator.
+
+    min_total: if given, an outcome measure whose two arm denominators sum to less than min_total
+    is REJECTED. This blocks a SUBGROUP registration from being pooled as the whole trial: the
+    SMART paper (PMID 29485925, 15,802 patients / 7942 vs 7860) registers its medical-ICU cohort
+    under NCT02444988, whose posted results are only 2735+2646 -- pooling those as SMART's
+    mortality would be false against the trial. The caller passes ~0.6x the trial's abstract-stated
+    enrollment as the floor.
     """
     if not outcome_measures:
         return None
@@ -82,6 +89,8 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms):
             continue
         if not (0 <= ai <= n1i and 0 <= ci <= n2i and n1i > 0 and n2i > 0):
             continue
+        if min_total and (n1i + n2i) < min_total:
+            continue  # this OM is a subgroup, not the whole trial — do not pool as the trial
         gi = next(g.get("title") for g in groups if g.get("id") == interv_gid)
         gc = next(g.get("title") for g in groups if g.get("id") == comp_gid)
         return {"ai": int(ai), "n1i": int(n1i), "ci": int(ci), "n2i": int(n2i),
