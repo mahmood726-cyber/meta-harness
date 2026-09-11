@@ -27,6 +27,7 @@ from harness import fetch  # noqa: E402
 from harness.canonical import review_sha256, sha256_text  # noqa: E402
 from harness.pipeline import build_review_core  # noqa: E402
 from harness.page import render_page  # noqa: E402
+from harness import census  # noqa: E402
 
 
 def _protocol_sha(slug):
@@ -62,6 +63,9 @@ def reproduce(slug):
     _rd = os.path.join(ROOT, "cache", slug, "research_diff.json")
     if os.path.exists(_rd):
         repro["research_diff"] = json.load(open(_rd, encoding="utf-8"))
+    _pa = census._parity_row(ROOT, slug)
+    if _pa:
+        repro["parity"] = _pa
     final = dict(core, reproduction=repro)
     if sha256_text(render_page(final)) != sha256_text(served):
         reasons.append("served index.html does not byte-match a re-render from the replayed core")

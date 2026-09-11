@@ -24,6 +24,21 @@ from .canonical import canonical_json, review_core, review_sha256, sha256_text
 from .page import render_page
 
 
+def _parity_row(root: str, slug: str):
+    """This topic's row from the committed docs/parity.json (a measurement snapshot), or None.
+    Shared by census (build) and reproduce_review (replay) so the reproduction block byte-matches."""
+    p = os.path.join(root, "docs", "parity.json")
+    if not slug or not os.path.exists(p):
+        return None
+    try:
+        for row in json.load(open(p, encoding="utf-8")):
+            if row.get("slug") == slug:
+                return row
+    except (ValueError, OSError):
+        return None
+    return None
+
+
 def build_review_dir(
     review_core_obj: dict,
     manifest_meta: dict,
@@ -62,6 +77,11 @@ def build_review_dir(
             reproduction["research_diff"] = json.load(open(_rd, encoding="utf-8"))
         except (ValueError, OSError):
             pass
+    # Parity snapshot (docs/parity.json): this topic's row, outside the core hash. Rendered so a
+    # reader sees our k vs the comparable comparator k on the page itself, not only on the index.
+    _pa = _parity_row(_root, manifest_meta.get("slug", ""))
+    if _pa:
+        reproduction["parity"] = _pa
     final_review = dict(review_core_obj)
     final_review["reproduction"] = reproduction
     html = render_page(final_review)

@@ -587,6 +587,15 @@ def _reproduction(r, neutral):
         body += ("<h4>Re-search (living vs frozen)</h4><p>Re-running the committed queries live and "
                  f"diffing against the cache: {_e(rs.get('summary'))} "
                  f"<span class='muted'>Measured {_e(rs.get('measured_utc'))}; source scope {_e(rs.get('scope'))}.</span></p>")
+    # PARITY vs the published comparator (measurement snapshot, outside the core hash): our pooled k
+    # vs the COMPARABLE same-scope comparator k, with a named reason for any difference — including
+    # where the comparator's extra trials are out-of-scope, double-counted substudies, observational,
+    # or non-prespecified for the outcome.
+    if pa := rep.get("parity"):
+        body += (f"<h4>Parity with the published comparator</h4><p>Our pooled <em>k</em> = "
+                 f"<strong>{_e(pa.get('our_k'))}</strong> vs the comparable same-scope comparator "
+                 f"<em>k</em> = <strong>{_e(pa.get('comparable_comparator_k'))}</strong> &mdash; "
+                 f"<strong>{_e(pa.get('status'))}</strong>. {_e(pa.get('reason'))}</p>")
     body += ("<div class='banner'><strong>What this reproduction claim covers — and what it does not.</strong> "
              "It proves DETERMINISTIC REPLAY: re-running from the registration SHA on a fresh clone replays "
              "the committed cache and regenerates this page byte-for-byte (same inputs → same output). It does "
