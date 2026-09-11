@@ -7,6 +7,7 @@ import json
 import os
 
 from . import extract, screen
+from .ctgov_results import extract_ctgov
 from .synth import Study, pool
 
 METHOD = ("Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; "
@@ -59,16 +60,27 @@ def _pool_result(studies, scale="RR"):
     return res
 
 
-def _build_outcome(spec, kind, included, rec_by_id, interv, comp):
+def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None):
+    ctgov_results = ctgov_results or {}
     trials, absent = [], []
     for d in included:
         rec = rec_by_id.get(d["id"], {})
         label = rec.get("acronym") or d.get("label") or d["id"]
         idstr = f"PMID {d['id']}" if d["id_type"] == "pmid" else d["id"]
+        # SOURCE HIERARCHY: structured CT.gov results (primary-source counts) first, then abstract.
+        nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
+        ex = None
+        if nct and nct in ctgov_results:
+            ex = extract_ctgov(ctgov_results[nct], spec["keywords"], interv, comp)
+        if ex:
+            ex["provenance"] = "ctgov_results"
+            trials.append({"label": label, "id": idstr, **ex})
+            continue
         ex = extract.extract_trial(rec.get("abstract", ""), spec["keywords"], interv, comp)
         if ex.get("absent"):
             absent.append({"label": label, "id": idstr, "reason": ex["reason"]})
         else:
+            ex["provenance"] = "abstract"
             trials.append({"label": label, "id": idstr, **ex})
     out = {"name": spec["name"], "kind": kind, "primary": bool(spec.get("primary")),
            "estimand": spec.get("estimand", "RR"), "population": spec.get("population"),
@@ -112,7 +124,8 @@ def build_review_core(slug, config, records, protocol_sha):
     interv = config.get("intervention_terms", ["colchicine"])
     comp = config.get("comparator_terms", ["placebo", "control"])
 
-    outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp)
+    cgr = records.get("ctgov_results") or {}
+    outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr)
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 

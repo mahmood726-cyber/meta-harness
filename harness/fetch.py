@@ -10,6 +10,8 @@ import re
 import time
 import xml.etree.ElementTree as ET
 
+_NCT_RE = re.compile(r"NCT\d{8}")
+
 from . import http
 
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
@@ -61,6 +63,10 @@ def _efetch(pmids: list[str]) -> list[dict]:
                 acc = db.find(".//AccessionNumber")
                 if acc is not None:
                     nct = _txt(acc)
+        if not nct:  # fall back to an NCT id stated in the abstract (registry linkage)
+            m = _NCT_RE.search(abstract)
+            if m:
+                nct = m.group(0)
         out.append({"id": pmid, "id_type": "pmid", "title": title, "abstract": abstract,
                     "pubtypes": pubtypes, "year": year, "journal": journal, "doi": doi, "nct": nct})
     return out
@@ -107,6 +113,20 @@ def _pmc_fulltext(pmid: str) -> str:
         return " ".join(body.itertext()).strip() if body is not None else ""
     except Exception:  # noqa: BLE001 - full text is optional; fall back to abstract
         return ""
+
+
+def _ctgov_results(nct: str):
+    """Structured outcome-measure tables for a trial with posted results (AACT-equivalent)."""
+    try:
+        d = http.get_json(f"{CTGOV}/{nct}",
+                          {"fields": "hasResults,resultsSection.outcomeMeasuresModule"})
+        time.sleep(0.2)
+        if not d.get("hasResults"):
+            return None
+        oms = d.get("resultsSection", {}).get("outcomeMeasuresModule", {}).get("outcomeMeasures", [])
+        return oms or None
+    except Exception:  # noqa: BLE001 - results are optional
+        return None
 
 
 def _ctgov_search(cond: str, intr: str, page_size: int = 30) -> list[dict]:
@@ -180,11 +200,24 @@ def run(config: dict) -> dict:
     comparator_fulltext = ""
     if config.get("comparator_pmid"):
         comparator_fulltext = _pmc_fulltext(config["comparator_pmid"])
+    # AACT/registry-results adapter: structured arm-level outcome tables per NCT with results.
+    ncts = []
+    for r in pubmed:
+        if r.get("nct") and r["nct"] not in ncts:
+            ncts.append(r["nct"])
+    for c in ctgov:
+        if c.get("has_results") and c.get("id") and c["id"] not in ncts:
+            ncts.append(c["id"])
+    ctgov_results = {}
+    for nct in ncts[:config.get("max_results_lookup", 60)]:
+        oms = _ctgov_results(nct)
+        if oms:
+            ctgov_results[nct] = oms
     return {"slug": config["slug"], "fetched_utc": config.get("_now", ""),
             "pubmed_queries": config.get("pubmed_queries", []),
             "ctgov_query": cg, "records": pubmed, "ctgov": ctgov,
             "comparator_pmid": config.get("comparator_pmid"), "comparator_oa": comparator_oa,
-            "comparator_fulltext": comparator_fulltext}
+            "comparator_fulltext": comparator_fulltext, "ctgov_results": ctgov_results}
 
 
 def cache_path(slug: str) -> str:

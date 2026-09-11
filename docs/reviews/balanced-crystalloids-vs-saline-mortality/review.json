@@ -11,7 +11,7 @@
     "text": "# Protocol - balanced crystalloids vs saline for mortality in critically ill adults\n\n**Registration.** The commit that adds this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - critically ill adults, including adult ICU, sepsis, or trauma resuscitation populations matched on title or registry conditions.\n- **I** - balanced or buffered crystalloid solution, including balanced crystalloids, balanced multielectrolyte solution/BMES, Plasma-Lyte, Ringer's acetate, or lactated Ringer's.\n- **C** - 0.9% saline / normal saline / sodium chloride.\n- **O (primary)** - mortality, using in-hospital mortality or 28-90 day mortality where the abstract reports a poolable count or effect estimate.\n- **O (harms)** - acute kidney injury and new renal-replacement therapy.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), balanced crystalloid vs saline.\n- **Population** - intention-to-treat as randomised when reported.\n- **Timepoint** - 28-90 day mortality or in-hospital mortality.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomised trial;\n- **I2** - population is critically ill adults, ICU patients, adult sepsis patients, or adult trauma resuscitation patients, judged from title or registry conditions;\n- **I3** - balanced/buffered crystalloid solution vs 0.9% saline / normal saline / sodium chloride;\n- **design** - randomised trial with a saline comparator; double-blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not a randomised trial (review, guideline, observational study, protocol-only when not a trial results record);\n- **X2** - wrong population (e.g. pediatric/PICU, neonatal, non-critically ill emergency-department adults, diabetic ketoacidosis);\n- **X3** - wrong intervention/comparison (no balanced-crystalloid-vs-saline contrast);\n- **X-DESIGN** - not randomised;\n- **X5** - off-topic: a primary trial of another population/topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports mortality, or\n> gives a 2x2 vs only an effect+CI, is recorded as *target-result status* at\n> extraction - never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: title-level searches for SMART, PLUS, BaSICS, SPLIT, SALT, the Plasma-Lyte 148 pilot, and the trauma Plasma-Lyte A trial.\n- ClinicalTrials.gov: condition \"critical illness\", intervention \"balanced crystalloids\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a study only if\nit has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nZayed et al., *Journal of Intensive Care* 2018, \"Balanced crystalloids versus isotonic\nsaline in critically ill patients: systematic review and meta-analysis\" (PMID 30140441,\nDOI 10.1186/s40560-018-0320-x; Unpaywall is_oa=true; PMC6098635). It reports six RCTs\nand in-hospital mortality OR 0.92 (95% CI 0.85-1.01), plus acute kidney injury and new\nrenal-replacement therapy.\n\n## Controls\n- **Positive** - SMART (PMID 29485925) and PLUS (PMID 35041780) must be recovered and included by P/I/C/design.\n- **Tracked landmark** - BaSICS (PMID 34375394) is queried and verified as a real large trial, but PubMed tags the fetched record as Journal Article only; under this fixed harness it is expected to fail closed at the RCT-publication-type screen rather than be force-included.\n- **Negative** - SPLYT-P (PMID 36534387), a pediatric/PICU balanced-fluid trial, must be recovered and EXCLUDED as wrong population.\n"
   },
   "search": {
-    "n_records": 30,
+    "n_records": 29,
     "cache_ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json",
     "run_utc": "2026-09-11",
     "databases": [
@@ -85,13 +85,6 @@
         "decision": "exclude",
         "rule_id": "X1",
         "reason": "not a randomized controlled trial (record: 29768150)."
-      },
-      {
-        "id": "29485925",
-        "id_type": "pmid",
-        "decision": "include",
-        "rule_id": "INCLUDE",
-        "reason": "RCT of balanced crystalloid vs saline in critically ill; double-blind placebo-controlled — P/I/C/design met."
       },
       {
         "id": "27749094",
@@ -248,7 +241,7 @@
         "reason": "not a randomized controlled trial (record: NCT07649694)."
       }
     ],
-    "positive_control": "Recovered & included the canonical trials ['29485925', '35041780'] that a comparator includes; none missed.",
+    "positive_control": "Recovered & included the canonical trials ['35041780'] that a comparator includes; MISSED ['29485925']",
     "negative_control": "Cross-topic trial(s) ['36534387'] recovered by the search and correctly EXCLUDED ['36534387'] by rule (same drug/design, wrong topic)."
   },
   "outcomes": [
@@ -268,7 +261,18 @@
           "n1i": 2433,
           "ci": 530,
           "n2i": 2413,
-          "source": "abstract arm-level counts (percentage-corroborated): Death within 90 days after randomization occurred in 530 of 2433 patients (21.8%) in the BMES group and in 530 of 2413 patients (22.0%) in the saline group, for a difference of -0.15 percentage points"
+          "source": "abstract arm-level counts (percentage-corroborated): Death within 90 days after randomization occurred in 530 of 2433 patients (21.8%) in the BMES group and in 530 of 2413 patients (22.0%) in the saline group, for a difference of -0.15 percentage points",
+          "provenance": "abstract"
+        },
+        {
+          "label": "27749094",
+          "id": "PMID 27749094",
+          "ai": 72,
+          "n1i": 520,
+          "ci": 68,
+          "n2i": 454,
+          "source": "ClinicalTrials.gov results (structured): outcome 'In-hospital Mortality' 72/520 (Physiologically Balanced) vs 68/454 (0.9% Sodium Chloride)",
+          "provenance": "ctgov_results"
         },
         {
           "label": "26444692",
@@ -277,18 +281,68 @@
           "n1i": 1152,
           "ci": 95,
           "n2i": 1110,
-          "source": "abstract arm-level counts (percentage-corroborated): Overall, 87 of 1152 patients (7.6%) in the buffered crystalloid group and 95 of 1110 patients (8.6%) in the saline group died in the hospital (absolute difference, -1.0% [95% CI, -3.3% to 1.2%]; RR, 0"
+          "source": "abstract arm-level counts (percentage-corroborated): Overall, 87 of 1152 patients (7.6%) in the buffered crystalloid group and 95 of 1110 patients (8.6%) in the saline group died in the hospital (absolute difference, -1.0% [95% CI, -3.3% to 1.2%]; RR, 0",
+          "provenance": "abstract"
         }
       ],
       "declared_absent_trials": [
         {
-          "label": "29485925",
-          "id": "PMID 29485925",
+          "label": "27604335",
+          "id": "PMID 27604335",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
         },
         {
+          "label": "23732264",
+          "id": "PMID 23732264",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "k": 3,
+        "estimate": 0.972,
+        "scale": "RR",
+        "ci_low": 0.7898,
+        "ci_high": 1.1963,
+        "tau2": 0.0,
+        "pi_low": 0.7898,
+        "pi_high": 1.1963,
+        "pi_note": "tau^2 estimated as 0, so the prediction interval coincides with the confidence interval (no between-study heterogeneity detected)."
+      }
+    },
+    {
+      "name": "Acute kidney injury",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "RR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [
+        {
           "label": "27749094",
           "id": "PMID 27749094",
+          "ai": 135,
+          "n1i": 520,
+          "ci": 129,
+          "n2i": 454,
+          "source": "ClinicalTrials.gov results (structured): outcome 'Incidence of Acute Kidney Injury' 135/520 (Physiologically Balanced) vs 129/454 (0.9% Sodium Chloride)",
+          "provenance": "ctgov_results"
+        },
+        {
+          "label": "26444692",
+          "id": "PMID 26444692",
+          "ai": 102,
+          "n1i": 1067,
+          "ci": 94,
+          "n2i": 1025,
+          "source": "abstract arm-level counts (percentage-corroborated): RESULTS: In the buffered crystalloid group, 102 of 1067 patients (9.6%) developed AKI within 90 days after enrollment compared with 94 of 1025 patients (9.2%) in the saline group (absolute difference,",
+          "provenance": "abstract"
+        }
+      ],
+      "declared_absent_trials": [
+        {
+          "label": "35041780",
+          "id": "PMID 35041780",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
         },
         {
@@ -304,70 +358,14 @@
       ],
       "result": {
         "k": 2,
-        "estimate": 0.9772,
+        "estimate": 0.9597,
         "scale": "RR",
-        "ci_low": 0.5129,
-        "ci_high": 1.8617,
+        "ci_low": 0.3336,
+        "ci_high": 2.7609,
         "tau2": 0.0,
-        "pi_low": 0.5129,
-        "pi_high": 1.8617,
+        "pi_low": 0.3336,
+        "pi_high": 2.7609,
         "pi_note": "tau^2 estimated as 0, so the prediction interval coincides with the confidence interval (no between-study heterogeneity detected)."
-      }
-    },
-    {
-      "name": "Acute kidney injury",
-      "kind": "harm",
-      "primary": false,
-      "estimand": "RR",
-      "population": null,
-      "timepoint": null,
-      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
-      "trials": [
-        {
-          "label": "26444692",
-          "id": "PMID 26444692",
-          "ai": 102,
-          "n1i": 1067,
-          "ci": 94,
-          "n2i": 1025,
-          "source": "abstract arm-level counts (percentage-corroborated): RESULTS: In the buffered crystalloid group, 102 of 1067 patients (9.6%) developed AKI within 90 days after enrollment compared with 94 of 1025 patients (9.2%) in the saline group (absolute difference,"
-        }
-      ],
-      "declared_absent_trials": [
-        {
-          "label": "35041780",
-          "id": "PMID 35041780",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        },
-        {
-          "label": "29485925",
-          "id": "PMID 29485925",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        },
-        {
-          "label": "27749094",
-          "id": "PMID 27749094",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        },
-        {
-          "label": "27604335",
-          "id": "PMID 27604335",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        },
-        {
-          "label": "23732264",
-          "id": "PMID 23732264",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        }
-      ],
-      "result": {
-        "k": 1,
-        "estimate": 1.0424,
-        "scale": "RR",
-        "ci_low": 0.7983,
-        "ci_high": 1.3611,
-        "tau2": 0.0,
-        "pi_note": "prediction interval undefined for k=1"
       }
     },
     {
@@ -386,7 +384,18 @@
           "n1i": 2403,
           "ci": 310,
           "n2i": 2394,
-          "source": "abstract arm-level counts (percentage-corroborated): New renal-replacement therapy was initiated in 306 of 2403 patients (12.7%) in the BMES group and in 310 of 2394 patients (12.9%) in the saline group, for a difference of -0.20 percentage points (95% "
+          "source": "abstract arm-level counts (percentage-corroborated): New renal-replacement therapy was initiated in 306 of 2403 patients (12.7%) in the BMES group and in 310 of 2394 patients (12.9%) in the saline group, for a difference of -0.20 percentage points (95% ",
+          "provenance": "abstract"
+        },
+        {
+          "label": "27749094",
+          "id": "PMID 27749094",
+          "ai": 24,
+          "n1i": 520,
+          "ci": 14,
+          "n2i": 454,
+          "source": "ClinicalTrials.gov results (structured): outcome 'New Use of Renal Replacement Therapy' 24/520 (Physiologically Balanced) vs 14/454 (0.9% Sodium Chloride)",
+          "provenance": "ctgov_results"
         },
         {
           "label": "26444692",
@@ -395,20 +404,11 @@
           "n1i": 1152,
           "ci": 38,
           "n2i": 1110,
-          "source": "abstract arm-level counts (percentage-corroborated): In the buffered crystalloid group, RRT was used in 38 of 1152 patients (3.3%) compared with 38 of 1110 patients (3.4%) in the saline group (absolute difference, -0.1% [95% CI, -1.6% to 1.4%]; RR, 0.96"
+          "source": "abstract arm-level counts (percentage-corroborated): In the buffered crystalloid group, RRT was used in 38 of 1152 patients (3.3%) compared with 38 of 1110 patients (3.4%) in the saline group (absolute difference, -0.1% [95% CI, -1.6% to 1.4%]; RR, 0.96",
+          "provenance": "abstract"
         }
       ],
       "declared_absent_trials": [
-        {
-          "label": "29485925",
-          "id": "PMID 29485925",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        },
-        {
-          "label": "27749094",
-          "id": "PMID 27749094",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        },
         {
           "label": "27604335",
           "id": "PMID 27604335",
@@ -421,14 +421,14 @@
         }
       ],
       "result": {
-        "k": 2,
-        "estimate": 0.9814,
+        "k": 3,
+        "estimate": 1.0001,
         "scale": "RR",
-        "ci_low": 0.3963,
-        "ci_high": 2.4303,
+        "ci_low": 0.7408,
+        "ci_high": 1.3501,
         "tau2": 0.0,
-        "pi_low": 0.3963,
-        "pi_high": 2.4303,
+        "pi_low": 0.7408,
+        "pi_high": 1.3501,
         "pi_note": "tau^2 estimated as 0, so the prediction interval coincides with the confidence interval (no between-study heterogeneity detected)."
       }
     }
@@ -465,7 +465,7 @@
       }
     ],
     "overlap": {
-      "ours_k": 2,
+      "ours_k": 3,
       "theirs_k": 6,
       "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
       "only_ours": [
@@ -479,7 +479,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "f85737aa471079fa1ef93da4ca0caf21c83b77e8",
-    "review_sha256": "be34d93fb253462e1fe8314b78a6234b6bb4327da62a758e28751eed3c24880f",
+    "review_sha256": "539f1ad17c1263bbec214b4e34346654131bdbeec2e28ca486cda0e14a065f4d",
     "from_cache": true
   }
 }
