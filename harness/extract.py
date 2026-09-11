@@ -126,7 +126,14 @@ def _effect_from_match(m):
         if not (0 < pt < 1 and 0 < lo < 1 and 0 < hi < 1):
             return None
         return ("RR", round(1 - pt, 4), round(1 - hi, 4), round(1 - lo, 4))
-    scale = "OR" if "odds" in kind or kind == "or" else ("HR" if "hazard" in kind or kind == "hr" else "RR")
+    if "rate ratio" in kind or "incidence rate" in kind:
+        scale = "IRR"   # incidence-rate ratio (recurrent-event / person-time estimand)
+    elif "odds" in kind or kind == "or":
+        scale = "OR"
+    elif "hazard" in kind or kind == "hr":
+        scale = "HR"
+    else:
+        scale = "RR"
     if not (lo <= pt <= hi):
         return None
     return (scale, pt, lo, hi)
