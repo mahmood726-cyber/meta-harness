@@ -162,7 +162,9 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # selection is ambiguous (abbreviated OM titles) and it overrode EMPEROR's correct 361-event
         # composite with a 15-event secondary. Both are primary-source; the abstract headline is safer.
         nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
-        ex = extract.extract_trial(rec.get("abstract", ""), spec["keywords"], interv, comp)
+        dc = extract.declared_is_composite(spec.get("name", ""))
+        ex = extract.extract_trial(rec.get("abstract", ""), spec["keywords"], interv, comp,
+                                   declared_composite=dc)
         if not ex.get("absent"):
             ex["provenance"] = "abstract"
             t = {"label": label, "id": idstr, **ex}
@@ -185,7 +187,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # same round-trip + refuse-on-ambiguity guards; keyword-scoped so it reads the outcome's
         # own sentences, not the whole document.
         ft = fulltext_by_pmid.get(d["id"]) if d["id_type"] == "pmid" else None
-        fx = extract.extract_trial(ft, spec["keywords"], interv, comp) if ft else None
+        fx = extract.extract_trial(ft, spec["keywords"], interv, comp, declared_composite=dc) if ft else None
         if fx and not fx.get("absent"):
             fx["provenance"] = "pmc_fulltext"
             trials.append({"label": label, "id": idstr, **fx})

@@ -276,6 +276,30 @@ def _is_subgroup_sentence(sentence):
     return bool(_SUBGROUP.search(sentence or ""))
 
 
+# A COMPOSITE endpoint names two or more components joined ("CV death OR HF hospitalization",
+# "composite of ...", a MACE). When the review's declared outcome is a SINGLE component, a number
+# pulled from a composite sentence is the WRONG endpoint (FAIR-HF2's 0.79 is "cardiovascular death
+# or first heart failure hospitalization", not "heart-failure hospitalization" alone). We skip such
+# sentences for single-outcome topics; a later single-endpoint sentence may still match, else the
+# trial is declared absent. NOT applied to composite-declared topics (there the composite IS ours).
+_COMPOSITE_ENDPOINT = re.compile(
+    r"\bcomposite\b|\bmajor adverse cardiovascular\b|\bMACE\b|"
+    r"\bdeath or\b|\bor death\b|\bor first (?:heart failure |hf )?hospitali|"
+    r"\bor (?:heart failure|hf) hospitali|\bor worsening (?:heart failure|hf)\b|"
+    r"\bor hospitali[sz]ation for (?:heart failure|hf)\b", re.I)
+
+
+def _names_composite(sentence):
+    return bool(_COMPOSITE_ENDPOINT.search(sentence or ""))
+
+
+def declared_is_composite(name: str) -> bool:
+    """Is the review's declared primary-outcome NAME itself a composite? (Then the composite guard
+    is OFF — the composite is exactly what we want.)"""
+    n = (name or "").lower()
+    return any(w in n for w in (" or ", "composite", "mace", "major adverse"))
+
+
 def _multi_dose_arms(abstract):
     """Distinct intervention DOSE values reported (e.g. CANTOS '50-mg group ... 150-mg group ...
     300-mg group'). A trial with >1 dose arm vs one comparator is multi-arm: picking one dose's
@@ -379,9 +403,15 @@ def extract_rate(sentence, interv_terms, comp_terms):
     return (e1, t1, e2, t2) if i_pos <= c_pos else (e2, t2, e1, t1)
 
 
-def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
-    """Best conservative extraction for one trial's outcome. Returns dict or a reason."""
+def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_composite=True):
+    """Best conservative extraction for one trial's outcome. Returns dict or a reason.
+
+    declared_composite: whether the review's declared outcome is itself a composite. When False
+    (a SINGLE declared outcome), sentences that name a composite endpoint are skipped, so a
+    composite number is never read as the single outcome (the FAIR-HF2 wrong-endpoint class).
+    Defaults True (guard off) for backward compatibility / callers that do not pass it."""
     abstract = _norm(abstract)
+    _skip_composite = not declared_composite
     dm = _DENOM_EACH.search(abstract)
     cand = [int(x) for x in _NEQ.findall(abstract)]
     if dm:
@@ -403,7 +433,8 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
             "Specify the dose in the topic's intervention terms to pin the arm.")}
     sents = _outcome_sentences(abstract, _effective_kws(abstract, outcome_kws))
     for s in sents:
-        if _is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms)):
+        if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
+                or (_skip_composite and _names_composite(s))):
             continue
         arms = extract_arm_counts(s, interv_terms, comp_terms, denom_each)
         if arms:
@@ -425,7 +456,8 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
             return {"ai": arms[0], "n1i": arms[1], "ci": arms[2], "n2i": arms[3],
                     "source": "abstract arm-level counts (percentage-corroborated): " + s.strip()[:200]}
     for s in sents:
-        if _is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms)):
+        if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
+                or (_skip_composite and _names_composite(s))):
             continue
         eff = extract_effect(s)
         if eff:
@@ -434,7 +466,8 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
     # Incidence-rate fallback: explicit per-arm events + person-time (recurrent-event class).
     # Lowest priority so binary counts / ratio effects are preferred; refuses ambiguous rates.
     for s in sents:
-        if _is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms)):
+        if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
+                or (_skip_composite and _names_composite(s))):
             continue
         rate = extract_rate(s, interv_terms, comp_terms)
         if rate:
@@ -444,7 +477,8 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
     # Continuous fallback: mean-difference from per-arm mean+/-SD (+ per-arm n from the abstract).
     ns = _arm_ns(abstract, interv_terms, comp_terms)
     for s in sents:
-        if _is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms)):
+        if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
+                or (_skip_composite and _names_composite(s))):
             continue
         cont = extract_continuous(s, interv_terms, comp_terms, ns)
         if cont:
