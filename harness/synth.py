@@ -24,24 +24,31 @@ from scipy.stats import norm as _norm, t as _t
 
 @dataclass
 class Study:
-    """A poolable study. Provide EITHER a 2x2 (ai,n1i,ci,n2i) OR an effect+CI."""
+    """A poolable study. Provide EITHER a 2x2 (ai,n1i,ci,n2i) OR an effect+CI.
+    measure selects the 2x2 log-effect: 'RR' (risk ratio) or 'OR' (odds ratio)."""
     label: str
     ai: Optional[float] = None
     n1i: Optional[float] = None
     ci: Optional[float] = None
     n2i: Optional[float] = None
-    effect: Optional[float] = None      # point estimate on ratio scale (e.g. RR)
+    effect: Optional[float] = None      # point estimate on ratio scale (RR/OR/HR)
     ci_low: Optional[float] = None
     ci_high: Optional[float] = None
     source: str = ""
+    measure: str = "RR"
 
     def yi_vi(self) -> tuple[float, float]:
         if self.ai is not None:
             a, n1, c, n2 = self.ai, self.n1i, self.ci, self.n2i
             if min(a, c, n1 - a, n2 - c) == 0:  # zero cell in THIS study
                 a, c, n1, n2 = a + 0.5, c + 0.5, n1 + 1.0, n2 + 1.0
-            y = math.log((a / n1) / (c / n2))
-            v = 1.0 / a - 1.0 / n1 + 1.0 / c - 1.0 / n2
+            if self.measure.upper() == "OR":
+                b, d = n1 - a, n2 - c          # odds ratio (a*d)/(b*c)
+                y = math.log((a * d) / (b * c))
+                v = 1.0 / a + 1.0 / b + 1.0 / c + 1.0 / d
+            else:                               # risk ratio
+                y = math.log((a / n1) / (c / n2))
+                v = 1.0 / a - 1.0 / n1 + 1.0 / c - 1.0 / n2
             return y, v
         if self.effect is not None and self.ci_low and self.ci_high:
             z = _norm.ppf(0.975)

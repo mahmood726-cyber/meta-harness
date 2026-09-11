@@ -15,12 +15,12 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from harness.synth import Study, pool_rr  # noqa: E402
+from harness.synth import Study, pool_rr, pool  # noqa: E402
 
 R_CODE = r'''
 suppressMessages(library(metafor))
 dat <- dat.bcg
-res <- rma(measure="RR", ai=tpos, bi=tneg, ci=cpos, di=cneg, data=dat,
+res <- rma(measure="__MEASURE__", ai=tpos, bi=tneg, ci=cpos, di=cneg, data=dat,
            method="PM", test="knha", control=list(tol=1e-12, maxiter=100000))
 pr <- predict(res)
 counts <- paste0('[', paste(sprintf(
@@ -33,9 +33,9 @@ cat(sprintf(
 '''
 
 
-def run_r():
+def run_r(measure):
     with tempfile.NamedTemporaryFile("w", suffix=".R", delete=False) as f:
-        f.write(R_CODE)
+        f.write(R_CODE.replace("__MEASURE__", measure))
         path = f.name
     try:
         out = subprocess.check_output(["Rscript", "--vanilla", path], text=True)
@@ -44,8 +44,34 @@ def run_r():
     return json.loads(out)
 
 
+def _check(measure):
+    r = run_r(measure)
+    studies = [Study(**c, measure=measure) for c in r["counts"]]
+    res = pool(studies, scale=measure)
+    got = {"tau2": res.tau2, "mu_log": res.mu_log, "se_log": res.se_log,
+           "ci_lb": math.log(res.ci_low), "ci_ub": math.log(res.ci_high),
+           "pi_lb": math.log(res.pi_low), "pi_ub": math.log(res.pi_high)}
+    ok = (res.k == r["k"])
+    print(f"\n=== measure={measure} (k ours={res.k} metafor={r['k']}) ===")
+    print(f"{'metric':8} {'ours':>16} {'metafor':>16} {'|diff|':>11}")
+    for key in ("tau2", "mu_log", "se_log", "ci_lb", "ci_ub", "pi_lb", "pi_ub"):
+        diff = abs(got[key] - r[key])
+        if diff >= 1e-6:
+            ok = False
+        print(f"{key:8} {got[key]:16.10f} {r[key]:16.10f} {diff:11.2e} {'OK' if diff<1e-6 else 'FAIL'}")
+    return ok
+
+
 def main():
-    r = run_r()
+    ok = True
+    for measure in ("RR", "OR"):
+        ok = _check(measure) and ok
+    print("\nRESULT:", "PASS (RR and OR agree with metafor <1e-6)" if ok else "FAIL")
+    return 0 if ok else 1
+
+
+def _old_main():
+    r = run_r("RR")
     studies = [Study(**c) for c in r["counts"]]
     res = pool_rr(studies)
 

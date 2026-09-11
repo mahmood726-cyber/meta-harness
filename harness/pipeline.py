@@ -45,8 +45,8 @@ def _dedup(records):
     return deduped
 
 
-def _pool_result(studies):
-    r = pool(studies, scale="RR")
+def _pool_result(studies, scale="RR"):
+    r = pool(studies, scale=scale)
     res = {"k": r.k, "estimate": round(r.estimate, 4), "scale": r.scale,
            "ci_low": round(r.ci_low, 4), "ci_high": round(r.ci_high, 4), "tau2": round(r.tau2, 5)}
     if r.k > 1:
@@ -75,10 +75,12 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp):
            "timepoint": spec.get("timepoint"), "method": METHOD,
            "trials": trials, "declared_absent_trials": absent}
     if trials:
+        meas = (spec.get("estimand") or "RR").upper()
+        meas = meas if meas in ("RR", "OR") else "RR"  # 2x2 pools as RR/OR; HR only via effect+CI
         studies = [Study(label=t["label"], ai=t.get("ai"), n1i=t.get("n1i"), ci=t.get("ci"),
                          n2i=t.get("n2i"), effect=t.get("effect"), ci_low=t.get("ci_low"),
-                         ci_high=t.get("ci_high"), source=t.get("source", "")) for t in trials]
-        out["result"] = _pool_result(studies)
+                         ci_high=t.get("ci_high"), source=t.get("source", ""), measure=meas) for t in trials]
+        out["result"] = _pool_result(studies, scale=spec.get("estimand", "RR"))
     else:
         out["result"] = {"present": False,
                          "reason": "no included trial reported this outcome with a percentage-corroborated "
