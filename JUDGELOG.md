@@ -127,3 +127,9 @@ auto-extracted from its own PubMed abstract by the SAME pipeline, so it is no lo
 ## Topic — omega-3 for CV events — LIVE (honest k=3)
 - k=3 (VITAL 785/6539 vs 795/6539; REDUCE-IT HR 0.75; a null trial HR 1.01) RR 0.91 (0.60-1.37);
   comparator PMID 35905212 (OA) major CV 0.94. Neg control excluded. Direction matches; honest wide CI.
+
+## Topic — IV iron in HFrEF — DECLINED (k=0)
+- HF-hospitalisation reported as composites ("CV death or first HF hospitalisation") or recurrent-event
+  rate ratios across trials; not uniformly extractable from abstracts to a common RR. Comparator PMID
+  39727669 (OA) total HF hosp RR 0.59. Declared not-produced. (Deferred general gap: 'rate ratio' /
+  recurrent-event support in the effect parser + rate-ratio pooling.)
