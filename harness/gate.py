@@ -130,6 +130,25 @@ def check_primary_result(review_dir):
     return []
 
 
+def check_cache_tracked(manifest):
+    """A page replays from its committed cache, so that cache MUST be git-tracked — an untracked
+    cache means a fresh clone cannot reproduce the page (this silently broke empagliflozin: the
+    page looked fine, but its cache/<slug>/records.json was never committed). Refuse if untracked."""
+    import subprocess
+    slug = manifest.get("slug")
+    if not slug:
+        return ["L1: manifest has no slug to check cache tracking"]
+    rel = f"cache/{slug}/records.json"
+    try:
+        out = subprocess.check_output(["git", "-C", ROOT, "ls-files", "--", rel], text=True).strip()
+    except Exception as exc:  # noqa: BLE001
+        return [f"L1: cannot check cache tracking ({exc})"]
+    if not out:
+        return [f"L1: committed cache {rel} is NOT git-tracked — a fresh clone could not reproduce "
+                "this page; commit the cache"]
+    return []
+
+
 def check_reproduction(review_dir, manifest):
     """Level B: re-run the pipeline from the COMMITTED cache + protocol SHA and confirm it
     regenerates the committed review core (the numbers), not just that the HTML matches the
@@ -167,6 +186,7 @@ def gate_page(review_dir):
     except (OSError, ValueError) as exc:
         return False, [f"gate: cannot load review dir: {exc}"]
     reasons = (check_limb1(review_dir, manifest, html, rep)
+               + check_cache_tracked(manifest)
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
                + check_limb2(manifest, html))

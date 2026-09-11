@@ -46,5 +46,18 @@ if cur != want:
 print("GATE: generated index is current.")
 PYEOF
 
+# DEPENDENCY RULE (not memory): if any pipeline/harness code is staged, EVERY live page must still
+# replay from its committed cache -- a machinery change that leaves a page stale is a silent
+# invariant failure (the multi-arm guard once left colchicine-postop stale). Re-verify all pages.
+MACHINERY=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^harness/.*\.py$' || true)
+if [ -n "$MACHINERY" ]; then
+  echo "GATE: harness code changed -> re-verifying ALL live pages reproduce (dependency rule)"
+  "$PY" scripts/reproduce_review.py || {
+    echo "GATE: REFUSED. A machinery change left a live page stale — rebuild every affected page"
+    echo "      (python scripts/build_topic.py <slug>) and stage it. Never ship a stale page."
+    exit 1
+  }
+fi
+
 echo "GATE: executed OK - all limbs passed."
 exit 0
