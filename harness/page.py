@@ -300,7 +300,29 @@ def _comparator(r, neutral):
         ("Overlap method", ov.get("method")),
         ("Note", ov.get("note")),
     ])
+    body += _estimand_exclusions_block(r)
     return body
+
+
+def _estimand_exclusions_block(r):
+    """Render trials the comparator pools that THIS review deliberately excludes because they
+    report a different estimand — so a reader sees a smaller k as a rigour decision, not a search
+    miss. Each row names the trial, the outcome IT reports, and why that is not our estimand."""
+    ex = r.get("estimand_exclusions") or []
+    if not ex:
+        return ""
+    head = ("<tr><th>Trial</th><th>Id</th><th>What the trial reports</th>"
+            "<th>Why excluded (estimand)</th></tr>")
+    rows = "".join(
+        f"<tr><td>{_e(t.get('trial'))}</td><td>{_e(t.get('id'))}</td>"
+        f"<td>{_e(t.get('their_outcome'))}{(' — ' + _e(t.get('their_effect'))) if t.get('their_effect') else ''}</td>"
+        f"<td>{_e(t.get('reason'))}</td></tr>" for t in ex)
+    return ("<h4>Trials the comparator pools that this review EXCLUDES on estimand grounds</h4>"
+            "<p class='note'>A larger k bought by pooling a different outcome is not a larger "
+            "evidence base — it is a different question. These trials were found; they are excluded "
+            "deliberately because the outcome they report is not this review's estimand, not because "
+            "the search missed them.</p>"
+            f"<table class='arms'>{head}{rows}</table>")
 
 
 def _reproduction(r, neutral):

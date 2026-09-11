@@ -224,6 +224,7 @@ def build_review_core(slug, config, records, protocol_sha):
                       "positive_control": scr["positive_control"], "negative_control": scr["negative_control"]},
         "outcomes": outcomes,
         "comparator": comparator,
+        "estimand_exclusions": config.get("estimand_exclusions", []),
     }
 
 
