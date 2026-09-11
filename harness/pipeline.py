@@ -51,8 +51,23 @@ def _dedup(records, pivotal=None):
     pivotal = {str(p) for p in (pivotal or [])}
     pubmed = list(records.get("records", []))
     by_nct = {}
+
+    def _yr(r):
+        try:
+            return int(str(r.get("year") or "0")[:4])
+        except (TypeError, ValueError):
+            return 0
+
     def _key(r):
-        return (1 if str(r.get("id")) in pivotal else 0, _primacy(r), str(r.get("year") or "0"))
+        # Highest: a preregistered pivotal wins its NCT outright. Then most-primary (RCT report >
+        # ordinary article > letter/comment). Then, among equal-primacy same-NCT records, the MAIN
+        # results paper beats a later SUB-ANALYSIS: the pivotal report is published first and the
+        # sub-analyses (by-subgroup, substudy, pooled re-analysis) follow, so EARLIEST year wins
+        # (via -year). This reverses the old 'latest year' tie-break, which silently dropped a
+        # trial's main results paper whenever a later sub-analysis shared its NCT (Alpha Omega,
+        # GISSI-HF mains were being discarded for subgroup/arrhythmia substudies). A design/rationale
+        # paper is not RCT-pubtype, so _primacy already ranks it below the results report.
+        return (1 if str(r.get("id")) in pivotal else 0, _primacy(r), -_yr(r))
     for r in pubmed:
         n = r.get("nct")
         if n:
