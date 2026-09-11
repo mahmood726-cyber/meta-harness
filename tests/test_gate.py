@@ -40,20 +40,21 @@ def _review_core():
         "protocol": {"sha": PROTO_SHA, "committed_utc": "2026-01-01T00:00:00Z",
                      "method_declared": "Paule-Mandel RE, HKSJ, PI t_{k-1}"},
         "search": {"n_records": 20, "cache_ref": "cache/fixture.jsonl",
-                   "run_utc": "2026-01-01T00:00:00Z",
+                   "run_utc": "2026-01-01T00:00:00Z", "databases": ["PubMed"],
                    "sources": [{"name": "PubMed", "queries": ["X AND Y"]}]},
-        "screening": {"records": [{"id": "PMID1", "decision": "include",
-                                   "rule_id": "I1", "rule": "RCT of X vs placebo"}]},
-        "extraction": {"field_source_hierarchy": ["registry results", "publication"],
-                       "trials": [{"id": "NCT1", "name": "T1",
-                                   "arms": [{"label": "X", "n": 100, "events": 10, "source": "reg"},
-                                            {"label": "placebo", "n": 100, "events": 20, "source": "reg"}]}]},
-        "synthesis": {"estimand": "RR", "population": "ITT", "timepoint": "12 mo",
-                      "method": "Paule-Mandel RE, HKSJ, PI t_{k-1}",
-                      "result": {"k": 5, "estimate": 0.55, "ci_low": 0.4, "ci_high": 0.76,
-                                 "tau2": 0.0, "pi_low": 0.3, "pi_high": 1.0, "scale": "RR"}},
-        "harms": {"outcomes": [{"name": "any AE", "estimate": 1.1, "ci_low": 0.9,
-                                "ci_high": 1.3, "k": 5, "scale": "RR"}]},
+        "screening": {"records": [{"id": "PMID1", "id_type": "pmid", "decision": "include",
+                                   "rule_id": "I1", "reason": "RCT of X vs placebo"}]},
+        "outcomes": [
+            {"name": "Primary event", "kind": "efficacy", "primary": True,
+             "estimand": "RR", "population": "ITT", "timepoint": "12 mo",
+             "method": "Paule-Mandel RE, HKSJ, PI t_{k-1}",
+             "result": {"k": 3, "estimate": 0.47, "ci_low": 0.35, "ci_high": 0.63,
+                        "tau2": 0.0, "pi_low": 0.3, "pi_high": 0.72, "scale": "RR"},
+             "trials": [{"label": "T1", "id": "NCT1", "ai": 20, "n1i": 100,
+                         "ci": 40, "n2i": 100, "source": "pub"}]},
+            {"name": "Any adverse event", "kind": "harm", "estimand": "RR",
+             "result": {"present": False, "reason": "reported as similar; no counts"}},
+        ],
         "comparator": COMPARATOR,
     }
 
@@ -116,7 +117,7 @@ def test_hand_edited_html_refused():
     with tempfile.TemporaryDirectory() as tmp:
         d = _build(tmp)
         p = os.path.join(d, "index.html")
-        html = io.open(p, encoding="utf-8").read().replace("0.55", "0.42")
+        html = io.open(p, encoding="utf-8").read().replace("0.47", "0.42")
         io.open(p, "w", encoding="utf-8", newline="").write(html)
         _refuses(d, "index.html")
 

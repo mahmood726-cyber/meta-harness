@@ -1,67 +1,60 @@
-# Protocol — colchicine for recurrent pericarditis
+# Protocol — colchicine for prevention of pericarditis recurrence
 
-**Registration.** The commit that adds this file is the registration of this review.
-It is committed BEFORE any search is run. Its SHA is embedded in the page's Protocol tab.
+**Registration.** The commit that adds/updates this file is the registration of this
+review; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.
+Committed BEFORE the synthesis is run. (Revised from the initial recurrent-only draft
+to match the scope of the resolved open-access comparator and to put eligibility on
+P/I/C/**design** only — see below.)
 
 ## PICO
-- **P** — adults with recurrent pericarditis (>=1 recurrence after a first episode).
-- **I** — colchicine added to conventional anti-inflammatory therapy (aspirin/NSAID +/- steroid).
+- **P** — patients with pericarditis (acute first episode or recurrent) treated to prevent recurrence.
+- **I** — colchicine added to conventional anti-inflammatory therapy.
 - **C** — placebo added to conventional therapy.
 - **O (primary)** — recurrent pericarditis during follow-up.
-- **O (secondary / harms)** — match every outcome the resolved open-access comparator
-  reports (see Outcome policy); carry adverse events / treatment discontinuation.
+- **O (harms / secondary)** — adverse events, treatment discontinuation, and any further
+  outcome the resolved comparator reports.
 
 ## Estimand / population / timepoint
-- **Estimand** — risk ratio (RR) of recurrence, colchicine vs placebo.
+- **Estimand** — risk ratio (RR), colchicine vs placebo.
 - **Population** — intention-to-treat as randomised.
-- **Timepoint** — longest recurrence follow-up each trial reports (>=12-18 months where available).
-- Continuous outcomes (e.g., symptom persistence) reported on their own scale if the comparator uses them.
+- **Timepoint** — longest recurrence follow-up each trial reports.
 
-## Eligibility rules (each screened record gets exactly one rule id; the reason must be TRUE of the record)
-Include:
-- **I1** — randomised controlled trial.
-- **I2** — population is recurrent pericarditis (not acute/first-episode-only, not post-pericardiotomy prophylaxis).
-- **I3** — compares colchicine vs placebo/control on top of conventional therapy.
-- **I4** — reports recurrence (or an outcome the comparator reports) with extractable arm data.
-Exclude:
-- **X1** — not an RCT (review, guideline, observational, editorial, protocol-only).
-- **X2** — wrong population (acute/first-episode pericarditis only; post-op AF; other).
-- **X3** — wrong intervention/comparison (no colchicine arm; no control arm).
-- **X4** — duplicate / superseded report of an already-included trial.
-- **X5** — off-topic (primary trial of another PICO topic in this set → negative control).
+## Eligibility — on P/I/C/DESIGN ONLY
+Include a record iff **all** hold:
+- **I1** — randomised controlled trial;
+- **I2** — population is pericarditis (acute or recurrent), treated to prevent recurrence;
+- **I3** — colchicine vs placebo, both added to conventional therapy;
+- **design** — double-blind, placebo-controlled.
 
-## Search strategy (fetch-once; raw results cached in-repo under cache/<slug>/ and committed)
-- PubMed: `colchicine AND (pericarditis) AND (recurrent OR recurrence) AND (randomized OR randomised OR trial)`,
-  plus a broadened `colchicine pericarditis randomized controlled trial` sweep.
+Exclude (reason must be true of the record):
+- **X1** — not an RCT (review, guideline, observational, protocol-only);
+- **X2** — wrong population (e.g. postpericardiotomy-syndrome prophylaxis);
+- **X3** — wrong intervention/comparison (no colchicine-vs-placebo contrast);
+- **X-DESIGN** — not double-blind and placebo-controlled (e.g. open-label);
+- **X5** — off-topic: a primary trial of another topic in this set (negative control).
+
+> **Eligibility is NOT on the outcome axis.** Whether a trial reports the recurrence
+> outcome, or gives a 2×2 vs only an effect+CI, is recorded as *target-result status* at
+> extraction — never as an exclusion. A published effect + 95% CI is a poolable input.
+
+## Search (fetch-once; raw results committed under cache/<slug>/search.json; screening replays offline)
+- PubMed: colchicine × pericarditis × (recurrent OR trial); plus meta-analysis sweeps to resolve the comparator.
 - ClinicalTrials.gov: condition "recurrent pericarditis", intervention "colchicine".
-- Screening reads ONLY the committed cache (offline, reproducible).
 
-## Synthesis method (DECLARED; the served method must equal this — gate limb 1)
-Pool `log(RR)` with **Paule-Mandel** random-effects `tau^2`; **HKSJ** CI on `t_{k-1}`
-with variance floored at `max(1, Q/(k-1))`; prediction interval `mu ± t_{k-1}·sqrt(tau2+se^2)`.
-0.5 continuity correction to all four cells of a study only if that study has a zero cell.
-DerSimonian-Laird forbidden. (Engine validated vs metafor 5.0.1 to <1e-6.)
+## Synthesis method (DECLARED; served method must equal this — gate limb 1)
+Random-effects inverse-variance on log(RR); **Paule-Mandel** τ²; **HKSJ** 95% CI on
+`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval
+`μ ± t_{k-1}·√(τ²+se²)`. 0.5 continuity correction to all four cells of a study only if
+it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1 (<1e-6).
 
-## Outcome policy (both limbs of "equal")
-Report **every outcome the resolved comparator reports, not fewer**, on the same estimand/
-population/timepoint, with arm-level counts where the sources give them; carry harms. Any
-outcome the comparator reports but we cannot populate is **declared absent with a reason**,
-never left blank.
+## Comparator (resolved; open-access confirmed)
+Imazio et al., *Heart* 2012, "Efficacy and safety of colchicine for pericarditis
+prevention" (PMID 22442198, DOI 10.1136/heartjnl-2011-301306; Unpaywall is_oa=true). It
+reports pooled recurrence RR 0.40 (0.30–0.54) over 5 controlled trials plus adverse
+events and drug-withdrawal. Trial-set overlap is stated on the page.
 
-## Comparator (pinned by resolution query; PMID/DOI + open-access confirmed at build)
-Resolution query: *systematic review / meta-analysis of colchicine vs placebo for recurrent
-pericarditis, open-access full text, most trials included; tie-break most recent.* The gate
-refuses the page unless a real open-access comparator with PMID/DOI and a stated trial-set
-overlap is present.
-
-## Controls (both required)
-- **Positive** — the offline screen must recover every trial the resolved comparator includes;
-  any miss is reported on the page.
-- **Negative** — a primary trial of another topic in this set (e.g. a colchicine **post-op AF**
-  trial, or an SGLT2-HF trial) must be present in the fetched records and screen to EXCLUDE
-  via X2/X5.
-
-## Provenance / source hierarchy for extraction
-Per field, prefer in order: **(1)** ClinicalTrials.gov results section → **(2)** the trial's
-primary publication (PMC full text if OA, else abstract) → **(3)** the comparator's reported
-extraction. Every extracted number records which source it came from.
+## Controls
+- **Positive** — the search must recover the canonical double-blind colchicine-vs-placebo
+  pericarditis RCTs (CORP, CORP-2, ICAP).
+- **Negative** — COLCOT (colchicine, double-blind, placebo-controlled, but post-MI coronary
+  disease — another topic in this set) must be recovered and EXCLUDED (X5).
