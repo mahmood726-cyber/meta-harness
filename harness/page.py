@@ -24,6 +24,7 @@ TABS = [
     ("outcomes", "Results"),
     ("harms", "Harms"),
     ("comparator", "Comparator"),
+    ("riskofbias", "Risk of bias"),
     ("reporting", "Reporting (PRISMA)"),
     ("reproduction", "Reproducibility"),
 ]
@@ -110,6 +111,21 @@ def _overview(r, neutral):
                 rows.append(("Between-study τ²", _num(res.get("tau2"))))
             rows.append(("Method", prim.get("method") or r.get("method_declared")))
             parts.append(_kv(rows))
+    if not neutral:
+        parts.append(
+            "<h3>Stated limitations</h3><ul class='limits'>"
+            "<li><strong>Small k on many topics.</strong> A pool of one or two trials is a trial "
+            "summary in meta-analysis apparatus (τ² undefined, wide intervals from lack of data); "
+            "the k here is honest, not inflated — see the gap vs the comparator.</li>"
+            "<li><strong>Open-access comparator only.</strong> The benchmark meta is restricted to an "
+            "OA-retrievable publication, a narrower and sometimes weaker comparator set than the full "
+            "literature.</li>"
+            "<li><strong>Favourable topic sample.</strong> Topics were chosen by us; clean binary "
+            "outcomes with registered trials succeeded, while continuous, recurrent-event and older "
+            "literature were declined — so the success rate reflects a selected sample, not the whole "
+            "field.</li>"
+            "<li><strong>Risk of bias is partial.</strong> RoB2 domains are computed from machine-"
+            "available registry fields; domains needing human reading are marked not-assessed.</li></ul>")
     return "".join(parts)
 
 
@@ -520,8 +536,33 @@ def _reporting(r, neutral):
             + "".join(rows) + "</table>")
 
 
+def _riskofbias(r, neutral):
+    """RoB2-style risk of bias, per pooled trial, built from AACT structured design fields + the
+    registry-vs-pooled outcome (Domain 5). Partial-but-honest: domains needing human judgement are
+    marked 'not assessed', never guessed. No published-meta comparator in our set renders this."""
+    rb = r.get("rob2")
+    if not rb or not rb.get("trials"):
+        return _absent_block("risk-of-bias assessment not yet built for this topic (needs AACT + a pooled trial with an NCT)")
+    dom_labels = [("D1_randomisation", "D1 randomisation"), ("D2_deviations", "D2 deviations/blinding"),
+                  ("D3_missing_outcome_data", "D3 missing data"), ("D4_outcome_measurement", "D4 measurement"),
+                  ("D5_selective_reporting", "D5 selective reporting")]
+    head = "<tr><th>Trial</th><th>Overall</th>" + "".join(f"<th>{_e(l)}</th>" for _, l in dom_labels) + "</tr>"
+    rows = []
+    for pid, a in sorted(rb["trials"].items()):  # stable order (canonical_json sorts keys; render must too)
+        cells = "".join(f"<td title='{_e(a['domains'][k]['basis'])}'>{_e(a['domains'][k]['level'])}</td>" for k, _ in dom_labels)
+        rows.append(f"<tr><td>{_e(pid)}</td><td><strong>{_e(a.get('overall'))}</strong></td>{cells}</tr>")
+    return ("<p>Per-pooled-trial RoB2 risk of bias, computed from what is machine-available "
+            f"({_e(rb.get('source'))}). <strong>Domain 5 (selective reporting)</strong> is computed from the "
+            "trial's REGISTERED primary outcome vs the outcome we pooled — a machine-checkable signal most "
+            "published meta-analyses do not report. D1/D2/D4 use AACT structured allocation/masking fields. "
+            "D3 (missing outcome data) and the risk-of-bias judgements that need human reading are marked "
+            "<em>not assessed — requires human judgement</em>: partial-but-honest, never guessed. Hover a cell "
+            "for its basis.</p>"
+            f"<table class='recs'>{head}{rows_join(rows)}</table>")
+
+
 _R = {"overview": _overview, "protocol": _protocol, "search": _search,
-      "screening": _screening, "outcomes": _outcomes, "harms": _harms,
+      "screening": _screening, "outcomes": _outcomes, "harms": _harms, "riskofbias": _riskofbias,
       "comparator": _comparator, "reproduction": _reproduction, "reporting": _reporting}
 
 _CSS = """

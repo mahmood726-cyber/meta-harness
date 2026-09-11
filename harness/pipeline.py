@@ -185,6 +185,18 @@ def _load_outcome_judgments(slug):
     return data.get("judgments", data)
 
 
+def _load_rob2(slug):
+    """Committed per-trial RoB2 assessment (cache/<slug>/rob2.json) from AACT + registry-vs-pooled."""
+    import os, json
+    fp = os.path.join(ROOT, "cache", slug, "rob2.json")
+    if not os.path.exists(fp):
+        return None
+    try:
+        return json.load(open(fp, encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 def _load_verified_arms(slug):
     """Committed hand-verified structured arm-level counts (cache/<slug>/verified_arms.json):
     {pmid: {outcome, ai, n1i, ci, n2i, source}}. The bottom of the source hierarchy — a number a
@@ -430,6 +442,7 @@ def build_review_core(slug, config, records, protocol_sha):
         "outcomes": outcomes,
         "comparator": comparator,
         "estimand_exclusions": config.get("estimand_exclusions", []),
+        **({"rob2": _rb} if (_rb := _load_rob2(slug)) else {}),
         **({"integrity": _integ} if (_integ := _load_integrity(slug)) else {}),
     }
 
