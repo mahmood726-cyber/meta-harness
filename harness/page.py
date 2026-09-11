@@ -70,6 +70,31 @@ def _effect_label(res) -> str:
 
 # ---- tabs --------------------------------------------------------------------
 
+def _transparency_counts(r):
+    """Count claims on this page that carry a one-click resolvable source pointer (the countable
+    transparency test). Mirrors scripts/transparency_score.py; kept compact for a one-line render."""
+    total = ok = 0
+    for o in r.get("outcomes", []) or []:
+        for t in o.get("trials", []) or []:
+            total += 1
+            ok += 1 if (t.get("id") and t.get("source") and t.get("provenance")) else 0
+        for a in o.get("declared_absent_trials", []) or []:
+            total += 1
+            ok += 1 if (a.get("id") and a.get("reason")) else 0
+        if (o.get("result") or {}).get("k"):
+            total += 1
+            ok += 1 if all(t.get("id") and t.get("source") for t in (o.get("trials") or [])) else 0
+    for tid, e in ((r.get("rob2") or {}).get("trials") or {}).items():
+        total += 1
+        doms = (e or {}).get("domains") or {}
+        ok += 1 if (doms and all(isinstance(v, dict) and v.get("basis") for v in doms.values())) else 0
+    rep = r.get("reproduction") or {}
+    total += 1
+    ok += 1 if ((rep.get("protocol_sha") or rep.get("sha")) and rep.get("failures") is not None) else 0
+    comp = len((r.get("comparator") or {}).get("reported", []) or [])
+    return ok, total, comp
+
+
 def _overview(r, neutral):
     parts = [f"<h2>{_e(r.get('title'))}</h2>", f"<p class='q'>{_e(r.get('question'))}</p>"]
     if not neutral:
@@ -112,6 +137,18 @@ def _overview(r, neutral):
             rows.append(("Method", prim.get("method") or r.get("method_declared")))
             parts.append(_kv(rows))
     if not neutral:
+        _tok, _ttot, _tcomp = _transparency_counts(r)
+        if _ttot:
+            _pct = round(100 * _tok / _ttot)
+            parts.append(
+                "<h3>Transparency (independently checkable)</h3>"
+                f"<p><strong>{_e(_tok)} of {_e(_ttot)} numerical claims on this page ({_pct}%) carry a "
+                "one-click source</strong> a reader can open to check independently — each pooled number "
+                "its PMID/NCT and verbatim span, each declared-absent trial its reason, each risk-of-bias "
+                "domain the structured field it read, the reproduction its protocol SHA and replay result. "
+                f"The published comparator exposes {_e(_tcomp)} such claim(s) — its reported estimate(s) with "
+                "one citation; its per-trial inputs are not machine-exposed. "
+                "<span class='muted'>Score: scripts/transparency_score.py (committed docs/transparency.json).</span></p>")
         parts.append(
             "<h3>Stated limitations</h3><ul class='limits'>"
             "<li><strong>Small k on many topics.</strong> A pool of one or two trials is a trial "
