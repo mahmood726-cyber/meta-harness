@@ -61,7 +61,17 @@ def main(argv):
         else:
             txt = re.sub(r"<[^>]+>", " ", ft)
             comp = {k: bool(rx.search(txt)) for k, rx in SIG.items()}
-        out[slug] = {"pmid": pmid, "ours": ours, "comparator": comp}
+        # TRANSPARENCY dimension (the countable "which claims can a reader independently check" axis,
+        # from scripts/transparency_score.py / docs/transparency.json) added to the domain comparison
+        # so "are we better" includes the one axis we are unambiguously ahead on.
+        tj = {}
+        tp = os.path.join(ROOT, "docs", "transparency.json")
+        if os.path.exists(tp):
+            tj = json.load(open(tp, encoding="utf-8")).get(slug, {})
+        transparency = {"ours_checkable": tj.get("ours_independently_checkable"),
+                        "coverage": tj.get("coverage"),
+                        "comparator_checkable": tj.get("comparator_independently_checkable")}
+        out[slug] = {"pmid": pmid, "ours": ours, "comparator": comp, "transparency": transparency}
         line = " ".join(f"{k.split()[0]}:{'O' if ours[k] else '.'}{'C' if comp[k] else ('.' if comp[k] is False else '?')}" for k in SIG)
         print(f"{slug:40} {line}", flush=True)
     if "--write" in argv or True:

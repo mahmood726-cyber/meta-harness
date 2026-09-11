@@ -135,3 +135,15 @@ Every added trial verified true against source before it pools.
   a mix — spironolactone already pools mixed RR/HR by design with a visible caveat).
 - k delta: 0 published. Correct refusal, not a failure of extraction — the extraction (cycle 6) is
   sound; the POOL of these two specific trials is not a credible meta-analysis.
+
+## Cycle 8 — TRANSPARENCY added to the PRISMA/AMSTAR-2 domain comparison (target #4, as requested)
+- prisma_compare.py now emits a per-topic "transparency" dimension (ours_checkable / coverage /
+  comparator_checkable) from docs/transparency.json; merged into docs/prisma_compare.json for all 23
+  without re-fetching (comparator OA flags preserved).
+- RESULT: the "are we better" scorecard now carries the countable transparency axis — **ours 749
+  independently-checkable claims vs comparators 35; coverage 100% on every topic**. This is the axis
+  we are unambiguously ahead on, now part of the domain comparison rather than a standalone.
+- Render: the compact transparency line already sits headline-adjacent on every overview (cycle 4);
+  not duplicated into the reporting tab (transparency != volume).
+- No page bytes changed (artifact-only); 98 tests unaffected. deficit=transparency-integration moved
+  from "standalone score" to "in the domain scorecard". SUCCESS.
