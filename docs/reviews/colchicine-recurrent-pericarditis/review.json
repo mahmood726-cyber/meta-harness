@@ -7,11 +7,11 @@
     "sha": "34023da4e35f9094f846361cefb31c8a6655e678",
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
-    "eligibility": "RCT; colchicine vs placebo added to conventional therapy; pericarditis; double-blind placebo-controlled. P/I/C/design only.",
+    "eligibility": "RCT; intervention vs placebo; on-topic population; double-blind placebo-controlled. P/I/C/design only.",
     "text": "# Protocol — colchicine for prevention of pericarditis recurrence\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run. (Revised from the initial recurrent-only draft\nto match the scope of the resolved open-access comparator and to put eligibility on\nP/I/C/**design** only — see below.)\n\n## PICO\n- **P** — patients with pericarditis (acute first episode or recurrent) treated to prevent recurrence.\n- **I** — colchicine added to conventional anti-inflammatory therapy.\n- **C** — placebo added to conventional therapy.\n- **O (primary)** — recurrent pericarditis during follow-up.\n- **O (harms / secondary)** — adverse events, treatment discontinuation, and any further\n  outcome the resolved comparator reports.\n\n## Estimand / population / timepoint\n- **Estimand** — risk ratio (RR), colchicine vs placebo.\n- **Population** — intention-to-treat as randomised.\n- **Timepoint** — longest recurrence follow-up each trial reports.\n\n## Eligibility — on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** — randomised controlled trial;\n- **I2** — population is pericarditis (acute or recurrent), treated to prevent recurrence;\n- **I3** — colchicine vs placebo, both added to conventional therapy;\n- **design** — double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** — not an RCT (review, guideline, observational, protocol-only);\n- **X2** — wrong population (e.g. postpericardiotomy-syndrome prophylaxis);\n- **X3** — wrong intervention/comparison (no colchicine-vs-placebo contrast);\n- **X-DESIGN** — not double-blind and placebo-controlled (e.g. open-label);\n- **X5** — off-topic: a primary trial of another topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports the recurrence\n> outcome, or gives a 2×2 vs only an effect+CI, is recorded as *target-result status* at\n> extraction — never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/search.json; screening replays offline)\n- PubMed: colchicine × pericarditis × (recurrent OR trial); plus meta-analysis sweeps to resolve the comparator.\n- ClinicalTrials.gov: condition \"recurrent pericarditis\", intervention \"colchicine\".\n\n## Synthesis method (DECLARED; served method must equal this — gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** τ²; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`μ ± t_{k-1}·√(τ²+se²)`. 0.5 continuity correction to all four cells of a study only if\nit has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nImazio et al., *Heart* 2012, \"Efficacy and safety of colchicine for pericarditis\nprevention\" (PMID 22442198, DOI 10.1136/heartjnl-2011-301306; Unpaywall is_oa=true). It\nreports pooled recurrence RR 0.40 (0.30–0.54) over 5 controlled trials plus adverse\nevents and drug-withdrawal. Trial-set overlap is stated on the page.\n\n## Controls\n- **Positive** — the search must recover the canonical double-blind colchicine-vs-placebo\n  pericarditis RCTs (CORP, CORP-2, ICAP).\n- **Negative** — COLCOT (colchicine, double-blind, placebo-controlled, but post-MI coronary\n  disease — another topic in this set) must be recovered and EXCLUDED (X5).\n"
   },
   "search": {
-    "n_records": 56,
+    "n_records": 53,
     "cache_ref": "cache/colchicine-recurrent-pericarditis/records.json",
     "run_utc": "2026-09-11",
     "databases": [
@@ -247,13 +247,6 @@
         "reason": "wrong population: title/conditions mention 'covid'."
       },
       {
-        "id": "32866928",
-        "id_type": "pmid",
-        "decision": "exclude",
-        "rule_id": "X1",
-        "reason": "not a randomized controlled trial (record: 32866928)."
-      },
-      {
         "id": "32175647",
         "id_type": "pmid",
         "decision": "exclude",
@@ -284,9 +277,9 @@
       {
         "id": "27825009",
         "id_type": "pmid",
-        "decision": "include",
-        "rule_id": "INCLUDE",
-        "reason": "RCT of colchicine vs placebo in pericarditis; double-blind placebo-controlled — P/I/C/design met."
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['colchicine'] (not named in title/conditions; an incidental abstract mention does not qualify)."
       },
       {
         "id": "26076938",
@@ -338,25 +331,11 @@
         "reason": "wrong population: title/conditions mention 'postpericardiotomy'."
       },
       {
-        "id": "21884871",
-        "id_type": "pmid",
-        "decision": "exclude",
-        "rule_id": "X2",
-        "reason": "population not on-topic: title/conditions do not mention any of ['pericarditis'] (an incidental abstract mention does not qualify)."
-      },
-      {
         "id": "21873705",
         "id_type": "pmid",
         "decision": "include",
         "rule_id": "INCLUDE",
         "reason": "RCT of colchicine vs placebo in pericarditis; double-blind placebo-controlled — P/I/C/design met."
-      },
-      {
-        "id": "20805112",
-        "id_type": "pmid",
-        "decision": "exclude",
-        "rule_id": "X2",
-        "reason": "wrong population: title/conditions mention 'post-pericardiotomy'."
       },
       {
         "id": "18163018",
@@ -412,14 +391,14 @@
         "id_type": "nct",
         "decision": "exclude",
         "rule_id": "X3",
-        "reason": "no eligible comparator (none of ['placebo'])."
+        "reason": "the randomised intervention is not ['colchicine'] (not named in title/conditions; an incidental abstract mention does not qualify)."
       },
       {
         "id": "CREATE · NCT05805930",
         "id_type": "nct",
         "decision": "exclude",
         "rule_id": "X3",
-        "reason": "no eligible comparator (none of ['placebo'])."
+        "reason": "the randomised intervention is not ['colchicine'] (not named in title/conditions; an incidental abstract mention does not qualify)."
       },
       {
         "id": "Dexa-P · NCT04323280",
@@ -472,11 +451,6 @@
       ],
       "declared_absent_trials": [
         {
-          "label": "27825009",
-          "id": "PMID 27825009",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        },
-        {
           "label": "22430920",
           "id": "PMID 22430920",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
@@ -505,12 +479,197 @@
       }
     },
     {
-      "name": "Adverse events / discontinuation (harms)",
-      "kind": "harm",
+      "name": "Symptom persistence at 72 hours",
+      "kind": "efficacy",
+      "primary": false,
       "estimand": "RR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [
+        {
+          "label": "21873705",
+          "id": "PMID 21873705",
+          "effect": 0.44,
+          "ci_low": 0.26,
+          "ci_high": 0.73,
+          "scale": "RR",
+          "source": "abstract effect+CI (RR): Colchicine reduced the persistence of symptoms at 72 hours (absolute risk reduction, 0.30 [CI, 0.13 to 0.45]; relative risk reduction, 0.56 [CI, 0.27 to 0.74]) and mean number of recurrences, increase"
+        }
+      ],
+      "declared_absent_trials": [
+        {
+          "label": "24694983",
+          "id": "PMID 24694983",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "23992557",
+          "id": "PMID 23992557",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "22430920",
+          "id": "PMID 22430920",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "17885522",
+          "id": "PMID 17885522",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "17667033",
+          "id": "PMID 17667033",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "k": 1,
+        "estimate": 0.44,
+        "scale": "RR",
+        "ci_low": 0.2626,
+        "ci_high": 0.7373,
+        "tau2": 0.0,
+        "pi_note": "prediction interval undefined for k=1"
+      }
+    },
+    {
+      "name": "Disease-related hospitalisation",
+      "kind": "efficacy",
+      "primary": false,
+      "estimand": "RR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [],
+      "declared_absent_trials": [
+        {
+          "label": "24694983",
+          "id": "PMID 24694983",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "23992557",
+          "id": "PMID 23992557",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "22430920",
+          "id": "PMID 22430920",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "21873705",
+          "id": "PMID 21873705",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "17885522",
+          "id": "PMID 17885522",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "17667033",
+          "id": "PMID 17667033",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
       "result": {
         "present": false,
-        "reason": "harms not auto-extracted from abstracts in this build (harness fix F3 queued); the trials report harms qualitatively."
+        "reason": "no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract"
+      }
+    },
+    {
+      "name": "Adverse events (gastrointestinal)",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "RR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [],
+      "declared_absent_trials": [
+        {
+          "label": "24694983",
+          "id": "PMID 24694983",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "23992557",
+          "id": "PMID 23992557",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "22430920",
+          "id": "PMID 22430920",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "21873705",
+          "id": "PMID 21873705",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "17885522",
+          "id": "PMID 17885522",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "17667033",
+          "id": "PMID 17667033",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "present": false,
+        "reason": "no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract"
+      }
+    },
+    {
+      "name": "Treatment discontinuation",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "RR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [],
+      "declared_absent_trials": [
+        {
+          "label": "24694983",
+          "id": "PMID 24694983",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "23992557",
+          "id": "PMID 23992557",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "22430920",
+          "id": "PMID 22430920",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "21873705",
+          "id": "PMID 21873705",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "17885522",
+          "id": "PMID 17885522",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "17667033",
+          "id": "PMID 17667033",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "present": false,
+        "reason": "no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract"
       }
     }
   ],
@@ -529,16 +688,29 @@
         "scale": "RR",
         "ci_low": 0.3,
         "ci_high": 0.54
+      },
+      {
+        "outcome": "Adverse events",
+        "estimate": 1.22,
+        "scale": "RR",
+        "ci_low": 0.71,
+        "ci_high": 2.1
+      },
+      {
+        "outcome": "Drug withdrawal",
+        "estimate": 1.85,
+        "scale": "RR",
+        "ci_low": 1.04,
+        "ci_high": 3.29
       }
     ],
     "overlap": {
       "ours_k": 3,
       "theirs_k": 5,
-      "shared_k": "not exactly verifiable (comparator trial table not auto-extracted)",
+      "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
       "only_ours": [
         "24694983",
-        "23992557",
-        "21873705"
+        "23992557"
       ],
       "only_theirs": [],
       "method": "publication-date + design identity (comparator trial list not extracted from source)",
@@ -548,7 +720,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "34023da4e35f9094f846361cefb31c8a6655e678",
-    "review_sha256": "1896fbc0a0cea16e6152d87330c06eaa2a5984e3843c828093eacecc1cc013ce",
+    "review_sha256": "5df210054aa843035980aa7a8618da752adbd41c3b68e0347c46a391cd853a4f",
     "from_cache": true
   }
 }

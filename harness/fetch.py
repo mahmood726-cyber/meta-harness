@@ -66,6 +66,32 @@ def _efetch(pmids: list[str]) -> list[dict]:
     return out
 
 
+def _pmc_fulltext(pmid: str) -> str:
+    """Best-effort: resolve PubMed->PMC and return the article body text, else ''."""
+    try:
+        d = http.get_json(f"{EUTILS}/elink.fcgi",
+                          {"dbfrom": "pubmed", "db": "pmc", "id": pmid, "retmode": "json",
+                           "tool": "meta-harness", "email": "meta-harness@example.org"})
+        time.sleep(0.34)
+        linksets = d.get("linksets", [{}])[0].get("linksetdbs", [])
+        pmcid = None
+        for ls in linksets:
+            if ls.get("dbto") == "pmc" and ls.get("links"):
+                pmcid = ls["links"][0]
+                break
+        if not pmcid:
+            return ""
+        xml = http.get_text(f"{EUTILS}/efetch.fcgi",
+                           {"db": "pmc", "id": pmcid, "retmode": "xml",
+                            "tool": "meta-harness", "email": "meta-harness@example.org"})
+        time.sleep(0.34)
+        root = ET.fromstring(xml)
+        body = root.find(".//body")
+        return " ".join(body.itertext()).strip() if body is not None else ""
+    except Exception:  # noqa: BLE001 - full text is optional; fall back to abstract
+        return ""
+
+
 def _ctgov_search(cond: str, intr: str, page_size: int = 30) -> list[dict]:
     params = {"pageSize": page_size, "fields":
               "protocolSection.identificationModule,protocolSection.designModule,"
@@ -128,10 +154,14 @@ def run(config: dict) -> dict:
             comparator_oa = {"is_oa": bool(d.get("is_oa")), "oa_url": loc.get("url", "")}
         except Exception as exc:  # noqa: BLE001
             comparator_oa = {"is_oa": None, "error": str(exc)}
+    comparator_fulltext = ""
+    if config.get("comparator_pmid"):
+        comparator_fulltext = _pmc_fulltext(config["comparator_pmid"])
     return {"slug": config["slug"], "fetched_utc": config.get("_now", ""),
             "pubmed_queries": config.get("pubmed_queries", []),
             "ctgov_query": cg, "records": pubmed, "ctgov": ctgov,
-            "comparator_pmid": config.get("comparator_pmid"), "comparator_oa": comparator_oa}
+            "comparator_pmid": config.get("comparator_pmid"), "comparator_oa": comparator_oa,
+            "comparator_fulltext": comparator_fulltext}
 
 
 def cache_path(slug: str) -> str:

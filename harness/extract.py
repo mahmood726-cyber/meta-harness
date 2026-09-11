@@ -90,11 +90,7 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None):
     return (e2, n2, e1, n1)
 
 
-def extract_effect(sentence):
-    """Return (scale, point, lo, hi) from an effect+CI phrase, else None."""
-    m = _EFFECT.search(sentence)
-    if not m:
-        return None
+def _effect_from_match(m):
     kind, pt, lo, hi = m.group(1).lower(), float(m.group(2)), float(m.group(3)), float(m.group(4))
     if not (lo < hi and lo > 0 and pt > 0):
         return None
@@ -106,6 +102,12 @@ def extract_effect(sentence):
     if not (lo <= pt <= hi):
         return None
     return (scale, pt, lo, hi)
+
+
+def extract_effect(sentence):
+    """Return (scale, point, lo, hi) from the FIRST effect+CI phrase, else None."""
+    m = _EFFECT.search(sentence)
+    return _effect_from_match(m) if m else None
 
 
 def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
@@ -132,6 +134,23 @@ def _parse_k(abstract):
     if m:
         tok = m.group(1).lower()
         return int(tok) if tok.isdigit() else _WORDNUM.get(tok)
+    return None
+
+
+def effect_in_outcome(abstract, kws):
+    """Effect+CI associated with THIS outcome: pick the effect whose preceding text window
+    mentions the outcome keyword. Avoids grabbing the first of several effects packed into
+    one sentence (e.g. recurrence RR, then adverse-events RR, then withdrawal RR)."""
+    abstract = _norm(abstract)
+    low = abstract.lower()
+    kl = [k.lower() for k in kws]
+    for m in _EFFECT.finditer(abstract):
+        pre = low[max(0, m.start() - 90):m.start()]
+        if any(k in pre for k in kl):
+            e = _effect_from_match(m)
+            if e:
+                return {"effect": e[1], "ci_low": e[2], "ci_high": e[3], "scale": e[0],
+                        "source": abstract[max(0, m.start() - 90):m.end()].strip()[:200]}
     return None
 
 

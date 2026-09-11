@@ -16,6 +16,24 @@ def _has(text: str, terms) -> str | None:
     return None
 
 
+def _has_intervention(text: str, terms) -> str | None:
+    """Like _has, but a mention that is only 'X-resistant/resistance/refractory/intolerant'
+    is a POPULATION descriptor, not the randomised intervention, and does not count."""
+    t = text.lower()
+    for term in terms or []:
+        tl = term.lower()
+        start = 0
+        while True:
+            i = t.find(tl, start)
+            if i < 0:
+                break
+            after = t[i + len(tl): i + len(tl) + 12]
+            if not any(w in after for w in ("resist", "refractory", "intoler", "-depend", " depend")):
+                return term
+            start = i + len(tl)
+    return None
+
+
 def _is_review(rec) -> bool:
     pts = [p.lower() for p in rec.get("pubtypes", [])]
     return any(("review" in p) or ("meta-analysis" in p) or ("meta analysis" in p) for p in pts)
@@ -66,7 +84,7 @@ def screen_record(rec, inc, neg_pmids):
                 f"population not on-topic: title/conditions do not mention any of {inc['population_any']} "
                 f"(an incidental abstract mention does not qualify).")
     itext = _poptext(rec) if inc.get("intervention_in_title") else text
-    if inc.get("intervention_any") and not _has(itext, inc["intervention_any"]):
+    if inc.get("intervention_any") and not _has_intervention(itext, inc["intervention_any"]):
         return ("exclude", "X3",
                 f"the randomised intervention is not {inc['intervention_any']} "
                 f"(not named in title/conditions; an incidental abstract mention does not qualify).")
