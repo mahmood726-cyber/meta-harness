@@ -518,3 +518,18 @@ k=2 with opposite directions => mixed (OR/RR), RR 0.72 CI 0.0005-975.6 — an un
 (the same refusal recorded earlier for this topic). A clean k=1-Hernandez page would need a scale-homogeneity
 exclusion for RINO's un-convertible OR (no mechanism yet) and is a narrow low-risk-only page besides.
 DECLINED; artifacts removed. Named reason recorded rather than shipping a garbage k=2 or a hacked k=1.
+
+## Cycle 35 — metformin-pcos-ovulation + corticosteroids-cap-mortality DEFERRED (broken Codex scaffolds, k=None)
+Both dry-build to k=None (empty pooled set) from Codex's config — verify-before-build catches them:
+- metformin-pcos-ovulation: primary 'Ovulation rate' (OR). Vandermolen (11172832) is in cache but does
+  not pool; the earlier independent verify found the set is crossover (Sturrock) / continuous per-woman
+  (Ng) / %-only with cycle-not-woman denominators (Kocak) / mixed population (Moll treatment-naive vs the
+  rest CC-resistant). Only Vandermolen offers a clean per-woman 2x2 and even it is not extracting. Needs
+  per-topic extraction work (per-cycle vs per-woman denominator disambiguation), not a quick build.
+- corticosteroids-cap-mortality: primary '30-day/in-hospital mortality'. CAPE-COD (36942789, 28-day death
+  400/395) is clean and in cache but does not pool at k=None; Torres (25688779) reports in-hospital
+  mortality as a SECONDARY, Meduri/ESCAPe (35723686) is 60-day — a timepoint mixture the config does not
+  reconcile. Needs a pinned timepoint + screening fix.
+Both DEFERRED with named reasons rather than shipped empty or rushed. Pattern confirmed: every Codex
+scaffold this run had a real flaw its config missed (sacubitril fixed+shipped; hfnc/metformin/cort-cap
+deferred). A generated config is a hypothesis, not a specification.
