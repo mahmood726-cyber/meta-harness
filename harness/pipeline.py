@@ -135,6 +135,20 @@ def _pool_result(studies, scale="RR"):
     return res
 
 
+def _load_recall(slug):
+    """Committed registry-first RECALL snapshot for this topic (cache/<slug>/recall.json), if
+    measured. Recall is network-derived (registry enumeration), so — like the cache and the
+    outcome-identity judgments — it is a COMMITTED INPUT the page renders, regenerable by re-running
+    scripts/recall.py against the committed registry_first query. Absent => not yet measured."""
+    p = os.path.join(ROOT, "cache", slug, "recall.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        return json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 def _load_outcome_judgments(slug):
     """Committed outcome-identity judgments (the model-as-source cache). Present only for topics
     that opted into the gate and had judgments produced by scripts/outcome_judgments.py. Absent =>
@@ -320,7 +334,8 @@ def build_review_core(slug, config, records, protocol_sha):
         "search": {"n_records": len(merged), "cache_ref": f"cache/{slug}/records.json",
                    "run_utc": records.get("fetched_utc"), "databases": ["PubMed", "ClinicalTrials.gov"],
                    "sources": [{"name": "PubMed", "queries": records.get("pubmed_queries", [])},
-                               {"name": "ClinicalTrials.gov", "queries": [json.dumps(records.get("ctgov_query"))]}]},
+                               {"name": "ClinicalTrials.gov", "queries": [json.dumps(records.get("ctgov_query"))]}],
+                   **({"recall": _rc} if (_rc := _load_recall(slug)) else {})},
         "screening": {"records": [{"id": (f"{rec_by_id.get(d['id'],{}).get('acronym')} · " if rec_by_id.get(d['id'],{}).get('acronym') else "") + str(d["id"]),
                                    "id_type": d["id_type"], "decision": d["decision"],
                                    "rule_id": d["rule_id"], "reason": d["reason"],

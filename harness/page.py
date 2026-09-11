@@ -163,6 +163,20 @@ def _search(r, neutral):
         ("Committed cache", s.get("cache_ref")),
         ("Run (UTC)", s.get("run_utc")),
     ] if v is not None])
+    rc = s.get("recall")
+    if rc and rc.get("known"):
+        # PRIMARY search metric: how many of this topic's KNOWN trials the committed registry-first
+        # query recovers (reach, not inclusion). Regenerable by re-running scripts/recall.py.
+        status = rc.get("status")
+        line = (f"Registry-first RECALL: recovered <strong>{_e(rc.get('recovered'))}/{_e(rc.get('known'))}</strong> "
+                f"of this topic's known trials (enumerated {_e(rc.get('enumerated'))}; status {_e(status)}).")
+        if rc.get("missed"):
+            line += f" Missed: {_e(', '.join(str(m) for m in rc.get('missed', [])))} — a reach gap, not an inclusion decision."
+        if rc.get("measured_utc"):
+            line += f" <span class='muted'>Measured {_e(rc.get('measured_utc'))}.</span>"
+        body += ("<h4>Registry-first recall (reach)</h4><p>" + line
+                 + " Recall is search REACH; whether a recovered trial is eligible/poolable is the "
+                 "screen's and extractor's job — a candidate is not an include.</p>")
     for src in s.get("sources", []) or []:
         body += f"<h4>{_e(src.get('name'))}</h4>"
         for q in src.get("queries", []) or []:
