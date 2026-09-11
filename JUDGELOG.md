@@ -246,3 +246,16 @@ Not every decline becomes buildable; re-attempting with better machinery is corr
 - rivaroxaban-vte-treatment: DECLINED — EINSTEIN-DVT (HR 0.68) vs EINSTEIN-PE (HR 1.12) genuinely heterogeneous (tau2=0.079); k=2 HKSJ t_1 CI 0.037-20.88 is uninformative (prone-ARDS precedent). An honest synthesis needs DVT/PE handling the harness does not do.
 - canakinumab-cv-prevention: DECLINED — CANTOS is a MULTI-ARM dose-ranging trial (50/150/300 mg canakinumab vs placebo); extractor bound the 150-mg HR 0.85 by clause-binding, but selecting one of three dose arms without a pre-specified rule is multi-arm ambiguity. Needs a MULTI-ARM GUARD (generalise the factorial principle: >2 randomised arms must have the comparison specified or be refused) — deferred; declined rather than publish a luck-of-binding number.
 ### Live now: 20 of 31 preregistered.
+
+## Recurrent-event/rate class status (2026-09-11)
+- SYNTH half BUILT + metafor-validated: Study accepts events+person-time per arm; pool() does log-rate-ratio
+  (IRR), point+tau2 match metafor measure='IRR' exactly. Rate ratios now labelled IRR (not RR). A topic that
+  declares estimand IRR and whose trials report a clean incidence-rate-ratio+CI (or explicit events+person-time)
+  will pool correctly today.
+- EXTRACTION half DEFERRED (deliberately, not rushed): the declined recurrent-event topics report heterogeneously
+  — azithromycin-COPD: Albert rates 1.48 vs 1.83 per patient-year (no events, no ratio+CI); COLUMBUS 84 vs 129
+  events (no per-arm person-time); others give incidence-rate ratios. Converting rates->events needs person-time
+  INFERENCE (N x follow-up) and unit disambiguation ("per patient-year" vs "per 100 person-years" vs "%/yr"),
+  which is the exact place wrong numbers hide. Per the standing rule (a wrong number that gate-passes is the only
+  failure that matters), this extraction must be built with explicit unit parsing + refuse-on-ambiguity and
+  verified per trial, NOT rushed. azithromycin/iv-iron stay declined until then. The synth is ready to receive it.
