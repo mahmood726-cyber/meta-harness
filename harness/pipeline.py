@@ -67,21 +67,23 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         rec = rec_by_id.get(d["id"], {})
         label = rec.get("acronym") or d.get("label") or d["id"]
         idstr = f"PMID {d['id']}" if d["id_type"] == "pmid" else d["id"]
-        # SOURCE HIERARCHY: structured CT.gov results (primary-source counts) first, then abstract.
+        # SOURCE HIERARCHY: the ABSTRACT headline (the authors' primary-outcome result, unambiguous)
+        # first; CT.gov structured results as the FALLBACK when the abstract yields no extractable
+        # number (bare %, composite-only). CT.gov-first was tried and REJECTED: outcome-measure
+        # selection is ambiguous (abbreviated OM titles) and it overrode EMPEROR's correct 361-event
+        # composite with a 15-event secondary. Both are primary-source; the abstract headline is safer.
         nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
-        ex = None
-        if nct and nct in ctgov_results:
-            ex = extract_ctgov(ctgov_results[nct], spec["keywords"], interv, comp)
-        if ex:
-            ex["provenance"] = "ctgov_results"
-            trials.append({"label": label, "id": idstr, **ex})
-            continue
         ex = extract.extract_trial(rec.get("abstract", ""), spec["keywords"], interv, comp)
-        if ex.get("absent"):
-            absent.append({"label": label, "id": idstr, "reason": ex["reason"]})
-        else:
+        if not ex.get("absent"):
             ex["provenance"] = "abstract"
             trials.append({"label": label, "id": idstr, **ex})
+            continue
+        cg = extract_ctgov(ctgov_results.get(nct), spec["keywords"], interv, comp) if nct and nct in ctgov_results else None
+        if cg:
+            cg["provenance"] = "ctgov_results"
+            trials.append({"label": label, "id": idstr, **cg})
+        else:
+            absent.append({"label": label, "id": idstr, "reason": ex["reason"]})
     out = {"name": spec["name"], "kind": kind, "primary": bool(spec.get("primary")),
            "estimand": spec.get("estimand", "RR"), "population": spec.get("population"),
            "timepoint": spec.get("timepoint"), "method": METHOD,

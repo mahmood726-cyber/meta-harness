@@ -16,6 +16,20 @@ from . import http
 
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 CTGOV = "https://clinicaltrials.gov/api/v2/studies"
+EPMC = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+
+
+def _europepmc_pmids(query: str, retmax: int = 40) -> list[str]:
+    """Reach adapter: Europe PMC indexes more than PubMed's esearch top-N and ranks differently,
+    surfacing registered trials esearch misses. Returns PubMed-indexed PMIDs (SRC:MED) so they
+    flow through the same efetch path — consistent metadata + extraction."""
+    try:
+        d = http.get_json(EPMC, {"query": f"({query}) AND SRC:MED", "format": "json",
+                                 "pageSize": retmax, "resultType": "idlist"})
+        time.sleep(0.2)
+        return [r["pmid"] for r in d.get("resultList", {}).get("result", []) if r.get("pmid")]
+    except Exception:  # noqa: BLE001 - reach adapter is additive; never fail the fetch
+        return []
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -165,7 +179,11 @@ def run(config: dict) -> dict:
     """Fetch and return the records dict for a topic config (does not write)."""
     pmids: list[str] = []
     for q in config.get("pubmed_queries", []):
-        for pid in _esearch(q, config.get("retmax", 25)):
+        for pid in _esearch(q, config.get("retmax", 40)):
+            if pid not in pmids:
+                pmids.append(pid)
+        # reach: union in Europe PMC's hits for the same query
+        for pid in _europepmc_pmids(q, config.get("retmax", 40)):
             if pid not in pmids:
                 pmids.append(pid)
     for pid in config.get("extra_pmids", []) + config.get("negative_control_pmids", []) + [config.get("comparator_pmid", "")]:

@@ -52,7 +52,11 @@ def _double_blind(rec, text) -> bool:
     m = (rec.get("masking", "") or "").upper()
     if any(w in m for w in ("DOUBLE", "TRIPLE", "QUADRUPLE")):
         return True
-    return ("double-blind" in text) or ("double blind" in text) or ("masked" in text)
+    if ("double-blind" in text) or ("double blind" in text) or ("masked" in text):
+        return True
+    # A placebo-controlled RCT is inherently blinded (open-label trials do not use a placebo);
+    # abstracts frequently omit the literal "double-blind". Accept placebo-controlled as evidence.
+    return "placebo" in text
 
 
 def _text(rec) -> str:

@@ -29,6 +29,9 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms):
     interv_l = [i.lower() for i in interv_terms]
 
     def title_matches(t):
+        # Substring match only. A looser content-word match was tried and REJECTED: it picked a
+        # 15-event secondary OM over EMPEROR's 361-event composite primary. Do not loosen without
+        # a guard against selecting the wrong outcome measure.
         tl = (t or "").lower()
         return any(k in tl for k in kws)
 
