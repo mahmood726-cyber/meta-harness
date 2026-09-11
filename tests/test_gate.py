@@ -247,3 +247,25 @@ def test_gate_accepts_primary_with_result():
                               "result": {"k": 2, "estimate": 0.8}}]},
                open(_os.path.join(d, "review.json"), "w", encoding="utf-8"))
     assert check_primary_result(d) == []
+
+
+# --- pivotal-trial presence limb (sacubitril class: pivotal absent from the fetched cache) ---
+from harness.gate import _pivotal_missing, check_pivotal_present  # noqa: E402
+
+
+def test_pivotal_missing_pure():
+    recs = [{"id": "25176015", "nct": "NCT01035255"}, {"id": "999"}]
+    assert _pivotal_missing(["25176015"], recs) == []          # present by pmid
+    assert _pivotal_missing(["NCT01035255"], recs) == []        # present by nct
+    assert _pivotal_missing(["11111111"], recs) == ["11111111"]  # absent -> flagged
+    assert _pivotal_missing(["25176015", "11111111"], recs) == ["11111111"]
+
+
+def test_pivotal_present_passes_on_live_topic():
+    # finerenone declares its two pivotals (FIDELIO+FIGARO) and its committed cache contains them
+    assert check_pivotal_present({"slug": "finerenone-ckd-t2d-renal"}) == []
+
+
+def test_pivotal_check_is_optin():
+    # a topic with no pivotal_trials declared is unaffected (absence != enforcement)
+    assert check_pivotal_present({"slug": "colchicine-postop-af"}) == []

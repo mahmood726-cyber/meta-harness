@@ -289,6 +289,47 @@ def check_retraction(review_dir):
     return []
 
 
+def _pivotal_missing(piv, records):
+    """Pure: which of the declared pivotal ids (PMIDs/NCTs) are absent from the records. A record
+    matches by its id or its nct."""
+    ids = set()
+    for r in records:
+        ids.add(str(r.get("id")))
+        if r.get("nct"):
+            ids.add(str(r.get("nct")))
+    return [str(p) for p in piv if str(p) not in ids]
+
+
+def check_pivotal_present(manifest):
+    """A generated/fetched cache that omits the topic's PIVOTAL/landmark trial produces a silently
+    empty or wrong result (sacubitril: PARADIGM-HF was absent from Codex's fetch -> k=None). A topic
+    may declare `pivotal_trials` (PMIDs/NCTs named in its preregistration); each MUST be present in
+    the committed cache/<slug>/records.json, else REFUSE — converting a silent search failure into a
+    build-time refusal, and generalising to every generated-config topic. Opt-in: topics without
+    `pivotal_trials` are unaffected (absence != enforcement)."""
+    slug = manifest.get("slug")
+    if not slug:
+        return []
+    try:
+        cfg = json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    piv = [str(p) for p in cfg.get("pivotal_trials", [])]
+    if not piv:
+        return []
+    cp = os.path.join(ROOT, "cache", slug, "records.json")
+    try:
+        recs = json.load(open(cp, encoding="utf-8")).get("records", [])
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read cache to check pivotal trials ({exc})"]
+    missing = _pivotal_missing(piv, recs)
+    if missing:
+        return [f"L1: pivotal/landmark trial(s) {missing} declared in the preregistration are ABSENT "
+                "from the committed cache — the search did not retrieve the topic's defining trial, so "
+                "any pooled result would be silently incomplete; fix the query/fetch before building"]
+    return []
+
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -302,6 +343,7 @@ def gate_page(review_dir):
                + check_cache_tracked(manifest)
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
+               + check_pivotal_present(manifest)
                + check_controls(review_dir, manifest)
                + check_cross_source(review_dir)
                + check_retraction(review_dir)
