@@ -19,6 +19,9 @@ _ARM3 = re.compile(r"(\d+)\s+of\s+(\d+)\s+(?:patients?|participants?|women|men|s
 # "N [patients] (P%)" with the denominator stated elsewhere in the sentence/abstract.
 # "N [patients] (P%)" or "N [patients] [P%]" — parentheses OR square brackets.
 _ARMP = re.compile(r"(\d+)\s+(?:patients?|participants?|cases?|subjects?)?\s*[\(\[]\s*(\d+(?:\.\d+)?)\s*%\s*[\)\]]")
+# "P% (N/M)" — percentage FIRST, then the explicit fraction, e.g. "9% (7/78)". Unambiguous
+# (explicit numerator/denominator; the % corroborates), so safe to accept like _ARM2/_ARM3.
+_ARM4 = re.compile(r"(\d+(?:\.\d+)?)\s*%\s*[\(\[]\s*(\d+)\s*/\s*(\d+)\s*[\)\]]")
 _DENOM_EACH = re.compile(r"(\d+)\s+(?:patients?\s+|were\s+)?(?:randomly\s+)?(?:assigned|allocated|randomi[sz]ed)\s+to\s+each", re.I)
 _NEQ = re.compile(r"n\s*=\s*(\d+)", re.I)
 _WORDNUM = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
@@ -72,6 +75,10 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None):
             groups.append((m.start(), ev, n))
     for m in _ARM3.finditer(sentence):
         ev, n, pct = int(m.group(1)), int(m.group(2)), float(m.group(3))
+        if n > 0 and ev <= n and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
+            groups.append((m.start(), ev, n))
+    for m in _ARM4.finditer(sentence):  # "P% (N/M)" percentage-first
+        pct, ev, n = float(m.group(1)), int(m.group(2)), int(m.group(3))
         if n > 0 and ev <= n and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
             groups.append((m.start(), ev, n))
     if len(groups) < 2 and denom_each:

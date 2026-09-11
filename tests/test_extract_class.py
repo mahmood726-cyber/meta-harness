@@ -87,3 +87,14 @@ def test_real_odds_ratio_still_OR():
 
 def test_hazard_ratio_still_HR():
     assert _scale("hazard ratio 0.80; 95% CI 0.73 to 0.87") == "HR"
+
+
+# --- percentage-first arm counts "P% (N/M)" (recovers trials like PMID 22472744) ---
+from harness.extract import extract_arm_counts
+
+
+def test_percentage_first_arm_counts():
+    s = ("AAD developed in 13.3% (13/98) of the patients receiving placebo and in 15.1% "
+         "(16/106) of those receiving S. boulardii.")
+    arms = extract_arm_counts(s, ["S. boulardii", "probiotic"], ["placebo"])
+    assert arms == (16, 106, 13, 98), arms  # (ai,n1i,ci,n2i): interv S.boulardii vs placebo
