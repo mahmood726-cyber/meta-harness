@@ -1,0 +1,266 @@
+{
+  "slug": "colchicine-recurrent-pericarditis",
+  "title": "Colchicine vs placebo for prevention of pericarditis recurrence",
+  "question": "In patients with pericarditis, does colchicine added to conventional anti-inflammatory therapy reduce recurrent pericarditis versus placebo? (Double-blind placebo-controlled RCTs.)",
+  "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+  "protocol": {
+    "sha": "34023da4e35f9094f846361cefb31c8a6655e678",
+    "committed_utc": "2026-09-11",
+    "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+    "eligibility": "RCT; colchicine vs placebo added to conventional therapy; pericarditis; double-blind placebo-controlled (design). Eligibility on P/I/C/design only.",
+    "text": "# Protocol — colchicine for prevention of pericarditis recurrence\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run. (Revised from the initial recurrent-only draft\nto match the scope of the resolved open-access comparator and to put eligibility on\nP/I/C/**design** only — see below.)\n\n## PICO\n- **P** — patients with pericarditis (acute first episode or recurrent) treated to prevent recurrence.\n- **I** — colchicine added to conventional anti-inflammatory therapy.\n- **C** — placebo added to conventional therapy.\n- **O (primary)** — recurrent pericarditis during follow-up.\n- **O (harms / secondary)** — adverse events, treatment discontinuation, and any further\n  outcome the resolved comparator reports.\n\n## Estimand / population / timepoint\n- **Estimand** — risk ratio (RR), colchicine vs placebo.\n- **Population** — intention-to-treat as randomised.\n- **Timepoint** — longest recurrence follow-up each trial reports.\n\n## Eligibility — on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** — randomised controlled trial;\n- **I2** — population is pericarditis (acute or recurrent), treated to prevent recurrence;\n- **I3** — colchicine vs placebo, both added to conventional therapy;\n- **design** — double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** — not an RCT (review, guideline, observational, protocol-only);\n- **X2** — wrong population (e.g. postpericardiotomy-syndrome prophylaxis);\n- **X3** — wrong intervention/comparison (no colchicine-vs-placebo contrast);\n- **X-DESIGN** — not double-blind and placebo-controlled (e.g. open-label);\n- **X5** — off-topic: a primary trial of another topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports the recurrence\n> outcome, or gives a 2×2 vs only an effect+CI, is recorded as *target-result status* at\n> extraction — never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/search.json; screening replays offline)\n- PubMed: colchicine × pericarditis × (recurrent OR trial); plus meta-analysis sweeps to resolve the comparator.\n- ClinicalTrials.gov: condition \"recurrent pericarditis\", intervention \"colchicine\".\n\n## Synthesis method (DECLARED; served method must equal this — gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** τ²; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`μ ± t_{k-1}·√(τ²+se²)`. 0.5 continuity correction to all four cells of a study only if\nit has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nImazio et al., *Heart* 2012, \"Efficacy and safety of colchicine for pericarditis\nprevention\" (PMID 22442198, DOI 10.1136/heartjnl-2011-301306; Unpaywall is_oa=true). It\nreports pooled recurrence RR 0.40 (0.30–0.54) over 5 controlled trials plus adverse\nevents and drug-withdrawal. Trial-set overlap is stated on the page.\n\n## Controls\n- **Positive** — the search must recover the canonical double-blind colchicine-vs-placebo\n  pericarditis RCTs (CORP, CORP-2, ICAP).\n- **Negative** — COLCOT (colchicine, double-blind, placebo-controlled, but post-MI coronary\n  disease — another topic in this set) must be recovered and EXCLUDED (X5).\n"
+  },
+  "search": {
+    "n_records": 9,
+    "cache_ref": "cache/colchicine-recurrent-pericarditis/search.json",
+    "run_utc": "2026-09-11",
+    "databases": [
+      "PubMed",
+      "ClinicalTrials.gov"
+    ],
+    "sources": [
+      {
+        "name": "PubMed",
+        "queries": [
+          "colchicine AND pericarditis AND (recurrent OR recurrence) AND (randomized OR randomised OR trial)  -> 148 hits",
+          "colchicine pericarditis (systematic review OR meta-analysis)  -> 56 hits",
+          "recurrent pericarditis (meta-analysis[pt] OR systematic review[pt]) AND (colchicine OR treatment)  -> 37 hits"
+        ]
+      },
+      {
+        "name": "ClinicalTrials.gov",
+        "queries": [
+          "condition=recurrent pericarditis, intervention=colchicine  -> 6 trials"
+        ]
+      }
+    ]
+  },
+  "screening": {
+    "records": [
+      {
+        "id": "CORP · 21873705",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "I1+I2+I3",
+        "reason": "CORP: double-blind placebo-controlled RCT of colchicine vs placebo in recurrent pericarditis (P/I/C/design all met)."
+      },
+      {
+        "id": "CORP-2 · 24694983",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "I1+I2+I3",
+        "reason": "CORP-2: double-blind placebo-controlled RCT of colchicine vs placebo in multiple recurrences of pericarditis."
+      },
+      {
+        "id": "ICAP · 23992557",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "I1+I2+I3",
+        "reason": "ICAP: double-blind placebo-controlled RCT of colchicine vs placebo in pericarditis (acute setting; outcome is incessant/recurrent pericarditis) — within the prevention-of-recurrence scope."
+      },
+      {
+        "id": "COPE · 16186437",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X-DESIGN",
+        "reason": "COPE: open-label RCT with no placebo arm (colchicine vs aspirin, open-label) — fails the double-blind placebo-controlled design criterion."
+      },
+      {
+        "id": "COPPS · NCT00128427",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "COPPS: population is postpericardiotomy-syndrome prophylaxis in cardiac-surgery patients, not prevention of pericarditis recurrence — wrong population."
+      },
+      {
+        "id": "RESTORE · NCT05737680",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "RESTORE: intervention is hydroxychloroquine and the comparator is colchicine (no placebo-controlled colchicine arm) — wrong intervention/comparison."
+      },
+      {
+        "id": "NCT05805930",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "Anakinra vs prednisone in children — no colchicine-vs-placebo comparison — wrong intervention/comparison."
+      },
+      {
+        "id": "24842856",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "Norrid 2014: narrative review, not a randomized controlled trial."
+      },
+      {
+        "id": "COLCOT · 31733140",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X5",
+        "reason": "COLCOT: colchicine vs placebo but in post-myocardial-infarction coronary disease — a primary trial of a DIFFERENT topic in this set (negative control). Correctly rejected despite same drug + double-blind design."
+      }
+    ],
+    "positive_control": "Search recovered the canonical double-blind colchicine-vs-placebo pericarditis RCTs (CORP, CORP-2, ICAP) that a colchicine-pericarditis meta-analysis includes; the open-label COPE was also recovered and excluded by the design rule.",
+    "negative_control": "COLCOT (PMID 31733140) — colchicine, double-blind, placebo-controlled, but post-MI coronary disease — was recovered by the search and correctly EXCLUDED (X5) as belonging to a different topic. Same drug + same design, different population: the screen rejects it."
+  },
+  "outcomes": [
+    {
+      "name": "Recurrent pericarditis",
+      "kind": "efficacy",
+      "primary": true,
+      "estimand": "RR",
+      "population": "intention-to-treat",
+      "timepoint": "longest reported recurrence follow-up (>=18 months for CORP/CORP-2)",
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [
+        {
+          "label": "CORP",
+          "id": "PMID 21873705",
+          "effect": 0.44,
+          "ci_low": 0.27,
+          "ci_high": 0.73,
+          "source": "Ann Intern Med 2011 abstract: recurrence 24% vs 55%; reported relative risk reduction 0.56 (95% CI 0.27-0.73) -> RR 0.44 (0.27-0.73). CT.gov has no results section; arm-level integer counts not stated in the abstract, so the reported effect+CI is used."
+        },
+        {
+          "label": "CORP-2",
+          "id": "PMID 24694983",
+          "ai": 26,
+          "n1i": 120,
+          "ci": 51,
+          "n2i": 120,
+          "source": "Lancet 2014 abstract: recurrent pericarditis 26/120 (21.6%) colchicine vs 51/120 (42.5%) placebo."
+        },
+        {
+          "label": "ICAP",
+          "id": "PMID 23992557",
+          "ai": 20,
+          "n1i": 120,
+          "ci": 45,
+          "n2i": 120,
+          "source": "N Engl J Med 2013 abstract: incessant or recurrent pericarditis 20/120 (16.7%) colchicine vs 45/120 (37.5%) placebo."
+        }
+      ],
+      "declared_absent_trials": [],
+      "result": {
+        "k": 3,
+        "estimate": 0.4695,
+        "scale": "RR",
+        "ci_low": 0.2664,
+        "ci_high": 0.8272,
+        "tau2": 0.0,
+        "pi_low": 0.2664,
+        "pi_high": 0.8272,
+        "pi_note": "tau^2 estimated as 0, so the prediction interval coincides with the confidence interval (no between-study heterogeneity detected)."
+      }
+    },
+    {
+      "name": "Gastrointestinal adverse events",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "RR",
+      "population": "as randomised",
+      "timepoint": "on treatment",
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [
+        {
+          "label": "CORP-2",
+          "id": "PMID 24694983",
+          "ai": 9,
+          "n1i": 120,
+          "ci": 9,
+          "n2i": 120,
+          "source": "Lancet 2014 abstract: gastrointestinal intolerance 9 (colchicine) vs 9 (placebo)."
+        }
+      ],
+      "declared_absent_trials": [
+        {
+          "label": "CORP",
+          "id": "PMID 21873705",
+          "reason": "abstract states similar rates of side effects between groups; arm-level counts not given."
+        },
+        {
+          "label": "ICAP",
+          "id": "PMID 23992557",
+          "reason": "abstract states overall adverse effects similar and no serious adverse events; arm-level counts not given."
+        }
+      ],
+      "result": {
+        "k": 1,
+        "estimate": 1.0,
+        "scale": "RR",
+        "ci_low": 0.4112,
+        "ci_high": 2.4318,
+        "tau2": 0.0,
+        "pi_note": "prediction interval undefined for k=1"
+      }
+    },
+    {
+      "name": "Treatment discontinuation (drug withdrawal)",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "RR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [],
+      "declared_absent_trials": [],
+      "result": {
+        "present": false,
+        "reason": "All three included trials report study-drug discontinuation as similar between arms without extractable arm-level counts (CORP: 'similar drug withdrawal'; CORP-2: 'discontinuation in much the same proportions'; ICAP: 'rates of study-drug discontinuation similar')."
+      }
+    }
+  ],
+  "comparator": {
+    "name": "Imazio et al., Efficacy and safety of colchicine for pericarditis prevention: systematic review and meta-analysis",
+    "year": 2012,
+    "journal": "Heart",
+    "pmid": "22442198",
+    "doi": "10.1136/heartjnl-2011-301306",
+    "url": "https://doi.org/10.1136/heartjnl-2011-301306",
+    "open_access": true,
+    "reported": [
+      {
+        "outcome": "Recurrent pericarditis",
+        "estimate": 0.4,
+        "scale": "RR",
+        "ci_low": 0.3,
+        "ci_high": 0.54
+      },
+      {
+        "outcome": "Adverse events",
+        "estimate": 1.22,
+        "scale": "RR",
+        "ci_low": 0.71,
+        "ci_high": 2.1
+      },
+      {
+        "outcome": "Drug withdrawal",
+        "estimate": 1.85,
+        "scale": "RR",
+        "ci_low": 1.04,
+        "ci_high": 3.29
+      }
+    ],
+    "overlap": {
+      "ours_k": 3,
+      "theirs_k": 5,
+      "shared_k": "not exactly verifiable (see note)",
+      "only_ours": [
+        "CORP-2 (2014)",
+        "ICAP (2013)"
+      ],
+      "only_theirs": [
+        "open-label and older trials not in our double-blind-only scope; identities not enumerated in this build"
+      ],
+      "method": "publication-date + design identity",
+      "note": "CORP-2 (2014) and ICAP (2013) post-date the 2012 comparator and cannot be in it (only-ours, verifiable by date). CORP (2011) is date-eligible for the comparator. Our review restricts to double-blind placebo-controlled RCTs, so open-label trials the comparator pooled are only-theirs. Exact shared count is not asserted because the comparator's trial table was not extracted in this build."
+    }
+  },
+  "reproduction": {
+    "failures": 0,
+    "protocol_sha": "34023da4e35f9094f846361cefb31c8a6655e678",
+    "review_sha256": "530a06c745485bd7d053a4b93bb71521db444ed19f7af7f61ce7b222f6ab5ccd",
+    "from_cache": true
+  }
+}

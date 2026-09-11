@@ -199,6 +199,7 @@ def _outcome_block(o, show_inputs=True):
             ("Pooled effect", _ci(res)),
             ("Prediction interval", (f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}" if res.get('pi_low') is not None else None)),
             ("τ²", _num(res.get("tau2")) if res.get("tau2") is not None else None),
+            ("Note", res.get("pi_note")),
         ] if v is not None])
     if show_inputs and (o.get("trials") or o.get("declared_absent_trials")):
         body += _trial_inputs(o)

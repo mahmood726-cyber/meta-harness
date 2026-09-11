@@ -50,6 +50,9 @@ def _pool_outcome(o):
     if r.k > 1:
         res["pi_low"] = round(r.pi_low, 4)
         res["pi_high"] = round(r.pi_high, 4)
+        if r.tau2 == 0:
+            res["pi_note"] = ("tau^2 estimated as 0, so the prediction interval coincides with "
+                              "the confidence interval (no between-study heterogeneity detected).")
     else:
         res["pi_note"] = "prediction interval undefined for k=1"
     out["result"] = res
