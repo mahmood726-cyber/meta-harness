@@ -98,3 +98,33 @@ def test_percentage_first_arm_counts():
          "(16/106) of those receiving S. boulardii.")
     arms = extract_arm_counts(s, ["S. boulardii", "probiotic"], ["placebo"])
     assert arms == (16, 106, 13, 98), arms  # (ai,n1i,ci,n2i): interv S.boulardii vs placebo
+
+
+# --- round-trip validation: refuse when count-derived effect contradicts the reported effect ---
+from harness.extract import _roundtrip_ok, extract_trial as _xt
+
+
+def test_roundtrip_accepts_matching_rr():
+    assert _roundtrip_ok(386, 2373, 502, 2371, "RR", 0.77)
+
+
+def test_roundtrip_refuses_gross_magnitude_mismatch():
+    # counts imply ~0.78; a wrong 15-event OM reported as 0.20 must be refused (EMPEROR class)
+    assert not _roundtrip_ok(361, 1863, 462, 1867, "RR", 0.20)
+
+
+def test_roundtrip_refuses_direction_contradiction_for_hr():
+    # counts protective (~0.77) but reported HR 1.5 (harm) -> refuse
+    assert not _roundtrip_ok(386, 2373, 502, 2371, "HR", 1.5)
+
+
+def test_roundtrip_allows_hr_same_direction():
+    assert _roundtrip_ok(386, 2373, 502, 2371, "HR", 0.80)
+
+
+def test_extract_trial_refuses_when_counts_contradict_reported_effect():
+    # PMID 19138244 shape: counts imply RR 0.46 but the abstract reports RR 1.63 -> refuse
+    ab = ("Antibiotic-associated diarrhoea occurred in 6/16 (37%) in the placebo group and "
+          "4/23 (17%) patients in the probiotic group (RR 1.63, 95% CI 0.73-3.65).")
+    ex = _xt(ab, ["antibiotic-associated diarrhoea", "diarrhoea"], ["probiotic"], ["placebo"])
+    assert ex.get("absent") and "round-trip" in ex.get("reason", "")

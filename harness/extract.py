@@ -197,6 +197,43 @@ def _effective_kws(abstract, outcome_kws):
     return disease
 
 
+def _rr_from_counts(ai, n1i, ci, n2i):
+    if 0 in (n1i, n2i) or ci == 0:
+        return None
+    return (ai / n1i) / (ci / n2i)
+
+
+def _or_from_counts(ai, n1i, ci, n2i):
+    a, b, c, d = ai, n1i - ai, ci, n2i - ci
+    if 0 in (a, b, c, d):  # Haldane-Anscombe 0.5 correction on any zero cell
+        a, b, c, d = a + 0.5, b + 0.5, c + 0.5, d + 0.5
+    if c == 0 or b == 0:
+        return None
+    return (a * d) / (b * c)
+
+
+def _roundtrip_ok(ai, n1i, ci, n2i, scale, point):
+    """Recompute the effect from the extracted 2x2 and check it against the effect the paper
+    itself reports. Refuses the class that has nearly beaten us: counts that belong to a
+    DIFFERENT outcome than the reported effect (EMPEROR 361 vs a 15-event OM), a wrong-outcome
+    count table, or a mis-scaled number. Same-scale (RR/OR): the crude count-derived value must
+    be within a factor of 2 of the reported point (generous enough for adjusted-vs-crude, tight
+    enough to catch a gross mismatch). Reported HR: crude RR is a different estimand, so only the
+    DIRECTION is checked (both must sit on the same side of 1 when both are clearly off 1)."""
+    if point is None or point <= 0:
+        return True  # nothing to check against
+    comp = _or_from_counts(ai, n1i, ci, n2i) if scale == "OR" else _rr_from_counts(ai, n1i, ci, n2i)
+    if not comp or comp <= 0:
+        return True
+    if scale in ("RR", "OR"):
+        ratio = comp / point
+        return 0.5 <= ratio <= 2.0
+    # HR (or other): direction-only. Both clearly protective or both clearly harmful.
+    if (comp - 1) * (point - 1) < 0 and abs(comp - 1) > 0.11 and abs(point - 1) > 0.11:
+        return False
+    return True
+
+
 def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
     """Best conservative extraction for one trial's outcome. Returns dict or a reason."""
     abstract = _norm(abstract)
@@ -209,6 +246,15 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
     for s in sents:
         arms = extract_arm_counts(s, interv_terms, comp_terms, denom_each)
         if arms:
+            # ROUND-TRIP: if the same sentence reports an effect+CI, the count-derived effect
+            # must reconcile with it, or we refuse rather than pool a number we can't reconcile.
+            rep = extract_effect(s)
+            if rep and not _roundtrip_ok(arms[0], arms[1], arms[2], arms[3], rep[0], rep[1]):
+                return {"absent": True,
+                        "reason": (f"round-trip mismatch: extracted counts {arms[0]}/{arms[1]} vs "
+                                   f"{arms[2]}/{arms[3]} imply "
+                                   f"{round(_rr_from_counts(*arms) or 0, 3)} but the source reports "
+                                   f"{rep[0]} {rep[1]} — counts likely belong to a different outcome; refused")}
             return {"ai": arms[0], "n1i": arms[1], "ci": arms[2], "n2i": arms[3],
                     "source": "abstract arm-level counts (percentage-corroborated): " + s.strip()[:200]}
     for s in sents:
