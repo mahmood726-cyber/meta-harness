@@ -120,3 +120,18 @@ Every added trial verified true against source before it pools.
   topic clears unaided. 98 tests pass, 23/23 reproduce, gate all PASS.
 - k delta: primary-outcome k unchanged; +2 harm outcomes pooled; 3 trials upgraded to exact count
   provenance; near-equal-arm crossing eliminated. SUCCESS (safe, general, every number verified).
+
+## Cycle 7 — PICK: publish hfnc (now k=2 via cycle 6)? NO — the pool is not credible
+- With cycle 6, hfnc reintubation extracts k=2: Hernandez 13/264+32/263 (count-derived RR ~0.40) and
+  35849787 OR 1.26. Gate PASSES. BUT the pooled result is RR 0.72 with CI 0.0005-975.6 — a degenerate
+  interval: the two trials mix estimands (a 2x2 RR vs an effect-only OR) in opposite directions, and
+  HKSJ at k=2 with divergent estimates inflates the CI across ~6 orders of magnitude.
+- Each number is verified true against source, but POOLING them yields a meaningless estimate.
+  Honest k over an inflated/garbage pool: hfnc NOT published (removed).
+- FINDING (candidate guard, not built — would risk the 23): the harness can pool a count-derived RR
+  with an effect-only OR (different estimands) and emit a degenerate CI at small k. A pooled CI
+  spanning multiple orders of magnitude, or a count-RR pooled with an effect-OR, should be flagged.
+  Deferred as a careful future cycle (needs per-topic REGRESS to confirm none of the 23 rely on such
+  a mix — spironolactone already pools mixed RR/HR by design with a visible caveat).
+- k delta: 0 published. Correct refusal, not a failure of extraction — the extraction (cycle 6) is
+  sound; the POOL of these two specific trials is not a credible meta-analysis.
