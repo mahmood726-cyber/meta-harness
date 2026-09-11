@@ -254,7 +254,10 @@ def _screening(r, neutral):
                  f"<p>Two independently-implemented rule screeners over {_e(dual.get('n'))} records: "
                  f"agreement <strong>{_e(dual.get('agree'))}/{_e(dual.get('n'))}</strong>, "
                  f"disagreement <strong>{_e(dual.get('disagreement_rate_pct'))}%</strong> "
-                 f"({_e(dual.get('disagree'))} records). {_e(dual.get('method'))} "
+                 f"({_e(dual.get('disagree'))} records"
+                 + (f"; {_e(dual.get('unresolved'))} records UNRESOLVED — bare registry entries with no "
+                    "retrievable text, eligibility UNKNOWN not excluded, held out of the rate" if dual.get('unresolved') else "")
+                 + f"). {_e(dual.get('method'))} "
                  f"<em>{_e(dual.get('caveat'))}</em></p>")
         ma = dual.get("model_adjudication")
         if ma:

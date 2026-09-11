@@ -171,8 +171,13 @@ def screen_record(rec, inc, neg_pmids):
                 f"population not on-topic: title/conditions do not mention any of {inc['population_any']} "
                 f"(an incidental abstract mention does not qualify).",
                 f"examined title/conditions: “{_quote(raw_pop)}”")
-    itext = _poptext(rec) if inc.get("intervention_in_title") else text
-    itext_raw = raw_pop if inc.get("intervention_in_title") else raw_all
+    # Title-anchoring for the intervention exists to reject INCIDENTAL abstract mentions in PMID
+    # records; for a CT.gov (nct) record the STRUCTURED interventions field is reliable and must be
+    # used (else an edoxaban AF trial whose title is "A Study to Assess..." is wrongly X3-excluded
+    # though its interventions field says Edoxaban). So anchor only for PMID records.
+    anchor = inc.get("intervention_in_title") and rec["id_type"] == "pmid"
+    itext = _poptext(rec) if anchor else text
+    itext_raw = raw_pop if anchor else raw_all
     if inc.get("intervention_any") and not _has_intervention(itext, inc["intervention_any"]):
         return ("exclude", "X3",
                 f"the randomised intervention is not {inc['intervention_any']} "
@@ -230,22 +235,36 @@ def screen_record_2(rec, inc):
     return "include"
 
 
+def _is_unresolved(rec) -> bool:
+    """A record with NO retrievable text/metadata to screen on (bare NCT enumeration entry with no
+    title, abstract, conditions or interventions). Its eligibility is UNKNOWN, not excluded — a
+    screening decision either way is a metadata-completeness artifact, not a judgement. Third instance
+    of the 'missing field means ineligible' shape (after the pubtype bug); resolved as its own state."""
+    return not any((rec.get("title"), rec.get("abstract"),
+                    rec.get("conditions"), rec.get("interventions")))
+
+
 def run_dual(all_recs: list, config: dict) -> dict:
-    """Run both rule screeners and report the disagreement rate (PRISMA item 8). Deterministic, so it
-    regenerates on replay with no committed cache. Adjudicator = screener 1 (the served decisions)."""
+    """Run both rule screeners and report the disagreement rate (PRISMA item 8) over RESOLVED records
+    only. Deterministic, replay-safe. Adjudicator = screener 1. Records with no retrievable text are
+    'unresolved' (UNKNOWN != excluded) and counted separately, not as screening disagreements."""
     inc = config.get("include", {})
     neg = set(config.get("negative_control_pmids", []))
     dis = []
     agree = 0
+    unresolved = 0
     for rec in all_recs:
+        if _is_unresolved(rec):
+            unresolved += 1
+            continue
         d1 = screen_record(rec, inc, neg)[0]
         d2 = screen_record_2(rec, inc)
         if d1 == d2:
             agree += 1
         else:
             dis.append({"id": rec["id"], "screener1": d1, "screener2": d2})
-    n = len(all_recs)
-    return {"n": n, "agree": agree, "disagree": len(dis),
+    n = agree + len(dis)  # resolved records only
+    return {"n": n, "agree": agree, "disagree": len(dis), "unresolved": unresolved,
             "disagreement_rate_pct": round(100 * len(dis) / n, 1) if n else None,
             "disagreements": dis[:60],
             "method": "two independently-implemented rule screeners (screener 2 judges from the full "
