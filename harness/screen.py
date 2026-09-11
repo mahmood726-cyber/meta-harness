@@ -39,12 +39,30 @@ def _is_review(rec) -> bool:
     return any(("review" in p) or ("meta-analysis" in p) or ("meta analysis" in p) for p in pts)
 
 
+import re as _re
+# A TITLE that declares the paper itself a randomised trial ("... : The BaSICS Randomized Clinical
+# Trial", "A Randomised Controlled Trial of ..."). PubMed sometimes omits the "Randomized Controlled
+# Trial" PublicationType even for definitive RCTs (BaSICS 34375394 was tagged only "Journal Article"
+# and wrongly excluded X1). Guarded: NOT a protocol / secondary analysis / substudy / design paper.
+_TITLE_RCT = _re.compile(r"randomi[sz]ed\b.{0,40}\btrial\b", _re.I)
+_TITLE_RCT_NOT = _re.compile(r"\bprotocol\b|\bsecondary analysis\b|\bpost[-\s]?hoc\b|\bsubstudy\b|"
+                             r"\bsub-study\b|\brationale and design\b|\bstudy design\b|\bstatistical analysis plan\b", _re.I)
+
+
+def _title_says_rct(rec) -> bool:
+    t = rec.get("title", "") or ""
+    return bool(_TITLE_RCT.search(t)) and not _TITLE_RCT_NOT.search(t)
+
+
 def _is_rct(rec) -> bool:
     if rec["id_type"] == "pmid":
         # A primary RCT report, NOT a review/meta-analysis that merely discusses RCTs.
         if _is_review(rec):
             return False
-        return any("randomized controlled trial" in p.lower() for p in rec.get("pubtypes", []))
+        if any("randomized controlled trial" in p.lower() for p in rec.get("pubtypes", [])):
+            return True
+        # Fallback: the TITLE explicitly declares a randomised trial (PubMed pubtype lag/omission).
+        return _title_says_rct(rec)
     return (rec.get("allocation", "") or "").upper() == "RANDOMIZED" or rec.get("study_type", "") == "INTERVENTIONAL"
 
 
