@@ -234,6 +234,18 @@ def _roundtrip_ok(ai, n1i, ci, n2i, scale, point):
     return True
 
 
+_FACTORIAL = re.compile(r"\bfactorial\b|\b2\s*[x×]\s*2\b|\btwo[- ]by[- ]two\b|\bpartial factorial\b", re.I)
+
+
+def _is_factorial(abstract):
+    return bool(_FACTORIAL.search(abstract or ""))
+
+
+def _interv_in(sentence, interv_terms):
+    sl = (sentence or "").lower()
+    return any(t.lower() in sl for t in interv_terms)
+
+
 def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
     """Best conservative extraction for one trial's outcome. Returns dict or a reason."""
     abstract = _norm(abstract)
@@ -242,8 +254,16 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
     if dm:
         cand.append(int(dm.group(1)))
     denom_each = sorted(set(cand)) or None
+    # FACTORIAL-DESIGN GUARD: a trial with more than one randomised comparison (e.g. SU.FOL.OM3
+    # randomised B vitamins AND n-3) can have the extractor bind the WRONG factor's effect (it
+    # bound the B-vitamin HR 0.9 instead of the omega-3 HR 1.08). When the design is factorial we
+    # only accept an extraction from a sentence that explicitly names OUR intervention, so the
+    # number is provably for our comparison, not the co-randomised one.
+    factorial = _is_factorial(abstract)
     sents = _outcome_sentences(abstract, _effective_kws(abstract, outcome_kws))
     for s in sents:
+        if factorial and not _interv_in(s, interv_terms):
+            continue
         arms = extract_arm_counts(s, interv_terms, comp_terms, denom_each)
         if arms:
             # ROUND-TRIP: if the same sentence reports an effect+CI, the count-derived effect
@@ -258,10 +278,16 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
             return {"ai": arms[0], "n1i": arms[1], "ci": arms[2], "n2i": arms[3],
                     "source": "abstract arm-level counts (percentage-corroborated): " + s.strip()[:200]}
     for s in sents:
+        if factorial and not _interv_in(s, interv_terms):
+            continue
         eff = extract_effect(s)
         if eff:
             return {"effect": eff[1], "ci_low": eff[2], "ci_high": eff[3], "scale": eff[0],
                     "source": f"abstract effect+CI ({eff[0]}): " + s.strip()[:200]}
+    if factorial:
+        return {"absent": True, "reason": ("factorial-design trial: no extraction sentence explicitly "
+                "names the intervention, so the effect cannot be attributed to our comparison "
+                "rather than the co-randomised factor; refused (factorial guard)")}
     return {"absent": True, "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"}
 
 

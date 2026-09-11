@@ -128,3 +128,20 @@ def test_extract_trial_refuses_when_counts_contradict_reported_effect():
           "4/23 (17%) patients in the probiotic group (RR 1.63, 95% CI 0.73-3.65).")
     ex = _xt(ab, ["antibiotic-associated diarrhoea", "diarrhoea"], ["probiotic"], ["placebo"])
     assert ex.get("absent") and "round-trip" in ex.get("reason", "")
+
+
+# --- factorial-design guard: bind OUR factor, never the co-randomised one (SU.FOL.OM3 class) ---
+def test_factorial_guard_binds_our_factor_not_the_other():
+    ab = ("In a 2x2 factorial trial, patients were allocated to B vitamins or placebo and to n-3 "
+          "fatty acids or placebo. Allocation to B vitamins had no effect (hazard ratio 0.90, 95% "
+          "CI 0.80-1.10). Major vascular events occurred with n-3 fatty acids at a hazard ratio of "
+          "1.08 (95% CI 0.79-1.47).")
+    ex = _xt(ab, ["major vascular events"], ["n-3 fatty acids", "n-3"], ["placebo"])
+    assert ex.get("effect") == 1.08, ex  # the omega-3 factor, not the B-vitamin 0.90
+
+
+def test_factorial_guard_refuses_when_our_factor_not_named():
+    ab = ("In a 2x2 factorial trial of B vitamins and fish oil, allocation to B vitamins had a "
+          "hazard ratio of 0.90 (95% CI 0.80-1.10) for major vascular events.")
+    ex = _xt(ab, ["major vascular events"], ["n-3 fatty acids", "omega-3"], ["placebo"])
+    assert ex.get("absent") and "factorial" in ex.get("reason", "")
