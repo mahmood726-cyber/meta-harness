@@ -55,9 +55,14 @@ def reproduce(slug):
         reasons.append(f"review_sha256 mismatch: replay {regen_sha} vs committed {manifest.get('review_sha256')} "
                        "(the pipeline no longer regenerates the committed numbers)")
 
-    # Render the served page exactly as build_topic does: core + reproduction block.
-    final = dict(core, reproduction={"failures": 0, "protocol_sha": _protocol_sha(slug),
-                                     "review_sha256": regen_sha, "from_cache": True})
+    # Render the served page exactly as build_topic does: core + reproduction block. The re-search
+    # diff (if committed) lives in the reproduction block and is rendered, so replay must load the
+    # same committed cache/<slug>/research_diff.json to byte-match — it is stable (measured once).
+    repro = {"failures": 0, "protocol_sha": _protocol_sha(slug), "review_sha256": regen_sha, "from_cache": True}
+    _rd = os.path.join(ROOT, "cache", slug, "research_diff.json")
+    if os.path.exists(_rd):
+        repro["research_diff"] = json.load(open(_rd, encoding="utf-8"))
+    final = dict(core, reproduction=repro)
     if sha256_text(render_page(final)) != sha256_text(served):
         reasons.append("served index.html does not byte-match a re-render from the replayed core")
     return (not reasons), reasons

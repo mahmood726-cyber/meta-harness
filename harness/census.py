@@ -53,6 +53,15 @@ def build_review_dir(
         "review_sha256": core_sha,
         "from_cache": from_cache,
     }
+    # Re-search diff (item 1): committed, outside the core hash by living in 'reproduction', so it can
+    # never affect the analysis sha or replay. Present only where scripts/research_diff.py has run.
+    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _rd = os.path.join(_root, "cache", manifest_meta.get("slug", ""), "research_diff.json")
+    if os.path.exists(_rd):
+        try:
+            reproduction["research_diff"] = json.load(open(_rd, encoding="utf-8"))
+        except (ValueError, OSError):
+            pass
     final_review = dict(review_core_obj)
     final_review["reproduction"] = reproduction
     html = render_page(final_review)

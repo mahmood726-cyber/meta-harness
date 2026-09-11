@@ -552,12 +552,27 @@ def _reproduction(r, neutral):
     reason = _absent(rep)
     if reason:
         return _absent_block(reason)
-    return _kv([
+    body = _kv([
         ("Reproduction census failures", rep.get("failures")),
         ("Re-run from registration SHA", rep.get("protocol_sha")),
         ("Content hash (review core)", rep.get("review_sha256")),
         ("Replayed offline from committed cache", rep.get("from_cache")),
     ])
+    # ITEM 1: replay is not independent repeatability — state plainly what the claim covers and does
+    # not, so a reader is not misled into thinking a fresh search today would return the same set.
+    if rs := rep.get("research_diff"):
+        body += ("<h4>Re-search (living vs frozen)</h4><p>Re-running the committed queries live and "
+                 f"diffing against the cache: {_e(rs.get('summary'))} "
+                 f"<span class='muted'>Measured {_e(rs.get('measured_utc'))}; source scope {_e(rs.get('scope'))}.</span></p>")
+    body += ("<div class='banner'><strong>What this reproduction claim covers — and what it does not.</strong> "
+             "It proves DETERMINISTIC REPLAY: re-running from the registration SHA on a fresh clone replays "
+             "the committed cache and regenerates this page byte-for-byte (same inputs → same output). It does "
+             "NOT claim independent REPEATABILITY — that a fresh literature search run today would retrieve the "
+             "same trial set. Search databases update, records are added and revised, so the retrieved set can "
+             "drift; the committed queries are printed verbatim on the Search tab so anyone can re-run them, and "
+             "'re-search mode' (scripts/research_diff.py) measures the drift explicitly rather than assuming none. "
+             "This is the honest form of 'living, not frozen': the analysis is frozen and auditable; the literature is not.</div>")
+    return body
 
 
 def _reporting(r, neutral):

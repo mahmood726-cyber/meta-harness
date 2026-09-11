@@ -315,3 +315,21 @@ Every added trial verified true against source before it pools.
   reproduce, gate PASS.
 - SUCCESS: item 2 done. The single highest-priority flaw (unverified-as-assumed) is closed —
   verified/not-yet is a rendered per-trial state a reader can see.
+
+## Cycle 20 — Item 1: replay-vs-repeatability DISCLOSURE + RE-SEARCH MODE
+- (a) DISCLOSURE on every Reproducibility tab: states plainly that the reproduction claim covers
+  DETERMINISTIC REPLAY (re-run from SHA on a fresh clone -> byte-identical page) and does NOT claim
+  independent REPEATABILITY (a fresh search today returning the same trial set) — databases drift; the
+  committed queries are printed verbatim to re-run; re-search mode measures the drift. The honest form
+  of "living, not frozen": the analysis is frozen and auditable, the literature is not.
+- (b) RE-SEARCH MODE: scripts/research_diff.py re-runs a topic's COMMITTED PubMed/EPMC/CT.gov queries
+  LIVE and diffs the retrieved id set vs the committed cache; writes cache/<slug>/research_diff.json,
+  rendered on the Reproducibility tab. Demonstrated: pcsk9-mace 4 live vs 6 committed (2 no longer
+  returned); colchicine-recurrent-pericarditis 122 live vs 50 committed (72 NEW) — real literature
+  drift, now MEASURED not assumed. (New records are the literature moving, not a defect; whether any
+  are poolable RCTs is a separate screen.)
+- REPRODUCTION-SAFE: research_diff lives in the reproduction block (outside the core hash) and BOTH
+  build (census) and replay (reproduce_review) load the same committed research_diff.json, so the
+  page byte-matches on replay. Fixed reproduce_review to load it (caught a byte-mismatch first).
+- 102 tests, 23/23 reproduce, gate PASS. SUCCESS: item 1 converted from limitation to measurement +
+  explicit disclosure.
