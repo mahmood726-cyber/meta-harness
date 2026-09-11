@@ -360,3 +360,13 @@ misses are not resolution gaps, and building it would have been the "test the fi
 Evidenced levers instead: (a) one committed query per topic + query/rate-limit consistency (the
 serial-vs-parallel RAN split is a query+contention artefact, not found-nothing), (b) multi-registry reach
 (banked: ISRCTN). Naming a single dominant lever needs more per-case root-causing first.
+
+## Fast-build of the 11 unbuilt preregistered topics: ALL decline; 4 were wrong-endpoint that PASSED the gate (2026-09-11)
+Attempted all 11 unbuilt topics offline from committed caches (they inherit every guard/gate/control). Result: 0 honest new pages — the harder tier, as preregistered. Bar held. Detail:
+- **iv-iron-hfref-hosp** k=1 RR 0.79 (FAIR-HF2 40159390): the 0.79 is the COMPOSITE "cardiovascular death or first heart failure hospitalization" (a co-primary), NOT the declared "Heart-failure hospitalization" alone. WRONG ENDPOINT. DECLINE. (Also only 1 trial; field is missing AFFIRM-AHF/IRONMAN.)
+- **vitamin-d-acute-respiratory-infection** k=1 (Urashima 2010, 20219962): 18/167 is INFLUENZA A (the trial's actual primary), not "at least one acute respiratory infection." WRONG ENDPOINT. DECLINE.
+- **antibiotics-vs-appendectomy-appendicitis** k=2 (CODA 33017106 / APPAC 26080338): pooled CT.gov OMs "resolution at 30 days" / "success", not declared "treatment failure or complication at 1 year". CODA's true primary is a 30-day EQ-5D score; APPAC is 1-year but the two don't harmonize. WRONG ENDPOINT+TIMEPOINT. DECLINE.
+- **prone-positioning-ards-mortality** k=3 RR 0.70: mixes PROSEVA HR 0.44 (90-day) with RRs at 28-day/ICU across two scales and three timepoints — not a clean poolable set. DECLINE.
+- **hfnc-vs-conventional-o2-reintubation** k=1: endpoint correct (reintubation 72h) but 1.26 is the ODDS RATIO mislabeled RR, and k=1 (VenturiMask trial only) likely misses Hernández-2016; scale+recall issue. DECLINE for now.
+- corticosteroids-cap / azithromycin-copd / zinc-cold / metformin-pcos / sacubitril-hfref: k=None (no extractable primary matching PICO). Gate auto-refuses k=0. DECLINE.
+GATE-HOLE (the important part): the 4 wrong-endpoint pages ALL PASSED the full gate — the gate enforces reproducibility/controls/cross-source/primary-present but NOT that an ABSTRACT-extracted number's endpoint IS the declared outcome. Only hand-verification caught them. Per the mandate ("the harness must reach that conclusion on its own"), this must be encoded: the outcome-identity discipline (built for CT.gov OMs) needs extending to abstract extraction. Nothing shipped; working tree cleaned to the committed 22.
