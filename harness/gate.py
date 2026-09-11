@@ -130,6 +130,36 @@ def check_primary_result(review_dir):
     return []
 
 
+def check_reproduction(review_dir, manifest):
+    """Level B: re-run the pipeline from the COMMITTED cache + protocol SHA and confirm it
+    regenerates the committed review core (the numbers), not just that the HTML matches the
+    JSON. This is what makes 'reproducible from the protocol SHA on a fresh clone' an enforced
+    property rather than a claim — every extraction/screening/dedup change must survive it."""
+    import json as _json
+    slug = manifest.get("slug")
+    if not slug:
+        return ["L1: manifest has no slug to replay"]
+    try:
+        from . import fetch
+        from .canonical import review_sha256
+        from .pipeline import build_review_core
+        import subprocess
+        cfg = _json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8"))
+        sha = subprocess.check_output(["git", "-C", ROOT, "log", "-1", "--format=%H", "--",
+                                       f"protocols/{slug}.md"], text=True).strip()
+        records = fetch.ensure(cfg, "")  # committed cache present -> offline
+        regen = review_sha256(build_review_core(slug, cfg, records, sha))
+    except Exception as exc:  # noqa: BLE001 - a replay that cannot run is a refusal, not a pass
+        return [f"L1: offline replay could not execute ({exc}) — cannot confirm reproduction"]
+    if regen != manifest.get("review_sha256"):
+        return [f"L1: offline replay does NOT regenerate the committed numbers "
+                f"(replay {regen} vs committed {manifest.get('review_sha256')})"]
+    return []
+
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
 def gate_page(review_dir):
     """Return (ok: bool, reasons: list[str]). ok == True only if both limbs pass."""
     try:
@@ -137,6 +167,7 @@ def gate_page(review_dir):
     except (OSError, ValueError) as exc:
         return False, [f"gate: cannot load review dir: {exc}"]
     reasons = (check_limb1(review_dir, manifest, html, rep)
+               + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons

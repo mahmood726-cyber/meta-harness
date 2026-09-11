@@ -82,11 +82,31 @@ def _refuses(d, needle):
 
 # --- the happy path: a correctly built page passes both limbs -----------------
 
-def test_valid_page_passes():
+def test_valid_page_passes_non_replay_limbs():
+    # The synthetic fixture has no committed topic/cache, so the Level-B replay limb cannot
+    # run against it (correctly: a page with no reproducible pipeline is not publishable).
+    # Here we assert the fixture satisfies every OTHER limb; full reproduction is tested
+    # against a real committed review below.
+    from harness.gate import check_limb1, check_limb2, check_primary_result, _load
     with tempfile.TemporaryDirectory() as tmp:
         d = _build(tmp)
-        ok, reasons = gate_page(d)
-        assert ok, f"valid page should pass, got: {reasons}"
+        manifest, html, rep = _load(d)
+        reasons = (check_limb1(d, manifest, html, rep)
+                   + check_primary_result(d) + check_limb2(manifest, html))
+        assert not reasons, f"valid page should pass non-replay limbs, got: {reasons}"
+
+
+def test_real_review_reproduces_and_passes_full_gate():
+    # A real committed page must pass the WHOLE gate including Level-B replay (the pipeline
+    # re-run from committed cache regenerates the committed numbers). Skips only if run
+    # outside the repo (no docs/reviews present).
+    import os as _os
+    root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    d = _os.path.join(root, "docs", "reviews", "probiotics-aad-prevention")
+    if not _os.path.isdir(d):
+        return
+    ok, reasons = gate_page(d)
+    assert ok, f"real committed review must pass the full gate, got: {reasons}"
 
 
 # --- Limb 1 refusals ----------------------------------------------------------
