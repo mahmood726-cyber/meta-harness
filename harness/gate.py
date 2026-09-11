@@ -238,6 +238,26 @@ def check_cross_source(review_dir):
     return []
 
 
+def check_retraction(review_dir):
+    """A pooled RETRACTED trial is a catastrophic defect; refuse the page. Reads the committed
+    integrity snapshot (cache/<slug>/integrity.json via review.json's integrity block). If the check
+    has not been run for a topic, this does NOT refuse (absence != clean) — but a topic that HAS an
+    integrity block with a retracted PMID is blocked. Expression-of-concern is surfaced, not blocked."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return []
+    try:
+        rev = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for retraction check ({exc})"]
+    integ = rev.get("integrity") or {}
+    retracted = integ.get("retracted") or []
+    if retracted:
+        return [f"L1: pooled trial(s) {retracted} are RETRACTED (integrity check) — a retracted trial "
+                "must never be pooled; withdraw or replace before publishing"]
+    return []
+
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -253,6 +273,7 @@ def gate_page(review_dir):
                + check_primary_result(review_dir)
                + check_controls(review_dir, manifest)
                + check_cross_source(review_dir)
+               + check_retraction(review_dir)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons
 

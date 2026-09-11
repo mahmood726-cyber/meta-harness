@@ -135,6 +135,19 @@ def _pool_result(studies, scale="RR"):
     return res
 
 
+def _load_integrity(slug):
+    """Committed trial-integrity (retraction / expression-of-concern) snapshot for this topic's
+    pooled trials (cache/<slug>/integrity.json), produced by scripts/integrity_check.py. Rendered on
+    the page and enforced by the gate. Absent => not yet checked."""
+    p = os.path.join(ROOT, "cache", slug, "integrity.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        return json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 def _load_recall(slug):
     """Committed registry-first RECALL snapshot for this topic (cache/<slug>/recall.json), if
     measured. Recall is network-derived (registry enumeration), so — like the cache and the
@@ -344,6 +357,7 @@ def build_review_core(slug, config, records, protocol_sha):
         "outcomes": outcomes,
         "comparator": comparator,
         "estimand_exclusions": config.get("estimand_exclusions", []),
+        **({"integrity": _integ} if (_integ := _load_integrity(slug)) else {}),
     }
 
 
