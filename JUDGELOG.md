@@ -133,3 +133,10 @@ auto-extracted from its own PubMed abstract by the SAME pipeline, so it is no lo
   rate ratios across trials; not uniformly extractable from abstracts to a common RR. Comparator PMID
   39727669 (OA) total HF hosp RR 0.59. Declared not-produced. (Deferred general gap: 'rate ratio' /
   recurrent-event support in the effect parser + rate-ratio pooling.)
+
+## Topic — GLP-1 RA for MACE in T2D — LIVE (strong k=7)
+- k=7 (LEADER/SUSTAIN-6/REWIND/PIONEER-6/HARMONY/AMPLITUDE-O/ELIXA HRs) RR 0.85 (0.79-0.91) ~ comparator
+  PMID 34526024 (OA) MACE 0.86. Second large-k match after probiotics; neg control excluded. Verified.
+## Topic — metformin for ovulation in PCOS — DECLINED (k=0)
+- Ovulation reported as rates/proportions not conservatively extractable from abstracts; comparator PMID
+  31845767 (OA) OR 2.64. Extraction-recall gap (same family as CAP/COPD).
