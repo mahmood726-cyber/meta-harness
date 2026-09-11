@@ -73,3 +73,21 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+def test_irr_pooling_matches_metafor_point_and_tau2():
+    # Incidence-rate ratio from events + person-time; point + tau2 match metafor measure='IRR'
+    # (rma PM+knha): metafor gives IRR 0.7021166, tau2 0. CI uses our declared HKSJ floor.
+    from harness.synth import Study, pool
+    s = [Study('A', e1i=50, t1i=1000, e2i=75, t2i=1000, measure='IRR'),
+         Study('B', e1i=30, t1i=800, e2i=40, t2i=820, measure='IRR')]
+    r = pool(s, scale='IRR')
+    assert abs(r.estimate - 0.7021166) < 1e-5, r.estimate
+    assert r.tau2 == 0.0
+    assert r.k == 2
+
+
+def test_irr_zero_event_correction():
+    from harness.synth import Study
+    y, v = Study('Z', e1i=0, t1i=500, e2i=5, t2i=500, measure='IRR').yi_vi()
+    assert v == 1.0 / 0.5 + 1.0 / 5.5  # 0.5 correction on the zero event arm only

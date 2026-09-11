@@ -31,13 +31,29 @@ class Study:
     n1i: Optional[float] = None
     ci: Optional[float] = None
     n2i: Optional[float] = None
-    effect: Optional[float] = None      # point estimate on ratio scale (RR/OR/HR)
+    effect: Optional[float] = None      # point estimate on ratio scale (RR/OR/HR/IRR)
     ci_low: Optional[float] = None
     ci_high: Optional[float] = None
+    # Rate data (recurrent-event / incidence): events + person-time per arm -> log rate ratio.
+    e1i: Optional[float] = None         # intervention events
+    t1i: Optional[float] = None         # intervention person-time
+    e2i: Optional[float] = None         # comparator events
+    t2i: Optional[float] = None         # comparator person-time
     source: str = ""
     measure: str = "RR"
 
     def yi_vi(self) -> tuple[float, float]:
+        # Rate ratio (IRR) from events + person-time: yi = log((e1/t1)/(e2/t2)),
+        # vi = 1/e1 + 1/e2 (person-time is an offset, not a source of variance). Standard
+        # incidence-rate meta-analysis (matches metafor measure='IRR'). 0.5 correction on a
+        # zero event count only.
+        if self.e1i is not None and self.t1i and self.e2i is not None and self.t2i:
+            e1, e2 = self.e1i, self.e2i
+            if min(e1, e2) == 0:
+                e1, e2 = e1 + 0.5, e2 + 0.5
+            y = math.log((e1 / self.t1i) / (e2 / self.t2i))
+            v = 1.0 / e1 + 1.0 / e2
+            return y, v
         if self.ai is not None:
             a, n1, c, n2 = self.ai, self.n1i, self.ci, self.n2i
             if min(a, c, n1 - a, n2 - c) == 0:  # zero cell in THIS study
