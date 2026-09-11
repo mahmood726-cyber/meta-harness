@@ -96,3 +96,27 @@ Every added trial verified true against source before it pools.
   AND the exact reason the naive fix is unsafe. The CORRECT fix is per-arm denominator IDENTITY
   (pair intervention-count with n_i, comparator-count with n_c, by arm label) so near-equal arms
   can't cross — a larger careful change queued as cycle 6, to be REGRESS-verified per change.
+
+## Cycle 6 — FIX (general): arm-IDENTITY inferred denominators — the SAFE version of cycle 5
+- Root cause of cycle 5's off-by-2: the inferred-denominator count path picked "best-corroborating"
+  from a flat candidate pool, so with near-equal arms (2762/2760, 8803/8801) a count crossed to the
+  wrong arm's size. FIX: pair each count with its OWN arm's size via (a) _arm_ns extended to read
+  prose arm sizes WITH arm identity ("264 received high-flow", "2760 to the placebo", bare "263
+  conventional"); (b) READING-ORDER pairing (first-mentioned arm's count -> its own size), robust to
+  whether the arm label precedes or follows its count; (c) each still must corroborate its own % — a
+  wrong per-arm size just fails and the count is declared absent, never mispooled.
+- REGRESS (every change verified TRUE against source, per the bar):
+  * colchicine-postop POAF 29237033: 5/49 + 7/51 (source: "49 to colchicine and 51 to placebo... 5
+    (10.2%)... 7 (13.7%)") — count provenance replaces HR 0.69; est 0.8341->0.8348. VERIFIED.
+  * colchicine-postop +diarrhoea 37640035: 134/1608 + 38/1601. VERIFIED (harm k 1->2).
+  * colchicine-secondary MACE LoDoCo2 32865380: 187/2762 + 264/2760 (placebo 2760, NOT the 2762 the
+    naive fix produced). est 0.7215->0.7312. VERIFIED.
+  * colchicine-secondary +GI 34876021: 15/120 + 3/129 (placebo 129, NOT the 3/120 cycle 5 got wrong).
+    VERIFIED (harm k None->1).
+  * tocilizumab RECOVERY 33933206: 621/2022 + 729/2094 -> OR 0.83 (topic's declared estimand),
+    replacing the mislabeled IRR 0.85. VERIFIED (source 31%/35%, counts exact).
+  * SELECT AE-discontinuation: correctly ABSENT now (arm sizes not identity-caught) — no wrong 8803.
+- GENERALITY: the same fix recovers Hernandez 2016 for hfnc (13/264 + 32/263, verified) — a different
+  topic clears unaided. 98 tests pass, 23/23 reproduce, gate all PASS.
+- k delta: primary-outcome k unchanged; +2 harm outcomes pooled; 3 trials upgraded to exact count
+  provenance; near-equal-arm crossing eliminated. SUCCESS (safe, general, every number verified).

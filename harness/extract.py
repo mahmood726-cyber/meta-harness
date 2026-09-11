@@ -62,8 +62,15 @@ def _negated(s, pos):
     return any(n in pre for n in NEG)
 
 
-def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None):
-    """Return (ai,n1i,ci,n2i) if two corroborated arm groups are found, else None."""
+def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_ns=None):
+    """Return (ai,n1i,ci,n2i) if two corroborated arm groups are found, else None.
+
+    arm_ns: optional {"i": n_intervention, "c": n_comparator} per-arm sizes with ARM IDENTITY. When
+    present, an inferred-denominator count is paired ONLY with its OWN arm's size (decided by whether
+    the count sits nearer the intervention or the comparator term), never with the other arm's size.
+    This is what makes near-equal arms safe: LoDoCo2 (2762 vs 2760) or SELECT (8803 vs 8801) can no
+    longer cross, because the placebo count is only ever tested against the placebo size. A wrong
+    per-arm size still just fails corroboration and the count is declared absent — never mispooled."""
     groups = []
     for m in _ARM.finditer(sentence):
         ev, pct, n = int(m.group(1)), float(m.group(2)), int(m.group(3))
@@ -81,22 +88,47 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None):
         pct, ev, n = float(m.group(1)), int(m.group(2)), int(m.group(3))
         if n > 0 and ev <= n and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
             groups.append((m.start(), ev, n))
-    if len(groups) < 2 and denom_each:
-        # "N [patients] (P%)"/"[P%]" with the denominator inferred from the abstract; accept
-        # only if some candidate denominator corroborates the stated percentage for that arm.
+    if len(groups) < 2 and (denom_each or arm_ns):
+        # "N [patients] (P%)"/"[P%]" with the denominator inferred from the abstract; accept only if a
+        # candidate denominator corroborates the stated percentage for that arm. With per-arm arm_ns
+        # the count is paired ONLY with its OWN arm's size (by proximity to the arm term) so near-equal
+        # arms cannot cross; the flat denom_each remains a fallback ONLY when arm_ns lacks that arm.
+        low_s = sentence.lower()
         cands = denom_each if isinstance(denom_each, (list, tuple, set)) else [denom_each]
         cands = [int(c) for c in cands if c]
-        for m in _ARMP.finditer(sentence):
-            ev, pct = int(m.group(1)), float(m.group(2))
-            if _negated(sentence, m.start()):
-                continue
-            best = None
-            for den in cands:
-                if den > 0 and ev <= den and abs(ev / den * 100 - pct) <= 1.0:
-                    if best is None or abs(ev / den * 100 - pct) < abs(ev / best * 100 - pct):
-                        best = den
-            if best:
-                groups.append((m.start(), ev, best))
+        arm_ns = arm_ns or {}
+        armp = [(m.start(), int(m.group(1)), float(m.group(2)))
+                for m in _ARMP.finditer(sentence) if not _negated(sentence, m.start())]
+        ipos = min((low_s.find(t.lower()) for t in interv_terms if t.lower() in low_s), default=-1)
+        cpos = min((low_s.find(t.lower()) for t in comp_terms if t.lower() in low_s), default=-1)
+        used_reading_order = False
+        # PREFERRED: identity-safe reading-order pairing. When we have per-arm sizes for BOTH arms and
+        # exactly two inferred-denominator counts, pair the first-mentioned arm's count with its OWN
+        # size and the second with the other's — robust to whether the arm label precedes or follows
+        # its count (Hernández: "high-flow group (13 ... vs 32 ... conventional group)"; LoDoCo2:
+        # "187 ... colchicine group and 264 ... placebo group"). Each still must corroborate its %, so
+        # near-equal arms (2762 vs 2760) cannot cross and a wrong size just fails (declared absent).
+        if len(armp) == 2 and arm_ns.get("i") and arm_ns.get("c") and ipos >= 0 and cpos >= 0:
+            first_arm = "i" if ipos <= cpos else "c"
+            order = [first_arm, "c" if first_arm == "i" else "i"]
+            paired = []
+            for (pos, ev, pct), arm in zip(armp, order):
+                d = int(arm_ns[arm])
+                if d > 0 and ev <= d and abs(ev / d * 100 - pct) <= 1.0:
+                    paired.append((pos, ev, d))
+            if len(paired) == 2:
+                groups.extend(paired)
+                used_reading_order = True
+        # FALLBACK (backward compatible): flat best-corroborating candidate per count.
+        if not used_reading_order:
+            for pos, ev, pct in armp:
+                best = None
+                for den in cands:
+                    if den > 0 and ev <= den and abs(ev / den * 100 - pct) <= 1.0:
+                        if best is None or abs(ev / den * 100 - pct) < abs(ev / best * 100 - pct):
+                            best = den
+                if best:
+                    groups.append((pos, ev, best))
     # de-duplicate overlapping matches at the same position
     seen, uniq = set(), []
     for g in sorted(groups):
@@ -339,7 +371,16 @@ def _arm_ns(abstract, interv_terms, comp_terms):
             tl = re.escape(t)
             for pat in (rf"{tl}[^.]{{0,12}}?\(\s*n\s*=\s*(\d+)\)",
                         rf"(\d+)\s+(?:patients?|participants?|adults?|subjects?)[^.]{{0,25}}?(?:received|randomi[sz]ed to|assigned to|in the)[^.]{{0,15}}?{tl}",
-                        rf"(?:received|assigned to|randomi[sz]ed to)[^.]{{0,15}}?{tl}[^.]{{0,15}}?\(\s*(\d+)\)"):
+                        # prose arm size with the NOUN OPTIONAL and 'were' allowed: "264 received
+                        # high-flow", "2762 were assigned to the colchicine group".
+                        rf"(\d+)\s+(?:patients?\s+|participants?\s+|adults?\s+|subjects?\s+)?(?:were\s+|had\s+been\s+)?(?:received|assigned|allocated|randomi[sz]ed)(?:\s+to)?\s+(?:the\s+)?{tl}",
+                        # ELLIPSIS: a second arm sharing the verb — "... and 2760 to the placebo group".
+                        rf"(\d+)\s+to\s+(?:the\s+)?{tl}",
+                        rf"(?:received|assigned to|randomi[sz]ed to)[^.]{{0,15}}?{tl}[^.]{{0,15}}?\(\s*(\d+)\)",
+                        # BARE ADJACENCY (last resort): "... and 263 conventional oxygen therapy" — an
+                        # arm size given as "N <arm label>" with the shared verb elided. Safe because
+                        # the count path only accepts this size if it corroborates the arm's stated %.
+                        rf"(\d+)\s+{tl}\b"):
                 m = re.search(pat, abstract, re.I)
                 if m:
                     best = int(m.group(1)); break
@@ -417,6 +458,9 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
     if dm:
         cand.append(int(dm.group(1)))
     denom_each = sorted(set(cand)) or None
+    # Per-arm sizes WITH ARM IDENTITY (intervention vs comparator), so an inferred-denominator count
+    # is only ever paired with its own arm's size — the identity-safe fix for near-equal arms.
+    arm_ns = _arm_ns(abstract, interv_terms, comp_terms)
     # FACTORIAL-DESIGN GUARD: a trial with more than one randomised comparison (e.g. SU.FOL.OM3
     # randomised B vitamins AND n-3) can have the extractor bind the WRONG factor's effect (it
     # bound the B-vitamin HR 0.9 instead of the omega-3 HR 1.08). When the design is factorial we
@@ -436,7 +480,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
         if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
                 or (_skip_composite and _names_composite(s))):
             continue
-        arms = extract_arm_counts(s, interv_terms, comp_terms, denom_each)
+        arms = extract_arm_counts(s, interv_terms, comp_terms, denom_each, arm_ns)
         if arms:
             # ROUND-TRIP (every outcome, not only same-sentence): the count-derived effect must
             # reconcile with the effect the paper reports for THIS outcome — first the same
