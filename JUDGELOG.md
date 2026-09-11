@@ -84,3 +84,13 @@ auto-extracted from its own PubMed abstract by the SAME pipeline, so it is no lo
   would need rate-ratio/HR-of-time-to-first pooling as the primary AND per-trial full-text data —
   a real harness extension (deferred; noted as a general capability gap, not a topic patch).
 - The registration stays committed; no page is claimed live. This is a result (a named refusal), not a gap in n.
+
+## Topic 5 — corticosteroids for CAP mortality — DECLINED (honest non-production)
+- k=0: included trials report mortality as P-values or "did not differ" with no counts/CI in the
+  abstract (Confalonieri 2005 "mortality (p=0.009)"; another "30-day mortality did not differ").
+  Not conservatively extractable from abstracts. Comparator resolved OA. Declared not-produced, no hollow page.
+
+## Topic 6 — statins for primary prevention in the elderly — LIVE (honest k=1)
+- k=1: JUPITER older-persons subgroup (PMID 20404379, HR 0.61, 0.46-0.81, verified TRUE against source
+  "1.22 vs 1.99 per 100 person-years"). Comparator PMID 39076238 (OA), total CV HR 0.75. Neg control excluded.
+  Thin (one post-hoc subgroup) and declared as such; a legitimate honest k=1, not inflated.

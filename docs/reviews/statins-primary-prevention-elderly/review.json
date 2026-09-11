@@ -1,0 +1,378 @@
+{
+  "slug": "statins-primary-prevention-elderly",
+  "title": "Statins vs placebo/control for primary prevention in older adults",
+  "question": "In older adults (>=70 years) without established cardiovascular disease, do statins versus placebo/control reduce major vascular events?",
+  "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+  "protocol": {
+    "sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
+    "committed_utc": "2026-09-11",
+    "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+    "eligibility": "RCT; intervention vs placebo; on-topic population; double-blind placebo-controlled. P/I/C/design only.",
+    "text": "# Protocol - statins for primary prevention in older adults\n\n**Registration.** The commit adding this file registers the review; its SHA is embedded\nin the page's Protocol tab and Reproducibility tab. The protocol is committed before\nthe synthesis is run.\n\n## PICO\n- **P** - older adults (>=70 years) without established cardiovascular disease.\n- **I** - statin therapy, including rosuvastatin, pravastatin, or atorvastatin.\n- **C** - placebo, usual care, or no-statin control.\n- **O (primary)** - major vascular events / major cardiovascular events.\n- **O (harms)** - muscle symptoms/myopathy; new-onset diabetes.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), statin vs placebo/control.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **I1** - randomised controlled trial or randomised trial analysis;\n- **I2** - title-level or registry-condition population is older/elderly adults;\n- **I3** - title-level or registry intervention is a statin or statin name;\n- **I4** - comparator is placebo, usual care, or control;\n- **design** - randomised statin allocation; double-blinding is not required because\n  usual-care trials are eligible.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or PubMed record\n  not indexed as a randomized controlled trial by the fixed screen);\n- **X2** - wrong population (e.g. heart failure, atrial fibrillation, prior stroke,\n  acute coronary syndrome, coronary disease, perioperative/non-cardiovascular disease);\n- **X3** - wrong intervention/comparison (no statin-vs-placebo/usual-care/control contrast);\n- **X5** - off-topic: a primary trial of another disease/topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether an included trial reports major\n> vascular events, or gives a 2x2 table vs only an effect+CI, is recorded as\n> target-result status at extraction - never as an exclusion. A published effect + 95% CI\n> is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: focused statin-title searches for JUPITER older-person analyses, ALLHAT-LLT\n  older-adult primary-prevention analyses, and STAREE older-adult atorvastatin reports.\n- ClinicalTrials.gov: condition \"Elderly\", intervention \"Atorvastatin\".\n- Comparator reference seeding is disabled for this topic because the resolved open-access\n  comparator is an observational review; its reference list is not an RCT recall set for\n  a randomized statin-vs-control harness.\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a study\nonly if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1\n(<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nHuang, Zhu, and Ya, *Reviews in Cardiovascular Medicine* 2022, \"Statin use in older\npeople primary prevention on cardiovascular disease: an updated systematic review and\nmeta-analysis\" (PMID 39076238, PMCID PMC11273788, DOI 10.31083/j.rcm2304114; Unpaywall\nis_oa=true). It reports total cardiovascular events HR 0.75 (95% CI 0.66-0.85) in older\nprimary-prevention statin users versus no-statin users. This is an external benchmark,\nnot an RCT-only comparator; exact RCT-only elderly primary-prevention meta-analyses\nfound during resolution were not open access.\n\n## Controls\n- **Positive** - the search must recover and include the JUPITER older-person rosuvastatin\n  analysis (PMID 20404379) and ALLHAT-LLT older-adult pravastatin analyses (PMIDs\n  28531241 and 30251369).\n- **Negative** - CORONA (rosuvastatin in older patients with systolic heart failure,\n  PMID 17984166 - different disease/topic) must be recovered and EXCLUDED as wrong\n  population.\n"
+  },
+  "search": {
+    "n_records": 28,
+    "cache_ref": "cache/statins-primary-prevention-elderly/records.json",
+    "run_utc": "2026-09-11",
+    "databases": [
+      "PubMed",
+      "ClinicalTrials.gov"
+    ],
+    "sources": [
+      {
+        "name": "PubMed",
+        "queries": [
+          "(rosuvastatin[Title] AND \"primary prevention\"[Title/Abstract] AND \"older persons\"[Title/Abstract])",
+          "((\"Statin Treatment\"[Title] AND \"Usual Care\"[Title] AND \"Older Adults\"[Title]) OR (\"Pravastatin\"[Title] AND \"Primary Prevention\"[Title] AND \"Older Adults\"[Title/Abstract]))",
+          "(atorvastatin[Title] AND \"primary prevention\"[Title/Abstract] AND \"older adults\"[Title/Abstract])"
+        ]
+      },
+      {
+        "name": "ClinicalTrials.gov",
+        "queries": [
+          "{\"cond\": \"Elderly\", \"intr\": \"Atorvastatin\"}"
+        ]
+      }
+    ]
+  },
+  "screening": {
+    "records": [
+      {
+        "id": "20404379",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of statin vs placebo in older persons; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "30251369",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of statin vs placebo in older adults; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "28531241",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of statin vs placebo in older adults; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "42670961",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42670961)."
+      },
+      {
+        "id": "17984166",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'heart failure'."
+      },
+      {
+        "id": "39076238",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 39076238)."
+      },
+      {
+        "id": "NCT01304641",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT01304641)."
+      },
+      {
+        "id": "NCT00535405",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'coronary heart disease'."
+      },
+      {
+        "id": "SPACE · NCT00449410",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'atrial fibrillation'."
+      },
+      {
+        "id": "rrAD · NCT02913664",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'cognitive decline'."
+      },
+      {
+        "id": "NCT05361421",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['statin', 'statins', 'rosuvastatin', 'pravastatin', 'atorvastatin'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "PolyIran-L · NCT01245608",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['older persons', 'older adults', 'elderly', '70 years', '75 years', 'aged 70', 'aged 75'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "STAREE-HEART · NCT04536870",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'heart failure'."
+      },
+      {
+        "id": "ARISE · NCT01646307",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['placebo', 'usual care', 'control'])."
+      },
+      {
+        "id": "NCT04111419",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'atrial fibrillation'."
+      },
+      {
+        "id": "NCT07359105",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['placebo', 'usual care', 'control'])."
+      },
+      {
+        "id": "NCT03515772",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT03515772)."
+      },
+      {
+        "id": "PolyIran · NCT01271985",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['statin', 'statins', 'rosuvastatin', 'pravastatin', 'atorvastatin'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "CAPITAL-PLAQUE · NCT06896708",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['older persons', 'older adults', 'elderly', '70 years', '75 years', 'aged 70', 'aged 75'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NIA-Plaque · NCT00127218",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['statin', 'statins', 'rosuvastatin', 'pravastatin', 'atorvastatin'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT00418834",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'coronary heart disease'."
+      },
+      {
+        "id": "INNOVATION · NCT01394848",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['older persons', 'older adults', 'elderly', '70 years', '75 years', 'aged 70', 'aged 75'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "PREVENTABLE · NCT04262206",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'dementia'."
+      },
+      {
+        "id": "NCT05893849",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT05893849)."
+      },
+      {
+        "id": "NCT05165251",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['statin', 'statins', 'rosuvastatin', 'pravastatin', 'atorvastatin'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "SECURE · NCT02596126",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'myocardial infarction'."
+      },
+      {
+        "id": "NCT07197463",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'coronary disease'."
+      },
+      {
+        "id": "STAREE-Mind · NCT05586750",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'cognitive decline'."
+      }
+    ],
+    "positive_control": "Recovered & included the canonical trials ['20404379', '28531241', '30251369'] that a comparator includes; none missed.",
+    "negative_control": "Cross-topic trial(s) ['17984166'] recovered by the search and correctly EXCLUDED ['17984166'] by rule (same drug/design, wrong topic)."
+  },
+  "outcomes": [
+    {
+      "name": "Major vascular events",
+      "kind": "efficacy",
+      "primary": true,
+      "estimand": "RR",
+      "population": "intention-to-treat",
+      "timepoint": "trial end",
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [
+        {
+          "label": "20404379",
+          "id": "PMID 20404379",
+          "effect": 0.61,
+          "ci_low": 0.46,
+          "ci_high": 0.82,
+          "scale": "HR",
+          "source": "abstract effect+CI (HR): The rates of the primary end point in this age group were 1.22 and 1.99 per 100 person-years of follow-up in the rosuvastatin and placebo groups, respectively (hazard ratio, 0.61 [95% CI, 0.46 to 0.82"
+        }
+      ],
+      "declared_absent_trials": [
+        {
+          "label": "30251369",
+          "id": "PMID 30251369",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "28531241",
+          "id": "PMID 28531241",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "k": 1,
+        "estimate": 0.61,
+        "scale": "RR",
+        "ci_low": 0.4569,
+        "ci_high": 0.8144,
+        "tau2": 0.0,
+        "pi_note": "prediction interval undefined for k=1"
+      }
+    },
+    {
+      "name": "Muscle symptoms/myopathy",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "RR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [],
+      "declared_absent_trials": [
+        {
+          "label": "20404379",
+          "id": "PMID 20404379",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "30251369",
+          "id": "PMID 30251369",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "28531241",
+          "id": "PMID 28531241",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "present": false,
+        "reason": "no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract"
+      }
+    },
+    {
+      "name": "New-onset diabetes",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "RR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [],
+      "declared_absent_trials": [
+        {
+          "label": "20404379",
+          "id": "PMID 20404379",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "30251369",
+          "id": "PMID 30251369",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "28531241",
+          "id": "PMID 28531241",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "present": false,
+        "reason": "no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract"
+      }
+    }
+  ],
+  "comparator": {
+    "name": "Statin use in older people primary prevention on cardiovascular disease: an updated systematic review and meta-analysis.",
+    "year": "2022",
+    "journal": "Rev Cardiovasc Med",
+    "pmid": "39076238",
+    "doi": "10.31083/j.rcm2304114",
+    "url": "https://doi.org/10.31083/j.rcm2304114",
+    "open_access": true,
+    "reported": [
+      {
+        "outcome": "Total cardiovascular events / major vascular events",
+        "estimate": 0.75,
+        "scale": "HR",
+        "ci_low": 0.66,
+        "ci_high": 0.85
+      }
+    ],
+    "overlap": {
+      "ours_k": 1,
+      "theirs_k": "not stated in the comparator abstract/full text",
+      "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
+      "only_ours": [],
+      "only_theirs": [],
+      "method": "publication-date + design identity (comparator trial list not extracted from source)",
+      "note": "Trials newer than the comparator (2022) cannot be in it (only-ours, verifiable by date). Exact shared count not asserted."
+    }
+  },
+  "reproduction": {
+    "failures": 0,
+    "protocol_sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
+    "review_sha256": "25386452dbe0c260ffd241ec9395a2dedeffa0f7cec34fcf5d19fdff2640a805",
+    "from_cache": true
+  }
+}
