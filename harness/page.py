@@ -229,7 +229,26 @@ def _screening(r, neutral):
                       f"signal, not disqualifying ({_e(', '.join(retro))})" if retro else "")
                    + f" (checked {_e(integ.get('checked_utc'))} via {_e(integ.get('source'))} + AACT dates).</p>")
             integ_html = msg
-    body = (integ_html + f"<p>{len(recs)} records screened; <strong>{n_inc} included</strong>. "
+    # PRISMA 2020 flow (items 16a/16b): counts at every stage, exclusions broken down by rule.
+    from collections import Counter as _C
+    rule_counts = _C(x.get("rule_id") for x in recs if x.get("decision") == "exclude")
+    prim = next((o for o in (r.get("outcomes") or []) if o.get("primary")), None)
+    pooled_k = ((prim or {}).get("result") or {}).get("k") if prim else None
+    n_identified = ((r.get("search") or {}).get("n_records")) or len(recs)
+    excl_bits = " · ".join(f"{rid} {n}" for rid, n in sorted(rule_counts.items()))
+    flow = ("<h4>Study selection flow (PRISMA 2020)</h4>"
+            "<table class='recs'><tr><th>Stage</th><th>n</th></tr>"
+            f"<tr><td>Records identified (committed search)</td><td>{_e(n_identified)}</td></tr>"
+            f"<tr><td>Records screened (deduplicated)</td><td>{_e(len(recs))}</td></tr>"
+            f"<tr><td>Excluded at screening — by rule</td><td>{_e(sum(rule_counts.values()))} ({_e(excl_bits)})</td></tr>"
+            f"<tr><td>Met eligibility (P/I/C/design)</td><td>{_e(n_inc)}</td></tr>"
+            f"<tr><td><strong>Pooled in the primary outcome (k)</strong></td><td><strong>{_e(pooled_k)}</strong></td></tr>"
+            f"<tr><td>Eligible but outcome not extractable (declared-absent)</td><td>{_e(n_inc - (pooled_k or 0))}</td></tr>"
+            "</table>"
+            "<p class='note'>Every excluded record's rule id, reason and verbatim span are listed below "
+            "(PRISMA item 16b: exclusions with reasons). Screening is single deterministic rule-based; a "
+            "dual independent human/model screener with a disagreement rate is not yet implemented.</p>")
+    body = (flow + integ_html + f"<p>{len(recs)} records screened; <strong>{n_inc} included</strong>. "
             "Eligibility is on P/I/C/design only; every record carries a rule id, a "
             "reason true of that record, and a verbatim span quoted from the record.</p>"
             f"<table class='recs'>{head}{rows}</table>")
