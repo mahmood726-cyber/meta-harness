@@ -135,6 +135,17 @@ def _pool_result(studies, scale="RR"):
     return res
 
 
+def _load_ghost(slug):
+    """Committed ghost-protocol / registry-landscape census (cache/<slug>/ghost.json) from AACT."""
+    p = os.path.join(ROOT, "cache", slug, "ghost.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        return json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 def _load_integrity(slug):
     """Committed trial-integrity (retraction / expression-of-concern) snapshot for this topic's
     pooled trials (cache/<slug>/integrity.json), produced by scripts/integrity_check.py. Rendered on
@@ -348,7 +359,8 @@ def build_review_core(slug, config, records, protocol_sha):
                    "run_utc": records.get("fetched_utc"), "databases": ["PubMed", "ClinicalTrials.gov"],
                    "sources": [{"name": "PubMed", "queries": records.get("pubmed_queries", [])},
                                {"name": "ClinicalTrials.gov", "queries": [json.dumps(records.get("ctgov_query"))]}],
-                   **({"recall": _rc} if (_rc := _load_recall(slug)) else {})},
+                   **({"recall": _rc} if (_rc := _load_recall(slug)) else {}),
+                   **({"ghost": _gh} if (_gh := _load_ghost(slug)) else {})},
         "screening": {"records": [{"id": (f"{rec_by_id.get(d['id'],{}).get('acronym')} · " if rec_by_id.get(d['id'],{}).get('acronym') else "") + str(d["id"]),
                                    "id_type": d["id_type"], "decision": d["decision"],
                                    "rule_id": d["rule_id"], "reason": d["reason"],

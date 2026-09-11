@@ -177,6 +177,20 @@ def _search(r, neutral):
         body += ("<h4>Registry-first recall (reach)</h4><p>" + line
                  + " Recall is search REACH; whether a recovered trial is eligible/poolable is the "
                  "screen's and extractor's job — a candidate is not an include.</p>")
+    g = s.get("ghost")
+    if g and g.get("enumerated"):
+        # Registry landscape from AACT (broad query = reach, not precision). The strong, actionable
+        # signal is results_only (posted CT.gov results, no publication -> poolable unpublished data);
+        # the completed-without-results remainder is a LOOSE upper bound on non-publication.
+        body += ("<h4>Registry landscape &amp; unpublished evidence (AACT)</h4>"
+                 f"<p>Of <strong>{_e(g.get('enumerated'))}</strong> registry records matching the query "
+                 f"(broad — reach, not precision): {_e(g.get('published'))} have a linked publication; "
+                 f"<strong>{_e(g.get('results_only'))}</strong> have posted CT.gov results but no "
+                 f"publication (<em>poolable unpublished data no published meta in this topic has</em>); "
+                 f"{_e(g.get('ghost_upper_bound'))} are completed &ge;12 months ago with neither results "
+                 f"nor a linked publication — a <em>loose upper bound</em> on non-publication, inflated by "
+                 f"the broad enumeration and by NCT&rarr;PMID linkage misses, not a publication-bias claim. "
+                 f"<span class='muted'>{_e(g.get('source'))}.</span></p>")
     for src in s.get("sources", []) or []:
         body += f"<h4>{_e(src.get('name'))}</h4>"
         for q in src.get("queries", []) or []:
