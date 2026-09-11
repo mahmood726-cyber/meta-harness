@@ -60,6 +60,12 @@ def _ci(res) -> str:
     return f"{_num(res.get('estimate'))} ({res.get('scale')}), 95% CI {_num(res.get('ci_low'))}–{_num(res.get('ci_high'))}"
 
 
+def _effect_label(res) -> str:
+    # A single-trial result is not a pooled effect; label it honestly so the k=1 CI is not
+    # read as a random-effects pooled interval.
+    return "Single-trial effect" if res.get("k") == 1 else "Pooled effect"
+
+
 # ---- tabs --------------------------------------------------------------------
 
 def _overview(r, neutral):
@@ -96,7 +102,7 @@ def _overview(r, neutral):
             ]
             if recon:
                 rows.append(("Screened-in → pooled", recon))
-            rows.append(("Pooled effect", _ci(res)))
+            rows.append((_effect_label(res), _ci(res)))
             if res.get("pi_low") is not None:
                 rows.append(("Prediction interval", f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}"))
             if res.get("tau2") is not None:
@@ -231,7 +237,7 @@ def _outcome_block(o, show_inputs=True):
             ("Timepoint", o.get("timepoint")),
             ("Method", o.get("method")),
             ("k", res.get("k")),
-            ("Pooled effect", _ci(res)),
+            (_effect_label(res), _ci(res)),
             ("Prediction interval", (f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}" if res.get('pi_low') is not None else None)),
             ("τ²", _num(res.get("tau2")) if res.get("tau2") is not None else None),
             ("Note", res.get("pi_note")),

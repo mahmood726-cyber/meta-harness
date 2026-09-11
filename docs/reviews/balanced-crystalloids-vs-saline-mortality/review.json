@@ -2,11 +2,11 @@
   "slug": "balanced-crystalloids-vs-saline-mortality",
   "title": "Balanced crystalloids vs saline for mortality in critically ill adults",
   "question": "In critically ill adults, do balanced crystalloids reduce mortality versus 0.9% saline? (Randomised trials; double-blinding not required.)",
-  "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+  "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
   "protocol": {
     "sha": "f85737aa471079fa1ef93da4ca0caf21c83b77e8",
     "committed_utc": "2026-09-11",
-    "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+    "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
     "eligibility": "Randomised trial; balanced/buffered crystalloid solution vs 0.9% saline; critically ill adult ICU, sepsis, or trauma population; P/I/C/design only; double-blinding not required.",
     "text": "# Protocol - balanced crystalloids vs saline for mortality in critically ill adults\n\n**Registration.** The commit that adds this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - critically ill adults, including adult ICU, sepsis, or trauma resuscitation populations matched on title or registry conditions.\n- **I** - balanced or buffered crystalloid solution, including balanced crystalloids, balanced multielectrolyte solution/BMES, Plasma-Lyte, Ringer's acetate, or lactated Ringer's.\n- **C** - 0.9% saline / normal saline / sodium chloride.\n- **O (primary)** - mortality, using in-hospital mortality or 28-90 day mortality where the abstract reports a poolable count or effect estimate.\n- **O (harms)** - acute kidney injury and new renal-replacement therapy.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), balanced crystalloid vs saline.\n- **Population** - intention-to-treat as randomised when reported.\n- **Timepoint** - 28-90 day mortality or in-hospital mortality.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomised trial;\n- **I2** - population is critically ill adults, ICU patients, adult sepsis patients, or adult trauma resuscitation patients, judged from title or registry conditions;\n- **I3** - balanced/buffered crystalloid solution vs 0.9% saline / normal saline / sodium chloride;\n- **design** - randomised trial with a saline comparator; double-blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not a randomised trial (review, guideline, observational study, protocol-only when not a trial results record);\n- **X2** - wrong population (e.g. pediatric/PICU, neonatal, non-critically ill emergency-department adults, diabetic ketoacidosis);\n- **X3** - wrong intervention/comparison (no balanced-crystalloid-vs-saline contrast);\n- **X-DESIGN** - not randomised;\n- **X5** - off-topic: a primary trial of another population/topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports mortality, or\n> gives a 2x2 vs only an effect+CI, is recorded as *target-result status* at\n> extraction - never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: title-level searches for SMART, PLUS, BaSICS, SPLIT, SALT, the Plasma-Lyte 148 pilot, and the trauma Plasma-Lyte A trial.\n- ClinicalTrials.gov: condition \"critical illness\", intervention \"balanced crystalloids\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a study only if\nit has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nZayed et al., *Journal of Intensive Care* 2018, \"Balanced crystalloids versus isotonic\nsaline in critically ill patients: systematic review and meta-analysis\" (PMID 30140441,\nDOI 10.1186/s40560-018-0320-x; Unpaywall is_oa=true; PMC6098635). It reports six RCTs\nand in-hospital mortality OR 0.92 (95% CI 0.85-1.01), plus acute kidney injury and new\nrenal-replacement therapy.\n\n## Controls\n- **Positive** - SMART (PMID 29485925) and PLUS (PMID 35041780) must be recovered and included by P/I/C/design.\n- **Tracked landmark** - BaSICS (PMID 34375394) is queried and verified as a real large trial, but PubMed tags the fetched record as Journal Article only; under this fixed harness it is expected to fail closed at the RCT-publication-type screen rather than be force-included.\n- **Negative** - SPLYT-P (PMID 36534387), a pediatric/PICU balanced-fluid trial, must be recovered and EXCLUDED as wrong population.\n"
   },
@@ -252,7 +252,7 @@
       "estimand": "RR",
       "population": "intention-to-treat",
       "timepoint": "28-90 day or in-hospital",
-      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
       "trials": [
         {
           "label": "35041780",
@@ -316,7 +316,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
       "trials": [
         {
           "label": "27749094",
@@ -375,7 +375,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
       "trials": [
         {
           "label": "35041780",
@@ -479,7 +479,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "f85737aa471079fa1ef93da4ca0caf21c83b77e8",
-    "review_sha256": "539f1ad17c1263bbec214b4e34346654131bdbeec2e28ca486cda0e14a065f4d",
+    "review_sha256": "ce180b7f48f505ec1958060d66dceb8777202d70fc7ddc2272cadb6a4a3793fd",
     "from_cache": true
   }
 }

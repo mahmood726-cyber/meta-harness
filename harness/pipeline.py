@@ -10,7 +10,8 @@ from . import extract, screen
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool
 
-METHOD = ("Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; "
+METHOD = ("Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured "
+          "for the outcome); Paule-Mandel tau^2; "
           "HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); "
           "prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

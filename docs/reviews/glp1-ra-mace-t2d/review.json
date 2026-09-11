@@ -2,11 +2,11 @@
   "slug": "glp1-ra-mace-t2d",
   "title": "GLP-1 receptor agonists vs placebo for 3-point MACE in type 2 diabetes",
   "question": "In adults with type 2 diabetes, do GLP-1 receptor agonists reduce 3-point major adverse cardiovascular events versus placebo? (Double-blind placebo-controlled RCTs.)",
-  "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+  "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
   "protocol": {
     "sha": "4091958ce4af7f1ca9ed4c30e1021672b0c21223",
     "committed_utc": "2026-09-11",
-    "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+    "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
     "eligibility": "RCT; adults with type 2 diabetes by title/registry conditions; GLP-1 receptor agonist vs placebo; double-blind placebo-controlled CV outcome trial. P/I/C/design only.",
     "text": "# Protocol - GLP-1 receptor agonists for 3-point MACE in type 2 diabetes\n\n**Registration.** The commit that adds this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with type 2 diabetes.\n- **I** - GLP-1 receptor agonist therapy (liraglutide, semaglutide, dulaglutide,\n  albiglutide, efpeglenatide, exenatide, or lixisenatide) added to usual care.\n- **C** - placebo added to usual care.\n- **O (primary)** - 3-point major adverse cardiovascular events, defined as cardiovascular\n  death, nonfatal myocardial infarction, or nonfatal stroke.\n- **O (harms / secondary)** - gastrointestinal adverse events, discontinuation for adverse\n  events, and any further harm outcome the resolved comparator reports.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio (HR), GLP-1 receptor agonist vs placebo.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / longest primary cardiovascular outcome follow-up.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is adults with type 2 diabetes, judged from the title or registry\n  conditions;\n- **I3** - a GLP-1 receptor agonist vs placebo contrast;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (e.g. obesity without diabetes, type 1 diabetes, or gestational\n  diabetes);\n- **X3** - wrong intervention/comparison (no GLP-1 receptor agonist-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports 3-point MACE, or gives\n> a 2x2 vs only an effect+CI, is recorded as target-result status at extraction - never as\n> an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/search.json; screening replays offline)\n- PubMed: exact-title sweeps for the large GLP-1 receptor agonist cardiovascular outcome\n  trials in type 2 diabetes (LEADER, SUSTAIN-6, REWIND, HARMONY Outcomes, AMPLITUDE-O,\n  PIONEER-6, EXSCEL, and ELIXA).\n- ClinicalTrials.gov: condition \"type 2 diabetes cardiovascular\", intervention\n  \"efpeglenatide\".\n- Fixed-screen note: several PubMed abstracts for verified double-blind CVOTs do not use\n  the literal phrase \"double-blind\"; the config therefore does not require that literal\n  abstract/title string, while the protocol eligibility criterion remains double-blind\n  placebo-controlled design.\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. DerSimonian-Laird forbidden. Engine validated vs\nmetafor 5.0.1 (<1e-6). For this topic, the poolable input is the published HR + 95% CI\npath on the same ratio/log scale; 2x2 extraction is available but is not required when a\ntrial reports an HR + CI.\n\n## Comparator (resolved; open-access confirmed)\nGiugliano et al., *Cardiovascular Diabetology* 2021, \"GLP-1 receptor agonists and\ncardiorenal outcomes in type 2 diabetes: an updated meta-analysis of eight CVOTs\" (PMID\n34526024, DOI 10.1186/s12933-021-01366-8; Unpaywall is_oa=true; PubMed Central\nPMC8442438). It reports pooled MACE HR 0.86 (95% CI 0.79-0.94) over 8 cardiovascular\noutcome trials.\n\n## Controls\n- **Positive** - the search must recover and include LEADER, SUSTAIN-6, and REWIND.\n- **Negative** - SELECT (semaglutide, double-blind, placebo-controlled, but obesity without\n  diabetes - another disease population) must be recovered and EXCLUDED by the population\n  rule.\n"
   },
@@ -119,7 +119,7 @@
       "estimand": "HR",
       "population": "intention-to-treat",
       "timepoint": "trial end",
-      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
       "trials": [
         {
           "label": "31185157",
@@ -217,7 +217,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
       "trials": [],
       "declared_absent_trials": [
         {
@@ -273,7 +273,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
       "trials": [],
       "declared_absent_trials": [
         {
@@ -353,7 +353,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "4091958ce4af7f1ca9ed4c30e1021672b0c21223",
-    "review_sha256": "c8dcb393efa8c2276b8825298671df0cd4d610e391864fec042fcebb80d863ca",
+    "review_sha256": "d2b288c20865d09f8d372c8b180907443e69801dd5020ffa47bc1cd85d61a2af",
     "from_cache": true
   }
 }
