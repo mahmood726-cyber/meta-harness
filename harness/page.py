@@ -214,8 +214,18 @@ def _trial_inputs(o):
             inp = f"{_num(t.get('effect'))} ({o.get('estimand')}), 95% CI {_num(t.get('ci_low'))}–{_num(t.get('ci_high'))}"
         else:
             inp = "—"
+        src = _e(t.get("source"))
+        j = t.get("identity_judgment")
+        if j:
+            # Model-derived outcome-identity judgment (checkable, 5 fields). It admitted this
+            # CT.gov measure as THE review's outcome; it supplies no number.
+            src += ("<div class='ident'><em>outcome-identity check (model-derived):</em> "
+                    f"population <b>{_e(j.get('candidate_population'))}</b>; "
+                    f"timepoint <b>{_e(j.get('candidate_timepoint'))}</b>; "
+                    f"definition <b>{_e(j.get('candidate_definition'))}</b>; "
+                    f"is-match <b>{_e(j.get('is_match'))}</b> — {_e(j.get('rationale'))}</div>")
         rows.append(f"<tr><td>{_e(t.get('label'))}</td><td>{_e(t.get('id'))}</td>"
-                    f"<td>{inp}</td><td>{_e(t.get('source'))}</td></tr>")
+                    f"<td>{inp}</td><td>{src}</td></tr>")
     absent = "".join(f"<tr><td>{_e(t.get('label'))}</td><td>{_e(t.get('id'))}</td>"
                      f"<td class='absent-cell'>declared absent</td><td>{_e(t.get('reason'))}</td></tr>"
                      for t in o.get("declared_absent_trials", []) or [])

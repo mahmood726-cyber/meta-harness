@@ -333,3 +333,11 @@ Registry-first recovers ~70-75% of known trials — substantial reach vs brittle
 fan too many at once. (b) untracked RECALL-*.md from prior lane uses survive git reset --hard -> clean untracked
 before clone reuse (never clean a tree another lane holds). recall.py is the regenerable metric; numbers above are
 from clean runs. Missed trials (SALT, the omega3 4) confirm multi-registry need (ISRCTN/EU CTR/ICTRP) + NCT-link gaps.
+
+## omega3 re-pool (priority-1): registry-first REACH validated, inclusion HELD — k=7 stands (2026-09-11)
+Re-fetch with max_records=1200/max_fulltext=0 STALLED (992 records, OMEGA extra_pmid dropped from screening) → k=4 working-tree artefact of a TRUNCATED download. Per fail-closed rule, not valid data. RESTORED committed k=7 (RR 0.9316, 0.843–1.030, 86 records, reproduces).
+Priority-1 verification done on committed cache (no fetch needed — all three classics already present + screened):
+- **GISSI-P 10465168 → X-DESIGN CORRECT.** Abstract: "n-3 PUFA, vitamin E, both, or none (control)" — open-label, no placebo, masking=None. Protocol pre-declares design_double_blind:true. Comparator metas include it only because they don't restrict to double-blind.
+- **SOFA 16772624 → X2 DEFENSIBLE.** Title population = ICD patients w/ ventricular arrhythmia; endpoint = ventricular tachyarrhythmia/death. No CV/MACE umbrella term in title. Arrhythmia trial, not MACE trial.
+- **OMEGA 21060071 → INCLUDE, honestly unpooled.** Screened in (MI+omega-3+placebo+double-blind), but primary = sudden cardiac death, not MACE → no extractable per-arm MACE composite → outcome-identity keeps it out of the MACE pool correctly.
+FINDING: registry-first/citation-chasing REACHED all three; harness declined each on a fact true against source (design/population/outcome-identity). "Recall is reach, not inclusion" demonstrated on a live page. 7↛13 gap = harness MORE rigorous than comparator, transparently — NOT a search miss. Declined to relax design_double_blind (would be tuning-to-pass). No number changed.

@@ -96,7 +96,20 @@ def _pool_result(studies, scale="RR"):
     return res
 
 
-def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None, fulltext_by_pmid=None):
+def _load_outcome_judgments(slug):
+    """Committed outcome-identity judgments (the model-as-source cache). Present only for topics
+    that opted into the gate and had judgments produced by scripts/outcome_judgments.py. Absent =>
+    None => extract_ctgov keeps its deterministic substring selection (backward-compatible)."""
+    p = os.path.join(ROOT, "cache", slug, "outcome_judgments.json")
+    if not os.path.exists(p):
+        return None
+    data = json.load(open(p, encoding="utf-8"))
+    # stored as {"judgments": {title: {...}}, "model": ..., "produced_utc": ...}
+    return data.get("judgments", data)
+
+
+def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
+                   fulltext_by_pmid=None, outcome_judgments=None):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     trials, absent = [], []
@@ -116,7 +129,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             trials.append({"label": label, "id": idstr, **ex})
             continue
         cg = (extract_ctgov(ctgov_results.get(nct), spec["keywords"], interv, comp,
-                            min_total=_enrollment_floor(rec.get("abstract", "")))
+                            min_total=_enrollment_floor(rec.get("abstract", "")),
+                            judgments=outcome_judgments)
               if nct and nct in ctgov_results else None)
         if cg:
             cg["provenance"] = "ctgov_results"
@@ -195,7 +209,12 @@ def build_review_core(slug, config, records, protocol_sha):
 
     cgr = records.get("ctgov_results") or {}
     ftbp = records.get("fulltext_by_pmid") or {}
-    outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp)
+    # Outcome-identity gate is OPT-IN per topic (config.outcome_identity) AND requires a committed
+    # judgments cache; absent either, judgments=None and ctgov selection is the deterministic
+    # substring match. This keeps every existing topic byte-identical until it opts in.
+    ojudg = _load_outcome_judgments(slug) if config.get("outcome_identity") else None
+    outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp,
+                               outcome_judgments=ojudg)
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 

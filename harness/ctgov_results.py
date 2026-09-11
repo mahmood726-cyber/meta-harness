@@ -15,7 +15,8 @@ def _num(x):
         return None
 
 
-def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_total=None):
+def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_total=None,
+                  judgments=None):
     """Return dict {ai,n1i,ci,n2i,source} for the outcome measure matching our outcome, else None.
 
     Chooses the outcome measure whose TITLE contains one of our outcome keywords (so we do not
@@ -28,6 +29,18 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
     under NCT02444988, whose posted results are only 2735+2646 -- pooling those as SMART's
     mortality would be false against the trial. The caller passes ~0.6x the trial's abstract-stated
     enrollment as the floor.
+
+    judgments: OUTCOME-IDENTITY GATE (the sanctioned model-as-source use). When None, selection is
+    the deterministic substring match below (backward-compatible). When a dict is given
+    (title -> {is_match, declared_outcome, candidate_population, candidate_timepoint,
+    candidate_definition, ...}, produced by scripts/outcome_judgments.py and committed to
+    cache/<slug>/outcome_judgments.json), an outcome measure is accepted ONLY if its title carries a
+    committed judgment with is_match True -- i.e. the review's declared outcome and THIS measure share
+    population + timepoint + definition. Any OM without an is_match=True judgment is REFUSED, even if
+    its title substring-matches. This closes the azithromycin class (a broadened keyword matched an
+    ED-visit OM / a subgroup HR that is NOT the review's outcome). The judgment is a checkable source
+    (5 fields, rendered model-derived); it NEVER supplies the number -- the counts still come from the
+    structured arm table below.
     """
     if not outcome_measures:
         return None
@@ -42,8 +55,18 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
         tl = (t or "").lower()
         return any(k in tl for k in kws)
 
-    # Prefer a title-keyword match; among those prefer type PRIMARY.
-    cands = [om for om in outcome_measures if title_matches(om.get("title"))]
+    def identity_ok(t):
+        # Outcome-identity gate: when judgments are supplied, the OM title must carry an
+        # is_match=True judgment. No judgment (or is_match False) => REFUSE this measure.
+        if judgments is None:
+            return True
+        j = judgments.get(t) or judgments.get((t or "").strip())
+        return bool(j and j.get("is_match") is True)
+
+    # Prefer a title-keyword match AND (when gated) an is_match=True identity judgment;
+    # among survivors prefer type PRIMARY.
+    cands = [om for om in outcome_measures
+             if title_matches(om.get("title")) and identity_ok(om.get("title"))]
     cands.sort(key=lambda om: 0 if om.get("type") == "PRIMARY" else 1)
     for om in cands:
         # only participant-count style measures (skip means/medians/rates)
@@ -93,7 +116,14 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
             continue  # this OM is a subgroup, not the whole trial — do not pool as the trial
         gi = next(g.get("title") for g in groups if g.get("id") == interv_gid)
         gc = next(g.get("title") for g in groups if g.get("id") == comp_gid)
-        return {"ai": int(ai), "n1i": int(n1i), "ci": int(ci), "n2i": int(n2i),
-                "source": (f"ClinicalTrials.gov results (structured): outcome '{om.get('title','')[:80]}' "
-                           f"{int(ai)}/{int(n1i)} ({gi[:24]}) vs {int(ci)}/{int(n2i)} ({gc[:24]})")}
+        out = {"ai": int(ai), "n1i": int(n1i), "ci": int(ci), "n2i": int(n2i),
+               "source": (f"ClinicalTrials.gov results (structured): outcome '{om.get('title','')[:80]}' "
+                          f"{int(ai)}/{int(n1i)} ({gi[:24]}) vs {int(ci)}/{int(n2i)} ({gc[:24]})")}
+        # Carry the model-derived identity judgment that admitted this OM, so the page can render it
+        # (checkable, 5 fields). The judgment gated selection; it does NOT supply any number here.
+        if judgments is not None:
+            j = judgments.get(om.get("title")) or judgments.get((om.get("title") or "").strip())
+            if j:
+                out["identity_judgment"] = dict(j, candidate_title=om.get("title"))
+        return out
     return None
