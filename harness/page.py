@@ -596,6 +596,18 @@ def _reproduction(r, neutral):
                  f"<strong>{_e(pa.get('our_k'))}</strong> vs the comparable same-scope comparator "
                  f"<em>k</em> = <strong>{_e(pa.get('comparable_comparator_k'))}</strong> &mdash; "
                  f"<strong>{_e(pa.get('status'))}</strong>. {_e(pa.get('reason'))}</p>")
+    # INDEPENDENT SECOND EXTRACTION (blind): a second extractor located each pooled number's digits
+    # from the abstract, blind to ours. agree = same 2x2; reconcile = same result via a different
+    # statistic; conflict = genuine numeric disagreement; not-checkable = not stated in the abstract.
+    # Two independent extractions agreeing is a claim no published meta makes about its own numbers.
+    if du := rep.get("dual"):
+        ck = du.get("agree", 0) + du.get("reconcile", 0) + du.get("conflict", 0)
+        body += (f"<h4>Independent second extraction (blind)</h4><p>Of this page's pooled numbers, a "
+                 f"blind second extractor agreed or reconciled on <strong>{du.get('agree',0)+du.get('reconcile',0)} "
+                 f"of {ck}</strong> that are checkable from the abstract "
+                 f"({du.get('agree',0)} identical, {du.get('reconcile',0)} same-result-different-statistic, "
+                 f"{du.get('conflict',0)} conflict; {du.get('not_checkable',0)} not stated in the abstract). "
+                 "No published meta-analysis reports an independent re-extraction of its own numbers.</p>")
     # VERIFIED-BUT-NOT-POOLED: a trial we located and whose numbers we verified, yet did not pool,
     # with the reason. "We found it, verified it, and still refused it, because ..." is a stronger
     # honesty statement than a larger k. Outside the core hash (committed docs/refusals.json).

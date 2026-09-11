@@ -39,6 +39,22 @@ def _parity_row(root: str, slug: str):
     return None
 
 
+def _dual_row(root: str, slug: str):
+    """This topic's independent-second-extraction tally from committed docs/dual_extract.json, or
+    None. A blind second extractor located each pooled number's digits from the abstract; agree =
+    same 2x2, reconcile = same result via a different statistic (effect vs counts / RRR), conflict =
+    a genuine numeric disagreement, not_checkable = the number is not in the abstract. Two independent
+    extractions agreeing is a claim no published meta makes about its own numbers. Outside the core
+    hash; shared by census + reproduce_review so replay byte-matches."""
+    p = os.path.join(root, "docs", "dual_extract.json")
+    if not slug or not os.path.exists(p):
+        return None
+    try:
+        return (json.load(open(p, encoding="utf-8")) or {}).get(slug)
+    except (ValueError, OSError):
+        return None
+
+
 def _refusals_rows(root: str, slug: str):
     """This topic's notable VERIFIED-BUT-NOT-POOLED refusals from committed docs/refusals.json, or
     None. Makes the honest 'we found this trial, verified its numbers, and still did not pool it,
@@ -99,6 +115,9 @@ def build_review_dir(
     _rf = _refusals_rows(_root, manifest_meta.get("slug", ""))
     if _rf:
         reproduction["refusals"] = _rf
+    _du = _dual_row(_root, manifest_meta.get("slug", ""))
+    if _du:
+        reproduction["dual"] = _du
     final_review = dict(review_core_obj)
     final_review["reproduction"] = reproduction
     html = render_page(final_review)
