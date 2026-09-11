@@ -22,7 +22,9 @@ def _load(*parts):
 
 def _read_text(*parts):
     with open(os.path.join(ROOT, *parts), encoding="utf-8") as f:
-        return f.read()
+        # Normalise line endings so embedded text is byte-identical regardless of how
+        # the working tree was checked out (belt-and-suspenders with .gitattributes).
+        return f.read().replace("\r\n", "\n").replace("\r", "\n")
 
 
 def _pool_outcome(o):
