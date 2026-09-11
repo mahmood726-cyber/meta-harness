@@ -344,4 +344,19 @@ FINDING: registry-first/citation-chasing REACHED all three; harness declined eac
 
 ## #4 multi-registry: ISRCTN adapter added; recall data says the dominant miss is NCT->PMID, not coverage (2026-09-11)
 Built ISRCTN adapter in registry_first.py: enumerate_isrctn (free-text q, intervention-alone since ISRCTN q needs whole-string co-occurrence — 'colchicine pericarditis'->0 but 'colchicine'->31; screen enforces condition downstream), _parse_isrctn_ids (pure, namespace-tolerant, offline-tested vs fixture), registry_id_to_pmids (generalises PubMed [si] across NCT/ISRCTN/EudraCT; CT.gov refs only for NCT). registry_first_pmids(include_isrctn=) unions registries with per-registry four-state + fail-closed (any registry RAN_ERROR => whole run RAN_ERROR, pmids=[]). fetch.py knob registry_first.isrctn (default off). +6 tests (63 total). Live smoke: 31 ISRCTN ids for colchicine, resolver works (first id is an unpublished 2026 trial -> 0 PMIDs, correct).
-RECALL LANE ANALYSIS (serial spaced + parallel lanes): the recall misses are mostly NCT->PMID RESOLUTION gaps, NOT registry-coverage gaps: balanced-crystalloids missed 27749094 (a Vanderbilt trial that IS in CT.gov — its record just doesn't link the pub), colchicine-postop missed 29237033. Also serial lane got RAN_ZERO where parallel lanes got RAN_OK for the same topic (noac 0/4 vs 4/4, pcsk9 0/2 vs 2/2) => query-derivation/rate-limit inconsistency (serial derived cond/intr from PICO; committed registry_first queries differ). IMPLICATION: multi-registry adds reach for genuinely-elsewhere trials, but the higher-value SEARCH lever is NCT->PMID robustness (citation-chase from the NCT record, broader [si]/title resolution) + a single committed query per topic. ISRCTN is banked; next SEARCH work is resolution, not more registries.
+RECALL LANE ANALYSIS (serial spaced + parallel lanes): recall misses have MIXED causes. I first
+asserted "dominant miss = NCT->PMID resolution" from the marginal miss table, then ROOT-CAUSED two
+cases and BOTH contradicted it:
+- balanced-crystalloids missed 27749094: NCT02444988/NCT02547779 references ALL carry pmids (resolution
+  works fine, incl. SMART's 29485925) but not this one; the query 'critically ill'x'balanced crystalloid'
+  enumerated only 19 NCTs and NCT02444951 (a guessed NCT for it) is a 404. So it is an
+  ENUMERATION/LINKAGE-COVERAGE gap, NOT a citation-string resolution gap. (27749094 still pools via
+  ctgov_results on an enumerated NCT, so the page is complete; only the recall metric under-counts.)
+- serial lane got RAN_ZERO where parallel lanes got RAN_OK for the same topic (noac 0/4 vs 4/4, pcsk9
+  0/2 vs 2/2): query-derivation/rate-limit inconsistency (serial derived cond/intr from PICO; committed
+  registry_first queries differ) — an OPERATIONAL cause, not resolution.
+CORRECTED IMPLICATION: did NOT build a resolution-robustness (citation->PMID) fix — the two verified
+misses are not resolution gaps, and building it would have been the "test the finding you assert" trap.
+Evidenced levers instead: (a) one committed query per topic + query/rate-limit consistency (the
+serial-vs-parallel RAN split is a query+contention artefact, not found-nothing), (b) multi-registry reach
+(banked: ISRCTN). Naming a single dominant lever needs more per-case root-causing first.
