@@ -140,3 +140,14 @@ auto-extracted from its own PubMed abstract by the SAME pipeline, so it is no lo
 ## Topic — metformin for ovulation in PCOS — DECLINED (k=0)
 - Ovulation reported as rates/proportions not conservatively extractable from abstracts; comparator PMID
   31845767 (OA) OR 2.64. Extraction-recall gap (same family as CAP/COPD).
+
+## Wave-4: 4 published, 2 declined
+- pcsk9-mace: k=2 (FOURIER+ODYSSEY HR 0.85) ~ comparator 0.83. sglt2-ckd-progression: k=3 (DAPA-CKD 197/2152,
+  CREDENCE HR 0.70, EMPA-KIDNEY 432/3304) HR 0.71 vs comparator 0.62. noac-vs-warfarin-af: k=3 DOAC HRs, pooled
+  0.86 vs comparator 0.81 (pairwise subset of an NMA, declared). tocilizumab-covid19: k=1 (RECOVERY 0.85) vs WHO-REACT 0.86.
+- DECLINED hfnc-reintubation: k=1 outlier (a VenturiMask trial, 13% vs 11%, HFNC worse) contradicts the evidence base; unrepresentative.
+- DECLINED antibiotics-vs-appendectomy: WRONG-OUTCOME — CT.gov substring match grabbed "Resolution of Appendicitis
+  Symptoms" (success) for our "treatment failure" outcome. Caught by hand-verification. Flags a CT.gov-substring risk
+  when config keywords are disease-broad rather than outcome-specific (do not publish a wrong-outcome number).
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>

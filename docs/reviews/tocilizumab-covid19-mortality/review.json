@@ -1,0 +1,704 @@
+{
+  "slug": "tocilizumab-covid19-mortality",
+  "title": "Tocilizumab vs usual care or placebo for 28-day mortality in hospitalised COVID-19",
+  "question": "In hospitalised adults with COVID-19, does tocilizumab reduce 28-day all-cause mortality versus usual care, standard care, or placebo?",
+  "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+  "protocol": {
+    "sha": "38478f5e060a9d63bcb073cb652d0e6f70d27c58",
+    "committed_utc": "2026-09-11",
+    "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+    "eligibility": "RCT; hospitalised COVID-19 by title or registry conditions; tocilizumab vs usual care, standard care, placebo, or supportive care; P/I/C/design only; double-blinding not required.",
+    "text": "# Protocol - tocilizumab for 28-day mortality in hospitalised COVID-19\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs.\n\n## PICO\n- **P** - adults hospitalised with COVID-19.\n- **I** - tocilizumab, an interleukin-6 receptor antagonist, added to usual or\n  standard care.\n- **C** - usual care, standard care, supportive care, or placebo added to standard care.\n- **O (primary)** - 28-day all-cause mortality.\n- **O (harms)** - serious adverse events and secondary infections by 28 days.\n\n## Estimand / population / timepoint\n- **Estimand** - odds ratio (OR), tocilizumab vs usual care/placebo. Published\n  abstract effect estimates with 95% CIs are poolable as reported when\n  abstract-extractable 2x2 counts are absent.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - 28 days.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **I1** - randomised controlled trial;\n- **I2** - hospitalised COVID-19 population by title or registry conditions;\n- **I3** - tocilizumab vs usual care, standard care, supportive care, or placebo;\n- **design** - randomised comparison; double-blinding is not required because the\n  target comparator includes open-label usual-care trials as well as placebo trials.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, meta-analysis, guideline, observational study,\n  protocol-only, or secondary/post-hoc analysis);\n- **X2** - wrong population (for example post-COVID sequelae, paediatric MIS-C,\n  giant-cell arteritis, rheumatoid arthritis, polymyalgia rheumatica, cytokine-release\n  syndrome outside COVID-19, cancer, or transplant);\n- **X3** - wrong intervention/comparison (no tocilizumab-vs-control contrast, or an\n  active-drug comparison without usual-care/placebo control);\n- **X5** - off-topic: a primary trial of another topic/disease in this set\n  (negative control).\n\n> Eligibility is NOT on the outcome axis. Whether an included trial reports\n> 28-day all-cause mortality in an abstract-extractable form is recorded as\n> target-result status at extraction, never as an exclusion. A published effect\n> plus 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/tocilizumab-covid19-mortality/records.json; screening replays offline)\n- PubMed: title-token queries for original tocilizumab COVID-19 randomised trial\n  reports, with PubMed-side filters to avoid reviews, meta-analyses, letters,\n  observational cohorts, post-hoc biomarker reports, and active-drug comparisons.\n- ClinicalTrials.gov: condition \"COVID-19\", intervention \"tocilizumab\".\n- Comparator-reference seeding is enabled so the WHO REACT trial references, where\n  PubMed exposes them, are replayed through the same P/I/C/design screen.\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on the configured log ratio scale; for the primary\noutcome this is log(OR). Paule-Mandel tau^2; HKSJ 95% CI on `t_{k-1}` with variance\nfloor `max(1, Q/(k-1))`; prediction interval `mu +/- t_{k-1}*sqrt(tau^2+se^2)`.\n0.5 continuity correction to all four cells of a study only if it has a zero cell.\nDerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nWHO Rapid Evidence Appraisal for COVID-19 Therapies (REACT) Working Group, *JAMA*\n2021, \"Association Between Administration of IL-6 Antagonists and Mortality Among\nPatients Hospitalized for COVID-19: A Meta-analysis\" (PMID 34228774, DOI\n10.1001/jama.2021.11330; Unpaywall is_oa=true; PubMed Central PMCID PMC8261689).\nIts abstract reports 27 randomised trials and 28-day all-cause mortality summary OR\n0.86 (95% CI 0.79-0.95) for all IL-6 antagonists versus usual care or placebo; the\ntocilizumab subgroup summary OR is 0.83 (95% CI 0.74-0.92).\n\n## Controls\n- **Positive** - the search must recover and include RECOVERY tocilizumab\n  (PMID 33933206), EMPACTA (PMID 33332779), and COVACTA (PMID 33631066).\n- **Negative** - GiACTA tocilizumab for giant-cell arteritis (PMID 28745999) must\n  be recovered and excluded as the wrong population.\n"
+  },
+  "search": {
+    "n_records": 50,
+    "cache_ref": "cache/tocilizumab-covid19-mortality/records.json",
+    "run_utc": "2026-09-11",
+    "databases": [
+      "PubMed",
+      "ClinicalTrials.gov"
+    ],
+    "sources": [
+      {
+        "name": "PubMed",
+        "queries": [
+          "((Tocilizumab[Title] AND patients[Title] AND admitted[Title] AND hospital[Title] AND COVID-19[Title]) OR (Tocilizumab[Title] AND Patients[Title] AND Hospitalized[Title] AND Covid-19[Title] AND Pneumonia[Title]) OR (Tocilizumab[Title] AND Hospitalized[Title] AND Severe[Title] AND Covid-19[Title] AND Pneumonia[Title])) NOT (post-hoc[Title] OR posthoc[Title] OR biomarker[Title] OR biomarkers[Title] OR antibody[Title] OR antibodies[Title] OR systematic[Title] OR meta-analysis[Title] OR review[Title] OR retrospective[Title] OR cohort[Title] OR reply[Title] OR case-control[Title] OR challenge[Title] OR real-life[Title] OR comparison[Title] OR baricitinib[Title] OR colchicine[Title])",
+          "((Efficacy[Title] AND Tocilizumab[Title] AND Patients[Title] AND Hospitalized[Title] AND Covid-19[Title]) OR (Effect[Title] AND Tocilizumab[Title] AND Usual[Title] AND Care[Title] AND Adults[Title] AND Hospitalized[Title] AND COVID-19[Title]) OR (Effect[Title] AND Tocilizumab[Title] AND Standard[Title] AND Care[Title] AND Clinical[Title] AND Worsening[Title])) NOT (post-hoc[Title] OR posthoc[Title] OR biomarker[Title] OR biomarkers[Title] OR antibody[Title] OR antibodies[Title] OR systematic[Title] OR meta-analysis[Title] OR review[Title] OR retrospective[Title] OR cohort[Title] OR reply[Title] OR case-control[Title] OR challenge[Title] OR real-life[Title] OR comparison[Title] OR baricitinib[Title] OR colchicine[Title])",
+          "((Effect[Title] AND tocilizumab[Title] AND clinical[Title] AND outcomes[Title] AND 15[Title] AND days[Title]) OR (Tocilizumab[Title] AND remdesivir[Title] AND hospitalized[Title] AND severe[Title] AND COVID-19[Title] AND pneumonia[Title]) OR (Tocilizumab[Title] AND Failed[Title] AND Reduce[Title] AND Mortality[Title] AND Severe[Title] AND COVID-19[Title]) OR (Efficacy[Title] AND tocilizumab[Title] AND hospitalized[Title] AND high[Title] AND IL-6[Title])) NOT (post-hoc[Title] OR posthoc[Title] OR biomarker[Title] OR biomarkers[Title] OR antibody[Title] OR antibodies[Title] OR systematic[Title] OR meta-analysis[Title] OR review[Title] OR retrospective[Title] OR cohort[Title] OR reply[Title] OR case-control[Title] OR challenge[Title] OR real-life[Title] OR comparison[Title] OR baricitinib[Title] OR colchicine[Title])"
+        ]
+      },
+      {
+        "name": "ClinicalTrials.gov",
+        "queries": [
+          "{\"cond\": \"COVID-19\", \"intr\": \"tocilizumab\"}"
+        ]
+      }
+    ]
+  },
+  "screening": {
+    "records": [
+      {
+        "id": "40232661",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of tocilizumab vs usual care in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "38157348",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of tocilizumab vs usual care in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "36247068",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 36247068)."
+      },
+      {
+        "id": "36150845",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 36150845)."
+      },
+      {
+        "id": "36064504",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 36064504)."
+      },
+      {
+        "id": "35531306",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 35531306)."
+      },
+      {
+        "id": "34609549",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of tocilizumab vs usual care in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "34147248",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 34147248)."
+      },
+      {
+        "id": "33933206",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of tocilizumab vs usual care in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "33657286",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 33657286)."
+      },
+      {
+        "id": "33631066",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of tocilizumab vs usual care in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "33332779",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of tocilizumab vs usual care in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "33089038",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 33089038)."
+      },
+      {
+        "id": "33080017",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of tocilizumab vs usual care in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "33080005",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of tocilizumab vs usual care in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "33085857",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of tocilizumab vs usual care in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "38485912",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of tocilizumab vs usual care in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "33472855",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of tocilizumab vs usual care in coronavirus disease 2019; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "28745999",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'giant-cell arteritis'."
+      },
+      {
+        "id": "34228774",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 34228774)."
+      },
+      {
+        "id": "NCT04730323",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'cytokine release syndrome'."
+      },
+      {
+        "id": "NCT04690920",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['tocilizumab'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT04346693",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['tocilizumab'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT05035589",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT05035589)."
+      },
+      {
+        "id": "ULTRA-COVID · NCT04394182",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['tocilizumab'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT04370834",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'cancer'."
+      },
+      {
+        "id": "NCT04380818",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['tocilizumab'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT04445272",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['usual care', 'standard care', 'standard of care', 'standard treatment', 'placebo', 'control', 'best supportive care', 'supportive care'])."
+      },
+      {
+        "id": "ICASARS · NCT05407597",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['tocilizumab'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "H4COVID · NCT05277285",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['tocilizumab'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT04871854",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'cancer'."
+      },
+      {
+        "id": "NCT04321993",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['tocilizumab'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "COLLATE · NCT04476888",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['tocilizumab'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "TOSCA · NCT04332913",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: TOSCA)."
+      },
+      {
+        "id": "NCT05367882",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT05367882)."
+      },
+      {
+        "id": "NCT04893031",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT04893031)."
+      },
+      {
+        "id": "TOCSIN · NCT05017441",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: TOCSIN)."
+      },
+      {
+        "id": "TOCIVID · NCT04322773",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['tocilizumab'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "CasiTocCOVID · NCT06233357",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: CasiTocCOVID)."
+      },
+      {
+        "id": "ARCHITECTS · NCT04412772",
+        "id_type": "nct",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of tocilizumab vs usual care in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "Cytomegalovir · NCT05419206",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: Cytomegalovir)."
+      },
+      {
+        "id": "NCT04377750",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['usual care', 'standard care', 'standard of care', 'standard treatment', 'placebo', 'control', 'best supportive care', 'supportive care'])."
+      },
+      {
+        "id": "TOCIDEX · NCT04476979",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['usual care', 'standard care', 'standard of care', 'standard treatment', 'placebo', 'control', 'best supportive care', 'supportive care'])."
+      },
+      {
+        "id": "NCT05279391",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['usual care', 'standard care', 'standard of care', 'standard treatment', 'placebo', 'control', 'best supportive care', 'supportive care'])."
+      },
+      {
+        "id": "NCT04492501",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'cytokine release syndrome'."
+      },
+      {
+        "id": "CORON-ACT · NCT04335071",
+        "id_type": "nct",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of tocilizumab vs usual care in covid-19; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "HEPMAB · NCT04600141",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['usual care', 'standard care', 'standard of care', 'standard treatment', 'placebo', 'control', 'best supportive care', 'supportive care'])."
+      },
+      {
+        "id": "TC19LGH · NCT04560205",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['usual care', 'standard care', 'standard of care', 'standard treatment', 'placebo', 'control', 'best supportive care', 'supportive care'])."
+      },
+      {
+        "id": "NCT04315480",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['usual care', 'standard care', 'standard of care', 'standard treatment', 'placebo', 'control', 'best supportive care', 'supportive care'])."
+      },
+      {
+        "id": "TRONCHER · NCT04361032",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['usual care', 'standard care', 'standard of care', 'standard treatment', 'placebo', 'control', 'best supportive care', 'supportive care'])."
+      }
+    ],
+    "positive_control": "Recovered & included the canonical trials ['33933206', '33332779', '33631066'] that a comparator includes; none missed.",
+    "negative_control": "Cross-topic trial(s) ['28745999'] recovered by the search and correctly EXCLUDED ['28745999'] by rule (same drug/design, wrong topic)."
+  },
+  "outcomes": [
+    {
+      "name": "28-day all-cause mortality",
+      "kind": "efficacy",
+      "primary": true,
+      "estimand": "OR",
+      "population": "intention-to-treat",
+      "timepoint": "28 days",
+      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "trials": [
+        {
+          "label": "33933206",
+          "id": "PMID 33933206",
+          "effect": 0.85,
+          "ci_low": 0.76,
+          "ci_high": 0.94,
+          "scale": "RR",
+          "source": "abstract effect+CI (RR): Overall, 621 (31%) of the 2022 patients allocated tocilizumab and 729 (35%) of the 2094 patients allocated to usual care died within 28 days (rate ratio 0.85; 95% CI 0.76-0.94; p=0.0028).",
+          "provenance": "abstract"
+        }
+      ],
+      "declared_absent_trials": [
+        {
+          "label": "40232661",
+          "id": "PMID 40232661",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "38157348",
+          "id": "PMID 38157348",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "34609549",
+          "id": "PMID 34609549",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33631066",
+          "id": "PMID 33631066",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33332779",
+          "id": "PMID 33332779",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33080017",
+          "id": "PMID 33080017",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33080005",
+          "id": "PMID 33080005",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33085857",
+          "id": "PMID 33085857",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "38485912",
+          "id": "PMID 38485912",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33472855",
+          "id": "PMID 33472855",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "ARCHITECTS",
+          "id": "NCT04412772",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "CORON-ACT",
+          "id": "NCT04335071",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "k": 1,
+        "estimate": 0.85,
+        "scale": "OR",
+        "ci_low": 0.7643,
+        "ci_high": 0.9453,
+        "pi_note": "prediction interval undefined for k=1"
+      }
+    },
+    {
+      "name": "Serious adverse events",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "OR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [
+        {
+          "label": "33631066",
+          "id": "PMID 33631066",
+          "ai": 103,
+          "n1i": 295,
+          "ci": 55,
+          "n2i": 143,
+          "source": "abstract arm-level counts (percentage-corroborated): In the safety population, serious adverse events occurred in 103 of 295 patients (34.9%) in the tocilizumab group and in 55 of 143 patients (38.5%) in the placebo group.",
+          "provenance": "abstract"
+        },
+        {
+          "label": "33332779",
+          "id": "PMID 33332779",
+          "ai": 38,
+          "n1i": 250,
+          "ci": 25,
+          "n2i": 127,
+          "source": "abstract arm-level counts (percentage-corroborated): In the safety population, serious adverse events occurred in 38 of 250 patients (15.2%) in the tocilizumab group and 25 of 127 patients (19.7%) in the placebo group.",
+          "provenance": "abstract"
+        }
+      ],
+      "declared_absent_trials": [
+        {
+          "label": "40232661",
+          "id": "PMID 40232661",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "38157348",
+          "id": "PMID 38157348",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "34609549",
+          "id": "PMID 34609549",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33933206",
+          "id": "PMID 33933206",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33080017",
+          "id": "PMID 33080017",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33080005",
+          "id": "PMID 33080005",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33085857",
+          "id": "PMID 33085857",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "38485912",
+          "id": "PMID 38485912",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33472855",
+          "id": "PMID 33472855",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "ARCHITECTS",
+          "id": "NCT04412772",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "CORON-ACT",
+          "id": "NCT04335071",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "k": 2,
+        "estimate": 0.8109,
+        "scale": "OR",
+        "ci_low": 0.0943,
+        "ci_high": 6.9756,
+        "tau2": 0.0,
+        "pi_low": 0.0943,
+        "pi_high": 6.9756,
+        "pi_note": "tau^2 estimated as 0, so the prediction interval coincides with the confidence interval (no between-study heterogeneity detected)."
+      }
+    },
+    {
+      "name": "Secondary infections by 28 days",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "OR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [],
+      "declared_absent_trials": [
+        {
+          "label": "40232661",
+          "id": "PMID 40232661",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "38157348",
+          "id": "PMID 38157348",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "34609549",
+          "id": "PMID 34609549",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33933206",
+          "id": "PMID 33933206",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33631066",
+          "id": "PMID 33631066",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33332779",
+          "id": "PMID 33332779",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33080017",
+          "id": "PMID 33080017",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33080005",
+          "id": "PMID 33080005",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33085857",
+          "id": "PMID 33085857",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "38485912",
+          "id": "PMID 38485912",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "33472855",
+          "id": "PMID 33472855",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "ARCHITECTS",
+          "id": "NCT04412772",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "CORON-ACT",
+          "id": "NCT04335071",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "present": false,
+        "reason": "no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract"
+      }
+    }
+  ],
+  "comparator": {
+    "name": "Association Between Administration of IL-6 Antagonists and Mortality Among Patients Hospitalized for COVID-19: A Meta-analysis.",
+    "year": "2021",
+    "journal": "JAMA",
+    "pmid": "34228774",
+    "doi": "10.1001/jama.2021.11330",
+    "url": "https://doi.org/10.1001/jama.2021.11330",
+    "open_access": true,
+    "reported": [
+      {
+        "outcome": "28-day all-cause mortality",
+        "estimate": 0.86,
+        "scale": "OR",
+        "ci_low": 0.79,
+        "ci_high": 0.95
+      }
+    ],
+    "overlap": {
+      "ours_k": 1,
+      "theirs_k": "not stated in the comparator abstract/full text",
+      "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
+      "only_ours": [
+        "40232661",
+        "38157348",
+        "38485912"
+      ],
+      "only_theirs": [],
+      "method": "publication-date + design identity (comparator trial list not extracted from source)",
+      "note": "Trials newer than the comparator (2021) cannot be in it (only-ours, verifiable by date). Exact shared count not asserted."
+    }
+  },
+  "reproduction": {
+    "failures": 0,
+    "protocol_sha": "38478f5e060a9d63bcb073cb652d0e6f70d27c58",
+    "review_sha256": "349708277059dbe6d057bf84c02dc95d50cb12e83361b85304c8004528bef573",
+    "from_cache": true
+  }
+}

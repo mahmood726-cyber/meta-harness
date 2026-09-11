@@ -1,0 +1,442 @@
+{
+  "slug": "noac-vs-warfarin-af-stroke",
+  "title": "Direct oral anticoagulants vs warfarin for stroke prevention in atrial fibrillation",
+  "question": "In adults with non-valvular atrial fibrillation, do direct oral anticoagulants versus warfarin reduce stroke or systemic embolism? Pairwise direct comparison only, not network synthesis.",
+  "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+  "protocol": {
+    "sha": "38478f5e060a9d63bcb073cb652d0e6f70d27c58",
+    "committed_utc": "2026-09-11",
+    "method_declared": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+    "eligibility": "RCT; intervention vs placebo; on-topic population; double-blind placebo-controlled. P/I/C/design only.",
+    "text": "# Protocol - direct oral anticoagulants versus warfarin for stroke prevention in atrial fibrillation\n\n**Registration.** The commit adding this file registers the review; its SHA is embedded\nin the page's Protocol tab and Reproducibility tab. The protocol is committed before\nthe synthesis is run.\n\n## PICO\n- **P** - adults with non-valvular atrial fibrillation treated for stroke prevention.\n- **I** - a direct oral anticoagulant: dabigatran, rivaroxaban, apixaban, or edoxaban.\n- **C** - warfarin or other vitamin K antagonist anticoagulation.\n- **O (primary)** - stroke or systemic embolism.\n- **O (harms)** - major bleeding.\n\n## Estimand / population / timepoint\n- **Estimand** - ratio-scale effect, labelled HR when trials report hazard ratios and RR\n  when the trial abstract reports a relative risk.\n- **Population** - intention-to-treat as randomised where the trial abstract reports it.\n- **Timepoint** - trial end / longest reported follow-up in the pivotal trial abstract.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is atrial fibrillation, judged from title or registry conditions;\n- **I3** - direct oral anticoagulant versus warfarin / vitamin K antagonist comparator;\n- **design** - randomised DOAC-vs-warfarin allocation; double-blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (e.g. mechanical heart valves, venous thromboembolism,\n  antiphospholipid syndrome, catheter ablation, cardioversion, device-procedure studies);\n- **X3** - wrong intervention/comparison (no direct oral anticoagulant versus\n  warfarin / vitamin K antagonist contrast);\n- **X5** - off-topic: a primary trial of another disease/topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports stroke or systemic\n> embolism, or gives a 2x2 table versus only an effect+CI, is recorded as target-result\n> status at extraction - never as an exclusion. A published effect + CI is a poolable\n> input when the fixed extractor can corroborate it from the abstract.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: UID searches for the four pivotal direct DOAC-vs-warfarin AF RCTs: RE-LY,\n  ROCKET AF, ARISTOTLE, and ENGAGE AF-TIMI 48.\n- ClinicalTrials.gov: condition \"atrial fibrillation\", intervention \"edoxaban warfarin\".\n- Comparator-reference seeding is disabled because the resolved 2022 IPD/NMA cites later\n  subgroup publications that share NCT IDs with the pivotal trials; the UID searches\n  intentionally preserve the primary trial abstracts as the extraction source.\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log ratio effects; **Paule-Mandel** tau^2; **HKSJ**\n95% CI on `t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a\nstudy only if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs\nmetafor 5.0.1 (<1e-6).\n\nThis topic is network-shaped in the literature, but this harness synthesis is explicitly\nthe direct pairwise DOAC-vs-warfarin comparison. No indirect treatment comparison or\nnetwork estimate is calculated by the harness.\n\n## Comparator (resolved; open-access confirmed)\nCarnicelli et al., *Circulation* 2022, \"Direct Oral Anticoagulants Versus Warfarin in\nPatients With Atrial Fibrillation: Patient-Level Network Meta-Analyses of Randomized\nClinical Trials With Interaction Testing by Age and Sex\" (PMID 34985309, PMCID\nPMC8800560, DOI 10.1161/CIRCULATIONAHA.121.056355; Unpaywall is_oa=true). It reports\nstandard-dose DOAC versus warfarin for stroke or systemic embolism as HR 0.81\n(95% CI 0.74-0.89), and reports major bleeding.\n\nRuff et al. 2014 in *Lancet* was checked because it is the classic direct trial-level\nmeta-analysis (PMID 24315724, DOI 10.1016/S0140-6736(13)62343-0), but Unpaywall reported\nis_oa=false, so it was not used as the comparator.\n\n## Controls\n- **Positive** - the search must recover and include RE-LY (PMID 19717844), ROCKET AF\n  (PMID 21830957), and ARISTOTLE (PMID 21870978).\n- **Negative** - RE-ALIGN, dabigatran versus warfarin in mechanical heart valves\n  (PMID 23991661), must be recovered and excluded as the wrong population.\n"
+  },
+  "search": {
+    "n_records": 35,
+    "cache_ref": "cache/noac-vs-warfarin-af-stroke/records.json",
+    "run_utc": "2026-09-11",
+    "databases": [
+      "PubMed",
+      "ClinicalTrials.gov"
+    ],
+    "sources": [
+      {
+        "name": "PubMed",
+        "queries": [
+          "19717844[uid] OR 21830957[uid]",
+          "21870978[uid] OR 24251359[uid]"
+        ]
+      },
+      {
+        "name": "ClinicalTrials.gov",
+        "queries": [
+          "{\"cond\": \"atrial fibrillation\", \"intr\": \"edoxaban warfarin\"}"
+        ]
+      }
+    ]
+  },
+  "screening": {
+    "records": [
+      {
+        "id": "21830957",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of dabigatran vs warfarin in atrial fibrillation; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "19717844",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of dabigatran vs warfarin in atrial fibrillation; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "24251359",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of dabigatran vs warfarin in atrial fibrillation; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "21870978",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of dabigatran vs warfarin in atrial fibrillation; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "23991661",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'mechanical heart valve'."
+      },
+      {
+        "id": "34985309",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 34985309)."
+      },
+      {
+        "id": "START-Portugal · NCT03977363",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: START-Portugal)."
+      },
+      {
+        "id": "ENSURE-AF · NCT02072434",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'cardioversion'."
+      },
+      {
+        "id": "NCT04121767",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'ablation'."
+      },
+      {
+        "id": "CLOSURE-AF · NCT03463317",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'left atrial appendage'."
+      },
+      {
+        "id": "NCT00504556",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dabigatran', 'rivaroxaban', 'apixaban', 'edoxaban', 'direct oral anticoagulant', 'direct oral anticoagulants', 'DOAC', 'DOACs', 'NOAC', 'NOACs', 'non-vitamin K antagonist oral anticoagulant', 'non-vitamin K antagonist oral anticoagulants'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "ENTICED-AF · NCT02561897",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'device procedures'."
+      },
+      {
+        "id": "NCT03760874",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT03760874)."
+      },
+      {
+        "id": "NCT03254147",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT03254147)."
+      },
+      {
+        "id": "BEST-AF · NCT04099238",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: BEST-AF)."
+      },
+      {
+        "id": "NCT04878497",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT04878497)."
+      },
+      {
+        "id": "NCT04047654",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT04047654)."
+      },
+      {
+        "id": "CORRAL-AF · NCT04684212",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'left atrial appendage'."
+      },
+      {
+        "id": "TRIDUAL-PCI · NCT04291287",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: TRIDUAL-PCI)."
+      },
+      {
+        "id": "ELIMINATE-AF · NCT02942576",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'catheter ablation'."
+      },
+      {
+        "id": "AFTER-CV · NCT01924065",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'cardioversion'."
+      },
+      {
+        "id": "ORGANON · NCT02935855",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dabigatran', 'rivaroxaban', 'apixaban', 'edoxaban', 'direct oral anticoagulant', 'direct oral anticoagulants', 'DOAC', 'DOACs', 'NOAC', 'NOACs', 'non-vitamin K antagonist oral anticoagulant', 'non-vitamin K antagonist oral anticoagulants'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "SoSTART · NCT03153150",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dabigatran', 'rivaroxaban', 'apixaban', 'edoxaban', 'direct oral anticoagulant', 'direct oral anticoagulants', 'DOAC', 'DOACs', 'NOAC', 'NOACs', 'non-vitamin K antagonist oral anticoagulant', 'non-vitamin K antagonist oral anticoagulants'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT03088072",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'left atrial appendage'."
+      },
+      {
+        "id": "ERTEMIS · NCT05540587",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'mitral stenosis'."
+      },
+      {
+        "id": "NCT02219984",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT02219984)."
+      },
+      {
+        "id": "PRiSMA-AF · NCT02611635",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: PRiSMA-AF)."
+      },
+      {
+        "id": "CHAOS · NCT03558295",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: CHAOS)."
+      },
+      {
+        "id": "PAUSE-ER · NCT04195113",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: PAUSE-ER)."
+      },
+      {
+        "id": "NCT05027061",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT05027061)."
+      },
+      {
+        "id": "NCT00806624",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dabigatran', 'rivaroxaban', 'apixaban', 'edoxaban', 'direct oral anticoagulant', 'direct oral anticoagulants', 'DOAC', 'DOACs', 'NOAC', 'NOACs', 'non-vitamin K antagonist oral anticoagulant', 'non-vitamin K antagonist oral anticoagulants'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT05006287",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dabigatran', 'rivaroxaban', 'apixaban', 'edoxaban', 'direct oral anticoagulant', 'direct oral anticoagulants', 'DOAC', 'DOACs', 'NOAC', 'NOACs', 'non-vitamin K antagonist oral anticoagulant', 'non-vitamin K antagonist oral anticoagulants'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT00829933",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dabigatran', 'rivaroxaban', 'apixaban', 'edoxaban', 'direct oral anticoagulant', 'direct oral anticoagulants', 'DOAC', 'DOACs', 'NOAC', 'NOACs', 'non-vitamin K antagonist oral anticoagulant', 'non-vitamin K antagonist oral anticoagulants'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT06401616",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'left atrial appendage'."
+      },
+      {
+        "id": "ATIS-NVAF · NCT03062319",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['dabigatran', 'rivaroxaban', 'apixaban', 'edoxaban', 'direct oral anticoagulant', 'direct oral anticoagulants', 'DOAC', 'DOACs', 'NOAC', 'NOACs', 'non-vitamin K antagonist oral anticoagulant', 'non-vitamin K antagonist oral anticoagulants'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      }
+    ],
+    "positive_control": "Recovered & included the canonical trials ['19717844', '21830957', '21870978'] that a comparator includes; none missed.",
+    "negative_control": "Cross-topic trial(s) ['23991661'] recovered by the search and correctly EXCLUDED ['23991661'] by rule (same drug/design, wrong topic)."
+  },
+  "outcomes": [
+    {
+      "name": "Stroke or systemic embolism",
+      "kind": "efficacy",
+      "primary": true,
+      "estimand": "HR",
+      "population": "intention-to-treat",
+      "timepoint": "trial end",
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [
+        {
+          "label": "21830957",
+          "id": "PMID 21830957",
+          "effect": 0.88,
+          "ci_low": 0.74,
+          "ci_high": 1.03,
+          "scale": "HR",
+          "source": "abstract effect+CI (HR): In the intention-to-treat analysis, the primary end point occurred in 269 patients in the rivaroxaban group (2.1% per year) and in 306 patients in the warfarin group (2.4% per year) (hazard ratio, 0.8",
+          "provenance": "abstract"
+        },
+        {
+          "label": "19717844",
+          "id": "PMID 19717844",
+          "effect": 0.91,
+          "ci_low": 0.74,
+          "ci_high": 1.11,
+          "scale": "RR",
+          "source": "abstract effect+CI (RR): RESULTS: Rates of the primary outcome were 1.69% per year in the warfarin group, as compared with 1.53% per year in the group that received 110 mg of dabigatran (relative risk with dabigatran, 0.91; 9",
+          "provenance": "abstract"
+        },
+        {
+          "label": "21870978",
+          "id": "PMID 21870978",
+          "effect": 0.79,
+          "ci_low": 0.66,
+          "ci_high": 0.95,
+          "scale": "HR",
+          "source": "abstract effect+CI (HR): The rate of the primary outcome was 1.27% per year in the apixaban group, as compared with 1.60% per year in the warfarin group (hazard ratio with apixaban, 0.79; 95% confidence interval [CI], 0.66 to",
+          "provenance": "abstract"
+        }
+      ],
+      "declared_absent_trials": [
+        {
+          "label": "24251359",
+          "id": "PMID 24251359",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "k": 3,
+        "estimate": 0.8568,
+        "scale": "HR",
+        "ci_low": 0.6807,
+        "ci_high": 1.0784,
+        "tau2": 0.0,
+        "pi_low": 0.6807,
+        "pi_high": 1.0784,
+        "pi_note": "tau^2 estimated as 0, so the prediction interval coincides with the confidence interval (no between-study heterogeneity detected)."
+      }
+    },
+    {
+      "name": "Major bleeding",
+      "kind": "harm",
+      "primary": false,
+      "estimand": "HR",
+      "population": null,
+      "timepoint": null,
+      "method": "Random-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [
+        {
+          "label": "24251359",
+          "id": "PMID 24251359",
+          "effect": 0.8,
+          "ci_low": 0.71,
+          "ci_high": 0.91,
+          "scale": "HR",
+          "source": "abstract effect+CI (HR): The annualized rate of major bleeding was 3.43% with warfarin versus 2.75% with high-dose edoxaban (hazard ratio, 0.80; 95% CI, 0.71 to 0.91; P<0.001) and 1.61% with low-dose edoxaban (hazard ratio, 0",
+          "provenance": "abstract"
+        },
+        {
+          "label": "21870978",
+          "id": "PMID 21870978",
+          "effect": 0.69,
+          "ci_low": 0.6,
+          "ci_high": 0.8,
+          "scale": "HR",
+          "source": "abstract effect+CI (HR): The rate of major bleeding was 2.13% per year in the apixaban group, as compared with 3.09% per year in the warfarin group (hazard ratio, 0.69; 95% CI, 0.60 to 0.80; P<0.001), and the rates of death f",
+          "provenance": "abstract"
+        }
+      ],
+      "declared_absent_trials": [
+        {
+          "label": "21830957",
+          "id": "PMID 21830957",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "19717844",
+          "id": "PMID 19717844",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "k": 2,
+        "estimate": 0.7464,
+        "scale": "HR",
+        "ci_low": 0.2922,
+        "ci_high": 1.9068,
+        "tau2": 0.00624,
+        "pi_low": 0.1889,
+        "pi_high": 2.9489
+      }
+    }
+  ],
+  "comparator": {
+    "name": "Direct Oral Anticoagulants Versus Warfarin in Patients With Atrial Fibrillation: Patient-Level Network Meta-Analyses of Randomized Clinical Trials With Interaction Testing by Age and Sex.",
+    "year": "2022",
+    "journal": "Circulation",
+    "pmid": "34985309",
+    "doi": "10.1161/CIRCULATIONAHA.121.056355",
+    "url": "https://doi.org/10.1161/CIRCULATIONAHA.121.056355",
+    "open_access": true,
+    "reported": [
+      {
+        "outcome": "Stroke or systemic embolism",
+        "estimate": 0.81,
+        "scale": "HR",
+        "ci_low": 0.74,
+        "ci_high": 0.89
+      },
+      {
+        "outcome": "Major bleeding",
+        "estimate": 0.86,
+        "scale": "HR",
+        "ci_low": 0.74,
+        "ci_high": 1.01
+      }
+    ],
+    "overlap": {
+      "ours_k": 3,
+      "theirs_k": "not stated in the comparator abstract/full text",
+      "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
+      "only_ours": [],
+      "only_theirs": [],
+      "method": "publication-date + design identity (comparator trial list not extracted from source)",
+      "note": "Trials newer than the comparator (2022) cannot be in it (only-ours, verifiable by date). Exact shared count not asserted."
+    }
+  },
+  "reproduction": {
+    "failures": 0,
+    "protocol_sha": "38478f5e060a9d63bcb073cb652d0e6f70d27c58",
+    "review_sha256": "61a807f35445e04963f3b157acbef7b30ad84b70102f723ebda560a37c9d3d54",
+    "from_cache": true
+  }
+}
