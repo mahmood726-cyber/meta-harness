@@ -64,3 +64,26 @@ def test_copps2_pericardial_primary_rejected_for_af_topic():
 def test_no_generic_anchor_returns_disease_only_unchanged():
     disease = ["atrial fibrillation"]
     assert _effective_kws(DAPA_HF, disease) == disease
+
+
+# --- scale-label correctness: the conjunction "or" must not be read as an odds ratio ---
+from harness.extract import _EFFECT, _effect_from_match
+
+
+def _scale(sentence):
+    m = _EFFECT.search(sentence)
+    return _effect_from_match(m)[0] if m else None
+
+
+def test_conjunction_or_not_read_as_odds_ratio():
+    # "CV death or HHF (RR ...)" must be RR, not OR (the bug that mislabelled a comparator)
+    assert _scale("the occurrence of CV death or HHF (RR = 0.83, 95% CI 0.77-0.89)") == "RR"
+
+
+def test_real_odds_ratio_still_OR():
+    assert _scale("summary OR, 0.86 [95% CI, 0.79-0.95]") == "OR"
+    assert _scale("pooled odds ratio [OR] 0.77 [95% CI 0.63-0.93]") == "OR"
+
+
+def test_hazard_ratio_still_HR():
+    assert _scale("hazard ratio 0.80; 95% CI 0.73 to 0.87") == "HR"
