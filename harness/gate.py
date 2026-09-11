@@ -238,6 +238,37 @@ def check_cross_source(review_dir):
     return []
 
 
+def check_duplicate_publication(review_dir, manifest):
+    """Unit-of-analysis guard: the SAME trial reported in two papers must not be pooled twice. If two
+    pooled trials in one outcome share an NCT, that is double-counting — refuse. Reads the committed
+    cache for the pmid->nct map (the review does not carry it)."""
+    slug = manifest.get("slug")
+    if not slug:
+        return []
+    cp = os.path.join(ROOT, "cache", slug, "records.json")
+    rp = os.path.join(review_dir, "review.json")
+    if not (os.path.exists(cp) and os.path.exists(rp)):
+        return []
+    try:
+        nct_of = {str(r.get("id")): r.get("nct") for r in json.load(open(cp, encoding="utf-8")).get("records", [])}
+        rev = json.load(open(rp, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read for duplicate-publication check ({exc})"]
+    reasons = []
+    for o in rev.get("outcomes", []) or []:
+        seen = {}
+        for t in o.get("trials", []) or []:
+            pid = str(t.get("id", "")).replace("PMID ", "")
+            nct = nct_of.get(pid)
+            if nct:
+                seen.setdefault(nct, []).append(pid)
+        dups = {n: ps for n, ps in seen.items() if len(ps) > 1}
+        if dups:
+            reasons.append(f"L1: outcome {o.get('name')!r} pools the same trial twice (shared NCT {dups}) "
+                           "— duplicate-publication double-counting; pool one report per trial")
+    return reasons
+
+
 def check_retraction(review_dir):
     """A pooled RETRACTED trial is a catastrophic defect; refuse the page. Reads the committed
     integrity snapshot (cache/<slug>/integrity.json via review.json's integrity block). If the check
@@ -274,6 +305,7 @@ def gate_page(review_dir):
                + check_controls(review_dir, manifest)
                + check_cross_source(review_dir)
                + check_retraction(review_dir)
+               + check_duplicate_publication(review_dir, manifest)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons
 

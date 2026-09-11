@@ -101,6 +101,56 @@ def enumerate_nct(cond: str, intr: str, root: str | None = None) -> list[str]:
     return sorted(conds & intrs)
 
 
+def outcome_arms(ncts, root: str | None = None) -> dict[str, list]:
+    """Structured arm-level results per NCT, reconstructed from AACT (outcomes -> result_groups +
+    outcome_measurements [per-arm event counts] + outcome_counts [per-arm denominators]). Returns
+    {nct: [{title, type, param_type, arms: [{group, events, denom}]}]}. This is the structured
+    extraction path that moves numbers off prose regex; it still needs outcome-identity gating before
+    a value is pooled (an AACT primary can be a composite, e.g. AFFIRM-AHF 'HF Hospitalizations and
+    CV Death'), so it is a fetch/measure-time source, verified per number, never auto-pooled.
+    Four filtered streaming passes over large tables — batch use only."""
+    want = {str(n).strip().upper() for n in ncts}
+    if not want or not snapshot_dir(root):
+        return {}
+    # outcomes: id -> (nct, type, title, param_type)
+    oc = {}
+    for r in _iter_rows(_table("outcomes", root)):
+        if (r.get("nct_id") or "").upper() in want:
+            oc[r.get("id")] = {"nct": (r.get("nct_id") or "").upper(), "type": r.get("outcome_type"),
+                               "title": r.get("title"), "param_type": r.get("param_type"), "arms": {}}
+    # result_groups: id -> title
+    rg = {}
+    for r in _iter_rows(_table("result_groups", root)):
+        if (r.get("nct_id") or "").upper() in want:
+            rg[r.get("id")] = r.get("title")
+    # outcome_measurements: per-arm event value (count outcomes only)
+    for r in _iter_rows(_table("outcome_measurements", root)):
+        oid = r.get("outcome_id")
+        if oid in oc and (r.get("param_type") or "").upper().startswith("COUNT"):
+            gid = r.get("result_group_id")
+            v = r.get("param_value_num") or r.get("param_value")
+            try:
+                oc[oid]["arms"].setdefault(gid, {})["events"] = float(v)
+            except (TypeError, ValueError):
+                pass
+    # outcome_counts: per-arm denominator (Participants scope)
+    for r in _iter_rows(_table("outcome_counts", root)):
+        oid = r.get("outcome_id")
+        if oid in oc:
+            gid = r.get("result_group_id")
+            try:
+                oc[oid]["arms"].setdefault(gid, {})["denom"] = float(r.get("count"))
+            except (TypeError, ValueError):
+                pass
+    out: dict[str, list] = {n: [] for n in want}
+    for o in oc.values():
+        arms = [{"group": rg.get(gid, gid), "events": a.get("events"), "denom": a.get("denom")}
+                for gid, a in o["arms"].items()]
+        out[o["nct"]].append({"title": o["title"], "type": o["type"],
+                              "param_type": o["param_type"], "arms": arms})
+    return out
+
+
 def study_dates(ncts, root: str | None = None) -> dict[str, dict]:
     """Per-NCT registration/enrolment/results dates + status, for the prospective-registration and
     ghost-protocol checks. ONE streaming pass over studies."""
