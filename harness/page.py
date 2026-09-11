@@ -473,10 +473,13 @@ def _reporting(r, neutral):
          "Results tab + per-trial Source column — source hierarchy (abstract > CT.gov structured > full text > "
          "hand-verified AACT arms), round-trip validation on every extraction, outcome-identity gating; refuse on ambiguity.",
          ""),
-        ("15 Certainty assessment (GRADE)", False,
-         None,
-         "No formal GRADE certainty rating yet; imprecision is shown via the CI"
-         + (" and prediction interval" if has_pi else "") + ", heterogeneity via tau^2, but a graded certainty is not asserted."),
+        ("15 Certainty assessment", bool(res.get("k")),
+         "Results tab — the machine-computable certainty signals are shown: imprecision via the 95% CI"
+         + (" and the prediction interval" if has_pi else "")
+         + (", single-trial (k=1) flagged" if res.get("k") == 1 else "")
+         + ", inconsistency via tau^2. A FORMAL GRADE rating (risk-of-bias, indirectness, publication bias) "
+           "is NOT automated — it needs human judgement — so certainty is reported as signals, not a graded label.",
+         ""),
         ("16a Flow with counts at every stage", bool(scr.get("records")),
          "Screening tab — PRISMA flow: identified -> screened -> excluded-by-rule (counts) -> eligible -> pooled k -> declared-absent.",
          "no screening flow"),
