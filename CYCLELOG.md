@@ -266,3 +266,16 @@ Every added trial verified true against source before it pools.
 - Also wrote BURN_PLAN.md (rate target + sequence; standards unchanged).
 - SUCCESS: the last "reproducible-given-my-judgement" number is now produced by committed code from
   committed AACT via a committed query — committed query -> committed cache -> replay -> gate.
+
+## Cycle 16 — Front 6 CLOSED: valid comparators for the 4 invalidated topics -> none exists (re-judge resolved)
+- Searched PubMed for a valid same-scope comparator for tocilizumab (the one of the 4 I had flagged as
+  possibly having one). Result: no clean tocilizumab-ONLY COVID-mortality meta exists — the literature
+  synthesizes tocilizumab within IL-6/monoclonal-antibody CLASS metas, or reports it only as a SUBGROUP
+  (RR ~0.95 placebo-controlled, ~0.90 severe-critical). So even tocilizumab has no like-for-like
+  standalone comparator; the 3 single-pivotal-trial drugs never could.
+- Updated tocilizumab comparator_scope_note (surgical 1-line edit; no config reformat) to state this.
+  JUDGELOG front-6 closure: all 4 -> "no valid same-scope comparator exists"; blind record is 15 clean
+  wins + 4 SET ASIDE, not 19-0. The re-judge is resolved by finding there is nothing valid to judge
+  against — itself the honest finding.
+- k delta: 0 (a documentation/closure cycle, not a k move). Recorded honestly. Rebuilt tocilizumab,
+  renders, JSON valid.
