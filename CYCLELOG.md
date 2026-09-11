@@ -348,3 +348,20 @@ Every added trial verified true against source before it pools.
   estimate/core-sha change). All queue items 3,6,7,8,9,10 are now disclosed on the pages/index.
 - SUCCESS: every disclosed-limitation item is now actually rendered — the differentiator no published
   comparator offers.
+
+## Cycle 22 — Item 5 (model extractor) RE-EXAMINED with evidence → wall confirmed a 4th way
+- Tested (not asserted) the claim "declared-absent trials have no round-trip anchor": REFUTED — 11 of
+  392 declared-absent PMID trials DO carry a reported effect (RR/OR/HR+CI) an anchor could use.
+- Examined them: ALL are correctly declined by EXISTING deterministic guards, so a locate-parse-
+  round-trip model would reach the same refusal and recover 0 verified new trials:
+  * 34446156 (colchicine-secondary MACE): a LoDoCo2 SUBGROUP effect ("no prior ACS", HR 0.81) — subgroup
+    guard correctly refuses (not the trial's overall poolable effect).
+  * 36347265 (IRONMAN, iv-iron): COMPOSITE/recurrent-event rate ratio — composite/recurrent guard refuses.
+  * 29237033 / 21873705: FALSE anchors — the POAF HR / recurrence RR mis-attributed to
+    "discontinuation"/"disease-related hospitalisation" by keyword overlap; wrong-outcome, correctly absent.
+- CONCLUSION: the model extractor's identity-judgment would classify these exactly as the guards do
+  (subgroup / composite / recurrent / wrong-outcome). Its payoff on THIS corpus is ~0 — confirmed a 4th
+  independent way (AACT c1, full-text c2, model-locatable c14, anchored-declared-absent c22). The
+  architecture stays documented for a FUTURE genuinely-anchored unusual-phrasing case; not built to
+  recover 0. k delta 0, recorded as a measured wall (not dressed up).
+- ALL 10 flaw-queue items now addressed: 1,2 built; 4 closed; 3,6,7,8,9,10 disclosed; 5 measured wall.
