@@ -478,3 +478,18 @@ Ran the full second-extractor pass (Fable located each of the 84 pooled numbers'
 - formatting/estimand-choice: 3 — ROCKET-AF (our HR 0.88 ITT vs model per-protocol 0.79, both in the abstract; ITT is the correct meta choice); Cotter/17356555 (our RR 0.21 is DERIVED from the counts the model span contains); Kotowska/15740542 (our 0.3 = "any diarrhoea 9/119 vs 29/127" vs model 0.2 = the literally-labelled AAD 4/119 vs 22/127 — a defensible outcome-definition split, flagged).
 - OUR-NUMBER-WRONG: 2 — PLACIDE/23932219 "Any adverse events" and "Serious adverse events" were both pooled as RR 0.71, which is actually the C. difficile-diarrhoea (CDD) relative risk (12/1493 vs 17/1488). The abstract reports no per-arm any-AE and SAE only as a pooled total ("578, much the same"). DIGIT-verification passed (0.71 is in the abstract) but it is the wrong outcome's number — exactly the wrong-endpoint class digit-checks cannot catch and the identity-judgment can.
 FIX (harness): cached the model identity judgments (cache/probiotics-aad-prevention/locate_judgments.json) + enabled locate_gate; both harm outcomes now correctly DECLARED-ABSENT (k 1->0), the AAD primary pool (k=13, its real RR 1.04) untouched. This VINDICATES the dual pass: it caught 2 wrong numbers backward-verification could not.
+
+## Recoverability of declared-absent PRIMARY cells (Fable span-location) + genuine k candidates (2026-09-12)
+Ran Fable span-location over all 96 primary-outcome declared-absent cells (trials the deterministic
+extractor marked "no result"). 39 have a locatable result, 57 confirmed genuinely absent. The model
+CORRECTLY flagged the traps (which the bar refuses): recurrent-event counts (AFFIRM-AHF 217/294,
+HEART-FID 297/1532 — "do not treat as patients", the known lesson), wrong composites (ELIXA 4-point
+MACE, IRONMAN composite, COPS all-cause), wrong timepoints (TCZ 15-/30-day vs 28-day), subgroup-only
+(Alpha-Omega statin substudy), %-only-no-counts, treatment-vs-prevention, 97.5% CI (ENGAGE).
+GENUINE clean candidates worth per-trial verification (NOT yet pooled — each needs identity + exact-
+count + round-trip): finerenone FIDELIO-DKD 33264825 kidney composite 504/2833 vs 600/2841 (would take
+finerenone k=1->2); CONFIRM-HF 25176939 HF-hosp HR 0.39 (0.19-0.82); tocilizumab CORIMUNO-TOCI 33080017
+28-day mortality 7/63 vs 8/67 and REMDACTA/COVACTA/EMPACTA (some %-only = COPS-refusal for derived
+counts). IMPLICATION: the model-extraction path recovers real trials the regex missed (vindicating it
+as a primary path), but rigorous identity/estimand/exact-count gating means pooling needs per-trial
+verification, not auto-pool. cache/recover_spans_sample.json retains the located spans.

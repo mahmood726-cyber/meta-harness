@@ -379,6 +379,26 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if len(eff) > 1:
             out["result"]["scale"] = "mixed (" + "/".join(sorted(eff)) + ")"
             out["result"]["scale_mixed"] = sorted(eff)
+        # LEAVE-ONE-OUT / influence, always rendered: at k>=3 drop each trial and re-pool to show how
+        # much any single trial moves the estimate; at k<=2 it is not assessable and we say so (never
+        # hidden). Uses the same pooler and scale; no new number is invented.
+        k_now = out["result"].get("k")
+        if isinstance(k_now, int) and k_now >= 3:
+            loo = []
+            for j in range(len(studies)):
+                sub = studies[:j] + studies[j + 1:]
+                r = _pool_result(sub, scale=pooled_scale)
+                loo.append({"dropped": studies[j].label, "estimate": r.get("estimate")})
+            ests = [x["estimate"] for x in loo if x["estimate"] is not None]
+            base = out["result"].get("estimate")
+            worst = max(loo, key=lambda x: abs((x["estimate"] or base) - base)) if (ests and base) else None
+            out["result"]["leave_one_out"] = {
+                "min": min(ests) if ests else None, "max": max(ests) if ests else None,
+                "most_influential": worst["dropped"] if worst else None,
+                "per_trial": loo,
+                "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."}
+        elif isinstance(k_now, int):
+            out["result"]["leave_one_out"] = {"note": f"not assessable at k={k_now} (leave-one-out needs k>=3)"}
         if out["result"].get("k") == 1:
             # A single trial is not a random-effects meta-analysis: present it honestly as the
             # trial's own effect, and do not display tau^2 / HKSJ / prediction-interval machinery.

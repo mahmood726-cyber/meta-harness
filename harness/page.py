@@ -438,6 +438,17 @@ def rows_join(rows):
     return "".join(rows)
 
 
+def _loo_text(loo):
+    """Compact leave-one-out render: influence range + most-influential trial, or the not-assessable note."""
+    if not loo:
+        return None
+    if loo.get("min") is not None:
+        return (f"estimate ranges {_num(loo.get('min'))}–{_num(loo.get('max'))} across single-trial drops; "
+                f"most influential: {_e(loo.get('most_influential'))}. "
+                + _e(loo.get("note", "")))
+    return _e(loo.get("note"))
+
+
 def _outcome_block(o, show_inputs=True):
     reason = _absent(o)
     if reason:
@@ -458,6 +469,7 @@ def _outcome_block(o, show_inputs=True):
             ("Prediction interval", (f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}" if res.get('pi_low') is not None else None)),
             ("τ²", _num(res.get("tau2")) if res.get("tau2") is not None else None),
             ("Note", res.get("pi_note")),
+            ("Leave-one-out (influence)", _loo_text(res.get("leave_one_out"))),
         ] if v is not None])
         # A k stated without the contributing trials named is the container-vs-contents
         # defect. When trials are enumerable, name them (below). When they are not (a

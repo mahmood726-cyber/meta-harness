@@ -451,3 +451,13 @@ Every added trial verified true against source before it pools.
   harm outcomes DECLARED-ABSENT (k 1->0); AAD primary (k=13, RR 1.04) untouched. Reproduces, gate PASS,
   103 tests. This is exactly what the dual pass is for — it caught 2 wrong numbers the digit-check missed.
 - Fable lane count: 14 lanes this stretch (7 defect + 7 dual), on the 99%-unused Fable bucket.
+
+## Cycle 29 — Leave-one-out/influence (always rendered) + recoverability measurement (Fable)
+- LEAVE-ONE-OUT: pipeline computes it for every outcome — at k>=3 the influence range + most-influential
+  trial (drop-one re-pool), at k<=2 "not assessable (k<3)". Rendered on every outcome. 0 estimates moved
+  (additive), 103 tests, 23/23 reproduce, gate PASS.
+- RECOVERABILITY (Fable, 7 lanes, free bucket): 96 primary declared-absent cells -> 39 have a locatable
+  result, 57 confirmed absent. The model correctly flagged the traps (recurrent-event, wrong-composite,
+  wrong-timepoint, subgroup, %-only, treatment-trial, 97.5% CI). Genuine clean candidates (FIDELIO-DKD,
+  CONFIRM-HF, CORIMUNO-TOCI, ...) queued for per-trial verification (NOT auto-pooled — the bar).
+- Fable lane count this stretch: 21 (7 defect + 7 dual + 7 recover), all on the 99%-unused Fable bucket.
