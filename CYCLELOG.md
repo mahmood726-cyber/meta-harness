@@ -147,3 +147,12 @@ Every added trial verified true against source before it pools.
   not duplicated into the reporting tab (transparency != volume).
 - No page bytes changed (artifact-only); 98 tests unaffected. deficit=transparency-integration moved
   from "standalone score" to "in the domain scorecard". SUCCESS.
+
+## Cycle 9 — TEST: does the cycle-6 fix unlock any k=0 decline? NO (declines confirmed genuine)
+- Rebuilt the 5 k=0 gate-refused topics (azithromycin-copd, corticosteroids-cap, metformin-pcos,
+  sacubitril-valsartan, zinc-cold) with the cycle-6 arm-identity extractor. All 5 still primary-k=0,
+  gate refuses. Their declines are NOT the denominator gap — genuinely no extractable primary-outcome
+  binomial (composite primary / wrong-endpoint / no percentage-corroborated counts).
+- Dirs removed (declines carry no page). k delta: 0. FAILED cycle for k, but it CONFIRMS the 5
+  declines are real data-absence, not an extraction bug the general fix could reach — closing them as
+  verified declines rather than leaving them as suspected extraction gaps.
