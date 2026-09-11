@@ -207,6 +207,9 @@ def _trial_inputs(o):
         elif t.get("e1i") is not None:
             inp = (f"{_e(t.get('e1i'))}/{_num(t.get('t1i'))} vs {_e(t.get('e2i'))}/{_num(t.get('t2i'))} "
                    "(events/person-time)")
+        elif t.get("mean1") is not None:
+            inp = (f"{_num(t.get('mean1'))}±{_num(t.get('sd1'))} (n={_e(t.get('nc1'))}) vs "
+                   f"{_num(t.get('mean2'))}±{_num(t.get('sd2'))} (n={_e(t.get('nc2'))}) (mean±SD)")
         elif t.get("effect") is not None:
             inp = f"{_num(t.get('effect'))} ({o.get('estimand')}), 95% CI {_num(t.get('ci_low'))}–{_num(t.get('ci_high'))}"
         else:

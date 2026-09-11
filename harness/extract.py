@@ -291,6 +291,28 @@ _MED_IQR = re.compile(  # "median X (IQR a-b)" / "median X (IQR a to b)"
     r"[\(\[]\s*(?:IQR|interquartile range)\s*[:=]?\s*(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)", re.I)
 
 
+def _arm_ns(abstract, interv_terms, comp_terms):
+    """Per-arm randomised n, {i: n_intervention, c: n_comparator}, only when unambiguously stated
+    for BOTH arms ('zinc (n=50)', 'N patients received zinc', 'assigned N to placebo'); else the
+    missing arm is omitted so the continuous extractor refuses rather than guess a denominator."""
+    out = {}
+    for key, terms in (("i", interv_terms), ("c", comp_terms)):
+        best = None
+        for t in terms:
+            tl = re.escape(t)
+            for pat in (rf"{tl}[^.]{{0,12}}?\(\s*n\s*=\s*(\d+)\)",
+                        rf"(\d+)\s+(?:patients?|participants?|adults?|subjects?)[^.]{{0,25}}?(?:received|randomi[sz]ed to|assigned to|in the)[^.]{{0,15}}?{tl}",
+                        rf"(?:received|assigned to|randomi[sz]ed to)[^.]{{0,15}}?{tl}[^.]{{0,15}}?\(\s*(\d+)\)"):
+                m = re.search(pat, abstract, re.I)
+                if m:
+                    best = int(m.group(1)); break
+            if best:
+                break
+        if best:
+            out[key] = best
+    return out
+
+
 def extract_continuous(sentence, interv_terms, comp_terms, n_by_arm=None):
     """Return (mean1,sd1,n1,mean2,sd2,n2) for a mean-difference outcome, or None. Accepts explicit
     'mean (SD)' / 'X +/- SD' per arm, or 'median (IQR a-b)' converted via Wan-2014
@@ -406,6 +428,16 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
             return {"e1i": rate[0], "t1i": rate[1], "e2i": rate[2], "t2i": rate[3],
                     "measure": "IRR",
                     "source": "abstract events + person-time (incidence-rate ratio): " + s.strip()[:200]}
+    # Continuous fallback: mean-difference from per-arm mean+/-SD (+ per-arm n from the abstract).
+    ns = _arm_ns(abstract, interv_terms, comp_terms)
+    for s in sents:
+        if factorial and not _interv_in(s, interv_terms):
+            continue
+        cont = extract_continuous(s, interv_terms, comp_terms, ns)
+        if cont:
+            return {"mean1": cont[0], "sd1": cont[1], "nc1": cont[2],
+                    "mean2": cont[3], "sd2": cont[4], "nc2": cont[5], "measure": "MD",
+                    "source": "abstract mean+/-SD per arm (mean difference): " + s.strip()[:200]}
     if factorial:
         return {"absent": True, "reason": ("factorial-design trial: no extraction sentence explicitly "
                 "names the intervention, so the effect cannot be attributed to our comparison "

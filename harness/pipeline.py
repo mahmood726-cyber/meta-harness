@@ -129,14 +129,27 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     if trials:
         meas = (spec.get("estimand") or "RR").upper()
         meas = meas if meas in ("RR", "OR") else "RR"  # 2x2 pools as RR/OR; HR only via effect+CI
+        def _meas(t):
+            if t.get("e1i") is not None:
+                return "IRR"
+            if t.get("mean1") is not None:
+                return "MD"
+            return meas
         studies = [Study(label=t["label"], ai=t.get("ai"), n1i=t.get("n1i"), ci=t.get("ci"),
                          n2i=t.get("n2i"), effect=t.get("effect"), ci_low=t.get("ci_low"),
                          ci_high=t.get("ci_high"),
                          e1i=t.get("e1i"), t1i=t.get("t1i"), e2i=t.get("e2i"), t2i=t.get("t2i"),
-                         source=t.get("source", ""), measure=("IRR" if t.get("e1i") is not None else meas))
-                   for t in trials]
-        # If every pooled trial contributed incidence-rate data, the pooled scale is IRR.
-        pooled_scale = "IRR" if all(t.get("e1i") is not None for t in trials) else spec.get("estimand", "RR")
+                         mean1=t.get("mean1"), sd1=t.get("sd1"), nc1=t.get("nc1"),
+                         mean2=t.get("mean2"), sd2=t.get("sd2"), nc2=t.get("nc2"),
+                         source=t.get("source", ""), measure=_meas(t)) for t in trials]
+        # The pooled scale reflects the data actually pooled: IRR if all rate-based, MD if all
+        # continuous, else the topic's ratio estimand.
+        if all(t.get("e1i") is not None for t in trials):
+            pooled_scale = "IRR"
+        elif all(t.get("mean1") is not None for t in trials):
+            pooled_scale = "MD"
+        else:
+            pooled_scale = spec.get("estimand", "RR")
         out["result"] = _pool_result(studies, scale=pooled_scale)
         if out["result"].get("k") == 1:
             # A single trial is not a random-effects meta-analysis: present it honestly as the
