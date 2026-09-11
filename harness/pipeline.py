@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import os
 
-from . import extract, screen, scope, verify
+from . import extract, screen, scope, verify, locate
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool
 
@@ -245,7 +245,8 @@ def _with_model_adjudication(slug, dual, decisions):
 
 
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
-                   fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None):
+                   fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
+                   locate_judgments=None):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     trials, absent = [], []
@@ -302,6 +303,21 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "source": va.get("source", "hand-verified structured arm-level counts")})
             continue
         absent.append({"label": label, "id": idstr, "reason": ex["reason"]})
+    # LOCATE IDENTITY GATE (opt-in, model-derived): a cached judgment that a trial's located evidence
+    # is NOT the target outcome forces it to declared-absent — the safeguard against the right-number/
+    # wrong-endpoint class. It can only REMOVE a mis-identified number, never add one.
+    if locate_judgments:
+        kept = []
+        for t in trials:
+            pid = str(t.get("id", "")).replace("PMID ", "")
+            j = locate.rejects(locate_judgments, pid, spec["name"])
+            if j:
+                absent.append({"label": t["label"], "id": t["id"],
+                               "reason": "model outcome-identity gate (model-derived): " + j.get("why", ""),
+                               "locate_judgment": j})
+            else:
+                kept.append(t)
+        trials = kept
     # PER-TRIAL VERIFICATION against committed source, computed at build and rendered (not assumed):
     # each pooled number's digits must be present in the committed abstract / structured source.
     for t in trials:
@@ -420,8 +436,9 @@ def build_review_core(slug, config, records, protocol_sha):
     # substring match. This keeps every existing topic byte-identical until it opts in.
     ojudg = _load_outcome_judgments(slug) if config.get("outcome_identity") else None
     varms = _load_verified_arms(slug)
+    ljudg = locate.load(slug) if config.get("locate_gate") else None
     outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp,
-                               outcome_judgments=ojudg, verified_arms=varms)
+                               outcome_judgments=ojudg, verified_arms=varms, locate_judgments=ljudg)
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 

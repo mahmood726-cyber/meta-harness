@@ -377,3 +377,21 @@ Every added trial verified true against source before it pools.
   + 4 set-aside). The correction already existed below; now the stale lines point to it.
 - k delta 0 (a methods finding + record fix). Next: BUILD the locate-parse-round-trip identity gate
   (model span + identity, cached/model-derived, code parses, round-trip decides) — now justified.
+
+## Cycle 24 — BUILT the locate-parse-round-trip identity gate (item 5, now justified by cycle 23)
+- harness/locate.py: loads cached model-derived locate judgments; rejects(pmid, outcome) returns the
+  judgment when the model identified the located evidence as NOT the target outcome.
+- pipeline: opt-in (config.locate_gate) — after extraction, a trial the model judged is_target_outcome
+  =False is moved to declared-absent with the model's reason (rendered model-derived). It can only
+  REMOVE a mis-identified number, never add one. Judgments cached per (slug,pmid,outcome) with model
+  id + method + date (Fable, emits no number); replay reproduces without re-calling the model.
+- DEMONSTRATED on the two wrong-endpoint topics that gate-passed WRONG numbers in cycle 3:
+  * vitamin-D 20219962 (influenza-A-as-ARI): gated -> primary k=0 -> gate REFUSES. The wrong-endpoint
+    gate-pass is now a correct DECLINE.
+  * antibiotics 33017106 (30-day-resolution-as-1yr-failure): gated to declared-absent (a second trial
+    26080338 remains unjudged, so the topic stays unbuilt pending its judgment).
+- Both topics stay UNBUILT (declines carry no page); the gate INFRASTRUCTURE is the deliverable.
+- BACKWARD-COMPATIBLE: the 23 live topics have no locate_gate -> inert -> 23/23 reproduce, 102 tests.
+- SUCCESS: item 5 built as an identity gate that structurally prevents the right-number/wrong-endpoint
+  class (the quietest, most-cited defect family), model-derived + cached + replay-safe. My earlier
+  dismissal is fully reversed and the fix is in the harness.
