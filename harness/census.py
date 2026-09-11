@@ -39,6 +39,20 @@ def _parity_row(root: str, slug: str):
     return None
 
 
+def _refusals_rows(root: str, slug: str):
+    """This topic's notable VERIFIED-BUT-NOT-POOLED refusals from committed docs/refusals.json, or
+    None. Makes the honest 'we found this trial, verified its numbers, and still did not pool it,
+    because ...' visible on the page — a stronger statement than a larger k. Outside the core hash;
+    shared by census + reproduce_review so replay byte-matches."""
+    p = os.path.join(root, "docs", "refusals.json")
+    if not slug or not os.path.exists(p):
+        return None
+    try:
+        return (json.load(open(p, encoding="utf-8")) or {}).get(slug)
+    except (ValueError, OSError):
+        return None
+
+
 def build_review_dir(
     review_core_obj: dict,
     manifest_meta: dict,
@@ -82,6 +96,9 @@ def build_review_dir(
     _pa = _parity_row(_root, manifest_meta.get("slug", ""))
     if _pa:
         reproduction["parity"] = _pa
+    _rf = _refusals_rows(_root, manifest_meta.get("slug", ""))
+    if _rf:
+        reproduction["refusals"] = _rf
     final_review = dict(review_core_obj)
     final_review["reproduction"] = reproduction
     html = render_page(final_review)

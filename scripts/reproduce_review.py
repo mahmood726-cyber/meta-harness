@@ -66,6 +66,9 @@ def reproduce(slug):
     _pa = census._parity_row(ROOT, slug)
     if _pa:
         repro["parity"] = _pa
+    _rf = census._refusals_rows(ROOT, slug)
+    if _rf:
+        repro["refusals"] = _rf
     final = dict(core, reproduction=repro)
     if sha256_text(render_page(final)) != sha256_text(served):
         reasons.append("served index.html does not byte-match a re-render from the replayed core")

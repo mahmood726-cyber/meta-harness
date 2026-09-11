@@ -596,6 +596,18 @@ def _reproduction(r, neutral):
                  f"<strong>{_e(pa.get('our_k'))}</strong> vs the comparable same-scope comparator "
                  f"<em>k</em> = <strong>{_e(pa.get('comparable_comparator_k'))}</strong> &mdash; "
                  f"<strong>{_e(pa.get('status'))}</strong>. {_e(pa.get('reason'))}</p>")
+    # VERIFIED-BUT-NOT-POOLED: a trial we located and whose numbers we verified, yet did not pool,
+    # with the reason. "We found it, verified it, and still refused it, because ..." is a stronger
+    # honesty statement than a larger k. Outside the core hash (committed docs/refusals.json).
+    if rf := rep.get("refusals"):
+        rows = "".join(
+            f"<tr><td>{_e(x.get('trial'))}</td><td>{_e(x.get('verified'))}</td>"
+            f"<td>{_e(x.get('not_pooled_because'))}</td></tr>" for x in rf)
+        body += ("<h4>Verified but not pooled (refusals, with reasons)</h4>"
+                 "<p class='muted'>Trials we located and whose numbers we verified against source, "
+                 "yet deliberately did not pool. Honest k over inflated k: a named refusal is a result.</p>"
+                 "<table class='arms'><tr><th>Trial</th><th>What was verified</th>"
+                 f"<th>Why it was not pooled</th></tr>{rows}</table>")
     body += ("<div class='banner'><strong>What this reproduction claim covers — and what it does not.</strong> "
              "It proves DETERMINISTIC REPLAY: re-running from the registration SHA on a fresh clone replays "
              "the committed cache and regenerates this page byte-for-byte (same inputs → same output). It does "
