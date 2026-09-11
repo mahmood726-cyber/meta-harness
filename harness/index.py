@@ -123,12 +123,17 @@ def build_index(docs_dir: str) -> str:
                "trials, 0 report a verifiable per-arm SD in accessible primary text. We pool only what "
                "we can verify against source, so we decline those cells rather than impute &mdash; a "
                "genuine methodological difference, not a shortfall.</p>"
-               "<p><strong>Registry-and-regulatory reach under-covers older literature (measured).</strong> "
+               "<p><strong>The reach picture is complete &mdash; all three routes measured.</strong> "
                "FDA/EMA and multi-registry (ISRCTN/EU-CTR/ICTRP) adapters reach newer approval-label and "
-               "registered trials, but cannot reach old published RCTs that predate the registries and "
-               "were never before FDA/EMA (DART 1989, GISSI-Prevenzione 1999, JELIS 2007, GISSI-HF 2008). "
-               "For those the only reach is bibliographic (citation chasing). Each affected page names "
-               "which trials are out of registry-and-regulatory reach and why.</p></div>")
+               "registered trials but cannot reach old pre-registry RCTs (DART 1989, GISSI-Prevenzione 1999, "
+               "JELIS 2007, CORE/COPE 2005). <strong>Bibliographic citation chasing (Crossref) DOES reach "
+               "them &mdash; 9 of 9 recovered</strong> from the comparators' own reference lists. But our "
+               "preregistered screening then declines most for a stated, defensible reason: they are "
+               "<strong>open-label</strong> where we require double-blind (CORE, COPE, JELIS, GISSI-P), or "
+               "the population/outcome does not match. So the remaining <em>k</em> gaps are <strong>screening-"
+               "strictness decisions, not search failures</strong> &mdash; the comparators' larger pools "
+               "include open-label and off-outcome trials our criteria exclude. Each affected page names "
+               "which recovered trials were declined and why.</p></div>")
     body = _parity_section(docs_dir) + _stance + body
 
     return (
