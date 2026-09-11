@@ -169,3 +169,28 @@ Every added trial verified true against source before it pools.
 - REGRESS: 0 outcome estimates moved (process-metadata only); 98 tests, 23/23 reproduce, gate PASS.
   deficit=transparency: "which adapters ran" moved from invisible to a rendered four-state panel on
   every page. SUCCESS.
+
+## Cycle 11 — WEAKNESS SURVEY as a harness artefact + BACKWARD-VERIFICATION of all 23 live topics
+- BUILT scripts/weakness_survey.py -> docs/weakness_survey.json (committed) + docs/weakness_survey.html
+  (rendered report: each weakness = measurement, value, target, status). Regenerable from the review
+  objects; measured, not recalled.
+- ⭐ BACKWARD-VERIFICATION (dimension 3, the centrepiece): every pooled trial-outcome number re-checked
+  that its digits are present in the COMMITTED source (full abstract / ctgov structured / hand-verified
+  cross-check). RESULT after validating the checker: **84 pooled pairs -> 83 verified_span + 1
+  verified_handchecked + 0 UNVERIFIED**. The live set's numbers all trace to source.
+- The checker itself was validated THREE times before trusting it (the "verify against the bytes you
+  showed" lesson): first flagged 24 (artifact: checked the truncated 200-char display span, not the
+  full abstract — the arm-identity fix legitimately pairs a count from one sentence with a denominator
+  from another); then 8 (artifact: middle-dot Lancet decimals 0.88 vs 0.88, and RRR->RR conversion
+  0.56->0.44); fixed both -> 0 genuine unverified. A scary number from an unvalidated instrument is
+  not a finding.
+- OUTCOME-IDENTITY on the 4 ctgov_results pairs (digit-verify does not cover wrong-endpoint): crystalloids
+  'In-hospital Mortality' ✓, omega3 'Atrial Fibrillation (Omega-3 only)' ✓, ticagrelor 'Any Major
+  Bleeding' ✓ — 3 clean; spironolactone flags one BORDERLINE: declared "Hyperkalemia" but ctgov gave
+  "Hospitalization Due to Hyperkalemia" (4/1367, EMPHASIS-HF eplerenone) — a narrower endpoint on a
+  harm outcome, recorded for review (not an egregious wrong-endpoint like the 3 unbuilt topics).
+- 2 PROVENANCE MIX: abstract 79, registry 4, full-text 0, hand-verified 1 of 84. The "95% regex"
+  concern re-measured: the number FOUND by the harness is the abstract/registry extractor; hand-verified
+  is 1/84 (1.2%) and must reach 0. 8 FRAGILITY: 19/23 topics k<=2 or tau2=0 (small-k dominant, as
+  expected). 8b MIXED-SCALE POOLS: 6 (next cycle). 9 TRANSPARENCY: 0 gaps.
+- SUCCESS: the survey is a committed, rendered, regenerable artefact and the live set is verified clean.
