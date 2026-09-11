@@ -70,3 +70,17 @@ auto-extracted from its own PubMed abstract by the SAME pipeline, so it is no lo
   1. **Harms depth** — our GI harm in CORP-2 is reported word-form ("nine ... vs nine", no %), so the conservative extractor declares it absent; the comparator pools 2 harms. Ours loses the harms limb until harms extraction is deepened (word-form counts / count-only pairs). Weigh against fabrication risk.
   2. **Include-list precision** — 6 screened-in, 3 pooled; the 3 extras are design/rationale/duplicate reports of already-included trials. Pool stays correct (they're declared-absent), but the include count reads high. Fix generally only if it recurs on the lane topics.
 - Data-completeness/provenance win is stable and is the genuine value proposition.
+
+---
+
+## Topic 4 — azithromycin for COPD exacerbations — DECLINED (honest non-production)
+- Registered (protocol+config+cache committed, Codex lane 2) and comparator resolved well
+  (PMID 30538443, OA; patients-with-exacerbation OR 0.40). But **k=0**: the 5 included trials
+  report the exacerbation outcome as **time-to-first (HR), rate ratio per patient-year, or median
+  time** (e.g. Albert 2011: "median time to first exacerbation 266 vs 174 days"), not a poolable
+  proportion, and the abstracts give no clean effect+CI to extract. The comparator harmonised these
+  from full trial data; the harness cannot from abstracts.
+- **Decision:** do NOT publish a hollow k=0 page. Declared not-yet-produced. To produce honestly
+  would need rate-ratio/HR-of-time-to-first pooling as the primary AND per-trial full-text data —
+  a real harness extension (deferred; noted as a general capability gap, not a topic patch).
+- The registration stays committed; no page is claimed live. This is a result (a named refusal), not a gap in n.
