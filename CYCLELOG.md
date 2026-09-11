@@ -231,3 +231,21 @@ Every added trial verified true against source before it pools.
 - SUCCESS: verified_arms is 1 entry, and it is now harness-auditable/re-derivable rather than typed
   judgement. Fresh-clone still replays the committed cache (AACT is not in-clone); the auditor proves
   the committed number is AACT-derivable.
+
+## Cycle 14 — MEASURE the locate-parse-round-trip model-extractor opportunity → measured wall
+- Before a multi-hour Fable locate-parse-round-trip build, MEASURED the recoverable opportunity: 67
+  declared-absent PMID trials have >=2 outcome-value tokens the deterministic extractor didn't take.
+  But that is a LOOSE upper bound — inspection shows the tokens are overwhelmingly P-values, enrollment
+  Ns, design/rationale papers, composite components, different outcomes, or the known paywalled COPPS.
+- Tested the most promising (34876021 MACE): "36 MACE ... 8 events colchicine vs 28 events placebo
+  ... experiencing the event (P=0.001)", arms 120/129. NOT safely poolable: (a) events-vs-patients
+  ambiguous, (b) NON-STANDARD MACE definition ("decompensated HF, ACS, stroke AND survival rate"),
+  (c) NO reported effect (HR/RR) to round-trip against — only a P value. Refuse on ambiguity.
+- CONCLUSION: the locate-parse-round-trip model is the right ARCHITECTURE (model locates a verbatim
+  span + identity, harness parses, round-trip decides, cached+rendered model-derived) but its payoff
+  on THIS corpus is ~0 — the candidates lack round-trip anchors / have ambiguous identity, so a model
+  would (correctly) refuse them or risk a wrong number. Extraction is now measured-exhausted a THIRD
+  way (AACT cycle 1, full-text cycle 2, model-locatable cycle 14). Recorded as a measured wall, not a
+  speculative build — a cycle that moves no verified deficit is a failed cycle for k.
+- The architecture stays documented as the correct next build for a FUTURE genuine unusual-phrasing
+  case WITH a round-trip anchor; it is not built speculatively under an expiring budget.
