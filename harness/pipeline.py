@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import os
 
-from . import extract, screen, scope
+from . import extract, screen, scope, verify
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool
 
@@ -302,6 +302,12 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "source": va.get("source", "hand-verified structured arm-level counts")})
             continue
         absent.append({"label": label, "id": idstr, "reason": ex["reason"]})
+    # PER-TRIAL VERIFICATION against committed source, computed at build and rendered (not assumed):
+    # each pooled number's digits must be present in the committed abstract / structured source.
+    for t in trials:
+        pid = str(t.get("id", "")).replace("PMID ", "")
+        ab = (rec_by_id.get(pid) or {}).get("abstract", "")
+        t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
     out = {"name": spec["name"], "kind": kind, "primary": bool(spec.get("primary")),
            "estimand": spec.get("estimand", "RR"), "population": spec.get("population"),
            "timepoint": spec.get("timepoint"), "method": METHOD,

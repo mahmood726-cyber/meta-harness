@@ -301,3 +301,17 @@ Every added trial verified true against source before it pools.
   deficit-move. NOT added — the straight path is to hold the preregistered set, not inflate it.
 - k delta: 0. Recorded as a principled decline, not dressed up. (Source: PubMed, CLEAR Outcomes,
   DOI 10.1056/NEJMoa2215024.)
+
+## Cycle 19 — Item 2 (HIGHEST PRIORITY): `verified` is now a RENDERED per-trial field
+- New harness/verify.py (single source of truth): verify_pooled(trial, abstract) checks each pooled
+  number's digits are present in the COMMITTED source (full abstract for abstract/full-text; ctgov
+  structured source string; AACT-derived cross-check for aact_verified). Middle-dot decimals + RRR->RR
+  complement handled (the checker-artifacts learned in cycle 11).
+- pipeline._build_outcome computes t["verified"] + t["verify_basis"] for every pooled trial at build.
+  page.py renders a per-trial badge: "verified against source" / "verified (AACT-derived)" / "NOT YET
+  verified". Status is now VISIBLE, not assumed.
+- RESULT across all 23: 83 verified + 1 verified_handchecked, **0 not-yet** — matches the survey's
+  independent backward-verification (two implementations agree = cross-check). 102 tests, 23/23
+  reproduce, gate PASS.
+- SUCCESS: item 2 done. The single highest-priority flaw (unverified-as-assumed) is closed —
+  verified/not-yet is a rendered per-trial state a reader can see.

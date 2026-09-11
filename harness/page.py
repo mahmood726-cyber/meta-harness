@@ -382,7 +382,17 @@ def _trial_inputs(o):
             inp = f"{_num(t.get('effect'))} ({o.get('estimand')}), 95% CI {_num(t.get('ci_low'))}–{_num(t.get('ci_high'))}"
         else:
             inp = "—"
-        src = _e(t.get("source"))
+        # VERIFIED badge (rendered, not assumed): does this pooled number's digits appear in the
+        # committed source? verified / verified (hand-checked, AACT-derived) / NOT YET.
+        vst = t.get("verified")
+        if vst == "verified":
+            src = "<span class='vok' title='" + _e(t.get("verify_basis", "")) + "'>✓ verified against source</span><br>" + _e(t.get("source"))
+        elif vst == "verified_handchecked":
+            src = "<span class='vok' title='" + _e(t.get("verify_basis", "")) + "'>✓ verified (AACT-derived, cross-checked)</span><br>" + _e(t.get("source"))
+        elif vst == "not-yet":
+            src = "<span class='vno' title='" + _e(t.get("verify_basis", "")) + "'>⚠ NOT YET verified against source</span><br>" + _e(t.get("source"))
+        else:
+            src = _e(t.get("source"))
         cs = t.get("cross_source")
         if cs:
             # Second independent extractor (CT.gov structured) corroborating the abstract number.
@@ -663,6 +673,7 @@ table.kv th{text-align:left;width:36%;vertical-align:top;padding:6px 8px;color:#
 table.kv td{padding:6px 8px;border:1px solid #dbe3e8}
 table.recs th,table.recs td,table.arms th,table.arms td{border:1px solid #dbe3e8;padding:5px 8px;font-size:12.5px;text-align:left;vertical-align:top}
 .dec-include{color:#136f3b;font-weight:600}.dec-exclude{color:#8a4b00}
+.vok{color:#137333;font-weight:600}.vno{color:#b31412;font-weight:600}
 .absent{background:#fff4e5;border:1px solid #f0c27b;padding:10px 14px;border-radius:6px;color:#7a4b00}
 .absent-cell{color:#7a4b00}
 .banner{background:#eaf4fb;border-left:4px solid #4ea1d3;padding:10px 14px;margin:12px 0;font-size:13.5px}
