@@ -120,8 +120,8 @@ def _overview(r, neutral):
             "<li><strong>Open-access comparator only.</strong> The benchmark meta is restricted to an "
             "OA-retrievable publication, a narrower and sometimes weaker comparator set than the full "
             "literature.</li>"
-            + (f"<li><strong>Comparator scope.</strong> {_e(r.get('comparator_scope_note'))}</li>"
-               if r.get("comparator_scope_note") else "")
+            + ((f"<li><strong>Comparator scope mismatch.</strong> {_e((r.get('comparator') or {}).get('scope',{}).get('note'))}</li>")
+               if (r.get('comparator') or {}).get('scope', {}).get('scope_valid') is False else "")
             + "<li><strong>Favourable topic sample.</strong> Topics were chosen by us; clean binary "
             "outcomes with registered trials succeeded, while continuous, recurrent-event and older "
             "literature were declined — so the success rate reflects a selected sample, not the whole "
@@ -421,6 +421,15 @@ def _comparator(r, neutral):
     ])
     for rep in c.get("reported", []) or []:
         body += f"<p>{_e(rep.get('outcome'))}: {_num(rep.get('estimate'))} ({rep.get('scale')}), 95% CI {_num(rep.get('ci_low'))}–{_num(rep.get('ci_high'))}</p>"
+    sc = c.get("scope") or {}
+    if sc:
+        v = "✓ same question" if sc.get("scope_valid") else "⚠ SCOPE MISMATCH"
+        body += ("<h4>Scope match (is this the same question?)</h4>"
+                 f"<p><strong>{v}.</strong> Intervention level: topic is {'class-level' if sc.get('topic_is_class') else 'a single agent'}, "
+                 f"comparator is {'class-level' if sc.get('comparator_is_class') else 'a single agent'} "
+                 f"(match: {_e(sc.get('intervention_level_match'))}); population match: {_e(sc.get('population_match'))}. "
+                 f"{_e(sc.get('note'))} <span class='muted'>Decided by one uniform rule applied to every topic "
+                 "before the k was seen.</span></p>")
     ov = c.get("overlap") or {}
     body += "<h4>Trial-set overlap (an identical estimate on an identical set is arithmetic, not corroboration)</h4>"
     body += _kv([

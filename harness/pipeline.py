@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import os
 
-from . import extract, screen
+from . import extract, screen, scope
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool
 
@@ -410,6 +410,7 @@ def build_review_core(slug, config, records, protocol_sha):
         "journal": comp_rec.get("journal"), "pmid": comp_rec.get("id"), "doi": comp_rec.get("doi"),
         "url": (f"https://doi.org/{comp_rec.get('doi')}" if comp_rec.get("doi") else None),
         "open_access": bool(oa.get("is_oa")), "reported": reported,
+        "scope": scope.assess(config, comp_rec.get("title") or "", comp_abstract),
         "overlap": {"ours_k": ours_k, "theirs_k": theirs_k,
                     "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
                     "only_ours": newer, "only_theirs": [],
