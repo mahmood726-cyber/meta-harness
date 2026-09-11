@@ -156,3 +156,16 @@ Every added trial verified true against source before it pools.
 - Dirs removed (declines carry no page). k delta: 0. FAILED cycle for k, but it CONFIRMS the 5
   declines are real data-absence, not an extraction bug the general fix could reach — closing them as
   verified declines rather than leaving them as suspected extraction gaps.
+
+## Cycle 10 — TRANSPARENCY: four-state source status rendered (target #4: "which adapters ran")
+- Added pipeline._source_status: RAN_OK / RAN_ZERO / RAN_ERROR / NOT_RUN per source (PubMed, Europe
+  PMC, ClinicalTrials.gov, Citation chase, Registry-first AACT, PMC full text), preferring the status
+  fetch recorded and filling the rest DETERMINISTICALLY from committed artifacts (recall.json,
+  fulltext_by_pmid, ctgov presence) — replay-safe, process-metadata only. Rendered compactly on the
+  Search tab so process coverage is visible, not assumed.
+- The deterministic-render census check CAUGHT a dict-order non-determinism in my first render
+  (items() insertion order vs canonical_json sorted keys — the exact RoB2 bug class); fixed with
+  sorted() iteration. That check earning its keep on a real bug is why the limb exists.
+- REGRESS: 0 outcome estimates moved (process-metadata only); 98 tests, 23/23 reproduce, gate PASS.
+  deficit=transparency: "which adapters ran" moved from invisible to a rendered four-state panel on
+  every page. SUCCESS.

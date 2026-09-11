@@ -219,6 +219,17 @@ def _search(r, neutral):
         ("Committed cache", s.get("cache_ref")),
         ("Run (UTC)", s.get("run_utc")),
     ] if v is not None])
+    ss = s.get("source_status") or {}
+    if ss:
+        # Four-state per source: which adapters ran, returned nothing, errored, or were not attempted
+        # for this topic — so process coverage is visible, not assumed.
+        # sorted() so the render order is independent of dict key order (canonical_json sorts keys;
+        # an insertion-order iteration would render differently pre/post-canonicalisation — the
+        # deterministic-render census check catches exactly that, as it did for RoB2).
+        cells = " · ".join(f"{_e(k)}: <strong>{_e(v)}</strong>" for k, v in sorted(ss.items()))
+        body += ("<h4>Source status (which adapters ran)</h4><p class='muted'>" + cells +
+                 " — RAN_OK = ran and returned records; RAN_ZERO = ran, none matched; RAN_ERROR = "
+                 "attempted but failed; NOT_RUN = not attempted for this topic.</p>")
     rc = s.get("recall")
     if rc and rc.get("known"):
         # PRIMARY search metric: how many of this topic's KNOWN trials the committed registry-first

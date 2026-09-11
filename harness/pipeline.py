@@ -361,6 +361,26 @@ def _outcome_specs(config):
     return specs
 
 
+def _source_status(slug, config, records, merged):
+    """Four-state (RAN_OK / RAN_ZERO / RAN_ERROR / NOT_RUN) per search source, so a reader can see
+    which adapters ran, which returned nothing, and which were not attempted for this topic. Prefers
+    the status fetch actually recorded (records.source_status) and fills the rest DETERMINISTICALLY
+    from committed artifacts (recall.json, fulltext_by_pmid, ctgov presence) — replay-safe, no network,
+    process-metadata only (never a pooled number)."""
+    committed = records.get("source_status") or {}
+    ft = records.get("fulltext_by_pmid") or {}
+    rc = _load_recall(slug) or {}
+    has_ctgov = bool(records.get("ctgov") or records.get("ctgov_results"))
+    return {
+        "PubMed": committed.get("pubmed") or ("RAN_OK" if merged else "RAN_ZERO"),
+        "Europe PMC (OA + metadata)": committed.get("europepmc") or ("RAN_OK" if merged else "RAN_ZERO"),
+        "ClinicalTrials.gov": "RAN_OK" if has_ctgov else ("RAN_ZERO" if config.get("ctgov") else "NOT_RUN"),
+        "Citation chase": committed.get("citation_chase") or ("RAN_OK" if config.get("cite_chase") else "NOT_RUN"),
+        "Registry-first (AACT)": (rc.get("status") if rc else None) or ("RAN_ERROR" if config.get("registry_first") else "NOT_RUN"),
+        "PMC full text": "RAN_OK" if ft else ("RAN_ZERO" if config.get("fulltext") else "NOT_RUN"),
+    }
+
+
 def build_review_core(slug, config, records, protocol_sha):
     merged = _dedup(records)
     scr = screen.run(merged, config)
@@ -432,6 +452,7 @@ def build_review_core(slug, config, records, protocol_sha):
                    "run_utc": records.get("fetched_utc"), "databases": ["PubMed", "ClinicalTrials.gov"],
                    "sources": [{"name": "PubMed", "queries": records.get("pubmed_queries", [])},
                                {"name": "ClinicalTrials.gov", "queries": [json.dumps(records.get("ctgov_query"))]}],
+                   "source_status": _source_status(slug, config, records, merged),
                    **({"recall": _rc} if (_rc := _load_recall(slug)) else {}),
                    **({"ghost": _gh} if (_gh := _load_ghost(slug)) else {})},
         "screening": {"records": [{"id": (f"{rec_by_id.get(d['id'],{}).get('acronym')} · " if rec_by_id.get(d['id'],{}).get('acronym') else "") + str(d["id"]),
