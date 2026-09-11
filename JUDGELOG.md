@@ -205,3 +205,17 @@ Neutral opaque-token pairs, URL-only subagent judges, /35.
 
 ### BLIND RECORD: 19 of 19 topics judged, ours higher on all 19 (all auditability wins).
 ### k=1-labeling polish queued: label single-trial result as "Single-trial effect", generalise method string beyond log(RR).
+
+## omega3 recall audit integrated (2026-09-11) — k6->7, one verified add, one wrong-number caught
+Codex recall audit (Europe PMC + CT.gov, free) named 14 PMID-backed missed RCTs. Integrated reproducibly:
+audit PMIDs added to committed extra_pmids (re-fetchable, documented); cite_chase enabled; every candidate
+went through screening + extraction + round-trip, then hand-verified against the audit's source quotes.
+- ADDED (verified): OMEGA-REMODEL PMID 38184150 — O3-FA MACE HR 1.014 (0.716-1.436), double-blind. k6->7, RR 0.9316.
+- CAUGHT + EXCLUDED (wrong number): SU.FOL.OM3 PMID 21115589 is a 2x2 factorial; the effect-only extractor
+  bound the B-vitamin/homocysteine HR (0.9) NOT the omega-3 vascular-events HR (1.08 per source). Round-trip
+  could not fire (no counts). Hand-verification caught it; excluded. FACTORIAL-EXTRACTION LIMITATION documented.
+- Correctly declared-absent: open-label (JELIS, RESPECT-EPA, DART, dietary) design-excluded; OMEGA/DART bare-%.
+- Registry-first/citation-chasing (cite_chase adapter) proven reproducible on the flagship not-found topic:
+  the gap to comparator's ~28 is mostly our double-blind design strictness + extraction limits, not missing search.
+- NOTE: SU.FOL.OM3 shows round-trip's blind spot (effect-only, no counts). Extending round-trip to effect-only
+  factorial trials (or refusing effect-only when the abstract has multiple factors) is a deferred hardening.
