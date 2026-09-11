@@ -66,6 +66,45 @@ def test_no_generic_anchor_returns_disease_only_unchanged():
     assert _effective_kws(DAPA_HF, disease) == disease
 
 
+# --- NEJM "primary COMPOSITE outcome" phrasing: the inserted adjective must not defeat the
+#     anchor when the primary IS ours; a narrative RESULT mention in a substudy must NOT enable it.
+FIDELIO = ("The primary composite outcome, assessed in a time-to-event analysis, was kidney "
+           "failure, a sustained decrease of at least 40% in the eGFR from baseline, or death "
+           "from renal causes. During a median follow-up of 2.6 years, a primary outcome event "
+           "occurred in 504 of 2833 patients (17.8%) in the finerenone group and 600 of 2841 "
+           "patients (21.1%) in the placebo group (hazard ratio, 0.82; 95% CI, 0.73 to 0.93).")
+# PLATO diabetes SUBSTUDY: no outcome-definition sentence, only a narrative result mention and
+# subgroup HRs. The generic anchor must stay disabled so no subgroup number is pooled.
+PLATO_DM_SUBSTUDY = (
+    "In the PLATO trial, ticagrelor reduced the primary composite endpoint of cardiovascular "
+    "death, myocardial infarction, or stroke compared with clopidogrel. In patients with DM, "
+    "the reduction in the primary composite endpoint (HR: 0.88, 95% CI: 0.76-1.03) was "
+    "consistent. ticagrelor reduced the primary endpoint in patients with HbA1c above the "
+    "median (HR: 0.80, 95% CI: 0.70-0.91).")
+ACS_KWS = ["cardiovascular death, myocardial infarction, or stroke", "major adverse cardiovascular",
+           "primary outcome", "primary endpoint", "primary end point"]
+
+
+def test_nejm_primary_composite_outcome_recovers_anchor():
+    # "primary composite outcome ... was kidney failure ..." -- composite splits the literal
+    # substring, but the relaxed anchor + definition cue + renal keyword must enable it.
+    assert _enabled(FIDELIO, KIDNEY_KWS)
+
+
+def test_fidelio_primary_extracts_kidney_composite_counts():
+    fx = _xt(FIDELIO, KIDNEY_KWS, ["finerenone"], ["placebo"], declared_composite=True)
+    assert not fx.get("absent"), fx
+    assert (fx["ai"], fx["n1i"], fx["ci"], fx["n2i"]) == (504, 2833, 600, 2841), fx
+
+
+def test_substudy_narrative_mention_does_not_enable_anchor():
+    # a RESULT mention ("reduced the primary composite endpoint of ...") is not a DEFINITION
+    # sentence; the anchor must stay disabled so a median-split subgroup HR is never pooled.
+    assert not _enabled(PLATO_DM_SUBSTUDY, ACS_KWS)
+    fx = _xt(PLATO_DM_SUBSTUDY, ACS_KWS, ["ticagrelor"], ["clopidogrel"], declared_composite=True)
+    assert fx.get("absent"), fx
+
+
 # --- scale-label correctness: the conjunction "or" must not be read as an odds ratio ---
 from harness.extract import _EFFECT, _effect_from_match
 

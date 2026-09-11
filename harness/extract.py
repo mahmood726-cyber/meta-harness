@@ -180,6 +180,35 @@ def extract_effect(sentence):
 GENERIC_ANCHORS = {"primary outcome", "primary end point", "primary endpoint",
                    "primary study outcome", "primary study end point"}
 
+# Recognises a primary/secondary OUTCOME-DEFINITION phrase even when an adjective is inserted
+# between "primary" and the outcome noun. NEJM/Lancet routinely write "the primary COMPOSITE
+# outcome" / "the primary composite end point", where the literal substring "primary outcome"
+# is absent (the word "composite" splits it) — so a purely literal anchor check fails to
+# recognise the definition sentence and the generic anchor is never enabled (FIDELIO-DKD:
+# "The primary composite outcome ... was kidney failure, ... eGFR ..., or death from renal
+# causes" was declared-absent for exactly this reason). This ONLY controls whether a sentence
+# is treated as an outcome-DEFINITION sentence in _effective_kws; the disease-specificity gate
+# there still decides whether the primary IS ours, so a CV primary (FIGARO-DKD) is unaffected.
+# PRIMARY family ONLY: the generic anchors in GENERIC_ANCHORS are all "primary" anchors, so
+# only a PRIMARY-definition sentence may enable them. Matching a "secondary ... outcome"
+# definition sentence here would wrongly turn on the "primary outcome" anchor and let a
+# trial whose SECONDARY is ours (but whose PRIMARY is a different composite) have its primary
+# grabbed — FIGARO-DKD's CV primary (458/3686) being read as the kidney topic's outcome.
+_ANCHOR_RX = re.compile(
+    r"\b(?:co-?primary|primary)\s+"
+    r"(?:composite\s+|study\s+|efficacy\s+|main\s+|clinical\s+)*"
+    r"(?:outcome|end[\s-]?point)\b", re.I)
+# A relaxed-anchor match counts as an outcome-DEFINITION sentence only when it also carries a
+# definition cue ("the primary composite outcome ... WAS ...", "... DEFINED AS ...", "a
+# COMPOSITE OF ..."). This distinguishes a genuine definition from a narrative RESULT mention
+# ("ticagrelor reduced the primary composite endpoint of ...") that appears in a PLATO diabetes
+# SUBSTUDY (PMID 20802246), where enabling the generic anchor would let a median-split subgroup
+# HR (0.80, "patients with HbA1c above the median") be selected. A literal anchor keeps its
+# original behaviour (unchanged); this cue is required ONLY for the relaxed path.
+_DEF_CUE = re.compile(
+    r"\b(?:was|were|is|are|defined|assessed|comprised|consisted|included)\b|"
+    r"\bcomposite of\b|\ba composite\b", re.I)
+
 
 # Words excluded from the outcome-overlap test. Two groups:
 #  - syntactic glue ("or", "for", "composite", "endpoint"...)
@@ -227,7 +256,11 @@ def _effective_kws(abstract, outcome_kws):
     dwords = _content_words(disease)
     for s in _sentences(abstract):
         sl = s.lower()
-        if not any(g in sl for g in generic):
+        # A sentence is an outcome-DEFINITION sentence if it names a generic anchor literally
+        # (original behaviour) OR matches the relaxed anchor pattern AND carries a definition
+        # cue (so a narrative "reduced the primary endpoint of ..." result mention in a
+        # substudy does not enable the anchor). Enabling still requires disease-keyword overlap.
+        if not (any(g in sl for g in generic) or (_ANCHOR_RX.search(sl) and _DEF_CUE.search(sl))):
             continue
         if any(dk.lower() in sl for dk in disease):
             return disease + generic
