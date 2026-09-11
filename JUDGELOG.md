@@ -322,3 +322,14 @@ trials. INTEGRATION (make it the default search path): union enumerated PMIDs in
 by P/I/C/design (precision handled by screening, recall proven here), re-pool. That re-pool needs per-trial
 extraction + estimand verification (GISSI relative-risk, SOFA HR, OMEGA) and touches every cache -> a careful
 scoped pass, not turn-tail. The adapter + measurement are committed; the recall metric is the run's compass.
+
+## Registry-first RECALL per topic (2026-09-11) — the run's primary metric (harness output via scripts/recall.py)
+Clean RAN_OK enumeration runs (committed registry_first:{cond,intr} queries):
+- omega3-cardiovascular-events: 9/13 (0.69) — enum ~925; recovers GISSI-P/SOFA/OMEGA the title-AND queries missed.
+- balanced-crystalloids-vs-saline-mortality: 3/4 (0.75) — enum 77; recovers SMART (29485925); missed SALT (27749094, registered/linked differently).
+- colchicine-postop-af: 3/4 (0.75) — enum 27.
+Registry-first recovers ~70-75% of known trials — substantial reach vs brittle title-AND queries. OPERATIONAL:
+(a) CT.gov RATE-LIMITS concurrent enumerations -> RAN_ERROR (not RAN_ZERO; four-state working); space runs, don't
+fan too many at once. (b) untracked RECALL-*.md from prior lane uses survive git reset --hard -> clean untracked
+before clone reuse (never clean a tree another lane holds). recall.py is the regenerable metric; numbers above are
+from clean runs. Missed trials (SALT, the omega3 4) confirm multi-registry need (ISRCTN/EU CTR/ICTRP) + NCT-link gaps.
