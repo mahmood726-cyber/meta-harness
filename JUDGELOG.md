@@ -240,3 +240,9 @@ Re-ran declined topics through the current harness (round-trip, factorial guard,
 - vitamin-d-ari: now produces k=1 (PMID 20219962) but HELD not published — a k=1 abstract-extraction page misrepresents a ~25-RCT field; honest-but-unrepresentative, weak. Revisit if extraction depth improves.
 - iv-iron-hfref: (in progress / recurrent-event class).
 Not every decline becomes buildable; re-attempting with better machinery is correct, publishing a weak/wrong page is not.
+
+## New-topic wave (2026-09-11): spironolactone LIVE (20th); rivaroxaban + canakinumab DECLINED
+- spironolactone-hfref-mortality: LIVE k=2 — RALES RR 0.70 (0.60-0.82) + EMPHASIS-HF HR 0.76 (0.62-0.93), pooled 0.72; comparator (OA) HR 0.78. Both verified; EPHESUS negative control excluded. Required the spelled-out-CI extraction fix (RALES writes "95 percent confidence interval").
+- rivaroxaban-vte-treatment: DECLINED — EINSTEIN-DVT (HR 0.68) vs EINSTEIN-PE (HR 1.12) genuinely heterogeneous (tau2=0.079); k=2 HKSJ t_1 CI 0.037-20.88 is uninformative (prone-ARDS precedent). An honest synthesis needs DVT/PE handling the harness does not do.
+- canakinumab-cv-prevention: DECLINED — CANTOS is a MULTI-ARM dose-ranging trial (50/150/300 mg canakinumab vs placebo); extractor bound the 150-mg HR 0.85 by clause-binding, but selecting one of three dose arms without a pre-specified rule is multi-arm ambiguity. Needs a MULTI-ARM GUARD (generalise the factorial principle: >2 randomised arms must have the comparison specified or be refused) — deferred; declined rather than publish a luck-of-binding number.
+### Live now: 20 of 31 preregistered.
