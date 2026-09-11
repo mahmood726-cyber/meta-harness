@@ -189,6 +189,16 @@ def effect_in_outcome(abstract, kws):
     return None
 
 
+def comparator_effect(abstract, fulltext, kws):
+    """SOURCE HIERARCHY for a published comparator's reported effect, explicit and testable:
+      1. the ABSTRACT's headline effect for the outcome (what the authors chose to report), then
+      2. the FULL TEXT — used ONLY to fill an outcome the abstract does not state.
+    Full text must NOT override an abstract headline: full text carries many analyses
+    (subgroups, sensitivity) and grabbing one silently substitutes the wrong figure (this is
+    how topic 1's comparator primary became 0.46 instead of the abstract's 0.40)."""
+    return effect_in_outcome(abstract or "", kws) or effect_in_outcome(fulltext or "", kws)
+
+
 def extract_meta(abstract, outcome_kws):
     """Comparator meta: pooled effect+CI for the outcome, and k."""
     abstract = _norm(abstract)

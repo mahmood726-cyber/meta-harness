@@ -111,12 +111,9 @@ def build_review_core(slug, config, records, protocol_sha):
     comp_abstract = comp_rec.get("abstract", "")
     comp_full = records.get("comparator_fulltext") or ""
 
-    def _comp_eff(kws):  # abstract headline first; full text only to fill what the abstract lacks
-        return extract.effect_in_outcome(comp_abstract, kws) or extract.effect_in_outcome(comp_full, kws)
-
     reported = []
     for co in config.get("comparator_outcomes", []):
-        eff = _comp_eff(co["keywords"])
+        eff = extract.comparator_effect(comp_abstract, comp_full, co["keywords"])
         if eff:
             reported.append({"outcome": co["name"], "estimate": eff["effect"], "scale": eff["scale"],
                              "ci_low": eff["ci_low"], "ci_high": eff["ci_high"]})
@@ -175,7 +172,7 @@ def build_comparator_core(slug, config, records):
          or extract.extract_meta(comp_full, config["primary_outcome"]["keywords"]).get("k"))
     outcomes = []
     for i, co in enumerate(config.get("comparator_outcomes", [])):
-        eff = extract.effect_in_outcome(comp_abstract, co["keywords"]) or extract.effect_in_outcome(comp_full, co["keywords"])
+        eff = extract.comparator_effect(comp_abstract, comp_full, co["keywords"])
         if eff:
             outcomes.append({"name": co["name"], "kind": co.get("kind", "efficacy"), "primary": i == 0,
                              "estimand": eff["scale"], "population": "as reported", "timepoint": "as reported",
