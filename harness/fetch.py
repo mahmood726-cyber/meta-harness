@@ -19,6 +19,33 @@ CTGOV = "https://clinicaltrials.gov/api/v2/studies"
 EPMC = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
 
 
+EPMC_ART = "https://www.ebi.ac.uk/europepmc/webservices/rest/MED/{pmid}/{kind}"
+
+
+def _epmc_linked(pmid: str, kind: str, pages: int = 2) -> list[str]:
+    """Citation-chasing via Europe PMC (FREE, no key): kind='references' (backward) or
+    'citations' (forward/citedBy). Returns PubMed-indexed PMIDs (source MED) so they flow
+    through the same efetch+screen path. Bounded by `pages` (1000/page). Additive reach —
+    a source error is swallowed (the committed cache is what replays); the four-state RAN_ERROR
+    accounting for metered sources is handled by the caller's source-status record."""
+    out = []
+    for pg in range(1, pages + 1):
+        try:
+            d = http.get_json(EPMC_ART.format(pmid=pmid, kind=kind),
+                              {"format": "json", "pageSize": 1000, "page": pg})
+            time.sleep(0.2)
+        except Exception:  # noqa: BLE001
+            break
+        block = "referenceList" if kind == "references" else "citationList"
+        items = (d.get(block, {}) or {}).get("reference" if kind == "references" else "citation", []) or []
+        for it in items:
+            if str(it.get("source")) == "MED" and it.get("id"):
+                out.append(str(it.get("id")))
+        if len(items) < 1000:
+            break
+    return out
+
+
 def _europepmc_pmids(query: str, retmax: int = 40) -> list[str]:
     """Reach adapter: Europe PMC indexes more than PubMed's esearch top-N and ranks differently,
     surfacing registered trials esearch misses. Returns PubMed-indexed PMIDs (SRC:MED) so they
@@ -194,7 +221,26 @@ def run(config: dict) -> dict:
         for pid in _refs(config["comparator_pmid"]):
             if pid not in pmids:
                 pmids.append(pid)
-    pmids = pmids[:config.get("max_records", 150)]
+    # Citation chasing via Europe PMC (FREE, no key): backward from the comparator's reference
+    # list (pointer only — every hit is still screened by our own rules) and both directions from
+    # the pivotal trials (positive controls). Finds trials whose abstract never used our keywords
+    # (the DAPA-HF/EMPEROR class). Gated by cite_chase so existing caches are unaffected until a
+    # topic is deliberately re-fetched with it on.
+    cite_status = "NOT_RUN"
+    if config.get("cite_chase"):
+        seeds = [config.get("comparator_pmid")] + list(config.get("positive_control_pmids", []))
+        seeds = [s for s in seeds if s]
+        got = 0
+        errors = 0
+        for seed in seeds:
+            for kind in ("references", "citations"):
+                linked = _epmc_linked(seed, kind, pages=config.get("cite_pages", 2))
+                for pid in linked:
+                    if pid not in pmids:
+                        pmids.append(pid)
+                        got += 1
+        cite_status = "RAN_OK" if got else "RAN_ZERO"
+    pmids = pmids[:config.get("max_records", 300 if config.get("cite_chase") else 150)]
     pubmed = []
     for i in range(0, len(pmids), 20):
         pubmed.extend(_efetch(pmids[i:i + 20]))
@@ -235,7 +281,9 @@ def run(config: dict) -> dict:
             "pubmed_queries": config.get("pubmed_queries", []),
             "ctgov_query": cg, "records": pubmed, "ctgov": ctgov,
             "comparator_pmid": config.get("comparator_pmid"), "comparator_oa": comparator_oa,
-            "comparator_fulltext": comparator_fulltext, "ctgov_results": ctgov_results}
+            "comparator_fulltext": comparator_fulltext, "ctgov_results": ctgov_results,
+            "source_status": {"pubmed": "RAN_OK", "europepmc": "RAN_OK",
+                              "citation_chase": cite_status}}
 
 
 def cache_path(slug: str) -> str:
