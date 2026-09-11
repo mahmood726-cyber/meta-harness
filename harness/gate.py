@@ -176,6 +176,43 @@ def check_reproduction(review_dir, manifest):
     return []
 
 
+def check_controls(review_dir, manifest):
+    """Screening controls must be ENFORCED, not just reported. Every topic must declare >=1 positive
+    and >=1 negative control (a control that never runs is decoration); every POSITIVE control (a
+    canonical trial a comparator includes) must be screened IN, and every NEGATIVE control (a
+    same-drug/design trial of the wrong topic) must be screened OUT. A positive control screened out,
+    or a negative control screened in, is a screening regression and REFUSES here rather than sitting
+    as a 'MISSED' string on the page."""
+    slug = manifest.get("slug")
+    if not slug:
+        return ["L1: manifest has no slug to check controls"]
+    try:
+        cfg = json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8"))
+        rev = json.load(open(os.path.join(review_dir, "review.json"), encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot load config/review to check controls ({exc})"]
+    pos = [str(p) for p in cfg.get("positive_control_pmids", [])]
+    neg = [str(p) for p in cfg.get("negative_control_pmids", [])]
+    reasons = []
+    if not pos:
+        reasons.append("L1: no positive control declared (every topic needs >=1 canonical-trial control)")
+    if not neg:
+        reasons.append("L1: no negative control declared (every topic needs >=1 wrong-topic control)")
+    dec = {}
+    for x in (rev.get("screening") or {}).get("records", []):
+        rid = str(x.get("id", "")).split("·")[-1].strip()
+        dec[rid] = x.get("decision")
+    pos_miss = [p for p in pos if dec.get(p) != "include"]
+    neg_in = [p for p in neg if dec.get(p) == "include"]
+    if pos_miss:
+        reasons.append(f"L1: positive control(s) {pos_miss} were NOT screened in "
+                       "(a canonical trial the comparator includes must pass our screen)")
+    if neg_in:
+        reasons.append(f"L1: negative control(s) {neg_in} were wrongly screened in "
+                       "(a wrong-topic trial must be excluded by rule)")
+    return reasons
+
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -189,6 +226,7 @@ def gate_page(review_dir):
                + check_cache_tracked(manifest)
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
+               + check_controls(review_dir, manifest)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons
 
