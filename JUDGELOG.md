@@ -310,3 +310,15 @@ by broad condition x intervention over-returns; to be useful it needs (a) tight 
 (specific condition + intervention, not 'cardiovascular'), (b) screening every candidate by P/I/C/design,
 (c) the extraction hardening (rate/continuous/full-text outcome-identity) that is still pending. Not a clean
 turn-tail integration; the adapter is ready for a careful scoped pass. Reproducibility unaffected (unwired).
+
+## Registry-first RECALL measured (2026-09-11) — 9/13 known omega3 trials recovered (the 7-vs-28 answer)
+registry_first_pmids('cardiovascular','omega-3 fatty acids') = RAN_OK, 925 PMIDs enumerated. Of 13 known
+omega3 CV-outcome trials (our pooled + recall-audit poolable), enumeration RECOVERS 9/13 — crucially
+GISSI-P (10465168), SOFA (16772624), OMEGA (21060071), which our brittle title-AND queries MISSED entirely.
+This is hard evidence registry-first materially lifts recall (the omega3 7-vs-28 gap). MISSED 4: OMEGA-REMODEL
+(38184150), SU.FOL.OM3 (21115589 = ISRCTN not CT.gov), AREDS2 (24638908 = eye-disease condition), DO-HEALTH
+(38199870) — confirms multi-registry need (ICTRP/EU CTR/ISRCTN) + that CT.gov condition tags miss off-condition
+trials. INTEGRATION (make it the default search path): union enumerated PMIDs into fetch, SCREEN the ~925-flood
+by P/I/C/design (precision handled by screening, recall proven here), re-pool. That re-pool needs per-trial
+extraction + estimand verification (GISSI relative-risk, SOFA HR, OMEGA) and touches every cache -> a careful
+scoped pass, not turn-tail. The adapter + measurement are committed; the recall metric is the run's compass.
