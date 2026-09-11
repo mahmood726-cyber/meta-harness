@@ -204,6 +204,9 @@ def _trial_inputs(o):
     for t in o.get("trials", []) or []:
         if t.get("ai") is not None:
             inp = f"{_e(t.get('ai'))}/{_e(t.get('n1i'))} vs {_e(t.get('ci'))}/{_e(t.get('n2i'))} (events/n)"
+        elif t.get("e1i") is not None:
+            inp = (f"{_e(t.get('e1i'))}/{_num(t.get('t1i'))} vs {_e(t.get('e2i'))}/{_num(t.get('t2i'))} "
+                   "(events/person-time)")
         elif t.get("effect") is not None:
             inp = f"{_num(t.get('effect'))} ({o.get('estimand')}), 95% CI {_num(t.get('ci_low'))}–{_num(t.get('ci_high'))}"
         else:

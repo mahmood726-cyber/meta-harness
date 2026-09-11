@@ -168,3 +168,21 @@ def test_multi_arm_guard_inert_on_single_dose():
           "361 of 1863 (19.4%) vs 462 of 1867 (24.7%).")
     ex = _xt(ab, ["primary"], ["empagliflozin"], ["placebo"])
     assert not (ex.get("absent") and "multi-arm" in (ex.get("reason") or ""))
+
+
+# --- incidence-rate extraction: explicit events+person-time only; refuse ambiguous rates ---
+from harness.extract import extract_rate
+
+
+def test_extract_rate_explicit_events_person_time():
+    s = ("There were 84 events over 570 patient-years in the azithromycin group compared with "
+         "129 events over 572 patient-years in the placebo group.")
+    r = extract_rate(s, ["azithromycin"], ["placebo"])
+    assert r == (84, 570.0, 129, 572.0), r
+
+
+def test_extract_rate_refuses_rate_without_person_time():
+    # Albert-style "1.48 per patient-year" without explicit events+PT must NOT be extracted
+    s = ("The frequency of exacerbations was 1.48 per patient-year in the azithromycin group "
+         "versus 1.83 per patient-year in the placebo group.")
+    assert extract_rate(s, ["azithromycin"], ["placebo"]) is None

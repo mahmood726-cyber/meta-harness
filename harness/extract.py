@@ -244,6 +244,20 @@ def _roundtrip_ok(ai, n1i, ci, n2i, scale, point):
 _FACTORIAL = re.compile(r"\bfactorial\b|\b2\s*[x×]\s*2\b|\btwo[- ]by[- ]two\b|\bpartial factorial\b", re.I)
 _DOSE_ARM = re.compile(r"(\d+(?:\.\d+)?)\s*-?\s*mg\b(?:[^.]{0,20}?(?:group|arm|dose|daily|twice|once))?", re.I)
 
+# Recurrent-event / incidence-rate extraction. A rate's UNIT is parsed EXPLICITLY: a number's
+# scale does not tell you its unit (3.9 was once a rate per 100 person-years). We only accept a
+# rate whose per-person-time unit is unambiguous, and only pool when per-arm events + person-time
+# can be derived without guessing. Explicit events+person-time is unambiguous; an annualised rate
+# needs per-arm N and follow-up, which we require to be explicit or we REFUSE.
+_RATE_EVPT = re.compile(  # "N events ... M patient-years/person-years" (both explicit)
+    r"(\d[\d,]*)\s+(?:events?|exacerbations?|episodes?|hospitali[sz]ations?)[^.]{0,40}?"
+    r"(\d[\d,]*(?:\.\d+)?)\s+(?:patient|person)[-\s]?years?", re.I)
+# rate + explicit per-person-time unit; group2 tells us the unit so we can normalise to /py.
+_RATE_UNIT = re.compile(
+    r"(\d+(?:\.\d+)?)\s*(%\s*(?:per|/)\s*(?:year|yr|patient[-\s]?year|person[-\s]?year)|"
+    r"per\s+100\s+(?:patient|person)[-\s]?years?|per\s+(?:patient|person)[-\s]?years?|"
+    r"per\s+patient\s+per\s+year)", re.I)
+
 
 def _is_factorial(abstract):
     return bool(_FACTORIAL.search(abstract or ""))
@@ -267,6 +281,29 @@ def _intervention_dose_specified(interv_terms):
 def _interv_in(sentence, interv_terms):
     sl = (sentence or "").lower()
     return any(t.lower() in sl for t in interv_terms)
+
+
+def extract_rate(sentence, interv_terms, comp_terms):
+    """Return (e1i,t1i,e2i,t2i) for an incidence-rate pooling ONLY when per-arm events AND
+    person-time are BOTH explicitly stated (no inference). Annualised-rate cases that would need
+    per-arm N x follow-up inference are intentionally NOT handled here — they are ambiguous and
+    we refuse rather than guess a unit or a denominator. Returns None if not unambiguously present."""
+    pairs = []
+    for m in _RATE_EVPT.finditer(sentence):
+        ev = int(m.group(1).replace(",", ""))
+        pt = float(m.group(2).replace(",", ""))
+        if pt > 0 and ev >= 0:
+            pairs.append((m.start(), ev, pt))
+    if len(pairs) < 2:
+        return None
+    low = sentence.lower()
+    i_pos = min((low.find(t.lower()) for t in interv_terms if t.lower() in low), default=-1)
+    c_pos = min((low.find(t.lower()) for t in comp_terms if t.lower() in low), default=-1)
+    if i_pos < 0 or c_pos < 0:
+        return None
+    pairs.sort()
+    (_, e1, t1), (_, e2, t2) = pairs[0], pairs[1]
+    return (e1, t1, e2, t2) if i_pos <= c_pos else (e2, t2, e1, t1)
 
 
 def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
@@ -321,6 +358,16 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
         if eff:
             return {"effect": eff[1], "ci_low": eff[2], "ci_high": eff[3], "scale": eff[0],
                     "source": f"abstract effect+CI ({eff[0]}): " + s.strip()[:200]}
+    # Incidence-rate fallback: explicit per-arm events + person-time (recurrent-event class).
+    # Lowest priority so binary counts / ratio effects are preferred; refuses ambiguous rates.
+    for s in sents:
+        if factorial and not _interv_in(s, interv_terms):
+            continue
+        rate = extract_rate(s, interv_terms, comp_terms)
+        if rate:
+            return {"e1i": rate[0], "t1i": rate[1], "e2i": rate[2], "t2i": rate[3],
+                    "measure": "IRR",
+                    "source": "abstract events + person-time (incidence-rate ratio): " + s.strip()[:200]}
     if factorial:
         return {"absent": True, "reason": ("factorial-design trial: no extraction sentence explicitly "
                 "names the intervention, so the effect cannot be attributed to our comparison "

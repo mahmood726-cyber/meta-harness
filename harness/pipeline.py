@@ -131,8 +131,13 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         meas = meas if meas in ("RR", "OR") else "RR"  # 2x2 pools as RR/OR; HR only via effect+CI
         studies = [Study(label=t["label"], ai=t.get("ai"), n1i=t.get("n1i"), ci=t.get("ci"),
                          n2i=t.get("n2i"), effect=t.get("effect"), ci_low=t.get("ci_low"),
-                         ci_high=t.get("ci_high"), source=t.get("source", ""), measure=meas) for t in trials]
-        out["result"] = _pool_result(studies, scale=spec.get("estimand", "RR"))
+                         ci_high=t.get("ci_high"),
+                         e1i=t.get("e1i"), t1i=t.get("t1i"), e2i=t.get("e2i"), t2i=t.get("t2i"),
+                         source=t.get("source", ""), measure=("IRR" if t.get("e1i") is not None else meas))
+                   for t in trials]
+        # If every pooled trial contributed incidence-rate data, the pooled scale is IRR.
+        pooled_scale = "IRR" if all(t.get("e1i") is not None for t in trials) else spec.get("estimand", "RR")
+        out["result"] = _pool_result(studies, scale=pooled_scale)
         if out["result"].get("k") == 1:
             # A single trial is not a random-effects meta-analysis: present it honestly as the
             # trial's own effect, and do not display tau^2 / HKSJ / prediction-interval machinery.

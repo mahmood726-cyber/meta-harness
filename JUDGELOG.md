@@ -265,3 +265,15 @@ Not every decline becomes buildable; re-attempting with better machinery is corr
 - dapagliflozin-hfpef-hosp: OURS 25 vs 10. DELIVER (36027570) 512/3131 vs 610/3132, count-RR 0.84; SHA/hash/census; honest k=1. Comparator: unauditable HR 0.80, no trials — "could even be an off-population pool, no way to rule out."
 - empagliflozin-hfpef-hosp: OURS 23 vs 8. EMPEROR-Preserved (34449189) 415/2997 vs 511/2991, RR 0.81 (recomputable from the stated incidences); SHA/hash/census. Comparator: unauditable HR 0.74.
 ### BLIND RECORD: 22 of 22 topics judged, ours higher on all 22 (all auditability wins; the standing data-limb pattern holds — we pool fewer, honestly, and win on verifiability).
+
+## Recurrent-event class WIRED end-to-end (2026-09-11); real blocker is ACQUISITION not synth/parsing
+extract_rate now feeds the synth IRR path: explicit per-arm events+person-time -> log-rate-ratio pooling
+(metafor-validated), rendered as events/person-time. Refuses ambiguous rates (Albert's "1.48 per
+patient-year" without explicit events+PT is NOT extracted). Regression: 0 change across all topics; tests added.
+KEY FINDING (verified on real abstracts): the declined recurrent-event topics are blocked at ACQUISITION, not
+synth or parsing. azithromycin-COPD abstracts report rates-per-patient-year (Albert) or events-without-person-time
+(COLUMBUS 84 vs 129) or bare per-year counts — none carry per-arm events+person-time (or per-arm N + follow-up)
+unambiguously. A careful extractor correctly REFUSES them (missing/ambiguous components) rather than infer a
+denominator or guess a unit. Recovering these needs FULL-TEXT acquisition (person-time tables), a larger deferred
+change; the synth+extraction are ready to receive it. Honest state: synth IRR ready, safe extraction wired,
+azithromycin/iv-iron/ENGAGE stay declined until full-text acquisition — not a wrong number substituted.
