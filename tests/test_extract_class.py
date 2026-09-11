@@ -319,3 +319,14 @@ def test_subgroup_guard_keeps_main_itt():
          "95% CI 0.27 to 0.73).")
     ex = _xt(s, ["recurrent pericarditis", "pericarditis"], ["colchicine"], ["placebo"])
     assert ex.get("ai") == 26 or ex.get("effect") == 0.44, ex
+
+
+# --- percentage followed by an in-paren CI must still corroborate (NEJM: "N of M (P%; 95% CI ...)") ---
+from harness.extract import extract_arm_counts as _eac
+
+
+def test_percent_with_inparen_ci_still_corroborates():
+    s = ("By day 28, death had occurred in 25 of 400 patients (6.2%; 95% CI, 3.9 to 8.6) in the "
+         "hydrocortisone group and in 47 of 395 patients (11.9%; 95% CI, 8.7 to 15.1) in the placebo group.")
+    arms = _eac(s, ["hydrocortisone"], ["placebo"])
+    assert arms == (25, 400, 47, 395), arms

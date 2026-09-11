@@ -13,9 +13,11 @@ import re
 
 NEG = ("not ", "non-", "non ", "never ", "no ")
 _ARM = re.compile(r"(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*\)\s*(?:of|/)\s*(\d+)")
-_ARM2 = re.compile(r"(\d+)\s*/\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*\)")
+_ARM2 = re.compile(r"(\d+)\s*/\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*[);,]")
 # "N of M [patients] (P%)" — NEJM/Lancet order: count, denominator, then percentage.
-_ARM3 = re.compile(r"(\d+)\s+of\s+(\d+)\s+(?:patients?|participants?|women|men|subjects?|people)?\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*\)")
+# The trailing [);,] (not just ")") lets a percentage be followed by an in-paren CI or clause —
+# "25 of 400 patients (6.2%; 95% CI, 3.9 to 8.6)" (NEJM style) — without breaking corroboration.
+_ARM3 = re.compile(r"(\d+)\s+of\s+(\d+)\s+(?:patients?|participants?|women|men|subjects?|people)?\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*[);,]")
 # "N [patients] (P%)" with the denominator stated elsewhere in the sentence/abstract.
 # "N [patients] (P%)" or "N [patients] [P%]" — parentheses OR square brackets.
 _ARMP = re.compile(r"(\d+)\s+(?:patients?|participants?|cases?|subjects?)?\s*[\(\[]\s*(\d+(?:\.\d+)?)\s*%\s*[\)\]]")
