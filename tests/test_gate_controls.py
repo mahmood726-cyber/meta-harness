@@ -41,3 +41,32 @@ def test_negative_control_screened_in_refused():
 
 def test_missing_slug_refused():
     assert check_controls(tempfile.mkdtemp(), {}) != []
+
+
+# --- check_cross_source: direction-flip discrepancy refuses --------------------------
+from harness.gate import check_cross_source  # noqa: E402
+
+
+def _xs_review_dir(cross):
+    import tempfile, json as _j
+    d = tempfile.mkdtemp(prefix="mh-xs-")
+    rev = {"outcomes": [{"primary": True, "trials": [{"id": "PMID 1", "cross_source": cross}]}]}
+    _j.dump(rev, open(os.path.join(d, "review.json"), "w", encoding="utf-8"))
+    return d
+
+
+def test_cross_source_flip_refuses():
+    d = _xs_review_dir({"agree": False, "abstract_rr": 0.33, "ctgov_rr": 3.0})
+    reasons = check_cross_source(d)
+    assert reasons and "DIRECTION-FLIP" in reasons[0]
+
+
+def test_cross_source_corroborated_passes():
+    d = _xs_review_dir({"agree": True, "abstract_rr": 0.99, "ctgov_rr": 0.99})
+    assert check_cross_source(d) == []
+
+
+def test_cross_source_none_verdict_passes():
+    # effect-vs-count corroboration note (agree is None) must not refuse
+    d = _xs_review_dir({"agree": None, "ctgov_rr": 0.8})
+    assert check_cross_source(d) == []

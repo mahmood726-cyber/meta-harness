@@ -213,6 +213,31 @@ def check_controls(review_dir, manifest):
     return reasons
 
 
+def check_cross_source(review_dir):
+    """The second independent extractor (CT.gov structured vs abstract) may only flag a DIRECTION
+    FLIP as agree=False -- one source says the intervention helps, the other that it harms, on the
+    same outcome family. That is almost never a benign timepoint/definition difference (unlike a mere
+    magnitude gap, which is NOT flagged), so it is a real integrity signal and REFUSES here. A wrong
+    number that two independent primary sources contradict on direction must not publish."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return []
+    try:
+        rev = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for cross-source check ({exc})"]
+    bad = []
+    for o in rev.get("outcomes", []) or []:
+        for t in o.get("trials", []) or []:
+            cs = t.get("cross_source") or {}
+            if cs.get("agree") is False:
+                bad.append(f"{t.get('id')} (abstract RR {cs.get('abstract_rr')} vs CT.gov RR {cs.get('ctgov_rr')})")
+    if bad:
+        return ["L1: cross-source DIRECTION-FLIP discrepancy on " + "; ".join(bad)
+                + " — two independent sources disagree on direction; do not publish until resolved"]
+    return []
+
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -227,6 +252,7 @@ def gate_page(review_dir):
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
                + check_controls(review_dir, manifest)
+               + check_cross_source(review_dir)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons
 
