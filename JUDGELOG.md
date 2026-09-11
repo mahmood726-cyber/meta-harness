@@ -94,3 +94,27 @@ auto-extracted from its own PubMed abstract by the SAME pipeline, so it is no lo
 - k=1: JUPITER older-persons subgroup (PMID 20404379, HR 0.61, 0.46-0.81, verified TRUE against source
   "1.22 vs 1.99 per 100 person-years"). Comparator PMID 39076238 (OA), total CV HR 0.75. Neg control excluded.
   Thin (one post-hoc subgroup) and declared as such; a legitimate honest k=1, not inflated.
+
+---
+
+## Blind-judge sweep — 8 live topics, all URL-only, verdicts
+| Topic | ours | comparator | winner | ours k / comp |
+|---|---|---|---|---|
+| colchicine-recurrent-pericarditis | 25 | 11 | OURS | 3 / 5 |
+| colchicine-postop-af | 24 | 15 | OURS | 3 / 9 |
+| tranexamic-acid-pph | 21 | 12 | OURS | 1 / (IPD) |
+| statins-primary-prevention-elderly | 24 | 11 | OURS | 1 / many |
+| balanced-crystalloids-vs-saline | 27 | 12 | OURS | 2 / 6 |
+| sglt2-hfref | 22 | 13 | OURS | 1 / 2 |
+| finerenone-ckd | 22 | 18 | OURS | 1 / 2 |
+| probiotics-aad | 30 | 9 | OURS | 13 / (large) |
+**Result so far: 8 live, 8/8 blind wins.**
+
+### The honest pattern (both limbs)
+- **Ours wins the AUDITABILITY limb decisively every time** — named trials + PMIDs, arm counts, declared method, protocol SHA, content hash, offline-replay census. The comparator is repeatedly "an unauditable transcription."
+- **Ours consistently LOSES the DATA-COMPLETENESS limb** — we pool fewer trials (k=1-3) than the comparator's larger pools, and judges repeatedly note the comparator's estimate is "the more clinically complete/plausible answer." probiotics (k=13, RR 0.62 vs comparator 0.63) is the exception and the model to reach.
+- Judges win on quality *because the rubric rewards verifiability*; a reader wanting the best effect estimate would often still prefer the comparator. So the wins are real but the data limb is the standing gap.
+
+### Fix applied this round (judge-flagged, general): F5 k=1 honest presentation
+- Showing Paule-Mandel/HKSJ/tau2/PI on a single pooled trial is incoherent (flagged on TXA, statins, sglt2). k=1 outcomes now state "single included trial — the trial's own effect; no random-effects pooling" and omit tau2. Applied to all 4 k=1 live topics; multi-k unchanged; tests green.
+- **Standing priority remains raising k** (search recall + extraction depth) so the data limb catches up — that is what "equal" actually needs.
