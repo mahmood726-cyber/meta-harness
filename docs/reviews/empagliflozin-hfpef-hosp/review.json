@@ -1,0 +1,827 @@
+{
+  "slug": "empagliflozin-hfpef-hosp",
+  "title": "Empagliflozin vs placebo for cardiovascular death or heart-failure hospitalisation in HFpEF/HFmrEF",
+  "question": "In adults with heart failure and preserved or mildly reduced ejection fraction, does empagliflozin reduce the composite of cardiovascular death or hospitalisation for heart failure versus placebo? (Double-blind placebo-controlled RCTs.)",
+  "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+  "protocol": {
+    "sha": "c5dc828d141fe01e81ce46b9a9e29863c2a01918",
+    "committed_utc": "2026-09-11",
+    "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+    "eligibility": "RCT; intervention vs placebo; on-topic population; double-blind placebo-controlled. P/I/C/design only.",
+    "text": "# Protocol - Empagliflozin for cardiovascular death or worsening heart failure in HFmrEF/HFpEF\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure and mildly reduced or preserved ejection fraction\n  (HFmrEF/HFpEF; operationally LVEF >40% or preserved-EF trial eligibility).\n- **I** - Empagliflozin 10 mg daily, added to usual heart-failure therapy.\n- **C** - placebo or matching placebo, added to usual heart-failure therapy.\n- **O (primary)** - time to first composite cardiovascular death or worsening heart\n  failure, where worsening heart failure includes hospitalization or urgent visit for\n  heart failure as defined by the trial.\n- **Estimand** - hazard ratio (HR) with 95% confidence interval.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **Population** - adult HFmrEF/HFpEF or preserved-EF heart-failure population,\n  judged from the title, registry conditions, or trial acronym.\n- **Intervention** - Empagliflozin is named in the title or registry condition/acronym.\n- **Comparator** - placebo or matching placebo.\n- **Design** - randomized, double-blind, placebo-controlled trial.\n\nExclude (reason must be true of the record):\n- **X1** - not a randomized controlled trial.\n- **X2** - wrong population, including HFrEF/LVEF <=40%, diabetes-only, CKD-only,\n  myocardial-infarction, or other non-HFmrEF/HFpEF populations.\n- **X3** - wrong intervention or comparator.\n- **X-DESIGN** - not double-blind/placebo-controlled in the machine-readable record.\n\nEligibility is not decided by outcome reporting. An eligible Empagliflozin HFpEF trial\nthat reports symptoms, hemodynamics, or safety but not the target composite HR is kept\nas target-result absent, not excluded.\n\n## Outcomes\n- **Primary efficacy outcome** - composite cardiovascular death or worsening heart\n  failure; HR estimand; intention-to-treat/randomized population; longest\n  trial-reported randomized follow-up.\n- **Secondary outcomes** - none preregistered for this topic.\n- **Harms** - none preregistered for this topic.\n\n## Search\n- PubMed: UID-anchored queries for EMPEROR-Preserved (PMID 34449189), PRESERVED-HF\n  (PMID 34711976), and CAMEO-DAPA (PMID 37534453), plus configured comparator and\n  negative-control PMIDs.\n- ClinicalTrials.gov: condition \"heart failure with preserved ejection fraction\",\n  intervention \"Empagliflozin\".\n- Citation chasing: enabled and bounded; every reached record is still screened by\n  the same P/I/C/design rules.\n\n## Synthesis method\nRandom-effects inverse-variance on log(HR) using source-reported trial HRs and 95%\nCIs only. Paule-Mandel tau^2; HKSJ 95% CI on t(k-1) with variance floor\nmax(1, Q/(k-1)); prediction interval mu +/- t(k-1)*sqrt(tau^2 + se^2). For k=1,\nthe result is reported as the single trial's own HR with no random-effects pooling.\n\n## Comparator\nPal et al., *Indian Heart Journal* 2023, \"SGLT2 inhibitors and cardiovascular outcomes\nin heart failure with mildly reduced and preserved ejection fraction: A systematic\nreview and meta-analysis\" (PMID 36914068, DOI 10.1016/j.ihj.2023.03.003; Unpaywall\nis_oa=true). This comparator matches the HFmrEF/HFpEF population, placebo comparison,\ncomposite cardiovascular-death/HF-worsening outcome, and HR estimand, but is class-level\nSGLT2 inhibitor evidence rather than Empagliflozin-only evidence; the overlap tab must\ntherefore not claim an identical trial set.\n\n## Controls\n- **Positive** - EMPEROR-Preserved (PMID 34449189) must be recovered and included.\n- **Negative** - DAPA-HF (PMID 31535829), a Empagliflozin/placebo trial with the same\n  endpoint but HFrEF/LVEF <=40%, must be recovered and excluded as wrong population.\n"
+  },
+  "search": {
+    "n_records": 100,
+    "cache_ref": "cache/empagliflozin-hfpef-hosp/records.json",
+    "run_utc": "2026-09-11",
+    "databases": [
+      "PubMed",
+      "ClinicalTrials.gov"
+    ],
+    "sources": [
+      {
+        "name": "PubMed",
+        "queries": [
+          "34449189[uid]"
+        ]
+      },
+      {
+        "name": "ClinicalTrials.gov",
+        "queries": [
+          "{\"cond\": \"heart failure with preserved ejection fraction\", \"intr\": \"empagliflozin\"}"
+        ]
+      }
+    ]
+  },
+  "screening": {
+    "records": [
+      {
+        "id": "34449189",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of empagliflozin vs placebo in preserved ejection fraction; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "32865377",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "37773799",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 37773799)."
+      },
+      {
+        "id": "42292836",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42292836)."
+      },
+      {
+        "id": "41620372",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41620372)."
+      },
+      {
+        "id": "42117353",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42117353)."
+      },
+      {
+        "id": "41607621",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41607621)."
+      },
+      {
+        "id": "41304969",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41304969)."
+      },
+      {
+        "id": "41300756",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41300756)."
+      },
+      {
+        "id": "40826119",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 40826119)."
+      },
+      {
+        "id": "40775780",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 40775780)."
+      },
+      {
+        "id": "40772898",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 40772898)."
+      },
+      {
+        "id": "40834289",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 40834289)."
+      },
+      {
+        "id": "40583271",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 40583271)."
+      },
+      {
+        "id": "40113531",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 40113531)."
+      },
+      {
+        "id": "40074465",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "39998630",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 39998630)."
+      },
+      {
+        "id": "39697908",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 39697908)."
+      },
+      {
+        "id": "39618225",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 39618225)."
+      },
+      {
+        "id": "39535626",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 39535626)."
+      },
+      {
+        "id": "39346567",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 39346567)."
+      },
+      {
+        "id": "38798923",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 38798923)."
+      },
+      {
+        "id": "38790943",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 38790943)."
+      },
+      {
+        "id": "38672161",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 38672161)."
+      },
+      {
+        "id": "38184133",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 38184133)."
+      },
+      {
+        "id": "42679960",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42679960)."
+      },
+      {
+        "id": "42598998",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42598998)."
+      },
+      {
+        "id": "42533465",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42533465)."
+      },
+      {
+        "id": "41810940",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41810940)."
+      },
+      {
+        "id": "40996089",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 40996089)."
+      },
+      {
+        "id": "42675456",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42675456)."
+      },
+      {
+        "id": "42669762",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42669762)."
+      },
+      {
+        "id": "42658609",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42658609)."
+      },
+      {
+        "id": "42649514",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42649514)."
+      },
+      {
+        "id": "42652855",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42652855)."
+      },
+      {
+        "id": "42647240",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42647240)."
+      },
+      {
+        "id": "42644019",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42644019)."
+      },
+      {
+        "id": "42616235",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42616235)."
+      },
+      {
+        "id": "42645205",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42645205)."
+      },
+      {
+        "id": "42645107",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42645107)."
+      },
+      {
+        "id": "42645866",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42645866)."
+      },
+      {
+        "id": "42661921",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42661921)."
+      },
+      {
+        "id": "42661733",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42661733)."
+      },
+      {
+        "id": "42594169",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42594169)."
+      },
+      {
+        "id": "42653207",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42653207)."
+      },
+      {
+        "id": "42586458",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42586458)."
+      },
+      {
+        "id": "42575273",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42575273)."
+      },
+      {
+        "id": "42567257",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42567257)."
+      },
+      {
+        "id": "42566081",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42566081)."
+      },
+      {
+        "id": "42630733",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42630733)."
+      },
+      {
+        "id": "42572746",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42572746)."
+      },
+      {
+        "id": "42644878",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42644878)."
+      },
+      {
+        "id": "42614550",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42614550)."
+      },
+      {
+        "id": "42609336",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42609336)."
+      },
+      {
+        "id": "42546911",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42546911)."
+      },
+      {
+        "id": "42546819",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42546819)."
+      },
+      {
+        "id": "42573026",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42573026)."
+      },
+      {
+        "id": "42554040",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42554040)."
+      },
+      {
+        "id": "42541550",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42541550)."
+      },
+      {
+        "id": "41614664",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 41614664)."
+      },
+      {
+        "id": "42602176",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42602176)."
+      },
+      {
+        "id": "42535981",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42535981)."
+      },
+      {
+        "id": "42568799",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42568799)."
+      },
+      {
+        "id": "42530804",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42530804)."
+      },
+      {
+        "id": "42523039",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42523039)."
+      },
+      {
+        "id": "42521604",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42521604)."
+      },
+      {
+        "id": "42521017",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42521017)."
+      },
+      {
+        "id": "42520258",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "42509262",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42509262)."
+      },
+      {
+        "id": "42508633",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42508633)."
+      },
+      {
+        "id": "42500881",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "42494134",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42494134)."
+      },
+      {
+        "id": "42487161",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42487161)."
+      },
+      {
+        "id": "42487144",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42487144)."
+      },
+      {
+        "id": "42486183",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42486183)."
+      },
+      {
+        "id": "42483979",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42483979)."
+      },
+      {
+        "id": "42480847",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42480847)."
+      },
+      {
+        "id": "42480823",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42480823)."
+      },
+      {
+        "id": "42548880",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42548880)."
+      },
+      {
+        "id": "42548862",
+        "id_type": "pmid",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: 42548862)."
+      },
+      {
+        "id": "NCT06401343",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['empagliflozin', 'Jardiance'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "ADDEMFEP · NCT06683053",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT07047508",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT07047508)."
+      },
+      {
+        "id": "NCT05584319",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['placebo', 'matching placebo'])."
+      },
+      {
+        "id": "NCT05057806",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'diabetes'."
+      },
+      {
+        "id": "NCT05600387",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['placebo', 'matching placebo'])."
+      },
+      {
+        "id": "SAK · NCT05138575",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['empagliflozin', 'Jardiance'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "EMPA-PRED · NCT06249945",
+        "id_type": "nct",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of empagliflozin vs placebo in preserved ejection fraction; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "NCT03448406",
+        "id_type": "nct",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "RCT of empagliflozin vs placebo in preserved ejection fraction; double-blind placebo-controlled — P/I/C/design met."
+      },
+      {
+        "id": "NCT05129722",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['empagliflozin', 'Jardiance'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "SGLT2-HD · NCT06929169",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'chronic kidney disease'."
+      },
+      {
+        "id": "NCT03753087",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'diabetes'."
+      },
+      {
+        "id": "NCT06424288",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT07776054",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['empagliflozin', 'Jardiance'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "ICDDTKZ26 · NCT07303556",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT06046612",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "no eligible comparator (none of ['placebo', 'matching placebo'])."
+      },
+      {
+        "id": "PADN-HFpEF · NCT07331220",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X3",
+        "reason": "the randomised intervention is not ['empagliflozin', 'Jardiance'] (not named in title/conditions; an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT07599293",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial (record: NCT07599293)."
+      },
+      {
+        "id": "DICE · NCT07322237",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify)."
+      },
+      {
+        "id": "NCT05139472",
+        "id_type": "nct",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'diabetes'."
+      }
+    ],
+    "positive_control": "Recovered & included the canonical trials ['34449189'] that a comparator includes; none missed.",
+    "negative_control": "Cross-topic trial(s) ['32865377'] recovered by the search and correctly EXCLUDED ['32865377'] by rule (same drug/design, wrong topic)."
+  },
+  "outcomes": [
+    {
+      "name": "Composite cardiovascular death or worsening heart failure",
+      "kind": "efficacy",
+      "primary": true,
+      "estimand": "RR",
+      "population": "intention-to-treat",
+      "timepoint": "trial end / longest randomized follow-up",
+      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "trials": [
+        {
+          "label": "34449189",
+          "id": "PMID 34449189",
+          "ai": 415,
+          "n1i": 2997,
+          "ci": 511,
+          "n2i": 2991,
+          "source": "abstract arm-level counts (percentage-corroborated): RESULTS: Over a median of 26.2 months, a primary outcome event occurred in 415 of 2997 patients (13.8%) in the empagliflozin group and in 511 of 2991 patients (17.1%) in the placebo group (hazard rati",
+          "provenance": "abstract"
+        }
+      ],
+      "declared_absent_trials": [
+        {
+          "label": "EMPA-PRED",
+          "id": "NCT06249945",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "NCT03448406",
+          "id": "NCT03448406",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        }
+      ],
+      "result": {
+        "k": 1,
+        "estimate": 0.8105,
+        "scale": "RR",
+        "ci_low": 0.7194,
+        "ci_high": 0.9131,
+        "pi_note": "prediction interval undefined for k=1"
+      }
+    }
+  ],
+  "comparator": {
+    "name": "SGLT2 inhibitors among patients with heart failure with preserved ejection fraction: A meta-analysis of randomised controlled trials.",
+    "year": "2023",
+    "journal": "Medicine (Baltimore)",
+    "pmid": "37773799",
+    "doi": "10.1097/MD.0000000000034693",
+    "url": "https://doi.org/10.1097/MD.0000000000034693",
+    "open_access": true,
+    "reported": [
+      {
+        "outcome": "Composite cardiovascular death or urgent visit/hospitalization for heart failure in HFmrEF/HFpEF",
+        "estimate": 0.74,
+        "scale": "HR",
+        "ci_low": 0.67,
+        "ci_high": 0.82
+      }
+    ],
+    "overlap": {
+      "ours_k": 1,
+      "theirs_k": "not stated in the comparator abstract/full text",
+      "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
+      "only_ours": [],
+      "only_theirs": [],
+      "method": "publication-date + design identity (comparator trial list not extracted from source)",
+      "note": "Trials newer than the comparator (2023) cannot be in it (only-ours, verifiable by date). Exact shared count not asserted."
+    }
+  },
+  "estimand_exclusions": [
+    {
+      "trial": "EMPEROR-Reduced",
+      "id": "PMID 32865377",
+      "their_outcome": "cardiovascular death or hospitalisation for heart failure",
+      "their_effect": "HR 0.75",
+      "reason": "Same empagliflozin/placebo comparison and endpoint, but population is HFrEF (LVEF <=40%), outside this HFpEF/HFmrEF topic."
+    }
+  ],
+  "reproduction": {
+    "failures": 0,
+    "protocol_sha": "c5dc828d141fe01e81ce46b9a9e29863c2a01918",
+    "review_sha256": "7285c7c734550ec8172f3c54fb5fc8346729cb9b72a1e68b25037ba7f913578f",
+    "from_cache": true
+  }
+}
