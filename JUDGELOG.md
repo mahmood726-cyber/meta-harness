@@ -232,3 +232,11 @@ composite) would mix estimands — the wrong-outcome class. DECLINED: k stays 3 
 Deferred: an estimand-aware extractor (verify the composite DEFINITION matches, not just a kidney keyword)
 would be needed to safely add secondary-outcome kidney data. This is the omega3-vs-sglt2ckd contrast: omega3's
 missed trials report the SAME MACE endpoint (safely poolable, +1 verified); sglt2-ckd's report DIFFERENT composites.
+
+## Declined-topic re-attempts with the improved harness (2026-09-11) — bar holds
+Re-ran declined topics through the current harness (round-trip, factorial guard, dedup, ctgov guard, cite_chase):
+- azithromycin-copd: RE-DECLINED — 6 screened-in, all declared-absent (exacerbations are recurrent-event rates, not extractable to a common RR). Gate's primary-result limb correctly refused.
+- corticosteroids-cap: RE-DECLINED — no extractable pooled primary; comparator RR 0.69 but trial table not machine-exposed.
+- vitamin-d-ari: now produces k=1 (PMID 20219962) but HELD not published — a k=1 abstract-extraction page misrepresents a ~25-RCT field; honest-but-unrepresentative, weak. Revisit if extraction depth improves.
+- iv-iron-hfref: (in progress / recurrent-event class).
+Not every decline becomes buildable; re-attempting with better machinery is correct, publishing a weak/wrong page is not.

@@ -266,9 +266,15 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms):
             continue
         arms = extract_arm_counts(s, interv_terms, comp_terms, denom_each)
         if arms:
-            # ROUND-TRIP: if the same sentence reports an effect+CI, the count-derived effect
-            # must reconcile with it, or we refuse rather than pool a number we can't reconcile.
-            rep = extract_effect(s)
+            # ROUND-TRIP (every outcome, not only same-sentence): the count-derived effect must
+            # reconcile with the effect the paper reports for THIS outcome — first the same
+            # sentence, else the outcome's reported effect anywhere in the abstract. Refuse a
+            # count table we cannot reconcile with the paper's own number.
+            rep = extract_effect(s)  # tuple (scale, point, lo, hi) or None
+            if not rep:
+                d = effect_in_outcome(abstract, outcome_kws)  # dict or None
+                if d:
+                    rep = (d["scale"], d["effect"], d.get("ci_low"), d.get("ci_high"))
             if rep and not _roundtrip_ok(arms[0], arms[1], arms[2], arms[3], rep[0], rep[1]):
                 return {"absent": True,
                         "reason": (f"round-trip mismatch: extracted counts {arms[0]}/{arms[1]} vs "
