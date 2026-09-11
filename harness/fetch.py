@@ -240,7 +240,21 @@ def run(config: dict) -> dict:
                         pmids.append(pid)
                         got += 1
         cite_status = "RAN_OK" if got else "RAN_ZERO"
-    pmids = pmids[:config.get("max_records", 300 if config.get("cite_chase") else 150)]
+    # REGISTRY-FIRST enumeration (default search path when enabled): enumerate trials by
+    # condition x intervention from ClinicalTrials.gov and resolve each NCT to its PubMed
+    # publication(s), then let SCREENING decide eligibility. Finds trials whose abstract never
+    # used our keywords (GISSI-P/SOFA/OMEGA in omega3). Recall proven at 9/13; precision is the
+    # screen's job. Four-state status recorded; gated by registry_first{cond,intr}.
+    regfirst_status = "NOT_RUN"
+    rf_cfg = config.get("registry_first")
+    if rf_cfg:
+        from . import registry_first as _rf
+        res = _rf.registry_first_pmids(rf_cfg.get("cond", ""), rf_cfg.get("intr", ""))
+        regfirst_status = res.get("status", "RAN_ERROR")
+        for pid in res.get("pmids", []):
+            if pid not in pmids:
+                pmids.append(pid)
+    pmids = pmids[:config.get("max_records", 300 if (config.get("cite_chase") or rf_cfg) else 150)]
     pubmed = []
     for i in range(0, len(pmids), 20):
         pubmed.extend(_efetch(pmids[i:i + 20]))
@@ -294,7 +308,7 @@ def run(config: dict) -> dict:
             "comparator_fulltext": comparator_fulltext, "ctgov_results": ctgov_results,
             "fulltext_by_pmid": fulltext_by_pmid,
             "source_status": {"pubmed": "RAN_OK", "europepmc": "RAN_OK",
-                              "citation_chase": cite_status,
+                              "citation_chase": cite_status, "registry_first": regfirst_status,
                               "fulltext": ("RAN_OK" if fulltext_by_pmid else
                                            ("RAN_ZERO" if config.get("fulltext") else "NOT_RUN"))}}
 
