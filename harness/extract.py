@@ -14,6 +14,8 @@ import re
 NEG = ("not ", "non-", "non ", "never ", "no ")
 _ARM = re.compile(r"(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*\)\s*(?:of|/)\s*(\d+)")
 _ARM2 = re.compile(r"(\d+)\s*/\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*\)")
+# "N of M [patients] (P%)" — NEJM/Lancet order: count, denominator, then percentage.
+_ARM3 = re.compile(r"(\d+)\s+of\s+(\d+)\s+(?:patients?|participants?|women|men|subjects?|people)?\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*\)")
 # "N [patients] (P%)" with the denominator stated elsewhere in the sentence/abstract.
 # "N [patients] (P%)" or "N [patients] [P%]" — parentheses OR square brackets.
 _ARMP = re.compile(r"(\d+)\s+(?:patients?|participants?|cases?|subjects?)?\s*[\(\[]\s*(\d+(?:\.\d+)?)\s*%\s*[\)\]]")
@@ -63,6 +65,10 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None):
     for m in _ARM2.finditer(sentence):
         ev, n, pct = int(m.group(1)), int(m.group(2)), float(m.group(3))
         if n > 0 and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
+            groups.append((m.start(), ev, n))
+    for m in _ARM3.finditer(sentence):
+        ev, n, pct = int(m.group(1)), int(m.group(2)), float(m.group(3))
+        if n > 0 and ev <= n and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
             groups.append((m.start(), ev, n))
     if len(groups) < 2 and denom_each:
         # "N [patients] (P%)"/"[P%]" with the denominator inferred from the abstract; accept
