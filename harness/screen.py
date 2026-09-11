@@ -59,47 +59,96 @@ def _double_blind(rec, text) -> bool:
     return "placebo" in text
 
 
-def _text(rec) -> str:
+def _text_raw(rec) -> str:
     parts = [rec.get("title", ""), rec.get("abstract", ""), " ".join(rec.get("pubtypes", [])),
              " ".join(rec.get("conditions", [])), " ".join(rec.get("interventions", [])),
              rec.get("acronym", "")]
-    return " ".join(p for p in parts if p).lower()
+    return " ".join(p for p in parts if p)
 
 
-def _poptext(rec) -> str:
+def _text(rec) -> str:
+    return _text_raw(rec).lower()
+
+
+def _poptext_raw(rec) -> str:
     # Population is judged from the TITLE and registry conditions, NOT an incidental
     # mention in the abstract body (e.g. "colchicine is beneficial in ... pericarditis").
     parts = [rec.get("title", ""), " ".join(rec.get("conditions", [])), rec.get("acronym", "")]
-    return " ".join(p for p in parts if p).lower()
+    return " ".join(p for p in parts if p)
+
+
+def _poptext(rec) -> str:
+    return _poptext_raw(rec).lower()
+
+
+def _span(raw: str, term: str, width: int = 48) -> str:
+    """Verbatim window (original case) around the first case-insensitive occurrence of `term` in
+    `raw`. The span is a REAL substring of the record's own text, so a reviewer can confirm the rule
+    fired on words that are actually present -- never a paraphrase. Empty if not found."""
+    if not raw or not term:
+        return ""
+    i = raw.lower().find(term.lower())
+    if i < 0:
+        return ""
+    a = max(0, i - width // 2)
+    b = min(len(raw), i + len(term) + width // 2)
+    return ("…" if a > 0 else "") + " ".join(raw[a:b].split()) + ("…" if b < len(raw) else "")
+
+
+def _quote(raw: str, limit: int = 90) -> str:
+    """A verbatim head of the examined text, for ABSENCE rules (why nothing matched): the reviewer
+    sees the exact title/fields the screen looked at. Still a true substring of the record."""
+    s = " ".join((raw or "").split())
+    return (s[:limit] + "…") if len(s) > limit else s
 
 
 def screen_record(rec, inc, neg_pmids):
+    """Return (decision, rule_id, reason, span). `span` is a VERBATIM excerpt of the record's own
+    text evidencing the decision (a real substring), so every decision is checkable against source."""
     text = _text(rec)
     poptext = _poptext(rec)
+    raw_all = _text_raw(rec)
+    raw_pop = _poptext_raw(rec)
     label = rec.get("acronym") or rec.get("id")
     if not _is_rct(rec):
-        return ("exclude", "X1", f"not a randomized controlled trial (record: {label}).")
+        pts = ", ".join(rec.get("pubtypes", [])) or "(no publication types)"
+        return ("exclude", "X1", f"not a randomized controlled trial (record: {label}).",
+                f"publication types: {pts}")
     bad = _has(poptext, inc.get("population_none"))
     if bad:
-        return ("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.")
+        return ("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
+                _span(raw_pop, bad))
     popok = _has(poptext, inc.get("population_any"))
     if inc.get("population_any") and not popok:
         return ("exclude", "X2",
                 f"population not on-topic: title/conditions do not mention any of {inc['population_any']} "
-                f"(an incidental abstract mention does not qualify).")
+                f"(an incidental abstract mention does not qualify).",
+                f"examined title/conditions: “{_quote(raw_pop)}”")
     itext = _poptext(rec) if inc.get("intervention_in_title") else text
+    itext_raw = raw_pop if inc.get("intervention_in_title") else raw_all
     if inc.get("intervention_any") and not _has_intervention(itext, inc["intervention_any"]):
         return ("exclude", "X3",
                 f"the randomised intervention is not {inc['intervention_any']} "
-                f"(not named in title/conditions; an incidental abstract mention does not qualify).")
-    if inc.get("comparator_any") and not _has(text, inc["comparator_any"]):
-        return ("exclude", "X3", f"no eligible comparator (none of {inc['comparator_any']}).")
+                f"(not named in title/conditions; an incidental abstract mention does not qualify).",
+                f"examined: “{_quote(itext_raw)}”")
+    comp = _has(text, inc.get("comparator_any"))
+    if inc.get("comparator_any") and not comp:
+        return ("exclude", "X3", f"no eligible comparator (none of {inc['comparator_any']}).",
+                f"examined: “{_quote(raw_all)}”")
     if inc.get("design_double_blind") and not _double_blind(rec, text):
-        return ("exclude", "X-DESIGN", f"not double-blind/placebo-controlled (record: {label}).")
+        masking = rec.get("masking") or "(masking not stated)"
+        return ("exclude", "X-DESIGN", f"not double-blind/placebo-controlled (record: {label}).",
+                f"no 'placebo'/'double-blind'/'masked' in text; registry masking = {masking}")
+    # include: quote the actual matched population and comparator words
+    pop_span = _span(raw_pop, popok) if popok else ""
+    comp_span = _span(raw_all, comp) if comp else ""
+    ev = "; ".join(s for s in (f"population “{pop_span}”" if pop_span else "",
+                               f"comparator “{comp_span}”" if comp_span else "") if s)
     return ("include", "INCLUDE",
             f"RCT of {inc.get('intervention_any',['intervention'])[0]} vs "
             f"{inc.get('comparator_any',['control'])[0]} in {popok or 'the target population'}; "
-            f"double-blind placebo-controlled — P/I/C/design met.")
+            f"double-blind placebo-controlled — P/I/C/design met.",
+            ev or _quote(raw_pop))
 
 
 def run(all_recs: list, config: dict) -> dict:
@@ -107,10 +156,10 @@ def run(all_recs: list, config: dict) -> dict:
     neg = set(config.get("negative_control_pmids", []))
     decisions = []
     for rec in all_recs:
-        decision, rule, reason = screen_record(rec, inc, neg)
+        decision, rule, reason, span = screen_record(rec, inc, neg)
         decisions.append({"id": rec["id"], "id_type": rec["id_type"],
                           "label": rec.get("acronym") or "", "decision": decision,
-                          "rule_id": rule, "reason": reason})
+                          "rule_id": rule, "reason": reason, "span": span})
     by_id = {d["id"]: d for d in decisions}
     pos = config.get("positive_control_pmids", [])
     pos_ok = [p for p in pos if by_id.get(p, {}).get("decision") == "include"]

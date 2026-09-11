@@ -176,16 +176,18 @@ def _screening(r, neutral):
     if reason:
         return _absent_block(reason)
     recs = s.get("records", []) or []
-    head = "<tr><th>Record</th><th>Type</th><th>Decision</th><th>Rule</th><th>Reason (true of the record)</th></tr>"
+    head = ("<tr><th>Record</th><th>Type</th><th>Decision</th><th>Rule</th>"
+            "<th>Reason (true of the record)</th><th>Verbatim span (from the record)</th></tr>")
     rows = "".join(
         f"<tr><td>{_e(x.get('id'))}</td><td>{_e(x.get('id_type'))}</td>"
         f"<td class='dec-{_e(x.get('decision'))}'>{_e(x.get('decision'))}</td>"
-        f"<td>{_e(x.get('rule_id'))}</td><td>{_e(x.get('reason'))}</td></tr>"
+        f"<td>{_e(x.get('rule_id'))}</td><td>{_e(x.get('reason'))}</td>"
+        f"<td class='span'>{_e(x.get('span'))}</td></tr>"
         for x in recs)
     n_inc = sum(1 for x in recs if x.get("decision") == "include")
     body = (f"<p>{len(recs)} records screened; <strong>{n_inc} included</strong>. "
-            "Eligibility is on P/I/C/design only; every record carries a rule id and a "
-            "reason true of that record.</p>"
+            "Eligibility is on P/I/C/design only; every record carries a rule id, a "
+            "reason true of that record, and a verbatim span quoted from the record.</p>"
             f"<table class='recs'>{head}{rows}</table>")
     pc = s.get("positive_control")
     nc = s.get("negative_control")
