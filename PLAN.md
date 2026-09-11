@@ -81,3 +81,12 @@ in its clone. Therefore:
 - **Cleanup is scoped and never touches a tree another lane holds. Never `prune`.**
 - A lane whose output exists only uncommitted is a lane you may have to run twice — the two
   losses this project took (empagliflozin, the gated statins page) were both this exact shape.
+
+## Lane artefacts topic-scoped + verified-by-name (donor-evidence fix)
+Untracked files survive `git reset --hard`, so a reused clone can still hold a PRIOR lane's
+RECALL-*.md / VERIFY-*.md — and two recall lanes once read another topic's stale file as their own
+(the donor-evidence shape). Structural rules:
+- Before reusing an IDLE clone (one no live lane holds) for a new lane, `git clean -fdq` it to remove
+  stale untracked artefacts. Never clean a tree another lane is using.
+- Read a lane artefact ONLY by exact topic-scoped name AND content-verified: `sh scripts/read_lane.sh
+  <clone> <KIND> <slug>` refuses a file that doesn't reference <slug>. Never `ls KIND-*.md | head`.
