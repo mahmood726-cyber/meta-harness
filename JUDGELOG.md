@@ -509,3 +509,12 @@ per-arm counts (RINO) + a secondary-outcome mismatch (Maggiore); metformin-pcos 
 %-only/mixed-population; corticosteroids-cap = timepoint mixture (28-day vs in-hospital vs 60-day).
 Verify-before-build is not optional; a rush-built page from any of these would have shipped a wrong or
 empty result. Build only the topic whose flaw is resolvable honestly; decline and record the rest.
+
+## Cycle 35 — hfnc-vs-conventional-o2-reintubation DECLINED (mixed-scale garbage pool at k=2)
+Verify-before-build: Hernandez 2016 (26975498) gives a clean count-RR (13/264 vs 32/263 = 0.40) but in a
+LOW-RISK-only population; RINO 2022 (35849787) reports only an OR (1.26, no per-arm counts) and Maggiore
+2014 (25003980) reports reintubation as a SECONDARY (%-only). Pooling Hernandez (count-RR) + RINO (OR) at
+k=2 with opposite directions => mixed (OR/RR), RR 0.72 CI 0.0005-975.6 — an uninformative garbage interval
+(the same refusal recorded earlier for this topic). A clean k=1-Hernandez page would need a scale-homogeneity
+exclusion for RINO's un-convertible OR (no mechanism yet) and is a narrow low-risk-only page besides.
+DECLINED; artifacts removed. Named reason recorded rather than shipping a garbage k=2 or a hacked k=1.
