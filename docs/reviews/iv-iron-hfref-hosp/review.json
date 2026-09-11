@@ -390,7 +390,7 @@
       "estimand": "RR",
       "population": "intention-to-treat",
       "timepoint": "trial end / longest reported follow-up",
-      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
       "trials": [
         {
           "label": "40159390",
@@ -401,6 +401,18 @@
           "scale": "IRR",
           "source": "abstract effect+CI (IRR): The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12",
           "provenance": "abstract",
+          "verified": "verified",
+          "verify_basis": "effect present in committed source"
+        },
+        {
+          "label": "25176939",
+          "id": "PMID 25176939",
+          "effect": 0.39,
+          "ci_low": 0.19,
+          "ci_high": 0.82,
+          "scale": "HR",
+          "provenance": "fulltext_verified",
+          "source": "CONFIRM-HF full text (PMC4359359, Table 2 + Results): 'Hospitalizations due to worsening HF ... 10 10 (7.6) ... 32 25 (19.4) ... 0.39 (0.19-0.82) ... 0.009' and 'Treatment with FCM was associated with a significant reduction in the risk of hospitalization due to worsening HF with a time-to-event analysis returning an HR of 0.39 with a 95% CI of (0.19-0.82) (P = 0.009)'. First-event (time-to-event) HR: 10 vs 25 patients with >=1 HF hospitalization.",
           "verified": "verified",
           "verify_basis": "effect present in committed source"
         }
@@ -427,11 +439,6 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
         },
         {
-          "label": "25176939",
-          "id": "PMID 25176939",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        },
-        {
           "label": "19920054",
           "id": "PMID 19920054",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
@@ -443,14 +450,20 @@
         }
       ],
       "result": {
-        "k": 1,
-        "estimate": 0.8,
-        "scale": "IRR",
-        "ci_low": 0.6019,
-        "ci_high": 1.0633,
-        "pi_note": "prediction interval undefined for k=1",
+        "k": 2,
+        "estimate": 0.6064,
+        "scale": "mixed (HR/IRR)",
+        "ci_low": 0.0071,
+        "ci_high": 51.5861,
+        "tau2": 0.17798,
+        "pi_low": 0.0006,
+        "pi_high": 640.6305,
+        "scale_mixed": [
+          "HR",
+          "IRR"
+        ],
         "leave_one_out": {
-          "note": "not assessable at k=1 (leave-one-out needs k>=3)"
+          "note": "not assessable at k=2 (leave-one-out needs k>=3)"
         }
       }
     },
@@ -600,7 +613,7 @@
       "note": "same-question comparator (matching intervention level and population)"
     },
     "overlap": {
-      "ours_k": 1,
+      "ours_k": 2,
       "theirs_k": 6,
       "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
       "only_ours": [
@@ -669,7 +682,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "a56039f46158272c40c9565150903cf87db37c3c",
-    "review_sha256": "3877a12b6556d9faaeb63246c3a13f51c08d61cffe9ef68f367d4604917d9de3",
+    "review_sha256": "849561f3e3f1499e870386a27722f156226322cee3950f7e8b1fb9970062da31",
     "from_cache": true
   }
 }

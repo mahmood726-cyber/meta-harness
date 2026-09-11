@@ -211,6 +211,24 @@ def _load_verified_arms(slug):
         return None
 
 
+def _load_verified_effects(slug):
+    """Committed full-text-verified EFFECT entries (cache/<slug>/verified_effects.json):
+    {pmid: {outcome, effect, ci_low, ci_high, scale, source, verification}}. The effect analogue of
+    verified_arms — for a trial whose declared-outcome effect+CI lives ONLY in the full text (not the
+    abstract, not a single-NCT registry row) and cannot be reduced to unambiguous per-arm counts
+    (e.g. CONFIRM-HF's HF-hospitalisation HR 0.39 (0.19-0.82), Table 2 of PMC4359359 — the % arm
+    denominators are the analysis population, not the randomised n, so counts would be inferred; the
+    reported HR is unambiguous). `source` carries the VERBATIM span so verify.verify_pooled checks the
+    effect's digits against the committed bytes. Absent => none."""
+    p = os.path.join(ROOT, "cache", slug, "verified_effects.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        return json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 def _with_model_adjudication(slug, dual, decisions):
     """Attach the committed independent-model adjudication of the rule-screener disagreements
     (cache/<slug>/screen_adjudication.json) to the dual block, with the model-vs-served agreement.
@@ -246,7 +264,7 @@ def _with_model_adjudication(slug, dual, decisions):
 
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
-                   locate_judgments=None):
+                   locate_judgments=None, verified_effects=None):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     trials, absent = [], []
@@ -301,6 +319,17 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             trials.append({"label": label, "id": idstr, "ai": va["ai"], "n1i": va["n1i"],
                            "ci": va["ci"], "n2i": va["n2i"], "provenance": "aact_verified",
                            "source": va.get("source", "hand-verified structured arm-level counts")})
+            continue
+        # FULL-TEXT-VERIFIED EFFECT (committed): the declared-outcome effect+CI is reported only in
+        # the full text and cannot be reduced to unambiguous per-arm counts. provenance is NOT
+        # abstract/pmc_fulltext so verify.verify_pooled checks the effect's digits against the
+        # committed source span (not the abstract). Only for the matching outcome.
+        ve = (verified_effects or {}).get(d["id"])
+        if ve and ve.get("outcome") == spec.get("name") and ve.get("effect") is not None:
+            trials.append({"label": label, "id": idstr, "effect": ve["effect"],
+                           "ci_low": ve.get("ci_low"), "ci_high": ve.get("ci_high"),
+                           "scale": ve.get("scale", "HR"), "provenance": "fulltext_verified",
+                           "source": ve.get("source", "full-text-verified effect+CI")})
             continue
         absent.append({"label": label, "id": idstr, "reason": ex["reason"]})
     # LOCATE IDENTITY GATE (opt-in, model-derived): a cached judgment that a trial's located evidence
@@ -457,9 +486,11 @@ def build_review_core(slug, config, records, protocol_sha):
     # substring match. This keeps every existing topic byte-identical until it opts in.
     ojudg = _load_outcome_judgments(slug) if config.get("outcome_identity") else None
     varms = _load_verified_arms(slug)
+    veffs = _load_verified_effects(slug)
     ljudg = locate.load(slug) if config.get("locate_gate") else None
     outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp,
-                               outcome_judgments=ojudg, verified_arms=varms, locate_judgments=ljudg)
+                               outcome_judgments=ojudg, verified_arms=varms, locate_judgments=ljudg,
+                               verified_effects=veffs)
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 
