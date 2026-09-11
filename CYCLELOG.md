@@ -439,3 +439,15 @@ Every added trial verified true against source before it pools.
   collection fixed (persist Fable's returned span-map to a committed file at emit time, not via the
   emptied task transcript). Not committing a misleading rate. cache/dual_spans_sample.json retains the
   hand-collected spans for the record.
+
+## Cycle 28 — Dual-extraction FULL pass (Fable, its own bucket): 93.7% agree, and it FOUND + FIXED 2 wrong numbers
+- Re-ran the 84-number dual pass on Fable (7 lanes WRITING span files this time — reliable, byte-verbatim,
+  each span an exact abstract substring). Abstract-sourced agreement 74/79 (93.7%); 5 not-abstract-checkable.
+- Three-way disagreement split (only 'our-number-wrong' matters): 0 model-wrong; 3 formatting/estimand-
+  choice (ROCKET ITT-vs-per-protocol; a derived RR; an outcome-definition split — all defensible/flagged);
+  **2 OUR-NUMBER-WRONG** — probiotics 23932219 any-AE and SAE both pooled RR 0.71 = the CDD relative risk
+  (wrong endpoint; digit-verification passed because 0.71 is in the abstract).
+- FIXED in the harness: cached the model identity judgments + enabled locate_gate on probiotics -> both
+  harm outcomes DECLARED-ABSENT (k 1->0); AAD primary (k=13, RR 1.04) untouched. Reproduces, gate PASS,
+  103 tests. This is exactly what the dual pass is for — it caught 2 wrong numbers the digit-check missed.
+- Fable lane count: 14 lanes this stretch (7 defect + 7 dual), on the 99%-unused Fable bucket.
