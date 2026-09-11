@@ -186,3 +186,19 @@ def test_extract_rate_refuses_rate_without_person_time():
     s = ("The frequency of exacerbations was 1.48 per patient-year in the azithromycin group "
          "versus 1.83 per patient-year in the placebo group.")
     assert extract_rate(s, ["azithromycin"], ["placebo"]) is None
+
+
+# --- continuous extraction: mean+/-SD per arm; refuse without per-arm n or two arms ---
+from harness.extract import extract_continuous
+
+
+def test_extract_continuous_mean_sd():
+    s = "Mean cold duration was 4.0 days (SD 1.5) in the zinc group versus 6.0 days (SD 2.0) in the placebo group."
+    assert extract_continuous(s, ["zinc"], ["placebo"], {"i": 50, "c": 52}) == (4.0, 1.5, 50, 6.0, 2.0, 52)
+
+
+def test_extract_continuous_refuses_without_n_or_two_arms():
+    s = "Mean cold duration was 4.0 days (SD 1.5) in the zinc group versus 6.0 days (SD 2.0) in the placebo group."
+    assert extract_continuous(s, ["zinc"], ["placebo"], None) is None  # no per-arm n
+    one = "Mean cold duration was 4.0 days (SD 1.5) in the zinc group."
+    assert extract_continuous(one, ["zinc"], ["placebo"], {"i": 50, "c": 52}) is None  # one arm

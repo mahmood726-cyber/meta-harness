@@ -283,6 +283,44 @@ def _interv_in(sentence, interv_terms):
     return any(t.lower() in sl for t in interv_terms)
 
 
+_MEAN_SD = re.compile(  # "mean X (SD Y)" / "X (SD Y)" / "X +/- Y" / "X days (SD Y)"
+    r"(\d+(?:\.\d+)?)\s*(?:days?|hours?|minutes?|min|points?)?\s*"
+    r"(?:\(\s*(?:SD|standard deviation)\s*[:=]?\s*(\d+(?:\.\d+)?)\s*\)|(?:±|\+/-|\+-)\s*(\d+(?:\.\d+)?))", re.I)
+_MED_IQR = re.compile(  # "median X (IQR a-b)" / "median X (IQR a to b)"
+    r"median\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(?:days?|hours?|minutes?|min|points?)?\s*"
+    r"[\(\[]\s*(?:IQR|interquartile range)\s*[:=]?\s*(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)", re.I)
+
+
+def extract_continuous(sentence, interv_terms, comp_terms, n_by_arm=None):
+    """Return (mean1,sd1,n1,mean2,sd2,n2) for a mean-difference outcome, or None. Accepts explicit
+    'mean (SD)' / 'X +/- SD' per arm, or 'median (IQR a-b)' converted via Wan-2014
+    (mean~=median, SD~=IQR/1.35). Refuses on ambiguity (needs two arms + per-arm n). SE (standard
+    ERROR) is NOT treated as SD. n_by_arm: optional {intervention_n, comparator_n}."""
+    vals = []
+    for m in _MEAN_SD.finditer(sentence):
+        mean = float(m.group(1))
+        sd = float(m.group(2) or m.group(3))
+        vals.append((m.start(), mean, sd))
+    for m in _MED_IQR.finditer(sentence):
+        mean = float(m.group(1))
+        sd = (float(m.group(3)) - float(m.group(2))) / 1.35  # Wan 2014 IQR->SD
+        if sd > 0:
+            vals.append((m.start(), mean, sd))
+    if len(vals) < 2 or not n_by_arm:
+        return None
+    n1, n2 = n_by_arm.get("i"), n_by_arm.get("c")
+    if not (n1 and n2):
+        return None
+    low = sentence.lower()
+    i_pos = min((low.find(t.lower()) for t in interv_terms if t.lower() in low), default=-1)
+    c_pos = min((low.find(t.lower()) for t in comp_terms if t.lower() in low), default=-1)
+    if i_pos < 0 or c_pos < 0:
+        return None
+    vals.sort()
+    (_, m1, s1), (_, m2, s2) = vals[0], vals[1]
+    return (m1, s1, n1, m2, s2, n2) if i_pos <= c_pos else (m2, s2, n2, m1, s1, n1)
+
+
 def extract_rate(sentence, interv_terms, comp_terms):
     """Return (e1i,t1i,e2i,t2i) for an incidence-rate pooling ONLY when per-arm events AND
     person-time are BOTH explicitly stated (no inference). Annualised-rate cases that would need
