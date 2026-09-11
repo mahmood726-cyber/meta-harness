@@ -271,7 +271,11 @@ header{background:#12232e;color:#fff;padding:18px 22px}header h1{margin:0;font-s
 nav{display:flex;flex-wrap:wrap;gap:2px;background:#1d3b4d;padding:0 12px}
 nav button{background:transparent;border:0;color:#cfe3f3;padding:11px 14px;cursor:pointer;font-size:13px;border-bottom:3px solid transparent}
 nav button.active{color:#fff;border-bottom-color:#4ea1d3;font-weight:600}
-main{max-width:960px;margin:0 auto;padding:22px}.tab{display:none}.tab.active{display:block}
+main{max-width:960px;margin:0 auto;padding:22px}
+.tab{display:block;margin-top:8px;padding-top:8px;border-top:1px solid #e6ebef}
+.tab h3.tabname{color:#1d3b4d;font-size:14px;margin:0 0 6px}
+html.js .tab{display:none;border-top:0}html.js .tab.active{display:block}
+html.js .tab h3.tabname{display:none}
 table.kv,table.recs,table.arms{border-collapse:collapse;width:100%;margin:10px 0}
 table.kv th{text-align:left;width:36%;vertical-align:top;padding:6px 8px;color:#3a5a6b;background:#eef2f5;border:1px solid #dbe3e8}
 table.kv td{padding:6px 8px;border:1px solid #dbe3e8}
@@ -283,17 +287,19 @@ table.recs th,table.recs td,table.arms th,table.arms td{border:1px solid #dbe3e8
 .q{font-size:16px;color:#2a4b5c}pre{background:#0f1c24;color:#d6e6f2;padding:10px;overflow:auto;border-radius:6px;font-size:12px;white-space:pre-wrap}
 h2{margin-top:0}h4{margin:16px 0 4px}
 """
-_JS = """function show(id){document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',t.id==='tab-'+id)});
+_JS = """document.documentElement.className='js';
+function show(id){document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',t.id==='tab-'+id)});
 document.querySelectorAll('nav button').forEach(function(b){b.classList.toggle('active',b.dataset.t===id)});}
-document.addEventListener('DOMContentLoaded',function(){var f=document.querySelector('nav button');if(f)show(f.dataset.t);});"""
+(function(){var f=document.querySelector('nav button');if(f)show(f.dataset.t);})();"""
 
 
 def render_page(review: dict, neutral: bool = False) -> str:
     tabs_spec = [(tid, lbl) for tid, lbl in TABS if not (neutral and tid in NEUTRAL_DROP)]
     nav = "".join(f'<button data-t="{tid}" onclick="show(\'{tid}\')">{_e(lbl)}</button>' for tid, lbl in tabs_spec)
     body = ""
-    for tid, _lbl in tabs_spec:
-        body += f'<section class="tab" id="tab-{tid}">{_R[tid](review, neutral)}</section>'
+    for tid, lbl in tabs_spec:
+        body += (f'<section class="tab" id="tab-{tid}">'
+                 f'<h3 class="tabname">{_e(lbl)}</h3>{_R[tid](review, neutral)}</section>')
     title = _e(review.get("title") or review.get("slug"))
     sub = ("Meta-analysis" if neutral else
            "Reproducible meta-analysis harness — auditability, not authority")
