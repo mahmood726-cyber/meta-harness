@@ -185,8 +185,22 @@ def _load_outcome_judgments(slug):
     return data.get("judgments", data)
 
 
+def _load_verified_arms(slug):
+    """Committed hand-verified structured arm-level counts (cache/<slug>/verified_arms.json):
+    {pmid: {outcome, ai, n1i, ci, n2i, source}}. The bottom of the source hierarchy — a number a
+    human verified against a structured source (AACT) and the published rate, for a trial whose
+    abstract/single-NCT/full-text did not yield it. Absent => none."""
+    p = os.path.join(ROOT, "cache", slug, "verified_arms.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        return json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
-                   fulltext_by_pmid=None, outcome_judgments=None):
+                   fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     trials, absent = [], []
@@ -229,8 +243,20 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if fx and not fx.get("absent"):
             fx["provenance"] = "pmc_fulltext"
             trials.append({"label": label, "id": idstr, **fx})
-        else:
-            absent.append({"label": label, "id": idstr, "reason": ex["reason"]})
+            continue
+        # BOTTOM OF THE SOURCE HIERARCHY: a committed, HAND-VERIFIED structured arm-level entry
+        # (e.g. AACT counts summed across a trial's two registrations, verified against the
+        # published rate). Used only when the primary report / single-NCT registry / full text do
+        # NOT yield the number, and only for the matching outcome. Carries its own provenance +
+        # verification, rendered on the page so a reader sees which numbers we took from where.
+        va = (verified_arms or {}).get(d["id"])
+        if va and va.get("outcome") == spec.get("name") and all(
+                va.get(k) is not None for k in ("ai", "n1i", "ci", "n2i")):
+            trials.append({"label": label, "id": idstr, "ai": va["ai"], "n1i": va["n1i"],
+                           "ci": va["ci"], "n2i": va["n2i"], "provenance": "aact_verified",
+                           "source": va.get("source", "hand-verified structured arm-level counts")})
+            continue
+        absent.append({"label": label, "id": idstr, "reason": ex["reason"]})
     out = {"name": spec["name"], "kind": kind, "primary": bool(spec.get("primary")),
            "estimand": spec.get("estimand", "RR"), "population": spec.get("population"),
            "timepoint": spec.get("timepoint"), "method": METHOD,
@@ -304,8 +330,9 @@ def build_review_core(slug, config, records, protocol_sha):
     # judgments cache; absent either, judgments=None and ctgov selection is the deterministic
     # substring match. This keeps every existing topic byte-identical until it opts in.
     ojudg = _load_outcome_judgments(slug) if config.get("outcome_identity") else None
+    varms = _load_verified_arms(slug)
     outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp,
-                               outcome_judgments=ojudg)
+                               outcome_judgments=ojudg, verified_arms=varms)
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 
