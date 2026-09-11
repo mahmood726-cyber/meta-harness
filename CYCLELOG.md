@@ -502,3 +502,31 @@ Every added trial verified true against source before it pools.
   D2 39/46, D4 39/46, D3 (attrition) 29/46 = the only coverage gap.
 - A fully-fair blind judged page-vs-page comparison is NOT runnable from current data (comparator=abstract
   only); running it would measure acquisition asymmetry, not method. Enabler = comparator OA full-text.
+
+## Cycle 31 (commits 85e442d, 074ab14) — Fable audit fleet (16 lanes) + generic-harm wrong-endpoint fix
+- FABLE FLEET (16 lanes, 93%-free bucket): 3 endpoint-identity (all 83 pooled numbers) + 4 recoverability-locate
+  (95 declared-absent cells) + 5 full-set screening (1405 records) + 4 dual-extraction-2nd-pass (running).
+- ENDPOINT-IDENTITY three-way split on 83 pooled numbers: 70 AGREE (84.3%: 47 exact + 23 composite),
+  7 UNVERIFIABLE-FROM-TEXT (source snippet names only "primary outcome"), 6 FLAGGED. Of the 6: 1 false alarm
+  (FIGARO 34449181 kidney secondary = correct target, verified), 1 estimand-breadth note (EMPA-KIDNEY 36331190
+  primary composite includes CV death = the standard SGLT2-CKD composite), 4 GENUINE wrong pools.
+- FIX (074ab14): 3 of the 4 were the SAME class -- a SPECIFIC harm outcome ("gastrointestinal adverse effects")
+  pooled from a bare generic "adverse events occurred in N ..." sentence. extract._outcome_sentences now requires
+  a match on a keyword MORE specific than a generic-harm phrase (GENERIC_HARM set) when the outcome has one.
+  Cross-topic scan (all outcomes): exactly 7 GI-harm cells -> declared-absent (colchicine-postop-af x3,
+  colchicine-recurrent-pericarditis x3, colchicine-secondary-cv x1); every primary/efficacy pool unchanged.
+  +2 regression tests. Cannot touch the primary anchor (efficacy outcomes carry no generic-harm keyword).
+- CLASS-LOCK (85e442d): +2 regression tests for the component-as-composite (SUSTAIN-6 primary MACE 0.74/0.58-0.95
+  not the MI component 0.74/0.51-1.08) and secondary-composite (FIGARO) classes; both verified correct in the
+  live build; deterministic sweep of all 83 pooled rows = 0 component-only-sentence pools.
+- QUEUED (diagnosed, delicate/path-specific -- NOT rushed at turn end): (a) colchicine-postop-af 25172965
+  "Treatment discontinuation" -- abstract says "discontinuation rates were similar" (NO counts); extractor grabbed
+  the adjacent any-AE counts (21/36) = CLAUSE-LOCALITY class (count must be adjacent to the matched keyword);
+  (b) spironolactone 21073363 hyperkalemia = CT.gov path (eplerenone arm, "hospitalisation due to hyperkalemia")
+  -> outcome-identity on the structured path.
+- RECOVERY VERIFICATION: locate flagged 33 is_target candidates; the 3 on the real 2/9 deficit topic
+  (colchicine-secondary-cv COPS 32862667 / 34876021 / 32295417) ALL REFUSED on source-check (ambiguous "events"
+  recurrent-vs-patient; non-standard composite incl. decompensated HF; 30-day peri-PCI TVR composite that is a
+  SECONDARY of a biomarker-primary trial). Confirms the extractor's declared-absent decisions were correct;
+  Fable proposes, deterministic+source disposes. 0 additional recoveries (honest k over inflated k).
+- 110 tests (+4), 23/23 reproduce, 23/23 gate PASS. Pushed to main (074ab14), finerenone k=2 page live-verified.
