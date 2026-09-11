@@ -17,7 +17,7 @@ CTGOV = "https://clinicaltrials.gov/api/v2/studies"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def _esearch(query: str, retmax: int = 25) -> list[str]:
+def _esearch(query: str, retmax: int = 40) -> list[str]:
     d = http.get_json(f"{EUTILS}/esearch.fcgi",
                       {"db": "pubmed", "term": query, "retmode": "json",
                        "retmax": retmax, "tool": "meta-harness", "email": "meta-harness@example.org"})
@@ -64,6 +64,23 @@ def _efetch(pmids: list[str]) -> list[dict]:
         out.append({"id": pmid, "id_type": "pmid", "title": title, "abstract": abstract,
                     "pubtypes": pubtypes, "year": year, "journal": journal, "doi": doi, "nct": nct})
     return out
+
+
+def _refs(pmid: str) -> list[str]:
+    """PMIDs the given article cites (comparator-reference seeding for recall)."""
+    try:
+        d = http.get_json(f"{EUTILS}/elink.fcgi",
+                          {"dbfrom": "pubmed", "db": "pubmed", "linkname": "pubmed_pubmed_refs",
+                           "id": pmid, "retmode": "json", "tool": "meta-harness",
+                           "email": "meta-harness@example.org"})
+        time.sleep(0.34)
+        out = []
+        for ls in d.get("linksets", [{}])[0].get("linksetdbs", []):
+            if ls.get("linkname") == "pubmed_pubmed_refs":
+                out = ls.get("links", [])
+        return out
+    except Exception:  # noqa: BLE001
+        return []
 
 
 def _pmc_fulltext(pmid: str) -> str:
@@ -134,6 +151,12 @@ def run(config: dict) -> dict:
     for pid in config.get("extra_pmids", []) + config.get("negative_control_pmids", []) + [config.get("comparator_pmid", "")]:
         if pid and pid not in pmids:
             pmids.append(pid)
+    # F4 recall: seed with the trials the comparator itself cited, then screen by our rules.
+    if config.get("comparator_pmid") and config.get("seed_comparator_refs", True):
+        for pid in _refs(config["comparator_pmid"]):
+            if pid not in pmids:
+                pmids.append(pid)
+    pmids = pmids[:config.get("max_records", 150)]
     pubmed = []
     for i in range(0, len(pmids), 20):
         pubmed.extend(_efetch(pmids[i:i + 20]))
