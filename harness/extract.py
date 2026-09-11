@@ -52,9 +52,26 @@ def _sentences(text: str):
     return re.split(r"(?<=\.)\s+(?=[A-Z(])", text or "")
 
 
+# Purely GENERIC harm phrases: they name "an adverse event happened" without saying WHICH, so a
+# sentence matching only these does not evidence a SPECIFIC harm outcome. A specific harm outcome
+# ("gastrointestinal adverse effects", keywords [gastrointestinal, diarrh, adverse effect, adverse
+# event]) must be selected on its DISCRIMINATING keyword (gastrointestinal/diarrh), never on the bare
+# "adverse events occurred in N ..." sentence (that count is ANY-AE, not GI — colchicine-postop-af
+# 25172965). "serious"/"severe"/"major" adverse ARE discriminating (they scope severity) so are NOT
+# generic. Primary/efficacy outcomes carry no generic-harm keyword, so their selection is unchanged
+# (this never touches the generic "primary outcome" anchor).
+GENERIC_HARM = {"adverse event", "adverse events", "adverse effect", "adverse effects",
+                "side effect", "side effects", "tolerability", "safety", "well tolerated",
+                "treatment-emergent adverse event", "treatment emergent adverse event"}
+
+
 def _outcome_sentences(abstract, kws):
-    out = [s for s in _sentences(abstract) if any(k.lower() in s.lower() for k in kws)]
-    return out
+    # If the outcome has any keyword MORE specific than a bare generic-harm phrase, require a
+    # match on one of those specific keywords; else (a genuinely generic "any adverse events"
+    # outcome) fall back to matching any keyword.
+    specific = [k for k in kws if k.lower() not in GENERIC_HARM]
+    sel = specific if specific else kws
+    return [s for s in _sentences(abstract) if any(k.lower() in s.lower() for k in sel)]
 
 
 def _negated(s, pos):

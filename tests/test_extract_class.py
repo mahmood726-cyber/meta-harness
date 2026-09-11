@@ -135,6 +135,29 @@ def test_sustain6_pools_primary_mace_not_mi_component():
 
 # --- FIGARO kidney SECONDARY composite IS the correct pool for a kidney-composite topic (its CV
 #     primary must be rejected -- covered above -- and its kidney secondary is our target).
+# --- generic-harm guard: a SPECIFIC harm outcome must be selected on its discriminating keyword,
+#     never on a bare "adverse events occurred in N ..." sentence (that count is ANY-AE). ---
+GI_KWS = ["gastrointestinal", "diarrh", "adverse effect", "adverse event", "side effect"]
+ANY_AE_KWS = ["adverse event", "adverse events", "side effect", "tolerability", "safety"]
+AE_SENTENCE = ("Adverse events occurred in 21 patients (11.7%) in the placebo group vs 36 (20.0%) "
+               "in the colchicine group (absolute difference, 8.3%), but discontinuation rates "
+               "were similar.")
+
+
+from harness.extract import _outcome_sentences
+
+
+def test_generic_ae_sentence_not_selected_for_gastrointestinal_outcome():
+    # a SPECIFIC GI outcome has discriminating keywords (gastrointestinal/diarrh); the bare
+    # "adverse events occurred ..." sentence has neither, so it must NOT be selected.
+    assert _outcome_sentences(AE_SENTENCE, GI_KWS) == []
+
+
+def test_generic_ae_sentence_still_selected_for_generic_outcome():
+    # a genuinely generic "any adverse events" outcome (only generic-harm keywords) SHOULD select it
+    assert len(_outcome_sentences(AE_SENTENCE, ANY_AE_KWS)) == 1
+
+
 def test_figaro_pools_kidney_secondary_not_cv_primary():
     fx = _xt(FIGARO, KIDNEY_KWS, ["finerenone"], ["placebo"], declared_composite=True)
     # FIGARO in test_extract_class's fixture states the CV primary counts (458/3686); those must
