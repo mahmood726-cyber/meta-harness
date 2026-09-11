@@ -145,3 +145,10 @@ def test_factorial_guard_refuses_when_our_factor_not_named():
           "hazard ratio of 0.90 (95% CI 0.80-1.10) for major vascular events.")
     ex = _xt(ab, ["major vascular events"], ["n-3 fatty acids", "omega-3"], ["placebo"])
     assert ex.get("absent") and "factorial" in ex.get("reason", "")
+
+
+# --- spelled-out CI marker: "95 percent confidence interval" (RALES class) ---
+def test_spelled_out_confidence_interval_parses():
+    ex = _xt("The relative risk of death was 0.70; 95 percent confidence interval, 0.60 to 0.82.",
+             ["death", "mortality"], ["spironolactone"], ["placebo"])
+    assert ex.get("effect") == 0.70 and ex.get("ci_low") == 0.60, ex
