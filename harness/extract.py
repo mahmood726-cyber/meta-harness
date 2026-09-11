@@ -173,19 +173,23 @@ def _parse_k(abstract):
 
 
 def effect_in_outcome(abstract, kws):
-    """Effect+CI associated with THIS outcome: pick the effect whose preceding text window
-    mentions the outcome keyword. Avoids grabbing the first of several effects packed into
-    one sentence (e.g. recurrence RR, then adverse-events RR, then withdrawal RR)."""
+    """Effect+CI associated with THIS outcome. Each effect is assigned to the outcome keyword
+    in its CLAUSE = the text since the previous effect match (capped so a far-back keyword
+    can't bind). This handles both a long single-outcome sentence (keyword far before its
+    effect) and several effects packed in one sentence (recurrence RR, then AE RR, then
+    withdrawal RR) — each effect binds to the keyword in its own clause, not the first."""
     abstract = _norm(abstract)
     low = abstract.lower()
     kl = [k.lower() for k in kws]
+    prev_end = 0
     for m in _EFFECT.finditer(abstract):
-        pre = low[max(0, m.start() - 90):m.start()]
-        if any(k in pre for k in kl):
+        clause = low[prev_end:m.start()][-260:]
+        if any(k in clause for k in kl):
             e = _effect_from_match(m)
             if e:
                 return {"effect": e[1], "ci_low": e[2], "ci_high": e[3], "scale": e[0],
-                        "source": abstract[max(0, m.start() - 90):m.end()].strip()[:200]}
+                        "source": abstract[prev_end:m.end()].strip()[-240:]}
+        prev_end = m.end()
     return None
 
 
