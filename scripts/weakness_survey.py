@@ -92,6 +92,9 @@ def main(argv):
     slugs = sorted(s for s in os.listdir(base) if os.path.exists(os.path.join(base, s, "review.json")))
     prov_mix = {"abstract": 0, "ctgov_results": 0, "pmc_fulltext": 0, "aact_verified": 0, "other": 0}
     verif = {"verified_span": 0, "verified_handchecked": 0, "UNVERIFIED": 0}
+    import collections as _c
+    rob_domain = _c.Counter()  # (domain, assessed|not_assessed)
+    d5_levels = _c.Counter()
     unverified_list, mixed_scale_topics, fragile = [], [], []
     topics = {}
     for slug in slugs:
@@ -133,6 +136,12 @@ def main(argv):
         rob_assessed = sum(1 for e in (rob.get("trials") or {}).values()
                            for d in (e.get("domains") or {}).values() if d.get("level") != "not assessed")
         rob_total = sum(1 for e in (rob.get("trials") or {}).values() for _ in (e.get("domains") or {}))
+        for e in (rob.get("trials") or {}).values():
+            for dname, dv in (e.get("domains") or {}).items():
+                lvl = dv.get("level")
+                rob_domain[(dname, "assessed" if lvl != "not assessed" else "not_assessed")] += 1
+                if dname.startswith("D5"):
+                    d5_levels[lvl] += 1
         dual = (rev.get("screening") or {}).get("dual") or {}
         ss = (rev.get("search") or {}).get("source_status") or {}
         rc = (rev.get("search") or {}).get("recall") or {}
@@ -157,6 +166,8 @@ def main(argv):
             "3_verification": verif,
             "3_unverified": unverified_list,
             "8_statistical_fragility": fragile,
+            "5_rob2_domain_coverage": {f"{d}:{s}": n for (d, s), n in sorted(rob_domain.items())},
+            "5_rob2_d5_levels": dict(d5_levels),
             "8b_mixed_scale_pools": mixed_scale_topics,
             "9_transparency_gaps": sum(1 for slug in slugs if (transp.get(slug) or {}).get("coverage") not in (1.0, None)),
         },
@@ -174,6 +185,8 @@ def main(argv):
     print(f"  8b MIXED-SCALE POOLS (estimand not homogeneous): {len(mixed_scale_topics)}")
     for m in mixed_scale_topics:
         print(f"      {m['topic']} [{m['outcome'][:28]}] scales={m['scales']}")
+    print(f"  5 RoB2 DOMAIN COVERAGE: " + ", ".join(f"{d}:{s}={n}" for (d, s), n in sorted(rob_domain.items())))
+    print(f"    D5 (selective reporting / outcome-switching) levels: {dict(d5_levels)}")
     print(f"  9 TRANSPARENCY gaps (coverage<1.0): {survey['dimensions']['9_transparency_gaps']}")
     return 0
 

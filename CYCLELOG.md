@@ -279,3 +279,13 @@ Every added trial verified true against source before it pools.
   against — itself the honest finding.
 - k delta: 0 (a documentation/closure cycle, not a k move). Recorded honestly. Rebuilt tocilizumab,
   renders, JSON valid.
+
+## Cycle 17 — Front 8 RoB2 coverage MEASURED into the survey
+- Added RoB2 domain coverage (dimension 5) to weakness_survey: across 46 pooled trials, D1
+  randomisation 46/46 assessed, D5 selective-reporting (free-from-outcome-switching) 46/46 assessed
+  (29 low, 17 some-concerns = the outcome-switching flags); D2/D4 blinding 39/46 (7 missing AACT
+  masking fields); D3 missing-outcome-data 0/46 (correctly "not assessed — needs human judgement").
+- The two machine-checkable domains most published metas omit — D1 and especially D5 — are at FULL
+  coverage; the gaps (D2/D4) are honest metadata-absence, and D3 is honestly not-automated.
+- Survey json + html regenerated. 102 tests. No page bytes / estimates changed (artefact-only).
+- SUCCESS: front 8 now measured and rendered in the survey, not asserted.
