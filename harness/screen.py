@@ -308,8 +308,24 @@ def run_dual(all_recs: list, config: dict) -> dict:
 def run(all_recs: list, config: dict) -> dict:
     inc = config.get("include", {})
     neg = set(config.get("negative_control_pmids", []))
+    # Companion/duplicate/design reports are NOT independent trials (unit-of-analysis / duplicate-
+    # publication defect the external audit named: a "design and rationale" paper or a secondary report
+    # of an already-pooled trial was being counted as an eligible trial). A CURATED map (not a title
+    # heuristic, which false-fires on real trials) excludes them and links each to its parent.
+    companions = {str(c["pmid"]): c for c in (config.get("companion_reports") or [])}
     decisions = []
     for rec in all_recs:
+        rid = str(rec.get("id"))
+        if rid in companions:
+            c = companions[rid]
+            decisions.append({"id": rec["id"], "id_type": rec["id_type"],
+                              "label": rec.get("acronym") or "", "decision": "exclude",
+                              "rule_id": "X-DEDUP",
+                              "reason": f"companion/duplicate report of {c.get('parent')} "
+                                        f"({c.get('kind', 'secondary/design report')}) — not an independent "
+                                        f"trial; its parent is handled separately.",
+                              "span": (rec.get("title") or "")[:120]})
+            continue
         decision, rule, reason, span = screen_record(rec, inc, neg)
         decisions.append({"id": rec["id"], "id_type": rec["id_type"],
                           "label": rec.get("acronym") or "", "decision": decision,
