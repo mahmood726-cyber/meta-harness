@@ -1,6 +1,6 @@
 # Reproducible meta-analysis harness — honest completion statement
 
-_Snapshot of the finished state. Every claim here is regenerable from the committed repo; every
+_For how the machine works end to end, see **[HOW_IT_WORKS.md](HOW_IT_WORKS.md)**. _Snapshot of the finished state. Every claim here is regenerable from the committed repo; every
 number on every page traces to a committed source; every decline is named on its page._
 
 ## The result, in one paragraph
