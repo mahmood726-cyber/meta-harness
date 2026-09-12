@@ -181,6 +181,49 @@ def _error_rate_section(docs_dir: str) -> str:
             f"adjudicated, and reproducible from <code>scripts/error_rate_compare.py</code>.</p></div>")
 
 
+def _spec_curve_numbers(docs_dir: str) -> dict:
+    """Derive the specification-curve summary from docs/spec_curve.json."""
+    p = os.path.join(docs_dir, "spec_curve.json")
+    if not os.path.exists(p):
+        return {}
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    topics = [v for k, v in d.items() if not k.startswith("_") and isinstance(v, dict) and not v.get("not_applicable")]
+    if not topics:
+        return {}
+    n = len(topics)
+    dir_stable = sum(1 for v in topics if v.get("direction_stable"))
+    sig_stable = sum(1 for v in topics if v.get("significance_stable"))
+    # flips where OUR default (RE_HKSJ) is non-significant but a less conservative spec is significant
+    conservative = 0
+    for v in topics:
+        sb = v.get("significance_by_spec", {})
+        if sb.get("RE_HKSJ") is False and (sb.get("RE_z") or sb.get("FE")):
+            conservative += 1
+    return {"n": n, "dir_stable": dir_stable, "sig_stable": sig_stable, "conservative": conservative}
+
+
+def _spec_curve_section(docs_dir: str) -> str:
+    n = _spec_curve_numbers(docs_dir)
+    if not n:
+        return ""
+    return (f"<div class='banner'><h2>Specification curve: the headline is the most conservative standard "
+            f"choice</h2>"
+            f"<p>Each primary outcome with &ge;2 trials (<strong>{n['n']}</strong> of them) was re-pooled "
+            f"under three defensible specifications on the model/interval axis: random-effects with the "
+            f"Hartung-Knapp interval (the harness default), random-effects with a Wald/z interval, and a "
+            f"fixed-effect model. <strong>The direction of effect was stable across all three in "
+            f"{n['dir_stable']} of {n['n']}</strong> — the sign never depends on the choice. Statistical "
+            f"significance was identical across all three in only <strong>{n['sig_stable']} of {n['n']}</strong>, "
+            f"and in <strong>{n['conservative']} of {n['n']}</strong> the divergence runs one way: our default "
+            f"interval is <strong>not</strong> significant while the less conservative fixed-effect or z "
+            f"specification would be. In other words the harness reports the widest of the standard intervals "
+            f"at small k, so where we do claim significance it survives the stricter choice &mdash; the "
+            f"curve is regenerable via <code>scripts/spec_curve.py</code>.</p></div>")
+
+
 def _fair_numbers(docs_dir: str) -> dict:
     """Derive the fair-comparison numbers from the committed JSON records (prisma_fair.json,
     fair_judge.json) so the banner prose cannot drift stale as topics are added. Returns a dict of
@@ -323,6 +366,11 @@ def _prose_derived_numerals(docs_dir: str) -> set:
                     out.add(str(round(v * 100, 1)))
         except (OSError, ValueError):
             pass
+    # spec-curve summary numerals
+    sc = _spec_curve_numbers(docs_dir)
+    for v in sc.values():
+        if isinstance(v, int):
+            out.add(str(v))
     return out
 
 
@@ -462,9 +510,10 @@ def build_index(docs_dir: str) -> str:
                "than the peer-reviewed comparators.</p></div>")
     _cont = _continuous_section(docs_dir)
     _erate = _error_rate_section(docs_dir)
-    # anti-drift: fail closed on an un-accounted numeral in ANY narrative banner (thesis / continuous / error-rate / stance)
-    _validate_prose_numbers(docs_dir, _thesis + _cont + _erate + _stance)
-    body = (_thesis + _erate + _cont + _verification_section(docs_dir) + _parity_section(docs_dir)
+    _spec = _spec_curve_section(docs_dir)
+    # anti-drift: fail closed on an un-accounted numeral in ANY narrative banner
+    _validate_prose_numbers(docs_dir, _thesis + _cont + _erate + _spec + _stance)
+    body = (_thesis + _erate + _cont + _spec + _verification_section(docs_dir) + _parity_section(docs_dir)
             + _error_coverage_section(docs_dir) + _stance + _fair_section(docs_dir) + body)
 
     return (

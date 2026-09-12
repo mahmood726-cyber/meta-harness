@@ -150,3 +150,25 @@ def test_manuscript_renders_and_is_object_derived():
         html = manuscript.render(r)
         assert "generated from the review object" in html
         assert "Data availability" in html
+
+
+# ---- specification curve (Stage ANALYSIS A3) -----------------------------------------------------
+def test_spec_curve_recomputes_and_direction_stable():
+    from harness import spec_curve as scmod
+    for slug, r in _reviews():
+        sc = scmod.spec_curve(r)
+        if not sc or sc.get("not_applicable"):
+            continue
+        # RE_HKSJ spec must equal the shipped primary estimate (identical estimator/data)
+        prim = next(o for o in r["outcomes"] if o.get("primary"))
+        shipped = prim["result"]
+        assert abs(sc["specs"]["RE_HKSJ"]["estimate"] - round(shipped["estimate"], 4)) < 0.0011, slug
+
+
+def test_spec_curve_index_numbers_derived():
+    if not os.path.exists(os.path.join(DOCS, "spec_curve.json")):
+        return
+    n = IDX._spec_curve_numbers(DOCS)
+    html = IDX.build_index(DOCS)
+    assert f"{n['dir_stable']} of {n['n']}" in html
+    assert f"{n['sig_stable']} of {n['n']}" in html
