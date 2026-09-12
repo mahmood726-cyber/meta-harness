@@ -49,6 +49,40 @@ def test_rendered_index_contains_the_derived_judge_numbers():
     assert f"auditable on {n['judge_more_auditable_ours']} of {n['judge_total']}" in html
 
 
+def _independent_judge(docs):
+    """Recompute the per-dimension judge margins straight from fair_judge.json, so the rendered figures
+    are proven to REGENERATE from the committed judgment record, not just be typed into prose."""
+    fj = json.load(open(os.path.join(docs, "fair_judge.json"), encoding="utf-8"))
+    slugs = [k for k in fj if not k.startswith("_")]
+    pd = lambda s, d: (fj[s].get("resolved") or {}).get("per_dimension", {}).get(d)
+    out = {}
+    for d in ("search_reproducibility", "per_number_source_traceability", "completeness_of_evidence",
+              "risk_of_bias_reporting", "declared_absence_exclusion_transparency", "overall_auditability"):
+        out[d] = (sum(pd(s, d) == "ours" for s in slugs), sum(pd(s, d) == "comparator" for s in slugs))
+    return out
+
+
+def test_per_dimension_fair_figures_regenerate_and_render():
+    """The 27-1 / 13-14 figures must REGENERATE from fair_judge.json (a disclosure that cannot be
+    reproduced is a claim): recompute each per-dimension margin independently, assert _fair_numbers agrees,
+    and assert the exact margins + RoB direction render in the index."""
+    dims = _independent_judge(DOCS)
+    n = IDX._fair_numbers(DOCS)
+    for d, (o, c) in dims.items():
+        assert (n[f"judge_{d}_ours"], n[f"judge_{d}_comp"]) == (o, c), f"{d} margin diverged"
+    html = IDX.build_index(DOCS)
+    # every auditability-family dimension's exact ours-comparator margin is rendered
+    for d in ("search_reproducibility", "per_number_source_traceability",
+              "declared_absence_exclusion_transparency", "overall_auditability"):
+        o, c = dims[d]
+        assert f"{o}&ndash;{c}" in html, f"rendered margin for {d} ({o}-{c}) missing"
+    # RoB margin + direction render, direction matching the data (to us / to the comparator / even)
+    ro, rc = dims["risk_of_bias_reporting"]
+    assert f"{ro}&ndash;{rc}" in html
+    direction = "to us" if ro > rc else "to the comparator" if rc > ro else "even"
+    assert direction in html, f"RoB direction '{direction}' not rendered"
+
+
 def test_no_stale_hardcoded_fair_counts_slip_back_in():
     """The specific stale numbers that were hand-typed before the derivation existed must not reappear
     UNLESS they equal the derived value. Guards against a re-hardcode regression."""
