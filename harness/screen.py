@@ -6,12 +6,36 @@ true of the record. Whether a trial reports the outcome is NOT decided here (tha
 target-result status, handled at extraction).
 """
 from __future__ import annotations
+import re as _re
+
+# Token-boundary matcher cache: a bare-substring `in` test matched a screening term inside a
+# longer word, so 'rat' (population_none animal term) matched 'prepaRATion' / 'administRATion'
+# and excluded human RCTs as animal studies (an external audit's finding, reproduced on
+# probiotics 17604300/11148433/21871144). A term must match as a whole token: its edges are
+# delimited by a non-alphanumeric boundary, so hyphens/spaces/digits at a term edge still
+# delimit and multi-word / hyphenated terms ("in vitro", "sglt-2") match verbatim.
+_BOUND_CACHE: dict = {}
+
+
+def _boundary_re(term: str):
+    """Whole-token match by default. A trailing '*' makes the term a STEM (leading boundary +
+    prefix, any word continuation) so intentional stems like 'antibiotic-associated diarr*'
+    match 'diarrhoea'/'diarrhea' while a bare 'rat' matches neither 'preparation' nor 'ration'."""
+    r = _BOUND_CACHE.get(term)
+    if r is None:
+        if term.endswith("*"):
+            r = _re.compile(r"(?<![a-z0-9])" + _re.escape(term[:-1]))
+        else:
+            r = _re.compile(r"(?<![a-z0-9])" + _re.escape(term) + r"(?![a-z0-9])")
+        _BOUND_CACHE[term] = r
+    return r
 
 
 def _has(text: str, terms) -> str | None:
     t = text.lower()
     for term in terms or []:
-        if term.lower() in t:
+        tl = (term or "").lower().strip()
+        if tl and _boundary_re(tl).search(t):
             return term
     return None
 

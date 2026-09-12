@@ -86,3 +86,29 @@ def test_describe_eligibility_omits_xdesign_when_not_required():
     d = describe_eligibility(inc)
     assert "X-DESIGN" not in d
     assert "double-blind" not in d  # no double-blind clause when the config does not require it
+
+
+# --- token-boundary matching (external-audit regression) --------------------------
+from harness.screen import _has  # noqa: E402
+
+
+def test_has_does_not_match_substring_inside_a_word():
+    # The bug an external audit found: 'rat' (an animal population_none term) matched inside
+    # 'prepaRATion' / 'administRATion' / 'RATional', excluding human RCTs as animal studies.
+    assert _has("probiotic Lactobacillus preparation to prevent diarrhoea", ["rat"]) is None
+    assert _has("oral administration of Lactobacillus GG", ["rat"]) is None
+    assert _has("a rational dosing approach", ["rat"]) is None
+    assert _has("statistical modelling of outcomes", ["model"]) is None
+    # but a real whole-word mention still matches
+    assert _has("study in rats and mice", ["rat", "rats"]) is not None
+    assert _has("a mouse model of colitis", ["model"]) == "model"
+
+
+def test_has_stem_star_matches_word_continuations():
+    # An explicit trailing '*' marks an intended stem: 'diarr*' matches diarrhoea/diarrhea,
+    # while a bare term stays whole-word.
+    assert _has("antibiotic-associated diarrhoea in children", ["antibiotic-associated diarr*"])
+    assert _has("antibiotic associated diarrhea", ["antibiotic associated diarr*"])
+    assert _has("colds were shorter", ["cold*"]) == "cold*"
+    # a stem still respects the LEADING boundary (no infix match)
+    assert _has("the microbial preparation", ["rat*"]) is None
