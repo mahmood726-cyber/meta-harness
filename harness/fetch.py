@@ -74,6 +74,25 @@ def _txt(el):
     return "".join(el.itertext()).strip() if el is not None else ""
 
 
+def _select_nct(abstract: str, db_ncts: list[str]) -> str:
+    """Pick the trial's own registry id. A multi-registration paper (e.g. a pooled analysis such as
+    RE-COVER II, whose PubMed DataBank lists BOTH its own NCT and its companion trial's) can have the
+    DataBank order put the companion first — so when there is MORE THAN ONE databank id, disambiguate
+    by the abstract, which states the current trial's id first; pick the abstract-first id that is also
+    one of the paper's OWN databank ids. With a single databank id, trust it (do not let an abstract
+    that merely CITES another trial's NCT override an authoritative registration). Fall back to an
+    abstract-stated NCT only when the DataBank carries none. Reproduction replays the committed cache,
+    so this only governs a fresh fetch."""
+    abstract_ncts = _NCT_RE.findall(abstract or "")
+    if len(db_ncts) > 1 and abstract_ncts:
+        for a in abstract_ncts:
+            if a in db_ncts:
+                return a
+    if db_ncts:
+        return db_ncts[0]
+    return abstract_ncts[0] if abstract_ncts else ""
+
+
 def _efetch(pmids: list[str]) -> list[dict]:
     if not pmids:
         return []
@@ -100,16 +119,14 @@ def _efetch(pmids: list[str]) -> list[dict]:
             for aid in art.findall(".//ArticleId"):
                 if aid.get("IdType") == "doi":
                     doi = _txt(aid)
-        nct = ""
+        db_ncts = []
         for db in art.findall(".//DataBank"):
             if _txt(db.find("DataBankName")).lower().startswith("clinicaltrials"):
-                acc = db.find(".//AccessionNumber")
-                if acc is not None:
-                    nct = _txt(acc)
-        if not nct:  # fall back to an NCT id stated in the abstract (registry linkage)
-            m = _NCT_RE.search(abstract)
-            if m:
-                nct = m.group(0)
+                for acc in db.findall(".//AccessionNumber"):
+                    v = _txt(acc)
+                    if _NCT_RE.fullmatch(v) and v not in db_ncts:
+                        db_ncts.append(v)
+        nct = _select_nct(abstract, db_ncts)
         out.append({"id": pmid, "id_type": "pmid", "title": title, "abstract": abstract,
                     "pubtypes": pubtypes, "year": year, "journal": journal, "doi": doi, "nct": nct})
     return out
