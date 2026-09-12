@@ -214,3 +214,26 @@ def test_error_rate_is_fresh_against_current_pooled_population():
     assert not unaccounted, f"census-sample rows no longer pooled but not recorded as fixes: {unaccounted[:5]}"
     assert d.get("n_pooled_current_after_fixes") == len(pop), "n_pooled_current_after_fixes drifted from live"
     assert d.get("measured_utc"), "error_rate.json must declare measured_utc (freshness provenance)"
+
+
+# ---- composite-component estimand guard (caught by cross-family Fable QA) -------------------------
+def test_composite_component_mismatch_guard():
+    """A 3-point MACE outcome must refuse a source whose composite adds a 4th component (TECOS's
+    unstable-angina 4-point composite). Fires on the 4-point plant, not on a clean 3-point span."""
+    from harness import extract
+    tecos = ("The primary cardiovascular outcome was a composite of cardiovascular death, nonfatal "
+             "myocardial infarction, nonfatal stroke, or hospitalization for unstable angina (hazard ratio 0.98)")
+    assert extract.composite_component_mismatch("3-point major adverse cardiovascular events", tecos)
+    clean3 = "composite of cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke (HR 1.00)"
+    assert not extract.composite_component_mismatch("3-point major adverse cardiovascular events", clean3)
+    # a non-N-point outcome name is unaffected
+    assert not extract.composite_component_mismatch("Kidney composite outcome", tecos)
+
+
+def test_dpp4_tecos_declared_absent_for_estimand():
+    """dpp4-mace-t2d must NOT pool TECOS under the 3-point label (its abstract is a 4-point composite)."""
+    r = json.load(open(os.path.join(DOCS, "reviews", "dpp4-mace-t2d", "review.json"), encoding="utf-8"))
+    prim = next(o for o in r["outcomes"] if o.get("primary"))
+    assert "26052984" not in [str(t.get("label")) for t in prim.get("trials", [])], "TECOS still pooled 3-point"
+    da = [t for t in prim.get("declared_absent_trials", []) if str(t.get("label")) == "26052984"]
+    assert da and ("estimand" in da[0]["reason"].lower() or "4-point" in da[0]["reason"].lower() or "component" in da[0]["reason"].lower())

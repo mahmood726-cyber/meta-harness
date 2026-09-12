@@ -371,6 +371,12 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         ex = extract.extract_trial(rec.get("abstract", ""), spec["keywords"], interv, comp,
                                    declared_composite=dc)
         if not ex.get("absent"):
+            # ESTIMAND-HOMOGENEITY (composite component count): an N-point MACE outcome must not pool a
+            # trial whose own composite has a different component set (e.g. TECOS's 4-point vs 3-point).
+            _mm = extract.composite_component_mismatch(spec.get("name", ""), ex.get("source", ""))
+            if _mm:
+                absent.append({"label": label, "id": idstr, "reason": _mm})
+                continue
             ex["provenance"] = "abstract"
             t = {"label": label, "id": idstr, **ex}
             if nct and nct in ctgov_results:

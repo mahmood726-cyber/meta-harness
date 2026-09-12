@@ -418,6 +418,38 @@ def declared_is_composite(name: str) -> bool:
     return any(w in n for w in (" or ", "composite", "mace", "major adverse"))
 
 
+def composite_component_mismatch(outcome_name: str, source_span: str) -> str:
+    """Estimand-homogeneity guard: an N-point composite outcome must not pool a trial whose OWN composite
+    has a different component set. Specifically, a '3-point MACE' outcome (CV death / MI / stroke) must not
+    pool a source whose composite adds a 4th hard component (hospitalization for unstable angina,
+    revascularization, or HF hospitalization) -- that is a 4-point estimate under a 3-point label.
+
+    Returns a reason string if a mismatch is detected, else ''. Conservative: fires ONLY for an explicit
+    'N-point' / 'N point' MACE outcome whose source composite clause names an extra-component keyword.
+    (Caught first by cross-family QA on TECOS in dpp4-mace-t2d, which every internal gate had passed.)"""
+    name = (outcome_name or "").lower()
+    m = re.search(r"(\d+)[\s-]?point", name) or (("three" in name) and type("x", (), {"group": lambda s, i: "3"})())
+    if not m:
+        return ""
+    try:
+        n_declared = int(m.group(1))
+    except (ValueError, AttributeError):
+        return ""
+    if n_declared != 3 or "mace" not in name and "adverse cardiovascular" not in name:
+        return ""
+    span = (source_span or "").lower()
+    # only look at a composite-definition clause, not incidental mentions
+    if "composite" not in span and "primary" not in span:
+        return ""
+    extra = [kw for kw in ("unstable angina", "revascular", "hospitalization for heart failure",
+                           "hospitalisation for heart failure", "hospitalization for unstable",
+                           "coronary revascular") if kw in span]
+    if extra:
+        return (f"3-point MACE outcome but the source composite adds a 4th component ({extra[0]}) -- a "
+                f"4-point estimate; refuse rather than pool a different composite under a 3-point label")
+    return ""
+
+
 def _multi_dose_arms(abstract):
     """Distinct intervention DOSE values reported (e.g. CANTOS '50-mg group ... 150-mg group ...
     300-mg group'). A trial with >1 dose arm vs one comparator is multi-arm: picking one dose's
