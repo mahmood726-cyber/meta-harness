@@ -233,11 +233,31 @@ def build_index(docs_dir: str) -> str:
                "pre-registry trials the registries cannot reach (so reach is not the limit); an independent "
                "reported-effect extractor run over <strong>626 declared-absent cells recovered 0</strong> "
                "clean numbers ours missed (so extraction is not the limit); every same-scope gap is "
-               "decomposed and named on its page; and <strong>all 95 of 95 pooled numbers are verified "
-               "against their committed source and gate-enforced</strong>. The offer is greater "
-               "auditability, honestly bounded &mdash; not a claim of more evidence than the peer-reviewed "
-               "comparators.</p></div>")
-    body = (_thesis + _verification_section(docs_dir) + _parity_section(docs_dir)
+               "decomposed and named on its page; and <strong>every pooled number is verified "
+               "against its committed source and gate-enforced</strong> (the exact count is stated below). "
+               "The offer is greater auditability, honestly bounded &mdash; not a claim of more evidence "
+               "than the peer-reviewed comparators.</p></div>")
+    _continuous = (
+        "<div class='banner'><h2>The same result from a second angle: the continuous tier is three pages, "
+        "and here is why it is three</h2>"
+        "<p>The continuous-primary tier (mean-difference outcomes: melatonin sleep-onset latency, esketamine "
+        "MADRS, semaglutide weight) is <strong>bar-limited, not effort-limited</strong>. Growing it was "
+        "attempted and <strong>five candidate topics were probed against their own posted ClinicalTrials.gov "
+        "results and five were declined, each with a named reason</strong>: regulatory efficacy endpoints "
+        "(FEV1, blood pressure, HbA1c) are posted as <strong>least-squares means with standard errors</strong> "
+        "(ANCOVA), which we refuse rather than silently convert (roflumilast, tiotropium, renal-denervation); "
+        "and symptom scales vary in <strong>instrument, timepoint and design</strong> across trials, so no "
+        "same-scope pool of &ge;2 forms (pregabalin pain; liraglutide obesity is multi-arm / different "
+        "timepoints). A topic builds cleanly here only when one registered outcome with raw per-arm mean&plusmn;SD "
+        "is reported at one common timepoint across same-scope two-arm trials &mdash; a rare alignment. "
+        "<strong>Semaglutide is the clearest single illustration of the standard:</strong> it went from "
+        "<strong>k=4, a tight and statistically significant pool</strong>, to <strong>k=2, MD &minus;11.84% "
+        "(95% CI &minus;25.13 to 1.44)</strong> &mdash; an interval that now crosses zero &mdash; because a "
+        "timepoint-consistency guard refused to pool two Week-44 trials into a pre-registered Week-68 outcome. "
+        "<strong>We gave up significance to keep the timepoints consistent.</strong> No comparator reports "
+        "having made that trade. Together with the paragraph above this makes one claim: <strong>where we pool "
+        "less, it is because of a stated bar &mdash; and the bar is shown, not asserted.</strong></p></div>")
+    body = (_thesis + _continuous + _verification_section(docs_dir) + _parity_section(docs_dir)
             + _error_coverage_section(docs_dir) + _stance + _fair + body)
 
     return (
