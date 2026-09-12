@@ -35,6 +35,31 @@ def test_overview_names_the_pooled_trials():
     assert "Trials pooled (k)" in html
 
 
+def test_effect_scale_labelled_from_the_trial_not_the_topic_estimand():
+    """A trial reporting a hazard ratio must render as '(HR)', never '(RR)' just because the topic's
+    target estimand is RR (the denosumab/statins/omega3 defect the fair blind re-judge flagged)."""
+    r = _review(1, [{"label": "FREEDOM", "id": "PMID 1", "effect": 0.80, "ci_low": 0.67,
+                     "ci_high": 0.95, "scale": "HR"}], [])
+    r["outcomes"][0]["result"]["scale"] = "HR"  # what the pipeline computes for an HR-sourced pool
+    html = render_page(r)
+    assert "0.8 (HR)" in html
+    assert "0.8 (RR)" not in html  # the mislabel this fix kills
+    assert ">HR<" in html  # the Estimand row now shows the pooled scale, not the topic target
+
+
+def test_mixed_scale_pool_labelled_mixed_not_a_single_clean_scale():
+    """A pool mixing ratio scales (omega3: HR + IRR + RR) must display the mixed label and each
+    trial's own scale, never one clean scale — the honest-mixed-scale rule at the display layer."""
+    r = _review(2, [{"label": "REDUCE-IT", "id": "PMID 1", "effect": 0.75, "ci_low": 0.6,
+                     "ci_high": 0.9, "scale": "HR"},
+                    {"label": "ASCEND", "id": "PMID 2", "effect": 0.97, "ci_low": 0.8,
+                     "ci_high": 1.1, "scale": "IRR"}], [])
+    r["outcomes"][0]["result"]["scale"] = "mixed (HR/IRR)"
+    html = render_page(r)
+    assert "mixed (HR/IRR)" in html
+    assert "0.75 (HR)" in html and "0.97 (IRR)" in html
+
+
 def test_reconciliation_when_included_exceeds_pooled():
     # 2 pooled + 1 declared-absent = 3 included; the gap must be stated on the page
     r = _review(2, [{"label": "A", "id": "PMID 1", "ai": 1, "n1i": 10, "ci": 2, "n2i": 10},

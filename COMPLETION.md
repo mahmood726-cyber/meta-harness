@@ -13,9 +13,12 @@ number on every page traces to a committed source; every decline is named on its
   traceability, declared-absence, overall), the comparator more **complete on 8/8** (larger k), RoB
   reporting 5/2/1. **We win transparency/auditability; we lose completeness/k** — the same conclusion
   the parity table reaches, now confirmed blind on full text. The judge also flagged genuine defects in
-  our pages (RoB table covering a subset of pooled trials without a stated reason; a retraction line
-  whose N ≠ k; a denosumab secondary labelled RR beside an HR source; omega3 stating comparator k three
-  ways) — recorded in `docs/fair_judge.json`, to be fixed.
+  our pages, recorded in `docs/fair_judge.json`. **Now fixed:** the retraction line whose count did not
+  equal k (stale on 8 pages — re-run corpus-wide, denominator named precisely, test-guarded) and the
+  effect-scale mislabel (a hazard/rate ratio printed as "(RR)" on denosumab, statins and omega3's mixed
+  pool — every effect now labelled with its own reported scale). **Still open:** the RoB2 table covers a
+  subset of pooled trials without a stated per-trial reason, and omega3 states the comparator's k three
+  ways (8 / 15 / 22) without reconciling which set each refers to.
 
 ## The result (thesis), stated once
 
@@ -67,6 +70,13 @@ estimand / scope), rendered on each page and in `docs/parity.json`.
   anchor; dedup main-results-beats-sub-analysis; pivotal-trial gate limb; generic-harm discriminating
   guard (7 wrong GI-harm pools removed); `(P%; CI)` corroboration; multi-arm guard keys on arm labels
   not regimens; SUSTAIN-6/FIGARO component-vs-composite classes locked.
+- Fair-judge defects fixed against us: (a) the trial-integrity retraction line carried a stale count on
+  8 pages and an ambiguous denominator — re-ran the check corpus-wide, the render now names it "trials
+  pooled across all outcomes", and a test forbids stale integrity from returning; (b) the effect-scale
+  label was inherited from the topic's target estimand, so 16 outcome-trials across 9 topics printed a
+  hazard/rate ratio as "(RR)" (denosumab hip/nonvertebral, statins, omega3's mixed MACE pool) — the
+  page now labels every effect with its OWN reported scale (`result["scale"]`: RR/HR/IRR/mixed),
+  consistent across the header, per-trial, and pooled rows; regression-tested.
 - Renders: parity table (index + per-topic), refusals ("verified but not pooled, because…"),
   independent second-extraction status, the two walls + thesis on the index.
 

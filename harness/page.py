@@ -124,7 +124,7 @@ def _overview(r, neutral):
                              f"pooled (screening count = k).")
             rows = [
                 ("Outcome", prim.get("name")),
-                ("Estimand", prim.get("estimand")),
+                ("Estimand", res.get("scale") or prim.get("estimand")),
                 ("Trials pooled (k)", kdisp),
             ]
             if recon:
@@ -390,7 +390,9 @@ def _trial_inputs(o):
             inp = (f"{_num(t.get('mean1'))}±{_num(t.get('sd1'))} (n={_e(t.get('nc1'))}) vs "
                    f"{_num(t.get('mean2'))}±{_num(t.get('sd2'))} (n={_e(t.get('nc2'))}) (mean±SD)")
         elif t.get("effect") is not None:
-            inp = f"{_num(t.get('effect'))} ({o.get('estimand')}), 95% CI {_num(t.get('ci_low'))}–{_num(t.get('ci_high'))}"
+            # Label each trial with ITS OWN reported scale (the extractor tags HR/RR/IRR from the
+            # source), NOT the topic's target estimand — otherwise an HR 0.80 prints as "0.80 (RR)".
+            inp = f"{_num(t.get('effect'))} ({_e(t.get('scale') or o.get('estimand'))}), 95% CI {_num(t.get('ci_low'))}–{_num(t.get('ci_high'))}"
         else:
             inp = "—"
         # VERIFIED badge (rendered, not assumed): does this pooled number's digits appear in the
@@ -460,7 +462,10 @@ def _outcome_block(o, show_inputs=True):
         body += _absent_block(rr)
     else:
         body += _kv([(k, v) for k, v in [
-            ("Estimand", o.get("estimand")),
+            # Show the scale of the number ACTUALLY pooled (res["scale"]: RR / HR / IRR / MD /
+            # "mixed (…)"), not the topic's target estimand — the target is stated in the Analysis
+            # Method prose, and a row reading "Estimand RR" beside a pooled HR is the defect this fixes.
+            ("Estimand", res.get("scale") or o.get("estimand")),
             ("Analysis population", o.get("population")),
             ("Timepoint", o.get("timepoint")),
             ("Method", o.get("method")),
