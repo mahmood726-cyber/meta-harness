@@ -150,6 +150,16 @@ def _pool_result(studies, scale="RR"):
     res = {"k": r.k, "estimate": round(r.estimate, 4), "scale": r.scale,
            "ci_low": round(r.ci_low, 4), "ci_high": round(r.ci_high, 4), "tau2": round(r.tau2, 5)}
     if r.k == 1:
+        # External audit: at k=1 there is nothing to pool — print the single trial's SOURCE CI
+        # VERBATIM rather than back-computing the SE and regenerating the CI (SELECT's published
+        # 0.72-0.90 was being reprinted as 0.7155-0.8944). Only for a reported effect+CI trial; a
+        # 2x2-derived CI has no source interval to quote and its computed CI stands.
+        s0 = studies[0]
+        if getattr(s0, "ci_low", None) is not None and getattr(s0, "ci_high", None) is not None:
+            res["ci_low"], res["ci_high"] = s0.ci_low, s0.ci_high
+            if getattr(s0, "effect", None) is not None:
+                res["estimate"] = s0.effect
+            res["ci_note"] = "k=1: point estimate and 95% CI are the single trial's reported values, verbatim."
         res["pi_note"] = "prediction interval undefined for k=1"
     elif r.k == 2:
         # External audit: at k=2 the prediction interval needs a t-quantile on 1 degree of freedom and
