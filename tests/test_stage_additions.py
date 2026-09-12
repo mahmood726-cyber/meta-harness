@@ -281,3 +281,27 @@ def test_timepoint_and_heterogeneity_guards():
         "primary composite outcome was cardiovascular death, myocardial infarction, or stroke; heart failure was a secondary outcome",
         "the primary composite endpoint was death from cardiovascular causes, nonfatal MI, or nonfatal stroke"])
     assert not clean
+
+
+def test_no_registry_abstract_disagreement_on_structural_facts():
+    """EMPHASIS-HF class (the registry is not infallible): a RoB2 domain must not be rated on a registry
+    field that the trial's own abstract contradicts on a structural fact. Scans the whole corpus:
+    (a) D1 basis 'NON_RANDOMIZED' while the abstract says randomized; (b) D2 'not assessed' while the
+    abstract says double-blind. Any hit is a registry data error to correct (as EMPHASIS/CORP/ORIGIN were)."""
+    import re
+    bad = []
+    for slug, r in _reviews():
+        rob = (r.get("rob2") or {}).get("trials") or {}
+        recs = {str(x.get("id")): (x.get("abstract") or "")
+                for x in json.load(open(os.path.join(ROOT, "cache", slug, "records.json"), encoding="utf-8")).get("records", [])}
+        for pmid, a in rob.items():
+            ab = recs.get(pmid, "").lower()
+            doms = a.get("domains", {})
+            d1b = (doms.get("D1_randomisation") or {}).get("basis", "").lower()
+            if ("non_randomized" in d1b and "abstract-corrected" not in d1b
+                    and re.search(r"random(ly|ized|ised)", ab)):
+                bad.append(f"{slug}/{pmid} D1 NON_RANDOMIZED vs abstract 'randomized'")
+            d2 = doms.get("D2_deviations") or {}
+            if d2.get("level") == "not assessed" and "double-blind" in ab:
+                bad.append(f"{slug}/{pmid} D2 not-assessed vs abstract 'double-blind'")
+    assert not bad, "registry-vs-abstract disagreements (correct with an abstract basis): " + "; ".join(bad)
