@@ -198,12 +198,14 @@ mis-pools were caught during the run — every one by verification, not by a gat
   comes from the new continuous-primary topic tier** (each preregistered, pivotal named, same-scope OA
   comparator resolved by query): melatonin, esketamine-TRD and semaglutide-obesity are LIVE; the tier is
   the growth path, not retrofitting the binary topics.
-- **A fully-fair blind methodological judge across all 29.** The fair-basis blind re-judge now covers
-  **11 topics (8 binary + 3 continuous), order-blinded**, with the split verdict recorded in
-  `docs/fair_judge.json` and on the index: **ours more auditable 11/11 (search-reproducibility, per-number
-  traceability, declared-absence, overall auditability all 11–0), comparator more complete 11/11, RoB 6–4
-  to us.** The remaining 18 topics are compared only on the countable PRISMA items (28-topic fair pass),
-  not the full 6-dimension methodological read — that extension is still open.
+- **Fully-fair blind methodological judge — now across all 28 scorable topics** (order-blinded, 6
+  dimensions, `docs/fair_judge.json`; the 29th, corticosteroids-cap, has no obtainable comparator full
+  text). The honest full-set verdict, NOT a clean sweep: **ours more auditable 28/28 overall**, winning
+  per-number traceability, declared-absence and overall auditability **28–0 each**, but search
+  reproducibility only **27–1** (the comparator wins one) and **risk-of-bias reporting 13–14 to the
+  comparator** (it edges us). The comparator is more **complete on 28/28** (larger k). Those two losses
+  are rendered on the index, not hidden — the full-set read is stronger than the 11-topic sample precisely
+  because it surfaces them. This closes the item that was open at the 11-topic stage.
 - **GRADE certainty and a specification curve** are not built.
 - **The record is committed but NOT deployed.** All of this is committed to local `main`, which is ~37
   cycles ahead of `origin/main` (the GitHub Pages source): the live site serves but reflects an earlier
