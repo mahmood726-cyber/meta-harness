@@ -240,6 +240,40 @@ def _ctgov_search(cond: str, intr: str, page_size: int = 30) -> list[dict]:
     return out
 
 
+def _protected_pmids(config: dict) -> list[str]:
+    """PMIDs that a topic FORCES into the corpus and that must survive truncation: the extra_pmids,
+    both control sets, and the comparator. These are appended AFTER the query loop, so a naive
+    pmids[:max_records] silently drops them when the query alone fills the cap — which is exactly how
+    semaglutide lost its pivotal STEP-1/STEP-3 (and its negative control) at max_records=120. Pivotal
+    trials are declared as NCTs and reach the corpus through extra_pmids/positive controls, so
+    protecting these lists keeps the defining trial in even a capped fetch."""
+    forced = (list(config.get("extra_pmids", []))
+              + list(config.get("positive_control_pmids", []))
+              + list(config.get("negative_control_pmids", []))
+              + [config.get("comparator_pmid", "")])
+    seen, out = set(), []
+    for p in forced:
+        if p and p not in seen:
+            seen.add(p)
+            out.append(str(p))
+    return out
+
+
+def _apply_cap(pmids: list[str], protected: list[str], cap: int) -> list[str]:
+    """Truncate to `cap` WITHOUT ever dropping a protected PMID. Protected ids are kept in their
+    existing order; the remaining budget is filled with the other pmids in order. When the protected
+    set alone exceeds the cap they are all kept (a forced trial is never sacrificed to a size limit).
+    Order among the non-protected pmids is preserved so existing (uncapped) fetches are unaffected."""
+    if len(pmids) <= cap:
+        return list(pmids)  # no truncation: original order fully preserved
+    protset = set(protected)
+    protected_in = [p for p in pmids if p in protset]
+    others = [p for p in pmids if p not in protset]
+    room = max(0, cap - len(protected_in))
+    keep = set(protected_in) | set(others[:room])
+    return [p for p in pmids if p in keep]  # original order, protected guaranteed to survive
+
+
 def run(config: dict) -> dict:
     """Fetch and return the records dict for a topic config (does not write)."""
     pmids: list[str] = []
@@ -296,7 +330,8 @@ def run(config: dict) -> dict:
         for pid in res.get("pmids", []):
             if pid not in pmids:
                 pmids.append(pid)
-    pmids = pmids[:config.get("max_records", 300 if (config.get("cite_chase") or rf_cfg) else 150)]
+    cap = config.get("max_records", 300 if (config.get("cite_chase") or rf_cfg) else 150)
+    pmids = _apply_cap(pmids, _protected_pmids(config), cap)
     pubmed = []
     for i in range(0, len(pmids), 20):
         pubmed.extend(_efetch(pmids[i:i + 20]))

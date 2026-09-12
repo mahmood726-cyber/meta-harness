@@ -73,3 +73,35 @@ def _multiarm_om():
 def test_continuous_refuses_multi_arm_dose_trial():
     # two esketamine dose arms + placebo -> ambiguous which dose to pool -> REFUSE
     assert extract_ctgov(_multiarm_om(), KWS, ["esketamine"], ["placebo"]) is None
+
+
+def _two_estimand_oms(on_treatment_first):
+    """A trial posting the SAME %-change outcome under two estimands (in-trial / on-treatment),
+    like the Korean STEP trial NCT04998136. On-treatment values are made systematically larger so a
+    wrong pick is detectable in the returned mean."""
+    def om(label, mean_iv):
+        o = _om()[0]
+        o["title"] = f"Change in Body Weight (%) : {label}"
+        o["groups"] = [{"id": "OG000", "title": "Semaglutide 2.4 mg"}, {"id": "OG001", "title": "Placebo"}]
+        o["classes"][0]["categories"][0]["measurements"] = [
+            {"groupId": "OG000", "value": str(mean_iv), "spread": "7.3"},
+            {"groupId": "OG001", "value": "-2.6", "spread": "5.8"}]
+        o["denoms"] = [{"units": "Participants", "counts": [
+            {"groupId": "OG000", "value": "100"}, {"groupId": "OG001", "value": "48"}]}]
+        return o
+    in_trial = om("In-trial Observation Period", -16.4)      # treatment-policy: what we must pick
+    on_treat = om("On-treatment Observation Period", -19.9)  # supplementary: larger, must NOT pick
+    return [on_treat, in_trial] if on_treatment_first else [in_trial, on_treat]
+
+
+BW_KWS = ["change in body weight (%)", "body weight", "percent change in body weight"]
+
+
+def test_prefers_treatment_policy_estimand_regardless_of_ctgov_order():
+    """The treatment-policy (in-trial) estimand must be chosen over the supplementary on-treatment
+    estimand no matter which CT.gov lists first — otherwise the pick is order luck and two trials can
+    be pooled on different estimands. Before the tiebreak, on-treatment-first returned -19.9."""
+    for on_first in (True, False):
+        out = extract_ctgov(_two_estimand_oms(on_first), BW_KWS, ["semaglutide"], ["placebo"])
+        assert out is not None
+        assert out["mean1"] == -16.4, f"picked wrong estimand (on_treatment_first={on_first})"

@@ -89,6 +89,20 @@ def _extract_ctgov_continuous(om, interv_l, comp_l):
                        + (f" — population: {popd[:80]}" if popd else ""))}
 
 
+_SUPPLEMENTARY_ESTIMAND_MARKERS = ("on-treatment", "on treatment", "trial product", "trial-product",
+                                   "on-drug", "on drug", "while on treatment", "per protocol",
+                                   "per-protocol")
+
+
+def _is_supplementary_estimand(title: str) -> bool:
+    """True when a CT.gov outcome-measure title names a SUPPLEMENTARY estimand (on-treatment /
+    trial-product / per-protocol) rather than the treatment-policy / in-trial (all-randomised)
+    estimand. Used only as a deterministic tiebreak so that, when a trial posts the same outcome
+    under two estimands, the treatment-policy value is chosen consistently across trials."""
+    tl = (title or "").lower()
+    return any(m in tl for m in _SUPPLEMENTARY_ESTIMAND_MARKERS)
+
+
 def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_total=None,
                   judgments=None):
     """Return dict {ai,n1i,ci,n2i,source} for the outcome measure matching our outcome, else None.
@@ -138,10 +152,20 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
         return bool(j and j.get("is_match") is True)
 
     # Prefer a title-keyword match AND (when gated) an is_match=True identity judgment;
-    # among survivors prefer type PRIMARY.
+    # among survivors prefer type PRIMARY, then the TREATMENT-POLICY / in-trial estimand over a
+    # supplementary on-treatment / trial-product estimand. A trial that posts the SAME %-change
+    # outcome under two estimands (e.g. the Korean STEP trial NCT04998136 lists "…: In-trial
+    # Observation Period" AND "…: On-treatment Observation Period") would otherwise be resolved by
+    # CT.gov listing ORDER — luck, not intent — and picking on-treatment for one trial while another
+    # trial only posts its treatment-policy value silently pools two different estimands (on-treatment
+    # excludes post-discontinuation data and is systematically larger). Preferring the treatment-policy
+    # estimand (ICH E9(R1) regulatory-primary default) makes the pick deterministic and estimand-
+    # consistent. Topics that genuinely declare an on-treatment estimand are unaffected: only the
+    # relative ORDER of two same-outcome measures changes, and only when both are present.
     cands = [om for om in outcome_measures
              if title_matches(om.get("title")) and identity_ok(om.get("title"))]
-    cands.sort(key=lambda om: 0 if om.get("type") == "PRIMARY" else 1)
+    cands.sort(key=lambda om: (0 if om.get("type") == "PRIMARY" else 1,
+                               1 if _is_supplementary_estimand(om.get("title")) else 0))
     for om in cands:
         ptype = (om.get("paramType") or "").upper()
         # CONTINUOUS measure (MEAN + per-arm SD): structured mean-difference data, the AACT-equivalent
