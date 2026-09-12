@@ -96,3 +96,24 @@ time-pressured regression like the reverted specific-over-generic reorder:
   a 97.5% CI as 95% understates the SE and overstates this trial's inverse-variance weight. Fix: either
   convert the 97.5% CI to a 95% CI (z=1.96 vs 2.24: SE = (ln0.87-ln0.73)/2.24; 95% CI = exp(lnHR +/- 1.96*SE))
   before storing, or add a per-trial ci_level field the synth path honours. Low magnitude, one trial.
+
+## Extended-audit residue part 2 (cycle 75) — low-severity, verified, disclosed/labelled (queued)
+The full harvest of all 5 extended lanes found these beyond the 10 fixed + 2 queued above. None is a hidden
+wrong number (each is disclosed or a config-metadata label), so they are polish, not corrections:
+- **config `estimand` vs rendered scale mismatches** (the page renders the trial's TRUE scale, correctly —
+  these are honest, just a config-target-vs-actual label gap): corticosteroids-covid19 declares OR but the
+  k=1 RECOVERY row renders IRR 0.83 (rate ratio); denosumab-vertebral "Nonvertebral fracture" declares RR
+  but renders HR 0.80; corticosteroids-cap "Hyperglycaemia" declares RR, pool labelled "mixed (OR/RR)" with
+  Aujesky OR 1.96. Safe fix: set each outcome's declared `estimand` in the topic JSON to the scale actually
+  reported (IRR/HR/OR), OR leave as-is (rendered scale is already honest). Do NOT force a count-derived
+  conversion that loses the trial's reported estimand.
+- **semaglutide GI completeness** (not a wrong number — the SAE-as-GI defect is already fixed and those
+  cells are declared-absent): STEP-1/STEP-3 DO report real GI adverse-event rates in their abstracts
+  (e.g. STEP-3 ~82.8% vs 63.2%). Recover them as verified_arms override entries (derived counts) to raise
+  the GI harm outcome's k from the current honest-but-thin state. Verify each % x N against the abstract.
+- **melatonin k=1 is Circadin's pre-planned age-65-80 analysis** (n=137/144 of 791), NOT whole-trial — this
+  is DISCLOSED on the page ("population: Pre-planned analysis on ITT population age 65-80") and is the
+  trial's registered primary analysis, so it is honest as rendered; no change needed unless a whole-trial
+  sleep-latency MD/SD becomes available (none in the cached source).
+- **corticosteroids-cap 36942789 (CAPE COD) timepoint label**: pooled number is 28-day mortality; the
+  outcome declares "30-day or in-hospital". 28d ~ 30d (defensible harmonisation); align the label or note it.

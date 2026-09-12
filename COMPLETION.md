@@ -233,6 +233,15 @@ mis-pools were caught during the run — every one by verification, not by a gat
   test proving the old bug reproduces without it. The broad 'specific-over-generic' extractor change was
   correctly rejected (it regressed sglt2-ckd). Finding ten now, and stating the two open and the two
   rejected, is the point.
+- **The strongest argument in the run for VERIFY-AFTER-GATE.** All ten wrong numbers **passed every gate
+  limb and reproduced byte-for-byte** — they were live on gated, reproducing pages. The two-limb gate
+  proves reproducibility, provenance and that each pooled digit appears in *a* committed source span; it
+  does NOT prove the extractor picked the RIGHT endpoint, scale, denominator or timepoint from that source.
+  Those ten were wrong on exactly those axes (CV-death vs MACE; hospitalisation-for-hyperkalemia vs
+  hyperkalemia; any-diarrhoea vs AAD; count-RR vs reported HR; randomised-n vs analysed-n; 14-day vs
+  56-day). An adversarial per-trial read against source — after the gate — is a distinct and necessary
+  layer, and it caught what the gate structurally cannot. Verify-after-gate is not redundant with the gate;
+  it is the layer the gate does not cover.
 - **GRADE certainty and a specification curve** are not built.
 - **The record is committed but NOT deployed.** All of this is committed to local `main`, which is ~37
   cycles ahead of `origin/main` (the GitHub Pages source): the live site serves but reflects an earlier
