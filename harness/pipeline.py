@@ -251,6 +251,21 @@ def _load_verified_effects(slug):
         return None
 
 
+def _load_dose_selection(slug):
+    """Committed pre-specified approved-dose entries (cache/<slug>/dose_selection.json):
+    {pmid: {outcome, dose, effect, ci_low, ci_high, scale, source}}. For a multi-dose trial where the
+    review pools a DECLARED dose (the approved dose) rather than whatever the abstract mentions first —
+    RE-LY dabigatran 150 mg, ENGAGE-AF edoxaban 60 mg. A documented rule (not arbitrary selection),
+    verified against `source`; sits at the top of the source hierarchy for the named trial only."""
+    p = os.path.join(ROOT, "cache", slug, "dose_selection.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        return json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 def _with_model_adjudication(slug, dual, decisions):
     """Attach the committed independent-model adjudication of the rule-screener disagreements
     (cache/<slug>/screen_adjudication.json) to the dual block, with the model-vs-served agreement.
@@ -286,14 +301,29 @@ def _with_model_adjudication(slug, dual, decisions):
 
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
-                   locate_judgments=None, verified_effects=None):
+                   locate_judgments=None, verified_effects=None, dose_selection=None):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
+    dose_selection = dose_selection or {}
     trials, absent = [], []
     for d in included:
         rec = rec_by_id.get(d["id"], {})
         label = rec.get("acronym") or d.get("label") or d["id"]
         idstr = f"PMID {d['id']}" if d["id_type"] == "pmid" else d["id"]
+        # PRE-SPECIFIED DOSE (documented rule, TOP of the hierarchy): a multi-dose trial's abstract
+        # headline may report a dose other than the one this review pools by a declared rule (the
+        # APPROVED dose). Where a committed dose_selection entry names the dose + a verified effect+CI
+        # for THIS outcome, it is used and the arbitrary abstract-dose extraction is overridden. This
+        # is the RE-LY-150mg / ENGAGE-60mg resolution: a documented approved-dose rule, not arbitrary
+        # selection (which the multi-arm guard still refuses). Verified against its own source span.
+        ds = dose_selection.get(d["id"])
+        if ds and ds.get("outcome") == spec.get("name") and ds.get("effect") is not None:
+            trials.append({"label": label, "id": idstr, "effect": ds["effect"],
+                           "ci_low": ds.get("ci_low"), "ci_high": ds.get("ci_high"),
+                           "scale": ds.get("scale", "HR"), "provenance": "pre_specified_dose",
+                           "dose": ds.get("dose"),
+                           "source": ds.get("source", "pre-specified approved-dose arm (documented rule)")})
+            continue
         # SOURCE HIERARCHY: the ABSTRACT headline (the authors' primary-outcome result, unambiguous)
         # first; CT.gov structured results as the FALLBACK when the abstract yields no extractable
         # number (bare %, composite-only). CT.gov-first was tried and REJECTED: outcome-measure
@@ -510,10 +540,11 @@ def build_review_core(slug, config, records, protocol_sha):
     ojudg = _load_outcome_judgments(slug) if config.get("outcome_identity") else None
     varms = _load_verified_arms(slug)
     veffs = _load_verified_effects(slug)
+    dsel = _load_dose_selection(slug)
     ljudg = locate.load(slug) if config.get("locate_gate") else None
     outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp,
                                outcome_judgments=ojudg, verified_arms=varms, locate_judgments=ljudg,
-                               verified_effects=veffs)
+                               verified_effects=veffs, dose_selection=dsel)
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 

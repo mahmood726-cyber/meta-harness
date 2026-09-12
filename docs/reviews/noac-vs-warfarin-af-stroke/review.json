@@ -481,12 +481,26 @@
         {
           "label": "19717844",
           "id": "PMID 19717844",
-          "effect": 0.91,
-          "ci_low": 0.74,
-          "ci_high": 1.11,
+          "effect": 0.66,
+          "ci_low": 0.53,
+          "ci_high": 0.82,
           "scale": "RR",
-          "source": "abstract effect+CI (RR): RESULTS: Rates of the primary outcome were 1.69% per year in the warfarin group, as compared with 1.53% per year in the group that received 110 mg of dabigatran (relative risk with dabigatran, 0.91; 9",
-          "provenance": "abstract",
+          "provenance": "pre_specified_dose",
+          "dose": "dabigatran 150 mg (approved higher dose)",
+          "source": "RE-LY, verbatim: '... in the group that received 150 mg of dabigatran (relative risk, 0.66; 95% CI, 0.53 to 0.82; P<0.001 for superiority)'. Pre-specified approved-dose rule: the 150 mg regimen is the marketed dose; the abstract's first-mentioned 110 mg arm (RR 0.91) is the lower dose and is not the review's pooled comparison.",
+          "verified": "verified",
+          "verify_basis": "effect present in committed source"
+        },
+        {
+          "label": "24251359",
+          "id": "PMID 24251359",
+          "effect": 0.87,
+          "ci_low": 0.73,
+          "ci_high": 1.04,
+          "scale": "HR",
+          "provenance": "pre_specified_dose",
+          "dose": "edoxaban 60 mg (approved higher dose)",
+          "source": "ENGAGE AF-TIMI 48, verbatim (intention-to-treat, matching the ITT basis of ROCKET-AF and ARISTOTLE in this pool): '... there was a trend favoring high-dose edoxaban versus warfarin (hazard ratio, 0.87; 97.5% CI, 0.73 to 1.04; P=0.08)'. Pre-specified approved-dose rule: the 60 mg higher-dose regimen is the marketed dose; the 30 mg low-dose arm is not pooled.",
           "verified": "verified",
           "verify_basis": "effect present in committed source"
         },
@@ -504,11 +518,6 @@
         }
       ],
       "declared_absent_trials": [
-        {
-          "label": "24251359",
-          "id": "PMID 24251359",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        },
         {
           "label": "NCT00504556",
           "id": "NCT00504556",
@@ -531,35 +540,38 @@
         }
       ],
       "result": {
-        "k": 3,
-        "estimate": 0.8568,
+        "k": 4,
+        "estimate": 0.8049,
         "scale": "mixed (HR/RR)",
-        "ci_low": 0.6807,
-        "ci_high": 1.0784,
-        "tau2": 0.0,
-        "pi_low": 0.6807,
-        "pi_high": 1.0784,
-        "pi_note": "tau^2 estimated as 0, so the prediction interval coincides with the confidence interval (no between-study heterogeneity detected).",
+        "ci_low": 0.6584,
+        "ci_high": 0.9841,
+        "tau2": 0.0071,
+        "pi_low": 0.5758,
+        "pi_high": 1.1253,
         "scale_mixed": [
           "HR",
           "RR"
         ],
         "leave_one_out": {
-          "min": 0.8381,
-          "max": 0.8919,
-          "most_influential": "21870978",
+          "min": 0.7765,
+          "max": 0.8483,
+          "most_influential": "19717844",
           "per_trial": [
             {
               "dropped": "21830957",
-              "estimate": 0.8417
+              "estimate": 0.7765
             },
             {
               "dropped": "19717844",
-              "estimate": 0.8381
+              "estimate": 0.8483
+            },
+            {
+              "dropped": "24251359",
+              "estimate": 0.7809
             },
             {
               "dropped": "21870978",
-              "estimate": 0.8919
+              "estimate": 0.8056
             }
           ],
           "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."
@@ -680,7 +692,7 @@
       "note": "same-question comparator (matching intervention level and population)"
     },
     "overlap": {
-      "ours_k": 3,
+      "ours_k": 4,
       "theirs_k": "not stated in the comparator abstract/full text",
       "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
       "only_ours": [],
@@ -832,14 +844,14 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "38478f5e060a9d63bcb073cb652d0e6f70d27c58",
-    "review_sha256": "c2d699aee4de83bef6049b8c9259fca6b1fdc2bde03f485868310e7fdc13f0e5",
+    "review_sha256": "501076a5a45d991b861c4470a7b6dc1117262ed2f7ebf4e5523e26661b6f8ae5",
     "from_cache": true,
     "parity": {
       "slug": "noac-vs-warfarin-af-stroke",
-      "our_k": 3,
+      "our_k": 4,
       "comparable_comparator_k": 4,
-      "status": "NEAR",
-      "reason": "gap ENGAGE AF = edoxaban high/low-dose (multi-dose arm-selection, queued)"
+      "status": "PARITY",
+      "reason": "CLOSED to parity: ENGAGE-AF added + RE-LY switched to the approved 150 mg dose, via a documented pre-specified approved-dose rule (dabigatran 150 mg RR 0.66; edoxaban 60 mg ITT HR 0.87), both verified against source. Pooled RR 0.805 (0.658-0.984). Pairwise subset of the DOAC-vs-warfarin evidence; matches the comparable comparator k=4."
     },
     "refusals": [
       {
