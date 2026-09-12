@@ -162,6 +162,21 @@ wrong number (each is disclosed or a config-metadata label), so they are polish,
 #     seed set (absolute recall); RoB2-from-methods with span sampling + agreement rate stated.
 #   - Drive the abstract share below 75/99 (promote abstract numbers to structured/full-text tiers).
 #
+# CYCLE-77 CLOSE:
+#  [FIXED] dpp4-mace-t2d TECOS 4-point-composite estimand defect (caught by cross-family Fable QA on a page
+#    that passed every internal gate) -> TECOS declared absent, dpp4 k=2. Guard extract.composite_component_
+#    mismatch() added + regression-tested. Defect tally 15.
+#  [HELD] sglt2-primary-prevention-hf (k=4 build in scratchpad/sglt2_hold/) — 3 of 4 HHF HRs (EMPA-REG 0.65,
+#    VERTIS 0.70; CANVAS 0.67 ambiguous) are SECONDARY outcomes NOT in the committed abstracts; the lane's
+#    verified_effects overrides cite uncached label/secondary sources. TO SHIP: fetch each trial's HHF-outcome
+#    source (secondary paper / DailyMed label / CT.gov results) into cache/sglt2-primary-prevention-hf/, verify
+#    the per-arm HHF counts + HR against it, then protocol-first commit + gate (only DECLARE 0.73 is currently
+#    abstract-verifiable). Do NOT ship on a lane's hand-authored override alone — a build-lane override is a
+#    hypothesis until its digits are in a COMMITTED source (dpp4 shipped because its HRs were verbatim in the
+#    abstracts; sglt2-pp is held because they are not).
+#  RULE for all expansion builds: ship only when every pooled number is located in a COMMITTED source span;
+#  secondary-outcome effects (HHF, components) usually need their own source fetched, not the primary abstract.
+#
 # STATUS (cycle 76 — executed against the Codex budget; all pushed and verified live):
 #  [DONE] C1 / Stage-1 ERROR RATE — blind accuracy census (47 Codex lanes): 99 pooled numbers
 #         independently re-extracted from source BLIND to the stored value; 95/99 re-checkable, 92
