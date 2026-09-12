@@ -106,9 +106,10 @@ LIBRARY = [
      "unit_of_analysis.detect flags a pooled crossover-design trial; the page DISCLOSES that it is pooled "
      "without a within-subject/paired adjustment (the crystalloid trials are cluster-randomized multiple-crossover)",
      "harness/unit_of_analysis.py; test_unit_of_analysis.py"),
-    ("ME-28", "Zero-cell continuity correction applied unconditionally", NOT_CHECKED, False,
-     "add-0.5 only when a cell is zero is an advanced-stats rule but not asserted by a test on the pooler",
-     "WORK QUEUE (severity: medium — biases OR toward 1)"),
+    ("ME-28", "Zero-cell continuity correction applied unconditionally (biases OR toward 1)", REGRESSION_TEST, True,
+     "synth adds the 0.5 correction ONLY to a study that has a zero cell (2x2) or zero event (IRR), never "
+     "unconditionally — per the advanced-stats rule; asserted directly on the pooler",
+     "test_synth.py::test_zero_cell_continuity_applied_only_to_that_study + test_irr_zero_event_correction"),
     ("ME-29", "Small-study / publication-bias not assessed (funnel/Egger)", RENDERED, True,
      "small k stated as the dominant limitation on every page; Egger low-power at our k, not computed",
      "weakness_survey small-k; stated limitation"),
