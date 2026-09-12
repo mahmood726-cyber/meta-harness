@@ -213,19 +213,26 @@ mis-pools were caught during the run — every one by verification, not by a gat
   comparator** (it edges us). The comparator is more **complete on 28/28** (larger k). Those two losses
   are rendered on the index, not hidden — the full-set read is stronger than the 11-topic sample precisely
   because it surfaces them. This closes the item that was open at the 11-topic stage.
-- **Early-page audit (oldest 10 + corpus-wide) — 3 defects found, all 3 fixed live.** A deterministic
-  scan (no undisclosed cluster/crossover; no unlabeled scale-mix; 3 factorials all marginal-pooled; per-topic
-  coverage 32–33/33) plus an adversarial per-trial source re-read (offline Codex) of the oldest topics found
-  three wrong numbers. Two were corrected and pushed this session: END-AF (27502857) AF denominators
-  180/180 → 179/181 (abstract states 179/181; 26/179=14.5% exact), and COPPS-2 (25172965) treatment-
-  discontinuation, which had pooled adverse-event counts (the abstract gives no discontinuation count) —
-  now declared-absent via a general null-result-clause guard. The third — omega3 ORIGIN (22686415), which pooled
-  its CV-death primary (HR 0.98) under our MACE outcome instead of the stated major-vascular-events HR 1.01
-  — is now ALSO fixed, via a narrow opt-in verified-effects OVERRIDE tier (a committed entry flagged
-  override:true beats the abstract for that one trial+outcome; verbatim span, verified, reproduce confirms
-  ONLY omega3 moves). All three early-page defects found this session were corrected and pushed. The broad
-  'specific-over-generic' fix was correctly rejected (it regressed sglt2-ckd); the per-trial override is the
-  safe version.
+- **Early-page audit (all 29 topics + corpus-wide) — 10 wrong numbers found and FIXED live, 2 queued, 2
+  false-positives rejected.** A deterministic corpus-wide scan (no undisclosed cluster/crossover; no
+  unlabeled scale-mix; 3 factorials all marginal-pooled; per-topic error coverage 32–33/33; every
+  number-in-source flag a truncation artifact) plus an adversarial per-trial source re-read (offline Codex,
+  all 29 topics) found the defects the newest work had been checked hardest for but the oldest pages had not.
+  **Ten corrected and pushed**, each verified against source: END-AF denominators 180/180→179/181; COPPS-2
+  treatment-discontinuation (adverse-event counts mislabelled → declared-absent via a null-result-clause
+  guard); omega3 ORIGIN CV-death HR 0.98 → major-vascular-events HR 1.01; probiotics ×3 (Can 2006 any-
+  diarrhoea→AAD 4/119 vs 22/127; Beausoleil OR→count-RR; L. reuteri 14-day→56-day study-end); finerenone
+  FIDELIO count-RR→reported HR 0.82 (resolving that mixed pool to clean HR); sacubitril PARADIGM-HF
+  count-RR→HR 0.80; and spironolactone EMPHASIS hyperkalemia (pooled *hospitalisation-for*-hyperkalemia
+  0.3% → the serum-K+>5.5 incidence 11.8% vs 7.2%, a harm the old figure understated ~20-fold). **Two
+  lower-severity findings queued with evidence** in `CODEX_QUEUE.md` (sglt2-ckd disclosed mixed HR/RR;
+  noac ENGAGE 97.5%-CI-as-95%). **Two audit claims were FALSE POSITIVES**, checked against the CT.gov data
+  and rejected (semaglutide primary-weight denominators — the outcome's own denoms field IS 1306/655 — and
+  its treatment-policy estimand). The correction mechanism is the right shape: a committed, flagged,
+  regression-tested per-trial override that beats the abstract for exactly one trial-outcome pair, with a
+  test proving the old bug reproduces without it. The broad 'specific-over-generic' extractor change was
+  correctly rejected (it regressed sglt2-ckd). Finding ten now, and stating the two open and the two
+  rejected, is the point.
 - **GRADE certainty and a specification curve** are not built.
 - **The record is committed but NOT deployed.** All of this is committed to local `main`, which is ~37
   cycles ahead of `origin/main` (the GitHub Pages source): the live site serves but reflects an earlier
