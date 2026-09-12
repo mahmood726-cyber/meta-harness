@@ -23,6 +23,8 @@ Primary outcome:
 
 The estimand is the mean difference (minutes) in sleep-onset latency, melatonin versus placebo. Pooling is random-effects inverse-variance on the mean difference; a single included trial is presented as that trial's own effect, not a random-effects pool.
 
+Where a trial's structured results report the outcome for a **pre-specified subgroup** (e.g. Wade et al. report sleep-onset latency for the pre-defined age 65-80 population, a co-primary analysis, N=137 melatonin / 144 placebo), the subgroup is disclosed on the page as the analysis population rather than presented as the whole trial. The pooled value is the **unadjusted** per-arm mean difference computed from the reported per-arm change-from-baseline means and SDs; the trial's own covariate-adjusted estimate (Wade: -15.6 minutes, 95% CI -25.3 to -6.0, baseline- and age-adjusted linear regression) is noted where it differs. The per-arm means and SDs are verified against both the ClinicalTrials.gov structured posted results and the published Table 3.
+
 ## Sources and verification
 - Per-arm mean and standard deviation are taken verbatim from the trial's primary report or its structured ClinicalTrials.gov posted results (the AACT-equivalent), never imputed from a figure or a Kaplan-Meier curve.
 - Every pooled number is verified against the committed source span before it is pooled; where per-arm variance is not reported in accessible text or structured results, the trial is declared absent with the reason named, rather than pooling an imputed SD.

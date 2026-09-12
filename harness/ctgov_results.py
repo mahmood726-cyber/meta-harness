@@ -68,11 +68,15 @@ def _extract_ctgov_continuous(om, interv_l, comp_l):
     gi = next((g.get("title") for g in groups if g.get("id") == interv_gid), "")
     gc = next((g.get("title") for g in groups if g.get("id") == comp_gid), "")
     unit = om.get("unitOfMeasure") or ""
+    # Carry the measure's population description verbatim (e.g. "Pre-planned analysis on ITT population
+    # age 65-80") so a pre-specified subgroup is disclosed on the page, not silently pooled as the trial.
+    popd = (om.get("populationDescription") or "").strip()
     return {"mean1": mean1, "sd1": sd1, "nc1": int(n1),
             "mean2": mean2, "sd2": sd2, "nc2": int(n2), "scale": "MD",
             "source": (f"ClinicalTrials.gov results (structured, continuous): outcome "
                        f"'{om.get('title','')[:70]}' mean {mean1} (SD {sd1}, n={int(n1)}) [{gi[:22]}] "
-                       f"vs {mean2} (SD {sd2}, n={int(n2)}) [{gc[:22]}]" + (f" {unit}" if unit else ""))}
+                       f"vs {mean2} (SD {sd2}, n={int(n2)}) [{gc[:22]}]" + (f" {unit}" if unit else "")
+                       + (f" — population: {popd[:80]}" if popd else ""))}
 
 
 def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_total=None,
