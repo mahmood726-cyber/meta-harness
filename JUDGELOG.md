@@ -636,3 +636,28 @@ continuous extraction, the dose-selection rule and the error-library checks (sev
   binary topics is exhausted, confirmed.
 FINDING: most recorded reasons STILL HOLD under the new capabilities, several confirmed with stronger
 evidence; noac was the one genuinely closable gap (multi-dose rule). No reason was closed by lowering the bar.
+
+## Cycle 58-59 — hfnc/prone full-text re-tests + comparator enumerations (2026-09-12)
+- **prone-positioning-ards → DECLINE confirmed, reason REFINED (better evidence).** Full text now yields
+  per-arm 28-day death counts for only TWO trials: PROSEVA (23688302, SEVERE ARDS PaO2/FiO2<150, prone
+  38/237 vs supine 75/229 ~ RR 0.49) and Taccone (19903918, MIXED moderate/severe, 52/168 vs 57/174 ~
+  RR 0.94). The others give 60-day (18427774), ICU (16556697), or no counts. So the scale/timepoint
+  problems are now resolvable, but the DEEPER issue stands: the only two 28-day-count trials span severe
+  vs mixed severity, and prone benefit is severity-DEPENDENT (large in severe, ~null in mixed) — pooling
+  them as one k=2 estimate masks the effect-modification and is clinically misleading. Decline is now a
+  severity-heterogeneity decline (effect-modification), not a scale/acquisition one. A severe-only pool
+  would be k=1 (PROSEVA) or require Taccone's severe SUBGROUP (subgroup-as-total risk). Not built.
+- **hfnc-vs-conventional-o2-reintubation → DECLINE confirmed, reason REFINED.** Full text gives per-arm
+  72h reintubation counts for 4 adult-ICU post-extubation trials (32597041 3/31 vs 1/29 = HFNC WORSE;
+  28466461 9/78 vs 12/77 = HFNC better; 26975498; 31992669 titled "may NOT reduce re-intubation") — all
+  count-RR, so the original mixed OR/RR scale problem is resolved. BUT: (1) the LANDMARK HFNC-vs-
+  conventional-O2 trial (Hernandez low-risk, 27379789) is NOT in the corpus (reach gap); 27706464 is
+  Hernandez HFNC-vs-NIV (correctly excluded, wrong comparator). (2) The available small trials are
+  MIXED-DIRECTION (effect-modification by baseline reintubation risk: benefit in high-risk, null/worse
+  in low-risk). A k=4 pool of small trials that MISSES the defining trial and masks the risk-based
+  effect-modification would be unrepresentative and heterogeneous. Decline refines from "mixed scale +
+  k=1 outlier" to "reach gap for the landmark trial + effect-modification by baseline risk". Not built.
+FINDING (hfnc + prone): full-text acquisition RESOLVES the scale/timepoint problems for both, but the
+DEEPER reason — clinical effect-modification (ARDS severity; post-extubation baseline risk) that makes a
+single pooled estimate misleading — stands. These are heterogeneity declines, not acquisition declines,
+now demonstrated with the per-arm counts in hand. No page built; bar held.
