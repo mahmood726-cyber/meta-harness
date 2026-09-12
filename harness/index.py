@@ -269,6 +269,7 @@ def _validate_prose_numbers(docs_dir: str, banners_html: str) -> None:
     Risky = a decimal (effect size), an 'N of M' aggregate, or an integer >= 10. Bare integers < 10 are
     inherent to prose ('three pages', 'two-arm') and low drift-risk, so they are allowed."""
     text = re.sub(r"<[^>]+>", " ", banners_html)
+    text = re.sub(r"\b(?:19|20)\d\d\b", " ", text)                   # publication YEARS are inherently static
     allowed = set(_STATIC_PROSE_NUMERALS) | _prose_derived_numerals(docs_dir)
     risky = set(re.findall(r"\d+\.\d+", text))                       # decimals (effect sizes)
     ints_text = re.sub(r"\d+\.\d+", " ", text)                       # strip decimals so their integer parts don't double-count
@@ -398,7 +399,8 @@ def build_index(docs_dir: str) -> str:
                "The offer is greater auditability, honestly bounded &mdash; not a claim of more evidence "
                "than the peer-reviewed comparators.</p></div>")
     _cont = _continuous_section(docs_dir)
-    _validate_prose_numbers(docs_dir, _thesis + _cont)  # anti-drift: fail closed on an un-accounted prose numeral
+    # anti-drift: fail closed on an un-accounted numeral in ANY narrative banner (thesis / continuous / stance)
+    _validate_prose_numbers(docs_dir, _thesis + _cont + _stance)
     body = (_thesis + _cont + _verification_section(docs_dir) + _parity_section(docs_dir)
             + _error_coverage_section(docs_dir) + _stance + _fair_section(docs_dir) + body)
 

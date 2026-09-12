@@ -12,10 +12,11 @@ drug-class metas compared to a single agent, and per-arm variances imputed from 
 to impute. The evidence is measured, not asserted: **citation chasing recovered 9 of 9** pre-registry
 trials the registries cannot reach (so reach is not the limit); an independent reported-effect extractor
 run over **626 declared-absent cells recovered 0** clean numbers ours missed (so extraction is not the
-limit); every same-scope gap is **decomposed and named** on its page; and **all 95 of 95 pooled numbers
-are verified against their committed source and gate-enforced** (`check_pooled_verified` refuses any page
-that pools a number not located in its source). Each live review is screened against **30–31 of 31
-checkable documented meta-analysis errors** (`harness/error_library.py`). The offer is greater
+limit); every same-scope gap is **decomposed and named** on its page; and **every pooled number is
+verified against its committed source and gate-enforced** (`check_pooled_verified` refuses any page
+that pools a number not located in its source; the exact count is self-counted on the index). Each live
+review is screened against **32–33 of 33 checkable documented meta-analysis errors**
+(`harness/error_library.py`). The offer is greater
 auditability, honestly bounded — not a claim of more evidence than the peer-reviewed comparators.
 
 ## Gap re-test (every non-parity reason re-tested against the new capabilities)
