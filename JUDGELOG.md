@@ -701,3 +701,16 @@ acquisition), with the landmark present and the full-text counts in hand. Bar he
   (12574898) is postpericardiotomy prevention (scope). Every gap trial is design/scope-excluded — decline
   confirmed, the harness stricter than the comparator.
 Both decompositions rendered on their pages.
+
+## Cycle 68 — semaglutide-obesity-weight: protocol REGISTERED, build REFUSED by the gate (honest)
+Preregistered (protocol committed, SHA = registration). First build attempt REFUSED by the gate on four
+limbs — the machinery held the bar automatically, no human needed: (1) pivotal NCT03548935 (STEP-1)
+ABSENT from the fetched cache — an HTTP 429 rate-limit (from too many concurrent Codex fetch lanes)
+disrupted the extra_pmids retrieval, so the topic's defining trials (STEP-1/STEP-3) were not fetched;
+(2) an unverified pooled number (bimagrumab-combination trial 41772149) — the estimand/verification
+guards caught it; (3) positive control 33567185 not screened in (not fetched). The pool that DID form
+was over-broad (semaglutide 7.2 mg, ORAL 25 mg, a bimagrumab combination, active-comparator STEP-8),
+tau2=37 — not a homogeneous 2.4mg-subcutaneous-vs-placebo set. NOT shipped. To build cleanly needs:
+(a) a spaced re-fetch (no 429) that retrieves STEP-1/3; (b) a tighter intervention filter pinned to
+subcutaneous 2.4 mg (exclude 7.2 mg / oral / combination / active-comparator). Protocol stays registered;
+build deferred with the reason named. Melatonin + esketamine remain the two clean live continuous pages.
