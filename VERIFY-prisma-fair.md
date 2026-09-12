@@ -2,12 +2,12 @@
 
 Comparator scoring uses OA full text body where obtainable, not PubMed abstracts. Topics with no obtainable comparator full text are excluded from the fair item counts.
 
-- Topics built: 26
-- Comparator full text obtained: 25
+- Topics built: 29
+- Comparator full text obtained: 28
 - Comparator full text unobtainable/excluded: 1
-- Countable topic-item cells: 150
-- Comparator-present cells: 80
-- OURS present / comparator absent: 70
+- Countable topic-item cells: 168
+- Comparator-present cells: 94
+- OURS present / comparator absent: 74
 - Comparator present / OURS absent: 0
 
 ## Per-topic Summary
@@ -40,6 +40,9 @@ Comparator scoring uses OA full text body where obtainable, not PubMed abstracts
 | `ticagrelor-vs-clopidogrel-acs` | NCBI PMC efetch XML body: PMC5435320 | 31334 | 6 | 2 | 4 | 0 |
 | `tocilizumab-covid19-mortality` | Unpaywall HTML: https://research.rug.nl/en/publications/84f62a1c-8000-42fc-80a5-6f875f94ed80 | 18894 | 6 | 2 | 4 | 0 |
 | `tranexamic-acid-pph` | NCBI PMC efetch XML body: PMC12197804 | 29347 | 6 | 4 | 2 | 0 |
+| `esketamine-trd-madrs` | records.json comparator_fulltext (cached OA) | 58728 | 6 | 5 | 1 | 0 |
+| `melatonin-primary-insomnia-sol` | records.json comparator_fulltext (cached OA) | 18777 | 6 | 3 | 3 | 0 |
+| `semaglutide-obesity-weight` | records.json comparator_fulltext (cached OA) | 42376 | 6 | 6 | 0 | 0 |
 
 ## Excluded From Fair Count
 
@@ -332,3 +335,36 @@ Comparator scoring uses OA full text body where obtainable, not PubMed abstracts
 | 16a flow diagram | Y | Study selection flow (PRISMA 2020) Stage n Records identified (committed search) 76 Records screened (deduplicated) 76 Excluded at | N |  |
 | 16b exclusions-with-reasons | Y | exclusions with reasons). Dual independent screening (PRISMA item 8) Two independently-implemented rule screeners over 76 records: agreement 75/76 | Y | excluded because they were ongoing, had an unclear or ineligible trial design, or did not assess tranexamic acid. |
 | 24 registration/PROSPERO | Y | Registration (protocol commit SHA) dcb1b98082b6416b68ee073b09460626cfe07f0a Committed (UTC) 2026-09-11 Declared analysis method Random-effects inverse-variance on the log ratio (log | Y | PROSPERO (CRD42022345775), and the protocol has been published previously. 4 We report this systematic review and IPD meta-analysis |
+
+### esketamine-trd-madrs
+
+| item | ours | ours quote | comparator | comparator quote |
+|---|---:|---|---:|---|
+| 7 search strategy | Y | Full search strategy, verbatim, every source ✓ present Search tab — the exact PubMed and ClinicalTrials.gov queries are | Y | search strategy PubMed/MEDLINE, Embase, the Cochrane Library, PsycINFO, ClinicalTrials.gov, and the WHO ICTRP were searched from inception to |
+| 7 verbatim re-runnable | Y | verbatim and are re-runnable. 8 Selection process (screeners, disagreement) ✓ present Two independently-implemented rule screeners; disagreement rate 8.8% | N |  |
+| 8 dual independent screening | Y | Dual independent screening (PRISMA item 8) Two independently-implemented rule screeners over 136 records: agreement 124/136 , disagreement 8.8% | Y | two reviewers independently screened titles and abstracts, followed by full-text assessment of potentially eligible reports. Disagreements were resolved |
+| 16a flow diagram | Y | Study selection flow (PRISMA 2020) Stage n Records identified (committed search) 136 Records screened (deduplicated) 136 Excluded at | Y | PRISMA 2020 flow diagram ( 29 ). Eligibility criteria Eligibility criteria were predefined using the Population–Intervention–Comparator–Outcome–Study design (PICOS) |
+| 16b exclusions-with-reasons | Y | exclusions with reasons). Dual independent screening (PRISMA item 8) Two independently-implemented rule screeners over 136 records: agreement 124/136 | Y | Reasons for exclusion at full-text stage were recorded. The selection process was summarized in the PRISMA 2020 flow |
+| 24 registration/PROSPERO | Y | Registration (protocol commit SHA) 5e2b43c6f3d8a70d86a8150e0984d22c73ffd9f7 Committed (UTC) 2026-09-11 Declared analysis method Random-effects inverse-variance on the log ratio (log | Y | review was not prospectively registered. The study selection process was documented using a revised PRISMA 2020 flow diagram |
+
+### melatonin-primary-insomnia-sol
+
+| item | ours | ours quote | comparator | comparator quote |
+|---|---:|---|---:|---|
+| 7 search strategy | Y | Full search strategy, verbatim, every source ✓ present Search tab — the exact PubMed and ClinicalTrials.gov queries are | Y | PubMed was searched by two reviewers (AQ and EFO) using the terms “Melatonin” and “Sleep Disorder”. The search |
+| 7 verbatim re-runnable | Y | verbatim and are re-runnable. 8 Selection process (screeners, disagreement) ✓ present Two independently-implemented rule screeners; disagreement rate 12.7% | N |  |
+| 8 dual independent screening | Y | Dual independent screening (PRISMA item 8) Two independently-implemented rule screeners over 126 records: agreement 110/126 , disagreement 12.7% | N |  |
+| 16a flow diagram | Y | Study selection flow (PRISMA 2020) Stage n Records identified (committed search) 126 Records screened (deduplicated) 126 Excluded at | Y | PRISMA 2009 Flow Chart. Flow Diagram. Flow chart showing the selection of studies for this review. (DOC) Click |
+| 16b exclusions-with-reasons | Y | exclusions with reasons). Dual independent screening (PRISMA item 8) Two independently-implemented rule screeners over 126 records: agreement 110/126 | Y | studies were selected. A total of 249 manuscripts were excluded for the following reasons: 123 were not randomized |
+| 24 registration/PROSPERO | Y | Registration (protocol commit SHA) 146edbf724354bd40134ccaeae7719aebdf9f5f8 Committed (UTC) 2026-09-11 Declared analysis method Random-effects inverse-variance on the log ratio (log | N |  |
+
+### semaglutide-obesity-weight
+
+| item | ours | ours quote | comparator | comparator quote |
+|---|---:|---|---:|---|
+| 7 search strategy | Y | Full search strategy, verbatim, every source ✓ present Search tab — the exact PubMed and ClinicalTrials.gov queries are | Y | Search strategy This systematic review and meta-analysis was conducted in accordance with the Preferred Reporting Items for Systematic |
+| 7 verbatim re-runnable | Y | verbatim and are re-runnable. 8 Selection process (screeners, disagreement) ✓ present Two independently-implemented rule screeners; disagreement rate 6.3% | Y | [MeSH] and Emtree terms where applicable) with free-text keywords and Boolean operators. The following search terms and their |
+| 8 dual independent screening | Y | Dual independent screening (PRISMA item 8) Two independently-implemented rule screeners over 143 records: agreement 134/143 , disagreement 6.3% | Y | Two reviewers independently screened titles, abstracts, and full-text articles according to the predefined eligibility criteria. A total of |
+| 16a flow diagram | Y | Study selection flow (PRISMA 2020) Stage n Records identified (committed search) 143 Records screened (deduplicated) 143 Excluded at | Y | PRISMA flowchart. PRISMA = Preferred Reporting Items for Systematic Reviews and Meta-Analyses. 3.2. Study characteristics The analysis included |
+| 16b exclusions-with-reasons | Y | exclusions with reasons). Dual independent screening (PRISMA item 8) Two independently-implemented rule screeners over 143 records: agreement 134/143 | Y | full-text articles to be evaluated for eligibility. Of these, 5 were excluded for reasons such as involving patients |
+| 24 registration/PROSPERO | Y | Registration (protocol commit SHA) fe53c76aad18c0fd8369e3c1fe171406c0f85e7f Committed (UTC) 2026-09-12 Declared analysis method Random-effects inverse-variance on the log ratio (log | Y | PROSPERO or any other systematic review registry. 2.2. Search strategy This systematic review and meta-analysis was conducted in |
