@@ -763,3 +763,26 @@ RADIANCE is daytime/median/no-results. Pooling would mix population + timepoint 
 timepoint-consistency guard built this session would itself refuse the mismatched trial. Registering at one
 timepoint and hoping the guard tolerates the other is exactly "register and hope." DECLINED; not registered.
 The reason is data-verified, not assumed.
+
+## Cycle 71 — continuous-primary candidate sweep: 4 probed, 4 declined with data-verified reasons
+Probed candidate NEW continuous-primary topics by checking their CT.gov posted results DIRECTLY before
+registering (data-first, no register-and-hope). All four fail to yield a clean same-scope, same-timepoint,
+raw-per-arm-mean/SD pool of >=2 trials — for TWO distinct, honest reasons:
+- LSM/SE-only (regulatory efficacy endpoints): roflumilast COPD trough FEV1 change is posted as
+  LEAST_SQUARES_MEAN + Standard Error (ANCOVA), not raw mean/SD — refused by the no-silent-conversion rule.
+  Same class as renal-denervation's ANCOVA 24h-SBP. BP / FEV1 / HbA1c / LDL broadly sit here.
+- Scale / timepoint / design / population / multi-arm heterogeneity: pregabalin diabetic-neuropathic-pain
+  DOES post raw mean/SD, but across different pain instruments (NRS vs McGill vs VAS), timepoints
+  (wk 1/4/6/19), and designs (parallel vs enriched-enrollment randomized-withdrawal) — no >=3 share
+  scale+timepoint+design. Liraglutide-3.0mg obesity weight posts raw mean/SD, but SCALE Obesity is
+  multi-arm (refused), and the other 2-arm raw-SD trials are diabetes populations or a different timepoint
+  (82 wk) — no clean obesity-without-diabetes 56-week pool of >=2. Renal-denervation: raw 24h-SBP mean/SD
+  exists (SPYRAL) but OFF-MED (3 mo, off-drug) vs ON-MED (6 mo, on-drug) differ in population AND timepoint.
+
+FINDING: continuous-primary breadth is genuinely constrained. A topic builds cleanly here only when a
+SINGLE registered outcome with raw per-arm mean/SD is reported at ONE common timepoint across same-scope,
+2-arm (single-dose) trials — a rare alignment. The three live continuous pages (melatonin sleep-onset
+latency, esketamine MADRS, semaglutide-2.4mg weight) are where it held. This is the SAME thesis the binary
+topics show, from a new angle: small continuous k is the product of principled refusals (LSM, multi-arm,
+timepoint, scale/population heterogeneity), not a search or extraction failure. Each decline is verified
+against the trials' own posted CT.gov results, not assumed.
