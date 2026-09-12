@@ -56,6 +56,23 @@ live URL to confirm — a landing is not landed until read live.
 5. **Specification curve** for a topic with real analytic choices (e.g., fixed vs random effects, HKSJ on/off,
    estimand variants), rendered as a sensitivity panel — the second named wall in COMPLETION.md.
 
+## How to correct a per-trial defect SAFELY (the sanctioned pattern — use this, not a broad extractor change)
+When the abstract extractor pools a source-backed but WRONG number for one trial+outcome (wrong endpoint,
+wrong denominator, a subgroup, an AE count as another outcome), correct it with a **narrow, flagged,
+regression-tested, reversible** override — never a broad extractor change (a broad "prefer specific keyword
+over the generic 'primary outcome' anchor" reorder regressed sglt2-ckd and broke 4 omega3 trials this run):
+1. Add a committed `verified_effects` entry for that PMID with `"override": true`, the correct effect/CI/scale,
+   the **verbatim source span** it comes from, and a `verification` note showing the arithmetic
+   (`harness/pipeline._build_outcome` checks override entries at the TOP of the hierarchy — above the
+   abstract — but ONLY when the flag is present, so unflagged entries stay pure fallbacks and no other page
+   moves). Template: `cache/omega3-cardiovascular-events/verified_effects.json` (ORIGIN 22686415 → HR 1.01).
+   For a DENOMINATOR/count fix where the value is auto-poolable, correct `verified_arms.json` instead
+   (END-AF 27502857 → 26/179 vs 37/181). For an AE-count-as-another-outcome, the general null-result-clause
+   guard (`extract._kw_only_in_null_result`) already declares it absent (COPPS-2 25172965).
+2. **Regression-test it** (see `tests/test_verified_override.py`): assert the override wins, an UNFLAGGED
+   entry does NOT, and the OLD bug reproduces without the override.
+3. Rebuild all 29, `reproduce_review.py`, and confirm **ONLY the intended page moves**. Push, read live.
+
 ## Invariants a task must never break
 - The two-limb gate and `reproduce_review.py` must stay green; the pre-commit hook regenerates the index and
   requires a byte-match, so any hand-typed prose number that is not object-derived or whitelisted will fail
