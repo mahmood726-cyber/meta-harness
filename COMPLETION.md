@@ -182,7 +182,7 @@ mis-pools were caught during the run — every one by verification, not by a gat
 
 - **Small-k fragility**: 22 topics have k≤2 / τ²=0 / a CI that crosses the null at small k. This is the
   dominant limitation and it is real — many topics are single-drug or scope-limited by design.
-- **9 mixed-scale pools** (HR+RR / HR+IRR / OR+RR), disclosed via the mixed-scale label but not
+- **6 mixed-scale pools** (HR+RR / HR+IRR / OR+RR), disclosed via the mixed-scale label but not
   resolved to a common estimand.
 - **RoB2 coverage is partial and now stated on every page**: it is scoped to the primary-outcome
   pooled trials and only those with an AACT registry match are machine-assessed; the rest render as
@@ -213,7 +213,7 @@ mis-pools were caught during the run — every one by verification, not by a gat
   comparator** (it edges us). The comparator is more **complete on 28/28** (larger k). Those two losses
   are rendered on the index, not hidden — the full-set read is stronger than the 11-topic sample precisely
   because it surfaces them. This closes the item that was open at the 11-topic stage.
-- **Early-page audit (all 29 topics + corpus-wide) — 10 wrong numbers found and FIXED live, 2 queued, 2
+- **Early-page audit (all 29 topics + corpus-wide) — 12 wrong numbers found and FIXED live, 0 open, 2
   false-positives rejected.** A deterministic corpus-wide scan (no undisclosed cluster/crossover; no
   unlabeled scale-mix; 3 factorials all marginal-pooled; per-topic error coverage 32–33/33; every
   number-in-source flag a truncation artifact) plus an adversarial per-trial source re-read (offline Codex,
@@ -225,8 +225,9 @@ mis-pools were caught during the run — every one by verification, not by a gat
   FIDELIO count-RR→reported HR 0.82 (resolving that mixed pool to clean HR); sacubitril PARADIGM-HF
   count-RR→HR 0.80; and spironolactone EMPHASIS hyperkalemia (pooled *hospitalisation-for*-hyperkalemia
   0.3% → the serum-K+>5.5 incidence 11.8% vs 7.2%, a harm the old figure understated ~20-fold). **Two
-  lower-severity findings queued with evidence** in `CODEX_QUEUE.md` (sglt2-ckd disclosed mixed HR/RR;
-  noac ENGAGE 97.5%-CI-as-95%). **Two audit claims were FALSE POSITIVES**, checked against the CT.gov data
+  lower-severity findings, initially queued, were then ALSO fixed** (sglt2-ckd mixed HR/RR resolved to a
+  clean HR pool via DAPA-CKD 0.61 + EMPA-KIDNEY 0.72 reported kidney HRs; noac ENGAGE 60mg 97.5% CI
+  converted to 95% 0.745-1.016) — so 0 audit defects remain open. **Two audit claims were FALSE POSITIVES**, checked against the CT.gov data
   and rejected (semaglutide primary-weight denominators — the outcome's own denoms field IS 1306/655 — and
   its treatment-policy estimand). The correction mechanism is the right shape: a committed, flagged,
   regression-tested per-trial override that beats the abstract for exactly one trial-outcome pair, with a
@@ -242,6 +243,11 @@ mis-pools were caught during the run — every one by verification, not by a gat
   56-day). An adversarial per-trial read against source — after the gate — is a distinct and necessary
   layer, and it caught what the gate structurally cannot. Verify-after-gate is not redundant with the gate;
   it is the layer the gate does not cover.
+- **The single most useful finding for anyone building this next: every one of the 12 corrected numbers
+  passed every gate limb at the time it shipped, and they cluster in the topics built BEFORE the relevant
+  guards existed.** A gate freezes today's guarantees; it does not retroactively re-examine pages built
+  under weaker ones. Re-audit old artifacts against source whenever the checks strengthen — the gate says
+  'still reproducible', not 'still right'.
 - **GRADE certainty and a specification curve** are not built.
 - **The record is committed but NOT deployed.** All of this is committed to local `main`, which is ~37
   cycles ahead of `origin/main` (the GitHub Pages source): the live site serves but reflects an earlier
@@ -254,7 +260,7 @@ mis-pools were caught during the run — every one by verification, not by a gat
   industry-funded count — disclosed, not adjusted (the per-trial bias magnitude is not quantifiable from a
   funding line), never inferred. Every documented meta-analysis error is now a gate limb, a regression test,
   or a rendered disclosure; every live review is screened against 32–33 of the 33.
-- **9 mixed-scale pools** are disclosed and labelled consistently but not resolved to a common estimand
+- **6 mixed-scale pools** are disclosed and labelled consistently but not resolved to a common estimand (down from 9 — finerenone and sglt2-ckd resolved to clean HR pools this session)
   (HR/RR/IRR pooled on the log scale as ratio-of-risk approximations, as the comparators do).
 
 The honest one-line summary: **the harness matches or exceeds published OA comparators on
