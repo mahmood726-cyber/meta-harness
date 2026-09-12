@@ -188,16 +188,19 @@ def _fair_section(docs_dir: str) -> str:
     if not n.get("prisma_cells") or not n.get("judge_total"):
         return ("<div class='banner'><h2>Fair comparison (measured against comparator FULL TEXT)</h2>"
                 "<p>The fair full-text comparison record is being regenerated.</p></div>")
-    aud_dims = ("search_reproducibility", "per_number_source_traceability",
-                "declared_absence_exclusion_transparency", "overall_auditability")
-    aud_all_ours = all(n[f"judge_{d}_ours"] == n["judge_total"] for d in aud_dims)
     rob_o, rob_c = n["judge_risk_of_bias_reporting_ours"], n["judge_risk_of_bias_reporting_comp"]
     comp_complete = n["judge_completeness_of_evidence_comp"]
-    aud_clause = (f"winning <strong>search reproducibility, per-number traceability, declared-absence and "
-                  f"overall auditability {n['judge_total']}&ndash;0 each</strong>"
-                  if aud_all_ours else
-                  "winning search reproducibility, per-number traceability, declared-absence and overall "
-                  "auditability on most topics")
+    tot = n["judge_total"]
+    # State each auditability dimension's ACTUAL margin (ours-comparator), so a dimension we do not sweep
+    # is shown as it is, never rounded up to a clean "N-0". Order: strongest first.
+    _labels = [("per_number_source_traceability", "per-number traceability"),
+               ("declared_absence_exclusion_transparency", "declared-absence"),
+               ("overall_auditability", "overall auditability"),
+               ("search_reproducibility", "search reproducibility")]
+    _parts = [f"{lbl} {n[f'judge_{key}_ours']}&ndash;{n[f'judge_{key}_comp']}" for key, lbl in _labels]
+    aud_clause = "winning <strong>" + "; ".join(_parts) + "</strong>"
+    # RoB direction-aware: it is not necessarily "to us".
+    rob_dir = ("to us" if rob_o > rob_c else "to the comparator" if rob_c > rob_o else "even")
     return (
         "<div class='banner'><h2>Fair comparison (measured against comparator FULL TEXT)</h2>"
         "<p>An earlier countable PRISMA comparison read the comparators' <em>abstracts</em> against our "
@@ -214,15 +217,17 @@ def _fair_section(docs_dir: str) -> str:
         f"<p><strong>Fair blind re-judge (full-text vs full-page, {n['judge_total']} topics, order-blinded).</strong> "
         "Restating the record on the fair basis, whatever it shows: our pages are judged more "
         f"<strong>auditable on {n['judge_more_auditable_ours']} of {n['judge_total']}</strong>, {aud_clause}; "
-        f"the comparator is more <strong>complete on {comp_complete} of {n['judge_total']}</strong> (larger "
-        f"<em>k</em>); risk-of-bias reporting splits <strong>{rob_o}&ndash;{rob_c}</strong> to us. Adding the "
-        "three continuous-outcome pages did not change the direction &mdash; each is more auditable and less "
-        "complete than its comparator, like the binary topics. So the earlier abstract-based &lsquo;15 clean "
-        "wins&rsquo; is superseded by a stable domain split: <strong>we win transparency and auditability; we "
-        "lose completeness/<em>k</em></strong> &mdash; the same conclusion the parity table reaches, confirmed "
-        "by a blind reader on full text. The judge also flagged real defects in our pages (a risk-of-bias "
-        "table covering only a subset of pooled trials; a retraction line whose count did not equal k); those "
-        "are recorded, not hidden.</p></div>")
+        f"the comparator is more <strong>complete on {comp_complete} of {tot}</strong> (larger "
+        f"<em>k</em>); risk-of-bias reporting splits <strong>{rob_o}&ndash;{rob_c}</strong> {rob_dir}. "
+        "The split holds across the whole judged set, binary and continuous alike &mdash; each page is more "
+        "auditable and less complete than its comparator &mdash; but it is not a clean sweep on every "
+        "sub-dimension: the comparator wins search reproducibility on one topic and edges risk-of-bias "
+        "reporting, and those losses are shown here rather than hidden. So the earlier abstract-based "
+        "&lsquo;15 clean wins&rsquo; is superseded by a stable domain split: <strong>we win transparency and "
+        "auditability; we lose completeness/<em>k</em></strong> &mdash; the same conclusion the parity table "
+        "reaches, confirmed by a blind reader on full text. The judge also flagged real defects in our pages "
+        "(a risk-of-bias table covering only a subset of pooled trials; a retraction line whose count did not "
+        "equal k); those are recorded, not hidden.</p></div>")
 
 
 # Static numerals allowed in the thesis/continuous prose banners: facts that do NOT change as the corpus
