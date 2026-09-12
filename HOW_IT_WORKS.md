@@ -55,13 +55,15 @@ At every rung: the digits must appear in the cited committed span, the arms must
 and the count-derived effect must reconcile with the effect the paper reports (**round-trip**), or the
 trial is declared-absent — never guessed.
 
-## 3. The two-limb gate (13 checks; `python -m harness.gate <dir>`)
+## 3. The two-limb gate (14 checks; `python -m harness.gate <dir>`)
 
 **Limb 1 — reproducibility & integrity:**
 - `check_reproduction` — offline replay must regenerate the committed numbers and page byte-for-byte.
 - `check_cache_tracked` — the committed cache must be git-tracked (else a fresh clone cannot reproduce).
 - `check_primary_result` — the primary outcome must actually carry a result (k, estimate).
 - `check_pooled_verified` — every pooled number's digits must be located in its committed source span.
+- `check_manuscript_numbers` — the generated manuscript may not state a number the object does not carry
+  (every manuscript numeral must be object-derived; proven to refuse a fabricated number).
 - `check_fetch_complete` — refuse if a CORE fetch source (PubMed / Europe PMC / ClinicalTrials.gov)
   recorded `RAN_ERROR` (a throttled/partial fetch silently degrades the cache).
 - `check_pivotal_present` — a pre-registered pivotal/landmark trial must be in the cache.
@@ -150,9 +152,17 @@ declares a pivotal). A test forbids overclaiming: any entry that claims a gate l
   prophylaxis vs treatment, drug-class vs single agent, imputed variance declined), decomposed on each page.
 - **Risk-of-bias reporting is our weakest dimension** — the blind judge puts it to the comparator: our
   RoB2 is computed from machine-available registry fields, theirs is hand-scored Cochrane across all trials.
+  Coverage is now measured and shown (a minority of pooled trials carry a rating; no trial reaches "high"
+  on the registry-derived assessment), and each primary outcome carries a RoB-stratified sensitivity
+  re-pool (low-risk-only) with the coverage caveat stated.
 - **The continuous-outcome tier is small (three pages)** and bar-limited — most drug/outcome pairs fail the
   raw-mean±SD / single-dose / common-timepoint alignment.
-- **GRADE certainty and a specification curve are not built.**
-- **The gate proves "still reproducible", not "still right".** A one-pass source re-audit of all topics
-  found and fixed multiple wrong numbers that had passed every gate limb — they clustered in pages built
-  before the relevant guards existed. Re-audit old artifacts whenever the checks strengthen.
+- **GRADE is partial.** A machine-computable certainty is now rendered (risk-of-bias, inconsistency,
+  imprecision, and publication bias assessed from the registry ghost census rather than funnel asymmetry);
+  indirectness is left to human judgement. A **specification curve is still not built.**
+- **We measured our own error rate.** A blind accuracy census re-extracted every pooled number from
+  committed source by a checker blind to the stored value; of the numbers independently re-checkable, the
+  confirmed residual error after adjudication was zero, and the census itself surfaced (and we fixed) one
+  wrong-endpoint number that had passed every gate. The live index states the current figures.
+- **The gate proves "still reproducible", not "still right".** Re-audit old artifacts whenever the checks
+  strengthen — wrong numbers have clustered in pages built before the relevant guards existed.

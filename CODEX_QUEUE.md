@@ -132,6 +132,28 @@ wrong number (each is disclosed or a config-metadata label), so they are polish,
 # ===================================================================================
 # FORWARD PLAN — per-stage weakness assessment + improvement plan (cycle 75, object-derived)
 # ===================================================================================
+#
+# STATUS (cycle 76 — executed against the Codex budget; all pushed and verified live):
+#  [DONE] C1 / Stage-1 ERROR RATE — blind accuracy census (47 Codex lanes): 99 pooled numbers
+#         independently re-extracted from source BLIND to the stored value; 95/99 re-checkable, 92
+#         exact, 0 confirmed our-errors after adjudication; the census SURFACED + FIXED one wrong-
+#         endpoint defect (semaglutide GI-AE). Rendered on the index (docs/error_rate.json);
+#         scripts/error_rate_compare.py + error_rate_pass2.py.
+#  [DONE] Stage-2 RISK OF BIAS — RoB-stratified sensitivity re-pool per primary (harness/rob_sensitivity.py),
+#         regenerated into review.json + rendered; coverage measured (46/79 trials, 13/29 topics, 0 'high').
+#         NOT done: model-assisted RoB2 FROM METHODS TEXT to raise coverage (R1) — still queued.
+#  [DONE] Stage-3 GRADE — partial object-derived certainty (harness/grade.py) rendered on the RoB tab;
+#         publication bias from the registry ghost census, indirectness left to human judgement.
+#  [DONE] Stage-4 PAPER — object-derived Manuscript tab (harness/manuscript.py) + gate limb
+#         check_manuscript_numbers (refuses any un-derived numeral; negative-tested).
+#  [DONE] Stage-7 ANALYSIS A1 — leave-one-out + most-influential-trial already compute in-pipeline and
+#         render. NOT done: A2 cluster design-effect correction, A3 specification curve — still queued.
+#  [IN PROGRESS] Stage-5 SCREENING — blind independent (model) third-screener wave run; Cohen's kappa via
+#         scripts/screen_reproducibility.py -> docs/screen_reproducibility.json (reproducibility, not a
+#         human gold standard).
+#  [QUEUED] Stage-6 SEARCH independent seed set; Stage-8 EXTRACTION abstract-share reduction; C2 external
+#         human review; R1 RoB2-from-methods; A2/A3 above; PROTOCOL PR1/PR2.
+# ===================================================================================
 Severity order (biggest gaps first). Numbers verified against the committed artefacts this cycle:
 99 pooled pairs (99/99 verified), 76/99 from abstracts, 11/99 hand-verified/override, 12 audit defects
 fixed, 21/29 primary pools k<=2, 8/29 cross the null, RoB 13-14 to the comparator, reach 9/9, extraction
