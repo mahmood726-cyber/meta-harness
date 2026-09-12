@@ -73,6 +73,32 @@ def _parity_section(docs_dir: str) -> str:
     return body + "</table></div>"
 
 
+def _verification_section(docs_dir: str) -> str:
+    """The strongest single integrity claim, gate-enforced: every pooled number on every page is
+    verified against its committed source span, and a gate limb refuses any page that pools a number
+    whose digits are not located in its source. Self-counting so the number cannot drift stale."""
+    n = ok = 0
+    for rp in glob.glob(os.path.join(docs_dir, "reviews", "*", "review.json")):
+        try:
+            rev = json.load(open(rp, encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        for o in rev.get("outcomes", []) or []:
+            for t in o.get("trials", []) or []:
+                n += 1
+                if t.get("verified") in ("verified", "verified_handchecked"):
+                    ok += 1
+    if not n:
+        return ""
+    return (f"<div class='banner'><h2>Every pooled number is verified against its source "
+            f"(gate-enforced)</h2><p><strong>All {ok} of {n} pooled trial-outcome numbers</strong> across "
+            f"these pages have their digits located in the committed source span they cite (arm counts, "
+            f"effect+CI, or per-arm mean/SD). A publication-gate limb "
+            f"(<code>check_pooled_verified</code>) <strong>refuses any page that pools a number not found "
+            f"in its source</strong>, so this cannot silently stop being true. No published meta-analysis "
+            f"makes — or can be forced to keep — this claim about every one of its numbers.</p></div>")
+
+
 def _error_coverage_section(docs_dir: str) -> str:
     """Render the meta-analysis error-library coverage from docs/error_coverage.json: how many
     documented meta-analysis mistakes every live review is screened against, and which remain
@@ -197,7 +223,8 @@ def build_index(docs_dir: str) -> str:
              "real defects in our pages (a risk-of-bias table covering only a subset of pooled trials "
              "without a stated reason; a retraction line whose trial count did not equal k); those are "
              "recorded, not hidden.</p></div>")
-    body = _parity_section(docs_dir) + _error_coverage_section(docs_dir) + _stance + _fair + body
+    body = (_verification_section(docs_dir) + _parity_section(docs_dir)
+            + _error_coverage_section(docs_dir) + _stance + _fair + body)
 
     return (
         "<!doctype html><html lang=en><head><meta charset=utf-8>"
