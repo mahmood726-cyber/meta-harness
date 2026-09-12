@@ -697,9 +697,19 @@ def build_review_core(slug, config, records, protocol_sha):
         if eff:
             reported.append({"outcome": co["name"], "estimate": eff["effect"], "scale": eff["scale"],
                              "ci_low": eff["ci_low"], "ci_high": eff["ci_high"]})
-    theirs_k = (extract.extract_meta(comp_abstract, config["primary_outcome"]["keywords"]).get("k")
-                or extract.extract_meta(comp_full, config["primary_outcome"]["keywords"]).get("k")
-                or "not stated in the comparator abstract/full text")
+    # comparator_k: a SOURCE-VERIFIED override for the comparator's trial count. The auto-extraction
+    # below reads a number out of the comparator abstract with the topic's outcome keywords and is
+    # unreliable (an external audit found it wrong on 4 topics: it grabbed a subgroup or a cited meta's
+    # k, or missed the count entirely). Where the true count has been read from the comparator's own
+    # text and recorded in the config (with the quote in comparator_k_source), that value is used and
+    # the fragile auto-extraction is not.
+    ck = config.get("comparator_k")
+    if ck is not None:
+        theirs_k = ck
+    else:
+        theirs_k = (extract.extract_meta(comp_abstract, config["primary_outcome"]["keywords"]).get("k")
+                    or extract.extract_meta(comp_full, config["primary_outcome"]["keywords"]).get("k")
+                    or "not stated in the comparator abstract/full text")
     oa = records.get("comparator_oa") or {}
     comp_year = comp_rec.get("year")
     ours_k = primary["result"].get("k") if isinstance(primary["result"], dict) and primary["result"].get("k") else len(primary["trials"])
@@ -718,6 +728,7 @@ def build_review_core(slug, config, records, protocol_sha):
         "open_access": bool(oa.get("is_oa")), "reported": reported,
         "scope": scope.assess(config, comp_rec.get("title") or "", comp_abstract),
         "overlap": {"ours_k": ours_k, "theirs_k": theirs_k,
+                    **({"theirs_k_source": config["comparator_k_source"]} if config.get("comparator_k_source") else {}),
                     "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
                     "only_ours": newer, "only_theirs": [],
                     "method": "publication-date + design identity (comparator trial list not extracted from source)",

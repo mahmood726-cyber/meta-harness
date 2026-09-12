@@ -584,7 +584,9 @@ def _comparator(r, neutral):
     body += "<h4>Trial-set overlap (an identical estimate on an identical set is arithmetic, not corroboration)</h4>"
     body += _kv([
         ("k in this review (our own search)", ov.get("ours_k")),
-        ("k stated in the comparator's own text (auto-extracted)", ov.get("theirs_k")),
+        (("k in the comparator (verified against its source text)" if ov.get("theirs_k_source")
+          else "k stated in the comparator's own text (auto-extracted)"), ov.get("theirs_k")),
+        *([("Comparator k — source", ov.get("theirs_k_source"))] if ov.get("theirs_k_source") else []),
         ("Shared trials", ov.get("shared_k")),
         ("Only in ours", ", ".join(ov.get("only_ours", []) or []) or None),
         ("Only in theirs", ", ".join(ov.get("only_theirs", []) or []) or None),
