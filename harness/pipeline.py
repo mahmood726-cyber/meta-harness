@@ -7,6 +7,8 @@ import json
 import os
 
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding
+from . import grade as grade_mod
+from . import rob_sensitivity as rob_sens_mod
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool
 
@@ -331,6 +333,19 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # ORIGIN (PMID 22686415): the abstract's "primary outcome" is death from cardiovascular causes
         # (HR 0.98); our outcome is major vascular events, which the SAME abstract reports as HR 1.01. Scoped
         # by the flag so ordinary (unflagged) verified_effects stay a pure fallback — no other page moves.
+        # ABSENT OVERRIDE (opt-in, top of the hierarchy): a committed verified_effects/verified_arms entry
+        # flagged `override: true, absent: true` for THIS outcome forces the trial declared-absent. Used
+        # when the abstract extractor grabbed a source-backed but WRONG-ENDPOINT number and the correct
+        # value is NOT in the committed source (so no override number exists) — refuse rather than pool the
+        # wrong endpoint. STEP-12 (42575111): the abstract's "141 of 161" is OVERALL adverse events, not the
+        # gastrointestinal-specific count our harm outcome names (the abstract gives no GI-specific count).
+        _abs_over = (verified_effects or {}).get(d["id"]) or (verified_arms or {}).get(d["id"])
+        if (_abs_over and _abs_over.get("override") and _abs_over.get("absent")
+                and _abs_over.get("outcome") == spec.get("name")):
+            absent.append({"label": label, "id": idstr,
+                           "reason": _abs_over.get("reason", "declared absent (override): the committed source "
+                                     "reports no value for this outcome; the extracted number was a different endpoint")})
+            continue
         va_over = (verified_arms or {}).get(d["id"])
         if (va_over and va_over.get("override") and va_over.get("outcome") == spec.get("name")
                 and all(va_over.get(k) is not None for k in ("ai", "n1i", "ci", "n2i"))):
@@ -648,7 +663,7 @@ def build_review_core(slug, config, records, protocol_sha):
                              f"verifiable by date). Exact shared count not asserted.")},
     }
 
-    return {
+    review = {
         "slug": slug, "title": config["title"], "question": config["question"],
         "method_declared": METHOD,
         "protocol": {"sha": protocol_sha, "committed_utc": records.get("fetched_utc"),
@@ -684,6 +699,15 @@ def build_review_core(slug, config, records, protocol_sha):
         # documented bias direction. Rendered as a disclosure; never inferred, 'not stated' when silent.
         **({"funding": _fund} if (_fund := funding.scan_pooled({"outcomes": outcomes}, rec_by_id, ftbp)) else {}),
     }
+    # RoB-stratified sensitivity re-pool of the primary outcome (regenerates from the object, so the
+    # figure the page renders is reproduced, not typed). Uses the same validated pooler.
+    if (_sens := rob_sens_mod.sensitivity(review)):
+        review["rob_sensitivity"] = _sens
+    # Partial, object-derived GRADE certainty (risk-of-bias, inconsistency, imprecision, registry-based
+    # publication bias computed from committed fields; indirectness left to human judgement).
+    if (_grade := grade_mod.grade(review, _load_ghost(slug))):
+        review["grade"] = _grade
+    return review
 
 
 def build_comparator_core(slug, config, records):

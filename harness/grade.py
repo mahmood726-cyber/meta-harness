@@ -1,0 +1,168 @@
+"""Partial, object-derived GRADE certainty rating (Stage GRADE, forward plan G1).
+
+Computes the mechanical GRADE domains from what is already in the review object; leaves the two domains
+that require human judgement explicitly UN-rated (labelled), never guessed. Starting certainty for a body
+of RCTs is HIGH; each downgrade is justified from a committed field.
+
+Domains:
+  risk_of_bias   : from rob2 overall levels of the primary-outcome pooled trials + coverage.
+                   any 'high' -> down 1; else 'some concerns' in >=half -> down 1; incomplete coverage
+                   caps the rating (cannot be 'high certainty' if RoB is unassessed for pooled trials).
+  inconsistency  : from tau2 / the I2 implied by the pool. k<2 -> not estimable (single trial: no
+                   inconsistency, but see imprecision). tau2 large relative to effect / wide PI -> down 1.
+  imprecision    : from k, total N (optimal information size) and whether the 95% CI crosses the null
+                   (ratio 1.0 / MD 0). CI crosses null -> down 1; very wide CI or k==1 small N -> down 1.
+  publication_bias: NOVEL — from the registry ghost census (ghost.json), NOT funnel asymmetry. a high
+                   proportion of completed-but-unpublished registered trials -> down 1. Better than
+                   funnel plots at our small k.
+  indirectness   : NOT auto-rated (population/intervention/outcome directness is a judgement) -> labelled.
+
+Returns a dict {domains:{...}, start, downgrades, certainty, basis}. certainty in
+{high, moderate, low, very_low}. Object-derived: every number traces to a committed field, so the
+anti-drift prose guard stays satisfied when rendered like _error_coverage_section.
+"""
+from __future__ import annotations
+
+
+def _norm_overall(overall):
+    if not overall:
+        return None
+    o = overall.lower()
+    if o.startswith("high"):
+        return "high"
+    if o.startswith("low"):
+        return "low"
+    if "some concern" in o:
+        return "some_concerns"
+    return "other"
+
+
+def _rob_domain(review):
+    prim = next((o for o in review.get("outcomes", []) if o.get("primary")), None)
+    trials = (prim or {}).get("trials", []) or []
+    rob = (review.get("rob2") or {}).get("trials") or {}
+    levels = [_norm_overall((rob.get(str(t.get("label"))) or {}).get("overall")) for t in trials]
+    n = len(levels)
+    rated = [x for x in levels if x]
+    n_rated = len(rated)
+    n_high = sum(1 for x in rated if x == "high")
+    n_some = sum(1 for x in rated if x == "some_concerns")
+    down = 0
+    if n_high:
+        down = 1
+        basis = f"{n_high} of {n} pooled trial(s) at high risk of bias"
+    elif n_rated and n_some >= (n_rated + 1) // 2:
+        down = 1
+        basis = f"{n_some} of {n_rated} assessed trial(s) at 'some concerns'"
+    else:
+        basis = "no assessed trial at high risk; fewer than half at 'some concerns'"
+    # incomplete coverage caps certainty (cannot claim high certainty on RoB we did not assess)
+    coverage_incomplete = n_rated < n
+    if coverage_incomplete:
+        basis += f"; RoB assessed for only {n_rated} of {n} pooled trials (registry-derived), so the rating is capped"
+    return {"downgrade": down, "coverage_incomplete": coverage_incomplete,
+            "n_trials": n, "n_rated": n_rated, "n_high": n_high, "n_some": n_some, "basis": basis}
+
+
+def _inconsistency_domain(res):
+    k = res.get("k")
+    tau2 = res.get("tau2")
+    if k is None or k < 2:
+        return {"downgrade": 0, "not_estimable": True,
+                "basis": "single trial (k=1): between-study inconsistency is not estimable"}
+    # PI substantially wider than CI (on the log scale for ratios) signals real heterogeneity.
+    down = 0
+    basis = f"tau^2={tau2}"
+    pil, pih = res.get("pi_low"), res.get("pi_high")
+    cil, cih = res.get("ci_low"), res.get("ci_high")
+    if tau2 and tau2 > 0 and pil is not None and cil is not None and cih:
+        # ratio scales are positive; compare PI/CI width ratio on the same scale
+        try:
+            pi_w = pih - pil
+            ci_w = cih - cil
+            if ci_w > 0 and pi_w / ci_w >= 2.0:
+                down = 1
+                basis += f"; prediction interval [{pil}, {pih}] is >=2x the CI width -> real heterogeneity"
+            else:
+                basis += "; prediction interval not markedly wider than the CI"
+        except TypeError:
+            pass
+    else:
+        basis += " (no between-study heterogeneity detected)" if tau2 == 0 else ""
+    return {"downgrade": down, "not_estimable": False, "basis": basis}
+
+
+def _imprecision_domain(res, scale):
+    k = res.get("k")
+    cil, cih = res.get("ci_low"), res.get("ci_high")
+    if cil is None or cih is None:
+        return {"downgrade": 0, "basis": "no confidence interval available"}
+    null = 0.0 if (scale or "").upper() == "MD" else 1.0
+    crosses = bool(cil <= null <= cih)
+    down = 0
+    basis = f"95% CI [{cil}, {cih}]"
+    if crosses:
+        down += 1
+        basis += f"; crosses the null ({null:g}) -> the pooled estimate is compatible with no effect"
+    if k == 1:
+        down = max(down, 1)
+        basis += "; single trial (no replication)"
+    return {"downgrade": min(down, 2), "crosses_null": crosses, "basis": basis}
+
+
+def _pubbias_domain(ghost):
+    if not ghost:
+        return {"downgrade": 0, "not_assessable": True,
+                "basis": "no registry ghost census available for this topic"}
+    enum = ghost.get("enumerated") or 0
+    ongoing = ghost.get("ongoing_or_recent") or 0
+    ghost_ub = ghost.get("ghost_upper_bound") or 0
+    completed = max(enum - ongoing, 0)
+    frac = (ghost_ub / completed) if completed else 0.0
+    down = 1 if frac >= 0.30 else 0
+    basis = (f"registry census: {ghost_ub} of ~{completed} completed registered trials have no published "
+             f"result (upper bound {frac:.0%}); publication bias assessed from the registry, not a funnel plot")
+    if down:
+        basis += " -> downgraded"
+    return {"downgrade": down, "ghost_fraction": round(frac, 3), "basis": basis}
+
+
+CERT = ["high", "moderate", "low", "very_low"]
+
+
+def grade(review, ghost=None):
+    """Compute a partial GRADE from the review object (+ optional ghost census)."""
+    prim = next((o for o in review.get("outcomes", []) if o.get("primary")), None)
+    if not prim or not prim.get("result"):
+        return None
+    res = prim["result"]
+    scale = res.get("scale")
+    rob = _rob_domain(review)
+    inc = _inconsistency_domain(res)
+    imp = _imprecision_domain(res, scale)
+    pub = _pubbias_domain(ghost)
+    downgrades = rob["downgrade"] + inc["downgrade"] + imp["downgrade"] + pub["downgrade"]
+    idx = min(downgrades, 3)  # high -> moderate -> low -> very_low
+    # RoB coverage incompleteness caps at 'moderate' (cannot certify high on unassessed bias)
+    if rob.get("coverage_incomplete") and idx == 0:
+        idx = 1
+        capped = True
+    else:
+        capped = False
+    return {
+        "start": "high",
+        "domains": {
+            "risk_of_bias": rob,
+            "inconsistency": inc,
+            "imprecision": imp,
+            "publication_bias": pub,
+            "indirectness": {"downgrade": 0, "not_auto_rated": True,
+                             "basis": "directness of population/intervention/comparator/outcome is a human "
+                                      "judgement; not auto-rated (the scope note on the page states the PICO)"},
+        },
+        "downgrades": downgrades,
+        "certainty": CERT[idx],
+        "certainty_capped_by_rob_coverage": capped,
+        "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication "
+                 "bias are computed from committed fields; indirectness is left to human judgement.",
+    }

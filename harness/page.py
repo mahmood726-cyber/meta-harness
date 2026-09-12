@@ -686,8 +686,10 @@ def _reporting(r, neutral):
          "Results tab — the machine-computable certainty signals are shown: imprecision via the 95% CI"
          + (" and the prediction interval" if has_pi else "")
          + (", single-trial (k=1) flagged" if res.get("k") == 1 else "")
-         + ", inconsistency via tau^2. A FORMAL GRADE rating (risk-of-bias, indirectness, publication bias) "
-           "is NOT automated — it needs human judgement — so certainty is reported as signals, not a graded label.",
+         + ", inconsistency via tau^2. A PARTIAL, object-derived GRADE is now rendered on the Risk-of-bias tab "
+           "(risk-of-bias, inconsistency, imprecision, and registry-based publication bias computed from "
+           "committed fields; indirectness left to human judgement) — a graded certainty label with each "
+           "domain's basis, not a full hand-graded GRADE.",
          ""),
         ("16a Flow with counts at every stage", bool(scr.get("records")),
          "Screening tab — PRISMA flow: identified -> screened -> excluded-by-rule (counts) -> eligible -> pooled k -> declared-absent.",
@@ -821,6 +823,65 @@ def _riskofbias(r, neutral):
                      "inferred."
                      "<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Scanned</th>"
                      f"<th>Verbatim statement</th></tr>{rows}</table></div>")
+    # RoB-stratified sensitivity re-pool (object-derived from r['rob_sensitivity']; regenerates on rebuild)
+    sens = r.get("rob_sensitivity") or {}
+    sens_html = ""
+    if sens.get("full"):
+        def _fmt(p):
+            if not p:
+                return "&mdash;"
+            return f"k={p['k']}, {p['scale']} {p['estimate']} [{p['ci_low']}, {p['ci_high']}]"
+        f, dh, lo = sens.get("full"), sens.get("drop_high"), sens.get("low_only")
+        n_rated, n_tr = sens.get("n_rob_rated"), sens.get("n_trials")
+        lines = [f"<tr><td>Full pool (all pooled trials)</td><td>{_fmt(f)}</td></tr>"]
+        if sens.get("any_high"):
+            lines.append(f"<tr><td>Excluding high risk of bias</td><td>{_fmt(dh)}</td></tr>")
+        lines.append(f"<tr><td>Low risk of bias only</td><td>{_fmt(lo)}"
+                     + ("" if sens.get("low_only_informative") else " <em>(not informative &mdash; see coverage)</em>")
+                     + "</td></tr>")
+        sens_html = ("<h4>Risk-of-bias sensitivity (re-pooled with the same estimator)</h4>"
+                     "<div class='absent'><strong>Does the result survive dropping the trials that are not "
+                     "low risk of bias?</strong> The primary outcome is re-pooled by risk-of-bias stratum "
+                     "with the identical estimator. "
+                     f"<strong>{n_rated} of {n_tr}</strong> pooled trials have a risk-of-bias rating; "
+                     + ("no pooled trial is rated <em>high</em> risk (the registry-derived assessment does not "
+                        "reach 'high'), so the standard drop-high sensitivity is inert and the informative "
+                        "stratum is <em>low-only</em>. " if not sens.get("any_high") else "")
+                     + "An unrated trial cannot be placed in a stratum, so a low-only pool with fewer trials "
+                     "than the full pool reflects both risk of bias and assessment coverage &mdash; read the "
+                     "widened interval with that caveat, not as instability of the effect."
+                     f"<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr>"
+                     f"{''.join(lines)}</table></div>")
+    # Partial, object-derived GRADE certainty (from r['grade'])
+    g = r.get("grade") or {}
+    grade_html = ""
+    if g.get("certainty"):
+        doms = g.get("domains", {})
+        order = [("risk_of_bias", "Risk of bias"), ("inconsistency", "Inconsistency"),
+                 ("imprecision", "Imprecision"), ("indirectness", "Indirectness"),
+                 ("publication_bias", "Publication bias (registry-based)")]
+        drows = []
+        for k, lab in order:
+            dv = doms.get(k, {})
+            dn = dv.get("downgrade", 0)
+            mark = ("&minus;1" if dn == 1 else f"&minus;{dn}" if dn else "not downgraded")
+            if dv.get("not_auto_rated"):
+                mark = "human judgement"
+            drows.append(f"<tr><td>{_e(lab)}</td><td>{mark}</td><td>{_e(dv.get('basis',''))}</td></tr>")
+        cap = (" The rating is capped below <em>high</em> because risk of bias is not assessed for every "
+               "pooled trial." if g.get("certainty_capped_by_rob_coverage") else "")
+        grade_html = ("<h4>GRADE certainty (partial, object-derived)</h4>"
+                      "<div class='absent'><strong>Overall certainty: "
+                      f"{_e(g.get('certainty','').replace('_',' '))}</strong> "
+                      f"(starting from <em>high</em> for randomized trials, {g.get('downgrades',0)} "
+                      "downgrade(s)).{}"
+                      "Risk of bias, inconsistency, imprecision and publication bias are computed from "
+                      "committed fields; <strong>publication bias is assessed from the registry ghost census, "
+                      "not funnel-plot asymmetry</strong> (which is unreliable at our small k). "
+                      "<strong>Indirectness is left to human judgement</strong> (the PICO scope note states "
+                      "the directness) &mdash; this is a partial GRADE, honestly labelled."
+                      "<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr>"
+                      f"{''.join(drows)}</table></div>").format(cap)
     return (f"<p>{cover}</p>" + uoa_html + fund_html
             + "<p>Per-pooled-trial RoB2 risk of bias, computed from what is machine-available "
             f"({_e(rb.get('source') or 'AACT registry fields')}). <strong>Domain 5 (selective reporting)</strong> "
@@ -829,7 +890,8 @@ def _riskofbias(r, neutral):
             "fields. D3 (missing outcome data) and the risk-of-bias judgements that need human reading are marked "
             "<em>not assessed — requires human judgement</em>: partial-but-honest, never guessed. Hover a cell "
             "for its basis.</p>"
-            f"<table class='recs'>{head}{rows_join(rows)}</table>")
+            f"<table class='recs'>{head}{rows_join(rows)}</table>"
+            + sens_html + grade_html)
 
 
 _R = {"overview": _overview, "protocol": _protocol, "search": _search,

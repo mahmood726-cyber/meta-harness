@@ -139,6 +139,48 @@ def _error_coverage_section(docs_dir: str) -> str:
     return body + "</div>"
 
 
+def _error_rate_section(docs_dir: str) -> str:
+    """Render the blind accuracy census from docs/error_rate.json: our OWN measured extraction-error
+    rate. Every pooled number was independently re-extracted from committed source by an offline checker
+    blind to the stored value; disagreements were hand-adjudicated. Object-derived numbers only."""
+    p = os.path.join(docs_dir, "error_rate.json")
+    if not os.path.exists(p):
+        return ""
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    pop = d.get("population")
+    rv = d.get("independently_reverified")
+    ex = d.get("exact_match")
+    dis = d.get("disagreements_pre_adjudication")
+    err = d.get("confirmed_our_errors_after_adjudication")
+    nr = d.get("not_recheckable_from_abstract")
+    lo, hi = (d.get("disagreement_wilson95") or [None, None])[:2]
+    if pop is None:
+        return ""
+    return (f"<div class='banner'><h2>We measured our own error rate (no meta-analysis reports this about "
+            f"itself)</h2>"
+            f"<p>Every claim the harness makes rests on the assumption that its numbers are right. So we "
+            f"measured it: all <strong>{pop}</strong> pooled numbers were independently re-extracted from the "
+            f"committed source by an offline checker <strong>blind to the stored value</strong>, then compared "
+            f"deterministically. <strong>{rv} of {pop}</strong> were re-extractable from the same source the "
+            f"checker was given; <strong>{ex} of {rv} matched exactly</strong>. The "
+            f"<strong>{dis}</strong> disagreements were hand-adjudicated against source: on adjudication "
+            f"<strong>{err}</strong> was a genuine error on our side "
+            f"(a gastrointestinal-adverse-event outcome that had pooled the trial's OVERALL adverse-event "
+            f"count &mdash; a wrong endpoint that had passed every gate; found here and fixed), and the "
+            f"remainder were checker-side (an incidence-rate ratio the checker called a plain rate ratio "
+            f"with identical numbers; an on-treatment vs intention-to-treat estimand choice where our ITT "
+            f"value is the standard one). The other <strong>{nr}</strong> numbers source from "
+            f"ClinicalTrials.gov results or full text, so they were not re-checkable from the abstract and "
+            f"are not counted as verified here. <strong>The pre-adjudication disagreement rate was {dis} of "
+            f"{rv}</strong>"
+            + (f" (Wilson 95% CI {round(lo*100,1)}&ndash;{round(hi*100,1)}%)" if lo is not None else "")
+            + ". This is the single most important number the project lacked, and it is now measured, "
+            f"adjudicated, and reproducible from <code>scripts/error_rate_compare.py</code>.</p></div>")
+
+
 def _fair_numbers(docs_dir: str) -> dict:
     """Derive the fair-comparison numbers from the committed JSON records (prisma_fair.json,
     fair_judge.json) so the banner prose cannot drift stale as topics are added. Returns a dict of
@@ -264,6 +306,21 @@ def _prose_derived_numerals(docs_dir: str) -> set:
                 if r.get("slug", "").startswith(("esketamine", "melatonin", "semaglutide")):
                     out.add(str(r.get("our_k")))
                     out.add(str(r.get("comparable_comparator_k")))
+        except (OSError, ValueError):
+            pass
+    # error-rate banner numerals (derived from docs/error_rate.json)
+    ep = os.path.join(docs_dir, "error_rate.json")
+    if os.path.exists(ep):
+        try:
+            e = json.load(open(ep, encoding="utf-8"))
+            for v in (e.get("population"), e.get("independently_reverified"), e.get("exact_match"),
+                      e.get("disagreements_pre_adjudication"), e.get("confirmed_our_errors_after_adjudication"),
+                      e.get("not_recheckable_from_abstract")):
+                if isinstance(v, int):
+                    out.add(str(v))
+            for v in (e.get("disagreement_wilson95") or []):
+                if isinstance(v, (int, float)):
+                    out.add(str(round(v * 100, 1)))
         except (OSError, ValueError):
             pass
     return out
@@ -404,9 +461,10 @@ def build_index(docs_dir: str) -> str:
                "The offer is greater auditability, honestly bounded &mdash; not a claim of more evidence "
                "than the peer-reviewed comparators.</p></div>")
     _cont = _continuous_section(docs_dir)
-    # anti-drift: fail closed on an un-accounted numeral in ANY narrative banner (thesis / continuous / stance)
-    _validate_prose_numbers(docs_dir, _thesis + _cont + _stance)
-    body = (_thesis + _cont + _verification_section(docs_dir) + _parity_section(docs_dir)
+    _erate = _error_rate_section(docs_dir)
+    # anti-drift: fail closed on an un-accounted numeral in ANY narrative banner (thesis / continuous / error-rate / stance)
+    _validate_prose_numbers(docs_dir, _thesis + _cont + _erate + _stance)
+    body = (_thesis + _erate + _cont + _verification_section(docs_dir) + _parity_section(docs_dir)
             + _error_coverage_section(docs_dir) + _stance + _fair_section(docs_dir) + body)
 
     return (

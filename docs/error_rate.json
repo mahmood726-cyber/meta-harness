@@ -1,0 +1,40 @@
+{
+ "_doc": "Blind accuracy census (cycle 76): every pooled number independently re-extracted from committed source by an offline checker BLIND to the stored value; deterministic compare; disagreements hand-adjudicated against source. See scripts/error_rate_compare.py + error_rate_pass2.py.",
+ "population": 99,
+ "independently_reverified": 95,
+ "exact_match": 92,
+ "disagreements_pre_adjudication": 3,
+ "disagreement_rate": 0.0316,
+ "disagreement_wilson95": [
+  0.0108,
+  0.0888
+ ],
+ "confirmed_our_errors_after_adjudication": 1,
+ "confirmed_our_errors_note": "1 wrong number (semaglutide GI-AE wrong endpoint) surfaced AND fixed this cycle; the 3 remaining disagreements are checker-side (label wording / estimand choice).",
+ "not_recheckable_from_abstract": 4,
+ "not_recheckable_note": "sourced from ClinicalTrials.gov results / full text, so not re-extractable from the abstract the checker was given (not evidence of error).",
+ "adjudication": [
+  {
+   "row": "iv-iron-hfref-hosp::Heart-failure hospitalization::40159390",
+   "verdict": "checker_side",
+   "note": "Numbers identical (0.80 [0.60-1.06]); we label it IRR, the checker wrote \"rate ratio\" (RR). A rate ratio on TOTAL/recurrent HF hospitalizations IS an incidence-rate ratio; our IRR label is correct."
+  },
+  {
+   "row": "noac-vs-warfarin-af-stroke::Stroke or systemic embolism::21830957",
+   "verdict": "checker_side",
+   "note": "ROCKET-AF: checker took the on-treatment/per-protocol HR 0.79; its own note flags the ITT HR 0.88, which is what we store \u2014 consistent with the other all-ITT NOAC trials. Our ITT choice is the standard MA choice."
+  },
+  {
+   "row": "omega3-cardiovascular-events::Major vascular events / MACE::30146932",
+   "verdict": "checker_side",
+   "note": "ASCEND: numbers identical (0.97 [0.87-1.08]); IRR vs \"rate ratio\" wording only. Our IRR label is correct."
+  }
+ ],
+ "fixed_this_cycle": [
+  {
+   "row": "semaglutide-obesity-weight::Gastrointestinal adverse events::42575111",
+   "verdict": "OUR_ERROR_FIXED",
+   "note": "Wrong endpoint: overall-AE counts (141/161 vs 61/81) were pooled under a gastrointestinal-AE outcome; the abstract has no GI-specific count. FIXED cycle 76 via an absent-override (declared absent). This is the one confirmed defect the census surfaced; it had passed every gate."
+  }
+ ]
+}

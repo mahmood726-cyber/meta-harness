@@ -1362,22 +1362,14 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
-      "trials": [
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [],
+      "declared_absent_trials": [
         {
           "label": "42575111",
           "id": "PMID 42575111",
-          "ai": 141,
-          "n1i": 161,
-          "ci": 61,
-          "n2i": 81,
-          "source": "abstract arm-level counts (percentage-corroborated): Adverse events were reported in 141 (87.6%) of 161 participants in the semaglutide 2.4 mg group and 61 (75.3%) of 81 participants in the placebo group, with gastrointestinal disorders being the most c",
-          "provenance": "abstract",
-          "verified": "verified",
-          "verify_basis": "arm counts present in committed source"
-        }
-      ],
-      "declared_absent_trials": [
+          "reason": "declared absent (override): the STEP-12 (China/Taiwan) abstract reports OVERALL adverse events ('Adverse events were reported in 141 [87.6%] of 161 ... and 61 [75.3%] of 81 ...'), with gastrointestinal disorders only named as the most common CATEGORY. It gives no gastrointestinal-specific event count, so the 141/161 vs 61/81 extracted for this harm outcome is a wrong-endpoint (overall AEs, not GI AEs). Refuse rather than pool the wrong endpoint. Surfaced by the cycle-76 blind accuracy census (a wrong number that passed every gate)."
+        },
         {
           "label": "42070571",
           "id": "PMID 42070571",
@@ -1430,15 +1422,8 @@
         }
       ],
       "result": {
-        "k": 1,
-        "estimate": 1.1629,
-        "scale": "RR",
-        "ci_low": 1.0134,
-        "ci_high": 1.3345,
-        "pi_note": "prediction interval undefined for k=1",
-        "leave_one_out": {
-          "note": "not assessable at k=1 (leave-one-out needs k>=3)"
-        }
+        "present": false,
+        "reason": "no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract"
       }
     }
   ],
@@ -1471,9 +1456,9 @@
   },
   "estimand_exclusions": [],
   "integrity": {
-    "checked_utc": "2026-09-12T12:53:35Z",
+    "checked_utc": "2026-09-12T14:25:26Z",
     "source": "PubMed efetch (PublicationType + CommentsCorrections)",
-    "n_pooled": 3,
+    "n_pooled": 2,
     "retracted": [],
     "concern": [],
     "retrospectively_registered": [],
@@ -1489,12 +1474,6 @@
         "registered": "2018-07-17",
         "start": "2018-08-01",
         "prospective": true
-      },
-      "42575111": {
-        "nct": "NCT06041217",
-        "registered": "2023-09-11",
-        "start": "2023-09-15",
-        "prospective": true
       }
     },
     "per_pmid": {
@@ -1504,11 +1483,6 @@
         "evidence": "no retraction/concern notice in PubMed"
       },
       "33625476": {
-        "retracted": false,
-        "concern": false,
-        "evidence": "no retraction/concern notice in PubMed"
-      },
-      "42575111": {
         "retracted": false,
         "concern": false,
         "evidence": "no retraction/concern notice in PubMed"
@@ -1529,19 +1503,81 @@
       "span": "body weight. (Funded by Novo Nordisk; STEP 1 ClinicalTrials.gov number, NCT03548935).",
       "source": "abstract",
       "scanned": "abstract only"
-    },
-    {
-      "id": "PMID 42575111",
-      "type": "declared (source unclassified)",
-      "span": "rformed by the study sponsor using the Randomisation Trial Supplies Management System. Coprimary endpoints were percentage change in bodyweight and the proportion of participants achieving at least 5% bodyweight reduction. Safety was analysed descriptivel",
-      "source": "abstract",
-      "scanned": "abstract only"
     }
   ],
+  "rob_sensitivity": {
+    "outcome": "Percent change in body weight",
+    "estimand": "MD",
+    "levels": {
+      "33625476": null,
+      "33567185": null
+    },
+    "n_trials": 2,
+    "n_rob_rated": 0,
+    "rob_covered": false,
+    "any_high": false,
+    "full": {
+      "k": 2,
+      "estimate": -11.8449,
+      "scale": "MD",
+      "ci_low": -25.1318,
+      "ci_high": 1.442,
+      "tau2": 1.86306
+    },
+    "drop_high": {
+      "k": 2,
+      "estimate": -11.8449,
+      "scale": "MD",
+      "ci_low": -25.1318,
+      "ci_high": 1.442,
+      "tau2": 1.86306
+    },
+    "low_only": null,
+    "drop_high_informative": false,
+    "low_only_informative": false
+  },
+  "grade": {
+    "start": "high",
+    "domains": {
+      "risk_of_bias": {
+        "downgrade": 0,
+        "coverage_incomplete": true,
+        "n_trials": 2,
+        "n_rated": 0,
+        "n_high": 0,
+        "n_some": 0,
+        "basis": "no assessed trial at high risk; fewer than half at 'some concerns'; RoB assessed for only 0 of 2 pooled trials (registry-derived), so the rating is capped"
+      },
+      "inconsistency": {
+        "downgrade": 0,
+        "not_estimable": false,
+        "basis": "tau^2=1.86306; prediction interval not markedly wider than the CI"
+      },
+      "imprecision": {
+        "downgrade": 1,
+        "crosses_null": true,
+        "basis": "95% CI [-25.1318, 1.442]; crosses the null (0) -> the pooled estimate is compatible with no effect"
+      },
+      "publication_bias": {
+        "downgrade": 0,
+        "not_assessable": true,
+        "basis": "no registry ghost census available for this topic"
+      },
+      "indirectness": {
+        "downgrade": 0,
+        "not_auto_rated": true,
+        "basis": "directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)"
+      }
+    },
+    "downgrades": 1,
+    "certainty": "moderate",
+    "certainty_capped_by_rob_coverage": false,
+    "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement."
+  },
   "reproduction": {
     "failures": 0,
     "protocol_sha": "fe53c76aad18c0fd8369e3c1fe171406c0f85e7f",
-    "review_sha256": "a4a25c5321fa6e603d95187090993bae77920e9301568249ebdeee5133eedd3d",
+    "review_sha256": "72bdf7516cf5ddde8bcf68ce8c8089e14d9b982d66b79b3587501ebff7c0aad4",
     "from_cache": true,
     "parity": {
       "slug": "semaglutide-obesity-weight",
