@@ -798,3 +798,25 @@ change, at different timepoints (26 wk QUANTIFY [a combination trial] vs 12 wk) 
 verified against posted results. The continuous tier stands at 3 live pages; growth is bar-limited, not
 effort-limited. (Kept for a future attempt if the bar is ever explicitly relaxed: pregabalin OA comparator
 candidate PMID 41969185 / PMC13243957, per the dossier — unverified.)
+
+## Cycle 75 — early-page audit: oldest 10 (and corpus-wide deterministic scan) re-verified, NO wrong number found
+The newest work has had the most scrutiny; the oldest topics (built ~60 cycles ago, before several current
+guards existed) were re-audited against source under the full current stack.
+
+DETERMINISTIC layer (run corpus-wide, all 29):
+- Undisclosed cluster/crossover (unit_of_analysis.detect on every pooled trial's committed abstract): NONE.
+- Unlabeled scale-mix (trials with >1 distinct scale pooled without a 'mixed (X/Y)' label): NONE — all four
+  mixed pools (finerenone HR/RR, probiotics OR/RR, colchicine-secondary HR/RR, omega3 HR/IRR/RR) are labelled.
+- Factorial trials (3): VITAL (30415637) and ORIGIN (22686415) in omega3, and BaSICS (34375394) in
+  balanced-crystalloids. All three are pooled at the MARGINAL / full-trial comparison (BaSICS ~5,200/arm
+  collapsing over its infusion-rate factor; VITAL/ORIGIN as their marginal n-3 HR), NOT a single 2x2 cell.
+- Per-topic error-library coverage: min 32/33, max 33/33 across all 29 — no topic hiding a low score (the
+  32-vs-33 is only ME-06 pivotal-present, active where pivotals are declared).
+- Independent number-in-source check (oldest 10, 86 pooled numbers): 6 apparent misses ALL resolved to
+  correct source-grounded derivations, not defects: colchicine 21873705 RR 0.44 = 24%/55% rates = 1-RRR(0.56),
+  CI 0.26-0.73 = 1-[RRR CI]; ASCEND 30146932 IRR 0.97 = 689/712 stated events; the rest count-derived. The
+  verify layer validated the underlying counts; the naive string-match could not see the reformatted ratio.
+
+Fresh-clone reproduction (2nd pass, HEAD): REPRODUCIBLE (all 29 byte-identical). Live fetch of ALL 29 pages:
+29/29 serve HTTP 200 with the full component set. Adversarial per-trial source re-read (3 offline Codex
+lanes over the oldest 10) finalizing; the deterministic layer already finds no wrong number live.
