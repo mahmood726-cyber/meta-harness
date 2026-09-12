@@ -34,7 +34,33 @@ Regression tests added.
 
 ---
 
+### C-GRADE-1 · Mechanical imprecision — CONFIRMED, fixed (commit 733647a)
+Imprecision downgraded whenever the CI crossed the null, so a precise interval around no-effect
+(RR 0.91–1.08) was wrongly penalised. Fixed: on a ratio scale, downgrade only when the CI crosses the
+null AND reaches an appreciable effect (≤0.75 or ≥1.25); a CI within those bounds is precision about
+the absence of an appreciable effect. Verified live (dpp4 imprecision basis now reasons from the
+thresholds). Regression test added; the prior test that defended the mechanical rule was rewritten.
+
+### C-ROB-1 · Zero-assessed RoB gave a clean bill — CONFIRMED, fixed (commit 733647a)
+With no trial RoB-assessed, the domain returned downgrade=0 basis "no assessed trial at high risk".
+Fixed: coverage gates the judgement — no machine-derived RoB signal for ANY pooled trial → downgrade
+for unknown study limitations, with honest basis ("risk of bias NOT ASSESSED for any of the N pooled
+trials"). Verified live (dpp4 → low, RoB basis correct). 15 certainty ratings changed corpus-wide
+(down where RoB unassessed, up where a tight-null CI was wrongly downgraded); no pooled number moved.
+
+### doac-vte-recurrence · shipped as the 32nd live topic (commit 4fc26ad)
+Built by a Codex lane in an isolated worktree, rebuilt on main with post-audit-fix code, independently
+re-verified (my PubMed extraction of all six trials + a hand-computed IV pool 0.909 + the OA comparator
+van Es 2014 0.90). k=6, mixed HR/RR 0.91 (0.75–1.11); EINSTEIN placebo-extension excluded; DANNOAC
+declared absent; estimand heterogeneity disclosed. Verified live. Also landed a corpus-safe
+multi-registration NCT-selection fix (`fetch._select_nct`) with a regression test.
+
 ## CONFIRMED-OPEN (verified against source; fix is larger / in progress)
+
+### C-DEDUP-1 · Companion/design/secondary papers counted as trials — CONFIRMED (verified this cycle)
+colchicine-recurrent-pericarditis includes 17885522 ("CORP and CORP-2 trials — two randomized…", a
+description paper), 22430920 (a secondary report of CORP), and 17667033 (ICAP) as separate eligible
+RCTs. Fix (queued): link companion/design/secondary reports to their parent trial; sweep the corpus.
 
 ### C-SEARCH-1 · Search is enumeration, not discovery — CONFIRMED (measurement below)
 **10 of 37 topics have PMID-seeded PubMed queries** (the PubMed channel is a pure PMID enumeration,
@@ -84,11 +110,8 @@ gives HKSJ 0.255–0.879 (excludes 1), versus our k=2 0.06–3.62.
 
 ## REMAINING CLASSES (verified pattern, queued)
 
-- **C-ROB-1** RoB logic: "not downgraded because no *assessed* trial was high risk" with 0–1 of k
-  assessed — unassessed is not low-risk; coverage must gate the judgement. Rename to
-  "machine-derived risk-of-bias signals".
-- **C-GRADE-1** Imprecision: mechanical "CI crosses 1 → downgrade" ignores a clinically meaningful
-  threshold / OIS; a 0.91–1.08 interval around 1.0 is precision about no effect, not imprecision.
+- **C-ROB-2** (rename, still to do) Call the machine-derived ratings "machine-derived risk-of-bias
+  signals" on the page, not RoB2 (formal RoB2 needs judgements registry fields cannot supply).
 - **C-GRADE-2** Publication-bias logic (omega3): the search section calls the 144 registry records an
   inflated upper bound "not a publication-bias claim", then GRADE downgrades on ~that number. Our own
   caveat must bind our own rating.
