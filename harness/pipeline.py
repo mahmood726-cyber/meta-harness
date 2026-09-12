@@ -331,6 +331,13 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # ORIGIN (PMID 22686415): the abstract's "primary outcome" is death from cardiovascular causes
         # (HR 0.98); our outcome is major vascular events, which the SAME abstract reports as HR 1.01. Scoped
         # by the flag so ordinary (unflagged) verified_effects stay a pure fallback — no other page moves.
+        va_over = (verified_arms or {}).get(d["id"])
+        if (va_over and va_over.get("override") and va_over.get("outcome") == spec.get("name")
+                and all(va_over.get(k) is not None for k in ("ai", "n1i", "ci", "n2i"))):
+            trials.append({"label": label, "id": idstr, "ai": va_over["ai"], "n1i": va_over["n1i"],
+                           "ci": va_over["ci"], "n2i": va_over["n2i"], "provenance": "aact_verified",
+                           "source": va_over.get("source", "hand-verified arm-count correction (override)")})
+            continue
         ve_over = (verified_effects or {}).get(d["id"])
         if (ve_over and ve_over.get("override") and ve_over.get("outcome") == spec.get("name")
                 and ve_over.get("effect") is not None):

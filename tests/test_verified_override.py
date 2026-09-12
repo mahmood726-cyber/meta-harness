@@ -42,3 +42,28 @@ def test_override_corrects_to_major_vascular_events():
 def test_unflagged_verified_effect_does_not_override():
     ve = {"22686415": {"outcome": _SPEC["name"], "effect": 1.01, "scale": "HR"}}  # no override flag
     assert _origin_effect(ve) == 0.98, "an UNFLAGGED verified_effect must not override the abstract"
+
+
+def test_verified_arms_override_beats_abstract():
+    """The override flag also works on verified_arms (count corrections), symmetric with verified_effects.
+    probiotics 15740542: the abstract yields the ANY-diarrhoea RR 0.3; the override pins the AAD counts
+    4/119 vs 22/127 (RR 0.19). Without the flag, an entry must NOT override."""
+    from harness import pipeline
+    import json as _j, os as _o
+    recs = {r["id"]: r for r in _j.load(open(_o.path.join(ROOT, "cache", "probiotics-aad-prevention",
+            "records.json"), encoding="utf-8")).get("records", [])}
+    spec = {"name": "Antibiotic-associated diarrhoea", "keywords": ["antibiotic-associated diarrh",
+            "antibiotic associated diarrh", "AAD", "diarrh"], "estimand": "RR"}
+    inc = [{"id": "15740542", "id_type": "pmid", "label": "Can 2006"}]
+    va = {"15740542": {"outcome": spec["name"], "override": True, "ai": 4, "n1i": 119, "ci": 22, "n2i": 127,
+                       "provenance": "aact_verified", "source": "Can 2006: AAD 4/119 vs 22/127 (RR 0.2)"}}
+    o = pipeline._build_outcome(spec, "efficacy", inc, recs, ["probiotic", "boulardii", "saccharomyces"],
+                                ["placebo", "control"], verified_arms=va)
+    t = [x for x in o["trials"] if x["id"] == "PMID 15740542"][0]
+    assert t.get("ai") == 4 and t.get("n1i") == 119 and t.get("ci") == 22, f"arms override failed: {t}"
+    # unflagged verified_arms must NOT override (stays a fallback)
+    va2 = {"15740542": {k: v for k, v in va["15740542"].items() if k != "override"}}
+    o2 = pipeline._build_outcome(spec, "efficacy", inc, recs, ["probiotic", "boulardii", "saccharomyces"],
+                                 ["placebo", "control"], verified_arms=va2)
+    t2 = [x for x in o2["trials"] if x["id"] == "PMID 15740542"][0]
+    assert t2.get("ai") != 4, "an UNFLAGGED verified_arms entry must not override the abstract"
