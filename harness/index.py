@@ -138,6 +138,92 @@ def _error_coverage_section(docs_dir: str) -> str:
     return body + "</div>"
 
 
+def _fair_numbers(docs_dir: str) -> dict:
+    """Derive the fair-comparison numbers from the committed JSON records (prisma_fair.json,
+    fair_judge.json) so the banner prose cannot drift stale as topics are added. Returns a dict of
+    exactly the integers the banner interpolates; if a record is missing, returns {} and the banner
+    falls back to a numberless statement."""
+    n = {}
+    pf_path = os.path.join(docs_dir, "prisma_fair.json")
+    if os.path.exists(pf_path):
+        try:
+            pf = json.load(open(pf_path, encoding="utf-8"))
+        except (OSError, ValueError):
+            pf = {}
+        rows = {k: v for k, v in pf.items() if not k.startswith("_")}
+        inc = {k: v for k, v in rows.items() if v.get("comparator_fulltext_source") != "NONE"}
+        items = list(next(iter(inc.values()))["ours"].keys()) if inc else []
+        n["prisma_total"] = len(rows)
+        n["prisma_scorable"] = len(inc)
+        n["prisma_cells"] = len(inc) * len(items)
+        n["prisma_comp_present"] = sum(1 for s in inc for i in items if inc[s]["comparator"][i].get("present"))
+        n["prisma_ours_lacks"] = sum(1 for s in inc for i in items
+                                     if inc[s]["comparator"][i].get("present") and not inc[s]["ours"][i])
+        n["prisma_we_present"] = sum(1 for s in inc for i in items
+                                     if inc[s]["ours"][i] and not inc[s]["comparator"][i].get("present"))
+    fj_path = os.path.join(docs_dir, "fair_judge.json")
+    if os.path.exists(fj_path):
+        try:
+            fj = json.load(open(fj_path, encoding="utf-8"))
+        except (OSError, ValueError):
+            fj = {}
+        slugs = [k for k in fj if not k.startswith("_")]
+        _res = lambda s: (fj[s].get("resolved") or {})
+        _pd = lambda s: (_res(s).get("per_dimension") or {})
+        n["judge_total"] = len(slugs)
+        n["judge_more_auditable_ours"] = sum(1 for s in slugs if _res(s).get("more_auditable") == "ours")
+        for dmn in ("search_reproducibility", "per_number_source_traceability", "completeness_of_evidence",
+                    "risk_of_bias_reporting", "declared_absence_exclusion_transparency", "overall_auditability"):
+            n[f"judge_{dmn}_ours"] = sum(1 for s in slugs if _pd(s).get(dmn) == "ours")
+            n[f"judge_{dmn}_comp"] = sum(1 for s in slugs if _pd(s).get(dmn) == "comparator")
+    return n
+
+
+def _fair_section(docs_dir: str) -> str:
+    """The fair-comparison banner, with every count DERIVED from prisma_fair.json / fair_judge.json at
+    render time (never typed into prose — the '95 of 95' drift class). The four auditability dimensions
+    are stated as a single margin only when they genuinely agree (all-ours), else spelled out."""
+    n = _fair_numbers(docs_dir)
+    if not n.get("prisma_cells") or not n.get("judge_total"):
+        return ("<div class='banner'><h2>Fair comparison (measured against comparator FULL TEXT)</h2>"
+                "<p>The fair full-text comparison record is being regenerated.</p></div>")
+    aud_dims = ("search_reproducibility", "per_number_source_traceability",
+                "declared_absence_exclusion_transparency", "overall_auditability")
+    aud_all_ours = all(n[f"judge_{d}_ours"] == n["judge_total"] for d in aud_dims)
+    rob_o, rob_c = n["judge_risk_of_bias_reporting_ours"], n["judge_risk_of_bias_reporting_comp"]
+    comp_complete = n["judge_completeness_of_evidence_comp"]
+    aud_clause = (f"winning <strong>search reproducibility, per-number traceability, declared-absence and "
+                  f"overall auditability {n['judge_total']}&ndash;0 each</strong>"
+                  if aud_all_ours else
+                  "winning search reproducibility, per-number traceability, declared-absence and overall "
+                  "auditability on most topics")
+    return (
+        "<div class='banner'><h2>Fair comparison (measured against comparator FULL TEXT)</h2>"
+        "<p>An earlier countable PRISMA comparison read the comparators' <em>abstracts</em> against our "
+        "full pages &mdash; a confound in our favour, which we flagged and then fixed by reading each "
+        f"comparator's OA <strong>full text</strong> ({n['prisma_scorable']} of {n['prisma_total']} topics "
+        "scorable; the remainder have no obtainable comparator full text). Scored fairly, full-text vs "
+        f"full-page across the {n['prisma_scorable']} scorable topics ({n['prisma_cells']} cells, including "
+        f"the continuous-outcome pages): the comparators satisfy <strong>{n['prisma_comp_present']} of "
+        f"{n['prisma_cells']}</strong> checkable PRISMA-item cells, yet there is <strong>no reporting item a "
+        f"comparator's full text presents that our page lacks ({n['prisma_ours_lacks']} of "
+        f"{n['prisma_cells']})</strong>, while we present <strong>{n['prisma_we_present']}</strong> that even "
+        "their full text does not (chiefly per-record exclusion reasons and a machine-checkable registration "
+        "SHA). The margin narrowed under fair measurement, as it should; the direction held.</p>"
+        f"<p><strong>Fair blind re-judge (full-text vs full-page, {n['judge_total']} topics, order-blinded).</strong> "
+        "Restating the record on the fair basis, whatever it shows: our pages are judged more "
+        f"<strong>auditable on {n['judge_more_auditable_ours']} of {n['judge_total']}</strong>, {aud_clause}; "
+        f"the comparator is more <strong>complete on {comp_complete} of {n['judge_total']}</strong> (larger "
+        f"<em>k</em>); risk-of-bias reporting splits <strong>{rob_o}&ndash;{rob_c}</strong> to us. Adding the "
+        "three continuous-outcome pages did not change the direction &mdash; each is more auditable and less "
+        "complete than its comparator, like the binary topics. So the earlier abstract-based &lsquo;15 clean "
+        "wins&rsquo; is superseded by a stable domain split: <strong>we win transparency and auditability; we "
+        "lose completeness/<em>k</em></strong> &mdash; the same conclusion the parity table reaches, confirmed "
+        "by a blind reader on full text. The judge also flagged real defects in our pages (a risk-of-bias "
+        "table covering only a subset of pooled trials; a retraction line whose count did not equal k); those "
+        "are recorded, not hidden.</p></div>")
+
+
 def build_index(docs_dir: str) -> str:
     rows = []
     for mpath in sorted(glob.glob(os.path.join(docs_dir, "reviews", "*", "manifest.json"))):
@@ -199,32 +285,6 @@ def build_index(docs_dir: str) -> str:
                "strictness decisions, not search failures</strong> &mdash; the comparators' larger pools "
                "include open-label and off-outcome trials our criteria exclude. Each affected page names "
                "which recovered trials were declined and why.</p></div>")
-    _fair = ("<div class='banner'><h2>Fair comparison (measured against comparator FULL TEXT)</h2>"
-             "<p>An earlier countable PRISMA comparison read the comparators' <em>abstracts</em> against "
-             "our full pages &mdash; a confound in our favour, which we flagged and then fixed by "
-             "reading each comparator's OA <strong>full text</strong> (28 of 29 topics scorable; "
-             "corticosteroids-cap excluded &mdash; no obtainable comparator full text). "
-             "Scored fairly, full-text vs full-page across the 28 scorable topics (168 cells, now "
-             "including the three continuous-outcome pages): the comparators satisfy <strong>94 of 168</strong> "
-             "checkable PRISMA-item cells (far more than their abstracts did &mdash; and more than an earlier "
-             "partial full-text pass found, which we corrected against ourselves), yet there is <strong>no "
-             "reporting item a comparator's full text presents that our page lacks (0 of 168)</strong>, while "
-             "we present <strong>74</strong> that even their full text does not "
-             "(chiefly per-record exclusion reasons and a machine-checkable registration SHA). The margin "
-             "narrowed under fair measurement, as it should; the direction held.</p>"
-             "<p><strong>Fair blind re-judge (full-text vs full-page, 11 topics = 8 binary + 3 continuous, "
-             "order-blinded).</strong> Restating the record on the fair basis, whatever it shows: our pages "
-             "are judged more <strong>auditable on 11 of 11</strong>, winning <strong>search "
-             "reproducibility, per-number traceability, declared-absence and overall auditability 11&ndash;0 "
-             "each</strong>; the comparator is more <strong>complete on 11 of 11</strong> (larger <em>k</em>); "
-             "risk-of-bias reporting splits <strong>6&ndash;4</strong> to us (one tie). Adding the three "
-             "continuous-outcome pages did not change the direction &mdash; each is more auditable and less "
-             "complete than its comparator, exactly like the binary topics. So the earlier abstract-based "
-             "&lsquo;15 clean wins&rsquo; is superseded by a stable domain split: <strong>we win transparency "
-             "and auditability; we lose completeness/<em>k</em></strong> &mdash; the same conclusion the parity "
-             "table reaches, confirmed by a blind reader on full text. The judge also flagged real defects in "
-             "our pages (a risk-of-bias table covering only a subset of pooled trials without a stated reason; "
-             "a retraction line whose trial count did not equal k); those are recorded, not hidden.</p></div>")
     _thesis = ("<div class='banner'><h2>The result, in one paragraph</h2>"
                "<p>Where this harness pools fewer trials than a published comparator, the difference is the "
                "comparator's <strong>design, scope and definition choices &mdash; not our search or extraction "
@@ -260,7 +320,7 @@ def build_index(docs_dir: str) -> str:
         "having made that trade. Together with the paragraph above this makes one claim: <strong>where we pool "
         "less, it is because of a stated bar &mdash; and the bar is shown, not asserted.</strong></p></div>")
     body = (_thesis + _continuous + _verification_section(docs_dir) + _parity_section(docs_dir)
-            + _error_coverage_section(docs_dir) + _stance + _fair + body)
+            + _error_coverage_section(docs_dir) + _stance + _fair_section(docs_dir) + body)
 
     return (
         "<!doctype html><html lang=en><head><meta charset=utf-8>"
