@@ -64,10 +64,12 @@ none by lowering the bar.**
   Week-44 trials into the pre-registered Week-68 outcome. No comparator reports having made that trade;
   ours is on the page and in the parity table.
 - **Blind-judged — restated on the FAIR basis.** The original abstract-based comparison gave 15 clean
-  wins / 0 / 0. The **fair full-text re-judge (8-topic sample, order-randomised)** supersedes that with
-  a domain split: our pages are more **auditable on 8/8** (search reproducibility, per-number
-  traceability, declared-absence, overall), the comparator more **complete on 8/8** (larger k), RoB
-  reporting 5/2/1. **We win transparency/auditability; we lose completeness/k** — the same conclusion
+  wins / 0 / 0. The **fair full-text re-judge (11 topics = 8 binary + 3 continuous, order-blinded)**
+  supersedes that with a stable domain split: our pages are more **auditable on 11/11** — winning search
+  reproducibility, per-number traceability, declared-absence and overall auditability **11–0 each** — the
+  comparator more **complete on 11/11** (larger k), RoB reporting **6–4** to us (one tie). Adding the three
+  continuous pages did not change the direction (each more auditable, less complete than its comparator).
+  **We win transparency/auditability; we lose completeness/k** — the same conclusion
   the parity table reaches, now confirmed blind on full text. The judge also flagged genuine defects in
   our pages, recorded in `docs/fair_judge.json` — **all four now fixed:** (1) the retraction line whose
   count did not equal k (stale on 8 pages — re-run corpus-wide, denominator named precisely, test-
