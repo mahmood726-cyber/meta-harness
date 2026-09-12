@@ -16,8 +16,14 @@ DIRS=$(git diff --cached --name-only --diff-filter=ACM \
 # page stale even when no page itself is staged. Computed up front so the dependency rule below
 # runs whether or not a review page is in this commit (a machinery-only commit is the case that
 # matters most, and an early "no pages" exit used to skip it -- a fail-open hole).
+# docs/<name>.json (top level only) is included because several are read at BUILD time and rendered
+# onto every page -- definition_audit.json, rob_spancheck.json, transparency.json, refusals.json,
+# parity.json, dual_extract.json. Editing one alone used to report "nothing to gate" and strand every
+# page stale (the same fail-open class as above); a docs/*.json edit now forces reproduce-all + the
+# index-currency check. Scoped to docs/[^/]+ so per-page docs/reviews/*/manifest.json (already covered
+# by the per-page limb) does not needlessly trigger the corpus replay.
 MACHINERY=$(git diff --cached --name-only --diff-filter=ACM \
-  | grep -E '^(harness/.*\.py|topics/.*\.json|protocols/.*\.md|cache/.*\.json)$' || true)
+  | grep -E '^(harness/.*\.py|topics/.*\.json|protocols/.*\.md|cache/.*\.json|docs/[^/]+\.json)$' || true)
 
 if [ -z "$DIRS" ] && [ -z "$MACHINERY" ]; then
   echo "GATE: executed - nothing to gate (no review pages or pipeline inputs staged)."
