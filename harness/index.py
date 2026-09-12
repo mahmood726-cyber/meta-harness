@@ -216,8 +216,13 @@ def _external_agreement_section(docs_dir: str) -> str:
             f"<strong>smaller-evidence-base</strong> case (we pool k=1 where the comparator pools many &mdash; "
             f"metformin-PCOS, elderly-statins, CAP-steroids) or a <strong>scale/scope mismatch</strong> "
             f"(esketamine MADRS-change vs response-rate), not an extraction error. This is pooled-level "
-            f"agreement; a per-trial head-to-head against a review that tabulates its own per-trial data is the "
-            f"deeper check.</p></div>")
+            f"agreement. <strong>The per-trial head-to-head was attempted against the gold standard</strong> "
+            f"(the Cochrane review CD013505 of metformin for PCOS ovulation): its pooled OR 2.64 (k=13) sits "
+            f"far from our single-trial OR 8.25 (k=1) &mdash; a stark, honest illustration of the small-k "
+            f"weakness the expansion tier targets &mdash; but a true number-by-number check is <strong>blocked "
+            f"even for Cochrane</strong>: its per-woman arm counts live in forest-plot images, not the "
+            f"open-access text (only per-cycle data is tabulated). Per-trial ground truth needs vision/OCR or "
+            f"IPD (<code>docs/cochrane_headtohead.json</code>).</p></div>")
 
 
 def _crossfamily_section(docs_dir: str) -> str:
@@ -464,6 +469,7 @@ _STATIC_PROSE_NUMERALS = {
     "95": "the 95% confidence-interval label (fixed)",
     "3.1": "Gemini 3.1 Pro — the cross-family checker's model version (a name, not a claim)",
     "12": "the ~12% log-scale agreement threshold for external validation (fixed methodological choice)",
+    "013505": "Cochrane review identifier CD013505 (a catalogue code, not a claim)",
 }
 
 
@@ -541,6 +547,20 @@ def _prose_derived_numerals(docs_dir: str) -> set:
                     if isinstance(v, (int, float)):
                         out.add(f"{round(v, 2):g}")
                         out.add(str(round(v, 2)))
+        except (OSError, ValueError):
+            pass
+    # cochrane head-to-head numerals (pooled k, effects)
+    ch = os.path.join(docs_dir, "cochrane_headtohead.json")
+    if os.path.exists(ch):
+        try:
+            c = json.load(open(ch, encoding="utf-8"))
+            cp = c.get("cochrane_pooled") or {}
+            for v in (cp.get("k"), cp.get("effect"), (c.get("ours") or {}).get("estimate"),
+                      (c.get("ours") or {}).get("k")):
+                if isinstance(v, int):
+                    out.add(str(v))
+                elif isinstance(v, float):
+                    out.add(f"{round(v, 2):g}")
         except (OSError, ValueError):
             pass
     # provenance-mix numerals (derived from docs/provenance.json)
