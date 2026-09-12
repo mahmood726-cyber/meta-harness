@@ -13,12 +13,14 @@ number on every page traces to a committed source; every decline is named on its
   traceability, declared-absence, overall), the comparator more **complete on 8/8** (larger k), RoB
   reporting 5/2/1. **We win transparency/auditability; we lose completeness/k** — the same conclusion
   the parity table reaches, now confirmed blind on full text. The judge also flagged genuine defects in
-  our pages, recorded in `docs/fair_judge.json`. **Now fixed:** the retraction line whose count did not
-  equal k (stale on 8 pages — re-run corpus-wide, denominator named precisely, test-guarded) and the
-  effect-scale mislabel (a hazard/rate ratio printed as "(RR)" on denosumab, statins and omega3's mixed
-  pool — every effect now labelled with its own reported scale). **Still open:** the RoB2 table covers a
-  subset of pooled trials without a stated per-trial reason, and omega3 states the comparator's k three
-  ways (8 / 15 / 22) without reconciling which set each refers to.
+  our pages, recorded in `docs/fair_judge.json` — **all four now fixed:** (1) the retraction line whose
+  count did not equal k (stale on 8 pages — re-run corpus-wide, denominator named precisely, test-
+  guarded); (2) the effect-scale mislabel (a hazard/rate ratio printed as "(RR)" on denosumab, statins
+  and omega3's mixed pool — every effect now labelled with its own reported scale); (3) omega3's
+  comparator k stated three ways (8 auto-extracted / 15 assessed same-scope / 22 verified full-text
+  MACE pool — each number now defined together, arithmetic reconciled); (4) the RoB2 table covering a
+  subset of pooled trials — it now states coverage ("N of K primary-outcome pooled trials assessed") and
+  renders every unassessed trial as an explicit "not assessed — no registry match" row, never omitted.
 
 ## The result (thesis), stated once
 
@@ -92,7 +94,10 @@ mis-pools were caught during the run — every one by verification, not by a gat
   dominant limitation and it is real — many topics are single-drug or scope-limited by design.
 - **9 mixed-scale pools** (HR+RR / HR+IRR / OR+RR), disclosed via the mixed-scale label but not
   resolved to a common estimand.
-- **RoB2 D3 (attrition)** assessed on 29/46 pooled trials; the other domains 39–46/46.
+- **RoB2 coverage is partial and now stated on every page**: it is scoped to the primary-outcome
+  pooled trials and only those with an AACT registry match are machine-assessed; the rest render as
+  explicit "not assessed — no registry match" rows with a coverage count (e.g. probiotics 1/14,
+  omega3 6/8), never silently omitted. D3 (attrition) and human-judgement domains stay "not assessed".
 
 ## What remains NOT done (plainly)
 

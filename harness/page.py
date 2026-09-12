@@ -716,22 +716,61 @@ def _riskofbias(r, neutral):
     """RoB2-style risk of bias, per pooled trial, built from AACT structured design fields + the
     registry-vs-pooled outcome (Domain 5). Partial-but-honest: domains needing human judgement are
     marked 'not assessed', never guessed. No published-meta comparator in our set renders this."""
-    rb = r.get("rob2")
-    if not rb or not rb.get("trials"):
-        return _absent_block("risk-of-bias assessment not yet built for this topic (needs AACT + a pooled trial with an NCT)")
+    rb = r.get("rob2") or {}
+    assessed = rb.get("trials") or {}
+    # RoB2 here is assessed for the PRIMARY outcome's pooled trials (that is the scope the builder
+    # scans), so the coverage denominator is that set — and any primary-pooled trial with no registry
+    # match is shown as an explicit "not assessed" row rather than silently omitted (the defect the
+    # fair judge flagged). Trials pooled only in secondary outcomes are outside this scope and are
+    # counted separately, not hidden.
+    prim = next((o for o in (r.get("outcomes") or []) if o.get("primary")), None)
+    pooled = {}
+    for t in (prim or {}).get("trials", []) or []:
+        pid = str(t.get("id", "")).replace("PMID ", "").strip()
+        if pid:
+            pooled.setdefault(pid, t.get("label") or "")
+    secondary_only = set()
+    for o in r.get("outcomes", []) or []:
+        if o.get("primary"):
+            continue
+        for t in o.get("trials", []) or []:
+            pid = str(t.get("id", "")).replace("PMID ", "").strip()
+            if pid and pid not in pooled:
+                secondary_only.add(pid)
+    if not pooled and not assessed:
+        return _absent_block("no trials pooled in the primary outcome, so there is nothing to assess for risk of bias")
     dom_labels = [("D1_randomisation", "D1 randomisation"), ("D2_deviations", "D2 deviations/blinding"),
                   ("D3_missing_outcome_data", "D3 missing data"), ("D4_outcome_measurement", "D4 measurement"),
                   ("D5_selective_reporting", "D5 selective reporting")]
     head = "<tr><th>Trial</th><th>Overall</th>" + "".join(f"<th>{_e(l)}</th>" for _, l in dom_labels) + "</tr>"
     rows = []
-    for pid, a in sorted(rb["trials"].items()):  # stable order (canonical_json sorts keys; render must too)
+    for pid, a in sorted(assessed.items()):  # stable order (canonical_json sorts keys; render must too)
         cells = "".join(f"<td title='{_e(a['domains'][k]['basis'])}'>{_e(a['domains'][k]['level'])}</td>" for k, _ in dom_labels)
         rows.append(f"<tr><td>{_e(pid)}</td><td><strong>{_e(a.get('overall'))}</strong></td>{cells}</tr>")
-    return ("<p>Per-pooled-trial RoB2 risk of bias, computed from what is machine-available "
-            f"({_e(rb.get('source'))}). <strong>Domain 5 (selective reporting)</strong> is computed from the "
-            "trial's REGISTERED primary outcome vs the outcome we pooled — a machine-checkable signal most "
-            "published meta-analyses do not report. D1/D2/D4 use AACT structured allocation/masking fields. "
-            "D3 (missing outcome data) and the risk-of-bias judgements that need human reading are marked "
+    # Pooled trials with NO registry match: render as explicit not-assessed rows, with the reason, so
+    # coverage is visible. RoB2 D1/D2/D4 here are auto-derived from AACT registry fields keyed on NCT;
+    # a trial with no NCT/AACT match cannot be machine-assessed and is not guessed.
+    unassessed = sorted(pid for pid in pooled if pid not in assessed)
+    _na = "not assessed"
+    _basis = "no NCT/AACT registry match for this pooled trial — the auto-derived RoB2 domains are not machine-assessable here and are not guessed"
+    for pid in unassessed:
+        cells = "".join(f"<td class='absent-cell' title='{_e(_basis)}'>{_e(_na)}</td>" for _ in dom_labels)
+        rows.append(f"<tr><td>{_e(pid)}</td><td class='absent-cell'>{_e(_na)}</td>{cells}</tr>")
+    n_ass, n_pool = len(pooled) - len(unassessed), len(pooled)
+    cover = (f"<strong>Coverage: {n_ass} of {n_pool} primary-outcome pooled trials have a registry (AACT) "
+             f"match and are assessed below</strong>"
+             + (f"; the other {len(unassessed)} are pooled but have no registry match "
+                f"({_e(', '.join(unassessed))}) and are shown as <em>not assessed</em> with the reason — "
+                "never guessed." if unassessed else " (all primary-outcome pooled trials assessed).")
+             + (f" RoB2 is scoped to the primary outcome; {len(secondary_only)} trial(s) pooled only in "
+                f"secondary outcomes ({_e(', '.join(sorted(secondary_only)))}) are outside this assessment."
+                if secondary_only else "")) if n_pool else ""
+    return (f"<p>{cover}</p>"
+            "<p>Per-pooled-trial RoB2 risk of bias, computed from what is machine-available "
+            f"({_e(rb.get('source') or 'AACT registry fields')}). <strong>Domain 5 (selective reporting)</strong> "
+            "is computed from the trial's REGISTERED primary outcome vs the outcome we pooled — a machine-checkable "
+            "signal most published meta-analyses do not report. D1/D2/D4 use AACT structured allocation/masking "
+            "fields. D3 (missing outcome data) and the risk-of-bias judgements that need human reading are marked "
             "<em>not assessed — requires human judgement</em>: partial-but-honest, never guessed. Hover a cell "
             "for its basis.</p>"
             f"<table class='recs'>{head}{rows_join(rows)}</table>")
