@@ -139,3 +139,12 @@ ELIXA correctly excluded from the strict 3-point pool; CORP survival-derived rat
 turned into 2×2 counts; CORP-2 "0.49" correctly handled as a relative-risk *reduction* (flag this on
 the page). And: **adding the missing trials never overturned a conclusion** — GLP-1 stays ~0.85,
 DPP-4 neutral, probiotics ~0.63, omega3 ~0.94. Effects are right; evidence bases and metadata are not.
+
+## Update (drug-synonym / development-code class, audit #9) — CONFIRMED as a SEARCH dependency, 0 offline instances
+Swept all 32 topics: **no currently-cached record is wrongly X3-excluded for a development-code name.**
+The DU-176b (edoxaban) trials the audit names (NCT00806624/NCT00829933) are not in our cache at all —
+they are a SEARCH miss (never fetched by the enumerated query), not a screening exclusion. So this
+class is a **search-rebuild dependency**, not an offline screening bug. As prevention, DOAC development
+codes (DU-176b, BIBR 1048, BAY 59-7939, BMS-562247) were added to the noac and doac-vte intervention
+lists so the search rebuild will screen code-named trials correctly; they match no cached record, so no
+page changed.
