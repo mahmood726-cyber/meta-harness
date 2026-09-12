@@ -689,3 +689,15 @@ directionally MIXED because they span low- vs high-baseline-risk populations. A 
 obscure baseline-risk effect-modification and mislead; a risk-stratified table is buildable but a single
 number is not. hfnc DECLINE confirmed as a clean EFFECT-MODIFICATION decline (not scale, not reach, not
 acquisition), with the landmark present and the full-text counts in hand. Bar held; not built.
+
+## Cycle 64 — colchicine-postop + pericarditis decomposed (2026-09-12)
+- **colchicine-postop-af (5/7):** comparator's 9 = 4 pooled-by-us (+END-AF recovered = 5) + 2 scope
+  (Deftereos x2 post-PVI ablation) + 1 multi-arm (Zarpelon, pre+post-op + late single-dose) + 1 reach
+  (Sarzaeem, no PMID) + 1 flagged-but-unpoolable (COPPS AF substudy 22090167: real double-blind POAF
+  12.0% vs 22.0%, but abstract is %-only without exact per-arm N or a CI, and its PMC full text mis-maps
+  — refuse on ambiguity). So the gap is scope + multi-arm + reach + one percentage-only trial.
+- **colchicine-recurrent-pericarditis (3/4): 0 recoverable misses.** CORE (16186468) and COPE (16186437)
+  are OPEN-LABEL (design-excluded — CORE is the exact recurrence outcome but open-label); Finkelstein
+  (12574898) is postpericardiotomy prevention (scope). Every gap trial is design/scope-excluded — decline
+  confirmed, the harness stricter than the comparator.
+Both decompositions rendered on their pages.
