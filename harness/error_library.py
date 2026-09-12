@@ -126,10 +126,13 @@ LIBRARY = [
      "gate.check_fetch_complete — REFUSE if a CORE source (PubMed/Europe PMC/ClinicalTrials.gov) reported "
      "RAN_ERROR; a rate-limit (429) drops trials (incl. a pivotal) and the degraded cache looks complete",
      "test_error_library planted core RAN_ERROR refuses; semaglutide 429 build refused"),
-    ("ME-32", "Trial conflict-of-interest / funding integrity not assessed", NOT_CHECKED, False,
-     "trial-level COI/industry-funding and its bias direction are not extracted or disclosed per pooled trial "
-     "(prior work found a uniform industry x0.80 bias channel inert on cardiology, but that is not a per-trial check)",
-     "WORK QUEUE (severity: medium — a documented reporting/bias dimension; cross-checked from UG-013)"),
+    ("ME-32", "Trial conflict-of-interest / funding integrity not assessed", RENDERED, False,
+     "funding.scan_pooled classifies each pooled trial's funding source (industry / public-non-profit / mixed / "
+     "not-stated) from a VERBATIM statement in the committed full text (preferred) or abstract, and the page "
+     "DISCLOSES it per trial with the span and the industry-funded count; industry funding is the documented bias "
+     "direction. Never inferred (refuse-on-absence: 'not stated in source'); disclosed not adjusted, because the "
+     "per-trial bias magnitude is not quantifiable from a funding line (prior work: a uniform industry x0.80 channel was inert)",
+     "RENDERED per pooled trial (from source); severity medium — a documented reporting/bias dimension, cross-checked from UG-013"),
 ]
 
 _UNIVERSAL = {e[0] for e in LIBRARY if e[3]}
@@ -161,6 +164,8 @@ def applies(review, config=None):
         active.add("ME-06")          # pivotal-present limb only when pivotals declared
     active.add("ME-15")              # recurrent-event guard runs on any AACT-sourced outcome
     active.add("ME-22")              # retrospective-registration flag computed for any NCT-linked trial
+    if any((o.get("trials") for o in review.get("outcomes", []) or [])):
+        active.add("ME-32")          # per-trial funding/COI disclosure runs on any review with pooled trials
     return active
 
 

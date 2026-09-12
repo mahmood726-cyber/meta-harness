@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import os
 
-from . import extract, screen, scope, verify, locate, unit_of_analysis
+from . import extract, screen, scope, verify, locate, unit_of_analysis, funding
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool
 
@@ -657,6 +657,10 @@ def build_review_core(slug, config, records, protocol_sha):
         # Unit-of-analysis disclosure (ME-26/27): pooled trials with a cluster-randomized or crossover
         # design, from the committed abstracts. Rendered as a caveat; not an adjustment (ICC unavailable).
         **({"unit_of_analysis": _uoa} if (_uoa := unit_of_analysis.scan_pooled({"outcomes": outcomes}, rec_by_id)) else {}),
+        # Per-trial funding / COI disclosure (ME-32): classify each pooled trial's funding source from a
+        # verbatim statement in the committed full text (preferred) or abstract; industry funding is the
+        # documented bias direction. Rendered as a disclosure; never inferred, 'not stated' when silent.
+        **({"funding": _fund} if (_fund := funding.scan_pooled({"outcomes": outcomes}, rec_by_id, ftbp)) else {}),
     }
 
 

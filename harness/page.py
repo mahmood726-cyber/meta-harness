@@ -780,7 +780,30 @@ def _riskofbias(r, neutral):
                     "certainty is optimistic. This is a stated limitation (a documented meta-analysis error class "
                     "the harness flags but cannot correct without the missing variance component), not a silent "
                     "simple-parallel pooling.</div>")
-    return (f"<p>{cover}</p>" + uoa_html
+    fund = r.get("funding") or []
+    fund_html = ""
+    if fund:
+        _order = {"industry": 0, "mixed": 1, "public/non-profit": 2, "declared (source unclassified)": 3,
+                  "not stated in source": 4}
+        rows = "".join(
+            f"<tr><td>{_e(f.get('id'))}</td><td>{_e(f.get('type'))}</td>"
+            f"<td>{_e(f.get('source'))}</td><td>{_e(f.get('span'))}</td></tr>"
+            for f in sorted(fund, key=lambda f: _order.get(f.get("type"), 9)))
+        n_ind = sum(1 for f in fund if f.get("type") in ("industry", "mixed"))
+        n_ns = sum(1 for f in fund if f.get("type") == "not stated in source")
+        fund_html = ("<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled "
+                     "trial, from source — disclosed, not adjusted).</strong> Industry-funded trials are a "
+                     "documented reporting-bias dimension (they tend to report more favourable results). For "
+                     f"each pooled trial the funding source is classified from a verbatim statement in the "
+                     f"committed source (full text preferred, abstract fallback): "
+                     f"<strong>{n_ind}</strong> industry/mixed-funded, and {n_ns} with no funding statement in "
+                     "the available source (reported as such rather than assumed). The harness <strong>does not "
+                     "adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a "
+                     "funding line) — it is disclosed so a reader can weigh it. Never inferred; a trial with no "
+                     "located statement is shown as 'not stated in source'."
+                     "<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Located in</th>"
+                     f"<th>Verbatim statement</th></tr>{rows}</table></div>")
+    return (f"<p>{cover}</p>" + uoa_html + fund_html
             + "<p>Per-pooled-trial RoB2 risk of bias, computed from what is machine-available "
             f"({_e(rb.get('source') or 'AACT registry fields')}). <strong>Domain 5 (selective reporting)</strong> "
             "is computed from the trial's REGISTERED primary outcome vs the outcome we pooled — a machine-checkable "

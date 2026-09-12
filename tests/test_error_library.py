@@ -35,7 +35,9 @@ def test_not_checked_entries_are_excluded_from_coverage():
     review = {"outcomes": [{"primary": True, "trials": [{"id": "PMID 1", "source": "x"}]}]}
     n_active, n_checkable, ids = EL.coverage(review, {})
     nc_ids = {i for i, _l, _n in EL.not_checked()}
-    assert nc_ids and not (set(ids) & nc_ids), "a NOT_CHECKED id must never count as coverage"
+    # A NOT_CHECKED id must never count as coverage. The library may reach zero NOT_CHECKED (the goal
+    # state, once every documented error is enforced/rendered) — that is valid, not a test failure.
+    assert not (set(ids) & nc_ids), "a NOT_CHECKED id must never count as coverage"
     assert n_checkable == len([e for e in EL.LIBRARY if e[2] != EL.NOT_CHECKED])
     assert 0 < n_active <= n_checkable
 
