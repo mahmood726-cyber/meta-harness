@@ -450,6 +450,28 @@ def composite_component_mismatch(outcome_name: str, source_span: str) -> str:
     return ""
 
 
+def population_mismatch(source_span: str) -> str:
+    """Population/analysis-set guard (extends the composite guard to the population axis): a per-protocol
+    or completers-only effect must not be pooled where the outcome expects the randomized (ITT) set.
+    Conservative: fires only on an explicit per-protocol / completers phrase AND the ABSENCE of an
+    intention-to-treat marker, so genuine ITT / modified-ITT rows are unaffected. Caught by the cross-family
+    definition audit (probiotics per-protocol trials pooled alongside ITT trials)."""
+    s = (source_span or "").lower()
+    if not s:
+        return ""
+    itt = any(m in s for m in ("intention-to-treat", "intention to treat", "intҽntion", "itt analysis",
+                               "modified intention", "all randomi", "as randomi"))
+    if itt:
+        return ""
+    pp = [m for m in ("completed the study according to the protocol", "per-protocol", "per protocol",
+                      "completed the follow-up", "completers", "who completed the study",
+                      "completed the trial") if m in s]
+    if pp:
+        return (f"per-protocol / completers analysis ('{pp[0]}') with no intention-to-treat denominator -- "
+                f"refuse rather than pool a per-protocol effect where the outcome expects the randomized set")
+    return ""
+
+
 def _multi_dose_arms(abstract):
     """Distinct intervention DOSE values reported (e.g. CANTOS '50-mg group ... 150-mg group ...
     300-mg group'). A trial with >1 dose arm vs one comparator is multi-arm: picking one dose's

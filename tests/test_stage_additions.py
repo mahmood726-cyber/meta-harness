@@ -237,3 +237,30 @@ def test_dpp4_tecos_declared_absent_for_estimand():
     assert "26052984" not in [str(t.get("label")) for t in prim.get("trials", [])], "TECOS still pooled 3-point"
     da = [t for t in prim.get("declared_absent_trials", []) if str(t.get("label")) == "26052984"]
     assert da and ("estimand" in da[0]["reason"].lower() or "4-point" in da[0]["reason"].lower() or "component" in da[0]["reason"].lower())
+
+
+# ---- population guard + definition-audit fixes (cross-family definition sweep) -------------------
+def test_population_mismatch_guard():
+    from harness import extract
+    pp = "Sixty-three patients completed the study according to the protocol; two (5.9%) vs eight (27.6%)"
+    assert extract.population_mismatch(pp)
+    itt = "by intention-to-treat analysis, the primary outcome occurred in 61 of 1591 vs 76 of 1592"
+    assert not extract.population_mismatch(itt)
+
+
+def test_definition_audit_refusals_are_absent():
+    """The 4 cross-family definition-audit defects must not be pooled anywhere."""
+    refused = {"23656645": "omega3-cardiovascular-events", "38184150": "omega3-cardiovascular-events",
+               "17356555": "probiotics-aad-prevention", "22472744": "probiotics-aad-prevention"}
+    for pmid, slug in refused.items():
+        r = json.load(open(os.path.join(DOCS, "reviews", slug, "review.json"), encoding="utf-8"))
+        pooled = [str(t.get("label")) for o in r["outcomes"] for t in o.get("trials", [])]
+        assert pmid not in pooled, f"{pmid} still pooled in {slug} despite definition-mismatch refusal"
+
+
+def test_definition_audit_index_numbers_derived():
+    if not os.path.exists(os.path.join(DOCS, "definition_audit.json")):
+        return
+    d = json.load(open(os.path.join(DOCS, "definition_audit.json"), encoding="utf-8"))
+    html = IDX.build_index(DOCS)
+    assert f"{d['n_candidates']} of {d['n_rows_audited']}" in html

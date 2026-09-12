@@ -285,6 +285,41 @@ def _crossfamily_section(docs_dir: str) -> str:
             + "</div>")
 
 
+def _definition_audit_section(docs_dir: str) -> str:
+    """Full-corpus cross-family DEFINITION audit from docs/definition_audit.json: does each pooled result
+    match its outcome LABEL (composite components, timepoint, population, analysis set), not just the number."""
+    p = os.path.join(docs_dir, "definition_audit.json")
+    if not os.path.exists(p):
+        return ""
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    n, cand, both = d.get("n_rows_audited"), d.get("n_candidates"), d.get("n_flagged_both_families")
+    a = d.get("adjudication_counts") or {}
+    if not n:
+        return ""
+    ref, disc, ok, q = a.get("refused_defect_fixed"), a.get("composite_heterogeneity_disclose_queued"), \
+        a.get("already_disclosed_accept"), a.get("queued_adjudication")
+    return (f"<div class='banner'><h2>Cross-family definition audit: is the number under the RIGHT label?</h2>"
+            f"<p>A single cross-family QA pass over four rows had caught a defect (TECOS's 4-point composite "
+            f"pooled under a 3-point label) that every internal gate passed &mdash; so we ran it over the "
+            f"<strong>whole corpus</strong>. Two independent families (Gemini via AGY and Fable) re-read every "
+            f"one of the <strong>{n}</strong> pooled rows and asked not just &lsquo;does the number match&rsquo; "
+            f"but <strong>does the outcome DEFINITION match the label</strong> &mdash; composite component set, "
+            f"timepoint, population, analysis set. <strong>{cand} of {n}</strong> rows were flagged for a "
+            f"possible definition mismatch (<strong>{both}</strong> by both families). Adjudicated against "
+            f"source: <strong>{ref}</strong> were genuine wrong-endpoint/population defects and were refused at "
+            f"source this cycle (two omega-3 trials whose composite was not MACE; two probiotics trials pooling "
+            f"a per-protocol/completers set, not ITT); {disc} are the well-known heterogeneity of pooling each "
+            f"trial's own primary MACE (3&ndash;5 component composites) under one generic label, now being "
+            f"disclosed; {ok} were already disclosed on the page (a stated subgroup or estimand); and {q} remain "
+            f"queued for per-row adjudication. This class &mdash; a right number under a slightly wrong label "
+            f"&mdash; is invisible to a value check and was only found by a different model family reading the "
+            f"source fresh. The audit is now a standing check (<code>docs/definition_audit.json</code>) and its "
+            f"guard refuses component/population mismatches at build time.</p></div>")
+
+
 def _crossfamily_judge_line(docs_dir: str) -> str:
     """The cross-family BLIND JUDGING result (a non-Claude judge re-rating auditability)."""
     p = os.path.join(docs_dir, "crossfamily_judge.json")
@@ -596,6 +631,19 @@ def _prose_derived_numerals(docs_dir: str) -> set:
                         out.add(str(round(v, 2)))
         except (OSError, ValueError):
             pass
+    # definition-audit numerals
+    da = os.path.join(docs_dir, "definition_audit.json")
+    if os.path.exists(da):
+        try:
+            v = json.load(open(da, encoding="utf-8"))
+            for x in (v.get("n_rows_audited"), v.get("n_candidates"), v.get("n_flagged_both_families")):
+                if isinstance(x, int):
+                    out.add(str(x))
+            for x in (v.get("adjudication_counts") or {}).values():
+                if isinstance(x, int):
+                    out.add(str(x))
+        except (OSError, ValueError):
+            pass
     # cross-family JUDGE numerals
     cj = os.path.join(docs_dir, "crossfamily_judge.json")
     if os.path.exists(cj):
@@ -811,9 +859,10 @@ def build_index(docs_dir: str) -> str:
     _prov = _provenance_section(docs_dir)
     _xfam = _crossfamily_section(docs_dir)
     _extval = _external_agreement_section(docs_dir)
+    _defaudit = _definition_audit_section(docs_dir)
     # anti-drift: fail closed on an un-accounted numeral in ANY narrative banner
-    _validate_prose_numbers(docs_dir, _thesis + _cont + _erate + _xfam + _extval + _spec + _screen + _prov + _stance)
-    body = (_thesis + _erate + _xfam + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
+    _validate_prose_numbers(docs_dir, _thesis + _cont + _erate + _xfam + _defaudit + _extval + _spec + _screen + _prov + _stance)
+    body = (_thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
             + _parity_section(docs_dir) + _error_coverage_section(docs_dir) + _stance
             + _fair_section(docs_dir) + body)
 
