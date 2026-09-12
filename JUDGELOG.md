@@ -557,3 +557,23 @@ the acquisition layer; the existing locate→parse→round-trip→refuse path ru
   limitation here, it is true of the primary sources. (Screening also surfaced that a meta-analysis
   32342851, a methods paper 18279051 and a diabetes paper 11441324 slip into the included set — a
   separate screening-precision note for the zinc topic, not relevant to the variance decline.)
+
+## Cycle 46 — azithromycin & vitamin-D re-checked at full text: ESTIMAND-blocked, not acquisition-blocked (2026-09-12)
+Ran the new full-text-tables path on the two remaining plausibly-acquisition-blocked declines. Both
+decline again, and the mechanism is now pinned as estimand mismatch (which tables/supplements cannot fix),
+distinct from zinc's missing-variance:
+- **azithromycin-copd → DECLINE confirmed.** Declared estimand = RR of "patients with ≥1 exacerbation"
+  (a binary per-arm proportion). Even in full text, the trials report TOTAL exacerbation EVENTS (Albert
+  741 vs 900; COLUMBUS 84 vs 129) and time-to-first (HR) — never the binary ≥1 proportion per arm. The
+  rate/IRR path still lacks clean per-arm person-time (Albert gives "per patient-year" rates, not raw
+  person-time). The number the estimand needs is not in the sources at any depth.
+- **vitamin-d-acute-respiratory-infection → DECLINE confirmed.** Declared estimand = OR of "≥1 ARI"
+  (binary proportion). That proportion is exactly what the comparator (Martineau 2017, PMID 28202713)
+  computed by INDIVIDUAL-PARTICIPANT-DATA meta-analysis — because the individual trials do not report it
+  per-arm (Urashima 20219962's primary is influenza A; full text has 0 per-arm ≥1-ARI counts). We have
+  no IPD, so we correctly decline rather than substitute a rate or an influenza-specific outcome.
+PATTERN: full-text acquisition (tables + supplements) unblocks per-arm-VARIANCE acquisition cases
+(melatonin had the CT.gov mean/SD; zinc did not) but NOT estimand-mismatch declines (azithromycin,
+vitamin-D, and by the same logic the mixed-scale/heterogeneity declines prone/appendicitis/hfnc). The
+declared binary/proportion or common-scale outcome simply is not reported per-arm in the primary sources
+for those topics. Declines stand with stronger, full-text-level evidence — which is itself the result.
