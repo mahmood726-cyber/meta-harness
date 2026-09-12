@@ -122,6 +122,10 @@ LIBRARY = [
      "we pool PAIRWISE only; scope.py flags single-drug-vs-drug-CLASS comparator mismatch (a PICO/NMA "
      "error class) and states it; a full NMA connectivity/consistency test is N/A because no network is pooled",
      "harness/scope.py; comparator scope note; JUDGELOG scope-audit"),
+    ("ME-33", "Throttled/partial fetch → silently incomplete cache builds a wrong pool", GATE_LIMB, True,
+     "gate.check_fetch_complete — REFUSE if a CORE source (PubMed/Europe PMC/ClinicalTrials.gov) reported "
+     "RAN_ERROR; a rate-limit (429) drops trials (incl. a pivotal) and the degraded cache looks complete",
+     "test_error_library planted core RAN_ERROR refuses; semaglutide 429 build refused"),
     ("ME-32", "Trial conflict-of-interest / funding integrity not assessed", NOT_CHECKED, False,
      "trial-level COI/industry-funding and its bias direction are not extracted or disclosed per pooled trial "
      "(prior work found a uniform industry x0.80 bias channel inert on cardiology, but that is not a per-trial check)",

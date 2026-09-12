@@ -82,3 +82,18 @@ def test_no_double_counted_trial_limb_refuses_a_repeated_trial():
                         "trials": [{"id": "PMID 1"}, {"id": "PMID 2"}]}]}
     _json.dump(ok, open(_os.path.join(d, "review.json"), "w", encoding="utf-8"))
     assert gate.check_no_double_counted_trial(d) == []
+
+
+def test_fetch_complete_limb_refuses_core_source_error():
+    """ME-33: a CORE-source RAN_ERROR (throttled/partial fetch) must REFUSE; an auxiliary-source error
+    (registry-first / citation chase) must NOT — it does not degrade the core pool."""
+    import json as _json, os as _os, tempfile
+    d = tempfile.mkdtemp(prefix="mh-fetch-")
+    core_bad = {"search": {"source_status": {"PubMed": "RAN_ERROR", "ClinicalTrials.gov": "RAN_OK"}},
+                "outcomes": []}
+    _json.dump(core_bad, open(_os.path.join(d, "review.json"), "w", encoding="utf-8"))
+    assert gate.check_fetch_complete(d) and "RAN_ERROR" in gate.check_fetch_complete(d)[0]
+    aux_bad = {"search": {"source_status": {"PubMed": "RAN_OK", "ClinicalTrials.gov": "RAN_OK",
+                                            "Registry-first (AACT)": "RAN_ERROR"}}, "outcomes": []}
+    _json.dump(aux_bad, open(_os.path.join(d, "review.json"), "w", encoding="utf-8"))
+    assert gate.check_fetch_complete(d) == []

@@ -155,6 +155,34 @@ def check_pooled_verified(review_dir):
     return []
 
 
+_CORE_SOURCES = ("PubMed", "Europe PMC (OA + metadata)", "ClinicalTrials.gov")
+
+
+def check_fetch_complete(review_dir):
+    """A THROTTLED FETCH IS A PARTIAL FETCH, and a partial cache looks exactly like a complete one.
+    If a CORE acquisition source (PubMed / Europe PMC / ClinicalTrials.gov) reported RAN_ERROR, the
+    committed cache is silently incomplete — a rate-limit (HTTP 429) can drop a pivotal trial and the
+    build then pools an over-broad or under-complete set that looks fine. REFUSE on a core-source
+    RAN_ERROR (auxiliary reach sources — citation chase / registry-first / full text — may error without
+    degrading the core pool, and are rendered as reach limitations rather than blocking). Complements the
+    pivotal-present limb: that catches a KNOWN missing landmark; this catches the degraded fetch itself."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1: no review.json to check fetch completeness"]
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json: {exc}"]
+    ss = (rev.get("search") or {}).get("source_status") or {}
+    bad = [k for k in _CORE_SOURCES if ss.get(k) == "RAN_ERROR"]
+    if bad:
+        return [f"L1: core acquisition source(s) {bad} reported RAN_ERROR — a throttled/failed fetch means "
+                f"the committed cache is silently incomplete (a rate-limit can drop a pivotal trial); "
+                f"re-fetch (serialised, no 429) before building rather than pool a degraded cache"]
+    return []
+
+
 def check_no_double_counted_trial(review_dir):
     """Unit-of-analysis: no trial may be pooled more than once WITHIN an outcome (multi-arm shared-control
     double-counting, ME-25). The harness contributes one effect per trial and the multi-arm guard refuses
@@ -398,6 +426,7 @@ def gate_page(review_dir):
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
                + check_pooled_verified(review_dir)
+               + check_fetch_complete(review_dir)
                + check_no_double_counted_trial(review_dir)
                + check_pivotal_present(manifest)
                + check_controls(review_dir, manifest)
