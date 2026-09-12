@@ -1,0 +1,158 @@
+"""Meta-analysis error library → harness checks.
+
+Every documented meta-analysis mistake is one of four things in this harness:
+  - GATE_LIMB      : detectable on a finished review; the publication gate REFUSES if present.
+  - REGRESSION_TEST: detectable in code; a test with a plant that fires PRE-fix guards it.
+  - RENDERED       : a judgement the harness cannot fully make; the page STATES whether it applies.
+  - NOT_CHECKED    : no mechanism yet — the work queue, in severity order.
+  - VERIFICATION   : caught only by human source-verification (recorded, not machine-enforced).
+
+Each entry names the mechanism and the evidence (a module/test/gate limb) so the coverage claim
+"this review is screened against N documented meta-analysis errors" is itself auditable. `applies(review)`
+returns, for one review dict, the ids whose check is ACTIVE on it (universal checks always; conditional
+checks when their trigger is present), so coverage can be reported per review.
+"""
+from __future__ import annotations
+
+GATE_LIMB, REGRESSION_TEST, RENDERED, NOT_CHECKED, VERIFICATION = (
+    "GATE_LIMB", "REGRESSION_TEST", "RENDERED", "NOT_CHECKED", "VERIFICATION")
+
+# id, label, kind, universal?, mechanism (module/gate-limb/test), evidence
+LIBRARY = [
+    ("ME-01", "Retracted / expression-of-concern trial pooled", GATE_LIMB, True,
+     "gate.check_retraction + integrity.py (PubMed) — REFUSE on a retracted pooled trial",
+     "test_integrity.py; cache/<slug>/integrity.json"),
+    ("ME-02", "Duplicate-publication double-counting (same trial pooled twice)", GATE_LIMB, True,
+     "gate.check_duplicate_publication + pipeline._dedup RCT-primacy (earliest full report wins its NCT)",
+     "test_dup_pub.py"),
+    ("ME-03", "Stale page / analysis-code divergence (served ≠ declared method)", GATE_LIMB, True,
+     "gate.check_limb1 (served method == declared) + check_reproduction (offline replay byte-match)",
+     "test_gate.py; scripts/reproduce_review.py"),
+    ("ME-04", "Empty / hollow pool shipped (k=0 presented as a review)", GATE_LIMB, True,
+     "gate.check_primary_result — REFUSE a page whose primary outcome has no pooled result",
+     "test_gate.py"),
+    ("ME-05", "No controls (a topic that cannot detect a wrong include/exclude)", GATE_LIMB, True,
+     "gate.check_controls — REFUSE unless ≥1 positive (must screen IN) + ≥1 negative (must screen OUT)",
+     "test_gate_controls.py"),
+    ("ME-06", "Pivotal landmark trial silently missing from the pool", GATE_LIMB, False,
+     "gate.check_pivotal_present — each declared pivotal must be in the committed cache or REFUSE",
+     "test_gate.py"),
+    ("ME-07", "Scale / estimand mixture (e.g. Peto OR pooled with a Cox HR)", RENDERED, True,
+     "pipeline estimand-homogeneity: result.scale='mixed (X/Y)' when pooled trials differ; garbage pools REFUSED",
+     "weakness_survey mixed-scale count; page Estimand row"),
+    ("ME-08", "Wrong-endpoint binding (a number for the wrong outcome)", REGRESSION_TEST, True,
+     "outcome-identity gate (extract_ctgov judgments) + composite-containment guard + generic-harm guard "
+     "(caught at extraction, not the publication gate — the gate does not judge endpoint identity)",
+     "test_outcome_identity.py; test_composite_guard.py"),
+    ("ME-09", "Wrong-arm / control-first inverted extraction", REGRESSION_TEST, True,
+     "arm-identity: inferred denominators pair each count with its own arm (reading-order + %-corroboration)",
+     "test_arm_identity.py"),
+    ("ME-10", "Subgroup-as-total (a post-hoc/pre-specified subgroup pooled as the trial)", REGRESSION_TEST, True,
+     "subgroup guard (refuse per-protocol/post-hoc/'lowest in') + ctgov min_total + subgroup DISCLOSED (melatonin 65-80)",
+     "test_extract_class.py; melatonin population note"),
+    ("ME-11", "Composite substitution (pooling a composite where a single outcome is declared)", REGRESSION_TEST, True,
+     "composite-containment guard — declared-single skips composite-endpoint sentences",
+     "test_composite_guard.py"),
+    ("ME-12", "Factorial trial: wrong factor's effect bound", REGRESSION_TEST, True,
+     "factorial guard — effect-only factorial refused / correct factor required (SU.FOL.OM3 caught)",
+     "test_extract_class.py; JUDGELOG omega3"),
+    ("ME-13", "Multi-arm dose: arbitrary dose-arm selection without a pre-specified rule", REGRESSION_TEST, True,
+     "multi-arm guard — >2 randomised arms must specify the comparison or REFUSE (CANTOS declined)",
+     "test_extract_class.py"),
+    ("ME-14", "Imputed variance (SD reconstructed from a figure / KM curve)", RENDERED, True,
+     "continuous extractor refuses when no per-arm SD/IQR in accessible source; 'we decline where they imputed'",
+     "zinc decline (JUDGELOG); test_ctgov_continuous.py refuses SE/IQR"),
+    ("ME-15", "Recurrent-event count pooled as a binomial (participants)", REGRESSION_TEST, False,
+     "AACT recurrent-event guard (is_recurrent_event_title; 'hospitalizations'/'number of' ⇒ events not patients)",
+     "test_aact_recurrent_guard.py"),
+    ("ME-16", "Outcome-based eligibility (including a trial because it reported the outcome)", RENDERED, True,
+     "screening is P/I/C/design only; eligibility not based on outcome reporting; non-reporters declared-absent",
+     "every protocol's eligibility clause; PRISMA flow"),
+    ("ME-17", "Unverified / fabricated pooled number", GATE_LIMB, True,
+     "gate.check_pooled_verified — REFUSE a page pooling any number whose digits are not located in its "
+     "committed source span (verify.verify_pooled marks verified/handchecked/not-yet)",
+     "test_gate.py (planted not-yet refuses); weakness_survey: 0 UNVERIFIED"),
+    ("ME-18", "DL τ² small-k collapse (DerSimonian-Laird biased at k<10)", REGRESSION_TEST, True,
+     "synth uses Paule-Mandel (not DL); validated vs metafor <1e-6",
+     "test_synth.py; advanced-stats DL rule"),
+    ("ME-19", "HKSJ-vs-Wald drift (z used where t_{k-1} required at small k)", REGRESSION_TEST, True,
+     "synth HKSJ CI on t_{k-1} with floor max(1,Q/(k-1)); k=1 shows single-trial effect, no RE machinery",
+     "test_synth.py; advanced-stats HKSJ rules"),
+    ("ME-20", "Prediction interval wrong (z-based or t_{k-2})", REGRESSION_TEST, True,
+     "synth PI = mu ± t_{k-1}·sqrt(tau2+se^2); undefined and suppressed at k<2",
+     "test_synth.py; advanced-stats PI rule"),
+    ("ME-21", "Natural-scale pooling (should pool log-effects)", REGRESSION_TEST, True,
+     "synth pools log(RR/OR/HR/IRR), back-transforms — avoids the Simpson trap",
+     "test_synth.py"),
+    ("ME-22", "Retrospective registration not flagged (reporting-bias signal)", RENDERED, False,
+     "integrity._prospective (AACT dates): registered-after-enrolment flagged, non-blocking, rendered",
+     "cache/<slug>/integrity.json retrospectively_registered"),
+    ("ME-23", "RoB2 / selective-outcome-reporting not assessed", RENDERED, True,
+     "rob2.py D5 = registered-primary vs pooled outcome; coverage stated per page; unassessed trials shown",
+     "test_page.py RoB2 coverage; rob2.json"),
+    ("ME-24", "Search miss presented as absence (recall not measured)", RENDERED, True,
+     "registry-first recall metric per topic (recovered X/Y of known); reach vs inclusion distinguished",
+     "recall.json; Search tab"),
+    # --- NOT YET CHECKED — the work queue, in severity order ---
+    ("ME-25", "Unit-of-analysis: multi-arm SHARED-CONTROL double-counting in one pool", NOT_CHECKED, False,
+     "multi-arm dose selection is guarded, but two arms of one trial pooled against a shared control "
+     "(control counted twice) is NOT yet detected", "WORK QUEUE (severity: high — inflates weight/precision)"),
+    ("ME-26", "Unit-of-analysis: cluster-randomised trial without design-effect inflation", NOT_CHECKED, False,
+     "a cluster-RCT pooled at the individual level (design effect not applied) is NOT detected",
+     "WORK QUEUE (severity: high — understates variance)"),
+    ("ME-27", "Unit-of-analysis: crossover trial paired-data / carryover", NOT_CHECKED, False,
+     "a crossover trial pooled as a parallel-arm 2×2 is NOT detected",
+     "WORK QUEUE (severity: medium)"),
+    ("ME-28", "Zero-cell continuity correction applied unconditionally", NOT_CHECKED, False,
+     "add-0.5 only when a cell is zero is an advanced-stats rule but not asserted by a test on the pooler",
+     "WORK QUEUE (severity: medium — biases OR toward 1)"),
+    ("ME-29", "Small-study / publication-bias not assessed (funnel/Egger)", RENDERED, True,
+     "small k stated as the dominant limitation on every page; Egger low-power at our k, not computed",
+     "weakness_survey small-k; stated limitation"),
+    ("ME-30", "GRADE certainty not formally rated", RENDERED, True,
+     "certainty signals shown (RoB/inconsistency/imprecision) but a formal GRADE rating is NOT automated",
+     "PRISMA item 15 declared partial"),
+]
+
+_UNIVERSAL = {e[0] for e in LIBRARY if e[3]}
+_KINDS = {e[0]: e[2] for e in LIBRARY}
+
+
+def summary():
+    """Count the library by kind."""
+    from collections import Counter
+    c = Counter(e[2] for e in LIBRARY)
+    return {"total": len(LIBRARY), **c}
+
+
+def _has_multiarm(review):
+    for o in review.get("outcomes", []):
+        for t in o.get("trials", []) or []:
+            if "multi" in (t.get("source", "").lower()) or "mg group" in (t.get("source", "").lower()):
+                return True
+    return False
+
+
+def applies(review, config=None):
+    """Ids whose check is ACTIVE on this review: every universal check, plus conditional checks whose
+    trigger is present. A NOT_CHECKED entry is never 'active' (it is the gap, reported separately)."""
+    active = set(i for i in _UNIVERSAL if _KINDS[i] != NOT_CHECKED)
+    cfg = config or {}
+    # conditional checks
+    if cfg.get("pivotal_trials"):
+        active.add("ME-06")          # pivotal-present limb only when pivotals declared
+    active.add("ME-15")              # recurrent-event guard runs on any AACT-sourced outcome
+    active.add("ME-22")              # retrospective-registration flag computed for any NCT-linked trial
+    return active
+
+
+def coverage(review, config=None):
+    """(n_active, n_checkable, active_ids). n_checkable excludes NOT_CHECKED (the gaps)."""
+    checkable = [e[0] for e in LIBRARY if e[2] != NOT_CHECKED]
+    active = applies(review, config)
+    active &= set(checkable)
+    return len(active), len(checkable), sorted(active)
+
+
+def not_checked():
+    return [(e[0], e[1], e[5]) for e in LIBRARY if e[2] == NOT_CHECKED]

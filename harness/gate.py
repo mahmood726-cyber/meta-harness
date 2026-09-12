@@ -130,6 +130,31 @@ def check_primary_result(review_dir):
     return []
 
 
+def check_pooled_verified(review_dir):
+    """THE BAR, made structural: every pooled number's digits must appear in its committed source span
+    (verify.verify_pooled marks 'verified'/'verified_handchecked'/'not-yet'). A page that pools a
+    'not-yet' number — a number not located in the source — must not publish. This converts the
+    'a wrong number that gate-passes is the only failure that matters' rule from a rendered badge +
+    a survey into a REFUSAL, so an unverified pooled number cannot ship even if a human misses it."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1: no review.json to verify pooled numbers"]
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json: {exc}"]
+    bad = []
+    for o in rev.get("outcomes", []) or []:
+        for t in o.get("trials", []) or []:
+            if t.get("verified") not in ("verified", "verified_handchecked"):
+                bad.append(f"{t.get('id')} in {o.get('name')!r} (status={t.get('verified')!r})")
+    if bad:
+        return [f"L1: pooled number(s) not verified against the committed source span — a page must not "
+                f"pool a number whose digits are not located in its source: {'; '.join(bad[:6])}"]
+    return []
+
+
 def check_cache_tracked(manifest):
     """A page replays from its committed cache, so that cache MUST be git-tracked — an untracked
     cache means a fresh clone cannot reproduce the page (this silently broke empagliflozin: the
@@ -343,6 +368,7 @@ def gate_page(review_dir):
                + check_cache_tracked(manifest)
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
+               + check_pooled_verified(review_dir)
                + check_pivotal_present(manifest)
                + check_controls(review_dir, manifest)
                + check_cross_source(review_dir)

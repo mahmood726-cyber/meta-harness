@@ -73,6 +73,45 @@ def _parity_section(docs_dir: str) -> str:
     return body + "</table></div>"
 
 
+def _error_coverage_section(docs_dir: str) -> str:
+    """Render the meta-analysis error-library coverage from docs/error_coverage.json: how many
+    documented meta-analysis mistakes every live review is screened against, and which remain
+    unchecked (the work queue). A claim no published meta-analysis makes, and exactly measurable."""
+    p = os.path.join(docs_dir, "error_coverage.json")
+    if not os.path.exists(p):
+        return ""
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    per = d.get("per_review") or []
+    if not per:
+        return ""
+    checkable = per[0].get("checkable_total")
+    lo, hi = d.get("min_screened"), d.get("max_screened")
+    rng = f"{lo}" if lo == hi else f"{lo}–{hi}"
+    kinds = d.get("by_kind", {})
+    nc = d.get("not_checked", [])
+    body = (f"<div class='banner'><h2>Screened against a meta-analysis error library "
+            f"(measured, not asserted)</h2>"
+            f"<p>Every documented meta-analysis mistake is converted into one of: a <strong>gate limb</strong> "
+            f"that refuses a finished review, a <strong>regression test</strong> with a plant that fires "
+            f"pre-fix, or a <strong>rendered disclosure</strong> when it is a judgement the harness cannot "
+            f"make. Of <strong>{d.get('library_size')}</strong> documented errors catalogued "
+            f"({kinds.get('GATE_LIMB',0)} gate limbs, {kinds.get('REGRESSION_TEST',0)} regression tests, "
+            f"{kinds.get('RENDERED',0)} rendered disclosures), <strong>{checkable}</strong> have an enforced "
+            f"mechanism, and <strong>every live review is screened against {rng} of {checkable}</strong> of "
+            f"them. This is a claim no published meta-analysis makes about itself, and it is directly "
+            f"checkable (each entry names its mechanism in <code>harness/error_library.py</code>; the count "
+            f"regenerates via <code>scripts/error_coverage.py</code>).</p>")
+    if nc:
+        items = "; ".join(f"{e.get('id')} {e.get('label')}" for e in nc)
+        body += (f"<p><strong>Not yet checked (the work queue, stated not hidden):</strong> {_E(items)}. "
+                 f"These are the next checks to build, in severity order &mdash; chiefly unit-of-analysis "
+                 f"errors (shared-control double-counting, cluster design effect, crossover).</p>")
+    return body + "</div>"
+
+
 def build_index(docs_dir: str) -> str:
     rows = []
     for mpath in sorted(glob.glob(os.path.join(docs_dir, "reviews", "*", "manifest.json"))):
@@ -158,7 +197,7 @@ def build_index(docs_dir: str) -> str:
              "real defects in our pages (a risk-of-bias table covering only a subset of pooled trials "
              "without a stated reason; a retraction line whose trial count did not equal k); those are "
              "recorded, not hidden.</p></div>")
-    body = _parity_section(docs_dir) + _stance + _fair + body
+    body = _parity_section(docs_dir) + _error_coverage_section(docs_dir) + _stance + _fair + body
 
     return (
         "<!doctype html><html lang=en><head><meta charset=utf-8>"
