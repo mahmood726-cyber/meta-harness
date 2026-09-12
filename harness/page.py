@@ -828,7 +828,7 @@ def _riskofbias(r, neutral):
             return 4  # not stated (either depth)
         def _celltype(f):
             return _e(f.get("type")) + (f"<br><em>{_e(f.get('note'))}</em>" if f.get("note") else "")
-        rows = "".join(
+        fund_rows = "".join(
             f"<tr><td>{_e(f.get('id'))}</td><td>{_celltype(f)}</td>"
             f"<td>{_e(f.get('scanned') or f.get('source'))}</td><td>{_e(f.get('span'))}</td></tr>"
             for f in sorted(fund, key=lambda f: _ord(f.get("type"))))
@@ -852,7 +852,7 @@ def _riskofbias(r, neutral):
                      "not quantifiable from a funding line) — it is disclosed so a reader can weigh it. Never "
                      "inferred."
                      "<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Scanned</th>"
-                     f"<th>Verbatim statement</th></tr>{rows}</table></div>")
+                     f"<th>Verbatim statement</th></tr>{fund_rows}</table></div>")
     # RoB-stratified sensitivity re-pool (object-derived from r['rob_sensitivity']; regenerates on rebuild)
     sens = r.get("rob_sensitivity") or {}
     sens_html = ""
