@@ -53,3 +53,23 @@ def test_continuous_refuses_when_title_does_not_match_outcome():
     om = _om()
     om[0]["title"] = "Change in total sleep time"  # not our outcome
     assert extract_ctgov(om, KWS, ["melatonin"], ["placebo"]) is None
+
+
+def _multiarm_om():
+    om = _om()  # start from a valid 2-arm MEAN+SD MADRS-style measure
+    om[0]["groups"] = [{"id": "OG000", "title": "Esketamine 56 mg"},
+                       {"id": "OG001", "title": "Esketamine 84 mg"},
+                       {"id": "OG002", "title": "Placebo"}]
+    om[0]["classes"][0]["categories"][0]["measurements"] = [
+        {"groupId": "OG000", "value": "-18.8", "spread": "14.1"},
+        {"groupId": "OG001", "value": "-21.4", "spread": "12.3"},
+        {"groupId": "OG002", "value": "-14.8", "spread": "15.0"}]
+    om[0]["denoms"] = [{"units": "Participants", "counts": [
+        {"groupId": "OG000", "value": "98"}, {"groupId": "OG001", "value": "101"},
+        {"groupId": "OG002", "value": "108"}]}]
+    return om
+
+
+def test_continuous_refuses_multi_arm_dose_trial():
+    # two esketamine dose arms + placebo -> ambiguous which dose to pool -> REFUSE
+    assert extract_ctgov(_multiarm_om(), KWS, ["esketamine"], ["placebo"]) is None

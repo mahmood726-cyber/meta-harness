@@ -385,6 +385,23 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "source": ve.get("source", "full-text-verified effect+CI")})
             continue
         absent.append({"label": label, "id": idstr, "reason": ex["reason"]})
+    # ESTIMAND-CONSISTENCY GUARD (continuous topics): a mean-difference topic must pool ONLY continuous
+    # per-arm mean/SD data. If the source hierarchy fell through to a COUNT/proportion or a ratio effect
+    # for a trial (e.g. a multi-arm trial whose continuous MADRS was refused, then a "% with >=50% response"
+    # count was grabbed — a wrong estimand AND a wrong outcome), that trial is declared-absent, never mixed
+    # into the MD pool. Symmetrically, a ratio-estimand topic never pools a bare continuous mean here.
+    if (spec.get("estimand") or "").upper() == "MD":
+        kept = []
+        for t in trials:
+            if t.get("mean1") is not None:
+                kept.append(t)
+            else:
+                absent.append({"label": t["label"], "id": t["id"],
+                               "reason": ("estimand mismatch: this is a mean-difference (continuous) topic, "
+                                          "but the only extractable value for this trial was a count/proportion "
+                                          "or a ratio effect (not a per-arm mean/SD) — declared absent rather "
+                                          "than pooled across estimands")})
+        trials = kept
     # LOCATE IDENTITY GATE (opt-in, model-derived): a cached judgment that a trial's located evidence
     # is NOT the target outcome forces it to declared-absent — the safeguard against the right-number/
     # wrong-endpoint class. It can only REMOVE a mis-identified number, never add one.

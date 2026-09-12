@@ -45,6 +45,16 @@ def _extract_ctgov_continuous(om, interv_l, comp_l):
     groups = om.get("groups", [])
     if len(groups) < 2:
         return None
+    # MULTI-ARM GUARD (continuous): a fixed-dose multi-arm trial (e.g. esketamine 56 mg / 84 mg / placebo)
+    # posts >2 arms; picking one intervention dose without a pre-specified rule is arbitrary selection.
+    # If more than one arm matches the intervention terms (or the comparator terms), REFUSE — the
+    # dose/arm to pool is ambiguous, exactly the CANTOS/TRANSFORM-1 class the multi-arm rule forbids.
+    _iv = [g for g in groups if any(i in (g.get("title") or "").lower() for i in interv_l)]
+    _cp = [g for g in groups if any(c in (g.get("title") or "").lower() for c in comp_l)]
+    if len(_iv) > 1 or len(_cp) > 1:
+        return None
+    if len(groups) > 2 and not (len(_iv) == 1 and len(_cp) == 1):
+        return None
     classes = om.get("classes", [])
     if not (classes and classes[0].get("categories")):
         return None
