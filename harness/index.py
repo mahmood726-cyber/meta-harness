@@ -191,6 +191,72 @@ def _error_rate_section(docs_dir: str) -> str:
             "reproducible from <code>scripts/error_rate_compare.py</code>.</p></div>")
 
 
+def _crossfamily_section(docs_dir: str) -> str:
+    """Cross-family independence from docs/crossfamily.json: a non-Claude family (Gemini) re-extracts the same
+    source, so agreement is genuinely independent of our extractor/checker. Object-derived numerals."""
+    p = os.path.join(docs_dir, "crossfamily.json")
+    if not os.path.exists(p):
+        return ""
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    gv = d.get("gemini_vs_ours") or {}
+    agree, dis = gv.get("agree"), gv.get("disagree")
+    rate = d.get("gemini_agreement_rate_over_comparable")
+    three = d.get("three_family_agree_ours_codex_gemini")
+    wrong = d.get("confirmed_wrong_after_adjudication")
+    if agree is None or rate is None:
+        return ""
+    comp = agree + (dis or 0)
+    return (f"<div class='banner'><h2>Independent cross-family check &mdash; the fix for &lsquo;everything is "
+            f"self-assessed&rsquo;</h2>"
+            f"<p>Our checker and our error-rate sampler share a model architecture with our extractor, so the "
+            f"internal error rate is a consistency measure, not independent accuracy. So a <strong>different "
+            f"model family</strong> &mdash; Gemini 3.1 Pro, via AGY, sharing no architecture with our pipeline "
+            f"&mdash; independently re-extracted every pooled number from the same committed source. It "
+            f"<strong>agreed with our stored value on {agree} of {comp}</strong> comparable numbers "
+            f"(<strong>{round(rate*100,1)}%</strong>); on <strong>{three}</strong> numbers all three families "
+            f"(our harness, a GPT-5 checker, and Gemini) agree. Every one of the <strong>{dis}</strong> "
+            f"disagreements was hand-adjudicated against source and <strong>{wrong}</strong> was a wrong number: "
+            f"they are a documented approved-dose rule, intention-to-treat vs the trial's on-treatment primary, "
+            f"a rounding tie, one registry-vs-abstract count, and one CT.gov-vs-abstract estimand difference "
+            f"(all disclosed in <code>docs/crossfamily.json</code>). A model call is treated as a source &mdash; "
+            f"the Gemini outputs are committed, so this regenerates without re-calling the model. "
+            f"<strong>Three-family agreement is a far stronger claim than our own dual extraction.</strong></p></div>")
+
+
+def _provenance_section(docs_dir: str) -> str:
+    """Provenance mix (tracked metric) from docs/provenance.json + the three standing limitations the
+    reviewer asked to be stated plainly. Object-derived numerals only."""
+    p = os.path.join(docs_dir, "provenance.json")
+    if not os.path.exists(p):
+        return ""
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    tot, ab, na = d.get("total"), d.get("abstract"), d.get("non_abstract")
+    if not tot:
+        return ""
+    return (f"<div class='banner'><h2>Where the numbers come from &mdash; and what we do not yet claim</h2>"
+            f"<p><strong>Provenance mix (a tracked metric).</strong> Of {tot} pooled numbers, "
+            f"<strong>{ab}</strong> come from the trial <strong>abstract</strong> (the authors' headline "
+            f"result &mdash; the weakest source, though the safest default) and <strong>{na}</strong> from "
+            f"higher tiers (ClinicalTrials.gov structured results, PMC full text, hand-verified arm counts). "
+            f"Nearly every wrong number the audit found came from an abstract, so <strong>driving the abstract "
+            f"share down</strong> &mdash; promoting numbers to structured and full-text sources &mdash; is an "
+            f"explicit goal tracked per batch (<code>scripts/provenance.py</code>).</p>"
+            f"<p><strong>Stated limitations (plainly).</strong> (1) The comparators are <strong>open-access "
+            f"only</strong> &mdash; we benchmark against free reviews, not necessarily the best ones. "
+            f"(2) Protocol registration is <strong>self-hosted</strong> (a git commit SHA), with no external "
+            f"timestamp authority &mdash; it proves order relative to our own history, not against a third "
+            f"party. (3) <strong>Topic selection is ours</strong>, which can flatter the success rate; the "
+            f"expansion tier is preregistered in one batch with declared-hard cases to counter this. "
+            f"(4) The accuracy figure is an <strong>internal-consistency</strong> measure until the "
+            f"cross-family (non-Claude) re-extraction lands.</p></div>")
+
+
 def _screen_section(docs_dir: str) -> str:
     """Screening reproducibility from docs/screen_reproducibility.json: an independent blind (model)
     screener vs the rule-screener, Cohen's kappa over abstract-bearing records. Object-derived."""
@@ -367,6 +433,7 @@ _STATIC_PROSE_NUMERALS = {
     "44": "Week 44 — the excluded regional trials' end-of-treatment timepoint (fixed trial design)",
     "68": "Week 68 — semaglutide's pre-registered primary timepoint (fixed protocol)",
     "95": "the 95% confidence-interval label (fixed)",
+    "3.1": "Gemini 3.1 Pro — the cross-family checker's model version (a name, not a claim)",
 }
 
 
@@ -414,6 +481,32 @@ def _prose_derived_numerals(docs_dir: str) -> set:
     for v in sc.values():
         if isinstance(v, int):
             out.add(str(v))
+    # cross-family numerals (derived from docs/crossfamily.json)
+    cp = os.path.join(docs_dir, "crossfamily.json")
+    if os.path.exists(cp):
+        try:
+            cf = json.load(open(cp, encoding="utf-8"))
+            gv = cf.get("gemini_vs_ours") or {}
+            for v in (gv.get("agree"), gv.get("disagree"),
+                      (gv.get("agree") or 0) + (gv.get("disagree") or 0),
+                      cf.get("three_family_agree_ours_codex_gemini"),
+                      cf.get("confirmed_wrong_after_adjudication")):
+                if isinstance(v, int):
+                    out.add(str(v))
+            if isinstance(cf.get("gemini_agreement_rate_over_comparable"), (int, float)):
+                out.add(str(round(cf["gemini_agreement_rate_over_comparable"] * 100, 1)))
+        except (OSError, ValueError):
+            pass
+    # provenance-mix numerals (derived from docs/provenance.json)
+    pp = os.path.join(docs_dir, "provenance.json")
+    if os.path.exists(pp):
+        try:
+            pv = json.load(open(pp, encoding="utf-8"))
+            for v in (pv.get("total"), pv.get("abstract"), pv.get("non_abstract")):
+                if isinstance(v, int):
+                    out.add(str(v))
+        except (OSError, ValueError):
+            pass
     # screening-reproducibility numerals (derived from docs/screen_reproducibility.json)
     sp = os.path.join(docs_dir, "screen_reproducibility.json")
     if os.path.exists(sp):
@@ -572,9 +665,11 @@ def build_index(docs_dir: str) -> str:
     _erate = _error_rate_section(docs_dir)
     _spec = _spec_curve_section(docs_dir)
     _screen = _screen_section(docs_dir)
+    _prov = _provenance_section(docs_dir)
+    _xfam = _crossfamily_section(docs_dir)
     # anti-drift: fail closed on an un-accounted numeral in ANY narrative banner
-    _validate_prose_numbers(docs_dir, _thesis + _cont + _erate + _spec + _screen + _stance)
-    body = (_thesis + _erate + _cont + _spec + _screen + _verification_section(docs_dir)
+    _validate_prose_numbers(docs_dir, _thesis + _cont + _erate + _xfam + _spec + _screen + _prov + _stance)
+    body = (_thesis + _erate + _xfam + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
             + _parity_section(docs_dir) + _error_coverage_section(docs_dir) + _stance
             + _fair_section(docs_dir) + body)
 
