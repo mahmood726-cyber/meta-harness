@@ -49,6 +49,20 @@ none by lowering the bar.**
   comparator). The continuous tier now carries **three dedicated guards** — a multi-arm fixed-dose
   refusal, a treatment-policy-vs-on-treatment estimand tiebreak, and a timepoint-consistency guard —
   each added the first time its trap was met, each with a regression test.
+- **The continuous tier is three pages, and it is three for a documented reason — bar-limited, not
+  effort-limited.** Growing it was attempted: **5 candidate topics were probed against their own posted
+  ClinicalTrials.gov results and 5 were declined, each with a named reason.** Regulatory efficacy endpoints
+  (FEV1, blood pressure, HbA1c) are posted as least-squares means with standard errors (ANCOVA), which the
+  harness refuses rather than silently convert (roflumilast, tiotropium, renal-denervation); symptom scales
+  vary in instrument, timepoint and design, so no same-scope pool of ≥2 forms (pregabalin pain; liraglutide
+  obesity is multi-arm / different timepoints). A topic builds cleanly only when one registered outcome with
+  raw per-arm mean/SD is reported at one common timepoint across same-scope two-arm trials. This is the same
+  claim as the binary thesis from a new angle: **where we pool less, it is a stated bar, shown not asserted.**
+- **The clearest single illustration of the standard: semaglutide gave up significance to keep timepoints
+  consistent.** It went from **k=4, a tight and significant pool**, to **k=2, MD −11.84% (95% CI −25.13 to
+  1.44)** — an interval that crosses zero — because the timepoint-consistency guard refused to pool two
+  Week-44 trials into the pre-registered Week-68 outcome. No comparator reports having made that trade;
+  ours is on the page and in the parity table.
 - **Blind-judged — restated on the FAIR basis.** The original abstract-based comparison gave 15 clean
   wins / 0 / 0. The **fair full-text re-judge (8-topic sample, order-randomised)** supersedes that with
   a domain split: our pages are more **auditable on 8/8** (search reproducibility, per-number
@@ -183,10 +197,13 @@ mis-pools were caught during the run — every one by verification, not by a gat
   the growth path, not retrofitting the binary topics.
 - **A fully-fair blind judge across all 29** (not just the countable PRISMA + an 8-topic sample).
 - **GRADE certainty and a specification curve** are not built.
-- **1 error-library check remains unbuilt (ME-32)**: per-trial conflict-of-interest / industry-funding is
-  not extracted or disclosed. The other 31 documented meta-analysis errors are enforced (gate limbs,
-  regression tests, or rendered disclosures) — including the cluster/crossover unit-of-analysis disclosure
-  and the shared-control double-count gate limb added this session.
+- **Error-library coverage is now complete: 33 of 33, 0 NOT_CHECKED.** The last gap (ME-32, per-trial
+  conflict-of-interest / industry-funding) is now a RENDERED per-trial disclosure: `harness/funding.py`
+  classifies each pooled trial's funding source (industry / public-non-profit / mixed / not-stated) from a
+  verbatim statement in the committed full text or abstract, and the page shows it with the span and the
+  industry-funded count — disclosed, not adjusted (the per-trial bias magnitude is not quantifiable from a
+  funding line), never inferred. Every documented meta-analysis error is now a gate limb, a regression test,
+  or a rendered disclosure; every live review is screened against 32–33 of the 33.
 - **9 mixed-scale pools** are disclosed and labelled consistently but not resolved to a common estimand
   (HR/RR/IRR pooled on the log scale as ratio-of-risk approximations, as the comparators do).
 
