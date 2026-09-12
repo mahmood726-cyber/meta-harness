@@ -488,6 +488,45 @@ def check_prespecification_in_protocol(review_dir):
     return reasons
 
 
+def check_population_identity(review_dir):
+    """No POOLED trial may match the topic's population_none (external audit: colchicine-postop pooled
+    non-cardiac COP-AF/Bessissow though I2 was cardiac surgery). If a pooled trial's own record matches
+    an exclusion term, it leaked past screening into the pool — refuse. Deterministic; uses the same
+    matcher as the screen so it stays in lock-step."""
+    slug = os.path.basename(os.path.normpath(review_dir))
+    cfg_p = os.path.join(ROOT, "topics", f"{slug}.json")
+    rec_p = os.path.join(ROOT, "cache", slug, "records.json")
+    rev_p = os.path.join(review_dir, "review.json")
+    if not (os.path.exists(cfg_p) and os.path.exists(rec_p) and os.path.exists(rev_p)):
+        return []
+    try:
+        from harness.screen import _has, _poptext
+        cfg = json.load(open(cfg_p, encoding="utf-8"))
+        recs = {str(r.get("id")): r for r in json.load(open(rec_p, encoding="utf-8")).get("records", [])}
+        rev = json.load(open(rev_p, encoding="utf-8"))
+    except (OSError, ValueError, ImportError):
+        return []
+    pop_none = (cfg.get("include") or {}).get("population_none") or []
+    if not pop_none:
+        return []
+    reasons = []
+    seen = set()
+    for o in rev.get("outcomes", []):
+        for t in o.get("trials", []):
+            lab = str(t.get("label"))
+            if lab in seen:
+                continue
+            seen.add(lab)
+            rec = recs.get(lab)
+            if not rec:
+                continue
+            bad = _has(_poptext(rec), pop_none)
+            if bad:
+                reasons.append(f"population identity: pooled trial {lab} matches the exclusion term "
+                               f"'{bad}' (population_none) — it leaked past screening into the pool.")
+    return reasons
+
+
 def gate_page(review_dir):
     """Return (ok: bool, reasons: list[str]). ok == True only if both limbs pass."""
     try:
@@ -508,6 +547,7 @@ def gate_page(review_dir):
                + check_retraction(review_dir)
                + check_duplicate_publication(review_dir, manifest)
                + check_prespecification_in_protocol(review_dir)
+               + check_population_identity(review_dir)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons
 

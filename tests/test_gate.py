@@ -297,6 +297,35 @@ def test_prespecification_limb_refuses_uncited_rule_and_passes_amendment():
             os.remove(pr)
 
 
+from harness.gate import check_population_identity  # noqa: E402
+
+
+def test_population_identity_limb_refuses_a_leaked_off_population_trial():
+    # A pooled trial whose own record matches the topic's population_none leaked past screening — refuse.
+    import shutil
+    slug = "__control_popident"
+    rd = os.path.join(GATE_ROOT, "docs", "reviews", slug)
+    tp = os.path.join(GATE_ROOT, "topics", f"{slug}.json")
+    cd = os.path.join(GATE_ROOT, "cache", slug)
+    try:
+        os.makedirs(rd, exist_ok=True); os.makedirs(cd, exist_ok=True)
+        json.dump({"slug": slug, "include": {"population_none": ["non-cardiac surgery"]}},
+                  io.open(tp, "w", encoding="utf-8"))
+        json.dump({"records": [{"id": "999", "title": "Colchicine after non-cardiac surgery", "abstract": ""}]},
+                  io.open(os.path.join(cd, "records.json"), "w", encoding="utf-8"))
+        json.dump({"outcomes": [{"primary": True, "trials": [{"label": "999"}]}]},
+                  io.open(os.path.join(rd, "review.json"), "w", encoding="utf-8"))
+        assert check_population_identity(rd), "a pooled trial matching population_none must be refused"
+        # remove the offending trial from the pool -> passes
+        json.dump({"outcomes": [{"primary": True, "trials": []}]},
+                  io.open(os.path.join(rd, "review.json"), "w", encoding="utf-8"))
+        assert check_population_identity(rd) == []
+    finally:
+        shutil.rmtree(rd, ignore_errors=True); shutil.rmtree(cd, ignore_errors=True)
+        if os.path.exists(tp):
+            os.remove(tp)
+
+
 def test_pivotal_check_is_optin():
     # a topic with no pivotal_trials declared is unaffected (absence != enforcement)
     assert check_pivotal_present({"slug": "colchicine-postop-af"}) == []
