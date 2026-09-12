@@ -49,7 +49,42 @@ def test_scan_pooled_reports_not_stated_when_silent():
     out = funding.scan_pooled(review, rec)
     by = {f["id"]: f for f in out}
     assert by["PMID 1"]["type"] == "industry"
-    assert by["PMID 2"]["type"] == "not stated in source"
+    # abstract-only scan: absence must be labelled as such, not as "independently funded"
+    assert by["PMID 2"]["type"].startswith("not stated (abstract only")
+    assert by["PMID 2"]["scanned"] == "abstract only"
+
+
+def test_scan_depth_distinguishes_fulltext_silence_from_abstract_only():
+    review = {"outcomes": [{"primary": True, "trials": [{"id": "PMID 5"}]}]}
+    rec = {"5": {"title": "T", "abstract": "no funding line"}}
+    # full text present and genuinely silent -> "not stated (full text scanned)"
+    ft = {"5": "Full text with methods and results but no funding or COI statement anywhere."}
+    out = funding.scan_pooled(review, rec, ft)
+    assert out[0]["type"] == "not stated (full text scanned)" and out[0]["scanned"] == "full text"
+    # no full text -> abstract-only label
+    out2 = funding.scan_pooled(review, rec)
+    assert out2[0]["type"].startswith("not stated (abstract only") and out2[0]["scanned"] == "abstract only"
+
+
+def test_industry_drug_supply_in_investigator_initiated_trial():
+    # publicly funded / investigator-initiated but study drug donated by industry: surfaced, not lost
+    txt = ("This investigator-initiated trial. The study drug and matching placebo were provided by "
+           "Novartis. No other external funding was received.")
+    d = funding.detect(txt)
+    assert d is not None and "industry" in d["type"]
+
+
+def test_drug_supply_note_on_publicly_funded_trial():
+    txt = "This work was funded by the National Institutes of Health; study drug was supplied by Merck."
+    d = funding.detect(txt)
+    assert d["type"] == "public/non-profit"
+    assert d.get("note") and "industry" in d["note"]
+
+
+def test_funding_pointer_to_supplement_is_not_silence():
+    txt = "Methods... Funding details are provided in the Supplementary Appendix."
+    d = funding.detect(txt)
+    assert d is not None and "supplement" in d["type"].lower()
 
 
 def test_scan_pooled_prefers_full_text():

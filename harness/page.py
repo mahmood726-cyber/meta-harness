@@ -783,25 +783,43 @@ def _riskofbias(r, neutral):
     fund = r.get("funding") or []
     fund_html = ""
     if fund:
-        _order = {"industry": 0, "mixed": 1, "public/non-profit": 2, "declared (source unclassified)": 3,
-                  "not stated in source": 4}
+        def _ord(t):
+            t = t or ""
+            if t.startswith("industry"):
+                return 0
+            if t == "mixed":
+                return 1
+            if t.startswith("public"):
+                return 2
+            if t.startswith("declared") or t.startswith("stated"):
+                return 3
+            return 4  # not stated (either depth)
+        def _celltype(f):
+            return _e(f.get("type")) + (f"<br><em>{_e(f.get('note'))}</em>" if f.get("note") else "")
         rows = "".join(
-            f"<tr><td>{_e(f.get('id'))}</td><td>{_e(f.get('type'))}</td>"
-            f"<td>{_e(f.get('source'))}</td><td>{_e(f.get('span'))}</td></tr>"
-            for f in sorted(fund, key=lambda f: _order.get(f.get("type"), 9)))
-        n_ind = sum(1 for f in fund if f.get("type") in ("industry", "mixed"))
-        n_ns = sum(1 for f in fund if f.get("type") == "not stated in source")
+            f"<tr><td>{_e(f.get('id'))}</td><td>{_celltype(f)}</td>"
+            f"<td>{_e(f.get('scanned') or f.get('source'))}</td><td>{_e(f.get('span'))}</td></tr>"
+            for f in sorted(fund, key=lambda f: _ord(f.get("type"))))
+        n_ind = sum(1 for f in fund if (f.get("type") or "").startswith("industry")
+                    or f.get("type") == "mixed" or f.get("note"))
+        n_ns_ft = sum(1 for f in fund if (f.get("type") or "").startswith("not stated (full text"))
+        n_ns_ab = sum(1 for f in fund if (f.get("type") or "").startswith("not stated (abstract"))
         fund_html = ("<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled "
                      "trial, from source — disclosed, not adjusted).</strong> Industry-funded trials are a "
                      "documented reporting-bias dimension (they tend to report more favourable results). For "
-                     f"each pooled trial the funding source is classified from a verbatim statement in the "
-                     f"committed source (full text preferred, abstract fallback): "
-                     f"<strong>{n_ind}</strong> industry/mixed-funded, and {n_ns} with no funding statement in "
-                     "the available source (reported as such rather than assumed). The harness <strong>does not "
-                     "adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a "
-                     "funding line) — it is disclosed so a reader can weigh it. Never inferred; a trial with no "
-                     "located statement is shown as 'not stated in source'."
-                     "<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Located in</th>"
+                     "each pooled trial the funding source is classified from a verbatim statement in the "
+                     "committed source (full text preferred, abstract fallback), including an industry "
+                     "<em>drug-supply</em> tie in an otherwise independently funded trial: "
+                     f"<strong>{n_ind} of {len(fund)}</strong> pooled trials are industry-funded or "
+                     "industry-tied (the industry-funded proportion of this pool, for comparison against a "
+                     "comparator's). Absence is labelled by how "
+                     f"deeply we looked — {n_ns_ft} with no funding statement in the <strong>full text</strong> "
+                     f"(genuinely silent) and {n_ns_ab} where only the <strong>abstract</strong> was available "
+                     "(full text not retrieved) — so 'not stated' is never presented as 'independently funded'. "
+                     "The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is "
+                     "not quantifiable from a funding line) — it is disclosed so a reader can weigh it. Never "
+                     "inferred."
+                     "<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Scanned</th>"
                      f"<th>Verbatim statement</th></tr>{rows}</table></div>")
     return (f"<p>{cover}</p>" + uoa_html + fund_html
             + "<p>Per-pooled-trial RoB2 risk of bias, computed from what is machine-available "
