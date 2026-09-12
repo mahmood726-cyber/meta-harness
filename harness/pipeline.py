@@ -751,6 +751,7 @@ def build_review_core(slug, config, records, protocol_sha):
         "comparator": comparator,
         "estimand_exclusions": config.get("estimand_exclusions", []),
         **({"comparator_scope_note": config["comparator_scope_note"]} if config.get("comparator_scope_note") else {}),
+        **({"evidence_base_caveat": config["evidence_base_caveat"]} if config.get("evidence_base_caveat") else {}),
         **({"rob2": _rb} if (_rb := _load_rob2(slug)) else {}),
         **({"integrity": _integ} if (_integ := _load_integrity(slug)) else {}),
         # Unit-of-analysis disclosure (ME-26/27): pooled trials with a cluster-randomized or crossover
