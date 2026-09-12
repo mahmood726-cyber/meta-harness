@@ -12,6 +12,21 @@ live URL to confirm — a landing is not landed until read live.
 
 ## Priority queue (highest value first)
 
+0. **P0 — fix the confirmed omega3 ORIGIN wrong-endpoint (a wrong number is live).** In
+   `omega3-cardiovascular-events`, ORIGIN (PMID 22686415) is pooled as its PRIMARY outcome "death from
+   cardiovascular causes" (HR 0.98) under our MACE / major-vascular-events outcome; the correct value is the
+   major-vascular-events HR **1.01** (1034/6239 vs 1017/6266), stated in the same abstract. Magnitude is
+   negligible (both null) but it is the wrong endpoint. **Constraints learned this session (do not repeat):**
+   a broad "prefer specific keyword over generic 'primary outcome' anchor" reordering REGRESSES sglt2-ckd
+   (flips CREDENCE from its intended primary composite 0.70 to a renal-specific sub-composite 0.66,
+   inconsistent with DAPA-CKD/EMPA-KIDNEY); removing the generic keywords from the omega3 topic breaks 4
+   other omega3 trials that legitimately match on "primary outcome". A SAFE fix is one of: (a) tighten
+   `extract._effective_kws` so the generic anchor is disabled when the trial's stated primary-definition
+   endpoint does not match our outcome by MORE than a single generic disease word (ORIGIN's "death from
+   cardiovascular causes" shares only "cardiovascular" with MACE) — then reproduce ALL 29 and confirm ONLY
+   omega3 moves; or (b) a committed per-(trial,outcome) override that beats the abstract for ORIGIN only.
+   Verify against source, reproduce all 29, gate, push, confirm live.
+
 1. **Adversarial per-trial source re-verification of the remaining ~19 topics** (the oldest 10 are done, see
    JUDGELOG cycle 75). For each pooled trial in each remaining topic, check against `cache/<slug>/records.json`:
    number-in-source, arm identity (not swapped/inverted), scale/estimand match, subgroup (whole-trial not a

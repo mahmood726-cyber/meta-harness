@@ -206,6 +206,16 @@ mis-pools were caught during the run — every one by verification, not by a gat
   comparator** (it edges us). The comparator is more **complete on 28/28** (larger k). Those two losses
   are rendered on the index, not hidden — the full-set read is stronger than the 11-topic sample precisely
   because it surfaces them. This closes the item that was open at the 11-topic stage.
+- **Early-page audit (oldest 10 + corpus-wide) — 3 defects found, 2 fixed live, 1 queued.** A deterministic
+  scan (no undisclosed cluster/crossover; no unlabeled scale-mix; 3 factorials all marginal-pooled; per-topic
+  coverage 32–33/33) plus an adversarial per-trial source re-read (offline Codex) of the oldest topics found
+  three wrong numbers. Two were corrected and pushed this session: END-AF (27502857) AF denominators
+  180/180 → 179/181 (abstract states 179/181; 26/179=14.5% exact), and COPPS-2 (25172965) treatment-
+  discontinuation, which had pooled adverse-event counts (the abstract gives no discontinuation count) —
+  now declared-absent via a general null-result-clause guard. One remains: omega3 ORIGIN (22686415) pools
+  its CV-death primary (HR 0.98) under our MACE outcome instead of the stated major-vascular-events HR 1.01
+  (negligible magnitude, both null); a safe fix is queued P0 in `CODEX_QUEUE.md` because the obvious broad
+  fix regresses sglt2-ckd. Finding them now, and stating the one still open, is the point.
 - **GRADE certainty and a specification curve** are not built.
 - **The record is committed but NOT deployed.** All of this is committed to local `main`, which is ~37
   cycles ahead of `origin/main` (the GitHub Pages source): the live site serves but reflects an earlier
