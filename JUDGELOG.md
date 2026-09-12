@@ -533,3 +533,27 @@ Both dry-build to k=None (empty pooled set) from Codex's config — verify-befor
 Both DEFERRED with named reasons rather than shipped empty or rushed. Pattern confirmed: every Codex
 scaffold this run had a real flaw its config missed (sacubitril fixed+shipped; hfnc/metformin/cort-cap
 deferred). A generated config is a hypothesis, not a specification.
+
+## Cycle 43-44 — full-text acquisition BUILT (tables + supplements); melatonin LIVE (continuous); zinc RE-DECLINED at full text (2026-09-12)
+The shared blocker was acquisition. Built harness/fulltext.py: PMC OA body + STRUCTURED tables (each
+<table-wrap> rendered row-by-row so a per-arm value keeps its column labels, not itertext soup) +
+supplementary spreadsheet/CSV extraction (openpyxl/csv, values-only, bounded) via the PMC OA .tar.gz
+package (opt-in fulltext_supplements:true). Every guard stays in front — the number is never taken from
+the acquisition layer; the existing locate→parse→round-trip→refuse path runs on the legible text.
+- **melatonin-primary-insomnia-sol → LIVE (27th), the FIRST continuous-outcome page.** Added a CONTINUOUS
+  branch to extract_ctgov: a MEAN outcome measure with dispersion "Standard Deviation" yields per-arm
+  mean/SD/n verbatim from CT.gov structured results (refuses SE/CI/IQR — no silent conversion). NCT00397189
+  (Wade, prolonged-release melatonin, primary insomnia, subjective sleep-onset latency): Circadin −19.1
+  (SD 47.3, n=137) vs placebo −1.7 (SD 47.8, n=144) → MD −17.4 min (95% CI −28.5 to −6.28), k=1, verified
+  against the structured source. Honest single-trial (no RE machinery). verify.py continuous branch
+  hardened to check per-arm mean+SD digits are in the source (was trusting mean1 unconditionally).
+- **zinc-common-cold-duration → RE-DECLINED at the full-text level (stronger evidence).** Ran the new
+  path on the screened-in set. The cleanest modern preregistered RCT with PMC OA full text (Rao 2020,
+  31980506) reports MEDIANS ONLY (placebo 5 vs zinc 7 days) with ZERO IQR/quartile/SD anywhere in body,
+  tables OR supplements, capturing the effect via Kaplan–Meier/HR; the older trials (23930726, 16982486)
+  are not in PMC OA at all. So even full text + tables + supplements carry no per-arm dispersion — the MD
+  variance still cannot be computed without imputing from a curve, which is exactly what we decline. The
+  decline stands, now confirmed at full text: "we decline where they imputed" is not an abstract-level
+  limitation here, it is true of the primary sources. (Screening also surfaced that a meta-analysis
+  32342851, a methods paper 18279051 and a diabetes paper 11441324 slip into the included set — a
+  separate screening-precision note for the zinc topic, not relevant to the variance decline.)
