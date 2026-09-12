@@ -101,15 +101,20 @@ mis-pools were caught during the run — every one by verification, not by a gat
 
 ## What remains NOT done (plainly)
 
-- **Fair blind LLM re-judge**: running at snapshot time; the clean count must be restated on the
-  fair full-text basis, whatever it is.
-- **`recall.json` per-topic reach metric is stale** vs the post-dedup pooled sets; needs a
-  backoff+parallel refresh.
-- **7 preregistered topics unbuilt** (beyond the 26): the remaining scaffolds were not attempted or
-  are declines; each needs verify-before-build.
+- **7 preregistered topics remain declined, each for a verified, source-grounded reason** (recorded in
+  `JUDGELOG.md`): zinc & melatonin (continuous — abstracts carry no per-arm SD/IQR; the MD variance
+  lives in full text); azithromycin & the iv-iron recurrent-event class (rates without per-arm
+  events+person-time); prone-positioning (k=2 with extreme severity heterogeneity — a single pooled CI
+  is reader-hostile without severity stratification); antibiotics-vs-appendectomy (the preregistered
+  1-year outcome is not in the accessible abstract, and a CT.gov substring grabbed a wrong outcome);
+  vitamin-D (a k=1 abstract page would misrepresent a ~25-RCT field). Each needs the **same deferred
+  capability — per-trial OA full-text acquisition with outcome-identity hardening** — which the log
+  keeps un-rushed precisely because it is where wrong numbers hide. They stay declined, not forced.
 - **A fully-fair blind judge across all 26** (not just the countable PRISMA + an 8-topic sample).
 - **GRADE certainty, specification curve, and broader unit-of-analysis guards** (only duplicate-
   publication is enforced) are not built.
+- **9 mixed-scale pools** are disclosed and labelled consistently but not resolved to a common estimand
+  (HR/RR/IRR pooled on the log scale as ratio-of-risk approximations, as the comparators do).
 - **RE-LY / ENGAGE multi-dose arm-selection** is flagged as a refinement, not resolved by a
   pre-specified dose rule.
 
