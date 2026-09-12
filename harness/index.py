@@ -150,7 +150,7 @@ def _error_rate_section(docs_dir: str) -> str:
         d = json.load(open(p, encoding="utf-8"))
     except (OSError, ValueError):
         return ""
-    pop = d.get("population")
+    pop = d.get("census_population") or d.get("population")
     rv = d.get("independently_reverified")
     ex = d.get("exact_match")
     dis = d.get("disagreements_pre_adjudication")
@@ -169,7 +169,9 @@ def _error_rate_section(docs_dir: str) -> str:
             f"measured it: all <strong>{pop}</strong> pooled numbers were independently re-extracted from the "
             f"committed source by an offline checker <strong>blind to the stored value</strong>, then compared "
             f"deterministically. <strong>{rv} of {pop}</strong> were re-extractable from the same source the "
-            f"checker was given; <strong>{ex} of {rv} matched exactly</strong>. The "
+            f"checker was given; <strong>{ex} of {rv} matched exactly</strong> (&lsquo;exactly&rsquo; = the "
+            f"effect and both confidence limits agree to the rounding of the source's printed precision, and "
+            f"counts agree as integers). The "
             f"<strong>{dis}</strong> disagreements were hand-adjudicated against source: on adjudication "
             f"<strong>{err}</strong> was a genuine error on our side "
             f"(a gastrointestinal-adverse-event outcome that had pooled the trial's OVERALL adverse-event "
@@ -181,8 +183,12 @@ def _error_rate_section(docs_dir: str) -> str:
             f"are not counted as verified here. <strong>The pre-adjudication disagreement rate was {dis} of "
             f"{rv}</strong>"
             + (f" (Wilson 95% CI {round(lo*100,1)}&ndash;{round(hi*100,1)}%)" if lo is not None else "")
-            + ". This is the single most important number the project lacked, and it is now measured, "
-            f"adjudicated, and reproducible from <code>scripts/error_rate_compare.py</code>.</p></div>")
+            + ". <strong>The honest caveat that makes this credible:</strong> the blind checker and the "
+            "extractor share a model architecture, so this is an <strong>internal-consistency</strong> "
+            "measure, not an independent accuracy estimate &mdash; a genuinely independent, cross-family "
+            "(non-Claude) re-extraction is the stronger check, and is being built. It is nonetheless the "
+            "single most important number the project lacked, and it is measured, adjudicated, and "
+            "reproducible from <code>scripts/error_rate_compare.py</code>.</p></div>")
 
 
 def _screen_section(docs_dir: str) -> str:
@@ -392,7 +398,8 @@ def _prose_derived_numerals(docs_dir: str) -> set:
     if os.path.exists(ep):
         try:
             e = json.load(open(ep, encoding="utf-8"))
-            for v in (e.get("population"), e.get("independently_reverified"), e.get("exact_match"),
+            for v in (e.get("population"), e.get("census_population"), e.get("current_pooled_population"),
+                      e.get("independently_reverified"), e.get("exact_match"),
                       e.get("disagreements_pre_adjudication"), e.get("confirmed_our_errors_after_adjudication"),
                       e.get("not_recheckable_from_abstract")):
                 if isinstance(v, int):

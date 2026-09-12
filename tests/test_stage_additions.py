@@ -109,10 +109,12 @@ def test_error_rate_banner_numbers_are_object_derived():
     if not os.path.exists(os.path.join(DOCS, "error_rate.json")):
         return
     d = json.load(open(os.path.join(DOCS, "error_rate.json"), encoding="utf-8"))
+    census = d.get("census_population") or d["population"]
     html = IDX.build_index(DOCS)
     assert "measured our own error rate" in html
-    assert f"{d['independently_reverified']} of {d['population']}" in html
+    assert f"{d['independently_reverified']} of {census}" in html
     assert f"{d['exact_match']} of {d['independently_reverified']} matched exactly" in html
+    assert "internal-consistency" in html  # the shared-architecture caveat must be stated
 
 
 def test_error_rate_passes_prose_guard():
