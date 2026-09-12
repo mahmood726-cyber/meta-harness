@@ -133,6 +133,35 @@ wrong number (each is disclosed or a config-metadata label), so they are polish,
 # FORWARD PLAN — per-stage weakness assessment + improvement plan (cycle 75, object-derived)
 # ===================================================================================
 #
+# STATUS (cycle 77 — cross-family independence + corpus-growth preregistration):
+#  [DONE] ⭐ CROSS-FAMILY INDEPENDENCE (fixes the deepest weakness 'everything is self-assessed'):
+#         Gemini 3.1 Pro via AGY (non-Claude, shares no architecture) re-extracted every pooled number from
+#         the same committed source. Agrees 84/90 comparable (93.3%); 3-family agreement (harness+GPT-5+Gemini)
+#         on 62; 0 wrong after adjudicating all 6 disagreements. scripts/crossfamily_compare.py, committed raw
+#         docs/crossfamily_raw.json (regenerates without re-calling), rendered on index. LIVE.
+#  [DONE] PROVENANCE metric (docs/provenance.json, 75/99 abstract) + 3 stated LIMITATIONS (OA-only comparators,
+#         self-hosted registration, own topic selection) + error-rate shared-architecture caveat. LIVE.
+#  [DONE] ERROR-RATE freshness guard + committed sample (docs/error_rate_sample.json). Screening kappa=0.84.
+#         Harms-row sweep (docs/harms_audit.json): 1 under-extraction fixed, 1 bar-held decline, rest correct.
+#  [DONE-BATCH] Preregistered 15-topic EXPANSION TIER (PREREGISTRATION_v2.md) before running; larger evidence
+#         bases + 5 declared-hard. dpp4-mace-t2d build lane piloted (caught CT.gov %-as-count + CAROLINA active
+#         comparator itself — verify-before-build working in-lane).
+#  REMAINING QUEUE (continue at 16+ lanes; fetch SERIALISED to avoid 429):
+#   - BUILD THE EXPANSION TIER: one lane per remaining topic (sglt2-primary-prevention-hf, ics-copd,
+#     statin-secondary, doac-vte, ppi-stress-ulcer, thrombectomy-stroke, aspirin-primary, beta-blocker-post-mi,
+#     ace-inhibitor-hfref, tirzepatide-weight, canagliflozin-amputation, remdesivir-covid, intensive-bp,
+#     vitamin-d-fracture). Author config+protocol from the template, fetch (serial), build, VERIFY every number
+#     vs source (a generated config is a hypothesis), gate, live, parity, blind judge. Declines are output.
+#   - COCHRANE HEAD-TO-HEAD (external gold standard): pick a topic where a Cochrane/OA review publishes its
+#     per-trial extracted data (RevMan data tables), extract theirs, compare our per-trial numbers to their
+#     HAND extraction trial-by-trial. Closest external validation without a human.
+#   - CROSS-FAMILY blind JUDGING (re-run page-vs-comparator judgement with a non-Claude judge) + cross-family
+#     SCREENING adjudication (fixes 'two rule sets share an author').
+#   - Complete-evidence-base LABEL where k is small because the literature is small (render as complete, not thin).
+#   - Cluster DESIGN-EFFECT correction (unit_of_analysis already flags; needs a stated ICC); SEARCH independent
+#     seed set (absolute recall); RoB2-from-methods with span sampling + agreement rate stated.
+#   - Drive the abstract share below 75/99 (promote abstract numbers to structured/full-text tiers).
+#
 # STATUS (cycle 76 — executed against the Codex budget; all pushed and verified live):
 #  [DONE] C1 / Stage-1 ERROR RATE — blind accuracy census (47 Codex lanes): 99 pooled numbers
 #         independently re-extracted from source BLIND to the stored value; 95/99 re-checkable, 92
