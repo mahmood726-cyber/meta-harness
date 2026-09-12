@@ -79,3 +79,20 @@ over the generic 'primary outcome' anchor" reorder regressed sglt2-ckd and broke
   `_validate_prose_numbers` (that is intended — derive it or whitelist it with a reason).
 - 33/33 error-library coverage; every pooled number verified against its committed source.
 - Never edit the gate to pass; never `--no-verify`; never work in `C:/rmfw`.
+
+## Extended-audit residue (cycle 75) — 2 findings QUEUED with evidence (verified, disclosed/nuanced, safe fix)
+Both are lower-severity than the 10 defects fixed this cycle (disclosed or metadata), queued to avoid a
+time-pressured regression like the reverted specific-over-generic reorder:
+- **sglt2-ckd-progression — resolve the disclosed mixed HR/RR pool to clean HR.** DAPA-CKD and EMPA-KIDNEY
+  are pooled from arm counts (RR) while CREDENCE is HR; the page LABELS the pool "mixed (HR/RR)" (disclosed,
+  not hidden). The trials report kidney-composite HRs directly (DAPA-CKD ~0.61 [0.51-0.72], EMPA-KIDNEY
+  ~0.72 [0.64-0.82] — VERIFY against each cached abstract for the exact kidney-composite HR and CI). Fix:
+  verified_effects override:true for DAPA-CKD (32970396) and EMPA-KIDNEY (36331190) to their published
+  kidney-composite HRs, AND confirm CREDENCE (30990260) is its primary-composite HR 0.70 (NOT the
+  renal-specific 0.66 — see cycle 75: that sub-composite is a different estimand and inconsistent with
+  DAPA/EMPA primaries). Result: a clean HR pool. Reproduce must move ONLY sglt2-ckd.
+- **noac-vs-warfarin ENGAGE-AF 60mg CI is 97.5%, treated as 95%.** The dose_selection entry stores HR 0.87
+  (0.73-1.04), but the source labels that a 97.5% CI ("hazard ratio, 0.87; 97.5% CI, 0.73 to 1.04"). Treating
+  a 97.5% CI as 95% understates the SE and overstates this trial's inverse-variance weight. Fix: either
+  convert the 97.5% CI to a 95% CI (z=1.96 vs 2.24: SE = (ln0.87-ln0.73)/2.24; 95% CI = exp(lnHR +/- 1.96*SE))
+  before storing, or add a per-trial ci_level field the synth path honours. Low magnitude, one trial.
