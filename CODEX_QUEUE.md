@@ -12,7 +12,7 @@ live URL to confirm — a landing is not landed until read live.
 
 ## Priority queue (highest value first)
 
-0. **P0 — fix the confirmed omega3 ORIGIN wrong-endpoint (a wrong number is live).** In
+0. **[DONE cycle 75] omega3 ORIGIN wrong-endpoint — FIXED via a verified-effects override tier.** In
    `omega3-cardiovascular-events`, ORIGIN (PMID 22686415) is pooled as its PRIMARY outcome "death from
    cardiovascular causes" (HR 0.98) under our MACE / major-vascular-events outcome; the correct value is the
    major-vascular-events HR **1.01** (1034/6239 vs 1017/6266), stated in the same abstract. Magnitude is

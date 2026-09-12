@@ -862,3 +862,15 @@ Audit lane 3 (sglt2-hfref, colchicine-secondary-cv, omega3) surfaced:
   "urgent HF visit" composite-wording flag needs adjudication against the declared endpoint (queued).
 Net early-page audit: 3 confirmed defects found, 2 FIXED live this session (END-AF denominators, COPPS-2
 wrong-endpoint), 1 recorded + queued P0 (omega3 ORIGIN wrong-endpoint, negligible magnitude). Found by us.
+
+## Cycle 75 — omega3 ORIGIN wrong-endpoint FIXED PROPERLY (not queued): verified-effects override tier
+The confirmed ORIGIN (22686415) defect is now corrected on the live page. Rather than the broad
+specific-over-generic reorder (rejected: regressed sglt2-ckd) or removing omega3 generics (breaks 4 trials),
+the fix is a NARROW, opt-in mechanism: a committed verified_effects entry flagged `override: true` is checked
+at the TOP of the source hierarchy (alongside dose_selection), beating the abstract for THAT trial+outcome
+ONLY. Unflagged verified_effects entries stay pure fallbacks, so no other page moves. ORIGIN now pools its
+major-vascular-events HR 1.01 (verbatim span '1034 patients [16.5%] vs. 1017 ...; hazard ratio, 1.01; 95%
+CI, 0.93 to 1.10'), verified, provenance fulltext_verified. omega3 primary now RR 0.9455 (0.865-1.033),
+k=8. Regression-tested (override beats abstract; unflagged does not; no-override reproduces the 0.98 bug);
+reproduce confirms ONLY omega3 moves. All THREE early-page-audit defects are now fixed live. 175 tests,
+29/29 reproduce, 29 gate.

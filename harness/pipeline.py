@@ -324,6 +324,21 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "dose": ds.get("dose"),
                            "source": ds.get("source", "pre-specified approved-dose arm (documented rule)")})
             continue
+        # HAND-VERIFIED ENDPOINT-CORRECTION OVERRIDE (opt-in, TOP of the hierarchy alongside dose): a
+        # committed verified_effects entry flagged `override: true` beats the abstract for THIS trial+outcome.
+        # Used ONLY when the abstract extractor selects the WRONG ENDPOINT (a number that is source-backed
+        # but for a different outcome than ours) and the correct value is hand-verifiable in the same source.
+        # ORIGIN (PMID 22686415): the abstract's "primary outcome" is death from cardiovascular causes
+        # (HR 0.98); our outcome is major vascular events, which the SAME abstract reports as HR 1.01. Scoped
+        # by the flag so ordinary (unflagged) verified_effects stay a pure fallback — no other page moves.
+        ve_over = (verified_effects or {}).get(d["id"])
+        if (ve_over and ve_over.get("override") and ve_over.get("outcome") == spec.get("name")
+                and ve_over.get("effect") is not None):
+            trials.append({"label": label, "id": idstr, "effect": ve_over["effect"],
+                           "ci_low": ve_over.get("ci_low"), "ci_high": ve_over.get("ci_high"),
+                           "scale": ve_over.get("scale", "HR"), "provenance": "fulltext_verified",
+                           "source": ve_over.get("source", "hand-verified endpoint correction (override)")})
+            continue
         # SOURCE HIERARCHY: the ABSTRACT headline (the authors' primary-outcome result, unambiguous)
         # first; CT.gov structured results as the FALLBACK when the abstract yields no extractable
         # number (bare %, composite-only). CT.gov-first was tried and REJECTED: outcome-measure
