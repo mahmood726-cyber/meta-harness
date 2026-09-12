@@ -64,3 +64,21 @@ def test_pivotal_limb_active_only_when_pivotals_declared():
     _, _, without = EL.coverage(review, {})
     _, _, withp = EL.coverage(review, {"pivotal_trials": ["12345"]})
     assert "ME-06" not in without and "ME-06" in withp
+
+
+def test_no_double_counted_trial_limb_refuses_a_repeated_trial():
+    """ME-25: a trial pooled twice within one outcome (shared-control double-count) must REFUSE; a
+    normal pool (distinct ids) passes. This limb is new, so the planted duplicate refuses where it
+    would have passed before it existed."""
+    import json as _json, os as _os, tempfile
+    d = tempfile.mkdtemp(prefix="mh-dc-")
+    dup = {"outcomes": [{"name": "Primary", "primary": True, "result": {"k": 2},
+                         "trials": [{"id": "PMID 1", "verified": "verified"},
+                                    {"id": "PMID 1", "verified": "verified"}]}]}
+    _json.dump(dup, open(_os.path.join(d, "review.json"), "w", encoding="utf-8"))
+    r = gate.check_no_double_counted_trial(d)
+    assert r and "more than once" in r[0]
+    ok = {"outcomes": [{"name": "Primary", "primary": True, "result": {"k": 2},
+                        "trials": [{"id": "PMID 1"}, {"id": "PMID 2"}]}]}
+    _json.dump(ok, open(_os.path.join(d, "review.json"), "w", encoding="utf-8"))
+    assert gate.check_no_double_counted_trial(d) == []

@@ -155,6 +155,35 @@ def check_pooled_verified(review_dir):
     return []
 
 
+def check_no_double_counted_trial(review_dir):
+    """Unit-of-analysis: no trial may be pooled more than once WITHIN an outcome (multi-arm shared-control
+    double-counting, ME-25). The harness contributes one effect per trial and the multi-arm guard refuses
+    un-ruled dose selection, so a trial never enters an outcome's pool twice — this asserts that structural
+    guarantee: if the same trial id appears twice in one outcome's pooled set (e.g. two arms of a 3-arm trial
+    both pooled against the shared control), REFUSE (the control would be counted twice, inflating weight)."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1: no review.json to check unit-of-analysis double-counting"]
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json: {exc}"]
+    bad = []
+    for o in rev.get("outcomes", []) or []:
+        seen = {}
+        for t in o.get("trials", []) or []:
+            tid = str(t.get("id", "")).strip()
+            seen[tid] = seen.get(tid, 0) + 1
+        for tid, n in seen.items():
+            if n > 1:
+                bad.append(f"{tid} pooled {n}x in {o.get('name')!r} (shared-control double-count)")
+    if bad:
+        return [f"L1: a trial is pooled more than once within an outcome — a unit-of-analysis "
+                f"(shared-control) double-count that inflates its weight: {'; '.join(bad[:6])}"]
+    return []
+
+
 def check_cache_tracked(manifest):
     """A page replays from its committed cache, so that cache MUST be git-tracked — an untracked
     cache means a fresh clone cannot reproduce the page (this silently broke empagliflozin: the
@@ -369,6 +398,7 @@ def gate_page(review_dir):
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
                + check_pooled_verified(review_dir)
+               + check_no_double_counted_trial(review_dir)
                + check_pivotal_present(manifest)
                + check_controls(review_dir, manifest)
                + check_cross_source(review_dir)

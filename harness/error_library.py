@@ -94,9 +94,10 @@ LIBRARY = [
      "registry-first recall metric per topic (recovered X/Y of known); reach vs inclusion distinguished",
      "recall.json; Search tab"),
     # --- NOT YET CHECKED — the work queue, in severity order ---
-    ("ME-25", "Unit-of-analysis: multi-arm SHARED-CONTROL double-counting in one pool", NOT_CHECKED, False,
-     "multi-arm dose selection is guarded, but two arms of one trial pooled against a shared control "
-     "(control counted twice) is NOT yet detected", "WORK QUEUE (severity: high — inflates weight/precision)"),
+    ("ME-25", "Unit-of-analysis: multi-arm SHARED-CONTROL double-counting in one pool", GATE_LIMB, True,
+     "gate.check_no_double_counted_trial — REFUSE if a trial id is pooled more than once within an outcome "
+     "(one-effect-per-trial + the multi-arm guard prevent it; this asserts the guarantee structurally)",
+     "test_gate/test_error_library planted-duplicate refuses"),
     ("ME-26", "Unit-of-analysis: cluster-randomised trial without design-effect inflation", RENDERED, True,
      "unit_of_analysis.detect flags a pooled cluster-randomized trial from its committed abstract; the page "
      "DISCLOSES that patient-level counts are pooled without an ICC design-effect (optimistic precision) — "
