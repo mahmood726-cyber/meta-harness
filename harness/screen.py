@@ -202,7 +202,8 @@ def screen_record(rec, inc, neg_pmids):
     anchor = inc.get("intervention_in_title") and rec["id_type"] == "pmid"
     itext = _poptext(rec) if anchor else text
     itext_raw = raw_pop if anchor else raw_all
-    if inc.get("intervention_any") and not _has_intervention(itext, inc["intervention_any"]):
+    matched_int = _has_intervention(itext, inc["intervention_any"]) if inc.get("intervention_any") else None
+    if inc.get("intervention_any") and not matched_int:
         return ("exclude", "X3",
                 f"the randomised intervention is not {inc['intervention_any']} "
                 f"(not named in title/conditions; an incidental abstract mention does not qualify).",
@@ -220,10 +221,16 @@ def screen_record(rec, inc, neg_pmids):
     comp_span = _span(raw_all, comp) if comp else ""
     ev = "; ".join(s for s in (f"population “{pop_span}”" if pop_span else "",
                                f"comparator “{comp_span}”" if comp_span else "") if s)
+    # Reason built from the ACTUAL matched terms of THIS record, never a fixed template: an external
+    # audit found the old reason hard-coded intervention_any[0] ('RCT of sitagliptin' on every DPP-4
+    # trial, including alogliptin/saxagliptin ones) and claimed 'double-blind placebo-controlled' even
+    # for non-blindable interventions (prone positioning). Design clause reflects what was required.
+    design_clause = ("double-blind/placebo-controlled RCT" if inc.get("design_double_blind")
+                     else "randomised controlled trial")
     return ("include", "INCLUDE",
-            f"RCT of {inc.get('intervention_any',['intervention'])[0]} vs "
-            f"{inc.get('comparator_any',['control'])[0]} in {popok or 'the target population'}; "
-            f"double-blind placebo-controlled — P/I/C/design met.",
+            f"eligible {design_clause}: intervention {matched_int or '(as configured)'}, "
+            f"comparator {comp or '(as configured)'}, population {popok or 'the target population'} "
+            f"— P/I/C/design met.",
             ev or _quote(raw_pop))
 
 

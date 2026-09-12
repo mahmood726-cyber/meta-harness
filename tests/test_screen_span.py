@@ -104,6 +104,31 @@ def test_has_does_not_match_substring_inside_a_word():
     assert _has("a mouse model of colitis", ["model"]) == "model"
 
 
+def test_include_reason_names_the_actual_matched_intervention_not_the_first_config_term():
+    # External audit (DPP-4): the INCLUDE reason hard-coded intervention_any[0], so an alogliptin
+    # trial read 'RCT of sitagliptin'. The reason must name the intervention THIS record matched.
+    inc = {"population_any": ["type 2 diabetes"], "intervention_any": ["sitagliptin", "alogliptin"],
+           "intervention_in_title": True, "comparator_any": ["placebo"], "design_double_blind": True}
+    dec, rule, reason, span = screen_record(
+        _rct(title="Alogliptin after acute coronary syndrome in type 2 diabetes",
+             abstract="double-blind, placebo-controlled trial"), inc, set())
+    assert rule == "INCLUDE"
+    assert "alogliptin" in reason and "sitagliptin" not in reason
+
+
+def test_include_reason_design_clause_reflects_requirement():
+    # A topic that does NOT require double-blinding (e.g. prone positioning) must not have the reason
+    # claim 'double-blind placebo-controlled' — that is false for a non-blindable intervention.
+    inc = {"population_any": ["acute respiratory distress"], "intervention_any": ["prone position"],
+           "intervention_in_title": True, "comparator_any": ["supine"]}
+    dec, rule, reason, span = screen_record(
+        _rct(title="Prone position vs supine in acute respiratory distress syndrome",
+             abstract="randomised trial"), inc, set())
+    assert rule == "INCLUDE"
+    assert "double-blind" not in reason and "placebo-controlled" not in reason
+    assert "randomised controlled trial" in reason
+
+
 def test_has_stem_star_matches_word_continuations():
     # An explicit trailing '*' marks an intended stem: 'diarr*' matches diarrhoea/diarrhea,
     # while a bare term stays whole-word.
