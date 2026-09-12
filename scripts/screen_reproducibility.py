@@ -68,9 +68,14 @@ def main():
     k = kappa(tp, fp, fn, tn)
     sens = tp / (tp + fn) if (tp + fn) else None       # blind recovers our includes
     spec = tn / (tn + fp) if (tn + fp) else None       # blind agrees on our excludes
-    out = {"_doc": "Independent blind (model-assisted) screener vs the committed rule-screener over pooled "
-                   "records. Screening REPRODUCIBILITY, not accuracy vs a human gold standard.",
-           "n_decided": decided, "n_unclear_blind": unclear, "n_missing_from_blind": missing,
+    out = {"_doc": "Independent blind (model-assisted) screener vs the committed rule-screener. Screening "
+                   "REPRODUCIBILITY, not accuracy vs a human gold standard. DENOMINATOR: kappa is over "
+                   "records that carry an abstract in the record cache (the blind screener reads title+"
+                   "abstract only); records with no abstract text (CT.gov/citation-chase entries) could not "
+                   "be shown to the blind screener and are reported separately as not-assessable, never "
+                   "silently dropped from the base.",
+           "n_decided": decided, "n_unclear_blind": unclear,
+           "n_not_assessable_no_abstract_text": missing,
            "tp_both_include": tp, "fp_blind_include_ours_exclude": fp,
            "fn_blind_exclude_ours_include": fn, "tn_both_exclude": tn,
            "raw_agreement": round(agree, 4) if agree is not None else None,

@@ -156,12 +156,16 @@ def _error_rate_section(docs_dir: str) -> str:
     dis = d.get("disagreements_pre_adjudication")
     err = d.get("confirmed_our_errors_after_adjudication")
     nr = d.get("not_recheckable_from_abstract")
+    when = d.get("measured_utc")
     lo, hi = (d.get("disagreement_wilson95") or [None, None])[:2]
     if pop is None:
         return ""
+    prov = (f"<em>Measured on {_E(when)} against the {pop} pooled numbers committed at that time "
+            f"(the sample is committed in <code>docs/error_rate_sample.json</code>); a freshness invariant "
+            f"refuses a stale figure if the pooled population changes.</em> " if when else "")
     return (f"<div class='banner'><h2>We measured our own error rate (no meta-analysis reports this about "
             f"itself)</h2>"
-            f"<p>Every claim the harness makes rests on the assumption that its numbers are right. So we "
+            f"<p>{prov}Every claim the harness makes rests on the assumption that its numbers are right. So we "
             f"measured it: all <strong>{pop}</strong> pooled numbers were independently re-extracted from the "
             f"committed source by an offline checker <strong>blind to the stored value</strong>, then compared "
             f"deterministically. <strong>{rv} of {pop}</strong> were re-extractable from the same source the "
@@ -179,6 +183,38 @@ def _error_rate_section(docs_dir: str) -> str:
             + (f" (Wilson 95% CI {round(lo*100,1)}&ndash;{round(hi*100,1)}%)" if lo is not None else "")
             + ". This is the single most important number the project lacked, and it is now measured, "
             f"adjudicated, and reproducible from <code>scripts/error_rate_compare.py</code>.</p></div>")
+
+
+def _screen_section(docs_dir: str) -> str:
+    """Screening reproducibility from docs/screen_reproducibility.json: an independent blind (model)
+    screener vs the rule-screener, Cohen's kappa over abstract-bearing records. Object-derived."""
+    p = os.path.join(docs_dir, "screen_reproducibility.json")
+    if not os.path.exists(p):
+        return ""
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    nd = d.get("n_decided")
+    k = d.get("cohens_kappa")
+    agree = d.get("raw_agreement")
+    sens = d.get("sensitivity_blind_vs_ours")
+    na = d.get("n_not_assessable_no_abstract_text")
+    if nd is None or k is None:
+        return ""
+    return (f"<div class='banner'><h2>Screening reproducibility, measured against an independent blind "
+            f"screener</h2>"
+            f"<p>An independent screener &mdash; blind to our decision, working from title and abstract "
+            f"against the same eligibility criteria &mdash; re-screened the pooled records. Over the "
+            f"<strong>{nd}</strong> records that carry an abstract, agreement with our rule-screener was "
+            f"<strong>{round(agree*100,1)}%</strong> (Cohen's &kappa; = <strong>{k}</strong>), and it "
+            f"recovered <strong>{round(sens*100,1)}%</strong> of the records we included. This second "
+            f"screener is model-assisted, so this is a measure of screening <em>reproducibility</em>, not "
+            f"accuracy against a human gold standard; "
+            + (f"{na} records with no abstract text in the cache (registry / citation-chase entries) could "
+               f"not be shown to it and are reported as not-assessable rather than dropped from the base. "
+               if na else "")
+            + "Regenerable via <code>scripts/screen_reproducibility.py</code>.</p></div>")
 
 
 def _spec_curve_numbers(docs_dir: str) -> dict:
@@ -371,6 +407,22 @@ def _prose_derived_numerals(docs_dir: str) -> set:
     for v in sc.values():
         if isinstance(v, int):
             out.add(str(v))
+    # screening-reproducibility numerals (derived from docs/screen_reproducibility.json)
+    sp = os.path.join(docs_dir, "screen_reproducibility.json")
+    if os.path.exists(sp):
+        try:
+            s = json.load(open(sp, encoding="utf-8"))
+            for v in (s.get("n_decided"), s.get("n_not_assessable_no_abstract_text")):
+                if isinstance(v, int):
+                    out.add(str(v))
+            if isinstance(s.get("cohens_kappa"), (int, float)):
+                out.add(str(s["cohens_kappa"]))
+            for key in ("raw_agreement", "sensitivity_blind_vs_ours"):
+                v = s.get(key)
+                if isinstance(v, (int, float)):
+                    out.add(str(round(v * 100, 1)))
+        except (OSError, ValueError):
+            pass
     return out
 
 
@@ -379,6 +431,7 @@ def _validate_prose_numbers(docs_dir: str, banners_html: str) -> None:
     Risky = a decimal (effect size), an 'N of M' aggregate, or an integer >= 10. Bare integers < 10 are
     inherent to prose ('three pages', 'two-arm') and low drift-risk, so they are allowed."""
     text = re.sub(r"<[^>]+>", " ", banners_html)
+    text = re.sub(r"\b(?:19|20)\d\d-\d\d-\d\d\b", " ", text)          # ISO measurement DATES are static provenance
     text = re.sub(r"\b(?:19|20)\d\d\b", " ", text)                   # publication YEARS are inherently static
     allowed = set(_STATIC_PROSE_NUMERALS) | _prose_derived_numerals(docs_dir)
     risky = set(re.findall(r"\d+\.\d+", text))                       # decimals (effect sizes)
@@ -511,10 +564,12 @@ def build_index(docs_dir: str) -> str:
     _cont = _continuous_section(docs_dir)
     _erate = _error_rate_section(docs_dir)
     _spec = _spec_curve_section(docs_dir)
+    _screen = _screen_section(docs_dir)
     # anti-drift: fail closed on an un-accounted numeral in ANY narrative banner
-    _validate_prose_numbers(docs_dir, _thesis + _cont + _erate + _spec + _stance)
-    body = (_thesis + _erate + _cont + _spec + _verification_section(docs_dir) + _parity_section(docs_dir)
-            + _error_coverage_section(docs_dir) + _stance + _fair_section(docs_dir) + body)
+    _validate_prose_numbers(docs_dir, _thesis + _cont + _erate + _spec + _screen + _stance)
+    body = (_thesis + _erate + _cont + _spec + _screen + _verification_section(docs_dir)
+            + _parity_section(docs_dir) + _error_coverage_section(docs_dir) + _stance
+            + _fair_section(docs_dir) + body)
 
     return (
         "<!doctype html><html lang=en><head><meta charset=utf-8>"

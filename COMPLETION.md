@@ -19,6 +19,29 @@ review is screened against **32–33 of 33 checkable documented meta-analysis er
 (`harness/error_library.py`). The offer is greater
 auditability, honestly bounded — not a claim of more evidence than the peer-reviewed comparators.
 
+## Cycle 76 additions (measured, rendered, gate-enforced, live)
+
+- **We measured our own error rate.** A blind accuracy census re-extracted all 99 pooled numbers from
+  committed source with a checker blind to the stored value; 95 were independently re-checkable, 92 matched
+  exactly, and after adjudication **0 were confirmed errors on our side** (the 3 disagreements were
+  checker-side). The census itself **surfaced and fixed one wrong-endpoint defect that had passed every
+  gate** (semaglutide GI adverse events had pooled the trial's overall-AE count). Rendered on the index;
+  reproducible via `scripts/error_rate_compare.py`.
+- **Partial GRADE** per topic (`harness/grade.py`): risk-of-bias, inconsistency, imprecision and
+  publication bias (from the registry ghost census, not funnel asymmetry) computed from committed fields;
+  indirectness left to human judgement. 0 high / 12 moderate / 10 low / 7 very-low. Rendered on the RoB tab.
+- **RoB-stratified sensitivity** re-pool per primary (`harness/rob_sensitivity.py`), regenerated into
+  review.json. Coverage is measured and shown (46 of 79 pooled primary trials rated; 0 reach "high").
+- **Object-derived manuscript** per review (`harness/manuscript.py`, Manuscript tab) with a forest plot,
+  under a 14th gate limb `check_manuscript_numbers` that refuses any manuscript numeral not derived from
+  the object (proven to refuse a fabricated number).
+- **Specification curve** (`harness/spec_curve.py`): direction stable in 16/16 primaries with k&ge;2;
+  significance identical across RE+HKSJ / RE+z / fixed-effect in only 6/16, and in 10/16 our default HKSJ
+  interval is the conservative one (non-significant where the looser specs are significant).
+- **Screening reproducibility** (`scripts/screen_reproducibility.py`): an independent blind (model)
+  screener vs the rule-screener over abstract-bearing records (Cohen's &kappa;, reproducibility not a human
+  gold standard). See the live index for the current figure.
+
 ## Gap re-test (every non-parity reason re-tested against the new capabilities)
 
 Full-text acquisition, supplements, continuous extraction, the pre-specified-dose rule and the

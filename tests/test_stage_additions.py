@@ -172,3 +172,43 @@ def test_spec_curve_index_numbers_derived():
     html = IDX.build_index(DOCS)
     assert f"{n['dir_stable']} of {n['n']}" in html
     assert f"{n['sig_stable']} of {n['n']}" in html
+
+
+# ---- error-rate freshness invariant (the stale-number-in-a-new-costume guard) --------------------
+def _pooled_population():
+    """Every pooled number's row_id, recomputed from the live review.json set (same predicate as the
+    census frame). If this set diverges from what error_rate.json was measured against, the rate is stale."""
+    ids = set()
+    for slug, r in _reviews():
+        for o in r.get("outcomes", []):
+            for t in o.get("trials", []):
+                if t.get("effect") is not None or t.get("mean1") is not None or t.get("ai") is not None:
+                    ids.add(f"{slug}::{o['name']}::{t.get('label')}")
+    return ids
+
+
+def test_error_rate_is_fresh_against_current_pooled_population():
+    """A measured-once figure that looks live is the stale-number class in a new costume. The committed
+    error_rate.json must have been measured against exactly the current pooled population; if a pooled
+    number was added/removed/renamed since, this fails and the census must be re-run."""
+    ep = os.path.join(DOCS, "error_rate.json")
+    sp = os.path.join(DOCS, "error_rate_sample.json")
+    if not os.path.exists(ep):
+        return
+    d = json.load(open(ep, encoding="utf-8"))
+    assert os.path.exists(sp), "error_rate.json exists but the committed sample docs/error_rate_sample.json does not"
+    sample = json.load(open(sp, encoding="utf-8"))
+    sample_ids = {row["row_id"] for row in sample["rows"]}
+    pop = _pooled_population()
+    assert d.get("population") == len(sample_ids), "error_rate.json population != committed sample size"
+    # EVERY currently-pooled number must be in the committed census sample: a new pooled number that was
+    # never censused makes the live rate stale and fails here (re-run the census).
+    uncensused = sorted(pop - sample_ids)
+    assert not uncensused, (f"pooled numbers not in the error-rate census sample: {uncensused[:5]} — "
+                            "re-run scripts/error_rate_compare.py + error_rate_pass2.py and rebuild the sample")
+    # Any sample row no longer pooled must be an ACCOUNTED census-fix removal, not silent drift.
+    removed = sorted(sample_ids - pop)
+    unaccounted = sorted(set(removed) - set(d.get("removed_by_census_fixes", [])))
+    assert not unaccounted, f"census-sample rows no longer pooled but not recorded as fixes: {unaccounted[:5]}"
+    assert d.get("n_pooled_current_after_fixes") == len(pop), "n_pooled_current_after_fixes drifted from live"
+    assert d.get("measured_utc"), "error_rate.json must declare measured_utc (freshness provenance)"
