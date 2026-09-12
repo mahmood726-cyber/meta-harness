@@ -543,13 +543,21 @@ def _comparator(r, neutral):
     body += "<h4>Trial-set overlap (an identical estimate on an identical set is arithmetic, not corroboration)</h4>"
     body += _kv([
         ("k in this review (our own search)", ov.get("ours_k")),
-        ("k in the comparator", ov.get("theirs_k")),
+        ("k stated in the comparator's own text (auto-extracted)", ov.get("theirs_k")),
         ("Shared trials", ov.get("shared_k")),
         ("Only in ours", ", ".join(ov.get("only_ours", []) or []) or None),
         ("Only in theirs", ", ".join(ov.get("only_theirs", []) or []) or None),
         ("Overlap method", ov.get("method")),
         ("Note", ov.get("note")),
     ])
+    # The auto-extracted comparator k above is a keyword hit in the comparator's abstract/full text and
+    # can pick up a sub-analysis count rather than the same-scope pooled total (e.g. omega3: it reads 8,
+    # while the comparator's MACE pool is 22 and its same-scope comparable subset is 15). The enumerated,
+    # scope-classified comparator k — the finishing metric — is the parity table's figure, not this one.
+    body += ("<p class='note'>The comparator <em>k</em> above is auto-extracted from the comparator's own "
+             "text and may reference a sub-analysis rather than its same-scope pooled total; the "
+             "<strong>enumerated same-scope comparator <em>k</em></strong> (scope-classified, the "
+             "finishing metric) is the figure in the parity table, which governs where these differ.</p>")
     body += _estimand_exclusions_block(r)
     return body
 
