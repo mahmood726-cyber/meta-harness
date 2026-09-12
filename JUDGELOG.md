@@ -745,3 +745,21 @@ estimand); semaglutide 2 vs 2 (PARITY, exact identity); melatonin 1 vs 15 (GAP, 
 comparator's SOL pool mixes children/DSPS/REM/cross-over/immediate-release, verified via its heterogeneity
 df; exact 15 identities not in the cached OA text, shown as one of our narrowest pools). 29 live, 29/29
 reproduce, 29 gate, 153 tests.
+
+## Cycle 71 — renal-denervation: DECLINED (reason named, from CT.gov evidence), not registered
+Per the "find a raw-change estimand and register, or decline with the reason — do not register and hope"
+instruction, I checked the sham-controlled RDN trials' posted CT.gov results directly (serial fetch):
+- SPYRAL HTN-OFF MED Pivotal (NCT02439749): posts "Change in SBP as Measured by 24-hour ABPM" as
+  paramType MEAN, dispersion Standard Deviation — RAW per-arm mean/SD IS available (also a separate
+  ANCOVA baseline-adjusted outcome, which we would not use). Primary timepoint 3 months; OFF-drug population.
+- SPYRAL HTN-ON MED (NCT02439775): posts raw 24-hour ABPM SBP change mean/SD at 6/12/24/36 months.
+  Primary timepoint 6 months; ON-drug (stable antihypertensives) population.
+- RADIANCE-HTN SOLO/TRIO (NCT02649426): SOLO's primary is DAYTIME ambulatory SBP (not 24h); TRIO reports
+  MEDIAN + IQR. Neither gives a clean raw 24h per-arm mean/SD matching SPYRAL's estimand.
+- RADIANCE II (NCT03614260): no results posted.
+Verdict: the raw-per-arm-mean/SD test PASSES (SPYRAL), but no >=2-trial set shares population + timepoint +
+estimand. OFF-MED (3 mo, off-drug) vs ON-MED (6 mo, on-drug) differ in BOTH population and timepoint;
+RADIANCE is daytime/median/no-results. Pooling would mix population + timepoint + estimand — and the
+timepoint-consistency guard built this session would itself refuse the mismatched trial. Registering at one
+timepoint and hoping the guard tolerates the other is exactly "register and hope." DECLINED; not registered.
+The reason is data-verified, not assumed.
