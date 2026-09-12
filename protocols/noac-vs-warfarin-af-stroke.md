@@ -17,6 +17,21 @@ the synthesis is run.
 - **Population** - intention-to-treat as randomised where the trial abstract reports it.
 - **Timepoint** - trial end / longest reported follow-up in the pivotal trial abstract.
 
+## Amendment 2026-09-12 (POST-HOC — dose/analysis selection rule, added after trial data were known)
+**Status: retrospective.** This rule was NOT in the protocol at the original registration SHA; it
+is recorded here as a dated amendment so the analysis is labelled post-amendment, not presented as
+prespecified. It formalises what the pooled analysis already does and aligns with the registered
+comparator, which is the **standard-dose** DOAC-vs-warfarin comparison (Carnicelli 2022, standard-dose
+HR 0.81).
+- **Dose rule.** For a multi-dose trial, pool the **approved/marketed higher dose** vs warfarin, not
+  the lower dose: dabigatran **150 mg** (RE-LY, not the 110 mg arm), edoxaban **60 mg** high-dose
+  (ENGAGE AF-TIMI 48, not the 30 mg arm). Rationale: the higher dose is the licensed stroke-prevention
+  regimen and matches the standard-dose comparator.
+- **Analysis-set rule.** Use the **intention-to-treat** estimate to match the ITT basis of ROCKET-AF
+  and ARISTOTLE in the pool (ENGAGE high-dose ITT HR 0.87, not the on-treatment 0.79).
+- **Confidence-level rule.** Where a trial reports a non-95% CI (ENGAGE 97.5%), recover the log-scale
+  SE at the **stated** level before pooling; the conversion is disclosed on the row.
+
 ## Eligibility - on P/I/C/DESIGN ONLY
 Include a record iff all hold:
 - **I1** - randomised controlled trial;
