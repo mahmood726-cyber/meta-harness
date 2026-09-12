@@ -266,6 +266,37 @@ def test_pivotal_present_passes_on_live_topic():
     assert check_pivotal_present({"slug": "finerenone-ckd-t2d-renal"}) == []
 
 
+# --- prespecification-in-protocol limb (external audit #9) --------------------------------------
+from harness.gate import check_prespecification_in_protocol, ROOT as GATE_ROOT  # noqa: E402
+
+
+def test_prespecification_limb_refuses_uncited_rule_and_passes_amendment():
+    # A dose-selection rule claimed "pre-specified" but absent from the protocol must be REFUSED;
+    # the same rule framed as a dated post-hoc amendment (as noac does) must PASS.
+    import shutil
+    slug = "__control_prespec"
+    rd = os.path.join(GATE_ROOT, "docs", "reviews", slug)
+    pr = os.path.join(GATE_ROOT, "protocols", f"{slug}.md")
+    cd = os.path.join(GATE_ROOT, "cache", slug)
+    try:
+        os.makedirs(rd, exist_ok=True); os.makedirs(cd, exist_ok=True)
+        io.open(os.path.join(rd, "index.html"), "w", encoding="utf-8").write("<p>page</p>")
+        io.open(pr, "w", encoding="utf-8").write("# Protocol\n## PICO\n- P: adults\n")
+        json.dump({"1": {"source": "Pre-specified approved-dose rule: 150 mg arm."}},
+                  io.open(os.path.join(cd, "dose_selection.json"), "w", encoding="utf-8"))
+        assert check_prespecification_in_protocol(rd), \
+            "a pre-specified dose rule absent from the protocol must be refused"
+        io.open(pr, "w", encoding="utf-8").write("# Protocol\n## Amendment 2026-09-12 (POST-HOC)\n"
+                                                 "- Dose rule: pool the approved higher dose.\n")
+        json.dump({"1": {"source": "Approved-dose rule (protocol amendment 2026-09-12, post-hoc)."}},
+                  io.open(os.path.join(cd, "dose_selection.json"), "w", encoding="utf-8"))
+        assert check_prespecification_in_protocol(rd) == []
+    finally:
+        shutil.rmtree(rd, ignore_errors=True); shutil.rmtree(cd, ignore_errors=True)
+        if os.path.exists(pr):
+            os.remove(pr)
+
+
 def test_pivotal_check_is_optin():
     # a topic with no pivotal_trials declared is unaffected (absence != enforcement)
     assert check_pivotal_present({"slug": "colchicine-postop-af"}) == []

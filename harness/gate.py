@@ -451,6 +451,43 @@ def check_pivotal_present(manifest):
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def check_prespecification_in_protocol(review_dir):
+    """A selection rule cited on the page as 'pre-specified' MUST exist in the protocol at its SHA
+    (external audit #9: noac claimed a 'pre-specified approved-dose rule' that was not in the registered
+    protocol). Two checks: (1) a 'pre-specified' claim on the page requires the same in the protocol,
+    unless the page frames it as post-hoc/amendment/not-pre-specified; (2) a dose_selection override in
+    the cache requires the protocol to document a dose rule or a dated amendment."""
+    slug = os.path.basename(os.path.normpath(review_dir))
+    # Scope the check to a SELECTION RULE we actually apply: a committed dose_selection override. (A
+    # trial's own "pre-specified primary endpoint" is the trial's prespecification, not ours, and must
+    # not trip this — that over-broad reading false-fired on 4 pages.)
+    ds_p = os.path.join(ROOT, "cache", slug, "dose_selection.json")
+    if not os.path.exists(ds_p):
+        return []
+    reasons = []
+    proto_p = os.path.join(ROOT, "protocols", f"{slug}.md")
+    proto = open(proto_p, encoding="utf-8").read().lower() if os.path.exists(proto_p) else ""
+    # (1) the applied dose rule must be documented in the protocol (a dose rule or a dated amendment).
+    if not re.search(r"dose|amendment|approved", proto):
+        reasons.append(f"prespecification: a dose_selection override is applied but "
+                       f"protocols/{slug}.md documents no dose-selection rule or amendment.")
+    # (2) if the dose_selection source-text claims the rule is 'pre-specified', the protocol must
+    #     actually prespecify it; otherwise it must be framed as a post-hoc amendment.
+    try:
+        ds = json.load(open(ds_p, encoding="utf-8"))
+    except (OSError, ValueError):
+        ds = {}
+    src_text = " ".join(str((v or {}).get("source", "")) for v in ds.values()).lower()
+    claims_prespec = ("pre-specified" in src_text or "prespecified" in src_text) and \
+                     not any(w in src_text for w in ("post-hoc", "post hoc", "amendment", "not pre"))
+    proto_prespec = ("pre-specified" in proto) or ("prespecified" in proto)
+    if claims_prespec and not proto_prespec:
+        reasons.append(f"prespecification: dose_selection for {slug} claims a 'pre-specified' rule but "
+                       f"protocols/{slug}.md does not prespecify it — relabel it a dated post-hoc "
+                       f"amendment or add the rule to the protocol.")
+    return reasons
+
+
 def gate_page(review_dir):
     """Return (ok: bool, reasons: list[str]). ok == True only if both limbs pass."""
     try:
@@ -470,6 +507,7 @@ def gate_page(review_dir):
                + check_cross_source(review_dir)
                + check_retraction(review_dir)
                + check_duplicate_publication(review_dir, manifest)
+               + check_prespecification_in_protocol(review_dir)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons
 
