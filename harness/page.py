@@ -931,11 +931,14 @@ def _riskofbias(r, neutral):
             drows.append(f"<tr><td>{_e(lab)}</td><td>{mark}</td><td>{_e(dv.get('basis',''))}</td></tr>")
         cap = (" The rating is capped below <em>high</em> because risk of bias is not assessed for every "
                "pooled trial." if g.get("certainty_capped_by_rob_coverage") else "")
-        grade_html = ("<h4>GRADE certainty (partial, object-derived)</h4>"
-                      "<div class='absent'><strong>Overall certainty: "
+        grade_html = ("<h4>GRADE certainty (PROVISIONAL — partial, object-derived)</h4>"
+                      "<div class='absent'><strong>Overall certainty (provisional): "
                       f"{_e(g.get('certainty','').replace('_',' '))}</strong> "
                       f"(starting from <em>high</em> for randomized trials, {g.get('downgrades',0)} "
                       "downgrade(s)).{}"
+                      "<strong>PROVISIONAL:</strong> this is a machine-derived certainty — risk of bias "
+                      "uses machine-derived signals (not a human RoB2) and indirectness is not auto-rated, "
+                      "so a formal human GRADE assessment may differ. "
                       "Risk of bias, inconsistency, imprecision and publication bias are computed from "
                       "committed fields; <strong>publication bias is assessed from the registry ghost census, "
                       "not funnel-plot asymmetry</strong> (which is unreliable at our small k). "
@@ -957,7 +960,9 @@ def _riskofbias(r, neutral):
                     "human review caught it. The number is here because a RoB block a reader cannot trust is "
                     "worthless (<code>docs/rob_spancheck.json</code>).</div>")
     return (f"<p>{cover}</p>" + rsc_html + uoa_html + fund_html
-            + "<p>Per-pooled-trial RoB2 risk of bias, computed from what is machine-available "
+            + "<p><strong>Machine-derived risk-of-bias signals</strong> (per pooled trial) &mdash; NOT a "
+            "formal Cochrane RoB2 assessment, which requires human judgements the registry cannot supply. "
+            "These are computed from what is machine-available "
             f"({_e(rb.get('source') or 'AACT registry fields')}). <strong>Domain 5 (selective reporting)</strong> "
             "is computed from the trial's REGISTERED primary outcome vs the outcome we pooled — a machine-checkable "
             "signal most published meta-analyses do not report. D1/D2/D4 use AACT structured allocation/masking "
