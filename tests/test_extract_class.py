@@ -350,3 +350,19 @@ def test_true_dose_arms_still_trigger_multiarm_guard():
     # randomized dose ARMS are labelled "X-mg group/arm" -> still counted (CANTOS)
     s = "In the 50-mg group ..., the 150-mg group ..., and the 300-mg group ..."
     assert len(_mda(s)) >= 2, _mda(s)
+
+
+def test_null_result_clause_not_pooled_as_outcome_count():
+    """COPPS-2 (PMID 25172965) class: adverse-event counts co-located with a null-result clause for a
+    DIFFERENT outcome must not be pooled as that outcome. 'Adverse events occurred in 21 ... vs 36 ...
+    but discontinuation rates were similar' provides NO discontinuation count -> declared absent, not 36/21."""
+    from harness import extract
+    ab = ("Adverse events occurred in 21 patients (11.7%) in the placebo group vs 36 (20.0%) in the "
+          "colchicine group (absolute difference, 8.3%; number needed to harm = 12), but discontinuation "
+          "rates were similar. No serious adverse events occurred.")
+    r = extract.extract_trial(ab, ["discontinu", "withdrawal", "withdrew"], ["colchicine"], ["placebo", "control"])
+    assert r.get("absent") and r.get("ai") is None, f"AE count wrongly pooled as discontinuation: {r}"
+    # a REAL discontinuation count with the keyword adjacent to the number is still extracted
+    ab2 = "Treatment discontinuation occurred in 12 of 120 (10%) colchicine vs 8 of 120 (6.7%) placebo patients."
+    r2 = extract.extract_trial(ab2, ["discontinu", "withdrawal", "withdrew"], ["colchicine"], ["placebo", "control"])
+    assert r2.get("ai") == 12 and r2.get("ci") == 8, f"real discontinuation count lost: {r2}"

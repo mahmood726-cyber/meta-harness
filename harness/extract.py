@@ -360,6 +360,40 @@ def _is_subgroup_sentence(sentence):
     return bool(_SUBGROUP.search(sentence or ""))
 
 
+# A NULL-RESULT clause states an outcome was "similar / comparable / did not differ" WITHOUT a count.
+# When the outcome keyword appears ONLY inside such a clause, any number elsewhere in the same sentence
+# belongs to a DIFFERENT clause/outcome and must not be attributed here. This is the COPPS-2 class
+# (PMID 25172965): "Adverse events occurred in 21 ... vs 36 ... but discontinuation rates were similar" —
+# the 21/36 are ADVERSE-EVENT counts, and "discontinuation" carries no count, yet a naive extractor
+# pooled the AE counts as treatment discontinuation (a right-number/wrong-endpoint defect).
+_NULL_RESULT = re.compile(
+    r"\b(?:rates?\s+were|were|was|remained|are|is)\s+(?:similar|comparable|not\s+significantly\s+different)\b"
+    r"|\bdid\s+not\s+differ\b|\bno\s+(?:significant\s+|statistically\s+significant\s+)?difference\b"
+    r"|\bcomparable\s+between\b|\bsimilar\s+(?:between|in\s+both)\b", re.I)
+
+
+def _kw_only_in_null_result(sentence, kws):
+    """True iff EVERY occurrence of an outcome keyword in the sentence sits in a null-result clause
+    ('... were similar', 'did not differ') with NO digit adjacent to the keyword — so the sentence
+    provides no count FOR THIS OUTCOME and any co-located number belongs to a different clause.
+    Conservative: a single keyword occurrence with a nearby digit disables the guard for the sentence."""
+    low = (sentence or "").lower()
+    positions = [m.start() for kw in kws for m in re.finditer(re.escape(kw.lower()), low)]
+    if not positions:
+        return False
+    for p in positions:
+        # Look FORWARD from the keyword: the count that belongs to an outcome follows it
+        # ("discontinuation occurred in 12 ..."), and a null-result clause also follows it
+        # ("discontinuation rates were similar"). A number BEFORE the keyword (e.g. an NNH from a
+        # preceding adverse-event clause) is not this outcome's, so the back-window is excluded.
+        window = low[p:p + 45]
+        if re.search(r"\d", window):
+            return False  # a number follows this keyword -> may be a real count for the outcome
+        if not _NULL_RESULT.search(window):
+            return False  # this keyword occurrence is not a bare null-result clause
+    return True  # every keyword occurrence is a null-result clause with no count following it
+
+
 # A COMPOSITE endpoint names two or more components joined ("CV death OR HF hospitalization",
 # "composite of ...", a MACE). When the review's declared outcome is a SINGLE component, a number
 # pulled from a composite sentence is the WRONG endpoint (FAIR-HF2's 0.79 is "cardiovascular death
@@ -530,7 +564,8 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
     sents = _outcome_sentences(abstract, _effective_kws(abstract, outcome_kws))
     for s in sents:
         if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
-                or (_skip_composite and _names_composite(s))):
+                or (_skip_composite and _names_composite(s))
+                or _kw_only_in_null_result(s, outcome_kws)):
             continue
         arms = extract_arm_counts(s, interv_terms, comp_terms, denom_each, arm_ns)
         if arms:
@@ -553,7 +588,8 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
                     "source": "abstract arm-level counts (percentage-corroborated): " + s.strip()[:200]}
     for s in sents:
         if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
-                or (_skip_composite and _names_composite(s))):
+                or (_skip_composite and _names_composite(s))
+                or _kw_only_in_null_result(s, outcome_kws)):
             continue
         eff = extract_effect(s)
         if eff:
@@ -563,7 +599,8 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
     # Lowest priority so binary counts / ratio effects are preferred; refuses ambiguous rates.
     for s in sents:
         if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
-                or (_skip_composite and _names_composite(s))):
+                or (_skip_composite and _names_composite(s))
+                or _kw_only_in_null_result(s, outcome_kws)):
             continue
         rate = extract_rate(s, interv_terms, comp_terms)
         if rate:
@@ -574,7 +611,8 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
     ns = _arm_ns(abstract, interv_terms, comp_terms)
     for s in sents:
         if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
-                or (_skip_composite and _names_composite(s))):
+                or (_skip_composite and _names_composite(s))
+                or _kw_only_in_null_result(s, outcome_kws)):
             continue
         cont = extract_continuous(s, interv_terms, comp_terms, ns)
         if cont:

@@ -820,3 +820,22 @@ DETERMINISTIC layer (run corpus-wide, all 29):
 Fresh-clone reproduction (2nd pass, HEAD): REPRODUCIBLE (all 29 byte-identical). Live fetch of ALL 29 pages:
 29/29 serve HTTP 200 with the full component set. Adversarial per-trial source re-read (3 offline Codex
 lanes over the oldest 10) finalizing; the deterministic layer already finds no wrong number live.
+
+## Cycle 75 — early-page audit found and FIXED two live wrong numbers on colchicine-postop-af
+The adversarial per-trial source re-read (offline Codex lane) surfaced two defects on an early page; both
+were verified against the cached abstract and corrected (the bar: correct or withdraw, and say so):
+- DENOMINATOR (END-AF, PMID 27502857, PRIMARY AF outcome): pooled 26/180 vs 37/180, but the abstract
+  STATES randomization n=179 colchicine / n=181 no-colchicine, and 26/179=14.5% matches the stated arm %
+  exactly (180 gives 14.4%). The verified_arms entry had hardcoded a 180/180 equal-split contradicting the
+  stated arm sizes. Corrected to 26/179 vs 37/181. Primary AF pool now RR 0.818 (0.648-1.032), k=5.
+- WRONG ENDPOINT (COPPS-2, PMID 25172965, treatment-discontinuation outcome): pooled 36/180 vs 21/180, but
+  those are ADVERSE-EVENT counts ("Adverse events occurred in 21 ... vs 36 ..."), and the abstract says only
+  that "discontinuation rates were similar" (no count). The extractor matched "discontinuation" in a
+  null-result clause and grabbed the co-located AE counts. Fixed with a general guard
+  (extract._kw_only_in_null_result): a sentence is skipped for an outcome when EVERY occurrence of the
+  outcome keyword sits in a null-result clause ('... were similar', 'did not differ') with no number
+  FOLLOWING it. COPPS-2 discontinuation is now declared-absent; the outcome honestly pools nothing (no
+  abstract reports a discontinuation count). Regression-tested; reproduce confirmed the guard moves ONLY
+  this page (no collateral change to the other 28).
+These are the two wrong numbers the early-page audit was for — found by us, not a reader. 172 tests,
+29/29 reproduce, 29 gate.
