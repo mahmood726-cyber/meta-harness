@@ -64,14 +64,21 @@ none by lowering the bar.**
   1.44)** — an interval that crosses zero — because the timepoint-consistency guard refused to pool two
   Week-44 trials into the pre-registered Week-68 outcome. No comparator reports having made that trade;
   ours is on the page and in the parity table.
-- **Blind-judged — restated on the FAIR basis.** The original abstract-based comparison gave 15 clean
-  wins / 0 / 0. The **fair full-text re-judge (11 topics = 8 binary + 3 continuous, order-blinded)**
-  supersedes that with a stable domain split: our pages are more **auditable on 11/11** — winning search
-  reproducibility, per-number traceability, declared-absence and overall auditability **11–0 each** — the
-  comparator more **complete on 11/11** (larger k), RoB reporting **6–4** to us (one tie). Adding the three
-  continuous pages did not change the direction (each more auditable, less complete than its comparator).
-  **We win transparency/auditability; we lose completeness/k** — the same conclusion
-  the parity table reaches, now confirmed blind on full text. The judge also flagged genuine defects in
+- **Blind-judged — restated on the FAIR basis, across ALL 28 scorable topics.** The original abstract-based
+  comparison gave 15 clean wins / 0 / 0. The **fair full-text re-judge (28 topics, order-blinded, 6
+  dimensions)** supersedes it — and it is deliberately NOT reported as a clean sweep:
+  - **The one place a published review genuinely does better than us: risk-of-bias reporting, 13–14 TO THE
+    COMPARATOR.** We always knew our RoB2 was partial (computed from machine-available registry fields, D5
+    from registered-vs-pooled primary), and the full-set blind judge confirms it — the comparators, with
+    hand-scored Cochrane RoB across all their trials, edge us on this dimension. That is the honest headline
+    of the judge result, not a footnote.
+  - On the rest: ours more **auditable 28/28 overall**, winning **per-number traceability 28–0,
+    declared-absence 28–0, overall auditability 28–0**, and **search reproducibility 27–1** (the comparator
+    wins one topic). The comparator is more **complete on 28/28** (larger k).
+  So the domain split is stable and specific: **we win traceability/declared-absence/reproducibility; we
+  lose completeness/k and, narrowly, risk-of-bias reporting.** Same conclusion the parity table reaches,
+  confirmed blind on full text — with the two losses named, not hidden. The judge also flagged genuine
+  defects in
   our pages, recorded in `docs/fair_judge.json` — **all four now fixed:** (1) the retraction line whose
   count did not equal k (stale on 8 pages — re-run corpus-wide, denominator named precisely, test-
   guarded); (2) the effect-scale mislabel (a hazard/rate ratio printed as "(RR)" on denosumab, statins
