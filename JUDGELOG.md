@@ -607,3 +607,32 @@ is not printed in the paper (the paper reports only the adjusted −15.6); pooli
 standard unadjusted MD and is labelled as such. Discipline: I was about to trust the CT.gov "55+/ANCOVA"
 framing; the full text showed it is the 65-80 subgroup and a baseline+age linear regression (not "ANCOVA") —
 corrected the page to the source, not the framing.
+
+## Cycle 55-56 — PER-TOPIC GAP RE-TEST against the new capabilities (2026-09-12): 1 closed, reasons re-confirmed
+Re-tested each non-parity same-scope topic's recorded reason against full-text acquisition, supplements,
+continuous extraction, the dose-selection rule and the error-library checks (several reasons predate these).
+- **noac-vs-warfarin-af-stroke → CLOSED to PARITY (4/4).** ENGAGE-AF added + RE-LY switched to the approved
+  150 mg dose via a documented pre-specified approved-dose rule (new _load_dose_selection tier): RE-LY 150 mg
+  RR 0.66 (0.53-0.82), ENGAGE 60 mg ITT HR 0.87 (0.73-1.04), both verified verbatim and cross-checked by an
+  independent lane. Pool RR 0.805 (0.658-0.984). Parity 7/18 -> 8/18. Bar held (documented rule, verified).
+- **iv-iron-hfref → HOLDS (bar held).** HEART-FID CT.gov posts "Number of Hospitalizations for HF" as
+  COUNT_OF_PARTICIPANTS 297/1532 vs 332/1533 — but the publication says "297 hospitalizations" = recurrent
+  EVENTS, not patients (the ME-15 mislabel trap, HEART-FID its original example). Recurrent-event guard
+  correctly refuses; pooling as binary would be wrong. (Also: the config's AFFIRM-AHF PMID 33207209 is wrong
+  — real AFFIRM-AHF is 33197395/NCT02937454; a reason-text fix, not a pooled number.)
+- **sglt2-ckd → HOLDS (refined).** The matching hard-kidney composite (sustained >=40% eGFR / ESKD / renal
+  death) DOES exist in CANVAS/CREDENCE publications, but CT.gov posts a different composite (CV-inclusive or
+  albuminuria) and the matching per-arm data is in paywalled full text / IPD — not verifiable from accessible
+  sources. Decline holds: we cannot verify the matching-definition number.
+- **corticosteroids-covid → HOLDS (stronger).** Only RECOVERY (pooled) has accessible 28-day all-cause
+  mortality counts; the other 5 trials' full text is PUBLISHER-BLOCKED (PMC XML download disallowed) — the
+  "not in accessible publications" reason confirmed at full-text level.
+- **tranexamic-pph + colchicine-pericarditis reach gaps → HOLD (refined to SCOPE/DESIGN).** All reachable:
+  WOMAN-2/TRAAP/TRAAP-2/TXA-MFMU are PROPHYLAXIS trials (our topic is TREATMENT of diagnosed PPH); CORE/COPE
+  are OPEN-LABEL (and COPE is acute, not recurrent). Correctly excluded by the preregistered PICO/design bar —
+  not search failures. The harness is more rigorous than the comparators that pool them.
+- **Continuous-outcome mining across all 27 → NOTHING new.** No screened-in trial posts a MEAN + Standard
+  Deviation outcome we don't pool (sponsors post LSM/SE, which we refuse). Continuous breadth on the existing
+  binary topics is exhausted, confirmed.
+FINDING: most recorded reasons STILL HOLD under the new capabilities, several confirmed with stronger
+evidence; noac was the one genuinely closable gap (multi-dose rule). No reason was closed by lowering the bar.
