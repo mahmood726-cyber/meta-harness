@@ -317,7 +317,7 @@ def _screening(r, neutral):
         else:
             retro = integ.get("retrospectively_registered", [])
             msg = (f"<p class='note'><strong>Trial integrity:</strong> none of the {_e(integ.get('n_pooled'))} "
-                   f"pooled trials is retracted"
+                   f"trials pooled across all outcomes on this page is retracted"
                    + (f"; {len(concern)} under an expression of concern ({_e(', '.join(concern))})" if concern else "")
                    + (f"; {len(retro)} registered retrospectively — after enrolment began, a reporting-bias "
                       f"signal, not disqualifying ({_e(', '.join(retro))})" if retro else "")

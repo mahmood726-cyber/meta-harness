@@ -31,12 +31,16 @@ states about itself.
 ## Fair comparison (confound fixed in our disfavour, direction held)
 
 The earlier countable PRISMA read comparator **abstracts** against our full pages. Fixed by fetching
-every comparator's **OA full text (25/25)** and re-scoring full-text vs full-page:
-- comparator full text satisfies **71 / 150** checkable cells (far above its abstract score — the
-  confound was real);
+every comparator's **OA full text (25 of 26; corticosteroids-cap excluded — no obtainable comparator
+full text)** and re-scoring full-text vs full-page over the 25 scorable topics (150 cells). The
+reproducible score (re-scoring the committed full-text caches with the current scoring code):
+- comparator full text satisfies **80 / 150** checkable cells (far above its abstract score — the
+  confound was real; also higher than an earlier partial full-text pass reported, corrected here
+  against ourselves);
 - **comparator-present / ours-absent: 0 / 150**;
-- ours-present / comparator-absent: **79**.
-The margin narrowed under fair measurement; the direction held.
+- ours-present / comparator-absent: **70** (down from the 79 reported on the abstract-era prose — the
+  margin narrowed **further** against us under the corrected full-text scoring).
+The margin narrowed under fair measurement; the direction held (0 reverse).
 
 ## Parity (finishing metric): 7 of 18 same-scope topics at parity within scope
 

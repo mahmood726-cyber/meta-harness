@@ -384,7 +384,7 @@ def fetch_comparator_fulltext(pmid: str, doi: str | None) -> FetchResult:
 
 def quote_from_match(text: str, match: re.Match[str], max_words: int = 18) -> str:
     start, end = match.span()
-    quote_start = max(0, start - 20)
+    quote_start = start
     quote_end = min(len(text), end + 220)
     snippet = normalize_ws(text[quote_start:quote_end])
     words = snippet.split()
@@ -526,11 +526,55 @@ def make_markdown(results: dict[str, dict]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def fair_totals(results: dict[str, dict]) -> tuple[list[str], int, int]:
+    included = [slug for slug, row in results.items() if row["comparator_fulltext_source"] != "NONE"]
+    ours_win = sum(
+        1
+        for slug in included
+        for item in ITEMS
+        if results[slug]["ours"][item] and not results[slug]["comparator"][item]["present"]
+    )
+    comp_win = sum(
+        1
+        for slug in included
+        for item in ITEMS
+        if results[slug]["comparator"][item]["present"] and not results[slug]["ours"][item]
+    )
+    return included, ours_win, comp_win
+
+
+def refresh_from_cache() -> int:
+    with OUT_JSON.open(encoding="utf-8") as handle:
+        results = json.load(handle)
+    for slug, row in results.items():
+        html_text = html_to_text((REVIEWS / slug / "index.html").read_text(encoding="utf-8"))
+        ours_scored = score_text(html_text, OURS_PATTERNS)
+        row["ours"] = {item: bool(ours_scored[item]["present"]) for item in ITEMS}
+        row["ours_quotes"] = {
+            item: str(ours_scored[item]["quote"]) for item in ITEMS if ours_scored[item]["present"]
+        }
+        cache_path = ROOT / row["comparator_fulltext_path"]
+        if row["comparator_fulltext_source"] == "NONE":
+            row["comparator"] = {item: {"present": None, "quote": ""} for item in ITEMS}
+        else:
+            row["comparator"] = score_text(cache_path.read_text(encoding="utf-8"), COMPARATOR_PATTERNS)
+    with OUT_JSON.open("w", encoding="utf-8", newline="\n") as handle:
+        json.dump(results, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+    write_text(OUT_MD, make_markdown(results))
+    included, ours_win, comp_win = fair_totals(results)
+    print(f"Refreshed from cache for {len(results)} topics ({len(included)} included in fair count).")
+    print(f"FAIR totals: ours-present/comparator-absent={ours_win}; comparator-present/ours-absent={comp_win}")
+    return 0
+
+
 def escape_md(text: str) -> str:
     return (text or "").replace("|", "\\|").replace("\n", " ")
 
 
 def main(argv: list[str]) -> int:
+    if "--refresh-from-cache" in argv:
+        return refresh_from_cache()
     slugs = argv or discover_slugs()
     results: dict[str, dict] = {}
 
@@ -581,19 +625,7 @@ def main(argv: list[str]) -> int:
         handle.write("\n")
     write_text(OUT_MD, make_markdown(results))
 
-    included = [slug for slug, row in results.items() if row["comparator_fulltext_source"] != "NONE"]
-    ours_win = sum(
-        1
-        for slug in included
-        for item in ITEMS
-        if results[slug]["ours"][item] and not results[slug]["comparator"][item]["present"]
-    )
-    comp_win = sum(
-        1
-        for slug in included
-        for item in ITEMS
-        if results[slug]["comparator"][item]["present"] and not results[slug]["ours"][item]
-    )
+    included, ours_win, comp_win = fair_totals(results)
     print(f"\nFAIR totals: ours-present/comparator-absent={ours_win}; comparator-present/ours-absent={comp_win}")
     if len(included) != len(results):
         print(f"Excluded from fair count for unobtainable comparator full text: {len(results) - len(included)}")
