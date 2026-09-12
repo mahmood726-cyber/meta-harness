@@ -149,16 +149,26 @@ def _refs(pmid: str) -> list[str]:
         return []
 
 
+def _select_pmc_link(linksetdbs: list[dict]) -> str | None:
+    """Pick the article's OWN PMC id from an elink pubmed->pmc linkset. MUST filter on
+    linkname == 'pubmed_pmc' (the direct same-article full-text link) and NEVER accept
+    'pubmed_pmc_refs' (articles that CITE this pmid) — those are different papers. When the
+    article is not itself in PMC, elink returns ONLY pubmed_pmc_refs, so a naive
+    'first dbto==pmc linkset' returns a CITING article's PMCID and _pmc_fulltext then serves
+    the wrong paper's text (silently, under the target pmid). Pure/offline for testing."""
+    for ls in linksetdbs:
+        if ls.get("linkname") == "pubmed_pmc" and ls.get("links"):
+            return ls["links"][0]
+    return None  # fail closed: not in PMC -> abstract path, never a citing article
+
+
 def _resolve_pmcid(pmid: str) -> str | None:
-    """PubMed id -> PMC id (e.g. '6098635'), or None if not in PMC OA."""
+    """PubMed id -> the SAME article's PMC id (e.g. '6098635'), or None if not in PMC OA."""
     d = http.get_json(f"{EUTILS}/elink.fcgi",
                       {"dbfrom": "pubmed", "db": "pmc", "id": pmid, "retmode": "json",
                        "tool": "meta-harness", "email": "meta-harness@example.org"})
     time.sleep(0.34)
-    for ls in d.get("linksets", [{}])[0].get("linksetdbs", []):
-        if ls.get("dbto") == "pmc" and ls.get("links"):
-            return ls["links"][0]
-    return None
+    return _select_pmc_link(d.get("linksets", [{}])[0].get("linksetdbs", []))
 
 
 def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
