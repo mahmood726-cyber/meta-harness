@@ -839,3 +839,26 @@ were verified against the cached abstract and corrected (the bar: correct or wit
   this page (no collateral change to the other 28).
 These are the two wrong numbers the early-page audit was for — found by us, not a reader. 172 tests,
 29/29 reproduce, 29 gate.
+
+## Cycle 75 — audit lanes 2-3: one more confirmed defect (recorded + queued, not force-fixed), two disclosed
+Audit lane 2 (balanced-crystalloids, finerenone, probiotics): clean — no defect.
+Audit lane 3 (sglt2-hfref, colchicine-secondary-cv, omega3) surfaced:
+- CONFIRMED DEFECT (omega3, ORIGIN PMID 22686415): the live row pools ORIGIN's PRIMARY outcome, "death
+  from cardiovascular causes" HR 0.98, under our MACE / major-vascular-events outcome. ORIGIN's actual
+  major-vascular-events result is HR 1.01 (1034/6239 vs 1017/6266), stated in the same abstract. Cause: the
+  generic "primary outcome" keyword matches ORIGIN's CV-death primary sentence (which appears before the
+  "major vascular events" sentence), and _effective_kws' disease-substring gate is too lenient
+  ("cardiovascular" overlaps) so it does not disable the generic anchor. Magnitude is negligible (0.98 vs
+  1.01, both null) but it is the WRONG ENDPOINT and must be corrected. A broad "prefer specific keyword over
+  generic anchor" fix was tried and REVERTED: it correctly fixed ORIGIN but also flipped CREDENCE
+  (sglt2-ckd) from its intended primary composite (HR 0.70, incl. CV death, consistent with DAPA-CKD /
+  EMPA-KIDNEY primaries) to the renal-specific sub-composite (0.66) — an estimand inconsistency. Removing
+  the generic keywords from the omega3 topic breaks 4 other omega3 trials that legitimately match on
+  "primary outcome". So a SAFE fix needs targeted work (a per-trial override that beats the abstract, or a
+  tightened _effective_kws gate verified across all topics) — queued P0 in CODEX_QUEUE.md rather than
+  force-shipped under time pressure. Refusing a risky same-session fix is the bar, not a lowering of it.
+- DISCLOSED, not defects: colchicine-secondary-cv pools COLCOT (HR) with a count-derived RR and the page
+  LABELS the pool "mixed (HR/RR)" — an acknowledged, rendered limitation, not a hidden error. sglt2-hfref
+  "urgent HF visit" composite-wording flag needs adjudication against the declared endpoint (queued).
+Net early-page audit: 3 confirmed defects found, 2 FIXED live this session (END-AF denominators, COPPS-2
+wrong-endpoint), 1 recorded + queued P0 (omega3 ORIGIN wrong-endpoint, negligible magnitude). Found by us.
