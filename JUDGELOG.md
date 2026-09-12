@@ -577,3 +577,33 @@ PATTERN: full-text acquisition (tables + supplements) unblocks per-arm-VARIANCE 
 vitamin-D, and by the same logic the mixed-scale/heterogeneity declines prone/appendicitis/hfnc). The
 declared binary/proportion or common-scale outcome simply is not reported per-arm in the primary sources
 for those topics. Declines stand with stronger, full-text-level evidence — which is itself the result.
+
+## Cycle 46b — continuous-outcome breadth on EXISTING topics: only melatonin qualifies; iv-iron KCCQ DECLINED (2026-09-12)
+"Add continuous outcomes to existing topics where the comparator reports them." Scanned all 27 topics:
+- Configured comparator_outcomes report a continuous outcome in exactly ONE topic — melatonin (built).
+- Scanning the committed comparator FULL TEXTS for a continuous outcome reported with a mean difference
+  surfaced one more: iv-iron's comparator (39727669) reports KCCQ (WMD ~3, non-significant). Attempted it.
+  DECLINED after checking source: the only structured KCCQ in our trials is HEART-FID's (NCT02937454)
+  repeated-measures MODEL estimate with dispersion Standard ERROR (refused — no silent SE→SD conversion),
+  and HEART-FID has no PMC OA full text; CONFIRM-HF full text carries only the BASELINE KCCQ (59.0 vs 58.8),
+  not the change-at-follow-up outcome; AFFIRM-AHF has no PMC full text. No verifiable per-arm KCCQ CHANGE
+  mean/SD exists, and KCCQ has multiple subscales (OSS/CSS/-12) → outcome-identity risk. Refuse-on-ambiguity.
+CONCLUSION: continuous-outcome breadth on the current binary/ratio topics is exhausted — melatonin is the
+sole existing topic with a comparator-reported continuous outcome AND extractable per-arm variance. Broader
+continuous coverage requires NEW continuous-primary topics, not retrofitting the binary set. (Verified the
+finding I was inclined to decline by reading the source tables — the guard working, not asserted.)
+
+## Cycle 48 — melatonin CROSS-SOURCE verified + pre-specified subgroup disclosed (2026-09-12)
+An independent lane located the SOL per-arm values in Wade's PUBLISHED full text (PMID 20712869, PMC
+Table 3): melatonin −19.1 (SD 47.3, n=137) vs placebo −1.7 (SD 47.8, n=144) — EXACT match to the CT.gov
+structured values pooled. Dual-source confirmation (structured registry results AND published table).
+The check surfaced an honest disclosure now on the page: the arm-pair is Wade's PRE-SPECIFIED age 65-80
+population (a co-primary analysis of an 18-80 enrolment), not the whole trial — disclosed via the analysis
+population and the source span's verbatim populationDescription (JUPITER-subgroup precedent). We pool the
+UNADJUSTED per-arm MD −17.4; the trial's own baseline+age-adjusted estimate is −15.6 (95% CI −25.3 to −6.0),
+and Wade's Discussion itself notes this 65-80 effect is larger than the published pooled meta (−7.2 min,
+n=12) — consistent with our k=1 subgroup being larger than the comparator's pooled MD. The unadjusted −17.4
+is not printed in the paper (the paper reports only the adjusted −15.6); pooling the arm-level means is the
+standard unadjusted MD and is labelled as such. Discipline: I was about to trust the CT.gov "55+/ANCOVA"
+framing; the full text showed it is the 65-80 subgroup and a baseline+age linear regression (not "ANCOVA") —
+corrected the page to the source, not the framing.
