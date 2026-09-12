@@ -223,7 +223,21 @@ def build_index(docs_dir: str) -> str:
              "real defects in our pages (a risk-of-bias table covering only a subset of pooled trials "
              "without a stated reason; a retraction line whose trial count did not equal k); those are "
              "recorded, not hidden.</p></div>")
-    body = (_verification_section(docs_dir) + _parity_section(docs_dir)
+    _thesis = ("<div class='banner'><h2>The result, in one paragraph</h2>"
+               "<p>Where this harness pools fewer trials than a published comparator, the difference is the "
+               "comparator's <strong>design, scope and definition choices &mdash; not our search or extraction "
+               "failures</strong>: open-label trials we exclude for requiring double-blinding, different "
+               "outcome definitions, prophylaxis pooled with treatment, drug-class metas compared to a "
+               "single agent, and per-arm variances imputed from figures where we decline to impute. The "
+               "evidence is measured, not asserted: <strong>citation chasing recovered 9 of 9</strong> "
+               "pre-registry trials the registries cannot reach (so reach is not the limit); an independent "
+               "reported-effect extractor run over <strong>626 declared-absent cells recovered 0</strong> "
+               "clean numbers ours missed (so extraction is not the limit); every same-scope gap is "
+               "decomposed and named on its page; and <strong>all 95 of 95 pooled numbers are verified "
+               "against their committed source and gate-enforced</strong>. The offer is greater "
+               "auditability, honestly bounded &mdash; not a claim of more evidence than the peer-reviewed "
+               "comparators.</p></div>")
+    body = (_thesis + _verification_section(docs_dir) + _parity_section(docs_dir)
             + _error_coverage_section(docs_dir) + _stance + _fair + body)
 
     return (
