@@ -139,11 +139,21 @@ def _imprecision_domain(res, scale):
         elif crosses:
             basis += (f"; crosses the null but excludes an appreciable effect on BOTH sides "
                       f"(within {t_benefit:g}-{t_harm:g}) -> precise about the absence of an appreciable effect")
+        elif cil > 0 and (cih / cil) > 3.0:
+            # Excludes the null but the interval is very wide (bounds differ by >3x): the DIRECTION is
+            # clear but the magnitude is highly uncertain (e.g. a small single trial, OR 8.25 [1.45-46.9])
+            # -> still imprecise, even though it does not cross the null.
+            down += 1
+            basis += f"; excludes the null but is very wide (upper/lower bound ratio > 3) -> imprecise magnitude"
         else:
-            basis += "; excludes the null"
+            basis += "; excludes the null with a reasonably tight interval -> precise"
     if k == 1:
-        down = max(down, 1)
-        basis += "; single trial (no replication)"
+        # External audit: a single LARGE trial with a tight CI that excludes the null (SELECT:
+        # 17,604 patients, CI 0.72-0.90) is PRECISION, not imprecision — do NOT downgrade automatically
+        # for being one trial. Imprecision follows the CI (handled above): a single trial whose CI
+        # crosses the null and reaches an appreciable effect is still downgraded; a tight null-excluding
+        # CI is not. (A narrow CI is itself evidence the information size was adequate.)
+        basis += "; single trial — imprecision judged from the CI, not downgraded merely for k=1"
     return {"downgrade": min(down, 2), "crosses_null": crosses, "basis": basis}
 
 
@@ -186,6 +196,14 @@ def grade(review, ghost=None):
         capped = True
     else:
         capped = False
+    # A single trial cannot mechanically reach 'high': consistency is not estimable (k=1) and the
+    # optimal information size cannot be confirmed from one trial, so cap at 'moderate'. This still
+    # lets a large, precise single RCT (e.g. SELECT) rise to moderate rather than being wrongly pushed
+    # to low by an automatic single-trial imprecision downgrade (the external-audit fix).
+    single_trial_capped = False
+    if (res.get("k") or 0) <= 1 and idx == 0:
+        idx = 1
+        single_trial_capped = True
     return {
         "start": "high",
         "domains": {
@@ -200,6 +218,7 @@ def grade(review, ghost=None):
         "downgrades": downgrades,
         "certainty": CERT[idx],
         "certainty_capped_by_rob_coverage": capped,
+        "certainty_capped_single_trial": single_trial_capped,
         "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication "
                  "bias are computed from committed fields; indirectness is left to human judgement.",
     }

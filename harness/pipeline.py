@@ -149,13 +149,19 @@ def _pool_result(studies, scale="RR"):
     r = pool(studies, scale=scale)
     res = {"k": r.k, "estimate": round(r.estimate, 4), "scale": r.scale,
            "ci_low": round(r.ci_low, 4), "ci_high": round(r.ci_high, 4), "tau2": round(r.tau2, 5)}
-    if r.k > 1:
+    if r.k == 1:
+        res["pi_note"] = "prediction interval undefined for k=1"
+    elif r.k == 2:
+        # External audit: at k=2 the prediction interval needs a t-quantile on 1 degree of freedom and
+        # is not reliable; suppress it rather than print a CI-coincident interval (Cochrane guidance).
+        res["pi_note"] = ("prediction interval not estimated (k=2): it requires a t-quantile on a single "
+                          "degree of freedom and is not reliable at k=2 (Cochrane) — see the common-effect "
+                          "sensitivity CI instead.")
+    else:
         res["pi_low"], res["pi_high"] = round(r.pi_low, 4), round(r.pi_high, 4)
         if r.tau2 == 0:
             res["pi_note"] = ("tau^2 estimated as 0, so the prediction interval coincides with the "
                               "confidence interval (no between-study heterogeneity detected).")
-    else:
-        res["pi_note"] = "prediction interval undefined for k=1"
     # At k==2 the HKSJ t-multiplier (t_{1}=12.71, 1 df) makes the primary CI very wide and can read as
     # "compatible with no effect" even when both trials agree (I^2=0); an external audit asked for the
     # conventional common-effect CI alongside. (k==1 is already z-based, so its fixed CI equals the
