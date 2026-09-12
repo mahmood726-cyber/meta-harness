@@ -59,3 +59,27 @@ def test_no_stale_hardcoded_fair_counts_slip_back_in():
     # if the derived judge total is not 8, the old '8 of 8' phrasing must be gone
     if n["judge_total"] != 8:
         assert "8 of 8" not in html
+
+
+def test_prose_number_guard_fires_on_unaccounted_numeral():
+    """The build-time anti-drift guard must RAISE on a risky prose numeral that is neither object-derived
+    nor whitelisted (an aggregate 'N of M', a decimal effect size, or an integer >= 10), and must PASS the
+    real banners. This is the permanent version of the '95 of 95' drift, enforced fail-closed by the hook
+    (which regenerates the index via build_index)."""
+    import pytest
+    for bad in ("<p>recovered 999 of 1234 cells</p>", "<p>now 47 topics live</p>", "<p>MD -7.77</p>"):
+        with pytest.raises(ValueError):
+            IDX._validate_prose_numbers(DOCS, bad)
+    # the real static banners pass, and build_index (which calls the guard) succeeds
+    IDX._validate_prose_numbers(DOCS, IDX._continuous_section(DOCS))
+    assert IDX.build_index(DOCS)
+
+
+def test_continuous_banner_numbers_are_object_derived():
+    """Semaglutide's live k/MD/CI in the continuous banner must match its review.json (derived, not typed)."""
+    html = IDX.build_index(DOCS)
+    import json as _j, os as _o
+    res = next(o["result"] for o in _j.load(open(_o.path.join(DOCS, "reviews", "semaglutide-obesity-weight",
+              "review.json"), encoding="utf-8"))["outcomes"] if o.get("primary"))
+    assert f"k={res['k']}, MD" in html
+    assert f"{abs(round(res['estimate'],2))}%" in html

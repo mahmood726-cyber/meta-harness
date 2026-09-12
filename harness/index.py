@@ -8,6 +8,7 @@ import glob
 import html
 import json
 import os
+import re
 
 _E = lambda x: html.escape("" if x is None else str(x), quote=True)
 
@@ -224,6 +225,103 @@ def _fair_section(docs_dir: str) -> str:
         "are recorded, not hidden.</p></div>")
 
 
+# Static numerals allowed in the thesis/continuous prose banners: facts that do NOT change as the corpus
+# grows. Each carries a reason. Anything RISKY (a decimal effect size, an "N of M" aggregate, or an integer
+# >= 10) that is neither here nor object-derived makes build_index RAISE — the permanent version of the
+# "95 of 95 drifted stale" lesson, enforced fail-closed because the pre-commit hook regenerates the index.
+_STATIC_PROSE_NUMERALS = {
+    "9": "citation-chase reach: trials recovered of those reachable (fixed historical measurement)",
+    "626": "declared-absent cells the independent V2 extractor scanned (fixed completed analysis)",
+    "44": "Week 44 — the excluded regional trials' end-of-treatment timepoint (fixed trial design)",
+    "68": "Week 68 — semaglutide's pre-registered primary timepoint (fixed protocol)",
+    "95": "the 95% confidence-interval label (fixed)",
+}
+
+
+def _prose_derived_numerals(docs_dir: str) -> set:
+    """Live numerals the banners legitimately cite, derived from the objects (semaglutide's k/MD/CI and the
+    three continuous parity k's), so they are accounted rather than whitelisted."""
+    out = set()
+    p = os.path.join(docs_dir, "reviews", "semaglutide-obesity-weight", "review.json")
+    if os.path.exists(p):
+        try:
+            res = next((o["result"] for o in json.load(open(p, encoding="utf-8")).get("outcomes", [])
+                        if o.get("primary")), {})
+            for v in (res.get("k"), res.get("estimate"), res.get("ci_low"), res.get("ci_high")):
+                if isinstance(v, (int, float)):
+                    out.add(str(abs(round(v, 2)) if isinstance(v, float) else v))
+        except (OSError, ValueError, KeyError):
+            pass
+    pj = os.path.join(docs_dir, "parity.json")
+    if os.path.exists(pj):
+        try:
+            for r in json.load(open(pj, encoding="utf-8")):
+                if r.get("slug", "").startswith(("esketamine", "melatonin", "semaglutide")):
+                    out.add(str(r.get("our_k")))
+                    out.add(str(r.get("comparable_comparator_k")))
+        except (OSError, ValueError):
+            pass
+    return out
+
+
+def _validate_prose_numbers(docs_dir: str, banners_html: str) -> None:
+    """Raise if a RISKY numeral in the static prose banners is neither object-derived nor whitelisted static.
+    Risky = a decimal (effect size), an 'N of M' aggregate, or an integer >= 10. Bare integers < 10 are
+    inherent to prose ('three pages', 'two-arm') and low drift-risk, so they are allowed."""
+    text = re.sub(r"<[^>]+>", " ", banners_html)
+    allowed = set(_STATIC_PROSE_NUMERALS) | _prose_derived_numerals(docs_dir)
+    risky = set(re.findall(r"\d+\.\d+", text))                       # decimals (effect sizes)
+    ints_text = re.sub(r"\d+\.\d+", " ", text)                       # strip decimals so their integer parts don't double-count
+    risky |= {n for pair in re.findall(r"(\d+)\s+of\s+(\d+)", ints_text) for n in pair}  # N of M
+    risky |= {n for n in re.findall(r"\d+", ints_text) if int(n) >= 10}   # integers >= 10
+    unaccounted = sorted(n for n in risky if n not in allowed)
+    if unaccounted:
+        raise ValueError(
+            "index prose contains numerals that are neither object-derived nor whitelisted static: "
+            f"{unaccounted}. Either derive them from the object, or add them to _STATIC_PROSE_NUMERALS "
+            "with a reason. (Anti-drift guard — the '95 of 95' lesson.)")
+
+
+def _continuous_section(docs_dir: str) -> str:
+    """The continuous-tier banner. Semaglutide's LIVE result (k, MD, CI) is DERIVED from its committed
+    review.json so it cannot drift if the pool is rebuilt; the pre-guard 'k=4' is a fixed narrative of
+    what the timepoint guard removed (static), and Week-44/Week-68 describe fixed trial designs."""
+    k = md = lo = hi = None
+    p = os.path.join(docs_dir, "reviews", "semaglutide-obesity-weight", "review.json")
+    if os.path.exists(p):
+        try:
+            rev = json.load(open(p, encoding="utf-8"))
+            res = next((o["result"] for o in rev.get("outcomes", []) if o.get("primary")), {})
+            k, md, lo, hi = res.get("k"), res.get("estimate"), res.get("ci_low"), res.get("ci_high")
+        except (OSError, ValueError, KeyError):
+            pass
+    if k is None or md is None:
+        sema = "a single Week-68 pool after a timepoint-consistency guard removed off-timepoint trials"
+    else:
+        sema = (f"it went from <strong>k=4, a tight and statistically significant pool</strong>, to "
+                f"<strong>k={k}, MD &minus;{abs(round(md,2))}% (95% CI &minus;{abs(round(lo,2))} to "
+                f"{round(hi,2)})</strong> &mdash; an interval that now crosses zero &mdash; because a "
+                "timepoint-consistency guard refused to pool two Week-44 trials into a pre-registered "
+                "Week-68 outcome")
+    return (
+        "<div class='banner'><h2>The same result from a second angle: the continuous tier is three pages, "
+        "and here is why it is three</h2>"
+        "<p>The continuous-primary tier (mean-difference outcomes: melatonin sleep-onset latency, esketamine "
+        "MADRS, semaglutide weight) is <strong>bar-limited, not effort-limited</strong>. Growing it was "
+        "attempted and <strong>five candidate topics were probed against their own posted ClinicalTrials.gov "
+        "results and five were declined, each with a named reason</strong>: regulatory efficacy endpoints "
+        "(FEV1, blood pressure, HbA1c) are posted as <strong>least-squares means with standard errors</strong> "
+        "(ANCOVA), which we refuse rather than silently convert (roflumilast, tiotropium, renal-denervation); "
+        "and symptom scales vary in <strong>instrument, timepoint and design</strong> across trials, so no "
+        "same-scope pool of &ge;2 forms (pregabalin pain; liraglutide obesity is multi-arm / different "
+        "timepoints). A topic builds cleanly here only when one registered outcome with raw per-arm mean&plusmn;SD "
+        "is reported at one common timepoint across same-scope two-arm trials &mdash; a rare alignment. "
+        f"<strong>Semaglutide is the clearest single illustration of the standard:</strong> {sema}. "
+        "<strong>We gave up significance to keep the timepoints consistent.</strong> No comparator reports "
+        "having made that trade. Together with the paragraph above this makes one claim: <strong>where we pool "
+        "less, it is because of a stated bar &mdash; and the bar is shown, not asserted.</strong></p></div>")
+
+
 def build_index(docs_dir: str) -> str:
     rows = []
     for mpath in sorted(glob.glob(os.path.join(docs_dir, "reviews", "*", "manifest.json"))):
@@ -299,27 +397,9 @@ def build_index(docs_dir: str) -> str:
                "against its committed source and gate-enforced</strong> (the exact count is stated below). "
                "The offer is greater auditability, honestly bounded &mdash; not a claim of more evidence "
                "than the peer-reviewed comparators.</p></div>")
-    _continuous = (
-        "<div class='banner'><h2>The same result from a second angle: the continuous tier is three pages, "
-        "and here is why it is three</h2>"
-        "<p>The continuous-primary tier (mean-difference outcomes: melatonin sleep-onset latency, esketamine "
-        "MADRS, semaglutide weight) is <strong>bar-limited, not effort-limited</strong>. Growing it was "
-        "attempted and <strong>five candidate topics were probed against their own posted ClinicalTrials.gov "
-        "results and five were declined, each with a named reason</strong>: regulatory efficacy endpoints "
-        "(FEV1, blood pressure, HbA1c) are posted as <strong>least-squares means with standard errors</strong> "
-        "(ANCOVA), which we refuse rather than silently convert (roflumilast, tiotropium, renal-denervation); "
-        "and symptom scales vary in <strong>instrument, timepoint and design</strong> across trials, so no "
-        "same-scope pool of &ge;2 forms (pregabalin pain; liraglutide obesity is multi-arm / different "
-        "timepoints). A topic builds cleanly here only when one registered outcome with raw per-arm mean&plusmn;SD "
-        "is reported at one common timepoint across same-scope two-arm trials &mdash; a rare alignment. "
-        "<strong>Semaglutide is the clearest single illustration of the standard:</strong> it went from "
-        "<strong>k=4, a tight and statistically significant pool</strong>, to <strong>k=2, MD &minus;11.84% "
-        "(95% CI &minus;25.13 to 1.44)</strong> &mdash; an interval that now crosses zero &mdash; because a "
-        "timepoint-consistency guard refused to pool two Week-44 trials into a pre-registered Week-68 outcome. "
-        "<strong>We gave up significance to keep the timepoints consistent.</strong> No comparator reports "
-        "having made that trade. Together with the paragraph above this makes one claim: <strong>where we pool "
-        "less, it is because of a stated bar &mdash; and the bar is shown, not asserted.</strong></p></div>")
-    body = (_thesis + _continuous + _verification_section(docs_dir) + _parity_section(docs_dir)
+    _cont = _continuous_section(docs_dir)
+    _validate_prose_numbers(docs_dir, _thesis + _cont)  # anti-drift: fail closed on an un-accounted prose numeral
+    body = (_thesis + _cont + _verification_section(docs_dir) + _parity_section(docs_dir)
             + _error_coverage_section(docs_dir) + _stance + _fair_section(docs_dir) + body)
 
     return (
