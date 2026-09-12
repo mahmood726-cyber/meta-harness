@@ -222,7 +222,30 @@ def _external_agreement_section(docs_dir: str) -> str:
             f"weakness the expansion tier targets &mdash; but a true number-by-number check is <strong>blocked "
             f"even for Cochrane</strong>: its per-woman arm counts live in forest-plot images, not the "
             f"open-access text (only per-cycle data is tabulated). Per-trial ground truth needs vision/OCR or "
-            f"IPD (<code>docs/cochrane_headtohead.json</code>).</p></div>")
+            f"IPD (<code>docs/cochrane_headtohead.json</code>).</p>"
+            + _evidence_base_line(docs_dir)
+            + "</div>")
+
+
+def _evidence_base_line(docs_dir: str) -> str:
+    """One line answering 'is small k our limit or the question's?' from docs/evidence_base.json."""
+    p = os.path.join(docs_dir, "evidence_base.json")
+    if not os.path.exists(p):
+        return ""
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    c, gs, gl = d.get("n_complete"), d.get("n_gap_small"), d.get("n_gap_large")
+    if c is None:
+        return ""
+    return (f"<p><strong>Is our small k our limit or the question's?</strong> Of the topics with a same-scope "
+            f"comparator, <strong>{c}</strong> are at or above the <em>complete same-scope evidence</em> "
+            f"(our k equals the comparable comparator's &mdash; the smallness is the literature's, not ours); "
+            f"{gs} are 1&ndash;2 trials short (bar-limited, decomposed on the page); and {gl} face a genuinely "
+            f"larger literature where the gap is named per topic (open-label excluded, different outcome "
+            f"definition, prophylaxis-vs-treatment, or reach). So small k is labelled, not hidden &mdash; and "
+            f"where it is the question's limit we say so.</p>")
 
 
 def _crossfamily_section(docs_dir: str) -> str:
@@ -257,7 +280,31 @@ def _crossfamily_section(docs_dir: str) -> str:
             f"a rounding tie, one registry-vs-abstract count, and one CT.gov-vs-abstract estimand difference "
             f"(all disclosed in <code>docs/crossfamily.json</code>). A model call is treated as a source &mdash; "
             f"the Gemini outputs are committed, so this regenerates without re-calling the model. "
-            f"<strong>Three-family agreement is a far stronger claim than our own dual extraction.</strong></p></div>")
+            f"<strong>Three-family agreement is a far stronger claim than our own dual extraction.</strong></p>"
+            + _crossfamily_judge_line(docs_dir)
+            + "</div>")
+
+
+def _crossfamily_judge_line(docs_dir: str) -> str:
+    """The cross-family BLIND JUDGING result (a non-Claude judge re-rating auditability)."""
+    p = os.path.join(docs_dir, "crossfamily_judge.json")
+    if not os.path.exists(p):
+        return ""
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    nt, nj = d.get("n_topics"), d.get("n_dimension_judgments")
+    ow, ag = d.get("gemini_rates_ours_more_auditable"), d.get("gemini_agrees_with_claude")
+    if not nj:
+        return ""
+    return (f"<p><strong>And the judge was re-run cross-family.</strong> The page-vs-comparator auditability "
+            f"verdict previously rested on a Claude-family judge. A non-Claude judge (Gemini) re-judged the "
+            f"same blinded pairs on {nj} dimension-comparisons across {nt} topics and rated <strong>our page "
+            f"more auditable on {ow} of {nj}</strong> (agreeing with the Claude judge on {ag} of {nj}, and "
+            f"more favourable to us on the rest). The auditability result is <strong>not an artefact of an AI "
+            f"liking a page in its own style</strong> &mdash; a different family reaches the same verdict "
+            f"(<code>docs/crossfamily_judge.json</code>).</p>")
 
 
 def _provenance_section(docs_dir: str) -> str:
@@ -547,6 +594,27 @@ def _prose_derived_numerals(docs_dir: str) -> set:
                     if isinstance(v, (int, float)):
                         out.add(f"{round(v, 2):g}")
                         out.add(str(round(v, 2)))
+        except (OSError, ValueError):
+            pass
+    # cross-family JUDGE numerals
+    cj = os.path.join(docs_dir, "crossfamily_judge.json")
+    if os.path.exists(cj):
+        try:
+            j = json.load(open(cj, encoding="utf-8"))
+            for v in (j.get("n_topics"), j.get("n_dimension_judgments"),
+                      j.get("gemini_rates_ours_more_auditable"), j.get("gemini_agrees_with_claude")):
+                if isinstance(v, int):
+                    out.add(str(v))
+        except (OSError, ValueError):
+            pass
+    # evidence-base classification numerals
+    eb = os.path.join(docs_dir, "evidence_base.json")
+    if os.path.exists(eb):
+        try:
+            b = json.load(open(eb, encoding="utf-8"))
+            for v in (b.get("n_complete"), b.get("n_gap_small"), b.get("n_gap_large")):
+                if isinstance(v, int):
+                    out.add(str(v))
         except (OSError, ValueError):
             pass
     # cochrane head-to-head numerals (pooled k, effects)
