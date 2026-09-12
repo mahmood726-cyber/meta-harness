@@ -13,9 +13,11 @@ import xml.etree.ElementTree as ET
 _NCT_RE = re.compile(r"NCT\d{8}")
 
 from . import http
+from . import fulltext as _ft
 
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 CTGOV = "https://clinicaltrials.gov/api/v2/studies"
+PMC_OA = "https://www.ncbi.nlm.nih.gov/pmc/utils/oa/oa.fcgi"
 EPMC = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
 
 
@@ -130,28 +132,64 @@ def _refs(pmid: str) -> list[str]:
         return []
 
 
-def _pmc_fulltext(pmid: str) -> str:
-    """Best-effort: resolve PubMed->PMC and return the article body text, else ''."""
+def _resolve_pmcid(pmid: str) -> str | None:
+    """PubMed id -> PMC id (e.g. '6098635'), or None if not in PMC OA."""
+    d = http.get_json(f"{EUTILS}/elink.fcgi",
+                      {"dbfrom": "pubmed", "db": "pmc", "id": pmid, "retmode": "json",
+                       "tool": "meta-harness", "email": "meta-harness@example.org"})
+    time.sleep(0.34)
+    for ls in d.get("linksets", [{}])[0].get("linksetdbs", []):
+        if ls.get("dbto") == "pmc" and ls.get("links"):
+            return ls["links"][0]
+    return None
+
+
+def _pmc_oa_supplement_text(pmcid: str, hrefs: list[str]) -> str:
+    """Download the PMC OA .tar.gz package and extract row-structured text from the supplementary
+    spreadsheet/CSV files the article references (per-arm SD tables have hidden here). Best-effort;
+    returns '' if the package is unavailable or has no usable supplement. Bounded and network-guarded."""
+    if not hrefs:
+        return ""
     try:
-        d = http.get_json(f"{EUTILS}/elink.fcgi",
-                          {"dbfrom": "pubmed", "db": "pmc", "id": pmid, "retmode": "json",
-                           "tool": "meta-harness", "email": "meta-harness@example.org"})
+        oa = http.get_text(PMC_OA, {"id": f"PMC{pmcid}"})
         time.sleep(0.34)
-        linksets = d.get("linksets", [{}])[0].get("linksetdbs", [])
-        pmcid = None
-        for ls in linksets:
-            if ls.get("dbto") == "pmc" and ls.get("links"):
-                pmcid = ls["links"][0]
-                break
+        m = re.search(r'href="(ftp://[^"]+\.tar\.gz)"', oa) or re.search(r'href="(https?://[^"]+\.tar\.gz)"', oa)
+        if not m:
+            return ""
+        url = m.group(1).replace("ftp://ftp.ncbi.nlm.nih.gov", "https://ftp.ncbi.nlm.nih.gov")
+        tar_bytes = http.get(url)
+        wanted = {h.rsplit("/", 1)[-1].lower() for h in hrefs}
+        blocks = []
+        for name, data in _ft.iter_oa_package(tar_bytes):
+            base = name.rsplit("/", 1)[-1].lower()
+            if base in wanted or (base.endswith((".xlsx", ".xlsm", ".csv", ".tsv")) and base in wanted):
+                txt = _ft.supplement_text_from_bytes(base, data)
+                if txt:
+                    blocks.append(f"SUPPLEMENT {base}\n{txt}")
+        return "\n\n".join(blocks)
+    except Exception:  # noqa: BLE001 - supplements are optional reach; never fail the fetch
+        return ""
+
+
+def _pmc_fulltext(pmid: str, with_supplements: bool = False) -> str:
+    """Resolve PubMed->PMC and return body prose + STRUCTURED tables (per-arm values keep their row),
+    optionally + supplementary spreadsheet/CSV text. Falls back to '' (abstract path) on any failure.
+    The number is never interpreted here — this only makes the verbatim source legible for locate."""
+    try:
+        pmcid = _resolve_pmcid(pmid)
         if not pmcid:
             return ""
         xml = http.get_text(f"{EUTILS}/efetch.fcgi",
                            {"db": "pmc", "id": pmcid, "retmode": "xml",
                             "tool": "meta-harness", "email": "meta-harness@example.org"})
         time.sleep(0.34)
-        root = ET.fromstring(xml)
-        body = root.find(".//body")
-        return " ".join(body.itertext()).strip() if body is not None else ""
+        parsed = _ft.parse_pmc_xml(xml)
+        text = _ft.combined_text(parsed)
+        if with_supplements and parsed.get("supplements"):
+            sup = _pmc_oa_supplement_text(pmcid, parsed["supplements"])
+            if sup:
+                text = (text + "\n\n=== SUPPLEMENTARY FILES ===\n" + sup).strip()
+        return text
     except Exception:  # noqa: BLE001 - full text is optional; fall back to abstract
         return ""
 
@@ -286,10 +324,13 @@ def run(config: dict) -> dict:
     # yields no poolable number — this is where per-arm SD / person-time / rate-ratio+CI live that
     # abstracts omit (Albert's azithromycin IRR 0.73 is in its full text, not its abstract). Gated
     # by fulltext:true so existing caches are unaffected until a topic opts in and re-fetches.
+    # fulltext_supplements:true additionally pulls the PMC OA package's supplementary spreadsheets/CSV
+    # (where per-arm SD tables have hidden) — the untested reach route; opt-in, per-topic, re-fetch.
     fulltext_by_pmid = {}
     if config.get("fulltext"):
+        with_sup = bool(config.get("fulltext_supplements"))
         for r in pubmed[:config.get("max_fulltext", 40)]:
-            ft = _pmc_fulltext(r["id"])
+            ft = _pmc_fulltext(r["id"], with_supplements=with_sup)
             if ft:
                 fulltext_by_pmid[r["id"]] = ft
     # AACT/registry-results adapter: structured arm-level outcome tables per NCT with results.
