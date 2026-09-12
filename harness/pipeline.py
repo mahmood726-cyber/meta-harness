@@ -221,6 +221,20 @@ def _load_rob2(slug):
         return None
 
 
+def _load_rob_spancheck():
+    """Corpus-level RoB span-check summary (docs/rob_spancheck.json): the cross-family agreement rate of the
+    model/registry-derived RoB2 ratings vs the trial abstracts. Same number on every RoB tab (it is a corpus
+    measurement); rendered so the RoB block carries a credibility number after a visible rendering break."""
+    import os, json
+    fp = os.path.join(ROOT, "docs", "rob_spancheck.json")
+    if not os.path.exists(fp):
+        return None
+    try:
+        return json.load(open(fp, encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 def _load_definition_audit(slug):
     """The topic's rows from the committed cross-family definition audit (docs/definition_audit.json):
     outcome-definition-identity findings (composite component set / timepoint / population / analysis set),
@@ -736,6 +750,8 @@ def build_review_core(slug, config, records, protocol_sha):
         **({"funding": _fund} if (_fund := funding.scan_pooled({"outcomes": outcomes}, rec_by_id, ftbp)) else {}),
         # Cross-family definition-audit findings for this topic (rendered so a recorded mismatch is visible).
         **({"definition_audit": _da} if (_da := _load_definition_audit(slug)) else {}),
+        # Corpus-level RoB span-check agreement (rendered on the RoB tab).
+        **({"rob_spancheck": _rsc} if (_rsc := _load_rob_spancheck()) else {}),
     }
     # RoB-stratified sensitivity re-pool of the primary outcome (regenerates from the object, so the
     # figure the page renders is reproduced, not typed). Uses the same validated pooler.

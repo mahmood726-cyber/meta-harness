@@ -40,7 +40,7 @@ def _e(x: Any) -> str:
 
 def _num(x: Any) -> str:
     if isinstance(x, float):
-        return f"{x:.3g}"
+        return f"{round(x, 2):g}"  # consistent 2-dp display for effects/CIs (was .3g -> mixed decimals like 0.79 vs 0.914)
     return _e(x)
 
 
@@ -912,7 +912,20 @@ def _riskofbias(r, neutral):
                       "the directness) &mdash; this is a partial GRADE, honestly labelled."
                       "<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr>"
                       f"{''.join(drows)}</table></div>").format(cap)
-    return (f"<p>{cover}</p>" + uoa_html + fund_html
+    rsc = r.get("rob_spancheck") or {}
+    rsc_html = ""
+    if rsc.get("agreement_rate") is not None:
+        rsc_html = ("<div class='banner'><strong>RoB spans span-checked (cross-family): "
+                    f"{round(rsc['agreement_rate']*100)}% agreement</strong> ({rsc.get('supported')} of "
+                    f"{rsc.get('supported',0)+rsc.get('not_supported',0)} scoreable), from a seeded sample of "
+                    f"{rsc.get('n_sampled')} model/registry-derived domain ratings independently checked by a "
+                    f"different model family (Fable) against each trial abstract; {rsc.get('unclear')} were "
+                    "unscoreable (no claim, or a conservative not-stated rating). This check itself found and "
+                    "fixed a real error &mdash; one trial (EMPHASIS-HF) was mislabelled NON_RANDOMIZED by the "
+                    "registry, contradicted by its abstract; the RoB block was also visibly broken until a "
+                    "human review caught it. The number is here because a RoB block a reader cannot trust is "
+                    "worthless (<code>docs/rob_spancheck.json</code>).</div>")
+    return (f"<p>{cover}</p>" + rsc_html + uoa_html + fund_html
             + "<p>Per-pooled-trial RoB2 risk of bias, computed from what is machine-available "
             f"({_e(rb.get('source') or 'AACT registry fields')}). <strong>Domain 5 (selective reporting)</strong> "
             "is computed from the trial's REGISTERED primary outcome vs the outcome we pooled — a machine-checkable "

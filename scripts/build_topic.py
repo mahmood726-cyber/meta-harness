@@ -21,6 +21,7 @@ from harness.pipeline import build_review_core, build_comparator_core, METHOD  #
 from harness.census import build_review_dir  # noqa: E402
 from harness.page import render_page  # noqa: E402
 from harness.index import write_index  # noqa: E402
+from harness.registration import protocol_sha  # noqa: E402
 
 SALT = "mh-blind-v1"
 
@@ -30,8 +31,7 @@ def _token(slug, role):
 
 
 def _protocol_sha(slug):
-    out = subprocess.check_output(
-        ["git", "-C", ROOT, "log", "-1", "--format=%H", "--", f"protocols/{slug}.md"], text=True).strip()
+    out = protocol_sha(slug)
     if not out:
         raise SystemExit(f"protocols/{slug}.md not committed — register it first")
     return out

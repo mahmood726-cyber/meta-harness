@@ -28,6 +28,7 @@ import sys
 from .canonical import sha256_text
 from .census import verify
 from . import manuscript as _manuscript_mod
+from .registration import protocol_sha as _registration_sha
 
 REQUIRED_MANIFEST = ("slug", "declared_method", "served_method", "protocol_sha",
                      "generator", "review_sha256", "html_sha256")
@@ -279,10 +280,10 @@ def check_reproduction(review_dir, manifest):
         from . import fetch
         from .canonical import review_sha256
         from .pipeline import build_review_core
-        import subprocess
         cfg = _json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8"))
-        sha = subprocess.check_output(["git", "-C", ROOT, "log", "-1", "--format=%H", "--",
-                                       f"protocols/{slug}.md"], text=True).strip()
+        sha = _registration_sha(slug)
+        if not sha:
+            return [f"L1: no registration SHA for {slug!r}"]
         records = fetch.ensure(cfg, "")  # committed cache present -> offline
         regen = review_sha256(build_review_core(slug, cfg, records, sha))
     except Exception as exc:  # noqa: BLE001 - a replay that cannot run is a refusal, not a pass

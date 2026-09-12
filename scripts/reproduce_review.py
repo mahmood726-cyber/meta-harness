@@ -28,12 +28,11 @@ from harness.canonical import review_sha256, sha256_text  # noqa: E402
 from harness.pipeline import build_review_core  # noqa: E402
 from harness.page import render_page  # noqa: E402
 from harness import census  # noqa: E402
+from harness.registration import protocol_sha as _registration_sha  # noqa: E402
 
 
 def _protocol_sha(slug):
-    out = subprocess.check_output(
-        ["git", "-C", ROOT, "log", "-1", "--format=%H", "--", f"protocols/{slug}.md"], text=True).strip()
-    return out or None
+    return _registration_sha(slug)
 
 
 def replay_core(slug):
