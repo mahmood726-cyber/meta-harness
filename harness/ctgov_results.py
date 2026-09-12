@@ -15,6 +15,66 @@ def _num(x):
         return None
 
 
+def _classify_arms(groups, interv_l, comp_l):
+    """Assign the two arms to (intervention_gid, comparator_gid) by group title, with the standard
+    2-arm fallback (the placebo/control arm is the comparator, the other is the intervention)."""
+    interv_gid = comp_gid = None
+    for g in groups:
+        tl = (g.get("title") or "").lower()
+        if any(c in tl for c in comp_l):
+            comp_gid = g.get("id")
+        elif any(i in tl for i in interv_l):
+            interv_gid = g.get("id")
+    if len(groups) == 2 and (interv_gid is None or comp_gid is None):
+        ids = [g.get("id") for g in groups]
+        if comp_gid and interv_gid is None:
+            interv_gid = [i for i in ids if i != comp_gid][0]
+        elif interv_gid and comp_gid is None:
+            comp_gid = [i for i in ids if i != interv_gid][0]
+    return interv_gid, comp_gid
+
+
+def _extract_ctgov_continuous(om, interv_l, comp_l):
+    """Per-arm mean/SD/n from a MEAN outcome measure with dispersion 'Standard Deviation' → a
+    mean-difference input {mean1,sd1,nc1,mean2,sd2,nc2,scale:'MD',source}. Refuses (None) on any
+    other dispersion type, missing value/spread/denom, non-positive SD or n, or <2 arms — the number
+    is taken verbatim from the structured table, never inferred."""
+    disp = (om.get("dispersionType") or "").lower()
+    if "standard deviation" not in disp:
+        return None  # SE / 95% CI / inter-quartile range / full range: refuse here (no silent conversion)
+    groups = om.get("groups", [])
+    if len(groups) < 2:
+        return None
+    classes = om.get("classes", [])
+    if not (classes and classes[0].get("categories")):
+        return None
+    means, sds = {}, {}
+    for m in classes[0]["categories"][0].get("measurements", []):
+        means[m.get("groupId")] = _num(m.get("value"))
+        sds[m.get("groupId")] = _num(m.get("spread"))
+    denoms = {}
+    for d in om.get("denoms", []):
+        for c in d.get("counts", []):
+            denoms[c.get("groupId")] = _num(c.get("value"))
+    interv_gid, comp_gid = _classify_arms(groups, interv_l, comp_l)
+    if not (interv_gid and comp_gid):
+        return None
+    mean1, sd1, n1 = means.get(interv_gid), sds.get(interv_gid), denoms.get(interv_gid)
+    mean2, sd2, n2 = means.get(comp_gid), sds.get(comp_gid), denoms.get(comp_gid)
+    if None in (mean1, sd1, n1, mean2, sd2, n2):
+        return None
+    if not (sd1 > 0 and sd2 > 0 and n1 > 0 and n2 > 0):
+        return None
+    gi = next((g.get("title") for g in groups if g.get("id") == interv_gid), "")
+    gc = next((g.get("title") for g in groups if g.get("id") == comp_gid), "")
+    unit = om.get("unitOfMeasure") or ""
+    return {"mean1": mean1, "sd1": sd1, "nc1": int(n1),
+            "mean2": mean2, "sd2": sd2, "nc2": int(n2), "scale": "MD",
+            "source": (f"ClinicalTrials.gov results (structured, continuous): outcome "
+                       f"'{om.get('title','')[:70]}' mean {mean1} (SD {sd1}, n={int(n1)}) [{gi[:22]}] "
+                       f"vs {mean2} (SD {sd2}, n={int(n2)}) [{gc[:22]}]" + (f" {unit}" if unit else ""))}
+
+
 def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_total=None,
                   judgments=None):
     """Return dict {ai,n1i,ci,n2i,source} for the outcome measure matching our outcome, else None.
@@ -69,8 +129,17 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
              if title_matches(om.get("title")) and identity_ok(om.get("title"))]
     cands.sort(key=lambda om: 0 if om.get("type") == "PRIMARY" else 1)
     for om in cands:
-        # only participant-count style measures (skip means/medians/rates)
         ptype = (om.get("paramType") or "").upper()
+        # CONTINUOUS measure (MEAN + per-arm SD): structured mean-difference data, the AACT-equivalent
+        # of a per-arm mean/SD table. Only paramType MEAN with dispersion "Standard Deviation" is taken
+        # directly; SE/CI/median-range dispersions are REFUSED here (refuse-on-ambiguity — an SE needs
+        # n and a range needs a Wan conversion that belongs in the prose extractor, not silently here).
+        if ptype == "MEAN":
+            cont = _extract_ctgov_continuous(om, interv_l, comp_l)
+            if cont:
+                return cont
+            continue
+        # only participant-count style measures (skip medians/rates)
         if ptype and ptype not in ("COUNT_OF_PARTICIPANTS", "NUMBER", "COUNT_OF_UNITS"):
             continue
         groups = om.get("groups", [])

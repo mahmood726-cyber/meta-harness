@@ -51,11 +51,17 @@ def verify_pooled(trial: dict, abstract: str | None) -> tuple[str, str]:
         ok = _digits_in(text, trial.get("ai"), trial.get("n1i")) and _digits_in(text, trial.get("ci"), trial.get("n2i"))
         return ("verified" if ok else "not-yet", "arm counts present in committed source" if ok
                 else "counts not all located in committed source")
+    if trial.get("mean1") is not None:
+        # Continuous (mean-difference) input: verify each arm's mean AND SD digits appear in the
+        # committed source span, exactly as the count path does — was previously trusted unconditionally.
+        ok = (_digits_in(text, trial.get("mean1"), trial.get("sd1"))
+              and _digits_in(text, trial.get("mean2"), trial.get("sd2")))
+        return ("verified" if ok else "not-yet",
+                "continuous per-arm mean/SD present in committed source" if ok
+                else "mean/SD not all located in committed source")
     if trial.get("e1i") is not None:
         ok = _digits_in(text, trial.get("e1i"), trial.get("e2i"))
         return ("verified" if ok else "not-yet", "events present in source" if ok else "events not located")
-    if trial.get("mean1") is not None:
-        return ("verified", "continuous mean/SD from source")
     if trial.get("effect") is not None:
         ok = _effect_in(text, trial.get("effect"))
         return ("verified" if ok else "not-yet", "effect present in committed source" if ok
