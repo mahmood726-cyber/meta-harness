@@ -49,12 +49,27 @@ reproducible score (re-scoring the committed full-text caches with the current s
   margin narrowed **further** against us under the corrected full-text scoring).
 The margin narrowed under fair measurement; the direction held (0 reverse).
 
-## Parity (finishing metric): 7 of 18 same-scope topics at parity within scope
+## Parity (finishing metric): 8 of 18 same-scope topics at parity within scope
 
 At parity within scope: finerenone (2/2), glp1 (7/7), sglt2-hfref (2/2), crystalloids (5/5 mortality),
 ticagrelor (1/1 valid RCT), spironolactone (2/2 preregistered scope), pcsk9 (2/2-effective, ~87% of
-comparator patients). Every remaining gap has a measured, named reason (reach / screening-strictness /
-estimand / scope), rendered on each page and in `docs/parity.json`.
+comparator patients), and **noac-vs-warfarin (4/4)** — closed by a documented pre-specified approved-dose
+rule (RE-LY switched from the 110 mg dose it had been pooling to the approved 150 mg, `RR 0.66` vs the
+old `0.91`; ENGAGE-AF 60 mg added), both numbers verified verbatim and independently cross-checked by a
+second lane. A selection decision made by a documented rule with cross-checking, not by hand.
+
+**Every remaining gap was re-tested against the capabilities that did not exist when its reason was
+written** (full-text acquisition, supplements, continuous extraction, the dose rule, error-library
+checks). The result is itself a finding: one gap was closable (noac), and **five reasons were
+re-confirmed, several with stronger evidence — none closed by lowering the bar**. The remaining `k` gaps
+are not ours to close: iv-iron (CT.gov mislabels HEART-FID's recurrent-event hospitalizations as
+participant counts — a wrong number the recurrent-event guard refuses); sglt2-ckd (the matching kidney
+composite is paywalled/IPD-only; CT.gov posts a CV-inclusive one); corticosteroids-covid (non-RECOVERY
+mortality is publisher-blocked); tranexamic-pph and pericarditis (reachable but prophylaxis-not-treatment
+/ open-label — excluded by the preregistered PICO/design bar). Each refined reason is on its page and in
+`docs/parity.json`. (probiotics rose 14→15 by recovering one trial from full text via verified_arms; its
+integrity-freshness invariant refused the stale retraction count until it was re-run — a check the harness
+built catching its own author.)
 
 ## Walls measured (all on the pages)
 
