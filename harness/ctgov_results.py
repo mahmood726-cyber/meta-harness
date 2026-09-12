@@ -34,6 +34,23 @@ def _classify_arms(groups, interv_l, comp_l):
     return interv_gid, comp_gid
 
 
+def endpoint_weeks(timeframe: str):
+    """Parse the ENDPOINT (largest) week number from a CT.gov outcome timeFrame string, so a
+    continuous MD pool can be checked for timepoint consistency. 'Baseline (week 0) to week 68' -> 68;
+    'Baseline (week 0), end of treatment (week 44)' -> 44; a 'month'/'day' figure is converted to weeks.
+    Returns None when no duration is parseable (then the timepoint guard cannot fire — refuse on
+    evidence, never on absence)."""
+    import re as _re
+    tl = (timeframe or "").lower()
+
+    def _nums(unit):  # match "week 68" AND "68 weeks" (CT.gov uses both orders)
+        n = _re.findall(rf"{unit}s?\s*(\d+(?:\.\d+)?)", tl) + _re.findall(rf"(\d+(?:\.\d+)?)\s*{unit}s?", tl)
+        return [float(x) for x in n]
+
+    weeks = _nums("week") + [m * 4.345 for m in _nums("month")] + [d / 7.0 for d in _nums("day")]
+    return max(weeks) if weeks else None
+
+
 def _extract_ctgov_continuous(om, interv_l, comp_l):
     """Per-arm mean/SD/n from a MEAN outcome measure with dispersion 'Standard Deviation' → a
     mean-difference input {mean1,sd1,nc1,mean2,sd2,nc2,scale:'MD',source}. Refuses (None) on any
@@ -81,8 +98,10 @@ def _extract_ctgov_continuous(om, interv_l, comp_l):
     # Carry the measure's population description verbatim (e.g. "Pre-planned analysis on ITT population
     # age 65-80") so a pre-specified subgroup is disclosed on the page, not silently pooled as the trial.
     popd = (om.get("populationDescription") or "").strip()
+    tf = (om.get("timeFrame") or om.get("time_frame") or "").strip()
     return {"mean1": mean1, "sd1": sd1, "nc1": int(n1),
             "mean2": mean2, "sd2": sd2, "nc2": int(n2), "scale": "MD",
+            "timeframe": tf, "timeframe_weeks": endpoint_weeks(tf),
             "source": (f"ClinicalTrials.gov results (structured, continuous): outcome "
                        f"'{om.get('title','')[:70]}' mean {mean1} (SD {sd1}, n={int(n1)}) [{gi[:22]}] "
                        f"vs {mean2} (SD {sd2}, n={int(n2)}) [{gc[:22]}]" + (f" {unit}" if unit else "")

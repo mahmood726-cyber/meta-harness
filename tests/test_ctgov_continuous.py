@@ -4,7 +4,7 @@ import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from harness.ctgov_results import extract_ctgov  # noqa: E402
+from harness.ctgov_results import extract_ctgov, endpoint_weeks  # noqa: E402
 
 
 def _om(dispersion="Standard Deviation"):
@@ -105,3 +105,13 @@ def test_prefers_treatment_policy_estimand_regardless_of_ctgov_order():
         out = extract_ctgov(_two_estimand_oms(on_first), BW_KWS, ["semaglutide"], ["placebo"])
         assert out is not None
         assert out["mean1"] == -16.4, f"picked wrong estimand (on_treatment_first={on_first})"
+
+
+def test_endpoint_weeks_parses_ctgov_timeframes():
+    # the exact timeFrame strings from the semaglutide trials
+    assert endpoint_weeks("Baseline (week 0) to week 68") == 68
+    assert endpoint_weeks("Baseline (week 0), end of treatment (week 44)") == 44
+    assert endpoint_weeks("baseline to 6 months") == 6 * 4.345
+    assert endpoint_weeks("day 28") == 28 / 7.0
+    assert endpoint_weeks("") is None  # no duration parseable -> guard cannot fire (refuse on absence)
+    assert endpoint_weeks("change from baseline") is None

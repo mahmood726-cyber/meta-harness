@@ -1260,36 +1260,6 @@
       "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
       "trials": [
         {
-          "label": "42575111",
-          "id": "PMID 42575111",
-          "mean1": -12.2,
-          "sd1": 8.2,
-          "nc1": 159,
-          "mean2": -2.2,
-          "sd2": 5.4,
-          "nc2": 78,
-          "scale": "MD",
-          "source": "ClinicalTrials.gov results (structured, continuous): outcome 'Change in Body Weight (%)' mean -12.2 (SD 8.2, n=159) [Semaglutide 2.4 mg] vs -2.2 (SD 5.4, n=78) [Placebo] Percentage change in body weight — population: FAS included all randomised participants. Overall number of participants analyze",
-          "provenance": "ctgov_results",
-          "verified": "verified",
-          "verify_basis": "continuous per-arm mean/SD present in committed source"
-        },
-        {
-          "label": "40825340",
-          "id": "PMID 40825340",
-          "mean1": -16.4,
-          "sd1": 7.3,
-          "nc1": 100,
-          "mean2": -2.6,
-          "sd2": 5.8,
-          "nc2": 48,
-          "scale": "MD",
-          "source": "ClinicalTrials.gov results (structured, continuous): outcome 'Change in Body Weight (%) : In-trial Observation Period' mean -16.4 (SD 7.3, n=100) [Semaglutide] vs -2.6 (SD 5.8, n=48) [Placebo] Percentage of body weight — population: FAS included all randomized participants. Here, Overall number of participants a",
-          "provenance": "ctgov_results",
-          "verified": "verified",
-          "verify_basis": "continuous per-arm mean/SD present in committed source"
-        },
-        {
           "label": "33625476",
           "id": "PMID 33625476",
           "mean1": -16.5,
@@ -1299,6 +1269,8 @@
           "sd2": 7.7,
           "nc2": 204,
           "scale": "MD",
+          "timeframe": "Baseline (week 0) to week 68",
+          "timeframe_weeks": 68.0,
           "source": "ClinicalTrials.gov results (structured, continuous): outcome 'Change in Body Weight (%)' mean -16.5 (SD 10.1, n=407) [Semaglutide 2.4 mg] vs -5.8 (SD 7.7, n=204) [Placebo] Percentage — population: Overall number of participants analyzed = full analysis set (FAS) which comprise",
           "provenance": "ctgov_results",
           "verified": "verified",
@@ -1314,6 +1286,8 @@
           "sd2": 6.5,
           "nc2": 655,
           "scale": "MD",
+          "timeframe": "Baseline (week 0) to week 68",
+          "timeframe_weeks": 68.0,
           "source": "ClinicalTrials.gov results (structured, continuous): outcome 'Change in Body Weight (%)' mean -15.6 (SD 10.1, n=1306) [Semaglutide 2.4 mg] vs -2.8 (SD 6.5, n=655) [Placebo] Percentage point — population: Overall number of participants analyzed = full analysis set (FAS) which comprise",
           "provenance": "ctgov_results",
           "verified": "verified",
@@ -1355,40 +1329,29 @@
           "label": "40069849",
           "id": "PMID 40069849",
           "reason": "estimand mismatch: this is a mean-difference (continuous) topic, but the only extractable value for this trial was a count/proportion or a ratio effect (not a per-arm mean/SD) — declared absent rather than pooled across estimands"
+        },
+        {
+          "label": "42575111",
+          "id": "PMID 42575111",
+          "reason": "timepoint mismatch: the pre-registered primary timepoint is Week 68, but this trial's source reports the outcome at Week 44 (Baseline (week 0), end of treatment (week 44)) — declared absent rather than pooled across follow-up durations"
+        },
+        {
+          "label": "40825340",
+          "id": "PMID 40825340",
+          "reason": "timepoint mismatch: the pre-registered primary timepoint is Week 68, but this trial's source reports the outcome at Week 44 (Baseline (week 0), end of treatment (week 44)) — declared absent rather than pooled across follow-up durations"
         }
       ],
       "result": {
-        "k": 4,
-        "estimate": -11.8051,
+        "k": 2,
+        "estimate": -11.8449,
         "scale": "MD",
-        "ci_low": -14.5333,
-        "ci_high": -9.0769,
-        "tau2": 2.31383,
-        "pi_low": -17.3618,
-        "pi_high": -6.2483,
+        "ci_low": -25.1318,
+        "ci_high": 1.442,
+        "tau2": 1.86306,
+        "pi_low": -33.6927,
+        "pi_high": 10.0029,
         "leave_one_out": {
-          "min": -12.3528,
-          "max": -11.3142,
-          "most_influential": "42575111",
-          "per_trial": [
-            {
-              "dropped": "42575111",
-              "estimate": -12.3528
-            },
-            {
-              "dropped": "40825340",
-              "estimate": -11.3142
-            },
-            {
-              "dropped": "33625476",
-              "estimate": -12.187
-            },
-            {
-              "dropped": "33567185",
-              "estimate": -11.4013
-            }
-          ],
-          "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."
+          "note": "not assessable at k=2 (leave-one-out needs k>=3)"
         }
       }
     },
@@ -1552,7 +1515,7 @@
       "note": "same-question comparator (matching intervention level and population)"
     },
     "overlap": {
-      "ours_k": 4,
+      "ours_k": 2,
       "theirs_k": "not stated in the comparator abstract/full text",
       "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
       "only_ours": [],
@@ -1565,7 +1528,14 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "fe53c76aad18c0fd8369e3c1fe171406c0f85e7f",
-    "review_sha256": "4b75bd0902eb0ebbaa5950f9d4a012917edff3bc1e0b2a6d06e81abf275d7e96",
-    "from_cache": true
+    "review_sha256": "c97caf9ce8d5836437430220c8c0f35a7749d55232ce1b93465bbc230b3c69c7",
+    "from_cache": true,
+    "parity": {
+      "slug": "semaglutide-obesity-weight",
+      "our_k": 2,
+      "comparable_comparator_k": 2,
+      "status": "PARITY",
+      "reason": "EXACT same-scope, same-timepoint parity. Our pool = STEP-1 (Wilding) + STEP-3 (Wadden), both once-weekly semaglutide 2.4 mg vs placebo at the pre-registered Week 68 primary; both are in the comparator's (PMID 42536519) pool too. The comparator's other 2 of 4 are out of our pre-registered scope: O'Neil-2018 is a phase-2 DAILY dose-ranging trial with a liraglutide arm, and Rubino/STEP-4 is a weight-loss-MAINTENANCE (randomised-withdrawal) estimand we exclude. We also RETRIEVED two regional 2.4 mg-vs-placebo trials (STEP-12 China, Korean STEP) but DECLARED THEM ABSENT for TIMEPOINT MISMATCH (Week 44 end-of-treatment, not the pre-registered Week 68) — a timepoint-consistency guard refusing to pad k by mixing follow-up durations. Pooled MD -11.84% (-25.13, 1.44), tau2=1.86; the wide CI is the honest k=2 HKSJ interval (t on 1 df), not a lowered bar."
+    }
   }
 }

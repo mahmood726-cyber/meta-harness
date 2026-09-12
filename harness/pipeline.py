@@ -402,6 +402,29 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                                           "or a ratio effect (not a per-arm mean/SD) — declared absent rather "
                                           "than pooled across estimands")})
         trials = kept
+    # TIMEPOINT-CONSISTENCY GUARD (opt-in, continuous topics): pooling a percent-change measured at
+    # different follow-up lengths mixes timepoints (weight loss is still accruing at 44 wk vs the
+    # 68 wk pre-registered primary). When the outcome spec declares timepoint_weeks, a trial whose
+    # ctgov outcome timeFrame endpoint differs by more than the tolerance is declared-absent — but
+    # ONLY when a timepoint is actually parsed from the source (refuse on evidence, never on absence:
+    # a trial with no parseable timepoint is left in the pool, not silently dropped). Semaglutide met
+    # this first: STEP-1/STEP-3 report Week 68, but the regional STEP-12 (China) and Korean trials
+    # report Week 44 — pooling all four would overstate k by mixing follow-up durations.
+    tp = spec.get("timepoint_weeks")
+    if tp is not None:
+        tol = spec.get("timepoint_tolerance_weeks", 8)
+        kept = []
+        for t in trials:
+            tw = t.get("timeframe_weeks")
+            if tw is not None and abs(tw - tp) > tol:
+                absent.append({"label": t["label"], "id": t["id"],
+                               "reason": (f"timepoint mismatch: the pre-registered primary timepoint is "
+                                          f"Week {tp}, but this trial's source reports the outcome at "
+                                          f"Week {tw:g} ({t.get('timeframe','')}) — declared absent rather "
+                                          f"than pooled across follow-up durations")})
+            else:
+                kept.append(t)
+        trials = kept
     # LOCATE IDENTITY GATE (opt-in, model-derived): a cached judgment that a trial's located evidence
     # is NOT the target outcome forces it to declared-absent — the safeguard against the right-number/
     # wrong-endpoint class. It can only REMOVE a mis-identified number, never add one.
