@@ -63,3 +63,15 @@ The one idea worth keeping from V2 for later, if a specific gap ever appears: it
 and RR-vs-OR labelling were clean on the defect set — a narrowly-scoped, outcome-gated corroborator on
 *reported-effect* sentences only (never counts, never continuous) could be revisited, but only behind the
 harness's outcome-identity gate and never as a number source.
+
+## Addendum — V2 at scale over every declared-absent cell (2026-09-12)
+
+Ran V2 over all declared-absent cells across the 27 live topics (its exact niche: "an effect is reported
+but the harness found no usable 2×2"), under a strict outcome-identity gate (a V2 effect counts only if
+V2's own endpoint/source_text names the declared outcome). Result: **1 of 626 cells** flagged as plausibly
+fillable, **625 correctly absent** — and the 1 (probiotics 26973849, S. boulardii AAD HR 1.02) is an
+**HR-vs-RR estimand mismatch** with our count-based pool. So V2 recovers **zero** clean numbers our
+extractor missed. Two conclusions: (1) the harness's declared-absent decisions are **independently
+validated** — an unrelated extractor cannot recover them under outcome-identity; (2) V2's lack of an
+outcome-identity gate makes it unusable as a recovery rung here, confirming the do-not-adopt verdict. The
+value it does have (prose effect+CI on the RIGHT outcome) is already covered by the harness + dual-extraction.

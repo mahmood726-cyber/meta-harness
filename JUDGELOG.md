@@ -661,3 +661,20 @@ FINDING (hfnc + prone): full-text acquisition RESOLVES the scale/timepoint probl
 DEEPER reason — clinical effect-modification (ARDS severity; post-extubation baseline risk) that makes a
 single pooled estimate misleading — stands. These are heterogeneity declines, not acquisition declines,
 now demonstrated with the per-arm counts in hand. No page built; bar held.
+
+## Cycle 60 — comparator enumerations + V2-at-scale + probiotics candidate verification (2026-09-12)
+- **omega3 / probiotics gaps DECOMPOSED and rendered on-page** (a far stronger statement than a bare k):
+  omega3 22 MACE RCTs = 8 ours (6 shared + OMEMI/OMEGA-REMODEL) + 6 open-label + 5 arrhythmia/eye/mobility
+  + 1 factorial-caught (SU.FOL.OM3) + 4 differing-composite (Nilsen/GISSI-HF/DOIT/OMEGA); probiotics ~42 =
+  15 ours + 14 not-eligible (H.pylori/C.diff/open-label) + 13 different-AAD-definition + 3 reach + 3 flagged.
+- **V2 reported-effect extractor run over EVERY declared-absent cell (its niche, at scale):** under a strict
+  outcome-identity gate it flagged 1 of 626 as plausibly fillable and 625 correctly absent — and the 1
+  (probiotics 26973849 S. boulardii HR 1.02) is an HR-vs-RR estimand mismatch with our count pool. So V2
+  recovers ZERO clean cells; the harness's declared-absent decisions are independently validated as correct,
+  and V2 is confirmed NOT a useful recovery rung here (it finds effects but cannot outcome-scope them).
+- **probiotics 3 flagged recoverable misses VERIFIED — all refuse:** Ouwehand (24291194) is already
+  screen-excluded by us (stricter); Gao (20145608) is a multi-arm dose trial, %-only (ambiguous); Wright
+  (24456384) reports percentages only, no cleanly extractable per-arm counts. Refuse-on-ambiguity; the
+  extractable probiotics set is genuinely 15. (The one clean recovery this session was 39529939, verified.)
+NET: no gap closed by lowering the bar; the decompositions turn bare k gaps into audited breakdowns, and
+the largest same-scope gaps are shown to be design/scope/definition/ineligibility, not extraction failures.
