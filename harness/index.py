@@ -360,17 +360,26 @@ def _provenance_section(docs_dir: str) -> str:
             f"<strong>{ab}</strong> come from the trial <strong>abstract</strong> (the authors' headline "
             f"result &mdash; the weakest source, though the safest default) and <strong>{na}</strong> from "
             f"higher tiers (ClinicalTrials.gov structured results, PMC full text, hand-verified arm counts). "
-            f"Nearly every wrong number the audit found came from an abstract, so <strong>driving the abstract "
-            f"share down</strong> &mdash; promoting numbers to structured and full-text sources &mdash; is an "
-            f"explicit goal tracked per batch (<code>scripts/provenance.py</code>).</p>"
+            f"Nearly every wrong number the audit found came from an abstract. <strong>We tested how far the "
+            f"abstract share can be driven down and the answer is a bar, not effort:</strong> only a handful of "
+            f"the abstract-sourced rows have a ClinicalTrials.gov structured result available to promote to, and "
+            f"CT.gov results carry their own estimand/definition risk &mdash; exactly the class the definition "
+            f"audit just proved (a structured number can be the wrong composite/timepoint). Full-text promotion "
+            f"is available but per-row expensive (as done for the SGLT2 heart-failure hospitalizations). So "
+            f"abstract-dominance is <strong>bar-limited, not effort-limited</strong>; the honest fix is not "
+            f"bulk-promotion but the definition guards that make an abstract number safe to pool "
+            f"(<code>scripts/provenance.py</code>).</p>"
             f"<p><strong>Stated limitations (plainly).</strong> (1) The comparators are <strong>open-access "
             f"only</strong> &mdash; we benchmark against free reviews, not necessarily the best ones. "
             f"(2) Protocol registration is <strong>self-hosted</strong> (a git commit SHA), with no external "
             f"timestamp authority &mdash; it proves order relative to our own history, not against a third "
             f"party. (3) <strong>Topic selection is ours</strong>, which can flatter the success rate; the "
             f"expansion tier is preregistered in one batch with declared-hard cases to counter this. "
-            f"(4) The accuracy figure is an <strong>internal-consistency</strong> measure until the "
-            f"cross-family (non-Claude) re-extraction lands.</p></div>")
+            f"(4) The headline accuracy figure began as an <strong>internal-consistency</strong> measure; an "
+            f"independent non-Claude model family has since re-extracted every pooled row against the same "
+            f"committed source (reported in the cross-family section above), so it now carries a genuinely "
+            f"independent check &mdash; though the census and blind-judging arms still share our architecture, "
+            f"which leaves that cross-family re-extraction as the sole fully-decorrelated signal.</p></div>")
 
 
 def _screen_section(docs_dir: str) -> str:
