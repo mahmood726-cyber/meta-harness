@@ -264,3 +264,20 @@ def test_definition_audit_index_numbers_derived():
     d = json.load(open(os.path.join(DOCS, "definition_audit.json"), encoding="utf-8"))
     html = IDX.build_index(DOCS)
     assert f"{d['n_candidates']} of {d['n_rows_audited']}" in html
+
+
+def test_timepoint_and_heterogeneity_guards():
+    from harness import extract
+    # timepoint: fires on pure in-hospital vs a follow-up window; not on a compound timepoint
+    assert extract.timepoint_mismatch("index admission", "AF during 14 days of follow-up")
+    assert not extract.timepoint_mismatch("28-90 day or in-hospital", "death within 90 days")
+    assert not extract.timepoint_mismatch("Week 68", "at week 68")
+    # composite heterogeneity: fires when composite-definition clauses differ, not on incidental mentions
+    het = extract.composite_heterogeneity("Major adverse cardiovascular events", [
+        "the primary composite outcome was cardiovascular death, myocardial infarction, or stroke",
+        "primary composite endpoint comprised cardiovascular death, myocardial infarction, stroke, or coronary revascularization"])
+    assert het
+    clean = extract.composite_heterogeneity("3-point MACE", [
+        "primary composite outcome was cardiovascular death, myocardial infarction, or stroke; heart failure was a secondary outcome",
+        "the primary composite endpoint was death from cardiovascular causes, nonfatal MI, or nonfatal stroke"])
+    assert not clean

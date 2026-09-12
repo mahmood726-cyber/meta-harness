@@ -450,6 +450,69 @@ def composite_component_mismatch(outcome_name: str, source_span: str) -> str:
     return ""
 
 
+def timepoint_mismatch(declared_timepoint: str, source_span: str) -> str:
+    """Timepoint guard: when the outcome declares an IN-HOSPITAL / index-admission timepoint, a source that
+    measures the outcome over a multi-day/week/month follow-up window is a timepoint mismatch. Conservative:
+    fires only for an explicit in-hospital/index-admission declared timepoint against a 'during N days/weeks/
+    months of follow-up' source. Returns a reason or ''."""
+    dt = (declared_timepoint or "").lower()
+    if not any(w in dt for w in ("index admission", "in-hospital", "in hospital", "index-admission")):
+        return ""
+    # a COMPOUND timepoint that also permits a day/week/month window (e.g. '28-90 day or in-hospital')
+    # is not purely in-hospital -- the source window may be allowed, so do not fire.
+    if re.search(r"\d+\s*(?:-|to|–)?\s*\d*\s*(day|week|month)", dt):
+        return ""
+    s = (source_span or "").lower()
+    m = re.search(r"(?:during|within|over|at)\s+(\d+)\s*(day|days|week|weeks|month|months)\s+(?:of\s+)?(?:follow"
+                  r"|post|after)", s)
+    if m and not any(w in s for w in ("in-hospital", "in hospital", "index admission", "during admission")):
+        return (f"declared timepoint is index-admission/in-hospital but the source measures the outcome "
+                f"'during {m.group(1)} {m.group(2)} of follow-up' -- a timepoint mismatch")
+    return ""
+
+
+def composite_heterogeneity(outcome_name: str, trial_sources) -> str:
+    """Disclosure (not refusal) for a COMPOSITE/MACE outcome pooled from trials whose primary composites use
+    DIFFERENT component sets (e.g. COLCOT 5-point vs LoDoCo2 4-point under one 'MACE' label). Pooling each
+    trial's own primary composite is standard practice but introduces estimand heterogeneity that must be
+    SHOWN. Returns a note if >1 distinct extra-component signature is present across the pooled trials, else ''.
+    Extra components beyond the 3-point core (CV death / MI / stroke): unstable angina, revascularization,
+    HF hospitalization, TIA. Object-derived from the committed source spans."""
+    name = (outcome_name or "").lower()
+    if not any(w in name for w in ("mace", "major adverse cardiovascular", "major vascular",
+                                   "cardiovascular events", "composite")):
+        return ""
+    comp_kws = [("unstable angina", "unstable angina"), ("revascular", "revascularization"),
+                ("heart failure", "HF hospitalization"), ("transient ischemic", "TIA"),
+                ("hospital for cardiovascular", "CV hospitalization")]
+    # scan ONLY the composite-DEFINITION clause (around 'composite of ...' / 'primary ... was ...'),
+    # not the whole abstract -- a trial mentioning HF/revascularization as a SECONDARY outcome must not
+    # count (that over-fired on the clean 3-point GLP-1 pool).
+    def _defn_window(s):
+        for m in re.finditer(r"(composite (?:of|end ?point|outcome)|primary (?:composite )?(?:end ?point|outcome)"
+                             r"[^.]{0,20}(?:was|comprised|consist|defined))", s):
+            # the composite clause ends at the first sentence/clause terminator (. ; :) -- do not spill
+            # into a following clause that names a SECONDARY outcome (that over-fired).
+            tail = s[m.end():m.end() + 220]
+            seg = m.group(0) + re.split(r"[.;:]", tail)[0]
+            if "death" in seg or "myocardial" in seg or "stroke" in seg:
+                return seg
+        return ""
+    sigs = set()
+    for src in trial_sources:
+        win = _defn_window((src or "").lower())
+        if not win:
+            continue
+        sig = tuple(sorted(label for kw, label in comp_kws if kw in win))
+        sigs.add(sig)
+    if len(sigs) > 1:
+        allc = sorted({label for sig in sigs for label in sig})
+        extra = f" (varying extra components across trials: {', '.join(allc)})" if allc else ""
+        return ("pooled trials use each trial's OWN primary composite; component sets differ across trials"
+                + extra + " — the pooled estimate mixes composite definitions (disclosed, not adjusted)")
+    return ""
+
+
 def population_mismatch(source_span: str) -> str:
     """Population/analysis-set guard (extends the composite guard to the population axis): a per-protocol
     or completers-only effect must not be pooled where the outcome expects the randomized (ITT) set.

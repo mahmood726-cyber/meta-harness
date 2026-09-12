@@ -374,7 +374,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             # ESTIMAND-HOMOGENEITY (composite component count): an N-point MACE outcome must not pool a
             # trial whose own composite has a different component set (e.g. TECOS's 4-point vs 3-point).
             _mm = (extract.composite_component_mismatch(spec.get("name", ""), ex.get("source", ""))
-                   or extract.population_mismatch(ex.get("source", "")))
+                   or extract.population_mismatch(ex.get("source", ""))
+                   or extract.timepoint_mismatch(spec.get("timepoint", ""), ex.get("source", "")))
             if _mm:
                 absent.append({"label": label, "id": idstr, "reason": _mm})
                 continue
@@ -545,6 +546,17 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if len(eff) > 1:
             out["result"]["scale"] = "mixed (" + "/".join(sorted(eff)) + ")"
             out["result"]["scale_mixed"] = sorted(eff)
+        # COMPOSITE-HETEROGENEITY DISCLOSURE: a MACE/composite pool whose trials use different component
+        # sets (COLCOT 5-point vs LoDoCo2 4-point) is disclosed, not refused (surfaced by the cross-family
+        # definition audit). Object-derived from the pooled trials' committed source spans.
+        _ch_srcs = []
+        for t in trials:
+            _pid = str(t.get("id", "")).replace("PMID ", "").strip() or str(t.get("label", ""))
+            _ab = (rec_by_id.get(_pid) or rec_by_id.get(t.get("label")) or {}).get("abstract", "")
+            _ch_srcs.append((_ab or "") + " " + (t.get("source", "") or ""))
+        _ch = extract.composite_heterogeneity(spec.get("name", ""), _ch_srcs)
+        if _ch:
+            out["result"]["composite_heterogeneity"] = _ch
         # LEAVE-ONE-OUT / influence, always rendered: at k>=3 drop each trial and re-pool to show how
         # much any single trial moves the estimate; at k<=2 it is not assessable and we say so (never
         # hidden). Uses the same pooler and scale; no new number is invented.

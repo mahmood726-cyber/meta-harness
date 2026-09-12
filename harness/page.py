@@ -477,6 +477,7 @@ def _outcome_block(o, show_inputs=True):
             ("Prediction interval", (f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}" if res.get('pi_low') is not None else None)),
             ("τ²", _num(res.get("tau2")) if res.get("tau2") is not None else None),
             ("Note", res.get("pi_note")),
+            ("Composite heterogeneity", res.get("composite_heterogeneity")),
             ("Leave-one-out (influence)", _loo_text(res.get("leave_one_out"))),
         ] if v is not None])
         # A k stated without the contributing trials named is the container-vs-contents
