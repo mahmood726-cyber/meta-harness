@@ -117,3 +117,14 @@ wrong number (each is disclosed or a config-metadata label), so they are polish,
   sleep-latency MD/SD becomes available (none in the cached source).
 - **corticosteroids-cap 36942789 (CAPE COD) timepoint label**: pooled number is 28-day mortality; the
   outcome declares "30-day or in-hospital". 28d ~ 30d (defensible harmonisation); align the label or note it.
+
+## Reviewed and judged DEFENSIBLE (cycle 75 full harvest) — recorded so they are not re-flagged as defects
+- **statins-primary-prevention-elderly / JUPITER (20404379)**: pools JUPITER's age>=70 subgroup (5695 of
+  17,802), which the audit flagged as "subgroup". For a primary-prevention-ELDERLY topic this is the CORRECT
+  data (the elderly subset is what the topic is about); the source is the trial's pre-specified elderly
+  analysis and the row renders HR 0.61 honestly. Config estimand says RR (rendered HR) — a label nuance only.
+- **sglt2-hfref-hosp-cvdeath / DAPA-HF (31535829)**: DAPA-HF's primary composite is CV death or worsening HF
+  (hospitalisation OR urgent HF visit); EMPEROR-Reduced (32865377) is CV death or HF hospitalisation. Pooling
+  both under "CV death or HF hospitalisation" is the field-standard sglt2-HFrEF harmonisation (the urgent-visit
+  component is small and every published sglt2-HFrEF MA pools these two composites together). Negligible
+  magnitude; not a wrong number. Optionally rename the outcome to "...or worsening heart failure" to match.
