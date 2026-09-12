@@ -5,8 +5,10 @@ number on every page traces to a committed source; every decline is named on its
 
 ## What is live
 
-- **26 of 33 preregistered topics LIVE** and passing the two-limb gate, reproducing byte-for-byte
-  from a committed protocol SHA on a fresh clone.
+- **27 of 33 preregistered topics LIVE** and passing the two-limb gate, reproducing byte-for-byte
+  from a committed protocol SHA on a fresh clone. The 27th, **melatonin-primary-insomnia**, is the
+  first **continuous-outcome (mean-difference)** page: MD −17.4 min in sleep-onset latency, per-arm
+  mean/SD verified from CT.gov structured results — never imputed from a figure or curve.
 - **Blind-judged — restated on the FAIR basis.** The original abstract-based comparison gave 15 clean
   wins / 0 / 0. The **fair full-text re-judge (8-topic sample, order-randomised)** supersedes that with
   a domain split: our pages are more **auditable on 8/8** (search reproducibility, per-number
@@ -72,6 +74,15 @@ estimand / scope), rendered on each page and in `docs/parity.json`.
   anchor; dedup main-results-beats-sub-analysis; pivotal-trial gate limb; generic-harm discriminating
   guard (7 wrong GI-harm pools removed); `(P%; CI)` corroboration; multi-arm guard keys on arm labels
   not regimens; SUSTAIN-6/FIGARO component-vs-composite classes locked.
+- Full-text acquisition built properly (the shared blocker for the declines): PMC OA body + STRUCTURED
+  tables (per-arm values keep their row) + supplementary spreadsheets/CSV (openpyxl/csv, values-only,
+  via the OA .tar.gz package). CT.gov structured CONTINUOUS extraction added (MEAN + SD → mean
+  difference; refuses SE/CI/IQR). Every guard stays in front — the number is never taken from the
+  acquisition layer. First continuous page (melatonin) built on it; verify hardened to check per-arm
+  mean+SD digits against the source. Declines re-run through it and confirmed with stronger evidence:
+  zinc (medians only, no IQR/SD in body/tables/supplements — Rao 2020), azithromycin & vitamin-D
+  (estimand-blocked — the declared binary/proportion outcome is reported only as rates/HR/IPD, at no
+  depth). Full text unblocks per-arm-VARIANCE cases, not estimand-mismatch declines.
 - Fair-judge defects fixed against us: (a) the trial-integrity retraction line carried a stale count on
   8 pages and an ambiguous denominator — re-ran the check corpus-wide, the render now names it "trials
   pooled across all outcomes", and a test forbids stale integrity from returning; (b) the effect-scale
@@ -101,15 +112,18 @@ mis-pools were caught during the run — every one by verification, not by a gat
 
 ## What remains NOT done (plainly)
 
-- **7 preregistered topics remain declined, each for a verified, source-grounded reason** (recorded in
-  `JUDGELOG.md`): zinc & melatonin (continuous — abstracts carry no per-arm SD/IQR; the MD variance
-  lives in full text); azithromycin & the iv-iron recurrent-event class (rates without per-arm
-  events+person-time); prone-positioning (k=2 with extreme severity heterogeneity — a single pooled CI
-  is reader-hostile without severity stratification); antibiotics-vs-appendectomy (the preregistered
-  1-year outcome is not in the accessible abstract, and a CT.gov substring grabbed a wrong outcome);
-  vitamin-D (a k=1 abstract page would misrepresent a ~25-RCT field). Each needs the **same deferred
-  capability — per-trial OA full-text acquisition with outcome-identity hardening** — which the log
-  keeps un-rushed precisely because it is where wrong numbers hide. They stay declined, not forced.
+- **6 preregistered topics remain declined, each for a verified, source-grounded reason re-confirmed at
+  the full-text level** (recorded in `JUDGELOG.md`): zinc (continuous — even full text + tables +
+  supplements carry medians without IQR/SD; MD variance uncomputable without imputing from a curve);
+  azithromycin & vitamin-D (**estimand-blocked** — the declared binary/proportion outcome is reported
+  only as rates/HR/IPD-derived at every depth, so full-text acquisition does not rescue them);
+  prone-positioning (k=2 with extreme severity heterogeneity across scales/timepoints — reader-hostile
+  as one pooled CI without severity stratification); antibiotics-vs-appendectomy (wrong outcome/timepoint
+  — 1-year not in the sources, CT.gov substring grabbed a 30-day success measure); hfnc (mixed OR/RR and
+  a k=1 unrepresentative outlier). melatonin, previously in this list, is now LIVE (27th) via the new
+  full-text/continuous path. **Continuous-outcome breadth on existing topics is exhausted for now**: a
+  scan shows melatonin is the only current topic whose comparator reports a continuous outcome; broader
+  continuous coverage means new continuous-primary topics, not retrofitting the binary/ratio ones.
 - **A fully-fair blind judge across all 26** (not just the countable PRISMA + an 8-topic sample).
 - **GRADE certainty, specification curve, and broader unit-of-analysis guards** (only duplicate-
   publication is enforced) are not built.
