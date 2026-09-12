@@ -53,6 +53,27 @@ def test_grade_present_and_valid_for_every_primary():
         assert g["downgrades"] == s, f"{slug}: downgrade total {g['downgrades']} != sum {s}"
 
 
+def test_grade_imprecision_not_mechanical_on_tight_null():
+    # External audit (C-GRADE-1): a tight CI around no-effect (0.91-1.08) is PRECISION about no
+    # effect, not imprecision -- it must NOT be downgraded merely for crossing the null.
+    tight = grade_mod._imprecision_domain({"k": 5, "ci_low": 0.91, "ci_high": 1.08}, "RR")
+    assert tight["downgrade"] == 0, tight
+    # a wide CI that reaches an appreciable effect while crossing null IS imprecise.
+    wide = grade_mod._imprecision_domain({"k": 2, "ci_low": 0.57, "ci_high": 1.78}, "RR")
+    assert wide["downgrade"] == 1, wide
+    # a CI that includes an appreciable benefit and crosses null is still imprecise (one side is enough).
+    onesidenull = grade_mod._imprecision_domain({"k": 2, "ci_low": 0.585, "ci_high": 1.235}, "RR")
+    assert onesidenull["downgrade"] == 1, onesidenull
+
+
+def test_grade_rob_downgrades_when_no_trial_assessed():
+    # External audit (C-ROB-1): zero assessed cannot establish low risk; coverage gates the judgement.
+    rob = grade_mod._rob_domain({"outcomes": [{"primary": True, "trials": [{"label": "a"}, {"label": "b"}]}],
+                                 "rob2": {"trials": {}}})
+    assert rob["downgrade"] == 1 and rob["n_rated"] == 0
+    assert "not assessed" in rob["basis"].lower()
+
+
 def test_grade_recomputes_from_object():
     """grade() run again on the committed review + ghost must equal the stored grade (regenerates)."""
     for slug, r in _reviews():
@@ -63,21 +84,28 @@ def test_grade_recomputes_from_object():
         assert grade_mod.grade(r, ghost)["certainty"] == r["grade"]["certainty"], slug
 
 
-def test_grade_imprecision_downgrades_iff_ci_crosses_null():
+def test_grade_imprecision_uses_appreciable_threshold_not_bare_crossing():
+    # Corrected requirement (external audit C-GRADE-1): imprecision downgrades when a ratio CI crosses
+    # the null AND reaches an appreciable effect (<=0.75 or >=1.25) -- NOT for a tight null within
+    # those bounds, which is precision about no effect. (This replaces the old iff-crosses-null rule,
+    # which defended the mechanical behaviour the audit flagged.)
     for slug, r in _reviews():
         g = r.get("grade")
         if not g:
             continue
-        prim = next(o for o in r["outcomes"] if o.get("primary"))
-        res = prim["result"]
-        scale = (res.get("scale") or "")
-        # skip mixed-scale labels (null is ambiguous); check clean ratio/MD pools
-        if scale.upper() in ("RR", "OR", "HR", "IRR", "MD"):
-            null = 0.0 if scale.upper() == "MD" else 1.0
-            crosses = res.get("ci_low") <= null <= res.get("ci_high")
-            imp = g["domains"]["imprecision"]
-            if crosses and res.get("k", 0) > 1:
-                assert imp["downgrade"] >= 1, f"{slug}: CI crosses null but imprecision not downgraded"
+        res = next(o for o in r["outcomes"] if o.get("primary"))["result"]
+        scale = (res.get("scale") or "").upper()
+        imp = g["domains"]["imprecision"]
+        if scale in ("RR", "OR", "HR", "IRR") and res.get("k", 0) > 1:
+            cil, cih = res.get("ci_low"), res.get("ci_high")
+            if cil is None or cih is None:
+                continue
+            crosses = cil <= 1.0 <= cih
+            reaches_appreciable = (cil < 0.75) or (cih > 1.25)
+            if crosses and reaches_appreciable:
+                assert imp["downgrade"] >= 1, f"{slug}: wide CI crossing null must be imprecise"
+            elif crosses and not reaches_appreciable:
+                assert imp["downgrade"] == 0, f"{slug}: tight null CI must NOT be flagged imprecise"
 
 
 # ---- RoB sensitivity -----------------------------------------------------------------------------

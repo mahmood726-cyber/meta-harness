@@ -48,18 +48,27 @@ def _rob_domain(review):
     n_high = sum(1 for x in rated if x == "high")
     n_some = sum(1 for x in rated if x == "some_concerns")
     down = 0
-    if n_high:
+    if n_rated == 0 and n > 0:
+        # External audit (C-ROB-1): zero assessed CANNOT establish low risk. "No assessed trial at
+        # high risk" is not a clean bill when nothing was assessed -- it is no information. Coverage
+        # gates the judgement: with no machine-derived RoB signal for ANY pooled trial, downgrade for
+        # unknown study limitations rather than defaulting to no-downgrade.
+        down = 1
+        basis = (f"risk of bias NOT ASSESSED for any of the {n} pooled trial(s) "
+                 f"(no machine-derived risk-of-bias signal available) -> downgraded for unknown study limitations")
+    elif n_high:
         down = 1
         basis = f"{n_high} of {n} pooled trial(s) at high risk of bias"
-    elif n_rated and n_some >= (n_rated + 1) // 2:
+    elif n_some >= (n_rated + 1) // 2:
         down = 1
         basis = f"{n_some} of {n_rated} assessed trial(s) at 'some concerns'"
     else:
-        basis = "no assessed trial at high risk; fewer than half at 'some concerns'"
+        basis = f"none of the {n_rated} assessed trial(s) at high risk; fewer than half at 'some concerns'"
     # incomplete coverage caps certainty (cannot claim high certainty on RoB we did not assess)
     coverage_incomplete = n_rated < n
-    if coverage_incomplete:
-        basis += f"; RoB assessed for only {n_rated} of {n} pooled trials (registry-derived), so the rating is capped"
+    if coverage_incomplete and n_rated > 0:
+        basis += (f"; risk-of-bias signal available for only {n_rated} of {n} pooled trials "
+                  f"(registry-derived), so the rating is capped")
     return {"downgrade": down, "coverage_incomplete": coverage_incomplete,
             "n_trials": n, "n_rated": n_rated, "n_high": n_high, "n_some": n_some, "basis": basis}
 
@@ -93,17 +102,45 @@ def _inconsistency_domain(res):
 
 
 def _imprecision_domain(res, scale):
+    """GRADE imprecision. External audit (C-GRADE-1): a CI that crosses the null is NOT automatically
+    imprecise -- a tight interval around no-effect (e.g. RR 0.91-1.08) is PRECISION about no effect and
+    excludes an appreciable effect in both directions. Downgrade only when the CI is wide enough to be
+    consistent with BOTH an appreciable benefit AND an appreciable harm (a decision-relevant span), or
+    for a single small trial. Appreciable effect on a ratio scale = a 25% relative change (0.75 / 1.25),
+    a conventional GRADE default; the threshold is stated so a reader can substitute a topic-specific
+    minimally-important difference."""
     k = res.get("k")
     cil, cih = res.get("ci_low"), res.get("ci_high")
     if cil is None or cih is None:
         return {"downgrade": 0, "basis": "no confidence interval available"}
-    null = 0.0 if (scale or "").upper() == "MD" else 1.0
+    is_md = (scale or "").upper() == "MD"
+    null = 0.0 if is_md else 1.0
     crosses = bool(cil <= null <= cih)
     down = 0
     basis = f"95% CI [{cil}, {cih}]"
-    if crosses:
-        down += 1
-        basis += f"; crosses the null ({null:g}) -> the pooled estimate is compatible with no effect"
+    if is_md:
+        # No committed minimally-important difference for continuous outcomes -> retain the
+        # conservative crossing rule but DISCLOSE that a clinical threshold was not applied.
+        if crosses:
+            down += 1
+            basis += (f"; crosses the null ({null:g}) and no minimally-important difference is committed "
+                      f"for this continuous outcome, so imprecision is flagged conservatively")
+    else:
+        t_benefit, t_harm = 0.75, 1.25  # appreciable = 25% relative change
+        includes_benefit = cil < t_benefit
+        includes_harm = cih > t_harm
+        if crosses and (includes_benefit or includes_harm):
+            down += 1
+            side = ("an appreciable benefit (<=%g)" % t_benefit) if includes_benefit else ""
+            side2 = ("an appreciable harm (>=%g)" % t_harm) if includes_harm else ""
+            span = " and ".join(s for s in (side, side2) if s)
+            basis += (f"; crosses the null AND is compatible with {span} -> imprecise "
+                      f"(the estimate is consistent with both no effect and an appreciable effect)")
+        elif crosses:
+            basis += (f"; crosses the null but excludes an appreciable effect on BOTH sides "
+                      f"(within {t_benefit:g}-{t_harm:g}) -> precise about the absence of an appreciable effect")
+        else:
+            basis += "; excludes the null"
     if k == 1:
         down = max(down, 1)
         basis += "; single trial (no replication)"
