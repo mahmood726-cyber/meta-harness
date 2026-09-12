@@ -40,10 +40,15 @@ none by lowering the bar.**
 
 ## What is live
 
-- **27 of 33 preregistered topics LIVE** and passing the two-limb gate, reproducing byte-for-byte
-  from a committed protocol SHA on a fresh clone. The 27th, **melatonin-primary-insomnia**, is the
-  first **continuous-outcome (mean-difference)** page: MD −17.4 min in sleep-onset latency, per-arm
-  mean/SD verified from CT.gov structured results — never imputed from a figure or curve.
+- **29 of 33 preregistered topics LIVE** and passing the two-limb gate, reproducing byte-for-byte
+  from a committed protocol SHA on a fresh clone. Three are **continuous-outcome (mean-difference)**
+  pages, all with per-arm mean/SD verified from CT.gov structured results (never imputed from a figure
+  or curve): **melatonin-primary-insomnia** (MD −17.4 min sleep-onset latency, k=1),
+  **esketamine-TRD** (MADRS change, k=2), and **semaglutide-obesity** (percent body-weight change,
+  k=2 at the pre-registered Week 68: STEP-1 + STEP-3, MD −11.84%, exact same-scope parity with the
+  comparator). The continuous tier now carries **three dedicated guards** — a multi-arm fixed-dose
+  refusal, a treatment-policy-vs-on-treatment estimand tiebreak, and a timepoint-consistency guard —
+  each added the first time its trap was met, each with a regression test.
 - **Blind-judged — restated on the FAIR basis.** The original abstract-based comparison gave 15 clean
   wins / 0 / 0. The **fair full-text re-judge (8-topic sample, order-randomised)** supersedes that with
   a domain split: our pages are more **auditable on 8/8** (search reproducibility, per-number
@@ -172,10 +177,11 @@ mis-pools were caught during the run — every one by verification, not by a gat
   — 1-year not in the sources, CT.gov substring grabbed a 30-day success measure); hfnc (the landmark
   trials ARE in the corpus and the counts are in hand, but the trials span low- vs high-baseline-risk with
   directionally opposite effects — a single pool would mask baseline-risk effect-modification). melatonin,
-  previously in this list, is now LIVE (27th) via the new full-text/continuous path. **Continuous-outcome
-  breadth on existing topics is exhausted for now**: only melatonin's comparator reports a continuous
-  outcome; broader continuous coverage means new continuous-primary topics, not retrofitting the binary ones.
-- **A fully-fair blind judge across all 27** (not just the countable PRISMA + an 8-topic sample).
+  previously in this list, is now LIVE via the full-text/continuous path. **Continuous-outcome breadth now
+  comes from the new continuous-primary topic tier** (each preregistered, pivotal named, same-scope OA
+  comparator resolved by query): melatonin, esketamine-TRD and semaglutide-obesity are LIVE; the tier is
+  the growth path, not retrofitting the binary topics.
+- **A fully-fair blind judge across all 29** (not just the countable PRISMA + an 8-topic sample).
 - **GRADE certainty and a specification curve** are not built.
 - **1 error-library check remains unbuilt (ME-32)**: per-trial conflict-of-interest / industry-funding is
   not extracted or disclosed. The other 31 documented meta-analysis errors are enforced (gate limbs,

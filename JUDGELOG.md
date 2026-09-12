@@ -714,3 +714,34 @@ tau2=37 — not a homogeneous 2.4mg-subcutaneous-vs-placebo set. NOT shipped. To
 (a) a spaced re-fetch (no 429) that retrieves STEP-1/3; (b) a tighter intervention filter pinned to
 subcutaneous 2.4 mg (exclude 7.2 mg / oral / combination / active-comparator). Protocol stays registered;
 build deferred with the reason named. Melatonin + esketamine remain the two clean live continuous pages.
+
+## Cycles 69-71 — semaglutide built CLEAN (k=2), three continuous guards, verified continuous parity
+The semaglutide refusal (cycle 68) was root-caused to a real, general harness bug — NOT the 429. Forced
+PMIDs (extra_pmids / controls / comparator) were appended AFTER the query loop, then `pmids[:max_records]`
+truncated whatever fell past the cap; at max_records=120 the query filled the cap and STEP-1/STEP-3 (and the
+negative control) were silently cut. Fixed at source (fetch._apply_cap protects forced PMIDs; regression
+test). The core fetch path already fails CLOSED on a sustained 429 (http.get raises before the cache write),
+so a core RAN_ERROR cannot even produce a partial cache — the pivotal-present limb, not fetch-complete,
+caught semaglutide.
+
+Two further continuous traps met and fixed, each with a guard + regression test:
+- ESTIMAND PICK WAS ORDER LUCK: a trial posting the same %-change under in-trial AND on-treatment estimands
+  (Korean STEP) was resolved by CT.gov listing order. Deterministic tiebreak now prefers treatment-policy /
+  in-trial (ICH E9(R1) primary) over on-treatment/trial-product/per-protocol. An offline corpus scan proved
+  it changes NO existing built page's selection.
+- TIMEPOINT MIXING: STEP-1/STEP-3 report Week 68; regional STEP-12 (China) and Korean report Week 44.
+  Opt-in timepoint-consistency guard (endpoint_weeks parses the CT.gov timeFrame; declares a trial absent when
+  its parsed timepoint is outside tolerance, only when a timepoint is actually parsed). Independent offline
+  Codex verification flagged this after confirming all four arm-values and the estimand pick were correct.
+
+Semaglutide now pools k=2 at the pre-registered Week 68 (STEP-1 + STEP-3), MD -11.84% (-25.13, 1.44),
+tau2=1.86 — the wide CI is the honest k=2 HKSJ interval, and the guard REFUSED to pad k with the Week-44
+trials even though k=4 gave a tighter, significant CI. Exact same-scope, same-timepoint parity with the
+comparator (its in-scope subset is exactly STEP-1 + STEP-3).
+
+Verified continuous parity recorded (docs/parity.json, now 21): esketamine ours 2 vs theirs 4 (GAP — the
+2 gap trials are 3-arm fixed-dose, our multi-arm guard refuses them; we pool the approved flexible-dose
+estimand); semaglutide 2 vs 2 (PARITY, exact identity); melatonin 1 vs 15 (GAP, honestly bounded — the
+comparator's SOL pool mixes children/DSPS/REM/cross-over/immediate-release, verified via its heterogeneity
+df; exact 15 identities not in the cached OA text, shown as one of our narrowest pools). 29 live, 29/29
+reproduce, 29 gate, 153 tests.
