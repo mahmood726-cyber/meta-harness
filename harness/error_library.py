@@ -112,6 +112,15 @@ LIBRARY = [
     ("ME-30", "GRADE certainty not formally rated", RENDERED, True,
      "certainty signals shown (RoB/inconsistency/imprecision) but a formal GRADE rating is NOT automated",
      "PRISMA item 15 declared partial"),
+    # --- folded in from the external e156/rapidmeta 13_ERROR_LIBRARY.md cross-check (UG-007, UG-013) ---
+    ("ME-31", "Network / indirect-comparison connectivity not tested (NMA)", RENDERED, True,
+     "we pool PAIRWISE only; scope.py flags single-drug-vs-drug-CLASS comparator mismatch (a PICO/NMA "
+     "error class) and states it; a full NMA connectivity/consistency test is N/A because no network is pooled",
+     "harness/scope.py; comparator scope note; JUDGELOG scope-audit"),
+    ("ME-32", "Trial conflict-of-interest / funding integrity not assessed", NOT_CHECKED, False,
+     "trial-level COI/industry-funding and its bias direction are not extracted or disclosed per pooled trial "
+     "(prior work found a uniform industry x0.80 bias channel inert on cardiology, but that is not a per-trial check)",
+     "WORK QUEUE (severity: medium — a documented reporting/bias dimension; cross-checked from UG-013)"),
 ]
 
 _UNIVERSAL = {e[0] for e in LIBRARY if e[3]}
