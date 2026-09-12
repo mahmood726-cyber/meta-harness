@@ -197,8 +197,17 @@ mis-pools were caught during the run — every one by verification, not by a gat
   comes from the new continuous-primary topic tier** (each preregistered, pivotal named, same-scope OA
   comparator resolved by query): melatonin, esketamine-TRD and semaglutide-obesity are LIVE; the tier is
   the growth path, not retrofitting the binary topics.
-- **A fully-fair blind judge across all 29** (not just the countable PRISMA + an 8-topic sample).
+- **A fully-fair blind methodological judge across all 29.** The fair-basis blind re-judge now covers
+  **11 topics (8 binary + 3 continuous), order-blinded**, with the split verdict recorded in
+  `docs/fair_judge.json` and on the index: **ours more auditable 11/11 (search-reproducibility, per-number
+  traceability, declared-absence, overall auditability all 11–0), comparator more complete 11/11, RoB 6–4
+  to us.** The remaining 18 topics are compared only on the countable PRISMA items (28-topic fair pass),
+  not the full 6-dimension methodological read — that extension is still open.
 - **GRADE certainty and a specification curve** are not built.
+- **The record is committed but NOT deployed.** All of this is committed to local `main`, which is ~37
+  cycles ahead of `origin/main` (the GitHub Pages source): the live site serves but reflects an earlier
+  state (the continuous tier, ME-32, the reworked semaglutide and the anti-drift work are unpushed; the
+  live semaglutide-weight URL 404s). Publishing is a deliberate, user-authorized step and has not been taken.
 - **Error-library coverage is now complete: 33 of 33, 0 NOT_CHECKED.** The last gap (ME-32, per-trial
   conflict-of-interest / industry-funding) is now a RENDERED per-trial disclosure: `harness/funding.py`
   classifies each pooled trial's funding source (industry / public-non-profit / mixed / not-stated) from a
@@ -213,3 +222,16 @@ The honest one-line summary: **the harness matches or exceeds published OA compa
 reproducibility, per-number verification, and transparency; it pools fewer trials, and that gap is now
 decomposed and attributed to the comparators' design/scope/definition choices — measured (9/9 reach
 recovered; 0/626 recovered by an independent extractor), not asserted away.**
+
+The two theses, together, are the closing claim — **where we pool less, it is because of a stated bar,
+and the bar is shown, not asserted:**
+1. **Binary tier:** the k gaps are the comparators' design/scope/definition choices (open-label trials we
+   exclude, prophylaxis-vs-treatment mismatches, drug-class-vs-single-agent, imputed variances we decline),
+   decomposed and named on each page — reach recovered 9/9, an independent extractor recovered 0/626.
+2. **Continuous tier:** breadth is bar-limited, not effort-limited — 5 candidate topics probed against
+   their posted results, 5 declined with named reasons (LSM/SE regulatory endpoints we refuse; scale/
+   timepoint/design heterogeneity). The clearest illustration is semaglutide giving up significance
+   (k=4 tight → k=2 crossing zero) to keep the timepoints consistent — a trade no comparator reports.
+The blind reader confirms the shape from the outside: **more auditable, less complete, and the reason for
+the second is written on the page.** That split verdict — not a clean sweep — is the note the run ends on,
+and it is the more defensible position because everything behind it is checkable against source.
