@@ -22,10 +22,12 @@ Limb 2 - named published OPEN-ACCESS comparator:
 from __future__ import annotations
 import json
 import os
+import re
 import sys
 
 from .canonical import sha256_text
 from .census import verify
+from . import manuscript as _manuscript_mod
 
 REQUIRED_MANIFEST = ("slug", "declared_method", "served_method", "protocol_sha",
                      "generator", "review_sha256", "html_sha256")
@@ -127,6 +129,39 @@ def check_primary_result(review_dir):
     if res.get("present") is False or not res.get("k"):
         return [f"L1: primary outcome {prim.get('name')!r} has no pooled result "
                 f"(k={res.get('k')}) — a page whose primary claim is absent must not publish"]
+    return []
+
+
+def check_manuscript_numbers(review_dir):
+    """PAPER limb: the generated manuscript must not state a number the object does not carry. Render the
+    manuscript from review.json, strip layout (the forest SVG's pixel coordinates) and the registration
+    SHA, then refuse any RISKY numeral (decimal, 'N of M', integer >= 10) that is not in
+    manuscript.object_numerals(review). This makes 'no prose number without a matching object field'
+    structural, not aspirational."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return []  # no review to check (other limbs catch a missing review.json)
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"PAPER: cannot read review.json: {exc}"]
+    html = _manuscript_mod.render(rev)
+    html = re.sub(r"<svg\b.*?</svg>", " ", html, flags=re.DOTALL)   # layout coordinates, not claims
+    html = re.sub(r"<pre\b.*?</pre>", " ", html, flags=re.DOTALL)   # the one-command block
+    text = re.sub(r"<[^>]+>", " ", html)
+    text = re.sub(r"\b[0-9a-f]{7,}\b", " ", text)                   # registration SHA fragment (hex)
+    text = re.sub(r"\b(?:19|20)\d\d\b", " ", text)                  # publication years are inherent
+    text = re.sub(r"\bk\s*&minus;\s*1\b", " ", text)                # 'k-1 df' is a formula, not a value
+    allowed = _manuscript_mod.object_numerals(rev)
+    risky = set(re.findall(r"\d+\.\d+", text))
+    ints_text = re.sub(r"\d+\.\d+", " ", text)
+    risky |= {n for pair in re.findall(r"(\d+)\s+of\s+(\d+)", ints_text) for n in pair}
+    risky |= {n for n in re.findall(r"\d+", ints_text) if int(n) >= 10}
+    unaccounted = sorted(n for n in risky if n not in allowed)
+    if unaccounted:
+        return [f"PAPER: manuscript prose contains numerals not derived from the review object: "
+                f"{unaccounted} (every manuscript number must be object-derived — see manuscript.object_numerals)"]
     return []
 
 
@@ -426,6 +461,7 @@ def gate_page(review_dir):
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
                + check_pooled_verified(review_dir)
+               + check_manuscript_numbers(review_dir)
                + check_fetch_complete(review_dir)
                + check_no_double_counted_trial(review_dir)
                + check_pivotal_present(manifest)

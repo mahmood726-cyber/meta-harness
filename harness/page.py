@@ -16,6 +16,8 @@ from __future__ import annotations
 import html
 from typing import Any
 
+from . import manuscript as _manuscript_mod
+
 TABS = [
     ("overview", "Overview"),
     ("protocol", "Protocol"),
@@ -25,6 +27,7 @@ TABS = [
     ("harms", "Harms"),
     ("comparator", "Comparator"),
     ("riskofbias", "Risk of bias"),
+    ("manuscript", "Manuscript"),
     ("reporting", "Reporting (PRISMA)"),
     ("reproduction", "Reproducibility"),
 ]
@@ -894,8 +897,13 @@ def _riskofbias(r, neutral):
             + sens_html + grade_html)
 
 
+def _manuscript(r, neutral):
+    return _manuscript_mod.render(r, neutral)
+
+
 _R = {"overview": _overview, "protocol": _protocol, "search": _search,
       "screening": _screening, "outcomes": _outcomes, "harms": _harms, "riskofbias": _riskofbias,
+      "manuscript": _manuscript,
       "comparator": _comparator, "reproduction": _reproduction, "reporting": _reporting}
 
 _CSS = """

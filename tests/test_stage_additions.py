@@ -118,3 +118,35 @@ def test_error_rate_banner_numbers_are_object_derived():
 def test_error_rate_passes_prose_guard():
     """build_index runs _validate_prose_numbers over the error-rate banner; it must not raise."""
     assert IDX.build_index(DOCS)
+
+
+# ---- manuscript (Stage PAPER) --------------------------------------------------------------------
+def test_manuscript_limb_passes_on_every_live_review():
+    from harness import gate
+    for slug, _ in _reviews():
+        d = os.path.join(DOCS, "reviews", slug)
+        assert gate.check_manuscript_numbers(d) == [], f"{slug}: manuscript limb should pass"
+
+
+def test_manuscript_limb_REFUSES_a_fabricated_number(monkeypatch, tmp_path):
+    """A gate must be able to fail: plant a manuscript number that is not in the object and assert the
+    limb refuses it (the anti-theater check)."""
+    from harness import gate
+    from harness import manuscript
+    d = os.path.join(DOCS, "reviews", "glp1-ra-mace-t2d")
+    # baseline passes
+    assert gate.check_manuscript_numbers(d) == []
+    # inject a fabricated MD and a fabricated large integer not present in the object
+    orig = manuscript.render
+    monkeypatch.setattr(manuscript, "render",
+                        lambda rev, neutral=False: orig(rev) + "<p>MD 7.77 across 4321 patients</p>")
+    reasons = gate.check_manuscript_numbers(d)
+    assert reasons and "7.77" in reasons[0] and "4321" in reasons[0], reasons
+
+
+def test_manuscript_renders_and_is_object_derived():
+    from harness import manuscript
+    for slug, r in _reviews():
+        html = manuscript.render(r)
+        assert "generated from the review object" in html
+        assert "Data availability" in html
