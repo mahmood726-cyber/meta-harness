@@ -765,8 +765,19 @@ def _riskofbias(r, neutral):
              + (f" RoB2 is scoped to the primary outcome; {len(secondary_only)} trial(s) pooled only in "
                 f"secondary outcomes ({_e(', '.join(sorted(secondary_only)))}) are outside this assessment."
                 if secondary_only else "")) if n_pool else ""
-    return (f"<p>{cover}</p>"
-            "<p>Per-pooled-trial RoB2 risk of bias, computed from what is machine-available "
+    uoa = r.get("unit_of_analysis") or []
+    uoa_html = ""
+    if uoa:
+        items = "; ".join(f"{_e(u.get('id'))} ({_e(u.get('design'))})" for u in uoa)
+        uoa_html = ("<div class='absent'><strong>Unit-of-analysis caveat (disclosed, not adjusted).</strong> "
+                    f"{len(uoa)} pooled trial(s) use a cluster-randomized or crossover design: {items}. "
+                    "Their patient-level counts are pooled without a design-effect (cluster ICC) or "
+                    "within-subject (crossover) adjustment, because the ICC / paired variance is not reported "
+                    "in the source — so the pooled precision for these trials is <em>optimistic</em>. This is a "
+                    "stated limitation (a documented meta-analysis error class the harness flags but cannot "
+                    "correct without the missing variance component), not a silent simple-parallel pooling.</div>")
+    return (f"<p>{cover}</p>" + uoa_html
+            + "<p>Per-pooled-trial RoB2 risk of bias, computed from what is machine-available "
             f"({_e(rb.get('source') or 'AACT registry fields')}). <strong>Domain 5 (selective reporting)</strong> "
             "is computed from the trial's REGISTERED primary outcome vs the outcome we pooled — a machine-checkable "
             "signal most published meta-analyses do not report. D1/D2/D4 use AACT structured allocation/masking "

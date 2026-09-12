@@ -97,12 +97,15 @@ LIBRARY = [
     ("ME-25", "Unit-of-analysis: multi-arm SHARED-CONTROL double-counting in one pool", NOT_CHECKED, False,
      "multi-arm dose selection is guarded, but two arms of one trial pooled against a shared control "
      "(control counted twice) is NOT yet detected", "WORK QUEUE (severity: high — inflates weight/precision)"),
-    ("ME-26", "Unit-of-analysis: cluster-randomised trial without design-effect inflation", NOT_CHECKED, False,
-     "a cluster-RCT pooled at the individual level (design effect not applied) is NOT detected",
-     "WORK QUEUE (severity: high — understates variance)"),
-    ("ME-27", "Unit-of-analysis: crossover trial paired-data / carryover", NOT_CHECKED, False,
-     "a crossover trial pooled as a parallel-arm 2×2 is NOT detected",
-     "WORK QUEUE (severity: medium)"),
+    ("ME-26", "Unit-of-analysis: cluster-randomised trial without design-effect inflation", RENDERED, True,
+     "unit_of_analysis.detect flags a pooled cluster-randomized trial from its committed abstract; the page "
+     "DISCLOSES that patient-level counts are pooled without an ICC design-effect (optimistic precision) — "
+     "cannot correct without the unreported ICC (e.g. balanced-crystalloids: SMART/SALT-ED/SPLIT)",
+     "harness/unit_of_analysis.py; test_unit_of_analysis.py; RoB tab disclosure"),
+    ("ME-27", "Unit-of-analysis: crossover trial paired-data / carryover", RENDERED, True,
+     "unit_of_analysis.detect flags a pooled crossover-design trial; the page DISCLOSES that it is pooled "
+     "without a within-subject/paired adjustment (the crystalloid trials are cluster-randomized multiple-crossover)",
+     "harness/unit_of_analysis.py; test_unit_of_analysis.py"),
     ("ME-28", "Zero-cell continuity correction applied unconditionally", NOT_CHECKED, False,
      "add-0.5 only when a cell is zero is an advanced-stats rule but not asserted by a test on the pooler",
      "WORK QUEUE (severity: medium — biases OR toward 1)"),

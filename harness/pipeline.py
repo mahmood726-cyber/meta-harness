@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import os
 
-from . import extract, screen, scope, verify, locate
+from . import extract, screen, scope, verify, locate, unit_of_analysis
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool
 
@@ -583,6 +583,9 @@ def build_review_core(slug, config, records, protocol_sha):
         **({"comparator_scope_note": config["comparator_scope_note"]} if config.get("comparator_scope_note") else {}),
         **({"rob2": _rb} if (_rb := _load_rob2(slug)) else {}),
         **({"integrity": _integ} if (_integ := _load_integrity(slug)) else {}),
+        # Unit-of-analysis disclosure (ME-26/27): pooled trials with a cluster-randomized or crossover
+        # design, from the committed abstracts. Rendered as a caveat; not an adjustment (ICC unavailable).
+        **({"unit_of_analysis": _uoa} if (_uoa := unit_of_analysis.scan_pooled({"outcomes": outcomes}, rec_by_id)) else {}),
     }
 
 
