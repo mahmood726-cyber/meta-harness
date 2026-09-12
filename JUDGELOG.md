@@ -678,3 +678,14 @@ now demonstrated with the per-arm counts in hand. No page built; bar held.
   extractable probiotics set is genuinely 15. (The one clean recovery this session was 39529939, verified.)
 NET: no gap closed by lowering the bar; the decompositions turn bare k gaps into audited breakdowns, and
 the largest same-scope gaps are shown to be design/scope/definition/ineligibility, not extraction failures.
+
+## Cycle 63 — hfnc reach re-checked: NO reach gap (correction); effect-modification decline stands
+Earlier I recorded hfnc's landmark HFNC-vs-conventional-O2 trial (Hernandez low-risk) as "not in corpus,
+27379789". CORRECTION (test the finding): 27379789 is an ACL-reconstruction paper; the real Hernandez
+low-risk landmark is PMID 26975498 (JAMA 2016, "...Low-Risk Patients"), which IS in the corpus and
+screened in. So there is NO reach gap. The three available count-RR trials are 26975498 (LOW-risk, RR
+~0.41 favouring HFNC), 32597041 (HIGH-risk small, RR ~2.81 HFNC worse), 28466461 (HIGH-risk, RR ~0.74) —
+directionally MIXED because they span low- vs high-baseline-risk populations. A single pooled RR would
+obscure baseline-risk effect-modification and mislead; a risk-stratified table is buildable but a single
+number is not. hfnc DECLINE confirmed as a clean EFFECT-MODIFICATION decline (not scale, not reach, not
+acquisition), with the landmark present and the full-text counts in hand. Bar held; not built.
