@@ -19,6 +19,27 @@ review is screened against **32–33 of 33 checkable documented meta-analysis er
 (`harness/error_library.py`). The offer is greater
 auditability, honestly bounded — not a claim of more evidence than the peer-reviewed comparators.
 
+## The one validation we have NOT done — and exactly what it requires
+
+Every check here is a machine checking a machine. That now includes genuine architectural independence — a
+GPT-5 checker and a non-Claude family (Gemini) re-extract and re-judge, and a Fable pass caught a defect all
+our internal gates missed — but **no human has ever reviewed a page.** Three model families agreeing is real,
+but it is not human validation. What that would require, precisely:
+
+- **A domain reviewer** (a clinician or systematic-reviewer) for the topic area of the pages reviewed.
+- **Three pages**, chosen to span the range: one clean binary/HR topic (e.g. `glp1-ra-mace-t2d`), one
+  continuous topic (`semaglutide-obesity-weight`), and one we flag as hard/small-k (`metformin-pcos-ovulation`).
+- **What they should check, per page:** (1) does each pooled number match the cited source span, opening the
+  source; (2) does each outcome's *definition* match the label (component set, timepoint, population, analysis
+  set — the TECOS class); (3) are the screening include/exclude decisions clinically correct; (4) is any
+  declared-absent trial in fact reportable; (5) is the risk-of-bias and GRADE reasoning defensible; (6) is the
+  interpretation sound. Their disagreements become the first *human*-measured error rate.
+
+Until that is done, the accuracy claim is: internally consistent, cross-family corroborated, externally
+agreeing with published pooled estimates on 20 of 27 topics — **not** human-validated. Per-trial ground truth
+against a hand extraction is a **field-wide** limit, not ours: 0 of 18 trials in the gold-standard Cochrane
+review expose their per-trial counts in machine-readable form.
+
 ## Cycle 76 additions (measured, rendered, gate-enforced, live)
 
 - **We measured our own error rate.** A blind accuracy census re-extracted all 99 pooled numbers from
