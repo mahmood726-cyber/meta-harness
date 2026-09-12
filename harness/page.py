@@ -56,6 +56,20 @@ def _absent_block(reason: str) -> str:
     return f'<div class="absent"><strong>DECLARED ABSENT.</strong> {_e(reason)}</div>'
 
 
+def _absent_label(reason) -> str:
+    """External audit (C-EXTRACT-1): do NOT say "absent" when only the abstract was checked — the
+    outcome may exist in the full text. Classify the per-trial reason: a genuine exclusion (wrong
+    population/composite/estimand) stays "excluded"; an abstract-only miss is labelled "not extracted
+    (abstract only; full text not retrieved)" so it is not read as evidence the outcome does not exist."""
+    rl = (reason or "").lower()
+    if any(w in rl for w in ("exclud", "wrong ", "estimand", "non-cardiac", "population", "per-protocol",
+                             "per protocol", "completers", "different composite", "first-attack")):
+        return "excluded (see reason)"
+    if "abstract" in rl:
+        return "not extracted — abstract only, full text not retrieved"
+    return "not extracted (see reason)"
+
+
 def _kv(rows) -> str:
     trs = "".join(f"<tr><th>{_e(k)}</th><td>{v if isinstance(v,str) and v.startswith('<') else _e(v)}</td></tr>" for k, v in rows)
     return f"<table class='kv'>{trs}</table>"
@@ -346,7 +360,7 @@ def _screening(r, neutral):
             f"<tr><td>Excluded at screening — by rule</td><td>{_e(sum(rule_counts.values()))} ({_e(excl_bits)})</td></tr>"
             f"<tr><td>Met eligibility (P/I/C/design)</td><td>{_e(n_inc)}</td></tr>"
             f"<tr><td><strong>Pooled in the primary outcome (k)</strong></td><td><strong>{_e(pooled_k)}</strong></td></tr>"
-            f"<tr><td>Eligible but outcome not extractable (declared-absent)</td><td>{_e(n_inc - (pooled_k or 0))}</td></tr>"
+            f"<tr><td>Eligible but outcome not extracted from the abstract (full-text pass pending)</td><td>{_e(n_inc - (pooled_k or 0))}</td></tr>"
             "</table>"
             "<p class='note'>Every excluded record's rule id, reason and verbatim span are listed below "
             "(PRISMA item 16b: exclusions with reasons).</p>")
@@ -439,7 +453,7 @@ def _trial_inputs(o):
         rows.append(f"<tr><td>{_e(t.get('label'))}</td><td>{_e(t.get('id'))}</td>"
                     f"<td>{inp}</td><td>{src}</td></tr>")
     absent = "".join(f"<tr><td>{_e(t.get('label'))}</td><td>{_e(t.get('id'))}</td>"
-                     f"<td class='absent-cell'>declared absent</td><td>{_e(t.get('reason'))}</td></tr>"
+                     f"<td class='absent-cell'>{_e(_absent_label(t.get('reason')))}</td><td>{_e(t.get('reason'))}</td></tr>"
                      for t in o.get("declared_absent_trials", []) or [])
     return ("<table class='arms'><tr><th>Trial</th><th>Id</th><th>Input</th><th>Source</th></tr>"
             + rows_join(rows) + absent + "</table>")
@@ -504,8 +518,12 @@ def _outcome_block(o, show_inputs=True):
     if show_inputs and (n_pool or n_abs):
         if n_abs and n_pool:
             body += (f"<p class='note'>k = {n_pool}: the {n_pool} trial(s) named below were "
-                     f"pooled; {n_abs} further screened-in trial(s) reported no poolable value "
-                     f"for this outcome and are shown as <em>declared absent</em>.</p>")
+                     f"pooled; {n_abs} further screened-in trial(s) had no poolable value for this "
+                     f"outcome <em>in the abstract</em> and are listed below. Most are marked "
+                     f"<em>not extracted — abstract only, full text not retrieved</em>: that is an "
+                     f"extraction limit, NOT evidence the outcome is absent from the trial. A full-text "
+                     f"retrieval pass is the fix (in progress); genuine exclusions are labelled "
+                     f"<em>excluded</em> with their reason.</p>")
         body += _trial_inputs(o)
     return body
 

@@ -1,0 +1,746 @@
+# Declared-absent inventory — the ordered map for the full-text re-extraction pass
+
+Built offline so the network pass is EXECUTION, not discovery. Rows are split into RE-EXTRACTABLE
+(abstract-only miss; the outcome may exist in full text) and EXCLUDED (genuine: wrong population/
+composite/estimand/analysis-set — NOT to be re-extracted). Within re-extractable, POSITIVE-CONTROL /
+**Totals: 705 re-extractable (abstract-only), 12 genuine exclusions; 122 are positive-control/pivotal (do first).**
+
+pivotal trials are highest priority. Do NOT assert a recovered number without a committed source span.
+
+## balanced-crystalloids-vs-saline-mortality  (re-extractable 16, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Acute kidney injury :: 35041780 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Acute kidney injury :: 29485925 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** New renal-replacement therapy :: 29485925 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Acute kidney injury :: 34375394 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT Acute kidney injury :: 27749094 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Acute kidney injury :: 27604335 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Acute kidney injury :: 23732264 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Acute kidney injury :: CRUSADERS — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Mortality :: 27604335 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Mortality :: 23732264 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Mortality :: CRUSADERS — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT New renal-replacement therapy :: 34375394 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT New renal-replacement therapy :: 27749094 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT New renal-replacement therapy :: 27604335 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT New renal-replacement therapy :: 23732264 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT New renal-replacement therapy :: CRUSADERS — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## colchicine-postop-af  (re-extractable 17, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal adverse effects :: 32720823 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal adverse effects :: 25172965 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Treatment discontinuation :: 32720823 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Treatment discontinuation :: 25172965 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 22090167 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: NCT07611019 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: NCT07287345 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: NCT02177266 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Postoperative atrial fibrillation :: 22090167 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Postoperative atrial fibrillation :: NCT07611019 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Postoperative atrial fibrillation :: NCT07287345 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Postoperative atrial fibrillation :: NCT02177266 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation :: 22090167 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation :: 27502857 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation :: NCT07611019 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation :: NCT07287345 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation :: NCT02177266 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## colchicine-recurrent-pericarditis  (re-extractable 26, excluded 1)
+- RE-EXTRACT **[POS-CTRL]** Adverse events (gastrointestinal) :: 24694983 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Adverse events (gastrointestinal) :: 23992557 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Adverse events (gastrointestinal) :: 21873705 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Disease-related hospitalisation :: 24694983 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Disease-related hospitalisation :: 23992557 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Disease-related hospitalisation :: 21873705 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Symptom persistence at 72 hours :: 24694983 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Symptom persistence at 72 hours :: 23992557 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Treatment discontinuation :: 24694983 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Treatment discontinuation :: 23992557 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Treatment discontinuation :: 21873705 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events (gastrointestinal) :: 22430920 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events (gastrointestinal) :: 17885522 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events (gastrointestinal) :: 17667033 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Disease-related hospitalisation :: 22430920 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Disease-related hospitalisation :: 17885522 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Disease-related hospitalisation :: 17667033 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Recurrent pericarditis :: 22430920 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Recurrent pericarditis :: 17885522 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Recurrent pericarditis :: 17667033 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Symptom persistence at 72 hours :: 22430920 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Symptom persistence at 72 hours :: 17885522 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Symptom persistence at 72 hours :: 17667033 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation :: 22430920 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation :: 17885522 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation :: 17667033 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## colchicine-secondary-cv-prevention  (re-extractable 80, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal adverse effects :: 31733140 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal adverse effects :: 32865380 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Non-cardiovascular death :: 31733140 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 32407460 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 41670023 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 41605493 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 40263680 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 39189611 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 39166327 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 39115262 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 34446156 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 34686461 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 32862667 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 32295417 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 31284074 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 26265659 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 25784519 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: 1593057 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: CLEAR SYNERGY — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: NCT05739929 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: NCT06215989 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: PROACT 2 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: COLCOHIV — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: NCT01709981 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: COOL — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: CODEN — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: NCT07143136 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse effects :: DRC-04 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 32407460 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 41670023 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 41605493 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 40263680 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 39189611 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 39166327 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 39115262 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 34876021 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 34446156 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 34686461 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 32862667 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 32295417 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 31284074 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 26265659 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 25784519 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: 1593057 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: CLEAR SYNERGY — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: NCT05739929 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: NCT06215989 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: PROACT 2 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: COLCOHIV — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: NCT01709981 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: COOL — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: CODEN — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: NCT07143136 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events :: DRC-04 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 32407460 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 41670023 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 41605493 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 40263680 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 39189611 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 39166327 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 39115262 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 34876021 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 34446156 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 34686461 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 32862667 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 32295417 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 31284074 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 26265659 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 25784519 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: 1593057 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: CLEAR SYNERGY — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: NCT05739929 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: NCT06215989 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: PROACT 2 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: COLCOHIV — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: NCT01709981 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: COOL — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: CODEN — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: NCT07143136 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Non-cardiovascular death :: DRC-04 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## corticosteroids-cap-mortality  (re-extractable 24, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** All-cause mortality :: 25688779 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** All-cause mortality :: 25608756 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal bleeding :: 36942789 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal bleeding :: 25688779 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal bleeding :: 25608756 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Hyperglycaemia :: 36942789 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT All-cause mortality :: 15557131 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT All-cause mortality :: 8339624 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT All-cause mortality :: 35723686 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT All-cause mortality :: 21406101 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT All-cause mortality :: 33446608 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT All-cause mortality :: 21636122 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal bleeding :: 15557131 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal bleeding :: 8339624 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal bleeding :: 35723686 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal bleeding :: 21406101 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal bleeding :: 33446608 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal bleeding :: 21636122 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hyperglycaemia :: 15557131 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hyperglycaemia :: 8339624 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hyperglycaemia :: 35723686 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hyperglycaemia :: 21406101 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hyperglycaemia :: 33446608 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hyperglycaemia :: 21636122 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## corticosteroids-covid19-mortality  (re-extractable 15, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** 28-day all-cause mortality :: 32876697 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** 28-day all-cause mortality :: 32785710 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Serious adverse events :: 32678530 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Serious adverse events :: 32876697 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Serious adverse events :: 32785710 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 28-day all-cause mortality :: 34138478 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 28-day all-cause mortality :: 32876689 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 28-day all-cause mortality :: 32876695 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 28-day all-cause mortality :: COVIDICUS — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 28-day all-cause mortality :: NCT04561180 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 34138478 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 32876689 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 32876695 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: COVIDICUS — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: NCT04561180 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## dapagliflozin-hfpef-hosp  (re-extractable 5, excluded 0)
+- RE-EXTRACT Composite cardiovascular death or worsening heart failure :: 34711976 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Composite cardiovascular death or worsening heart failure :: 37534453 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Composite cardiovascular death or worsening heart failure :: STADIA-HFpEF — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Composite cardiovascular death or worsening heart failure :: NCT03794518 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Composite cardiovascular death or worsening heart failure :: NCT03877224 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## denosumab-vertebral-fracture  (re-extractable 2, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Serious adverse events :: 19671655 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Serious infection :: 19671655 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## doac-vte-recurrence  (re-extractable 1, excluded 0)
+- RE-EXTRACT Trial-reported recurrent VTE composite :: DANNOAC-VTE — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## dpp4-mace-t2d  (re-extractable 1, excluded 1)
+- RE-EXTRACT 3-point major adverse cardiovascular events :: 23992602 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## empagliflozin-hfpef-hosp  (re-extractable 3, excluded 0)
+- RE-EXTRACT Composite cardiovascular death or worsening heart failure :: SAK — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Composite cardiovascular death or worsening heart failure :: EMPA-PRED — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Composite cardiovascular death or worsening heart failure :: NCT03448406 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## esketamine-trd-madrs  (re-extractable 23, excluded 3)
+- RE-EXTRACT **[POS-CTRL]** Adverse events :: 31109201 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 39514643 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 35749277 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 34696742 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 33261932 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 32479321 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 31734084 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 42462931 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 38523183 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: TRANSFORM-3 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: NCT03965858 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: NCT01640080 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: TRANSFORM-1 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: SYNAPSE — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Change in MADRS :: 39514643 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Change in MADRS :: 35749277 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Change in MADRS :: 33261932 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Change in MADRS :: 32479321 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Change in MADRS :: 31734084 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Change in MADRS :: 42462931 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Change in MADRS :: 38523183 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Change in MADRS :: NCT03965858 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Change in MADRS :: NCT01640080 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## finerenone-ckd-t2d-renal  (re-extractable 16, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Hyperkalemia :: 33264825 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Hyperkalemia :: 34449181 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Hyperkalemia :: 26325557 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Hyperkalemia-related treatment discontinuation :: 33264825 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Hyperkalemia-related treatment discontinuation :: 34449181 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Hyperkalemia-related treatment discontinuation :: 26325557 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Kidney composite outcome :: 26325557 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hyperkalemia :: NCT01968668 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hyperkalemia :: NCT07775846 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hyperkalemia :: FineCaRe — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hyperkalemia-related treatment discontinuation :: NCT01968668 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hyperkalemia-related treatment discontinuation :: NCT07775846 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hyperkalemia-related treatment discontinuation :: FineCaRe — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Kidney composite outcome :: NCT01968668 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Kidney composite outcome :: NCT07775846 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Kidney composite outcome :: FineCaRe — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## glp1-ra-mace-t2d  (re-extractable 17, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Adverse events leading to discontinuation :: 27633186 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Adverse events leading to discontinuation :: 27295427 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Adverse events leading to discontinuation :: 31189511 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal adverse events :: 27633186 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal adverse events :: 27295427 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal adverse events :: 31189511 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 3-point major adverse cardiovascular events :: 26630143 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events leading to discontinuation :: 31185157 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events leading to discontinuation :: 34215025 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events leading to discontinuation :: 30291013 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events leading to discontinuation :: 28910237 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events leading to discontinuation :: 26630143 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 31185157 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 34215025 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 30291013 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 28910237 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 26630143 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## iv-iron-hfref-hosp  (re-extractable 22, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Heart-failure hospitalization :: 33197395 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Heart-failure hospitalization :: 36347265 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Hypersensitivity reactions :: 40159390 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Hypersensitivity reactions :: 33197395 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Hypersensitivity reactions :: 36347265 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Injection-site reactions :: 40159390 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Injection-site reactions :: 33197395 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Injection-site reactions :: 36347265 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Heart-failure hospitalization :: 37632463 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Heart-failure hospitalization :: 34080008 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Heart-failure hospitalization :: 19920054 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Heart-failure hospitalization :: 18191732 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hypersensitivity reactions :: 37632463 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hypersensitivity reactions :: 34080008 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hypersensitivity reactions :: 25176939 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hypersensitivity reactions :: 19920054 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hypersensitivity reactions :: 18191732 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Injection-site reactions :: 37632463 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Injection-site reactions :: 34080008 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Injection-site reactions :: 25176939 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Injection-site reactions :: 19920054 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Injection-site reactions :: 18191732 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## melatonin-primary-insomnia-sol  (re-extractable 23, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Adverse events :: 20712869 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 40971945 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 38816846 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 33157425 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 28364493 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 21226679 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 19584739 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 17875243 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 15766306 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 12790159 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: 8895944 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: Neu I — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Sleep-onset latency :: 40971945 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Sleep-onset latency :: 38816846 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Sleep-onset latency :: 33157425 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Sleep-onset latency :: 28364493 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Sleep-onset latency :: 21226679 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Sleep-onset latency :: 19584739 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Sleep-onset latency :: 17875243 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Sleep-onset latency :: 15766306 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Sleep-onset latency :: 12790159 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Sleep-onset latency :: 8895944 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Sleep-onset latency :: Neu I — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## metformin-pcos-ovulation  (re-extractable 38, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal adverse events :: 16769748 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal adverse events :: 11994052 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal adverse events :: 11473953 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Ovulation rate :: 16769748 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Ovulation rate :: 11994052 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Ovulation rate :: 11473953 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Treatment discontinuation due to adverse events :: 16769748 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Treatment discontinuation due to adverse events :: 11994052 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Treatment discontinuation due to adverse events :: 11473953 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 22926838 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 22419702 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 20925997 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 19692630 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 19552097 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 19522426 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 18487613 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 16827766 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 15472166 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 11172832 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Ovulation rate :: 22926838 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Ovulation rate :: 22419702 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Ovulation rate :: 20925997 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Ovulation rate :: 19692630 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Ovulation rate :: 19552097 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Ovulation rate :: 19522426 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Ovulation rate :: 18487613 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Ovulation rate :: 16827766 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Ovulation rate :: 15472166 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation due to adverse events :: 22926838 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation due to adverse events :: 22419702 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation due to adverse events :: 20925997 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation due to adverse events :: 19692630 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation due to adverse events :: 19552097 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation due to adverse events :: 19522426 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation due to adverse events :: 18487613 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation due to adverse events :: 16827766 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation due to adverse events :: 15472166 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Treatment discontinuation due to adverse events :: 11172832 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## noac-vs-warfarin-af-stroke  (re-extractable 14, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Major bleeding :: 21830957 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Major bleeding :: 19717844 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major bleeding :: NCT00504556 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major bleeding :: ORGANON — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major bleeding :: SoSTART — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major bleeding :: NCT00806624 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major bleeding :: NCT05006287 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major bleeding :: NCT00829933 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Stroke or systemic embolism :: NCT00504556 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Stroke or systemic embolism :: ORGANON — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Stroke or systemic embolism :: SoSTART — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Stroke or systemic embolism :: NCT00806624 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Stroke or systemic embolism :: NCT05006287 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Stroke or systemic embolism :: NCT00829933 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## omega3-cardiovascular-events  (re-extractable 58, excluded 1)
+- RE-EXTRACT **[POS-CTRL]** Atrial fibrillation :: 33190147 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Atrial fibrillation :: 30415628 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Atrial fibrillation :: 22686415 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT **[POS-CTRL]** Bleeding :: 33190147 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Bleeding :: 30415628 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Bleeding :: 22686415 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT Atrial fibrillation :: 30415637 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT Atrial fibrillation :: 23839902 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Atrial fibrillation :: 23656645 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Atrial fibrillation :: 23351824 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Atrial fibrillation :: 20952767 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Atrial fibrillation :: 20929341 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Atrial fibrillation :: 20146881 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Atrial fibrillation :: 18757090 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Atrial fibrillation :: 11451717 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Atrial fibrillation :: 20389249 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT Atrial fibrillation :: 21060071 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Atrial fibrillation :: 21115589 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT Atrial fibrillation :: 38184150 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Atrial fibrillation :: 38199870 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT Atrial fibrillation :: NCT06720662 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Atrial fibrillation :: VITAL-Echo — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Atrial fibrillation :: OMEMI — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Atrial fibrillation :: FFAME — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: 30415637 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT Bleeding :: 30146932 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: 23839902 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: 23656645 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: 23351824 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: 20952767 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: 20929341 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: 20146881 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: 18757090 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: 11451717 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: 20389249 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT Bleeding :: 21060071 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: 21115589 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT Bleeding :: 38184150 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: 38199870 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT Bleeding :: NCT06720662 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: VITAL-Echo — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: OMEMI — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Bleeding :: FFAME — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major vascular events / MACE :: 23839902 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major vascular events / MACE :: 23656645 — declared absent (definition mismatch, cross-family definition audit): the stored
+- RE-EXTRACT Major vascular events / MACE :: 23351824 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major vascular events / MACE :: 20952767 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major vascular events / MACE :: 20146881 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major vascular events / MACE :: 18757090 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major vascular events / MACE :: 11451717 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major vascular events / MACE :: 20389249 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT Major vascular events / MACE :: 21060071 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major vascular events / MACE :: 21115589 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT Major vascular events / MACE :: 38199870 — factorial-design trial: no extraction sentence explicitly names the intervention
+- RE-EXTRACT Major vascular events / MACE :: NCT06720662 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major vascular events / MACE :: VITAL-Echo — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major vascular events / MACE :: OMEMI — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major vascular events / MACE :: FFAME — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## pcsk9-mace  (re-extractable 4, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Adverse events leading to discontinuation :: 28304224 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Adverse events leading to discontinuation :: 30403574 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Injection-site reactions :: 28304224 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Injection-site reactions :: 30403574 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## probiotics-aad-prevention  (re-extractable 162, excluded 2)
+- RE-EXTRACT **[POS-CTRL]** Any adverse events :: 32035998 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Any adverse events :: 15740542 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Any adverse events :: 23932219 — model outcome-identity gate (model-derived) — located evidence is not the target
+- RE-EXTRACT **[POS-CTRL]** Serious adverse events :: 32035998 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Serious adverse events :: 15740542 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Serious adverse events :: 23932219 — model outcome-identity gate (model-derived) — located evidence is not the target
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 42608299 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 41699149 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 40908969 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 40716758 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 40491930 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 39467682 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 39429834 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 38258024 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 34585011 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 34541475 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 33032474 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 30912409 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 30521044 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 30439760 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 30149135 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 28871492 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 28057659 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 27169634 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 26973849 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 22559011 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 22370839 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 21552138 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 18949181 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 16572062 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 10547243 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 10545590 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 9570649 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 2184848 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 24456384 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 24044687 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 23618760 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 21871144 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 20145608 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 19138244 — round-trip mismatch: extracted counts 4/23 vs 6/16 imply 0.464 but the source re
+- RE-EXTRACT Antibiotic-associated diarrhoea :: 16292090 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: PROBIO — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: NCT04529980 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: NCT02993419 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: NCT02722993 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: NCT03516409 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: YOBIOTIC — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: Probiotics — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: NCT07234448 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Antibiotic-associated diarrhoea :: PANDA — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 42608299 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 41699149 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 40908969 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 40716758 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 40491930 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 40488914 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 39529939 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 39467682 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 39429834 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 38258024 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 35727573 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 34585011 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 34541475 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 33032474 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 30912409 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 30521044 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 30439760 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 30149135 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 28871492 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 28057659 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 27169634 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 26973849 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 24772726 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 22559011 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 22472744 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 22370839 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 21552138 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 18949181 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 18701826 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 18410562 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 17356555 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 16572062 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 11560298 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 10547243 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 10545590 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 9570649 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 7872284 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 2184848 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 24456384 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 24044687 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 23618760 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 21871144 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 21165295 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 20145608 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 19138244 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 18026577 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: 16292090 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: PROBIO — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: NCT04529980 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: NCT02993419 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: NCT02722993 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: NCT03516409 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: YOBIOTIC — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: Probiotics — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: NCT07234448 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Any adverse events :: PANDA — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 42608299 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 41699149 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 40908969 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 40716758 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 40491930 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 40488914 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 39529939 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 39467682 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 39429834 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 38258024 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 35727573 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 34585011 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 34541475 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 33032474 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 30912409 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 30521044 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 30439760 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 30149135 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 28871492 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 28057659 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 27169634 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 26973849 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 24772726 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 22559011 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 22472744 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 22370839 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 21552138 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 18949181 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 18701826 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 18410562 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 17356555 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 16572062 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 11560298 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 10547243 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 10545590 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 9570649 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 7872284 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 2184848 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 24456384 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 24044687 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 23618760 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 21871144 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 21165295 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 20145608 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 19138244 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 18026577 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 16292090 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: PROBIO — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: NCT04529980 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: NCT02993419 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: NCT02722993 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: NCT03516409 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: YOBIOTIC — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: Probiotics — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: NCT07234448 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: PANDA — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## sacubitril-valsartan-hfref  (re-extractable 6, excluded 0)
+- RE-EXTRACT Composite cardiovascular death or heart-failure hospitalization :: EVALUATE-HF — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Composite cardiovascular death or heart-failure hospitalization :: OUTSTEP-HF — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Composite cardiovascular death or heart-failure hospitalization :: ANSWER-HF — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Composite cardiovascular death or heart-failure hospitalization :: PRESENT-HF — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Composite cardiovascular death or heart-failure hospitalization :: PARALLEL-HF — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Composite cardiovascular death or heart-failure hospitalization :: PIONEER-HF — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## semaglutide-obesity-mace  (re-extractable 1, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal adverse events :: 37952131 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## semaglutide-obesity-weight  (re-extractable 22, excluded 4)
+- RE-EXTRACT **[POS-CTRL]** Gastrointestinal adverse events :: 33567185 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 42070571 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 41296499 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 41045908 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 40825340 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 40629530 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 40189961 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 40069849 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 41778920 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: 33625476 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: STEP 10 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: NCT07731256 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Gastrointestinal adverse events :: NCT06390501 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Percent change in body weight :: 42070571 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Percent change in body weight :: 41045908 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Percent change in body weight :: 40629530 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Percent change in body weight :: 41778920 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Percent change in body weight :: NCT07731256 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Percent change in body weight :: NCT06390501 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Percent change in body weight :: 42575111 — timepoint mismatch: the pre-registered primary timepoint is Week 68, but this tr
+- RE-EXTRACT Percent change in body weight :: 40825340 — timepoint mismatch: the pre-registered primary timepoint is Week 68, but this tr
+- RE-EXTRACT Percent change in body weight :: STEP 10 — timepoint mismatch: the pre-registered primary timepoint is Week 68, but this tr
+## sglt2-ckd-progression  (re-extractable 24, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Diabetic ketoacidosis :: 32970396 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Diabetic ketoacidosis :: 30990260 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Diabetic ketoacidosis :: 36331190 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Lower-limb amputation :: 32970396 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Lower-limb amputation :: 30990260 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Lower-limb amputation :: 36331190 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT CKD progression / kidney composite outcome :: NCT05735197 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT CKD progression / kidney composite outcome :: NCT07344922 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT CKD progression / kidney composite outcome :: DapaBalci-Leap — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT CKD progression / kidney composite outcome :: MIRO-CKD — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT CKD progression / kidney composite outcome :: EMPA-CKD — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT CKD progression / kidney composite outcome :: NCT05614115 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Diabetic ketoacidosis :: NCT05735197 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Diabetic ketoacidosis :: NCT07344922 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Diabetic ketoacidosis :: DapaBalci-Leap — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Diabetic ketoacidosis :: MIRO-CKD — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Diabetic ketoacidosis :: EMPA-CKD — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Diabetic ketoacidosis :: NCT05614115 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Lower-limb amputation :: NCT05735197 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Lower-limb amputation :: NCT07344922 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Lower-limb amputation :: DapaBalci-Leap — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Lower-limb amputation :: MIRO-CKD — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Lower-limb amputation :: EMPA-CKD — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Lower-limb amputation :: NCT05614115 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## sglt2-hfref-hosp-cvdeath  (re-extractable 7, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Diabetic ketoacidosis :: 31535829 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Diabetic ketoacidosis :: 32865377 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Volume depletion or hypotension :: 31535829 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Volume depletion or hypotension :: 32865377 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Composite cardiovascular death or hospitalisation for heart failure :: NCT06229678 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Diabetic ketoacidosis :: NCT06229678 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Volume depletion or hypotension :: NCT06229678 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## sglt2-primary-prevention-hf  (re-extractable 16, excluded 0)
+- RE-EXTRACT Hospitalization for heart failure :: 22431673 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: 27651331 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: 39843293 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: 35061894 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: 31984646 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: 34132018 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: 33464703 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: 22238392 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: 31434508 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: 22632452 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: 24378206 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: 30314978 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: 25271206 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: 23356556 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: 23668478 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Hospitalization for heart failure :: NCT02796170 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## spironolactone-hfref-mortality  (re-extractable 3, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Gynecomastia or breast pain :: 10471456 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Gynecomastia or breast pain :: 21073363 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Hyperkalemia :: 10471456 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## statins-primary-prevention-elderly  (re-extractable 11, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Major vascular events :: 30251369 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Major vascular events :: 28531241 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Muscle symptoms/myopathy :: 20404379 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Muscle symptoms/myopathy :: 30251369 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Muscle symptoms/myopathy :: 28531241 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** New-onset diabetes :: 20404379 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** New-onset diabetes :: 30251369 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** New-onset diabetes :: 28531241 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major vascular events :: NIA-Plaque — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Muscle symptoms/myopathy :: NIA-Plaque — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT New-onset diabetes :: NIA-Plaque — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## ticagrelor-vs-clopidogrel-acs  (re-extractable 4, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Dyspnea :: 19717846 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Dyspnea :: 17980250 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke :: 17980250 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Major bleeding :: 17980250 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## tocilizumab-covid19-mortality  (re-extractable 33, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** 28-day all-cause mortality :: 33631066 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** 28-day all-cause mortality :: 33332779 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Secondary infections by 28 days :: 33933206 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Secondary infections by 28 days :: 33631066 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Secondary infections by 28 days :: 33332779 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Serious adverse events :: 33933206 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 28-day all-cause mortality :: 40232661 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 28-day all-cause mortality :: 38157348 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 28-day all-cause mortality :: 34609549 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 28-day all-cause mortality :: 33080017 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 28-day all-cause mortality :: 33080005 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 28-day all-cause mortality :: 33085857 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 28-day all-cause mortality :: 33472855 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 28-day all-cause mortality :: ARCHITECTS — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT 28-day all-cause mortality :: CORON-ACT — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Secondary infections by 28 days :: 40232661 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Secondary infections by 28 days :: 38157348 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Secondary infections by 28 days :: 34609549 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Secondary infections by 28 days :: 33080017 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Secondary infections by 28 days :: 33080005 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Secondary infections by 28 days :: 33085857 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Secondary infections by 28 days :: 33472855 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Secondary infections by 28 days :: ARCHITECTS — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Secondary infections by 28 days :: CORON-ACT — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 40232661 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 38157348 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 34609549 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 33080017 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 33080005 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 33085857 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: 33472855 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: ARCHITECTS — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Serious adverse events :: CORON-ACT — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+## tranexamic-acid-pph  (re-extractable 11, excluded 0)
+- RE-EXTRACT **[POS-CTRL]** Adverse events :: 32143721 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Adverse events :: 36243576 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Adverse events :: 28456509 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Death due to bleeding :: 32143721 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Death due to bleeding :: 36243576 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Thromboembolic events :: 32143721 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Thromboembolic events :: 36243576 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT **[POS-CTRL]** Thromboembolic events :: 28456509 — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Adverse events :: TA TEG — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Death due to bleeding :: TA TEG — no percentage-corroborated arm counts or effect+CI for this outcome found in the
+- RE-EXTRACT Thromboembolic events :: TA TEG — no percentage-corroborated arm counts or effect+CI for this outcome found in the
