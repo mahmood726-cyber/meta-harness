@@ -499,11 +499,37 @@ def _outcome_block(o, show_inputs=True):
     return body
 
 
+def _definition_audit_block(r):
+    """Render the cross-family definition-audit findings for this topic (composite component set / timepoint /
+    population / analysis set), each with its adjudication + resolution, so a recorded mismatch is VISIBLE."""
+    da = r.get("definition_audit") or {}
+    if not da:
+        return ""
+    rows = []
+    for rid, v in sorted(da.items()):
+        parts = rid.split("::")
+        outcome, pmid = (parts[1] if len(parts) > 1 else ""), (parts[-1] if parts else "")
+        both = " ·both families" if v.get("both_families") else ""
+        rows.append(f"<tr><td>{_e(pmid)}</td><td>{_e(outcome)}</td><td>{_e(v.get('detail',''))}{_e(both)}</td>"
+                    f"<td><strong>{_e(v.get('resolution',''))}</strong></td></tr>")
+    return ("<div class='absent'><strong>Cross-family definition audit.</strong> Two independent model "
+            "families (Gemini via AGY, and Fable) re-read every pooled row and checked whether the extracted "
+            "result matches the outcome LABEL's definition &mdash; composite component set, timepoint, "
+            "population, analysis set &mdash; not just the number. Rows flagged for this topic, with how each "
+            "was resolved (refuse the trial / disclose the heterogeneity / relabel the timepoint / already "
+            "disclosed). This is the endpoint-<strong>IDENTITY</strong> check &mdash; distinct from the "
+            "per-number <strong>MAGNITUDE</strong> check (every pooled number located in its committed source "
+            "span, gate-enforced). A number can pass magnitude and fail identity, which is exactly the class "
+            "this audit catches; &lsquo;verified&rsquo; on this harness now means both:"
+            "<table class='arms'><tr><th>Trial</th><th>Outcome</th><th>Finding</th><th>Resolution</th></tr>"
+            + "".join(rows) + "</table></div>")
+
+
 def _outcomes(r, neutral):
     outs = [o for o in (r.get("outcomes") or []) if o.get("kind") != "harm"]
     if not outs:
         return _absent_block("no efficacy outcomes in the review object")
-    return "".join(_outcome_block(o) for o in outs)
+    return _definition_audit_block(r) + "".join(_outcome_block(o) for o in outs)
 
 
 def _harms(r, neutral):

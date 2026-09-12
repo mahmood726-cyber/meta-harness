@@ -221,6 +221,23 @@ def _load_rob2(slug):
         return None
 
 
+def _load_definition_audit(slug):
+    """The topic's rows from the committed cross-family definition audit (docs/definition_audit.json):
+    outcome-definition-identity findings (composite component set / timepoint / population / analysis set),
+    each with its adjudication + resolution. Rendered on the page so a recorded mismatch is VISIBLE (the
+    container/contents rule); reproduces from committed data."""
+    import os, json
+    fp = os.path.join(ROOT, "docs", "definition_audit.json")
+    if not os.path.exists(fp):
+        return None
+    try:
+        d = json.load(open(fp, encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    rows = {rid: v for rid, v in (d.get("by_row") or {}).items() if rid.startswith(slug + "::")}
+    return rows or None
+
+
 def _load_verified_arms(slug):
     """Committed hand-verified structured arm-level counts (cache/<slug>/verified_arms.json):
     {pmid: {outcome, ai, n1i, ci, n2i, source}}. The bottom of the source hierarchy — a number a
@@ -717,6 +734,8 @@ def build_review_core(slug, config, records, protocol_sha):
         # verbatim statement in the committed full text (preferred) or abstract; industry funding is the
         # documented bias direction. Rendered as a disclosure; never inferred, 'not stated' when silent.
         **({"funding": _fund} if (_fund := funding.scan_pooled({"outcomes": outcomes}, rec_by_id, ftbp)) else {}),
+        # Cross-family definition-audit findings for this topic (rendered so a recorded mismatch is visible).
+        **({"definition_audit": _da} if (_da := _load_definition_audit(slug)) else {}),
     }
     # RoB-stratified sensitivity re-pool of the primary outcome (regenerates from the object, so the
     # figure the page renders is reproduced, not typed). Uses the same validated pooler.
