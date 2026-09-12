@@ -771,11 +771,15 @@ def _riskofbias(r, neutral):
         items = "; ".join(f"{_e(u.get('id'))} ({_e(u.get('design'))})" for u in uoa)
         uoa_html = ("<div class='absent'><strong>Unit-of-analysis caveat (disclosed, not adjusted).</strong> "
                     f"{len(uoa)} pooled trial(s) use a cluster-randomized or crossover design: {items}. "
-                    "Their patient-level counts are pooled without a design-effect (cluster ICC) or "
-                    "within-subject (crossover) adjustment, because the ICC / paired variance is not reported "
-                    "in the source — so the pooled precision for these trials is <em>optimistic</em>. This is a "
-                    "stated limitation (a documented meta-analysis error class the harness flags but cannot "
-                    "correct without the missing variance component), not a silent simple-parallel pooling.</div>")
+                    "They are pooled from patient-level counts <strong>without applying a design effect</strong> "
+                    "(cluster ICC) or a within-subject (crossover) adjustment, because the ICC / paired "
+                    "variance is not reported in the source. <strong>Consequence:</strong> the true variance of "
+                    "these trials is larger than the patient-level calculation assumes, so their inverse-variance "
+                    "<strong>weight in the pool is OVERSTATED</strong> and the pooled confidence interval is "
+                    "<strong>too narrow</strong> (over-precise) — the pooled point estimate is unaffected, but its "
+                    "certainty is optimistic. This is a stated limitation (a documented meta-analysis error class "
+                    "the harness flags but cannot correct without the missing variance component), not a silent "
+                    "simple-parallel pooling.</div>")
     return (f"<p>{cover}</p>" + uoa_html
             + "<p>Per-pooled-trial RoB2 risk of bias, computed from what is machine-available "
             f"({_e(rb.get('source') or 'AACT registry fields')}). <strong>Domain 5 (selective reporting)</strong> "
