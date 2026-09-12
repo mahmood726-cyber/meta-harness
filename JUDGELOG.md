@@ -786,3 +786,15 @@ latency, esketamine MADRS, semaglutide-2.4mg weight) are where it held. This is 
 topics show, from a new angle: small continuous k is the product of principled refusals (LSM, multi-arm,
 timepoint, scale/population heterogeneity), not a search or extraction failure. Each decline is verified
 against the trials' own posted CT.gov results, not assumed.
+
+## Cycle 71 — candidate sweep addendum: tiotropium (dossier's #1) also declined; 5/5 now
+A Codex-ranked candidate dossier (offline) put tiotropium COPD trough FEV1 first, roflumilast second,
+PAH 6MWD third — but it flagged C2 (raw per-arm MEAN+SD, not LSM/SE) as the binding risk for the
+FEV1/HbA1c topics, and rated pregabalin's raw-SD availability low (concordant with my direct probes).
+Direct CT.gov check of tiotropium: of 36 trials with results, only 2 post a 2-arm raw MEAN+SD trough-FEV1
+change, at different timepoints (26 wk QUANTIFY [a combination trial] vs 12 wk) — no clean >=3 same-timepoint
+2-arm-vs-placebo pool. So the dossier's top pick fails the same C2/C3 test. FIVE candidates probed
+(renal-denervation, roflumilast, pregabalin, liraglutide-obesity, tiotropium), FIVE declined with reasons
+verified against posted results. The continuous tier stands at 3 live pages; growth is bar-limited, not
+effort-limited. (Kept for a future attempt if the bar is ever explicitly relaxed: pregabalin OA comparator
+candidate PMID 41969185 / PMC13243957, per the dossier — unverified.)
