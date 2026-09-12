@@ -556,7 +556,7 @@ def _prose_derived_numerals(docs_dir: str) -> set:
             c = json.load(open(ch, encoding="utf-8"))
             cp = c.get("cochrane_pooled") or {}
             for v in (cp.get("k"), cp.get("effect"), (c.get("ours") or {}).get("estimate"),
-                      (c.get("ours") or {}).get("k")):
+                      (c.get("ours") or {}).get("k"), c.get("cochrane_trials_listed")):
                 if isinstance(v, int):
                     out.add(str(v))
                 elif isinstance(v, float):
@@ -726,7 +726,16 @@ def build_index(docs_dir: str) -> str:
                "decomposed and named on its page; and <strong>every pooled number is verified "
                "against its committed source and gate-enforced</strong> (the exact count is stated below). "
                "The offer is greater auditability, honestly bounded &mdash; not a claim of more evidence "
-               "than the peer-reviewed comparators.</p></div>")
+               "than the peer-reviewed comparators.</p>"
+               "<p><strong>The sharpest form of the argument.</strong> We attempted a per-trial, "
+               "number-by-number check against the gold standard &mdash; the Cochrane review of metformin for "
+               "PCOS ovulation (CD013505) &mdash; and found that <strong>0 of its 18 trials expose their "
+               "per-trial counts in machine-readable form</strong>: the numbers live in forest-plot images, "
+               "not the text. <strong>A reader cannot check a Cochrane review number-by-number. They can check "
+               "ours</strong> &mdash; every pooled number here carries a verbatim source span, and the whole "
+               "review regenerates from a committed protocol commit. (Extracting per-trial ground truth from "
+               "forest-plot images is a named research-agenda item &mdash; vision/OCR or individual patient "
+               "data &mdash; not yet attempted.)</p></div>")
     _cont = _continuous_section(docs_dir)
     _erate = _error_rate_section(docs_dir)
     _spec = _spec_curve_section(docs_dir)
