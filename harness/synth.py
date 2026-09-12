@@ -102,6 +102,13 @@ class PoolResult:
     Q: float
     estimate: float
     per_study: list = field(default_factory=list)  # [(label, yi, vi)]
+    # Common-effect (fixed-effect, z-based) sensitivity. At k<=2 the HKSJ t multiplier is huge
+    # (t_{k-1}=12.71 at k=2, 1 df) and can render a CI "compatible with no effect" even when both
+    # trials agree with I^2=0; an external audit asked that the conventional CI be shown alongside so
+    # the primary interval is not over-read. Always computed; the page shows it for k<=2.
+    ci_low_fixed: float = None
+    ci_high_fixed: float = None
+    estimate_fixed: float = None
 
 
 def _wmean(yi, vi, tau2):
@@ -158,8 +165,12 @@ def pool(studies: Sequence[Study], scale: str = "RR", alpha: float = 0.05) -> Po
         tcrit = _norm.ppf(1 - alpha / 2)  # k=1: no between-study term; z fallback
     ci_low, ci_high = mu - tcrit * se, mu + tcrit * se
     pi_half = tcrit * math.sqrt(tau2 + se ** 2)
-    mu0, w0, _ = _wmean(yi, vi, 0.0)
+    mu0, w0, sw0 = _wmean(yi, vi, 0.0)
     Q = sum(wi * (y - mu0) ** 2 for wi, y in zip(w0, yi))
+    # Common-effect (fixed-effect) z-based CI: the conventional small-k sensitivity shown alongside HKSJ.
+    se_fixed = math.sqrt(1.0 / sw0)
+    zc = _norm.ppf(1 - alpha / 2)
+    ci_low_fixed, ci_high_fixed = mu0 - zc * se_fixed, mu0 + zc * se_fixed
     # Ratio scales (RR/OR/HR/IRR) pool on the log scale and back-transform with exp; additive
     # scales (mean difference / standardised mean difference) pool on the raw scale (identity).
     bt = (lambda x: x) if scale.upper() in ("MD", "SMD") else math.exp
@@ -169,6 +180,7 @@ def pool(studies: Sequence[Study], scale: str = "RR", alpha: float = 0.05) -> Po
         pi_low=bt(mu - pi_half), pi_high=bt(mu + pi_half),
         Q=Q, estimate=bt(mu),
         per_study=[(s.label, y, v) for s, (y, v) in zip(studies, yv)],
+        ci_low_fixed=bt(ci_low_fixed), ci_high_fixed=bt(ci_high_fixed), estimate_fixed=bt(mu0),
     )
 
 

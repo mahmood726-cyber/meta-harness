@@ -156,6 +156,18 @@ def _pool_result(studies, scale="RR"):
                               "confidence interval (no between-study heterogeneity detected).")
     else:
         res["pi_note"] = "prediction interval undefined for k=1"
+    # At k==2 the HKSJ t-multiplier (t_{1}=12.71, 1 df) makes the primary CI very wide and can read as
+    # "compatible with no effect" even when both trials agree (I^2=0); an external audit asked for the
+    # conventional common-effect CI alongside. (k==1 is already z-based, so its fixed CI equals the
+    # primary and adds nothing.)
+    if r.k == 2 and r.ci_low_fixed is not None:
+        res["ci_low_fixed"] = round(r.ci_low_fixed, 4)
+        res["ci_high_fixed"] = round(r.ci_high_fixed, 4)
+        res["estimate_fixed"] = round(r.estimate_fixed, 4)
+        res["fixed_note"] = ("common-effect (fixed-effect, z-based) sensitivity: with only two trials "
+                             "the HKSJ interval uses a t-multiplier on a single degree of freedom and is "
+                             "very wide; where the two trials agree this conventional interval is the "
+                             "more informative bound.")
     return res
 
 

@@ -133,6 +133,10 @@ def _overview(r, neutral):
             if recon:
                 rows.append(("Screened-in → pooled", recon))
             rows.append((_effect_label(res), _ci(res)))
+            if res.get("ci_low_fixed") is not None:
+                rows.append(("Common-effect CI (k=2 sensitivity)",
+                             f"{_num(res.get('estimate_fixed'))} ({res.get('scale')}), 95% CI "
+                             f"{_num(res.get('ci_low_fixed'))}–{_num(res.get('ci_high_fixed'))}"))
             if res.get("pi_low") is not None:
                 rows.append(("Prediction interval", f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}"))
             if res.get("tau2") is not None:
@@ -474,9 +478,14 @@ def _outcome_block(o, show_inputs=True):
             ("Method", o.get("method")),
             ("k", res.get("k")),
             (_effect_label(res), _ci(res)),
+            ("Common-effect CI (k=2 sensitivity)",
+             (f"{_num(res.get('estimate_fixed'))} ({res.get('scale')}), 95% CI "
+              f"{_num(res.get('ci_low_fixed'))}–{_num(res.get('ci_high_fixed'))}"
+              if res.get("ci_low_fixed") is not None else None)),
             ("Prediction interval", (f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}" if res.get('pi_low') is not None else None)),
             ("τ²", _num(res.get("tau2")) if res.get("tau2") is not None else None),
             ("Note", res.get("pi_note")),
+            ("Small-k note", res.get("fixed_note")),
             ("Composite heterogeneity", res.get("composite_heterogeneity")),
             ("Leave-one-out (influence)", _loo_text(res.get("leave_one_out"))),
         ] if v is not None])

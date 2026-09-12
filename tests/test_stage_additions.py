@@ -66,6 +66,20 @@ def test_grade_imprecision_not_mechanical_on_tight_null():
     assert onesidenull["downgrade"] == 1, onesidenull
 
 
+def test_common_effect_ci_shown_alongside_hksj_at_k2():
+    # External audit (C-STATS-2): at k=2 the HKSJ t-multiplier (1 df) inflates the CI so it can read
+    # "compatible with no effect" even when both trials agree; the conventional common-effect CI must
+    # be exposed alongside. Two concordant studies -> a fixed CI that is NARROWER than the HKSJ CI.
+    from harness.synth import Study, pool
+    two = [Study(label="a", effect=0.80, ci_low=0.68, ci_high=0.94, measure="RR"),
+           Study(label="b", effect=0.82, ci_low=0.70, ci_high=0.96, measure="RR")]
+    r = pool(two, scale="RR")
+    assert r.k == 2 and r.ci_low_fixed is not None and r.estimate_fixed is not None
+    hksj_width = r.ci_high - r.ci_low
+    fixed_width = r.ci_high_fixed - r.ci_low_fixed
+    assert fixed_width < hksj_width, (fixed_width, hksj_width)  # t_1 inflates HKSJ vs z-based fixed
+
+
 def test_grade_rob_downgrades_when_no_trial_assessed():
     # External audit (C-ROB-1): zero assessed cannot establish low risk; coverage gates the judgement.
     rob = grade_mod._rob_domain({"outcomes": [{"primary": True, "trials": [{"label": "a"}, {"label": "b"}]}],
