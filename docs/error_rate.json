@@ -1,84 +1,86 @@
 {
- "_doc": "Blind accuracy census (cycle 76): every pooled number independently re-extracted from committed source by an offline checker BLIND to the stored value; deterministic compare; disagreements hand-adjudicated against source. See scripts/error_rate_compare.py + error_rate_pass2.py.",
- "measured_utc": "2026-09-12",
- "measured_against": "docs/error_rate_sample.json (the committed sample of every pooled number at measurement time)",
- "n_pooled_at_measurement": 99,
- "population": 112,
- "independently_reverified": 95,
- "exact_match": 92,
- "disagreements_pre_adjudication": 3,
- "disagreement_rate": 0.0316,
- "disagreement_wilson95": [
-  0.0108,
-  0.0888
- ],
- "confirmed_our_errors_after_adjudication": 1,
- "confirmed_our_errors_note": "1 wrong number (semaglutide GI-AE wrong endpoint) surfaced AND fixed this cycle; the 3 remaining disagreements are checker-side (label wording / estimand choice).",
- "not_recheckable_from_abstract": 4,
- "not_recheckable_note": "sourced from ClinicalTrials.gov results / full text, so not re-extractable from the abstract the checker was given (not evidence of error).",
- "adjudication": [
-  {
-   "row": "iv-iron-hfref-hosp::Heart-failure hospitalization::40159390",
-   "verdict": "checker_side",
-   "note": "Numbers identical (0.80 [0.60-1.06]); we label it IRR, the checker wrote \"rate ratio\" (RR). A rate ratio on TOTAL/recurrent HF hospitalizations IS an incidence-rate ratio; our IRR label is correct."
-  },
-  {
-   "row": "noac-vs-warfarin-af-stroke::Stroke or systemic embolism::21830957",
-   "verdict": "checker_side",
-   "note": "ROCKET-AF: checker took the on-treatment/per-protocol HR 0.79; its own note flags the ITT HR 0.88, which is what we store — consistent with the other all-ITT NOAC trials. Our ITT choice is the standard MA choice."
-  },
-  {
-   "row": "omega3-cardiovascular-events::Major vascular events / MACE::30146932",
-   "verdict": "checker_side",
-   "note": "ASCEND: numbers identical (0.97 [0.87-1.08]); IRR vs \"rate ratio\" wording only. Our IRR label is correct."
-  }
- ],
- "fixed_this_cycle": [
-  {
-   "row": "semaglutide-obesity-weight::Gastrointestinal adverse events::42575111",
-   "verdict": "OUR_ERROR_FIXED",
-   "note": "Wrong endpoint: overall-AE counts (141/161 vs 61/81) were pooled under a gastrointestinal-AE outcome; the abstract has no GI-specific count. FIXED cycle 76 via an absent-override (declared absent). This is the one confirmed defect the census surfaced; it had passed every gate."
-  }
- ],
- "n_pooled_current_after_fixes": 112,
- "removed_by_census_fixes": [
-  "colchicine-postop-af::Gastrointestinal adverse effects::37640035",
-  "colchicine-postop-af::Postoperative atrial fibrillation::29237033",
-  "colchicine-postop-af::Postoperative atrial fibrillation::37640035",
-  "colchicine-recurrent-pericarditis::Recurrent pericarditis::23992557",
-  "dpp4-mace-t2d::3-point major adverse cardiovascular events::26052984",
-  "omega3-cardiovascular-events::Major vascular events / MACE::23656645",
-  "omega3-cardiovascular-events::Major vascular events / MACE::38184150",
-  "probiotics-aad-prevention::Antibiotic-associated diarrhoea::17356555",
-  "probiotics-aad-prevention::Antibiotic-associated diarrhoea::22472744",
-  "semaglutide-obesity-weight::Gastrointestinal adverse events::42575111",
-  "doac-vte-recurrence::Trial-reported recurrent VTE composite::24344086"
- ],
- "census_population": 99,
- "current_pooled_population": 112,
- "harms_sweep_added_verified": [
-  "semaglutide-obesity-mace::Adverse events leading to permanent discontinuation::37952131"
- ],
- "build_verified_added": [
-  "dpp4-mace-t2d::3-point major adverse cardiovascular events::23992601",
-  "dpp4-mace-t2d::3-point major adverse cardiovascular events::30418475",
-  "sglt2-primary-prevention-hf::Hospitalization for heart failure::26378978",
-  "sglt2-primary-prevention-hf::Hospitalization for heart failure::28605608",
-  "sglt2-primary-prevention-hf::Hospitalization for heart failure::30415602",
-  "sglt2-primary-prevention-hf::Hospitalization for heart failure::32966714",
-  "doac-vte-recurrence::Trial-reported recurrent VTE composite::19966341",
-  "doac-vte-recurrence::Trial-reported recurrent VTE composite::21128814",
-  "doac-vte-recurrence::Trial-reported recurrent VTE composite::22449293",
-  "doac-vte-recurrence::Trial-reported recurrent VTE composite::23808982",
-  "doac-vte-recurrence::Trial-reported recurrent VTE composite::23991658",
-  "doac-vte-recurrence::Trial-reported recurrent VTE composite::24344086",
-  "omega3-cardiovascular-events SU.FOL.OM3 (PMID 21115589): omega-3 main-effect marginal on major vascular events, HR 1.08 (0.79-1.47), recovered from full text (PMC2993045) after the _pmc_fulltext citing-article fix; verified against the committed source span at build time, not part of the original blind census.",
-  "probiotics-aad-prevention Wright 2015 (PMID 24456384): AAD arm counts 5/41 vs 4/46 percentage-derived from the abstract (12.2%/8.7%), RR 1.40; a genuinely eligible declared-absent trial the extractor could not parse (N received X (P%) format).",
-  "probiotics-aad-prevention ECLISP (34541475, LcS 59/131 vs 53/126, primary AAD Abx+30d, RR 1.07) and S. boulardii trial (26973849, 21/246 vs 17/231 with >=1 AAD episode, RR 1.16): double-blind placebo-controlled prevention trials recovered from full text; both move the pool toward the null.",
-  "sglt2-ckd-progression EMPA-KIDNEY DKA (36331190): 6/3304 vs 1/3305 ketoacidosis, single-trial harm row (siblings DAPA-CKD/CREDENCE source-absent, not in PMC).",
-  "tranexamic-acid-pph WOMAN thromboembolic (28456509): 30/10033 vs 34/9985 any thromboembolic event, RR 0.88; large single-trial harm (WOMAN is the topic sole treatment trial).",
-  "screening RCT-evidence recovery (cycle 84): esketamine Chen 2023 (37025256, MADRS -10.1 vs -8.1) and statins STAREE (42670961, HR 0.70) recovered via full-abstract-overrules-incomplete-pubtype; both source-verified.",
-  "esketamine TRANSFORM-1 (NCT02417064): combined 56+84mg intranasal vs shared placebo, MADRS MD -18.91+/-13.95 (n=209) vs -14.8+/-15.07 (n=108); completes esketamine conclusion change to k=4 -3.34 (-6.07,-0.62)."
- ],
- "build_verified_note": "Topics added after the original blind census (dpp4, sglt2-pp, doac-vte) are listed in build_verified_added: each pooled number was verified against its committed source at build time (doac-vte-recurrence: all six DOAC-vs-VKA recurrent-VTE counts/effects re-extracted from the trial abstracts via PubMed and matched), not part of the original independent blind Codex census."
+  "_doc": "Blind accuracy census (cycle 76): every pooled number independently re-extracted from committed source by an offline checker BLIND to the stored value; deterministic compare; disagreements hand-adjudicated against source. See scripts/error_rate_compare.py + error_rate_pass2.py.",
+  "measured_utc": "2026-09-12",
+  "measured_against": "docs/error_rate_sample.json (the committed sample of every pooled number at measurement time)",
+  "n_pooled_at_measurement": 99,
+  "population": 114,
+  "independently_reverified": 95,
+  "exact_match": 92,
+  "disagreements_pre_adjudication": 3,
+  "disagreement_rate": 0.0316,
+  "disagreement_wilson95": [
+    0.0108,
+    0.0888
+  ],
+  "confirmed_our_errors_after_adjudication": 1,
+  "confirmed_our_errors_note": "1 wrong number (semaglutide GI-AE wrong endpoint) surfaced AND fixed this cycle; the 3 remaining disagreements are checker-side (label wording / estimand choice).",
+  "not_recheckable_from_abstract": 4,
+  "not_recheckable_note": "sourced from ClinicalTrials.gov results / full text, so not re-extractable from the abstract the checker was given (not evidence of error).",
+  "adjudication": [
+    {
+      "row": "iv-iron-hfref-hosp::Heart-failure hospitalization::40159390",
+      "verdict": "checker_side",
+      "note": "Numbers identical (0.80 [0.60-1.06]); we label it IRR, the checker wrote \"rate ratio\" (RR). A rate ratio on TOTAL/recurrent HF hospitalizations IS an incidence-rate ratio; our IRR label is correct."
+    },
+    {
+      "row": "noac-vs-warfarin-af-stroke::Stroke or systemic embolism::21830957",
+      "verdict": "checker_side",
+      "note": "ROCKET-AF: checker took the on-treatment/per-protocol HR 0.79; its own note flags the ITT HR 0.88, which is what we store — consistent with the other all-ITT NOAC trials. Our ITT choice is the standard MA choice."
+    },
+    {
+      "row": "omega3-cardiovascular-events::Major vascular events / MACE::30146932",
+      "verdict": "checker_side",
+      "note": "ASCEND: numbers identical (0.97 [0.87-1.08]); IRR vs \"rate ratio\" wording only. Our IRR label is correct."
+    }
+  ],
+  "fixed_this_cycle": [
+    {
+      "row": "semaglutide-obesity-weight::Gastrointestinal adverse events::42575111",
+      "verdict": "OUR_ERROR_FIXED",
+      "note": "Wrong endpoint: overall-AE counts (141/161 vs 61/81) were pooled under a gastrointestinal-AE outcome; the abstract has no GI-specific count. FIXED cycle 76 via an absent-override (declared absent). This is the one confirmed defect the census surfaced; it had passed every gate."
+    }
+  ],
+  "n_pooled_current_after_fixes": 114,
+  "removed_by_census_fixes": [
+    "colchicine-postop-af::Gastrointestinal adverse effects::37640035",
+    "colchicine-postop-af::Postoperative atrial fibrillation::29237033",
+    "colchicine-postop-af::Postoperative atrial fibrillation::37640035",
+    "colchicine-recurrent-pericarditis::Recurrent pericarditis::23992557",
+    "dpp4-mace-t2d::3-point major adverse cardiovascular events::26052984",
+    "omega3-cardiovascular-events::Major vascular events / MACE::23656645",
+    "omega3-cardiovascular-events::Major vascular events / MACE::38184150",
+    "probiotics-aad-prevention::Antibiotic-associated diarrhoea::17356555",
+    "probiotics-aad-prevention::Antibiotic-associated diarrhoea::22472744",
+    "semaglutide-obesity-weight::Gastrointestinal adverse events::42575111",
+    "doac-vte-recurrence::Trial-reported recurrent VTE composite::24344086"
+  ],
+  "census_population": 99,
+  "current_pooled_population": 114,
+  "harms_sweep_added_verified": [
+    "semaglutide-obesity-mace::Adverse events leading to permanent discontinuation::37952131"
+  ],
+  "build_verified_added": [
+    "dpp4-mace-t2d::3-point major adverse cardiovascular events::23992601",
+    "dpp4-mace-t2d::3-point major adverse cardiovascular events::30418475",
+    "sglt2-primary-prevention-hf::Hospitalization for heart failure::26378978",
+    "sglt2-primary-prevention-hf::Hospitalization for heart failure::28605608",
+    "sglt2-primary-prevention-hf::Hospitalization for heart failure::30415602",
+    "sglt2-primary-prevention-hf::Hospitalization for heart failure::32966714",
+    "doac-vte-recurrence::Trial-reported recurrent VTE composite::19966341",
+    "doac-vte-recurrence::Trial-reported recurrent VTE composite::21128814",
+    "doac-vte-recurrence::Trial-reported recurrent VTE composite::22449293",
+    "doac-vte-recurrence::Trial-reported recurrent VTE composite::23808982",
+    "doac-vte-recurrence::Trial-reported recurrent VTE composite::23991658",
+    "doac-vte-recurrence::Trial-reported recurrent VTE composite::24344086",
+    "omega3-cardiovascular-events SU.FOL.OM3 (PMID 21115589): omega-3 main-effect marginal on major vascular events, HR 1.08 (0.79-1.47), recovered from full text (PMC2993045) after the _pmc_fulltext citing-article fix; verified against the committed source span at build time, not part of the original blind census.",
+    "probiotics-aad-prevention Wright 2015 (PMID 24456384): AAD arm counts 5/41 vs 4/46 percentage-derived from the abstract (12.2%/8.7%), RR 1.40; a genuinely eligible declared-absent trial the extractor could not parse (N received X (P%) format).",
+    "probiotics-aad-prevention ECLISP (34541475, LcS 59/131 vs 53/126, primary AAD Abx+30d, RR 1.07) and S. boulardii trial (26973849, 21/246 vs 17/231 with >=1 AAD episode, RR 1.16): double-blind placebo-controlled prevention trials recovered from full text; both move the pool toward the null.",
+    "sglt2-ckd-progression EMPA-KIDNEY DKA (36331190): 6/3304 vs 1/3305 ketoacidosis, single-trial harm row (siblings DAPA-CKD/CREDENCE source-absent, not in PMC).",
+    "tranexamic-acid-pph WOMAN thromboembolic (28456509): 30/10033 vs 34/9985 any thromboembolic event, RR 0.88; large single-trial harm (WOMAN is the topic sole treatment trial).",
+    "screening RCT-evidence recovery (cycle 84): esketamine Chen 2023 (37025256, MADRS -10.1 vs -8.1) and statins STAREE (42670961, HR 0.70) recovered via full-abstract-overrules-incomplete-pubtype; both source-verified.",
+    "esketamine TRANSFORM-1 (NCT02417064): combined 56+84mg intranasal vs shared placebo, MADRS MD -18.91+/-13.95 (n=209) vs -14.8+/-15.07 (n=108); completes esketamine conclusion change to k=4 -3.34 (-6.07,-0.62).",
+    "metformin-pcos-ovulation::Ovulation rate::16769748",
+    "metformin-pcos-ovulation::Ovulation rate::19522426"
+  ],
+  "build_verified_note": "Topics added after the original blind census (dpp4, sglt2-pp, doac-vte) are listed in build_verified_added: each pooled number was verified against its committed source at build time (doac-vte-recurrence: all six DOAC-vs-VKA recurrent-VTE counts/effects re-extracted from the trial abstracts via PubMed and matched), not part of the original independent blind Codex census. Metformin-PCOS ovulation added two under-included trials post-census (Moll 16769748 and Ben Ayed 19522426): each arm count recovered from the abstract-reported ovulation rate and denominator and verified by percentage round-trip (published_rate provenance), not part of the original blind Codex census."
 }

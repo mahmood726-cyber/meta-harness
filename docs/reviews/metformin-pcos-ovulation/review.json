@@ -1310,8 +1310,32 @@
       "estimand": "OR",
       "population": "as randomised",
       "timepoint": "end of treatment",
-      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
       "trials": [
+        {
+          "label": "19522426",
+          "id": "PMID 19522426",
+          "ai": 10,
+          "n1i": 16,
+          "ci": 6,
+          "n2i": 16,
+          "provenance": "published_rate",
+          "source": "Ben Ayed 2009, abstract: '32 PCOS women were recruited in the study and equally allocated to the two groups. The ovulation rate in the metformin group was 62.5% compared with 37.5% in the placebo group.' Equal allocation of 32 -> 16 per arm; counts are exact: 62.5% of 16 = 10, 37.5% of 16 = 6 (an S2 add-on-to-clomifene contrast, metformin+CC vs CC+placebo).",
+          "verified": "verified_handchecked",
+          "verify_basis": "arm counts recovered from the published rate + denominator (percentage round-trip matches the committed abstract)"
+        },
+        {
+          "label": "16769748",
+          "id": "PMID 16769748",
+          "ai": 71,
+          "n1i": 111,
+          "ci": 82,
+          "n2i": 114,
+          "provenance": "published_rate",
+          "source": "Moll 2006 (BMJ, NCT-registered multicentre RCT), abstract: '111 women were allocated to clomifene citrate plus metformin (metformin group) and 114 women were allocated to clomifene citrate plus placebo (placebo group). The ovulation rate in the metformin group was 64% compared with 72% in the placebo group.' Counts recovered as the unique integers consistent with the reported rate and denominator: round(0.64*111)=71 (71/111=63.96% -> '64%'; 70->63%, 72->65%), round(0.72*114)=82 (82/114=71.9% -> '72%'; 81->71%, 83->73%). Metformin ARM WORSE than placebo (an S2 add-on-to-clomifene contrast; treatment-naive PCOS).",
+          "verified": "verified_handchecked",
+          "verify_basis": "arm counts recovered from the published rate + denominator (percentage round-trip matches the committed abstract)"
+        },
         {
           "label": "11172832",
           "id": "PMID 11172832",
@@ -1347,11 +1371,6 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
         },
         {
-          "label": "19522426",
-          "id": "PMID 19522426",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        },
-        {
           "label": "18487613",
           "id": "PMID 18487613",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
@@ -1359,11 +1378,6 @@
         {
           "label": "16827766",
           "id": "PMID 16827766",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        },
-        {
-          "label": "16769748",
-          "id": "PMID 16769748",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
         },
         {
@@ -1383,14 +1397,33 @@
         }
       ],
       "result": {
-        "k": 1,
-        "estimate": 8.25,
+        "k": 3,
+        "estimate": 2.0733,
         "scale": "OR",
-        "ci_low": 1.4525,
-        "ci_high": 46.8587,
-        "pi_note": "prediction interval undefined for k=1",
+        "ci_low": 0.0922,
+        "ci_high": 46.6008,
+        "tau2": 1.15872,
+        "pi_low": 0.0078,
+        "pi_high": 549.6907,
         "leave_one_out": {
-          "note": "not assessable at k=1 (leave-one-out needs k>=3)"
+          "min": 1.1793,
+          "max": 4.3142,
+          "most_influential": "16769748",
+          "per_trial": [
+            {
+              "dropped": "19522426",
+              "estimate": 2.0744
+            },
+            {
+              "dropped": "16769748",
+              "estimate": 4.3142
+            },
+            {
+              "dropped": "11172832",
+              "estimate": 1.1793
+            }
+          ],
+          "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."
         }
       }
     },
@@ -1580,7 +1613,7 @@
       "note": "same-question comparator (matching intervention level and population)"
     },
     "overlap": {
-      "ours_k": 1,
+      "ours_k": 3,
       "theirs_k": "not stated in the comparator abstract/full text",
       "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
       "only_ours": [],
@@ -1591,22 +1624,25 @@
   },
   "estimand_exclusions": [],
   "integrity": {
-    "checked_utc": "2026-09-13T08:44:19Z",
+    "checked_utc": "2026-09-13T09:27:40Z",
     "source": "PubMed efetch (PublicationType + CommentsCorrections)",
-    "n_pooled": 1,
+    "n_pooled": 3,
     "retracted": [],
     "concern": [],
     "retrospectively_registered": [],
-    "prospective": {
-      "11172832": {
-        "nct": null,
-        "registered": null,
-        "start": null,
-        "prospective": null
-      }
-    },
+    "prospective": {},
     "per_pmid": {
       "11172832": {
+        "retracted": false,
+        "concern": false,
+        "evidence": "no retraction/concern notice in PubMed"
+      },
+      "16769748": {
+        "retracted": false,
+        "concern": false,
+        "evidence": "no retraction/concern notice in PubMed"
+      },
+      "19522426": {
         "retracted": false,
         "concern": false,
         "evidence": "no retraction/concern notice in PubMed"
@@ -1614,6 +1650,20 @@
     }
   },
   "funding": [
+    {
+      "id": "PMID 19522426",
+      "type": "not stated (abstract only — full text not retrieved)",
+      "span": "",
+      "source": "abstract only",
+      "scanned": "abstract only"
+    },
+    {
+      "id": "PMID 16769748",
+      "type": "not stated (abstract only — full text not retrieved)",
+      "span": "",
+      "source": "abstract only",
+      "scanned": "abstract only"
+    },
     {
       "id": "PMID 11172832",
       "type": "not stated (abstract only — full text not retrieved)",
@@ -1639,27 +1689,29 @@
     "outcome": "Ovulation rate",
     "estimand": "OR",
     "levels": {
+      "19522426": null,
+      "16769748": null,
       "11172832": null
     },
-    "n_trials": 1,
+    "n_trials": 3,
     "n_rob_rated": 0,
     "rob_covered": false,
     "any_high": false,
     "full": {
-      "k": 1,
-      "estimate": 8.25,
+      "k": 3,
+      "estimate": 2.0733,
       "scale": "OR",
-      "ci_low": 1.4525,
-      "ci_high": 46.8587,
-      "tau2": 0.0
+      "ci_low": 0.0922,
+      "ci_high": 46.6008,
+      "tau2": 1.15872
     },
     "drop_high": {
-      "k": 1,
-      "estimate": 8.25,
+      "k": 3,
+      "estimate": 2.0733,
       "scale": "OR",
-      "ci_low": 1.4525,
-      "ci_high": 46.8587,
-      "tau2": 0.0
+      "ci_low": 0.0922,
+      "ci_high": 46.6008,
+      "tau2": 1.15872
     },
     "low_only": null,
     "drop_high_informative": false,
@@ -1671,21 +1723,21 @@
       "risk_of_bias": {
         "downgrade": 1,
         "coverage_incomplete": true,
-        "n_trials": 1,
+        "n_trials": 3,
         "n_rated": 0,
         "n_high": 0,
         "n_some": 0,
-        "basis": "risk of bias NOT ASSESSED for any of the 1 pooled trial(s) (no machine-derived risk-of-bias signal available) -> downgraded for unknown study limitations"
+        "basis": "risk of bias NOT ASSESSED for any of the 3 pooled trial(s) (no machine-derived risk-of-bias signal available) -> downgraded for unknown study limitations"
       },
       "inconsistency": {
-        "downgrade": 0,
-        "not_estimable": true,
-        "basis": "single trial (k=1): between-study inconsistency is not estimable"
+        "downgrade": 1,
+        "not_estimable": false,
+        "basis": "tau^2=1.15872; prediction interval [0.0078, 549.6907] is >=2x the CI width -> real heterogeneity"
       },
       "imprecision": {
         "downgrade": 1,
-        "crosses_null": false,
-        "basis": "95% CI [1.4525, 46.8587]; excludes the null but is very wide (upper/lower bound ratio > 3) -> imprecise magnitude; single trial — imprecision judged from the CI, not downgraded merely for k=1"
+        "crosses_null": true,
+        "basis": "95% CI [0.0922, 46.6008]; crosses the null AND is compatible with an appreciable benefit (<=0.75) and an appreciable harm (>=1.25) -> imprecise (the estimate is consistent with both no effect and an appreciable effect)"
       },
       "publication_bias": {
         "downgrade": 0,
@@ -1698,8 +1750,8 @@
         "basis": "directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)"
       }
     },
-    "downgrades": 2,
-    "certainty": "low",
+    "downgrades": 3,
+    "certainty": "very_low",
     "certainty_capped_by_rob_coverage": false,
     "certainty_capped_single_trial": false,
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement."
@@ -1707,7 +1759,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "4091958ce4af7f1ca9ed4c30e1021672b0c21223",
-    "review_sha256": "f02d0f5cdeaa0813079ce41eedf8d88724a8ae65e5c13b5d5844c26772fd7277",
+    "review_sha256": "cd35831deb46b789e58b92e7d922939b05911c8c3a426d88c7bc9f94cdc63dcf",
     "from_cache": true,
     "refusals": [
       {

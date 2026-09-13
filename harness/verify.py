@@ -27,6 +27,20 @@ def _digits_in(text: str, *vals) -> bool:
     return True
 
 
+def _rate_pct_in(text: str, events, n) -> bool:
+    """A binary arm count RECOVERED FROM A PUBLISHED RATE (many trials report '64% of 111', not the
+    raw count): the count is grounded when the percentage it implies, 100*events/n, appears as a
+    '<x>%' token in the committed source at 0- or 1-decimal precision. Non-circular -- the rate and
+    denominator are the abstract's own reported values, and only the unique integer consistent with
+    that rate+denominator round-trips (e.g. 71/111 -> 63.96% -> '64%'; 10/16 -> '62.5%')."""
+    if not text or not n:
+        return False
+    s = _norm(text)
+    r = 100.0 * events / n
+    cands = {f"{round(r)}", f"{r:.1f}"}
+    return any(re.search(rf"(?<![\d.]){re.escape(c)}\s*%", s) for c in cands)
+
+
 def _effect_in(text: str, val) -> bool:
     if val is None:
         return False
@@ -48,6 +62,18 @@ def verify_pooled(trial: dict, abstract: str | None) -> tuple[str, str]:
     if trial.get("ai") is not None:
         if prov == "aact_verified":
             return ("verified_handchecked", "AACT-derived arm entry, cross-checked to published %")
+        if prov == "published_rate":
+            # counts recovered from a published percentage + denominator: verify each count round-trips
+            # to a '<x>%' token in the abstract AND the denominator (or the equally-allocated total) is
+            # grounded in the abstract -- so a wrong count or denominator fails, not a trusted pass.
+            n1, n2 = trial.get("n1i"), trial.get("n2i")
+            tot = (n1 or 0) + (n2 or 0)
+            ok = (_rate_pct_in(abstract, trial.get("ai"), n1) and _rate_pct_in(abstract, trial.get("ci"), n2)
+                  and (_digits_in(abstract, n1) or _digits_in(abstract, tot))
+                  and (_digits_in(abstract, n2) or _digits_in(abstract, tot)))
+            return ("verified_handchecked" if ok else "not-yet",
+                    "arm counts recovered from the published rate + denominator (percentage round-trip matches the committed abstract)"
+                    if ok else "recovered counts do not round-trip to a published percentage in the source")
         ok = _digits_in(text, trial.get("ai"), trial.get("n1i")) and _digits_in(text, trial.get("ci"), trial.get("n2i"))
         return ("verified" if ok else "not-yet", "arm counts present in committed source" if ok
                 else "counts not all located in committed source")
