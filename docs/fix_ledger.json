@@ -257,6 +257,14 @@
    "where": "verified already-correct in committed corpus (no code change needed)",
    "corpus_reach": 0,
    "evidence": "MEASURED (SELECT 37952131 AE-discont placebo N = 8801 correct not 8803; semaglutide-weight 1306/655 & 407/204 correct; LoDoCo2 MACE uses source HR, no reconstructed denominator after N/M-parser revert)"
+  },
+  {
+   "audit": "architecture (Mahmood COMMIT 1)",
+   "class": "CANONICAL_CLAIM_OBJECT — one significance/null-crossing derivation per result; build fails on cross-surface contradiction",
+   "state": "LANDED_AND_LIVE",
+   "where": "5288ee01 (harness/claim.py, pipeline attaches result.claim, census._claim_check gate, page renders claims-checked/contradictions)",
+   "corpus_reach": 32,
+   "evidence": "MEASURED (live: pcsk9-mace reproduction tab shows \"Claims checked: 1; contradictions caught: 0\"; gate passes 32/32, mutation test proves it can fail; 0 estimates moved)"
   }
  ],
  "self_found_vs_audit_found": {
@@ -272,7 +280,7 @@
   "note": "first run where any defect was self-found before the audit; audits still find almost everything."
  },
  "summary": {
-  "LANDED_AND_LIVE": "9 of 32",
+  "LANDED_AND_LIVE": "10 of 33",
   "topics_fully_rebuilt": "32 of 32 (at working-tree HEAD, incl. the un-committed IRR-typing rebuild; 32 of 32 also at committed fa2b45d without IRR-typing)",
   "fixes_landed_in_code_but_not_in_pages": "0 committed fixes are page-stale (the reproduce-all gate forbids it, and the aggregate-artefact staleness that bit audits 25-27 is now closed + guarded by the leak scanner); 1 fix (IRR-typing) is landed-in-code-and-rebuilt-in-pages but NOT YET COMMITTED (a distinct IN_PROGRESS state, not code-vs-page staleness)"
  }
