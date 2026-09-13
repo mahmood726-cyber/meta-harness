@@ -95,6 +95,22 @@ def test_scan_pooled_prefers_full_text():
     assert out[0]["type"] == "public/non-profit" and out[0]["source"] == "full text"
 
 
+def test_funding_source_anchor_detects_jupiter():
+    # "PRIMARY FUNDING SOURCE: AstraZeneca" (JUPITER 20404379) was missed by the old "funding:" anchor
+    # (no direct colon after "funding"); the "funding source:" anchor now catches it.
+    d = funding.detect("PRIMARY FUNDING SOURCE: AstraZeneca.")
+    assert d and d["type"] == "industry"
+
+
+def test_ag_corporate_suffix_classifies_industry_but_not_bare_ag():
+    # "Viollier AG" (a commercial company listed under FUNDING) makes a public+industry trial MIXED...
+    d = funding.detect("FUNDING: Swiss National Science Foundation, Viollier AG, Bangerter Stiftung.")
+    assert d and d["type"] == "mixed"
+    # ...but a lower-case "ag" (e.g. an acronym) must NOT flip a publicly funded trial to industry.
+    d2 = funding.detect("This work was supported by a grant from the ag research council at the university.")
+    assert d2 and d2["type"] == "public/non-profit"
+
+
 def test_me32_is_now_rendered_and_no_unchecked_remain():
     entry = next(e for e in EL.LIBRARY if e[0] == "ME-32")
     assert entry[2] == EL.RENDERED

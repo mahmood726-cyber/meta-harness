@@ -19,8 +19,9 @@ import re
 # anchor ("supported by") is only accepted when an industry/public marker sits in its window, so
 # "supported by evidence"/"supported by the data" does not masquerade as a funding statement.
 _STRONG_ANCHOR = re.compile(
-    r"(funded by|funding was provided|funding:|financial support|grants?\s+from|sponsored by|study sponsor"
-    r"|role of the (?:funding source|sponsor)|this (?:study|trial|work|research) was (?:funded|supported|sponsored))",
+    r"(funded by|funding was provided|funding(?:\s+source)?:|financial support|grants?\s+from|sponsored by"
+    r"|study sponsor|role of the (?:funding source|sponsor)"
+    r"|this (?:study|trial|work|research) was (?:funded|supported|sponsored))",
     re.I)
 _WEAK_ANCHOR = re.compile(r"supported by", re.I)
 
@@ -30,8 +31,12 @@ _INDUSTRY = re.compile(
     r"|manufacturer|Novo Nordisk|Pfizer|Janssen|AstraZeneca|Boehringer|Novartis|Bayer|Merck|MSD|Sanofi"
     r"|GlaxoSmithKline|GSK|Eli Lilly|Lilly|AbbVie|Amgen|Bristol[- ]Myers|Takeda|Roche|Genentech|Gilead"
     r"|Servier|Daiichi|Otsuka|Lundbeck|Actelion|Vertex|Vifor|CSL|Mylan|Teva|UCB|Grünenthal|Grunenthal"
-    r"|Astellas|Bausch|Reckitt|Mundipharma|Cipla|Amarin"
-    r"|Pharma\b|Pharma,|Therapeutics\b|Biosciences\b|Biotech|Laboratories\b|Sciences, Inc)\b", re.I)
+    r"|Astellas|Bausch|Reckitt|Mundipharma|Cipla|Amarin|Viollier"
+    r"|Pharma\b|Pharma,|Therapeutics\b|Biosciences\b|Biotech|Laboratories\b|Sciences, Inc"
+    # Continental-European corporate suffix (Aktiengesellschaft): a capitalised company word + " AG",
+    # matched case-SENSITIVELY via (?-i:...) so a real company (e.g. "Viollier AG") classifies while a
+    # bare/lower-case "ag" acronym does not flip a publicly funded trial.
+    r"|(?-i:[A-Z][A-Za-z]+ AG))\b", re.I)
 
 # Public / non-profit markers, including explicit "no external funding" statements.
 _PUBLIC = re.compile(
