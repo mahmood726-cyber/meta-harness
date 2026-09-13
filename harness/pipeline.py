@@ -826,6 +826,20 @@ def build_review_core(slug, config, records, protocol_sha):
             config = dict(config, contrast_evictions=(_ce.get("topics") or {}).get(slug, []))
         except (OSError, ValueError):
             pass
+    # TRIAL<->REPORT entity model: merge audit-identified secondary/duplicate reports into
+    # companion_reports so screening collapses them to their parent (X-DEDUP) before any count is
+    # promoted to a trial count. Deterministic from docs/study_families.json; merged with any
+    # companion_reports already in the topic config (dedup by pmid).
+    try:
+        _sf = json.load(open(os.path.join(ROOT, "docs", "study_families.json"), encoding="utf-8"))
+        _rows = (_sf.get("topics") or {}).get(slug, [])
+        if _rows:
+            _existing = list(config.get("companion_reports") or [])
+            _have = {str(c.get("pmid")) for c in _existing}
+            _existing += [r for r in _rows if str(r.get("pmid")) not in _have]
+            config = dict(config, companion_reports=_existing)
+    except (OSError, ValueError):
+        pass
     scr = screen.run(merged, config)
     rec_by_id = {r["id"]: r for r in merged}
     included = [d for d in scr["decisions"] if d["decision"] == "include"]
