@@ -10,12 +10,12 @@ from . import extract, screen, scope, verify, locate, unit_of_analysis, funding
 from . import grade as grade_mod
 from . import rob_sensitivity as rob_sens_mod
 from .ctgov_results import extract_ctgov
-from .synth import Study, pool
+from .synth import Study, pool, method_text, METHOD_RATIO
 
-METHOD = ("Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured "
-          "for the outcome); Paule-Mandel tau^2; "
-          "HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); "
-          "prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.")
+# Back-compat alias: the ratio-scale method is the historical default. Per-outcome and manifest
+# method strings are now chosen by synth.method_text(scale) so a mean-difference outcome is never
+# labelled with the log-ratio method (fixed cycle 84 after the melatonin cold audit).
+METHOD = METHOD_RATIO
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -605,6 +605,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if len(eff) > 1:
             out["result"]["scale"] = "mixed (" + "/".join(sorted(eff)) + ")"
             out["result"]["scale_mixed"] = sorted(eff)
+        # DECLARED METHOD MATCHES THE SCALE ACTUALLY POOLED: a mean-difference outcome must carry the
+        # mean-difference method string, not the log-ratio one (the melatonin/esketamine/semaglutide-weight
+        # defect). Chosen from the ACTUAL result scale via the single source of truth.
+        out["method"] = method_text(out["result"].get("scale"))
         # COMPOSITE-HETEROGENEITY DISCLOSURE: a MACE/composite pool whose trials use different component
         # sets (COLCOT 5-point vs LoDoCo2 4-point) is disclosed, not refused (surfaced by the cross-family
         # definition audit). Object-derived from the pooled trials' committed source spans.
@@ -752,11 +756,15 @@ def build_review_core(slug, config, records, protocol_sha):
                              f"verifiable by date). Exact shared count not asserted.")},
     }
 
+    # DECLARED method = the method for the primary outcome's DECLARED estimand (from the config/protocol).
+    # The SERVED method (set on the manifest by build_topic from the primary's ACTUAL result scale) is
+    # derived independently, so the gate's declared==served limb can actually fail when they diverge.
+    _declared_method = method_text((primary.get("estimand") or "RR"))
     review = {
         "slug": slug, "title": config["title"], "question": config["question"],
-        "method_declared": METHOD,
+        "method_declared": _declared_method,
         "protocol": {"sha": protocol_sha, "committed_utc": records.get("fetched_utc"),
-                     "method_declared": METHOD,
+                     "method_declared": _declared_method,
                      # Eligibility is GENERATED from the include object the screen enforces, so the
                      # declared eligibility on the page cannot drift from the code that screens.
                      "eligibility": screen.describe_eligibility(config.get("include", {})),

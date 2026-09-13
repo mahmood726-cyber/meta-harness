@@ -18,6 +18,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from harness import fetch  # noqa: E402
 from harness.pipeline import build_review_core, build_comparator_core, METHOD  # noqa: E402
+from harness.synth import method_text as _method_text  # noqa: E402
 from harness.census import build_review_dir  # noqa: E402
 from harness.page import render_page  # noqa: E402
 from harness.index import write_index  # noqa: E402
@@ -50,7 +51,15 @@ def main(slug, now):
 
     core = build_review_core(slug, config, records, protocol_sha)
     prim = [o for o in core["outcomes"] if o.get("primary")][0]
-    manifest_meta = {"slug": slug, "declared_method": METHOD, "served_method": METHOD,
+    # declared_method = the primary outcome's DECLARED estimand's method (from config/protocol).
+    # served_method  = the method for the scale the pool ACTUALLY produced for the primary outcome.
+    # These come from DIFFERENT sources, so gate.check_limb1's declared==served can genuinely fail
+    # (before this it compared the single METHOD constant to itself and could not fire) -- the fix
+    # for the melatonin cold-audit "a check that cannot fail looks like a clean corpus" class.
+    _declared_method = core.get("method_declared", METHOD)
+    _served_scale = (prim.get("result") or {}).get("scale")
+    _served_method = _method_text(_served_scale) if _served_scale else _declared_method
+    manifest_meta = {"slug": slug, "declared_method": _declared_method, "served_method": _served_method,
                      "generator": "harness", "build_utc": now,
                      "comparator": {k: core["comparator"][k] for k in
                                     ("name", "year", "journal", "pmid", "doi", "url", "open_access", "overlap")}}

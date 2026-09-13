@@ -22,6 +22,33 @@ from typing import Optional, Sequence
 from scipy.stats import norm as _norm, t as _t
 
 
+# Declared-method strings, keyed to the pooling SCALE the engine actually uses. Ratio scales
+# (RR/OR/HR/IRR) pool on the log scale; additive scales (MD/SMD) pool on the raw mean difference
+# with NO log transform (pool() back-transforms with the identity for those). These are the single
+# source of truth for the "declared analysis method" the page shows and the gate checks — so a
+# mean-difference outcome can never again be labelled with the log-ratio method (the melatonin /
+# esketamine / semaglutide-weight defect), and the gate can recompute the expected string
+# independently to catch a mislabel (a check that compares a constant to itself cannot fail).
+METHOD_RATIO = ("Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured "
+                "for the outcome); Paule-Mandel tau^2; "
+                "HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); "
+                "prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.")
+METHOD_MD = ("Random-effects inverse-variance on the mean difference (raw/additive scale, no log "
+             "transform); Paule-Mandel tau^2; "
+             "HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); "
+             "prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (measure=MD).")
+
+
+def method_text(scale: str) -> str:
+    """The declared-method string for a pooling scale. MD/SMD (mean-difference family) get the
+    additive-scale method; everything else (RR/OR/HR/IRR and mixed-ratio labels) gets the log-ratio
+    method. Single source of truth for pipeline (what it sets) and gate (what it recomputes)."""
+    s = (scale or "").upper().strip()
+    if s.startswith("MD") or s.startswith("SMD") or "MEAN DIFFERENCE" in s:
+        return METHOD_MD
+    return METHOD_RATIO
+
+
 @dataclass
 class Study:
     """A poolable study. Provide EITHER a 2x2 (ai,n1i,ci,n2i) OR an effect+CI.

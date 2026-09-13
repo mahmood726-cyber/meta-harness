@@ -29,6 +29,7 @@ from .canonical import sha256_text
 from .census import verify
 from . import manuscript as _manuscript_mod
 from .registration import protocol_sha as _registration_sha
+from .synth import method_text as _method_text
 
 REQUIRED_MANIFEST = ("slug", "declared_method", "served_method", "protocol_sha",
                      "generator", "review_sha256", "html_sha256")
@@ -527,6 +528,50 @@ def check_population_identity(review_dir):
     return reasons
 
 
+def check_method_matches_scale(review_dir):
+    """The declared analysis-method string must match the scale ACTUALLY pooled — recomputed here
+    independently via synth.method_text so the check cannot be a constant compared to itself (the
+    melatonin cold-audit class: a mean-difference outcome was labelled with the log-ratio method, and
+    the old declared==served limb compared one METHOD constant to itself and could never fire). For
+    every POOLED outcome (k>=2), the stored method must equal method_text(result.scale); and the
+    manifest served_method must equal method_text(the primary outcome's result.scale). Single-trial
+    (k==1) outcomes carry the honest 'trial's own effect' text and are exempt."""
+    rev_p = os.path.join(review_dir, "review.json")
+    man_p = os.path.join(review_dir, "manifest.json")
+    if not os.path.exists(rev_p):
+        return []
+    try:
+        rev = json.load(open(rev_p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    reasons = []
+    primary_scale = None
+    for o in rev.get("outcomes", []):
+        res = o.get("result") or {}
+        scale = res.get("scale")
+        k = res.get("k")
+        if o.get("primary"):
+            primary_scale = scale
+        if isinstance(k, int) and k >= 2 and scale:
+            want = _method_text(scale)
+            got = o.get("method") or ""
+            if got != want:
+                fam = "mean-difference" if want.startswith("Random-effects inverse-variance on the mean") else "log-ratio"
+                reasons.append(f"L1(method): outcome '{o.get('name')}' pooled on scale {scale!r} "
+                               f"but its declared method is not the {fam} method "
+                               f"(method-string does not match the pooled scale).")
+    # manifest served_method must match the primary outcome's actual scale
+    if primary_scale and os.path.exists(man_p):
+        try:
+            man = json.load(open(man_p, encoding="utf-8"))
+            if man.get("served_method") and man.get("served_method") != _method_text(primary_scale):
+                reasons.append(f"L1(method): manifest served_method does not match the method for the "
+                               f"primary pooled scale {primary_scale!r}.")
+        except (OSError, ValueError):
+            pass
+    return reasons
+
+
 def gate_page(review_dir):
     """Return (ok: bool, reasons: list[str]). ok == True only if both limbs pass."""
     try:
@@ -548,6 +593,7 @@ def gate_page(review_dir):
                + check_duplicate_publication(review_dir, manifest)
                + check_prespecification_in_protocol(review_dir)
                + check_population_identity(review_dir)
+               + check_method_matches_scale(review_dir)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons
 
