@@ -27,52 +27,111 @@ def _b(v):
 
 
 def _d3(attr) -> dict:
-    """RoB2 D3 (missing outcome data), AVAILABILITY axis from AACT participant-flow attrition. Low when
-    outcome data is near-complete and balanced (overall <5% and differential <5%); some concerns when
-    attrition is notable or differential; not assessed when no flow data. Whether missingness DEPENDS
-    on the outcome still needs human reading, and the basis says so — machine signal, not a full D3."""
+    """RoB2 D3 (missing outcome data). The RoB-relevant signal is BETWEEN-ARM DIFFERENTIAL missingness,
+    NOT overall study discontinuation: a trial can have 17% study-drug discontinuation yet ~95% of the
+    PRIMARY OUTCOME assessed (denosumab/FREEDOM cold audit -- we wrongly downgraded D3 on 17% overall
+    attrition when the outcome was available for 7,393/7,808). So key off the differential; overall
+    study attrition alone does not downgrade. Whether missingness DEPENDS on the outcome still needs
+    human reading, and the basis says so."""
     if not attr or attr.get("overall_pct") is None:
         return {"level": "not assessed",
-                "basis": "no AACT participant-flow (milestones) data; attrition needs human judgement"}
+                "basis": "no AACT participant-flow (milestones) data; outcome-missingness needs human judgement"}
     o, d = attr["overall_pct"], attr.get("differential_pct") or 0
-    if o < 5 and d < 5:
+    note = ("(overall study discontinuation is NOT outcome missingness; the RoB signal is the between-arm "
+            "differential, and outcome-dependence of missingness needs human judgement)")
+    if d < 5:
         lvl = "low"
-    elif o < 20 and d < 10:
+    elif d < 10:
         lvl = "some concerns"
     else:
-        lvl = "some concerns"
-    return {"level": lvl, "basis": (f"AACT flow: overall attrition {o}%, between-arm differential {d}% "
-                                    "(availability axis; outcome-dependence of missingness needs human judgement)")}
+        lvl = "high"
+    return {"level": lvl, "basis": f"AACT flow: between-arm differential attrition {d}% (overall {o}%) {note}"}
 
 
-def assess(design: dict, registered_primaries: list, pooled_outcome: str, matches) -> dict:
-    """design: AACT designs row (allocation, subject_masked, caregiver_masked, outcomes_assessor_masked).
-    registered_primaries: the trial's AACT-registered PRIMARY outcome titles.
+def assess(design: dict, registered_primaries: list, pooled_outcome: str, matches,
+           registered_secondaries: list = None, blinded_by_text: bool = False,
+           randomized_by_text: bool = False) -> dict:
+    """design: AACT designs row (allocation, subject_masked, caregiver_masked, outcomes_assessor_masked,
+    masking). registered_primaries / registered_secondaries: the trial's AACT-registered PRIMARY and
+    SECONDARY outcome titles (a registered secondary is prespecified -> not selective reporting).
+    blinded_by_text: the trial's own abstract/full text states double-blind / placebo-controlled /
+    double-masked (the TOP of the RoB source hierarchy -- overrides missing or contradictory registry
+    masking; EMPHASIS-HF class: a trial's own text beats a registry field).
+    randomized_by_text: the trial's own abstract states random assignment (randomly assigned/allocated,
+    randomized to ...) -- same source hierarchy applied to D1: a registry allocation field of
+    NON_RANDOMIZED that the trial's own text contradicts is a registry data error (EMPHASIS-HF /
+    NCT00232180 read NON_RANDOMIZED though it was a randomised double-blind RCT), corrected with an
+    abstract basis and the disagreement FLAGGED.
     matches(a, b) -> bool: outcome-identity match (embedding). Returns {domain: {level, basis}}."""
     design = design or {}
     alloc = (design.get("allocation") or "").upper()
-    d1 = ("low" if alloc == "RANDOMIZED" else ("some concerns" if alloc else "not assessed"))
-    sm, cm = _b(design.get("subject_masked")), _b(design.get("caregiver_masked"))
-    if sm and cm:
-        d2 = "low"
-    elif sm is False or cm is False:
-        d2 = "some concerns"
+    if alloc == "RANDOMIZED":
+        d1, d1b = "low", f"AACT allocation = {alloc}"
+    elif randomized_by_text:
+        # SOURCE HIERARCHY on D1 (EMPHASIS-HF class): the trial's own abstract states random assignment;
+        # the registry allocation field (NON_RANDOMIZED / unstated) is a data error, corrected + flagged.
+        d1, d1b = "low", (f"AACT allocation = {alloc or 'unstated'} but the trial's own abstract states "
+                          "random assignment (abstract-corrected registry data error; FLAGGED "
+                          "registry-vs-trial disagreement)")
+    elif alloc:
+        d1, d1b = "some concerns", f"AACT allocation = {alloc}"
     else:
-        d2 = "not assessed"
+        d1, d1b = "not assessed", "AACT allocation = unstated"
+    # SOURCE HIERARCHY (denosumab/FREEDOM cold audit): the trial-level masking (AACT 'masking' =
+    # Double/Triple/Quadruple, a trial-specific field) OVERRIDES the generic per-role Booleans
+    # (subject_masked/caregiver_masked/outcomes_assessor_masked), which are frequently wrong -- FREEDOM
+    # was fully double-blind (subjects, investigators, site staff AND assessors) yet its
+    # outcomes_assessor_masked/caregiver_masked Booleans read False, silently downgrading D2/D4 and
+    # propagating to a GRADE -1. A masked trial's blinding-based domains are LOW, with the Boolean
+    # disagreement FLAGGED rather than silently resolved in the registry's favour.
+    masking = (design.get("masking") or "").upper()
+    masking_blinded = any(w in masking for w in ("DOUBLE", "TRIPLE", "QUADRUPLE"))
+    trial_blinded = masking_blinded or blinded_by_text
+    _src = (f"trial masking = {masking.title()}" if masking_blinded else "the trial's own abstract/text (double-blind/placebo-controlled)")
+    sm, cm = _b(design.get("subject_masked")), _b(design.get("caregiver_masked"))
+    if trial_blinded:
+        d2 = "low"
+        d2b = (f"{_src} (blinded); overrides per-role Booleans "
+               f"subject_masked={sm}/caregiver_masked={cm} (FLAGGED registry-vs-trial disagreement)"
+               if (sm is False or cm is False) else
+               f"{_src} (blinded): participants/personnel blinded")
+    elif sm and cm:
+        d2, d2b = "low", f"blinding: subject_masked={sm}, caregiver_masked={cm}"
+    elif sm is False or cm is False:
+        d2, d2b = "some concerns", f"blinding: subject_masked={sm}, caregiver_masked={cm}"
+    else:
+        d2, d2b = "not assessed", f"blinding: subject_masked={sm}, caregiver_masked={cm}"
     oa = _b(design.get("outcomes_assessor_masked"))
-    d4 = "low" if oa else ("some concerns" if oa is False else "not assessed")
-    if not registered_primaries:
-        d5, d5b = "not assessed", "no registered primary outcome available"
+    if trial_blinded:
+        d4 = "low"
+        d4b = (f"{_src} (blinded); overrides outcomes_assessor_masked={oa} "
+               f"(FLAGGED registry-vs-trial disagreement)" if oa is False else
+               f"{_src} (blinded): outcome assessment blinded")
+    else:
+        d4 = "low" if oa else ("some concerns" if oa is False else "not assessed")
+        d4b = f"outcome-assessor blinded = {oa}"
+    # D5 SELECTIVE REPORTING: a PRE-REGISTERED outcome -- primary OR secondary -- is prespecified and is
+    # NOT selective reporting (tranexamic/WOMAN, FIGARO, SELECT cold audits: death-due-to-bleeding is a
+    # registered KEY SECONDARY in WOMAN's SAP; flagging it 'some concerns' as "a registered secondary" was
+    # wrong). Only downgrade when the pooled outcome matches NO registered outcome (a genuinely post-hoc /
+    # unregistered outcome).
+    registered_secondaries = registered_secondaries or []
+    if not registered_primaries and not registered_secondaries:
+        d5, d5b = "not assessed", "no registered outcomes available for this trial"
     elif any(matches(pooled_outcome, rp) for rp in registered_primaries):
         d5, d5b = "low", "the pooled outcome IS the trial's pre-registered primary outcome"
+    elif any(matches(pooled_outcome, rs) for rs in registered_secondaries):
+        d5, d5b = "low", ("the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the "
+                          "registry) -- prespecified reporting, not selective reporting")
     else:
-        d5, d5b = "some concerns", ("the pooled outcome is not the trial's registered primary "
-                                    f"(registered: {registered_primaries[0][:60]!r}) — a registered secondary")
+        d5, d5b = "some concerns", ("the pooled outcome matches no registered primary or secondary outcome "
+                                    f"(registered primary: {(registered_primaries or ['<none>'])[0][:50]!r}) "
+                                    "-- possibly post-hoc/unregistered")
     return {
-        "D1_randomisation": {"level": d1, "basis": f"AACT allocation = {alloc or 'unstated'}"},
-        "D2_deviations": {"level": d2, "basis": f"blinding: subject_masked={sm}, caregiver_masked={cm}"},
+        "D1_randomisation": {"level": d1, "basis": d1b},
+        "D2_deviations": {"level": d2, "basis": d2b},
         "D3_missing_outcome_data": _d3(design.get("attrition")),
-        "D4_outcome_measurement": {"level": d4, "basis": f"outcome-assessor blinded = {oa}"},
+        "D4_outcome_measurement": {"level": d4, "basis": d4b},
         "D5_selective_reporting": {"level": d5, "basis": d5b},
     }
 

@@ -115,9 +115,21 @@ def _imprecision_domain(res, scale):
         return {"downgrade": 0, "basis": "no confidence interval available"}
     is_md = (scale or "").upper() == "MD"
     null = 0.0 if is_md else 1.0
-    crosses = bool(cil <= null <= cih)
+    # ROUNDED-CI precision hierarchy (tranexamic-acid cold audit): a CI bound printed EXACTLY on the null
+    # (RR/OR/HR upper or lower limit == 1.00; MD == 0.00) is almost always a ROUNDED publication limit --
+    # WOMAN prints 0.65-1.00 while the count-recomputed interval is 0.6544-0.9961, which does NOT cross 1.
+    # A limit exactly on the null is treated as uncertain-due-to-rounding, NOT a definite crossing: require
+    # a STRICT cross (cil < null < cih) to flag imprecision, so a rounded boundary no longer forces a
+    # spurious downgrade. (The stronger fix, preferring count-recomputed CIs, is in extraction.)
+    eps = 1e-9
+    strict_cross = bool(cil < null - eps and cih > null + eps)
+    touches_null = bool(abs(cih - null) <= eps or abs(cil - null) <= eps)
+    crosses = strict_cross
     down = 0
     basis = f"95% CI [{cil}, {cih}]"
+    if touches_null and not strict_cross:
+        basis += ("; a CI limit is printed exactly on the null -> null_crossing=uncertain_due_to_rounding "
+                  "(likely a rounded publication limit; not treated as crossing, not downgraded for it)")
     if is_md:
         # No committed minimally-important difference for continuous outcomes -> retain the
         # conservative crossing rule but DISCLOSE that a clinical threshold was not applied.
@@ -166,9 +178,23 @@ def _pubbias_domain(ghost):
     ghost_ub = ghost.get("ghost_upper_bound") or 0
     completed = max(enum - ongoing, 0)
     frac = (ghost_ub / completed) if completed else 0.0
+    # CONTAMINATED DENOMINATOR (repeated across the cold audits: statins, tranexamic, +others -- now the
+    # single most-repeated GRADE defect). The ghost census enumerates a BROAD condition+drug registry
+    # universe ("Elderly + Atorvastatin", "postpartum haemorrhage") full of trials our PICO screens OUT
+    # (wrong population, prophylaxis-not-treatment, unrelated interventions). A ghost FRACTION computed on
+    # that universe is NOT this PICO's publication-bias rate, so it must NOT downgrade. Until the census is
+    # recomputed on the SCREENED-ELIGIBLE universe (marked ghost['pico_scoped']==True), do not downgrade;
+    # report the fraction as descriptive only.
+    pico_scoped = bool(ghost.get("pico_scoped"))
+    if not pico_scoped:
+        return {"downgrade": 0, "not_assessable": True, "ghost_fraction": round(frac, 3),
+                "basis": (f"registry census ({ghost_ub} of ~{completed} completed unpublished, {frac:.0%}) was "
+                          "enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a "
+                          "contaminated denominator cannot be this PICO's publication-bias rate, so publication "
+                          "bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)")}
     down = 1 if frac >= 0.30 else 0
-    basis = (f"registry census: {ghost_ub} of ~{completed} completed registered trials have no published "
-             f"result (upper bound {frac:.0%}); publication bias assessed from the registry, not a funnel plot")
+    basis = (f"PICO-scoped registry census: {ghost_ub} of ~{completed} completed screened-eligible trials have "
+             f"no published result (upper bound {frac:.0%}); assessed from the registry, not a funnel plot")
     if down:
         basis += " -> downgraded"
     return {"downgrade": down, "ghost_fraction": round(frac, 3), "basis": basis}

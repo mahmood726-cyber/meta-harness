@@ -516,9 +516,9 @@
   "rob2": {
     "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
     "trials": {
-      "34449181": {
-        "nct": "NCT02545049",
-        "overall": "some concerns",
+      "33264825": {
+        "nct": "NCT02540993",
+        "overall": "low (on assessed domains; some domains require human judgement)",
         "domains": {
           "D1_randomisation": {
             "level": "low",
@@ -526,26 +526,52 @@
           },
           "D2_deviations": {
             "level": "low",
-            "basis": "blinding: subject_masked=True, caregiver_masked=True"
+            "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
           },
           "D3_missing_outcome_data": {
             "level": "low",
-            "basis": "AACT flow: overall attrition 1.4%, between-arm differential 0.5% (availability axis; outcome-dependence of missingness needs human judgement)"
+            "basis": "AACT flow: between-arm differential attrition 0.2% (overall 1.4%) (overall study discontinuation is NOT outcome missingness; the RoB signal is the between-arm differential, and outcome-dependence of missingness needs human judgement)"
           },
           "D4_outcome_measurement": {
             "level": "low",
-            "basis": "outcome-assessor blinded = True"
+            "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
           },
           "D5_selective_reporting": {
-            "level": "some concerns",
-            "basis": "the pooled outcome is not the trial's registered primary (registered: 'The First Occurrence of the Composite Endpoint of Cardiovasc') — a registered secondary"
+            "level": "low",
+            "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          }
+        }
+      },
+      "34449181": {
+        "nct": "NCT02545049",
+        "overall": "low (on assessed domains; some domains require human judgement)",
+        "domains": {
+          "D1_randomisation": {
+            "level": "low",
+            "basis": "AACT allocation = RANDOMIZED"
+          },
+          "D2_deviations": {
+            "level": "low",
+            "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+          },
+          "D3_missing_outcome_data": {
+            "level": "low",
+            "basis": "AACT flow: between-arm differential attrition 0.5% (overall 1.4%) (overall study discontinuation is NOT outcome missingness; the RoB signal is the between-arm differential, and outcome-dependence of missingness needs human judgement)"
+          },
+          "D4_outcome_measurement": {
+            "level": "low",
+            "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+          },
+          "D5_selective_reporting": {
+            "level": "low",
+            "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting"
           }
         }
       }
     }
   },
   "integrity": {
-    "checked_utc": "2026-09-13T07:34:41Z",
+    "checked_utc": "2026-09-13T08:44:17Z",
     "source": "PubMed efetch (PublicationType + CommentsCorrections)",
     "n_pooled": 2,
     "retracted": [],
@@ -611,12 +637,12 @@
     "outcome": "Kidney composite outcome",
     "estimand": "HR",
     "levels": {
-      "33264825": null,
-      "34449181": "some_concerns"
+      "33264825": "low",
+      "34449181": "low"
     },
     "n_trials": 2,
-    "n_rob_rated": 1,
-    "rob_covered": false,
+    "n_rob_rated": 2,
+    "rob_covered": true,
     "any_high": false,
     "full": {
       "k": 2,
@@ -634,7 +660,14 @@
       "ci_high": 1.5281,
       "tau2": 0.0
     },
-    "low_only": null,
+    "low_only": {
+      "k": 2,
+      "estimate": 0.8407,
+      "scale": "HR",
+      "ci_low": 0.4625,
+      "ci_high": 1.5281,
+      "tau2": 0.0
+    },
     "drop_high_informative": false,
     "low_only_informative": false
   },
@@ -642,13 +675,13 @@
     "start": "high",
     "domains": {
       "risk_of_bias": {
-        "downgrade": 1,
-        "coverage_incomplete": true,
+        "downgrade": 0,
+        "coverage_incomplete": false,
         "n_trials": 2,
-        "n_rated": 1,
+        "n_rated": 2,
         "n_high": 0,
-        "n_some": 1,
-        "basis": "1 of 1 assessed trial(s) at 'some concerns'; risk-of-bias signal available for only 1 of 2 pooled trials (registry-derived), so the rating is capped"
+        "n_some": 0,
+        "basis": "none of the 2 assessed trial(s) at high risk; fewer than half at 'some concerns'"
       },
       "inconsistency": {
         "downgrade": 0,
@@ -662,8 +695,9 @@
       },
       "publication_bias": {
         "downgrade": 0,
+        "not_assessable": true,
         "ghost_fraction": 0.15,
-        "basis": "registry census: 3 of ~20 completed registered trials have no published result (upper bound 15%); publication bias assessed from the registry, not a funnel plot"
+        "basis": "registry census (3 of ~20 completed unpublished, 15%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO's publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)"
       },
       "indirectness": {
         "downgrade": 0,
@@ -671,8 +705,8 @@
         "basis": "directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)"
       }
     },
-    "downgrades": 2,
-    "certainty": "low",
+    "downgrades": 1,
+    "certainty": "moderate",
     "certainty_capped_by_rob_coverage": false,
     "certainty_capped_single_trial": false,
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement."
@@ -680,7 +714,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "43f5f12e367109bebd37936a8177ef00c6dcf1f6",
-    "review_sha256": "794e53d2fe205b5a10c571218823832e8c2b0ed0c405f246932712859be616ed",
+    "review_sha256": "a2347c0ccc0b812c2f52d82f96ebb11e0ae5c52ba5768d5412bca507bb2e7fa0",
     "from_cache": true,
     "parity": {
       "slug": "finerenone-ckd-t2d-renal",

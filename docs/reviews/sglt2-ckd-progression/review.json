@@ -729,15 +729,15 @@
           },
           "D2_deviations": {
             "level": "low",
-            "basis": "blinding: subject_masked=True, caregiver_masked=True"
+            "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
           },
           "D3_missing_outcome_data": {
             "level": "low",
-            "basis": "AACT flow: overall attrition 0.3%, between-arm differential 0.2% (availability axis; outcome-dependence of missingness needs human judgement)"
+            "basis": "AACT flow: between-arm differential attrition 0.2% (overall 0.3%) (overall study discontinuation is NOT outcome missingness; the RoB signal is the between-arm differential, and outcome-dependence of missingness needs human judgement)"
           },
           "D4_outcome_measurement": {
             "level": "low",
-            "basis": "outcome-assessor blinded = True"
+            "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
           },
           "D5_selective_reporting": {
             "level": "low",
@@ -747,23 +747,23 @@
       },
       "30990260": {
         "nct": "NCT02065791",
-        "overall": "some concerns",
+        "overall": "low (on assessed domains; some domains require human judgement)",
         "domains": {
           "D1_randomisation": {
             "level": "low",
             "basis": "AACT allocation = RANDOMIZED"
           },
           "D2_deviations": {
-            "level": "some concerns",
-            "basis": "blinding: subject_masked=True, caregiver_masked=False"
+            "level": "low",
+            "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
           },
           "D3_missing_outcome_data": {
             "level": "low",
-            "basis": "AACT flow: overall attrition 0.9%, between-arm differential 0.5% (availability axis; outcome-dependence of missingness needs human judgement)"
+            "basis": "AACT flow: between-arm differential attrition 0.5% (overall 0.9%) (overall study discontinuation is NOT outcome missingness; the RoB signal is the between-arm differential, and outcome-dependence of missingness needs human judgement)"
           },
           "D4_outcome_measurement": {
-            "level": "some concerns",
-            "basis": "outcome-assessor blinded = False"
+            "level": "low",
+            "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)"
           },
           "D5_selective_reporting": {
             "level": "low",
@@ -773,23 +773,23 @@
       },
       "36331190": {
         "nct": "NCT03594110",
-        "overall": "some concerns",
+        "overall": "low (on assessed domains; some domains require human judgement)",
         "domains": {
           "D1_randomisation": {
             "level": "low",
             "basis": "AACT allocation = RANDOMIZED"
           },
           "D2_deviations": {
-            "level": "some concerns",
-            "basis": "blinding: subject_masked=True, caregiver_masked=False"
+            "level": "low",
+            "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
           },
           "D3_missing_outcome_data": {
             "level": "not assessed",
-            "basis": "no AACT participant-flow (milestones) data; attrition needs human judgement"
+            "basis": "no AACT participant-flow (milestones) data; outcome-missingness needs human judgement"
           },
           "D4_outcome_measurement": {
-            "level": "some concerns",
-            "basis": "outcome-assessor blinded = False"
+            "level": "low",
+            "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)"
           },
           "D5_selective_reporting": {
             "level": "low",
@@ -800,7 +800,7 @@
     }
   },
   "integrity": {
-    "checked_utc": "2026-09-13T07:34:50Z",
+    "checked_utc": "2026-09-13T08:44:26Z",
     "source": "PubMed efetch (PublicationType + CommentsCorrections)",
     "n_pooled": 3,
     "retracted": [],
@@ -894,8 +894,8 @@
     "estimand": "HR",
     "levels": {
       "32970396": "low",
-      "30990260": "some_concerns",
-      "36331190": "some_concerns"
+      "30990260": "low",
+      "36331190": "low"
     },
     "n_trials": 3,
     "n_rob_rated": 3,
@@ -918,27 +918,27 @@
       "tau2": 0.00134
     },
     "low_only": {
-      "k": 1,
-      "estimate": 0.61,
+      "k": 3,
+      "estimate": 0.6836,
       "scale": "HR",
-      "ci_low": 0.5134,
-      "ci_high": 0.7248,
-      "tau2": 0.0
+      "ci_low": 0.5537,
+      "ci_high": 0.844,
+      "tau2": 0.00134
     },
     "drop_high_informative": false,
-    "low_only_informative": true
+    "low_only_informative": false
   },
   "grade": {
     "start": "high",
     "domains": {
       "risk_of_bias": {
-        "downgrade": 1,
+        "downgrade": 0,
         "coverage_incomplete": false,
         "n_trials": 3,
         "n_rated": 3,
         "n_high": 0,
-        "n_some": 2,
-        "basis": "2 of 3 assessed trial(s) at 'some concerns'"
+        "n_some": 0,
+        "basis": "none of the 3 assessed trial(s) at high risk; fewer than half at 'some concerns'"
       },
       "inconsistency": {
         "downgrade": 0,
@@ -952,8 +952,9 @@
       },
       "publication_bias": {
         "downgrade": 0,
+        "not_assessable": true,
         "ghost_fraction": 0.25,
-        "basis": "registry census: 13 of ~52 completed registered trials have no published result (upper bound 25%); publication bias assessed from the registry, not a funnel plot"
+        "basis": "registry census (13 of ~52 completed unpublished, 25%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO's publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)"
       },
       "indirectness": {
         "downgrade": 0,
@@ -961,8 +962,8 @@
         "basis": "directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)"
       }
     },
-    "downgrades": 1,
-    "certainty": "moderate",
+    "downgrades": 0,
+    "certainty": "high",
     "certainty_capped_by_rob_coverage": false,
     "certainty_capped_single_trial": false,
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement."
@@ -970,7 +971,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "38478f5e060a9d63bcb073cb652d0e6f70d27c58",
-    "review_sha256": "53e04fecba91f03ba8e369ca86dfc07defc28ae065131e7bf53587cc719d504b",
+    "review_sha256": "5dd424c967c6b6e125fff9dcb02d6d1e1e0ecbbb569e32c398a09d37a6d04389",
     "from_cache": true,
     "parity": {
       "slug": "sglt2-ckd-progression",

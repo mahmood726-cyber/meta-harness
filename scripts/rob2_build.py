@@ -41,19 +41,40 @@ def main(argv):
             designs[(r.get("nct_id") or "").upper()] = r
     # participant-flow attrition for D3 (one pass over milestones)
     attr = aact.attrition(alln)
-    # one pass: registered PRIMARY outcomes (design_outcomes.outcome_type == 'Primary')
+    # one pass: registered PRIMARY + SECONDARY outcomes (a registered secondary is prespecified -> not D5)
     regprim = {n: [] for n in alln}
+    regsec = {n: [] for n in alln}
     for r in aact._iter_rows(aact._table("design_outcomes")):
         nct = (r.get("nct_id") or "").upper()
-        if nct in alln and (r.get("outcome_type") or "").lower() == "primary":
-            regprim[nct].append(r.get("measure") or r.get("title") or "")
+        if nct in alln:
+            ot = (r.get("outcome_type") or "").lower()
+            title = r.get("measure") or r.get("title") or ""
+            if ot == "primary":
+                regprim[nct].append(title)
+            elif ot == "secondary" and title:
+                regsec[nct].append(title)
+    _BLIND_TXT = ("double-blind", "double blind", "double-masked", "double masked", "double-dummy",
+                  "double dummy", "placebo-controlled", "placebo controlled", "triple-blind",
+                  "quadruple-blind", "quadruple blind")
+    # explicit random-ASSIGNMENT phrases (not a bare "randomized" mention) -> D1 source hierarchy
+    _RAND_TXT = ("randomly assigned", "randomly allocated", "randomized to", "randomised to",
+                 "were randomized", "were randomised", "randomization", "randomisation",
+                 "randomly divided", "randomly stratified", "randomly received")
     for slug, (pooled_out, d) in topics.items():
         if not d:
             continue
+        # per-trial abstract, for the RoB source hierarchy (trial text > registry masking > Booleans)
+        recs = {str(r.get("id")): (r.get("abstract") or "")
+                for r in json.load(open(f"{ROOT}/cache/{slug}/records.json", encoding="utf-8")).get("records", [])}
         assess = {}
         for nct, pid in d.items():
             design = dict(designs.get(nct.upper()) or {}, attrition=attr.get(nct.upper()))
-            dom = rob2.assess(design, regprim.get(nct.upper(), []), pooled_out, _match)
+            ab = (recs.get(str(pid)) or "").lower()
+            blinded_txt = any(kw in ab for kw in _BLIND_TXT)
+            rand_txt = any(kw in ab for kw in _RAND_TXT)
+            dom = rob2.assess(design, regprim.get(nct.upper(), []), pooled_out, _match,
+                              registered_secondaries=regsec.get(nct.upper(), []),
+                              blinded_by_text=blinded_txt, randomized_by_text=rand_txt)
             assess[pid] = {"nct": nct, "overall": rob2.overall(dom), "domains": dom}
         print(f"{slug}: " + "; ".join(f"{p}={a['overall'].split('(')[0].strip()}" for p, a in assess.items()))
         if write:
