@@ -270,6 +270,11 @@ def check_access_claim_supported(review_dir):
     return []
 
 
+_PARITY_EXCL_CUE = re.compile(r"excluded|design-excluded|scope-excluded|open-label|binding trap|we caught|"
+                              r"declined|not pooled", re.I)
+_PARITY_ACRONYM = re.compile(r"\b([A-Z][A-Za-z0-9]*(?:[.\-][A-Za-z0-9]+){1,4}|[A-Z]{3,}[0-9]*)\b")
+
+
 def check_parity_our_k(review_dir):
     """Derived-narrative / stale-panel guard (audit 28): the parity block is a STORED narrative that can
     survive after the review object changed (omega3 parity claimed we pool OMEMI + OMEGA-REMODEL, which are
@@ -289,12 +294,36 @@ def check_parity_our_k(review_dir):
     if res.get("suppressed_incompatible"):
         return []
     k = res.get("k")
-    our_k = ((rev.get("reproduction") or {}).get("parity") or {}).get("our_k")
-    if isinstance(k, int) and isinstance(our_k, int) and our_k > k:
-        return [f"L1: parity.our_k ({our_k}) EXCEEDS the primary pooled k ({k}) — the parity narrative claims "
-                f"we pool more trials than the live pool contains (a stale panel naming non-pooled trials as "
-                f"pooled). Derive our_k from the live object; a same-scope subset (our_k < k) is fine."]
-    return []
+    par = (rev.get("reproduction") or {}).get("parity") or {}
+    our_k = par.get("our_k")
+    reasons = []
+    # (1) COUNT: equality, not <=. A same-scope subset is a different quantity that belongs in its own field,
+    # never smuggled into our_k (relaxing the comparison would be a loosened test).
+    if isinstance(k, int) and isinstance(our_k, int) and our_k != k:
+        reasons.append(f"L1: parity.our_k ({our_k}) != the primary pooled k ({k}) — a stored parity count out "
+                       f"of sync with the live pool. Derive our_k from the object; a same-scope subset belongs "
+                       f"in its own field, not our_k.")
+    # (2) SET MEMBERSHIP: a trial the reason names as EXCLUDED must NOT be in the pool (omega3 named the pooled
+    # SU.FOL.OM3 as 'excluded'). Matched by PMID and by acronym taken from each pooled trial's own source span.
+    pooled = {str(t.get("id", "")).replace("PMID ", "").strip() for t in prim.get("trials", [])}
+    for t in prim.get("trials", []):
+        pooled.add(str(t.get("label", "")).upper())
+        # a trial ACRONYM only where it sits in a trial-name position: immediately before "(PMID/PMC/NCT".
+        # This excludes outcome/method abbreviations (POAF, AAD, MACE) that appear elsewhere in the source.
+        for a in re.findall(r"\b([A-Z][A-Za-z0-9.\-]{2,})\s*\((?:PMID|PMC|NCT)", t.get("source", "") or ""):
+            if not a.isdigit():
+                pooled.add(a.upper())
+    pooled.discard("")
+    txt = par.get("reason", "") or ""
+    for m in _PARITY_EXCL_CUE.finditer(txt):
+        seg = txt[m.end():m.end() + 90]
+        named = set(re.findall(r"\b\d{7,8}\b", seg)) | {a.upper() for a in _PARITY_ACRONYM.findall(seg)
+                                                        if not a.isdigit() and len(a) >= 3}
+        for nm in named:
+            if nm in pooled:
+                reasons.append(f"L1: parity reason names '{nm}' as EXCLUDED but it IS in the pooled set — a "
+                               f"stale narrative describing a review that no longer exists (audit 28).")
+    return reasons
 
 
 def check_no_double_counted_trial(review_dir):
