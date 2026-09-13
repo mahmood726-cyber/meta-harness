@@ -1,32 +1,95 @@
 {
  "_doc": "Recovery pipeline instrument. Every recovery ATTEMPT is recorded with its outcome, earned one trial at a time by fetch -> source-verify -> extract -> round-trip -> rebuild. This REPLACES the forward-scan vocabulary metric (which over-counted: a forward scan cannot tell a genuine synonym gap from by-design composite-specificity). BLOCKED_BY_MATCHER entries, each carrying the exact source string vs the exact registered keyword, ARE the vocabulary measurement -- zero false positives, evidence not guesswork. Outcomes: RECOVERED | REFUSED_ON_SOURCE | BLOCKED_BY_MATCHER | BLOCKED_BY_ACCESS | NOT_FOUND | SCOPE_PENDING.",
  "scoreboard": {
-  "attempted": 8, "recovered": 5,
-  "tightened": 2, "cost_significance": 1, "toward_null_stayed_nonsig": 2,
-  "refused_on_source": 2, "scope_pending": 1, "blocked_by_matcher_resolved": 1,
-  "note": "corrections are NOT systematically flattering: of 5 recoveries, 2 tightened and 3 weakened (1 lost significance, 2 moved toward null); 2 refused on source; 1 held on scope. This is the harness getting more honest as the evidence base completes."
+  "attempted": 9,
+  "recovered": 5,
+  "tightened": 2,
+  "cost_significance": 1,
+  "toward_null_stayed_nonsig": 2,
+  "refused_on_source": 2,
+  "scope_pending": 1,
+  "blocked_by_matcher_resolved": 1,
+  "note": "corrections are NOT systematically flattering: of 5 recoveries, 2 tightened and 3 weakened (1 lost significance, 2 moved toward null); 2 refused on source; 1 held on scope. This is the harness getting more honest as the evidence base completes. [+TECOS BLOCKED_BY_ACCESS: abstract 4-point != topic 3-point MACE; 3-point is a paywalled full-text secondary, unverifiable]",
+  "blocked_by_access": 1
  },
  "attempts": [
-  {"trial": "omarigliptin", "pmid": "28893244", "topic": "dpp4-mace-t2d", "status": "RECOVERED",
-   "before": "k=2 HR 1.0082 (0.5699-1.7836)", "after": "k=3 HR 1.0074 (0.8391-1.2094)",
-   "class": "tightened", "note": "imprecision resolved; source-verified PubMed DOI 10.1186/s12933-017-0593-8"},
-  {"trial": "SOUL", "pmid": "40162642", "topic": "glp1-ra-mace-t2d", "status": "RECOVERED",
-   "before": "k=7 HR 0.8501 (0.7904-0.9144)", "after": "k=8 HR 0.856 (0.8086-0.9061)",
-   "class": "tightened", "note": "MACE primary; source-verified DOI 10.1056/NEJMoa2501006. Its abstract used the primary-outcome anchor the matcher scopes out (BLOCKED_BY_MATCHER on 'primary-outcome' hyphen), resolved via verified_effects"},
-  {"trial": "CLEAR SYNERGY", "pmid": "39555823", "topic": "colchicine-secondary-cv-prevention", "status": "RECOVERED",
-   "before": "k=2 HR 0.7215 (0.2824-1.8432)", "after": "k=3 HR 0.8134 (0.5074-1.3039)",
-   "class": "toward_null_stayed_nonsig", "note": "large null trial pulls a k=2 benefit pool up; DOI 10.1056/NEJMoa2405922"},
-  {"trial": "PHILO", "pmid": "26376600", "topic": "ticagrelor-vs-clopidogrel-acs", "status": "RECOVERED",
-   "before": "k=1 HR 0.84 (0.77-0.92) SIGNIFICANT", "after": "k=2 HR 1.0479 (0.0324-33.8921) NOT significant",
-   "class": "cost_significance", "note": "East-Asian direction reversal (HR 1.47); k=2 HKSJ honestly uninformative; DOI 10.1253/circj.CJ-15-0112"},
-  {"trial": "J-EMPHASIS-HF", "pmid": "28824029", "topic": "spironolactone-hfref-mortality", "status": "RECOVERED",
-   "before": "k=2 0.7218 (0.3236-1.6097)", "after": "k=3 0.8685 (0.3062-2.4635)",
-   "class": "toward_null_stayed_nonsig", "note": "eplerenone numerically worse (17/111 vs 10/110); verify gate first refused until n=111/110 were in the source span, then passed"},
-  {"trial": "ICAP", "pmid": "23992557", "topic": "colchicine-recurrent-pericarditis", "status": "REFUSED_ON_SOURCE",
-   "note": "population is ACUTE (first-attack) pericarditis, not recurrent; and the audit-cited counts 11/120 vs 25/120 (9.2%/20.8%) appear NOWHERE in the abstract (actual: 20/120 vs 45/120 primary composite). Would have flattered us (0.48 crossing 1 -> 0.47 excluding 1). Refused."},
-  {"trial": "ELIXA", "pmid": "26630143", "topic": "glp1-ra-mace-t2d", "status": "REFUSED_ON_SOURCE",
-   "note": "its primary is a FOUR-point composite (adds hospitalization for unstable angina), not the 3-point MACE of this topic; a broad hyphen-matcher fix briefly mispooled it (HR 1.02) as 3-point MACE until corpus-wide before/after showed k=9 not 8. Matcher scoped to exclude the generic anchor; ELIXA stays out."},
-  {"trial": "FLOW", "pmid": "38785209", "topic": "glp1-ra-mace-t2d", "status": "SCOPE_PENDING",
-   "note": "verified HR 0.82 for MACE, but MACE is a SECONDARY outcome in a kidney-PRIMARY trial and the population is T2D+CKD; needs a protocol-scope decision before integrating. Not integrated."}
+  {
+   "trial": "omarigliptin",
+   "pmid": "28893244",
+   "topic": "dpp4-mace-t2d",
+   "status": "RECOVERED",
+   "before": "k=2 HR 1.0082 (0.5699-1.7836)",
+   "after": "k=3 HR 1.0074 (0.8391-1.2094)",
+   "class": "tightened",
+   "note": "imprecision resolved; source-verified PubMed DOI 10.1186/s12933-017-0593-8"
+  },
+  {
+   "trial": "SOUL",
+   "pmid": "40162642",
+   "topic": "glp1-ra-mace-t2d",
+   "status": "RECOVERED",
+   "before": "k=7 HR 0.8501 (0.7904-0.9144)",
+   "after": "k=8 HR 0.856 (0.8086-0.9061)",
+   "class": "tightened",
+   "note": "MACE primary; source-verified DOI 10.1056/NEJMoa2501006. Its abstract used the primary-outcome anchor the matcher scopes out (BLOCKED_BY_MATCHER on 'primary-outcome' hyphen), resolved via verified_effects"
+  },
+  {
+   "trial": "CLEAR SYNERGY",
+   "pmid": "39555823",
+   "topic": "colchicine-secondary-cv-prevention",
+   "status": "RECOVERED",
+   "before": "k=2 HR 0.7215 (0.2824-1.8432)",
+   "after": "k=3 HR 0.8134 (0.5074-1.3039)",
+   "class": "toward_null_stayed_nonsig",
+   "note": "large null trial pulls a k=2 benefit pool up; DOI 10.1056/NEJMoa2405922"
+  },
+  {
+   "trial": "PHILO",
+   "pmid": "26376600",
+   "topic": "ticagrelor-vs-clopidogrel-acs",
+   "status": "RECOVERED",
+   "before": "k=1 HR 0.84 (0.77-0.92) SIGNIFICANT",
+   "after": "k=2 HR 1.0479 (0.0324-33.8921) NOT significant",
+   "class": "cost_significance",
+   "note": "East-Asian direction reversal (HR 1.47); k=2 HKSJ honestly uninformative; DOI 10.1253/circj.CJ-15-0112"
+  },
+  {
+   "trial": "J-EMPHASIS-HF",
+   "pmid": "28824029",
+   "topic": "spironolactone-hfref-mortality",
+   "status": "RECOVERED",
+   "before": "k=2 0.7218 (0.3236-1.6097)",
+   "after": "k=3 0.8685 (0.3062-2.4635)",
+   "class": "toward_null_stayed_nonsig",
+   "note": "eplerenone numerically worse (17/111 vs 10/110); verify gate first refused until n=111/110 were in the source span, then passed"
+  },
+  {
+   "trial": "ICAP",
+   "pmid": "23992557",
+   "topic": "colchicine-recurrent-pericarditis",
+   "status": "REFUSED_ON_SOURCE",
+   "note": "population is ACUTE (first-attack) pericarditis, not recurrent; and the audit-cited counts 11/120 vs 25/120 (9.2%/20.8%) appear NOWHERE in the abstract (actual: 20/120 vs 45/120 primary composite). Would have flattered us (0.48 crossing 1 -> 0.47 excluding 1). Refused."
+  },
+  {
+   "trial": "ELIXA",
+   "pmid": "26630143",
+   "topic": "glp1-ra-mace-t2d",
+   "status": "REFUSED_ON_SOURCE",
+   "note": "its primary is a FOUR-point composite (adds hospitalization for unstable angina), not the 3-point MACE of this topic; a broad hyphen-matcher fix briefly mispooled it (HR 1.02) as 3-point MACE until corpus-wide before/after showed k=9 not 8. Matcher scoped to exclude the generic anchor; ELIXA stays out."
+  },
+  {
+   "trial": "FLOW",
+   "pmid": "38785209",
+   "topic": "glp1-ra-mace-t2d",
+   "status": "SCOPE_PENDING",
+   "note": "verified HR 0.82 for MACE, but MACE is a SECONDARY outcome in a kidney-PRIMARY trial and the population is T2D+CKD; needs a protocol-scope decision before integrating. Not integrated."
+  },
+  {
+   "trial": "TECOS",
+   "pmid": "26052984",
+   "topic": "dpp4-mace-t2d",
+   "status": "BLOCKED_BY_ACCESS",
+   "note": "abstract PRIMARY is a 4-point composite (CV death, MI, stroke, hospitalization for unstable angina), HR 0.98 (0.88-1.09) -- NOT the topic 3-point MACE (ELIXA composite-mismatch class). The 3-point MACE (audit-cited HR 0.99 0.89-1.10) is a full-text SECONDARY; TECOS has no PMC full text (paywalled), so it cannot be source-verified. Corrects the audit over-claim that the abstract reports the 3-point estimand. NOT pooled; needs full-text access to the 3-point secondary."
+  }
  ]
 }
