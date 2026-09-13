@@ -120,6 +120,31 @@ def _currency_section(docs_dir: str) -> str:
             + (f"<ul>{lis}</ul>" if rows else "") + div_line + "</p></div>")
 
 
+def _recovery_section(docs_dir: str) -> str:
+    """Recovery-pipeline scoreboard from docs/recovery_log.json: the harness's corrections are not
+    systematically self-flattering, and we measure it one source-verified trial at a time."""
+    p = os.path.join(docs_dir, "recovery_log.json")
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    sb = d.get("scoreboard") or {}
+    rows = "".join(
+        f"<li><strong>{_E(a.get('trial'))}</strong> &rarr; {_E(a.get('topic'))}: "
+        f"<code>{_E(a.get('status'))}</code>"
+        + (f" &mdash; {_E(a.get('before'))} &rarr; {_E(a.get('after'))}" if a.get('before') else "")
+        + (f" <span class='muted'>{_E(a.get('note'))}</span>" if a.get('note') else "") + "</li>"
+        for a in (d.get("attempts") or []))
+    return (f"<div class='banner'><h2>Recovery scoreboard &mdash; corrections are not systematically "
+            f"flattering</h2><p><strong>{sb.get('recovered')} recovered of {sb.get('attempted')} "
+            f"attempted</strong>: {sb.get('tightened')} tightened, {sb.get('cost_significance')} lost "
+            f"significance, {sb.get('toward_null_stayed_nonsig')} moved toward the null; "
+            f"{sb.get('refused_on_source')} refused on source, {sb.get('scope_pending')} held on scope. "
+            f"Every recovery is source-verified (audit-relayed numbers are not sources); the vocabulary "
+            f"blind spot is measured by where a recovery BREAKS, not by a forward scan that over-counts."
+            f"<ul>{rows}</ul></p></div>")
+
+
 def _verification_section(docs_dir: str) -> str:
     """The strongest single integrity claim, gate-enforced: every pooled number on every page is
     verified against its committed source span, and a gate limb refuses any page that pools a number
@@ -984,7 +1009,7 @@ def build_index(docs_dir: str) -> str:
     # anti-drift: fail closed on an un-accounted numeral in ANY narrative banner
     _validate_prose_numbers(docs_dir, _thesis + _cont + _erate + _xfam + _defaudit + _extval + _spec + _screen + _prov + _stance)
     body = (_thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
-            + _currency_section(docs_dir)
+            + _currency_section(docs_dir) + _recovery_section(docs_dir)
             + _parity_section(docs_dir) + _error_coverage_section(docs_dir) + _stance
             + _fair_section(docs_dir) + body)
 
