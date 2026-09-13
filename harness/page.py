@@ -600,6 +600,22 @@ def _outcome_block(o, show_inputs=True):
             ("Composite heterogeneity", res.get("composite_heterogeneity")),
             ("Leave-one-out (influence)", _loo_text(res.get("leave_one_out"))),
         ] if v is not None])
+        # COMPATIBILITY KEY: the explicit contract that lets these trials be pooled -- the six
+        # dimensions they must share. Rendered so a reader can see the pool is not a mix of
+        # different quantities; the randomised-contrast fraction discloses how many are registry-
+        # confirmed contrasts of the intervention of interest.
+        ck = o.get("compat_key")
+        if ck:
+            rc = ck.get("randomised_contrast") or {}
+            body += "<h5>Compatibility key (pooling contract)</h5>" + _kv([
+                ("Effect-measure class", ", ".join(ck.get("event_process") or []) or None),
+                ("Endpoint", ck.get("endpoint")),
+                ("Follow-up window", ck.get("follow_up_window")),
+                ("Analysis set", ck.get("analysis_set")),
+                ("Randomised contrast (registry-confirmed)",
+                 (f"{rc.get('verified')} of {rc.get('total')} pooled trials"
+                  if rc.get("total") else None)),
+            ])
         # A k stated without the contributing trials named is the container-vs-contents
         # defect. When trials are enumerable, name them (below). When they are not (a
         # transcribed comparator), say so plainly so the bare k is not mistaken for auditable.

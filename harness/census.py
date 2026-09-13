@@ -25,6 +25,7 @@ from .page import render_page
 from . import page
 from . import registration
 from . import claim
+from . import compat
 
 
 def _claim_check(review_core_obj: dict):
@@ -178,6 +179,14 @@ def build_review_dir(
         raise ValueError(
             "CLAIM-OBJECT CONTRADICTION (build refused): a rendered surface asserts a significance "
             "opposite to the canonical claim object -> " + json.dumps(_cc["contradictions"]))
+    # COMPATIBILITY-KEY backstop: refuse a rendered pool whose trials do not share the hard
+    # dimensions (an incompatible effect-measure class inside a pool). Defense in depth -- the
+    # upstream guards already suppress these, so this passes on a well-formed corpus and fires
+    # only on a regression that bypassed a guard.
+    _cbad = compat.check(review_core_obj)
+    if _cbad:
+        raise ValueError("COMPATIBILITY-KEY MISMATCH (build refused): a pooled outcome mixes "
+                         "incompatible quantities -> " + json.dumps(_cbad))
     final_review = dict(review_core_obj)
     final_review["reproduction"] = reproduction
     html = render_page(final_review)
