@@ -688,6 +688,17 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             # page/manuscript, the forest plot and the result sentence). Detecting the failure and still
             # rendering the number is a caption, not a gate: disclosure is not suppression. Only the
             # per-trial estimates (out['trials']) and the reason survive; nothing pooled.
+            # COUNTERFACTUAL (COMMIT 3 constraint): a refusal that hides what it refused is
+            # indistinguishable from a bug. Before popping, record what the pool WOULD have produced
+            # if the incompatible estimands were combined anyway -- clearly quarantined as INVALID,
+            # never a usable number -- so the reader sees the refusal is a decision, not a gap.
+            out["result"]["counterfactual"] = {
+                "reason_code": "INCOMPATIBLE_ESTIMANDS",
+                "would_be_estimate": out["result"].get("estimate"),
+                "would_be_ci_low": out["result"].get("ci_low"),
+                "would_be_ci_high": out["result"].get("ci_high"),
+                "note": ("this is what pooling these incompatible estimand classes would have yielded; "
+                         "it is INVALID and is shown only so the refusal is auditable, never as a result")}
             for _kpop in ("estimate", "ci_low", "ci_high", "tau2", "estimate_fixed", "ci_low_fixed",
                           "ci_high_fixed", "pi_low", "pi_high", "leave_one_out", "pi_note", "fixed_note",
                           "ci_note"):

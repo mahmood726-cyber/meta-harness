@@ -563,10 +563,18 @@ def _outcome_block(o, show_inputs=True):
         # FAIL CLOSED (audit 23): detected-invalid means NOTHING pooled is rendered — no effect, CI, tau^2,
         # prediction interval, common-effect sensitivity, forest or leave-one-out. Only the reason + the
         # per-trial estimates (below) survive. Detecting the failure and printing the number is a caption.
+        _cf = res.get("counterfactual") or {}
+        _cf_line = ""
+        if _cf.get("would_be_estimate") is not None:
+            _cf_line = (f" <em>Refusal is reversible and auditable — reason code "
+                        f"<code>{_e(_cf.get('reason_code'))}</code>; had these classes been pooled anyway "
+                        f"the (INVALID) result would have been {_num(_cf.get('would_be_estimate'))} "
+                        f"({_num(_cf.get('would_be_ci_low'))}–{_num(_cf.get('would_be_ci_high'))}) — shown "
+                        f"only so the refusal is inspectable, never as a usable number.</em>")
         body += ("<div class='absent'><strong>Pooled result SUPPRESSED (estimand-incompatible).</strong> "
                  f"{_e(res.get('suppressed_reason'))} <em>Estimand classes: "
                  f"{_e(' + '.join((res.get('estmeasure') or {}).get('canonicals', [])))}; k = "
-                 f"{_e(res.get('k'))} trials, shown individually below, not pooled.</em></div>")
+                 f"{_e(res.get('k'))} trials, shown individually below, not pooled.</em>" + _cf_line + "</div>")
     else:
         body += _kv([(k, v) for k, v in [
             # Show the scale of the number ACTUALLY pooled (res["scale"]: RR / HR / IRR / MD /
