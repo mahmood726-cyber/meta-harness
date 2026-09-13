@@ -526,6 +526,14 @@ def _trial_inputs(o):
                     f"timepoint <b>{_e(j.get('candidate_timepoint'))}</b>; "
                     f"definition <b>{_e(j.get('candidate_definition'))}</b>; "
                     f"is-match <b>{_e(j.get('is_match'))}</b> — {_e(j.get('rationale'))}</div>")
+        # DERIVATION provenance: is this the trial's OWN reported effect, or a harness reconstruction
+        # from arm-level data? Both legitimate; labelling prevents 'the trial's own effect' on a number
+        # the harness computed (the melatonin -17.4 defect).
+        _der = t.get("derivation")
+        if _der == "reconstructed":
+            inp += " <span class='muted' title='effect computed by the harness from arm-level data, not the trial-reported effect'>· harness-reconstructed</span>"
+        elif _der == "reported":
+            inp += " <span class='muted' title='the effect+CI reported by the source'>· source-reported</span>"
         rows.append(f"<tr><td>{_e(t.get('label'))}</td><td>{_e(t.get('id'))}</td>"
                     f"<td>{inp}</td><td>{src}</td></tr>")
     absent = "".join(f"<tr><td>{_e(t.get('label'))}</td><td>{_e(t.get('id'))}</td>"

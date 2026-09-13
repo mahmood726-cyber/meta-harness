@@ -1002,6 +1002,15 @@ def build_review_core(slug, config, records, protocol_sha):
         _ck = compat_mod.outcome_key(_o, review)
         if _ck:
             _o["compat_key"] = _ck
+        # DERIVATION provenance (melatonin defect: a harness-computed MD shown as 'the trial's own
+        # effect'): label each pooled number reported (the source gave the effect+CI directly) vs
+        # reconstructed (the harness computed it from arm counts / means / person-time). Both are
+        # legitimate; conflating them is not.
+        for _t in (_o.get("trials") or []):
+            if _t.get("ai") is not None or _t.get("mean1") is not None or _t.get("e1i") is not None:
+                _t["derivation"] = "reconstructed"
+            elif _t.get("effect") is not None:
+                _t["derivation"] = "reported"
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config so a divergence (estimand, analysis set, design masking AND/OR) between the registered
     # prose and the machine rules cannot pass -- the tocilizumab self-certification defect (a check
