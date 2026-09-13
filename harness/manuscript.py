@@ -191,7 +191,12 @@ def render(review, neutral: bool = False) -> str:
     # PREREGISTRATION vs BUILD (audit 20): only claim "committed before synthesis" when a protocol-ONLY
     # prospective commit actually exists; otherwise state honestly that precedence is not demonstrated.
     _pre = (review.get("reproduction") or {}).get("preregistration") or {}
-    _prospective = bool(_pre.get("prospective"))
+    # RETRACTION #2: a protocol that already contains PMIDs/NCTs/results is a timestamped record, not a
+    # prospective registration (fails PRISMA 24a regardless of a protocol-only SHA).
+    import re as _re
+    _proto_has_results = bool(_re.search(r"\bNCT\d{8}\b|\bPMID[:\s]|\b\d{7,8}\b|hazard ratio|95%\s*CI|"
+                                         r"odds ratio|rate ratio", (prot.get("text", "") or "")))
+    _prospective = bool(_pre.get("prospective")) and not _proto_has_results
     _pre_sha = str(_pre.get("sha") or "")[:12]
     _build_sha = str(_pre.get("build_sha") or prot.get("sha") or "")[:12]
     if _prospective:

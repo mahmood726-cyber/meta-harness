@@ -14,6 +14,7 @@ rendered by this same function so a judge cannot tell them apart by structure.
 """
 from __future__ import annotations
 import html
+import re
 from typing import Any
 
 from . import manuscript as _manuscript_mod
@@ -720,10 +721,22 @@ def _reproduction(r, neutral):
     # from the BUILD commit. The old single "registration SHA" was usually a build commit (protocol +
     # cache + synthesis + page together), which cannot show the protocol preceded synthesis. State which.
     pre = rep.get("preregistration") or {}
-    if pre.get("prospective"):
+    # RETRACTION #2 (round-2 doac-vte P0): a protocol that already CONTAINS the known trial identifiers
+    # (PMIDs/NCTs) or effect results is a timestamped internal record of what we knew, NOT a prospective
+    # registration — and it fails PRISMA 24a regardless of a protocol-only SHA. Retract the prospective claim
+    # wherever the committed protocol text carries results/identifiers.
+    _proto_txt = (r.get("protocol") or {}).get("text", "") or ""
+    _proto_has_results = bool(re.search(r"\bNCT\d{8}\b|\bPMID[:\s]|\b\d{7,8}\b|hazard ratio|\bHR\b|95%\s*CI|"
+                                        r"\bRR\b|odds ratio|rate ratio", _proto_txt))
+    if pre.get("prospective") and not _proto_has_results:
         prereg_row = (f"prospectively registered at <code>{_e(pre.get('sha'))}</code> "
                       f"({_e(pre.get('kind'))}) — a protocol-only commit, so the protocol demonstrably "
                       f"preceded the build")
+    elif pre.get("prospective") and _proto_has_results:
+        prereg_row = ("<strong>NOT prospectively registered</strong> — although a protocol-only commit exists, "
+                      "the committed protocol text ALREADY CONTAINS trial identifiers (PMIDs/NCTs) and/or "
+                      "results, so it is a timestamped internal record of what we already knew, not a "
+                      "prospective registration (and it does not satisfy PRISMA 24a). Retracted.")
     elif pre:
         prereg_row = ("<strong>NOT demonstrated for this topic</strong> — no protocol-only commit exists; "
                       "the protocol first entered the repository inside a build commit "
@@ -804,7 +817,10 @@ def _reporting(r, neutral):
     # the same field the Reproducibility row and the manuscript use — never a hardcoded "committed before
     # synthesis" (audit 24/26: that claim drifted from the honest prospective=False sites).
     _pre = (r.get("reproduction") or {}).get("preregistration") or {}
-    _prosp = bool(_pre.get("prospective"))
+    # RETRACTION #2: protocol containing PMIDs/NCTs/results is not a prospective registration.
+    _prosp = bool(_pre.get("prospective")) and not re.search(
+        r"\bNCT\d{8}\b|\bPMID[:\s]|\b\d{7,8}\b|hazard ratio|95%\s*CI|odds ratio|rate ratio",
+        (prot.get("text", "") or ""))
     _pre_sha = str(_pre.get("sha") or "")[:10]
     _build_sha = str(_pre.get("build_sha") or prot.get("sha") or "")[:10]
     items = [
