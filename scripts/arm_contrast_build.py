@@ -1,0 +1,68 @@
+"""Build per-pooled-trial ARM-CONTRAST disclosure from the local AACT snapshot, writing committed
+cache/<slug>/arm_contrast.json. Measure-time (AACT scan); replayed offline; rendered.
+
+For each pooled trial we record whether its intervention of interest is a genuine RANDOMISED CONTRAST
+(differs across the registered arms) or is only background co-present. This makes the arm-contrast
+fail-open state VISIBLE: a trial admitted because the registry has no arm data is shown as
+'contrast unverified', never silently treated as a verified randomised comparison.
+
+    python scripts/arm_contrast_build.py [--write] [<slug> ...]
+"""
+import json, os, sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from harness import armcontrast  # noqa: E402
+
+
+def pooled(slug):
+    """{pmid: nct} for every pooled trial (across all outcomes) that resolves to an NCT."""
+    rev = json.load(open(f"{ROOT}/docs/reviews/{slug}/review.json", encoding="utf-8"))
+    recs = {str(r["id"]): r for r in json.load(open(f"{ROOT}/cache/{slug}/records.json", encoding="utf-8"))["records"]}
+    out = {}
+    for o in rev.get("outcomes", []) or []:
+        for t in o.get("trials", []) or []:
+            pid = str(t.get("id", "")).replace("PMID ", "")
+            nct = recs.get(pid, {}).get("nct") or (pid if pid.startswith("NCT") else None)
+            if nct:
+                out[pid] = nct
+    return out
+
+
+def keywords(slug):
+    t = json.load(open(f"{ROOT}/topics/{slug}.json", encoding="utf-8"))
+    return t.get("intervention_terms") or (t.get("include") or {}).get("intervention_any") or []
+
+
+def main(argv):
+    write = "--write" in argv
+    slugs = [a for a in argv if not a.startswith("-")] or [
+        s for s in sorted(os.listdir(f"{ROOT}/docs/reviews")) if os.path.exists(f"{ROOT}/docs/reviews/{s}/review.json")]
+    topics = {s: pooled(s) for s in slugs}
+    allnct = {n for d in topics.values() for n in d.values()}
+    index = armcontrast.build_arm_index(allnct)  # ONE AACT scan for the whole batch
+    for slug, d in topics.items():
+        kws = keywords(slug)
+        trials = {}
+        for pid, nct in d.items():
+            status, basis = armcontrast.contrast_status(nct, kws, index)
+            entry = index.get(nct.upper())
+            trials[pid] = {"nct": nct, "status": status, "basis": basis}
+            if entry is not None:
+                common, differing = entry
+                trials[pid]["common"] = sorted(common)
+                trials[pid]["differing"] = sorted(differing)
+        n_ver = sum(1 for t in trials.values() if t["status"] == "verified")
+        print(f"{slug}: {n_ver}/{len(trials)} contrasts registry-verified"
+              + (f"  [{','.join(p+':'+t['status'] for p,t in trials.items() if t['status']=='background_only')}]"
+                 if any(t["status"] == "background_only" for t in trials.values()) else ""))
+        if write:
+            json.dump({"source": f"AACT {os.path.basename(__import__('harness').aact.snapshot_dir())} design_groups+interventions",
+                       "trials": trials},
+                      open(f"{ROOT}/cache/{slug}/arm_contrast.json", "w", encoding="utf-8", newline=""),
+                      indent=2, ensure_ascii=False)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

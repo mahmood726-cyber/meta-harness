@@ -249,6 +249,20 @@ def _load_rob2(slug):
         return None
 
 
+def _load_arm_contrast(slug):
+    """Committed per-pooled-trial ARM-CONTRAST disclosure (cache/<slug>/arm_contrast.json): whether the
+    intervention of interest is a genuine RANDOMISED CONTRAST (differs across arms) or fail-open/background.
+    Makes the arm-data-unavailable state VISIBLE rather than a silent verified-looking inclusion."""
+    import os, json
+    fp = os.path.join(ROOT, "cache", slug, "arm_contrast.json")
+    if not os.path.exists(fp):
+        return None
+    try:
+        return json.load(open(fp, encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 def _load_rob_spancheck():
     """Corpus-level RoB span-check summary (docs/rob_spancheck.json): the cross-family agreement rate of the
     model/registry-derived RoB2 ratings vs the trial abstracts. Same number on every RoB tab (it is a corpus
@@ -812,6 +826,10 @@ def build_review_core(slug, config, records, protocol_sha):
         **({"comparator_scope_note": config["comparator_scope_note"]} if config.get("comparator_scope_note") else {}),
         **({"evidence_base_caveat": config["evidence_base_caveat"]} if config.get("evidence_base_caveat") else {}),
         **({"rob2": _rb} if (_rb := _load_rob2(slug)) else {}),
+        # Arm-contrast disclosure (TIER-1 structural fix): per pooled trial, whether the intervention of
+        # interest is a registry-confirmed RANDOMISED CONTRAST or a fail-open/background inclusion. Visible,
+        # never silent -- a trial admitted with no registry arm data reads 'contrast unverified', not verified.
+        **({"arm_contrast": _ac} if (_ac := _load_arm_contrast(slug)) else {}),
         **({"integrity": _integ} if (_integ := _load_integrity(slug)) else {}),
         # Unit-of-analysis disclosure (ME-26/27): pooled trials with a cluster-randomized or crossover
         # design, from the committed abstracts. Rendered as a caveat; not an adjustment (ICC unavailable).

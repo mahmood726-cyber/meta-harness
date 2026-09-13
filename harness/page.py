@@ -884,6 +884,40 @@ def _riskofbias(r, neutral):
                      "inferred."
                      "<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Scanned</th>"
                      f"<th>Verbatim statement</th></tr>{fund_rows}</table></div>")
+    # Arm-contrast disclosure (TIER-1 structural fix): whether each pooled trial's intervention of interest
+    # is a registry-CONFIRMED randomised contrast (differs across arms) or a fail-open/background inclusion.
+    # The fail-open state is VISIBLE (a trial with no registry arm data reads 'contrast unverified'), never a
+    # silent verified-looking inclusion. Never an adjustment; a disclosure computed from AACT arm structure.
+    ac = (r.get("arm_contrast") or {}).get("trials") or {}
+    ac_html = ""
+    if ac:
+        _AC_LABEL = {"verified": "randomised contrast verified",
+                     "background_only": "BACKGROUND IN ALL ARMS — not a randomised contrast",
+                     "unverified_granularity": "contrast unverified (registry class label / dev code)",
+                     "unverified_no_contrast": "contrast unverified (no arm-level contrast coded)",
+                     "unverified_no_arm_data": "contrast unverified — no registry arm data"}
+        _AC_ORD = {"background_only": 0, "unverified_no_arm_data": 1, "unverified_no_contrast": 2,
+                   "unverified_granularity": 3, "verified": 4}
+        n_ver = sum(1 for e in ac.values() if e.get("status") == "verified")
+        n_bg = sum(1 for e in ac.values() if e.get("status") == "background_only")
+        ac_rows = "".join(
+            f"<tr><td>{_e(pid)}</td><td>{_e(_AC_LABEL.get(e.get('status'), e.get('status')))}</td>"
+            f"<td title='{_e(e.get('basis'))}'>{_e('; '.join(e.get('differing') or []) or '&mdash;')}</td></tr>"
+            for pid, e in sorted(ac.items(), key=lambda kv: (_AC_ORD.get(kv[1].get("status"), 9), kv[0])))
+        ac_html = ("<div class='absent'><strong>Randomised-contrast disclosure (per pooled trial, from the "
+                   "registry arm structure — disclosed, not an adjustment).</strong> Eligibility should test "
+                   "what actually DIFFERS between the randomised arms, not the mere presence of the drug word: "
+                   "a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same "
+                   "agent, randomising a different drug) is not a randomised comparison of it. For each pooled "
+                   "trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + "
+                   f"<code>interventions</code>: <strong>{n_ver} of {len(ac)}</strong> pooled trials have a "
+                   "registry-confirmed contrast (the intervention of interest differs across arms)"
+                   + (f"; <strong>{n_bg} is background in every arm (flagged)</strong>" if n_bg else "")
+                   + ". A trial with no registry arm data, or coded under a class label / development code we "
+                   "cannot machine-match, is shown as <em>contrast unverified</em> — a VISIBLE fail-open state, "
+                   "never silently treated as verified. "
+                   "<table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th>"
+                   f"</tr>{ac_rows}</table></div>")
     # RoB-stratified sensitivity re-pool (object-derived from r['rob_sensitivity']; regenerates on rebuild)
     sens = r.get("rob_sensitivity") or {}
     sens_html = ""
@@ -959,7 +993,7 @@ def _riskofbias(r, neutral):
                     "registry, contradicted by its abstract; the RoB block was also visibly broken until a "
                     "human review caught it. The number is here because a RoB block a reader cannot trust is "
                     "worthless (<code>docs/rob_spancheck.json</code>).</div>")
-    return (f"<p>{cover}</p>" + rsc_html + uoa_html + fund_html
+    return (f"<p>{cover}</p>" + rsc_html + uoa_html + ac_html + fund_html
             + "<p><strong>Machine-derived risk-of-bias signals</strong> (per pooled trial) &mdash; NOT a "
             "formal Cochrane RoB2 assessment, which requires human judgements the registry cannot supply. "
             "These are computed from what is machine-available "
