@@ -274,6 +274,35 @@ def _search(r, neutral):
         body += ("<h4>Source status (which adapters ran)</h4><p class='muted'>" + cells +
                  " — RAN_OK = ran and returned records; RAN_ZERO = ran, none matched; RAN_ERROR = "
                  "attempted but failed; NOT_RUN = not attempted for this topic.</p>")
+        # RETRACTION (round-2 P0): the search narrative must be DERIVED from source_status + the committed
+        # provenance classification, never authored. A fetch of named identifiers is not a search; a
+        # RAN_ERROR/NOT_RUN registry adapter did not run. We do NOT claim a registry-first/systematic search
+        # where the evidence is proven-or-unclassified provenance.
+        _aact = ss.get("Registry-first (AACT)")
+        _slug = r.get("slug") or r.get("topic") or ""
+        _prov = None
+        try:
+            import json as _j
+            import os as _o
+            _pj = _o.path.join(_o.path.dirname(_o.path.dirname(_o.path.abspath(__file__))), "docs", "search_provenance.json")
+            _pd = _j.load(open(_pj, encoding="utf-8"))
+            for _cls, _v in (_pd.get("classes") or {}).items():
+                if _slug in (_v.get("topics") or []):
+                    _prov = _cls
+        except Exception:
+            _prov = None
+        if _aact in ("RAN_ERROR", "NOT_RUN") or _prov in ("RAN_ERROR_rendered_as_run", "PMID_ENUMERATION_explicit"):
+            body += ("<div class='absent'><strong>Search provenance — not a completed systematic search.</strong> "
+                     f"The registry-first (AACT) adapter status for this topic is <strong>{_e(_aact)}</strong>"
+                     + ("; its evidence set was assembled by KNOWN-ITEM RETRIEVAL of named publications "
+                        "(UID/PMID-anchored queries for pre-identified trials), which cannot discover an "
+                        "unknown eligible trial. A fetch of named identifiers is not a systematic search."
+                        if _prov == "PMID_ENUMERATION_explicit" or _aact in ("RAN_ERROR", "NOT_RUN") else ".")
+                     + " We retract any claim of a registry-first or systematic search for this topic.</div>")
+        elif _prov is None or _prov == "needs_verbatim_query_check":
+            body += ("<p class='muted'><em>Search provenance: UNCLASSIFIED — the verbatim query set for this "
+                     "topic has not been verified as a concept search vs known-item retrieval; no systematic-"
+                     "search claim is made pending that check.</em></p>")
     rc = s.get("recall")
     if rc and rc.get("known"):
         # PRIMARY search metric: how many of this topic's KNOWN trials the committed registry-first
