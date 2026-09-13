@@ -89,7 +89,52 @@
    "pmid": "26052984",
    "topic": "dpp4-mace-t2d",
    "status": "BLOCKED_BY_ACCESS",
-   "note": "abstract PRIMARY is a 4-point composite (CV death, MI, stroke, hospitalization for unstable angina), HR 0.98 (0.88-1.09) -- NOT the topic 3-point MACE (ELIXA composite-mismatch class). The 3-point MACE (audit-cited HR 0.99 0.89-1.10) is a full-text SECONDARY; TECOS has no PMC full text (paywalled), so it cannot be source-verified. Corrects the audit over-claim that the abstract reports the 3-point estimand. NOT pooled; needs full-text access to the 3-point secondary."
+   "note": "abstract PRIMARY is a 4-point composite (CV death, MI, stroke, hospitalization for unstable angina), HR 0.98 (0.88-1.09) -- NOT the topic 3-point MACE (ELIXA composite-mismatch class). The 3-point MACE (audit-cited HR 0.99 0.89-1.10) is a full-text SECONDARY; TECOS has no PMC full text (paywalled), so it cannot be source-verified. Corrects the audit over-claim that the abstract reports the 3-point estimand. NOT pooled; needs full-text access to the 3-point secondary. [NOW RENDERED: added to dpp4 as ELIGIBLE + declared-absent (estimand mismatch: abstract 4-point composite), NOT pooled -- the composite guard prevented the ELIXA-style mispooling. 3-point remains BLOCKED_BY_ACCESS. dpp4 stays STALE.]"
   }
- ]
+ ],
+ "audit_overclaim_caught_at_source": {
+  "_doc": "Auditors are subject to the same failure modes they find in us; our source-verification step catches it. Named class, 2 instances, different severity.",
+  "instances": [
+   {
+    "trial": "ICAP",
+    "topic": "colchicine-recurrent-pericarditis",
+    "severity": "FABRICATION",
+    "detail": "auditor cited recurrence 9.2%/20.8% -> 11/120 vs 25/120, moving 0.48 (crossing 1) to 0.47 (excluding 1). Those percentages appear NOWHERE in the abstract (actual primary 16.7%/37.5% = 20/120 vs 45/120); the counts were back-computed from invented rates. Plus population is ACUTE not recurrent. Inference change WITHDRAWN."
+   },
+   {
+    "trial": "TECOS",
+    "topic": "dpp4-mace-t2d",
+    "severity": "PROVENANCE_MISLABEL",
+    "detail": "auditor said the abstract/primary reports our exact 3-point estimand HR 0.99 (0.89-1.10); the abstract PRIMARY is a 4-point composite HR 0.98 (0.88-1.09). The 3-point 0.99 is likely a real full-text SECONDARY but TECOS is paywalled (no PMC), so unverifiable. Number may be real; provenance was wrong. dpp4 still owed TECOS pending full-text access."
+   }
+  ]
+ },
+ "inference_change_recount": {
+  "_doc": "TRUE source-verified LANDED significance flips, recounted from before/after. The earlier relayed 7-9 was audit-COMPUTED and included refused/blocked/unverified items.",
+  "confirmed_significance_flips": [
+   {
+    "trial": "Torres",
+    "topic": "corticosteroids-cap-mortality",
+    "flip": "RR 0.525 significant -> 0.546 NOT significant",
+    "session": "earlier (mortality-synonym fix)"
+   },
+   {
+    "trial": "PHILO",
+    "topic": "ticagrelor-vs-clopidogrel-acs",
+    "flip": "HR 0.84 significant -> 1.05 NOT significant"
+   }
+  ],
+  "true_count": 2,
+  "point_estimate_moved_no_flip": [
+   "dpp4 (tightened, still ns)",
+   "glp1 (tightened, still sig)",
+   "colchicine-secondary (0.72->0.81, still ns)",
+   "spironolactone (0.72->0.87, still ns)"
+  ],
+  "withdrawn_or_unverified": [
+   "ICAP (fabricated, withdrawn)",
+   "TECOS (blocked-by-access, unverified)",
+   "colchicine-postop / semaglutide-weight / noac-warfarin (audit-computed, not yet source-verified+landed by me)"
+  ]
+ }
 }
