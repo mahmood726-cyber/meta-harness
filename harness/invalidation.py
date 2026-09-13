@@ -26,8 +26,30 @@ def _primary(core):
     return next((o for o in outs if o.get("primary")), (outs[0] if outs else None))
 
 
-def assess(core):
+def assess(core, signals=None):
+    """signals (optional): externally-computed, committed, per-topic signals the core does not carry
+    on its own -- {'search_not_executed': {'class':..., 'detail':...} | None,
+    'known_eligible_missing': [ {trial, mechanism, ...}, ... ]}. Passed in (not read here) so assess
+    stays a pure function and both build and replay produce the same verdict."""
+    signals = signals or {}
     reasons = []
+    # 0. Search provenance: a topic whose "search" was a RAN_ERROR-rendered-as-run or explicit
+    #    PMID-enumeration has NO genuine executed concept search -- its completeness claim is void.
+    sne = signals.get("search_not_executed")
+    if sne:
+        reasons.append({"code": "search_not_executed",
+                        "detail": "no genuine executed concept search (" + str(sne.get("class"))
+                                  + "): " + str(sne.get("detail", "known-item retrieval cannot discover "
+                                  "an unknown eligible trial"))})
+    # 0b. A named eligible trial the audits identified is not in the pool (completeness void, and the
+    #     pooled estimate is known-incomplete). Names carried even before external PMID verification.
+    kem = signals.get("known_eligible_missing") or []
+    if kem:
+        names = ", ".join(str(x.get("trial")) for x in kem[:6])
+        reasons.append({"code": "known_eligible_missing",
+                        "detail": "a trial identified as eligible under the registered PICO is not pooled ("
+                                  + names + (", and others" if len(kem) > 6 else "")
+                                  + ") — the pooled result and completeness claim cannot be current"})
     # 1. Retraction / expression of concern among the POOLED trials.
     integ = core.get("integrity") or {}
     retr = list(integ.get("retracted") or [])
@@ -60,10 +82,11 @@ def assess(core):
         reasons.append({"code": "eligible_declared_absent",
                         "detail": "a screened-in trial is flagged ELIGIBLE under the registered PICO yet not "
                                   "pooled (" + ", ".join(dict.fromkeys(elig))[:120] + ")"})
-    # 4. A search source errored (retrieval completeness unproven, distinct from RAN_ZERO).
+    # 4. A search source errored (retrieval completeness unproven, distinct from RAN_ZERO). Suppressed
+    #    when search_not_executed already fired for this topic -- that is the same fact, stated once.
     ss = (core.get("search") or {}).get("source_status") or {}
     errored = [name for name, st in ss.items() if st == "RAN_ERROR"]
-    if errored:
+    if errored and not sne:
         reasons.append({"code": "search_source_errored",
                         "detail": "a search source returned an error (" + ", ".join(errored)
                                   + ") — retrieval completeness for this topic is unproven"})

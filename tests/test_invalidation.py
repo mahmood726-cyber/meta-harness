@@ -46,3 +46,26 @@ def test_ran_zero_is_not_stale():
     core = {"outcomes": [{"primary": True, "result": {"k": 2, "estimate": 0.8}}],
             "search": {"source_status": {"PubMed": "RAN_OK", "Citation chase": "RAN_ZERO"}}}
     assert INV.assess(core)["stale"] is False
+
+
+def test_search_not_executed_signal_is_stale():
+    core = {"outcomes": [{"primary": True, "result": {"k": 2, "estimate": 0.8}}],
+            "search": {"source_status": {"PubMed": "RAN_OK"}}}
+    v = INV.assess(core, {"search_not_executed": {"class": "PMID_ENUMERATION_explicit", "detail": "x"}})
+    assert v["stale"] and any(r["code"] == "search_not_executed" for r in v["reasons"])
+
+
+def test_known_eligible_missing_signal_is_stale():
+    core = {"outcomes": [{"primary": True, "result": {"k": 1, "estimate": 0.9}}]}
+    v = INV.assess(core, {"known_eligible_missing": [{"trial": "PHILO", "mechanism": "concept-query"}]})
+    assert v["stale"] and any(r["code"] == "known_eligible_missing" for r in v["reasons"])
+    assert "PHILO" in v["reasons"][0]["detail"]
+
+
+def test_ran_error_reason_suppressed_when_search_not_executed_fires():
+    # The same fact must be stated once: RAN_ERROR is subsumed by search_not_executed.
+    core = {"outcomes": [{"primary": True, "result": {"k": 2, "estimate": 0.8}}],
+            "search": {"source_status": {"Registry-first (AACT)": "RAN_ERROR"}}}
+    v = INV.assess(core, {"search_not_executed": {"class": "RAN_ERROR_rendered_as_run", "detail": "x"}})
+    codes = [r["code"] for r in v["reasons"]]
+    assert "search_not_executed" in codes and "search_source_errored" not in codes

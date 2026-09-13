@@ -190,6 +190,32 @@ def _pool_result(studies, scale="RR"):
     return res
 
 
+def _invalidation_signals(slug):
+    """Committed, deterministic per-topic signals for the invalidation gate that do not live in the
+    core: (a) search-not-executed from docs/search_provenance.json (RAN_ERROR-rendered-as-run OR
+    explicit PMID-enumeration -> no genuine concept search); (b) known-eligible-missing from
+    docs/known_eligible_missing.json (audit-identified eligible trials not pooled). Read from
+    committed docs so build and replay produce the same verdict."""
+    out = {}
+    try:
+        sp = json.load(open(os.path.join(ROOT, "docs", "search_provenance.json"), encoding="utf-8"))
+        for cls in ("RAN_ERROR_rendered_as_run", "PMID_ENUMERATION_explicit"):
+            block = (sp.get("classes") or {}).get(cls) or {}
+            if slug in (block.get("topics") or []):
+                out["search_not_executed"] = {"class": cls, "detail": block.get("note", "")}
+                break
+    except (OSError, ValueError):
+        pass
+    try:
+        kem = json.load(open(os.path.join(ROOT, "docs", "known_eligible_missing.json"), encoding="utf-8"))
+        rows = (kem.get("topics") or {}).get(slug)
+        if rows:
+            out["known_eligible_missing"] = rows
+    except (OSError, ValueError):
+        pass
+    return out
+
+
 def _load_ghost(slug):
     """Committed ghost-protocol / registry-landscape census (cache/<slug>/ghost.json) from AACT."""
     p = os.path.join(ROOT, "cache", slug, "ghost.json")
@@ -917,7 +943,7 @@ def build_review_core(slug, config, records, protocol_sha):
     # pooled trial, primary reported-but-not-extracted, an ELIGIBLE trial declared absent, a search
     # source that errored). Poisons the dependent outputs -- the page renders a STALE banner and the
     # index counts STALE topics -- so a known-incomplete/unproven result cannot read as current.
-    review["invalidation"] = invalidation_mod.assess(review)
+    review["invalidation"] = invalidation_mod.assess(review, _invalidation_signals(slug))
     # COMPATIBILITY KEY: the explicit key each pooled outcome satisfies (effect measure, event
     # process, endpoint, follow-up window, analysis set, randomised contrast). Attached per pooled
     # outcome so the contract that lets its trials be pooled is auditable on the page; a backstop in
