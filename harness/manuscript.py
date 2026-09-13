@@ -95,8 +95,10 @@ def _forest(review):
     prim = _primary(review)
     if not prim or not prim.get("trials"):
         return ""
-    import math
     res = prim.get("result") or {}
+    if res.get("suppressed_incompatible"):
+        return ""  # FAIL CLOSED (audit 23): no forest for an incompatible (suppressed) pool
+    import math
     scale = (res.get("scale") or prim.get("estimand") or "").upper()
     is_ratio = scale in ("HR", "RR", "OR", "IRR") or scale.startswith("MIXED")
     rows = []
@@ -206,7 +208,14 @@ def render(review, neutral: bool = False) -> str:
     n_absent = len(prim.get("declared_absent_trials", []) or [])
 
     # ---- structured abstract ----
-    if res.get("present") is False or k is None:
+    if res.get("suppressed_incompatible"):
+        # FAIL CLOSED (audit 23): no pooled result sentence when the estimand pool is incompatible.
+        result_sentence = ("The eligible trials report the primary outcome on INCOMPATIBLE estimand classes ("
+                           + _e(" + ".join((res.get("estmeasure") or {}).get("canonicals", [])))
+                           + "), so no pooled effect is reported: a recurrent-event/rate ratio and a "
+                           "first-event ratio are not one quantity. The per-trial estimates are reported and "
+                           "each coherent strand must be pooled separately.")
+    elif res.get("present") is False or k is None:
         result_sentence = ("No eligible trial reported the primary outcome with an extractable, "
                            "source-verified estimate, so it is declared absent rather than pooled.")
     elif k == 1:

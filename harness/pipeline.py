@@ -651,10 +651,27 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             t["effect_object"] = estmeasure.classify(_rl, t.get("source", "") or "")
         _compat = estmeasure.pool_compatibility([t["effect_object"] for t in trials])
         out["result"]["estmeasure"] = _compat
-        if _compat["status"] == "incompatible":
+        _incompat = _compat["status"] == "incompatible"
+        if _incompat:
+            # FAIL CLOSED (audit 23, DETECTED-INVALID-BUT-PUBLISHED): a pool that mixes incompatible
+            # estimand classes is NOT a valid summary, so we must SUPPRESS every derived number -- pooled
+            # effect, CI, tau^2, prediction interval, common-effect sensitivity, leave-one-out (and, in the
+            # page/manuscript, the forest plot and the result sentence). Detecting the failure and still
+            # rendering the number is a caption, not a gate: disclosure is not suppression. Only the
+            # per-trial estimates (out['trials']) and the reason survive; nothing pooled.
+            for _kpop in ("estimate", "ci_low", "ci_high", "tau2", "estimate_fixed", "ci_low_fixed",
+                          "ci_high_fixed", "pi_low", "pi_high", "leave_one_out", "pi_note", "fixed_note",
+                          "ci_note"):
+                out["result"].pop(_kpop, None)
             out["result"]["scale"] = "INCOMPATIBLE (" + " + ".join(_compat["canonicals"]) + ")"
             out["result"]["scale_mixed"] = _compat["labels"]
             out["result"]["estmeasure_incompatible"] = True
+            out["result"]["suppressed_incompatible"] = True
+            out["result"]["suppressed_reason"] = (
+                "pooled effect SUPPRESSED: the trials mix incompatible estimand classes ("
+                + " + ".join(_compat["canonicals"]) + ") — a recurrent-event/rate ratio and a first-event "
+                "ratio are not one quantity, so no pooled effect, CI, heterogeneity or sensitivity is valid. "
+                "The per-trial estimates are shown; pool each coherent strand separately.")
         elif _compat["status"] == "compatible_labels":
             # one compatibility class, >1 label: keep the pooled ratio scale, disclose the label mix
             out["result"]["scale_mixed"] = _compat["labels"]
@@ -677,7 +694,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # much any single trial moves the estimate; at k<=2 it is not assessable and we say so (never
         # hidden). Uses the same pooler and scale; no new number is invented.
         k_now = out["result"].get("k")
-        if isinstance(k_now, int) and k_now >= 3:
+        if isinstance(k_now, int) and k_now >= 3 and not _incompat:
             loo = []
             for j in range(len(studies)):
                 sub = studies[:j] + studies[j + 1:]
@@ -691,7 +708,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 "most_influential": worst["dropped"] if worst else None,
                 "per_trial": loo,
                 "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."}
-        elif isinstance(k_now, int):
+        elif isinstance(k_now, int) and not _incompat:
             out["result"]["leave_one_out"] = {"note": f"not assessable at k={k_now} (leave-one-out needs k>=3)"}
         if out["result"].get("k") == 1:
             # A single trial is not a random-effects meta-analysis: present it honestly as the
@@ -860,7 +877,10 @@ def build_review_core(slug, config, records, protocol_sha):
     }
     # RoB-stratified sensitivity re-pool of the primary outcome (regenerates from the object, so the
     # figure the page renders is reproduced, not typed). Uses the same validated pooler.
-    if (_sens := rob_sens_mod.sensitivity(review)):
+    # RoB-stratified sensitivity is a RE-POOL, so it must also fail closed on an INCOMPATIBLE primary
+    # pool (audit 23): re-pooling incompatible estimands is as invalid as the primary pool itself.
+    _prim_res = next((o.get("result") or {} for o in review.get("outcomes", []) if o.get("primary")), {})
+    if not _prim_res.get("suppressed_incompatible") and (_sens := rob_sens_mod.sensitivity(review)):
         review["rob_sensitivity"] = _sens
     # Partial, object-derived GRADE certainty (risk-of-bias, inconsistency, imprecision, registry-based
     # publication bias computed from committed fields; indirectness left to human judgement).

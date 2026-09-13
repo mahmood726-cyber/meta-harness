@@ -461,16 +461,7 @@
       ],
       "result": {
         "k": 2,
-        "estimate": 0.6064,
         "scale": "INCOMPATIBLE (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO)",
-        "ci_low": 0.0071,
-        "ci_high": 51.5861,
-        "tau2": 0.17798,
-        "pi_note": "prediction interval not estimated (k=2): it requires a t-quantile on a single degree of freedom and is not reliable at k=2 (Cochrane) — see the common-effect sensitivity CI instead.",
-        "ci_low_fixed": 0.5583,
-        "ci_high_fixed": 0.9489,
-        "estimate_fixed": 0.7279,
-        "fixed_note": "common-effect (fixed-effect, z-based) sensitivity: with only two trials the HKSJ interval uses a t-multiplier on a single degree of freedom and is very wide; where the two trials agree this conventional interval is the more informative bound.",
         "estmeasure": {
           "status": "incompatible",
           "classes": [
@@ -491,9 +482,8 @@
           "IRR"
         ],
         "estmeasure_incompatible": true,
-        "leave_one_out": {
-          "note": "not assessable at k=2 (leave-one-out needs k>=3)"
-        }
+        "suppressed_incompatible": true,
+        "suppressed_reason": "pooled effect SUPPRESSED: the trials mix incompatible estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO) — a recurrent-event/rate ratio and a first-event ratio are not one quantity, so no pooled effect, CI, heterogeneity or sensitivity is valid. The per-trial estimates are shown; pool each coherent strand separately."
       }
     },
     {
@@ -816,44 +806,6 @@
     "defect_found_and_fixed": "EMPHASIS-HF (PMID 21073363, NCT00232180) D1 rated on AACT allocation=NON_RANDOMIZED, contradicted by the abstract (\"randomized, double-blind ... randomly assigned 2737 patients\") -- an AACT registry data error; D1/D2 corrected to low with an abstract-based basis.",
     "unclear_note": "12 unclear = 8 ratings that make no claim (\"not assessed\") + 4 assessor-blinding \"low\" ratings (from the AACT assessor-masked field) that the abstract does not separately mention (registry-derived, not contradicted)."
   },
-  "rob_sensitivity": {
-    "outcome": "Heart-failure hospitalization",
-    "estimand": "RR",
-    "levels": {
-      "40159390": "low",
-      "25176939": "some_concerns"
-    },
-    "n_trials": 2,
-    "n_rob_rated": 2,
-    "rob_covered": true,
-    "any_high": false,
-    "full": {
-      "k": 2,
-      "estimate": 0.6064,
-      "scale": "RR",
-      "ci_low": 0.0071,
-      "ci_high": 51.5861,
-      "tau2": 0.17798
-    },
-    "drop_high": {
-      "k": 2,
-      "estimate": 0.6064,
-      "scale": "RR",
-      "ci_low": 0.0071,
-      "ci_high": 51.5861,
-      "tau2": 0.17798
-    },
-    "low_only": {
-      "k": 1,
-      "estimate": 0.8,
-      "scale": "IRR",
-      "ci_low": 0.6019,
-      "ci_high": 1.0633,
-      "tau2": 0.0
-    },
-    "drop_high_informative": false,
-    "low_only_informative": true
-  },
   "grade": {
     "start": "high",
     "domains": {
@@ -869,12 +821,11 @@
       "inconsistency": {
         "downgrade": 0,
         "not_estimable": false,
-        "basis": "tau^2=0.17798"
+        "basis": "tau^2=None"
       },
       "imprecision": {
-        "downgrade": 1,
-        "crosses_null": true,
-        "basis": "95% CI [0.0071, 51.5861]; crosses the null AND is compatible with an appreciable benefit (<=0.75) and an appreciable harm (>=1.25) -> imprecise (the estimate is consistent with both no effect and an appreciable effect)"
+        "downgrade": 0,
+        "basis": "no confidence interval available"
       },
       "publication_bias": {
         "downgrade": 0,
@@ -887,7 +838,7 @@
         "basis": "not auto-rated (human judgement)"
       }
     },
-    "downgrades": 2,
+    "downgrades": 1,
     "certainty": "not_rateable",
     "not_rateable_reason": "the primary pool mixes INCOMPATIBLE estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO); an overall certainty cannot be produced from an incoherent effect object — the domain signals are shown, the overall is suppressed until the estimand is made coherent (harmonise the measure or split the outcome)",
     "basis": "partial GRADE: overall certainty NOT RATEABLE (estimand-incompatible pool)."
@@ -895,7 +846,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "a56039f46158272c40c9565150903cf87db37c3c",
-    "review_sha256": "2aaf2c8873aaac446a223ba8e8e60f351d5fe542c12d262469de7bb93cdbca5b",
+    "review_sha256": "4fd75930ac440e0aa9a97a6df2ebffb321072c909d1c85fc164b56a0f132ca3e",
     "from_cache": true,
     "preregistration": {
       "prospective": true,

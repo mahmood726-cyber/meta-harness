@@ -41,6 +41,14 @@ def spec_curve(review):
     prim = next((o for o in review.get("outcomes", []) if o.get("primary")), None)
     if not prim or not prim.get("trials"):
         return None
+    # Fail closed: the specification curve is a re-pool of the primary outcome. If the primary
+    # pool was suppressed as estimand-incompatible, every spec here would re-manufacture the
+    # suppressed number under a different label. Detect-and-render is a caption, not a gate.
+    if (prim.get("result") or {}).get("suppressed_incompatible"):
+        return {"not_applicable": "primary pool is estimand-incompatible; the specification "
+                                  "curve is a re-pool and must not run",
+                "suppressed_incompatible": True,
+                "scale": (prim.get("result") or {}).get("scale")}
     studies, scale = _studies_and_scale(prim["trials"], prim.get("estimand", "RR"))
     try:
         pr = pool(studies, scale=scale)
