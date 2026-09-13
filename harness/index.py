@@ -561,6 +561,7 @@ _STATIC_PROSE_NUMERALS = {
     "3.1": "Gemini 3.1 Pro — the cross-family checker's model version (a name, not a claim)",
     "12": "the ~12% log-scale agreement threshold for external validation (fixed methodological choice)",
     "013505": "Cochrane review identifier CD013505 (a catalogue code, not a claim)",
+    "25": "the raw first-pass flip count (25) shown alongside its correction to 12 genuine recoveries",
 }
 
 
@@ -882,6 +883,22 @@ def build_index(docs_dir: str) -> str:
                "the recovered set is shown to be representative, not merely verified</strong> &mdash; the "
                "verified trials are held pending a full search rebuild, and the incompleteness is stated on "
                "that page.</li></ul>"
+               "<p><strong>The adjudication design itself was losing eligible trials, and we measured it.</strong> "
+               "Cold reads (a reviewer given a page with no brief, asked only &lsquo;is this a sound systematic "
+               "review?&rsquo;) found that our screener treated a missing PubMed &lsquo;Randomized Controlled "
+               "Trial&rsquo; publication type as <em>not an RCT</em>, when a missing tag is merely <em>unknown</em> "
+               "&mdash; the abstract body should overrule incomplete metadata. Fixing it (the same four-state "
+               "principle we apply to sources) recovered <strong>12 genuine pubtype-lag randomised trials across "
+               "six topics</strong>. That number is a correction: a first pass flagged 25, but thirteen were "
+               "reviews, comments, meta-analyses or protocols that our own guards then held back &mdash; and one of those "
+               "guards, in turn, briefly excluded a real trial (RE-COVER II) until a positive control caught it. "
+               "We report the corrected 12, not the raw 25, because a number with its correction visible is worth "
+               "more than a bigger one. On <strong>esketamine</strong> this recovery (the Chen 2023 trial the "
+               "metadata had hidden) plus a genuine continuous extractor that combines a trial&rsquo;s dose arms "
+               "against its shared placebo moved the primary result from an interval wide enough to read as "
+               "&lsquo;compatible with no effect&rsquo; to a modest but real benefit that matches the independent "
+               "individual-patient-data meta-analysis &mdash; a conclusion change, built entirely from "
+               "source-verified numbers.</p>"
                "<p>So the honest offer is <strong>the most auditable synthesis, not the most complete one</strong> "
                "&mdash; and where our evidence base was narrower or wrong, the audits caught it precisely "
                "because every number is checkable.</p>"
