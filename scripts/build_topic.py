@@ -23,6 +23,7 @@ from harness.census import build_review_dir  # noqa: E402
 from harness.page import render_page  # noqa: E402
 from harness.index import write_index  # noqa: E402
 from harness.registration import protocol_sha  # noqa: E402
+from harness import registration as _reg  # noqa: E402
 
 SALT = "mh-blind-v1"
 
@@ -69,7 +70,8 @@ def main(slug, now):
     comp_core = build_comparator_core(slug, config, records)
     tok_h, tok_c = _token(slug, "harness"), _token(slug, "comparator")
     ours_final = dict(core, reproduction={"failures": 0, "protocol_sha": protocol_sha,
-                                          "review_sha256": manifest["review_sha256"], "from_cache": True})
+                                          "review_sha256": manifest["review_sha256"], "from_cache": True,
+                                          "preregistration": _reg.preregistration_sha(slug)})
     _write(os.path.join(ROOT, "docs", "m", tok_h, "index.html"), render_page(ours_final, neutral=True))
     _write(os.path.join(ROOT, "docs", "m", tok_c, "index.html"), render_page(comp_core, neutral=True))
     _write(os.path.join(ROOT, "registry", "blind_map.json"), json.dumps(

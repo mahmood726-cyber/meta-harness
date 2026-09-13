@@ -29,6 +29,7 @@ from harness.pipeline import build_review_core  # noqa: E402
 from harness.page import render_page  # noqa: E402
 from harness import census  # noqa: E402
 from harness.registration import protocol_sha as _registration_sha  # noqa: E402
+from harness import registration as _reg  # noqa: E402
 
 
 def _protocol_sha(slug):
@@ -58,7 +59,8 @@ def reproduce(slug):
     # Render the served page exactly as build_topic does: core + reproduction block. The re-search
     # diff (if committed) lives in the reproduction block and is rendered, so replay must load the
     # same committed cache/<slug>/research_diff.json to byte-match — it is stable (measured once).
-    repro = {"failures": 0, "protocol_sha": _protocol_sha(slug), "review_sha256": regen_sha, "from_cache": True}
+    repro = {"failures": 0, "protocol_sha": _protocol_sha(slug), "review_sha256": regen_sha, "from_cache": True,
+             "preregistration": _reg.preregistration_sha(slug)}
     _rd = os.path.join(ROOT, "cache", slug, "research_diff.json")
     if os.path.exists(_rd):
         repro["research_diff"] = json.load(open(_rd, encoding="utf-8"))

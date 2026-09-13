@@ -22,6 +22,7 @@ from typing import Callable, Optional
 
 from .canonical import canonical_json, review_core, review_sha256, sha256_text
 from .page import render_page
+from . import registration
 
 
 def _parity_row(root: str, slug: str):
@@ -98,6 +99,13 @@ def build_review_dir(
         "review_sha256": core_sha,
         "from_cache": from_cache,
     }
+    # PREREGISTRATION vs BUILD (P0, audit 20): the displayed protocol SHA is usually a BUILD commit
+    # (protocol + cache + synthesis + page together), which cannot demonstrate the protocol PRECEDED
+    # synthesis. Resolve a genuine protocol-only prospective-registration commit if one exists, else
+    # record prospective=False honestly. Lives in the reproduction block (outside the core hash).
+    _slug = manifest_meta.get("slug")
+    if _slug:
+        reproduction["preregistration"] = registration.preregistration_sha(_slug)
     # Re-search diff (item 1): committed, outside the core hash by living in 'reproduction', so it can
     # never affect the analysis sha or replay. Present only where scripts/research_diff.py has run.
     _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

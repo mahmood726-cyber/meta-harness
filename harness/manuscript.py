@@ -185,6 +185,24 @@ def render(review, neutral: bool = False) -> str:
     sens = review.get("rob_sensitivity") or {}
     prot = review.get("protocol") or {}
     sha = str(prot.get("sha") or "")[:12]
+    # PREREGISTRATION vs BUILD (audit 20): only claim "committed before synthesis" when a protocol-ONLY
+    # prospective commit actually exists; otherwise state honestly that precedence is not demonstrated.
+    _pre = (review.get("reproduction") or {}).get("preregistration") or {}
+    _prospective = bool(_pre.get("prospective"))
+    _pre_sha = str(_pre.get("sha") or "")[:12]
+    _build_sha = str(_pre.get("build_sha") or prot.get("sha") or "")[:12]
+    if _prospective:
+        reg_phrase = (f"prospectively registered: the protocol was committed in a protocol-only commit "
+                      f"(registration SHA {_e(_pre_sha)}) before synthesis")
+        reg_methods = (f"The protocol (protocol-only commit {_e(_pre_sha)}) was committed before any "
+                       f"synthesis ran; the build replays from SHA {_e(_build_sha)}.")
+    else:
+        reg_phrase = (f"reproducible but NOT prospectively registered in this repository: the protocol first "
+                      f"entered the repository inside a build commit (SHA {_e(_build_sha)}), so precedence of "
+                      f"protocol over synthesis is not demonstrated here")
+        reg_methods = (f"The protocol first entered the repository inside a build commit (SHA {_e(_build_sha)}); "
+                       f"the PICO is fixed and the build is byte-reproducible, but this repository's history "
+                       f"does not demonstrate that the protocol preceded synthesis.")
     n_absent = len(prim.get("declared_absent_trials", []) or [])
 
     # ---- structured abstract ----
@@ -205,8 +223,7 @@ def render(review, neutral: bool = False) -> str:
     abstract = (
         "<h4>Abstract</h4>"
         f"<p><strong>Question.</strong> {_e(q)}</p>"
-        f"<p><strong>Methods.</strong> A prospectively registered, fully reproducible review: the protocol "
-        f"was committed before synthesis (registration SHA {_e(sha)}); a registry-first search was screened "
+        f"<p><strong>Methods.</strong> A fully reproducible review, {reg_phrase}; a registry-first search was screened "
         f"by two independent rule screeners with adjudication ({n_screened} records assessed); every pooled "
         f"number was extracted down a source ladder and verified against its committed source.</p>"
         f"<p><strong>Results.</strong> {result_sentence} "
@@ -224,8 +241,8 @@ def render(review, neutral: bool = False) -> str:
     methods = (
         "<h4>Methods</h4>"
         "<p>This manuscript is generated deterministically from the review object; every number below is "
-        "interpolated from a committed field and is reproducible from the protocol commit. The protocol "
-        f"(SHA {_e(sha)}) was committed before any synthesis ran. Eligibility is by population, intervention, "
+        "interpolated from a committed field and is reproducible from the protocol commit. "
+        f"{reg_methods} Eligibility is by population, intervention, "
         "comparator and design only — never on whether a trial reported the outcome (non-reporters are "
         "declared absent, not screened out). Two independently implemented rule screeners ran with "
         "adjudication. Each pooled value was located in a committed source, its arms checked for correct "

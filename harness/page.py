@@ -669,9 +669,26 @@ def _reproduction(r, neutral):
     reason = _absent(rep)
     if reason:
         return _absent_block(reason)
+    # PREREGISTRATION vs BUILD (audit 20): distinguish a prospective, protocol-ONLY registration commit
+    # from the BUILD commit. The old single "registration SHA" was usually a build commit (protocol +
+    # cache + synthesis + page together), which cannot show the protocol preceded synthesis. State which.
+    pre = rep.get("preregistration") or {}
+    if pre.get("prospective"):
+        prereg_row = (f"prospectively registered at <code>{_e(pre.get('sha'))}</code> "
+                      f"({_e(pre.get('kind'))}) — a protocol-only commit, so the protocol demonstrably "
+                      f"preceded the build")
+    elif pre:
+        prereg_row = ("<strong>NOT demonstrated for this topic</strong> — no protocol-only commit exists; "
+                      "the protocol first entered the repository inside a build commit "
+                      f"(<code>{_e(pre.get('build_sha'))}</code>), so this repository's history does not show "
+                      "the protocol preceding synthesis. The PICO is still fixed and the build is "
+                      "byte-reproducible; only prospective PRECEDENCE is unproven here.")
+    else:
+        prereg_row = None
     body = _kv([
         ("Reproduction census failures", rep.get("failures")),
-        ("Re-run from registration SHA", rep.get("protocol_sha")),
+        ("Prospective registration (protocol before synthesis)", prereg_row),
+        ("Build / replay SHA", (pre.get("build_sha") or rep.get("protocol_sha"))),
         ("Content hash (review core)", rep.get("review_sha256")),
         ("Replayed offline from committed cache", rep.get("from_cache")),
     ])

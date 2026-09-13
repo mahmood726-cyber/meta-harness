@@ -29,6 +29,7 @@ from .canonical import sha256_text
 from .census import verify
 from . import manuscript as _manuscript_mod
 from .registration import protocol_sha as _registration_sha
+from . import registration as _registration
 from .synth import method_text as _method_text
 
 REQUIRED_MANIFEST = ("slug", "declared_method", "served_method", "protocol_sha",
@@ -528,6 +529,32 @@ def check_population_identity(review_dir):
     return reasons
 
 
+def check_preregistration_not_build(review_dir):
+    """A page that CLAIMS prospective registration (reproduction.preregistration.prospective) must cite a
+    PROTOCOL-ONLY commit — one that contains no fetched cache, extracted review, blind pages or index. A
+    commit that added the protocol ALONGSIDE the build cannot show the protocol preceded synthesis (audit
+    20: the displayed SHA was a build commit). If prospective is claimed but the cited SHA is a build
+    commit (or missing), REFUSE. A page that honestly records prospective=False makes no claim and passes."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return []
+    try:
+        rev = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    pre = (rev.get("reproduction") or {}).get("preregistration") or {}
+    if not pre.get("prospective"):
+        return []  # no prospective claim -> nothing to enforce (honestly labelled not-demonstrated)
+    sha = pre.get("sha")
+    if not sha:
+        return ["L1(prereg): prospective registration claimed but no SHA cited"]
+    if _registration.is_build_commit(sha):
+        return [f"L1(prereg): prospective registration cites {sha[:8]} but that commit contains build "
+                "artifacts (cache/review/pages) — a build commit cannot demonstrate the protocol preceded "
+                "synthesis; cite a protocol-only commit or record prospective=False"]
+    return []
+
+
 def check_method_matches_scale(review_dir):
     """The declared analysis-method string must match the scale ACTUALLY pooled — recomputed here
     independently via synth.method_text so the check cannot be a constant compared to itself (the
@@ -594,6 +621,7 @@ def gate_page(review_dir):
                + check_prespecification_in_protocol(review_dir)
                + check_population_identity(review_dir)
                + check_method_matches_scale(review_dir)
+               + check_preregistration_not_build(review_dir)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons
 
