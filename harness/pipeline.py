@@ -412,6 +412,17 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "ci": va_over["ci"], "n2i": va_over["n2i"], "provenance": "aact_verified",
                            "source": va_over.get("source", "hand-verified arm-count correction (override)")})
             continue
+        # CONTINUOUS override (mean/SD/n), incl. multi-arm combination: beats the automated CT.gov path,
+        # which for a 3-arm trial takes a single arm pair and cannot combine dose arms against the shared
+        # placebo (esketamine TRANSFORM-1). Highest-precedence continuous entry for this trial+outcome.
+        if (va_over and va_over.get("override") and va_over.get("outcome") == spec.get("name")
+                and all(va_over.get(k) is not None for k in ("mean1", "sd1", "nc1", "mean2", "sd2", "nc2"))):
+            trials.append({"label": label, "id": idstr,
+                           "mean1": va_over["mean1"], "sd1": va_over["sd1"], "nc1": va_over["nc1"],
+                           "mean2": va_over["mean2"], "sd2": va_over["sd2"], "nc2": va_over["nc2"],
+                           "scale": "MD", "provenance": va_over.get("provenance", "fulltext_verified_arms"),
+                           "source": va_over.get("source", "hand-verified continuous per-arm mean/SD/n (override)")})
+            continue
         ve_over = (verified_effects or {}).get(d["id"])
         if (ve_over and ve_over.get("override") and ve_over.get("outcome") == spec.get("name")
                 and ve_over.get("effect") is not None):
@@ -476,6 +487,19 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "ci": va["ci"], "n2i": va["n2i"],
                            "provenance": va.get("provenance", "aact_verified"),
                            "source": va.get("source", "hand-verified structured arm-level counts")})
+            continue
+        # CONTINUOUS hand-verified arms (mean/SD/n), incl. MULTI-ARM COMBINATION: a multi-arm trial
+        # whose dose arms are combined against the shared placebo (the unit-of-analysis rule) is
+        # extracted here, since the automated CT.gov path takes one arm pair only. esketamine TRANSFORM-1
+        # combines the 56 mg + 84 mg intranasal arms vs the shared placebo. verify_pooled checks the
+        # mean/SD digits against the committed source span (provenance is not abstract/pmc_fulltext).
+        if va and va.get("outcome") == spec.get("name") and all(
+                va.get(k) is not None for k in ("mean1", "sd1", "nc1", "mean2", "sd2", "nc2")):
+            trials.append({"label": label, "id": idstr,
+                           "mean1": va["mean1"], "sd1": va["sd1"], "nc1": va["nc1"],
+                           "mean2": va["mean2"], "sd2": va["sd2"], "nc2": va["nc2"],
+                           "scale": "MD", "provenance": va.get("provenance", "fulltext_verified_arms"),
+                           "source": va.get("source", "hand-verified continuous per-arm mean/SD/n")})
             continue
         # FULL-TEXT-VERIFIED EFFECT (committed): the declared-outcome effect+CI is reported only in
         # the full text and cannot be reduced to unambiguous per-arm counts. provenance is NOT
