@@ -214,6 +214,13 @@ def _invalidation_signals(slug):
             out["known_eligible_missing"] = rows
     except (OSError, ValueError):
         pass
+    try:
+        nc = json.load(open(os.path.join(ROOT, "docs", "never_considered.json"), encoding="utf-8"))
+        rows = (nc.get("topics") or {}).get(slug)
+        if rows:
+            out["never_considered"] = rows
+    except (OSError, ValueError):
+        pass
     return out
 
 
@@ -978,7 +985,10 @@ def build_review_core(slug, config, records, protocol_sha):
     # pooled trial, primary reported-but-not-extracted, an ELIGIBLE trial declared absent, a search
     # source that errored). Poisons the dependent outputs -- the page renders a STALE banner and the
     # index counts STALE topics -- so a known-incomplete/unproven result cannot read as current.
-    review["invalidation"] = invalidation_mod.assess(review, _invalidation_signals(slug))
+    _inv_sig = _invalidation_signals(slug)
+    review["invalidation"] = invalidation_mod.assess(review, _inv_sig)
+    if _inv_sig.get("never_considered"):
+        review["never_considered"] = _inv_sig["never_considered"]
     # COMPATIBILITY KEY: the explicit key each pooled outcome satisfies (effect measure, event
     # process, endpoint, follow-up window, analysis set, randomised contrast). Attached per pooled
     # outcome so the contract that lets its trials be pooled is auditable on the page; a backstop in

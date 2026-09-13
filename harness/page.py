@@ -865,15 +865,36 @@ def _reproduction(r, neutral):
     # scans the rendered page + manuscript and fails closed on any surface that asserts the opposite.
     if cc := rep.get("claim_check"):
         n_con = len(cc.get("contradictions") or [])
+        n_chk = cc.get("claims_checked") or 0
+        # Claims checked: 0 is a FAILING state, not neutral: a page with no pooled claim gives the
+        # canonical-claim gate nothing to fire on, so the WORST evidence page would show the cleanest
+        # gate output. Render it as a limitation (and the invalidation gate treats it as STALE).
+        _zero = ("<div class='absent'><strong>No checkable pooled claim (Claims checked: 0).</strong> "
+                 "Nothing was pooled on this page, so the canonical-claim contradiction gate has nothing "
+                 "to check here — this is a limitation, not a clean result.</div>" if n_chk == 0 else "")
         body += ("<h4>Canonical claim object (one object, every surface)</h4>"
                  "<p>Each stated result on this page &mdash; whether it is statistically significant, "
                  "whether its interval spans no effect &mdash; is derived from a single claim object, "
                  "not recomputed per surface. At build the rendered page and manuscript are scanned for "
                  "any wording that asserts the opposite of that object; the build is refused on a "
-                 f"contradiction. <strong>Claims checked: {_e(cc.get('claims_checked'))}; "
+                 f"contradiction. <strong>Claims checked: {_e(n_chk)}; "
                  f"contradictions caught: {n_con}.</strong>"
                  + ("" if n_con == 0 else " " + _e(json.dumps(cc.get("contradictions"))))
-                 + "</p>")
+                 + "</p>" + _zero)
+    # NEVER_CONSIDERED (fifth trial state): in-scope trials absent from every identifier space — never
+    # retrieved, so invisible to screening/PRISMA/declared-absent unless shown here. The true search gap.
+    nc = r.get("never_considered")
+    if nc:
+        _nrows = "".join(
+            f"<li><strong>{_e(x.get('trial'))}</strong>"
+            + (f" (NCT {_e(x.get('nct'))})" if x.get('nct') else "")
+            + (f" (PMID {_e(x.get('pmid'))})" if x.get('pmid') else "")
+            + (f" — {_e(x.get('note'))}" if x.get('note') else "") + "</li>" for x in nc)
+        body += ("<h4>Never considered (a fifth state — the true search gap)</h4>"
+                 "<p>These trials are verified in-scope under the registered PICO yet were absent from "
+                 "EVERY identifier space in this review — not screened, not excluded, not declared absent, "
+                 "simply never retrieved. They are invisible to the STALE count, PRISMA and the "
+                 f"declared-absent census unless named here:<ul>{_nrows}</ul></p>")
     # PROTOCOL COMPILER (two independent sources): show where the PROSE protocol and the executable
     # config disagree. A check that reads only the config it certifies cannot fail; this reads both.
     pc = r.get("protocol_config") or {}

@@ -26,12 +26,36 @@ def test_primary_reported_not_extracted_is_stale():
     assert v["stale"] and any(r["code"] == "primary_reported_not_extracted" for r in v["reasons"])
 
 
-def test_eligible_declared_absent_is_stale():
+def test_eligible_declared_absent_object_derived():
+    # OBJECT-DERIVED predicate: screened-in (decision=include) but not in the pooled set -> STALE.
     core = {"outcomes": [{"primary": True, "result": {"k": 1, "estimate": 0.9},
-                          "declared_absent_trials": [
-                              {"id": "40000000", "reason": "ELIGIBLE under the registered broad PICO ..."}]}]}
+                          "trials": [{"id": "PMID 111"}]}],
+            "screening": {"records": [{"id": "AAA · 111", "decision": "include"},
+                                      {"id": "BBB · 222", "decision": "include"}]}}
     v = INV.assess(core)
     assert v["stale"] and any(r["code"] == "eligible_declared_absent" for r in v["reasons"])
+
+
+def test_all_screened_in_pooled_is_not_eligible_declared_absent():
+    # Every include record is pooled -> no eligible_declared_absent (id-normalisation across formats).
+    core = {"outcomes": [{"primary": True, "result": {"k": 1, "estimate": 0.9},
+                          "trials": [{"id": "PMID 111"}]}],
+            "screening": {"records": [{"id": "AAA · 111", "decision": "include"},
+                                      {"id": "CCC · 333", "decision": "exclude"}]}}
+    assert not any(r["code"] == "eligible_declared_absent" for r in INV.assess(core)["reasons"])
+
+
+def test_no_checkable_claim_is_stale():
+    core = {"outcomes": [{"primary": True, "result": {"present": False, "reason": "none"}}]}
+    v = INV.assess(core)
+    assert v["stale"] and any(r["code"] == "no_checkable_claim" for r in v["reasons"])
+
+
+def test_never_considered_signal_is_stale():
+    core = {"outcomes": [{"primary": True, "result": {"k": 1, "estimate": 0.9}, "trials": [{"id": "PMID 1"}]}],
+            "screening": {"records": [{"id": "PMID 1", "decision": "include"}]}}
+    v = INV.assess(core, {"never_considered": [{"trial": "J-EMPHASIS-HF", "nct": "NCT01115855"}]})
+    assert v["stale"] and any(r["code"] == "never_considered" for r in v["reasons"])
 
 
 def test_search_source_errored_is_stale():

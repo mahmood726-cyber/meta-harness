@@ -26,6 +26,39 @@ def _primary(core):
     return next((o for o in outs if o.get("primary")), (outs[0] if outs else None))
 
 
+def _norm_id(x):
+    """Normalise an id token so a screening record (often 'ACRONYM · 12345678') and a pooled trial
+    ('PMID 12345678') compare equal: take the trailing identifier token, strip a PMID/NCT prefix."""
+    s = str(x or "").strip()
+    if "·" in s:
+        s = s.split("·")[-1].strip()
+    s = s.replace("PMID ", "").replace("PMID:", "").strip()
+    return s.split()[-1].strip() if s.split() else s
+
+
+def _present(res):
+    return bool(isinstance(res, dict) and not res.get("suppressed_incompatible")
+               and res.get("present") is not False and res.get("estimate") is not None)
+
+
+def _eligible_not_pooled(core):
+    """Records screened-in (decision=include) but not pooled in ANY outcome — object-derived."""
+    pooled = set()
+    for o in (core.get("outcomes") or []):
+        for t in (o.get("trials") or []):
+            pooled.add(_norm_id(t.get("id") or t.get("label")))
+    out = []
+    for r in ((core.get("screening") or {}).get("records") or []):
+        if r.get("decision") != "include":
+            continue
+        nid = _norm_id(r.get("id"))
+        if nid and nid not in pooled:
+            out.append(r.get("id"))
+    # stable, de-duplicated
+    seen = set()
+    return [x for x in out if not (x in seen or seen.add(x))]
+
+
 def assess(core, signals=None):
     """signals (optional): externally-computed, committed, per-topic signals the core does not carry
     on its own -- {'search_not_executed': {'class':..., 'detail':...} | None,
@@ -50,6 +83,15 @@ def assess(core, signals=None):
                         "detail": "a trial identified as eligible under the registered PICO is not pooled ("
                                   + names + (", and others" if len(kem) > 6 else "")
                                   + ") — the pooled result and completeness claim cannot be current"})
+    # 0c. NEVER_CONSIDERED: a trial verified in-scope but absent from every identifier space in the
+    #     corpus (not screened, not excluded, not declared absent). The true search-failure measure.
+    ncr = signals.get("never_considered") or []
+    if ncr:
+        names = ", ".join(str(x.get("trial")) for x in ncr[:6])
+        reasons.append({"code": "never_considered",
+                        "detail": "an in-scope trial was NEVER retrieved (absent from every identifier space): "
+                                  + names + " — invisible to screening/PRISMA/declared-absent; the search is "
+                                  "demonstrably incomplete"})
     # 1. Retraction / expression of concern among the POOLED trials.
     integ = core.get("integrity") or {}
     retr = list(integ.get("retracted") or [])
@@ -71,17 +113,25 @@ def assess(core, signals=None):
         reasons.append({"code": "primary_reported_not_extracted",
                         "detail": "the primary outcome is reported by trials that could not be pooled ("
                                   + ", ".join(str(x) for x in rb[:5]) + ") — the pooled k is known-incomplete"})
-    # 3. A screened-in trial explicitly flagged ELIGIBLE yet declared absent from the pool.
-    elig = []
-    for o in (core.get("outcomes") or []):
-        for a in (o.get("declared_absent_trials") or []):
-            r = (a.get("reason") or "")
-            if r.strip().upper().startswith("ELIGIBLE"):
-                elig.append(str(a.get("id") or a.get("label")))
+    # 3. ELIGIBLE-DECLARED-ABSENT, OBJECT-DERIVED (read-only session's predicate, better than a curated
+    #    list or a reason-string match that rots when reworded): a record whose COMMITTED SCREENING
+    #    decision is 'include' but which is NOT in the pooled set of any outcome is an eligible trial the
+    #    pool does not contain -- the completeness claim cannot be current. Derived from the object, so it
+    #    catches prose-only admissions (colchicine-postop, probiotics) the reason-string match missed.
+    elig = _eligible_not_pooled(core)
     if elig:
         reasons.append({"code": "eligible_declared_absent",
-                        "detail": "a screened-in trial is flagged ELIGIBLE under the registered PICO yet not "
-                                  "pooled (" + ", ".join(dict.fromkeys(elig))[:120] + ")"})
+                        "detail": "screened-in (decision=include) but not pooled in any outcome — eligible "
+                                  "trials the pool does not contain: " + ", ".join(elig[:6])
+                                  + (f", and {len(elig)-6} more" if len(elig) > 6 else "")
+                                  + "; the completeness claim cannot be current"})
+    # 3b. A page with NO checkable pooled claim renders 'Claims checked: 0' -- the canonical-claim gate
+    #     cannot fire, so a clean-looking output on the WORST page. That is a failing state, not neutral.
+    if not any(_present(o.get("result")) for o in (core.get("outcomes") or [])):
+        reasons.append({"code": "no_checkable_claim",
+                        "detail": "no outcome produced a pooled claim (Claims checked: 0) — the canonical-claim "
+                                  "gate cannot fire here, so a page with the weakest evidence would otherwise "
+                                  "show the cleanest gate output; treated as a limitation, not a pass"})
     # 4. A search source errored (retrieval completeness unproven, distinct from RAN_ZERO). Suppressed
     #    when search_not_executed already fired for this topic -- that is the same fact, stated once.
     ss = (core.get("search") or {}).get("source_status") or {}
