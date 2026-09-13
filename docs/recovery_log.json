@@ -10,7 +10,8 @@
   "scope_pending": 2,
   "blocked_by_matcher_resolved": 1,
   "note": "corrections are NOT systematically flattering: of 5 recoveries, 2 tightened and 3 weakened (1 lost significance, 2 moved toward null); 2 refused on source; 1 held on scope. This is the harness getting more honest as the evidence base completes. [+TECOS BLOCKED_BY_ACCESS: abstract 4-point != topic 3-point MACE; 3-point is a paywalled full-text secondary, unverifiable] [+41663239 REFUSED (pediatric, not mortality); +REMAP-CAP SCOPE_PENDING (90-day vs 30-day/in-hospital + influenza)]",
-  "blocked_by_access": 1
+  "blocked_by_access": 1,
+  "refusals_outnumber_recoveries": "6 not-integrated of 11 attempted > 5 recovered -- a pipeline that only ever adds evidence is indistinguishable from one that adds anything it can parse"
  },
  "attempts": [
   {
@@ -156,5 +157,40 @@
    "TECOS (blocked-by-access, unverified)",
    "colchicine-postop / semaglutide-weight / noac-warfarin (audit-computed, not yet source-verified+landed by me)"
   ]
- }
+ },
+ "provenance_rule": {
+  "_doc": "HARD DISTINCTION (project-defining correction): an AUDIT-COMPUTED counterfactual is a HYPOTHESIS, not a result. Only a source-verified, landed, rebuilt change counts. No audit_claimed figure may appear in any rendered count, artefact, or paper table.",
+  "source_verified_landed_significance_flips": {
+   "count": 2,
+   "trials": [
+    "Torres (corticosteroids-cap 0.525->0.546)",
+    "PHILO (ticagrelor 0.84->1.05)"
+   ]
+  },
+  "audit_claimed_but_not_verified_or_landed": [
+   "ICAP (WITHDRAWN, fabricated)",
+   "TECOS (BLOCKED_BY_ACCESS, unverified)",
+   "colchicine-postop / semaglutide-weight / noac-warfarin / dpp4-3pt (audit-computed, not yet source-verified+landed)"
+  ],
+  "earlier_relayed_count": "7-9 (audit-computed, inflated)",
+  "corrected_count": 2
+ },
+ "gate_caught_its_own_author": [
+  {
+   "gate": "compatibility key / composite guard (commit 3)",
+   "event": "prevented pooling TECOS abstract 4-point HR 0.98 as the topic 3-point MACE -- a gate shipped tonight stopped a wrong pool tonight"
+  },
+  {
+   "gate": "invalidation dependency rule",
+   "event": "refused the commit when editing never_considered.json left the cortic-cap page stale; rebuilt rather than bypassed -- the invalidation architecture working against its own author"
+  },
+  {
+   "gate": "parity gate",
+   "event": "refused the SOUL commit until parity.our_k matched the new pooled k=8"
+  },
+  {
+   "gate": "verify limb",
+   "event": "refused the J-EMPHASIS commit until the arm sizes n=111/110 were located in the committed source span"
+  }
+ ]
 }
