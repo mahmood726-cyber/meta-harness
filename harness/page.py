@@ -45,6 +45,18 @@ def _num(x: Any) -> str:
     return _e(x)
 
 
+def _tau(x: Any) -> str:
+    # RETRACTION #7 (round-2 sglt2-ckd): a rounded display must not imply a different value from the one used
+    # downstream. tau2=0.00134 was shown as "0" by the 2-dp _num, and GRADE reads tau2==0 to decline an
+    # inconsistency downgrade — so the display drove a judgement off a value it misrepresented. Show tau2 with
+    # 3 significant figures, and mark a genuine non-zero that would round to 0.
+    if not isinstance(x, (int, float)):
+        return _e(x)
+    if x == 0:
+        return "0"
+    return f"{x:.3g}" + (" (non-zero; not 0)" if 0 < x < 0.005 else "")
+
+
 def _absent(section: Any):
     if section is None:
         return "not declared in the review object"
@@ -165,7 +177,7 @@ def _overview(r, neutral):
             if res.get("pi_low") is not None:
                 rows.append(("Prediction interval", f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}"))
             if res.get("tau2") is not None:
-                rows.append(("Between-study τ²", _num(res.get("tau2"))))
+                rows.append(("Between-study τ²", _tau(res.get("tau2"))))
             rows.append(("Method", prim.get("method") or r.get("method_declared")))
             parts.append(_kv(rows))
     if not neutral:
@@ -174,10 +186,14 @@ def _overview(r, neutral):
             _pct = round(100 * _tok / _ttot)
             parts.append(
                 "<h3>Transparency (independently checkable)</h3>"
-                f"<p><strong>{_e(_tok)} of {_e(_ttot)} numerical claims on this page ({_pct}%) carry a "
-                "one-click source</strong> a reader can open to check independently — each pooled number "
-                "its PMID/NCT and verbatim span, each declared-absent trial its reason, each risk-of-bias "
-                "domain the structured field it read, the reproduction its protocol SHA and replay result. "
+                f"<p><strong>{_e(_tok)} of {_e(_ttot)} numerical claims on this page ({_pct}%) carry a source "
+                "IDENTIFIER</strong> (a PMID/NCT/span/field). <strong>RETRACTED claim (round-2):</strong> we "
+                "previously called these 'one-click sources' a reader can open — that is not verified: the "
+                "identifiers are NOT rendered as resolving hyperlinks, and at least one PMCID was found to "
+                "point to an unrelated article. Until every identifier is fetched and confirmed to resolve to "
+                "the cited work, this is a count of identifiers present, not of sources that resolve. Each "
+                "pooled number carries its PMID/NCT and verbatim span; each declared-absent trial its reason; "
+                "each risk-of-bias domain the field it read; the reproduction its protocol SHA and replay. "
                 f"The published comparator exposes {_e(_tcomp)} such claim(s) — its reported estimate(s) with "
                 "one citation; its per-trial inputs are not machine-exposed. "
                 "<span class='muted'>Score: scripts/transparency_score.py (committed docs/transparency.json).</span></p>")
@@ -567,7 +583,7 @@ def _outcome_block(o, show_inputs=True):
               f"{_num(res.get('ci_low_fixed'))}–{_num(res.get('ci_high_fixed'))}"
               if res.get("ci_low_fixed") is not None else None)),
             ("Prediction interval", (f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}" if res.get('pi_low') is not None else None)),
-            ("τ²", _num(res.get("tau2")) if res.get("tau2") is not None else None),
+            ("τ²", _tau(res.get("tau2")) if res.get("tau2") is not None else None),
             ("Note", res.get("pi_note")),
             ("Small-k note", res.get("fixed_note")),
             ("Composite heterogeneity", res.get("composite_heterogeneity")),
