@@ -968,9 +968,16 @@ def _riskofbias(r, neutral):
         lines = [f"<tr><td>Full pool (all pooled trials)</td><td>{_fmt(f)}</td></tr>"]
         if sens.get("any_high"):
             lines.append(f"<tr><td>Excluding high risk of bias</td><td>{_fmt(dh)}</td></tr>")
-        lines.append(f"<tr><td>Low risk of bias only</td><td>{_fmt(lo)}"
-                     + ("" if sens.get("low_only_informative") else " <em>(not informative &mdash; see coverage)</em>")
-                     + "</td></tr>")
+        # An EMPTY low-risk-only subgroup is NOT ESTIMABLE, never 'no difference' / agreement: with no
+        # pooled trial qualifying as low risk, the re-pool cannot be computed at all. Render it as such.
+        if not lo:
+            low_cell = ("<strong>NOT ESTIMABLE</strong> &mdash; no pooled trial qualifies as low risk of "
+                        "bias, so this stratum has no trials to re-pool (an empty subgroup is not agreement "
+                        "with the full pool)")
+        else:
+            low_cell = _fmt(lo) + ("" if sens.get("low_only_informative")
+                                   else " <em>(fewer trials than the full pool &mdash; see coverage)</em>")
+        lines.append(f"<tr><td>Low risk of bias only</td><td>{low_cell}</td></tr>")
         sens_html = ("<h4>Risk-of-bias sensitivity (re-pooled with the same estimator)</h4>"
                      "<div class='absent'><strong>Does the result survive dropping the trials that are not "
                      "low risk of bias?</strong> The primary outcome is re-pooled by risk-of-bias stratum "
@@ -1002,6 +1009,10 @@ def _riskofbias(r, neutral):
             drows.append(f"<tr><td>{_e(lab)}</td><td>{mark}</td><td>{_e(dv.get('basis',''))}</td></tr>")
         cap = (" The rating is capped below <em>high</em> because risk of bias is not assessed for every "
                "pooled trial." if g.get("certainty_capped_by_rob_coverage") else "")
+        if g.get("certainty_capped_d3_unassessed"):
+            cap += (" The rating is capped below <em>high</em> because D3 (missing outcome data), a required "
+                    "risk-of-bias domain, is NOT ASSESSED for any pooled trial (no outcome-missingness "
+                    "source) — high certainty cannot be certified on a structurally-incomplete bias assessment.")
         if g.get("certainty") == "not_rateable":
             grade_html = ("<h4>GRADE certainty — NOT RATEABLE</h4>"
                           "<div class='absent'><strong>Overall certainty: not rateable.</strong> "
@@ -1047,8 +1058,14 @@ def _riskofbias(r, neutral):
             f"({_e(rb.get('source') or 'AACT registry fields')}). <strong>Domain 5 (selective reporting)</strong> "
             "is computed from the trial's REGISTERED primary outcome vs the outcome we pooled — a machine-checkable "
             "signal most published meta-analyses do not report. D1/D2/D4 use AACT structured allocation/masking "
-            "fields. D3 (missing outcome data) and the risk-of-bias judgements that need human reading are marked "
-            "<em>not assessed — requires human judgement</em>: partial-but-honest, never guessed. Hover a cell "
+            "fields. <strong>D3 (missing outcome data) is NOT ASSESSED for any trial — a stated limitation, not "
+            "a per-trial judgement</strong>: the harness has no outcome-missingness evidence source (study "
+            "discontinuation is not outcome missingness), so D3 is structurally unassessable here and is never "
+            "rated; the attrition figures are shown as context only. This caps overall GRADE certainty below "
+            "<em>high</em> corpus-wide (a required bias domain is unassessed), and it would be fixed by a "
+            "committed outcome-missingness source (AACT <code>milestones</code> / the publication's flow "
+            "diagram: analysed-vs-randomised at the outcome). Other risk-of-bias judgements that need human "
+            "reading are likewise marked <em>not assessed</em>: partial-but-honest, never guessed. Hover a cell "
             "for its basis.</p>"
             f"<table class='recs'>{head}{rows_join(rows)}</table>"
             + sens_html + grade_html)

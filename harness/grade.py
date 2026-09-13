@@ -250,6 +250,21 @@ def grade(review, ghost=None):
     if (res.get("k") or 0) <= 1 and idx == 0:
         idx = 1
         single_trial_capped = True
+    # D3-UNASSESSED CAP (audits 20/21): D3 (missing outcome data) is a REQUIRED RoB2 domain, and the
+    # harness has no outcome-missingness evidence source, so it is permanently NOT ASSESSED for every
+    # pooled trial. A body of evidence whose bias assessment is structurally incomplete on a required
+    # domain cannot be certified HIGH certainty -- cap at moderate, with the named reason, until an
+    # outcome-missingness source (AACT milestones / publication flow) makes D3 assessable. Data-driven:
+    # if D3 is ever assessed for a pooled trial, the cap lifts automatically.
+    _rob2_trials = (review.get("rob2") or {}).get("trials") or {}
+    prim_trials = (prim or {}).get("trials", []) or []
+    d3_levels = [((_rob2_trials.get(str(t.get("label"))) or {}).get("domains") or {}).get("D3_missing_outcome_data", {}).get("level")
+                 for t in prim_trials]
+    d3_all_unassessed = bool(d3_levels) and all(lv == "not assessed" for lv in d3_levels)
+    d3_capped = False
+    if d3_all_unassessed and idx == 0:
+        idx = 1
+        d3_capped = True
     return {
         "start": "high",
         "domains": {
@@ -265,6 +280,7 @@ def grade(review, ghost=None):
         "certainty": CERT[idx],
         "certainty_capped_by_rob_coverage": capped,
         "certainty_capped_single_trial": single_trial_capped,
+        "certainty_capped_d3_unassessed": d3_capped,
         "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication "
                  "bias are computed from committed fields; indirectness is left to human judgement.",
     }
