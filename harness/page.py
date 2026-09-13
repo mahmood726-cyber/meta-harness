@@ -771,6 +771,13 @@ def _reporting(r, neutral):
     res = (prim or {}).get("result") or {}
     dual = scr.get("dual")
     has_pi = res.get("pi_low") is not None
+    # PRISMA item 24 must be driven by the SINGLE preregistration state (reproduction.preregistration),
+    # the same field the Reproducibility row and the manuscript use — never a hardcoded "committed before
+    # synthesis" (audit 24/26: that claim drifted from the honest prospective=False sites).
+    _pre = (r.get("reproduction") or {}).get("preregistration") or {}
+    _prosp = bool(_pre.get("prospective"))
+    _pre_sha = str(_pre.get("sha") or "")[:10]
+    _build_sha = str(_pre.get("build_sha") or prot.get("sha") or "")[:10]
     items = [
         ("5 Eligibility criteria", bool(prot.get("eligibility")),
          "Protocol tab — generated from the structured include object (P/I/C/design), so declared == enforced.",
@@ -818,8 +825,12 @@ def _reporting(r, neutral):
          "Screening tab — every excluded record lists its rule id, a reason true of the record, and a verbatim span.",
          "no per-record exclusions"),
         ("24a-c Registration & protocol", bool(prot.get("sha")),
-         f"Protocol + Reproducibility tabs — registered at commit SHA {str(prot.get('sha'))[:10]}, committed before synthesis, "
-         "eligibility generated from the structured object.",
+         (f"Protocol + Reproducibility tabs — prospectively registered at protocol-only commit SHA "
+          f"{_pre_sha}, committed before synthesis; eligibility generated from the structured object."
+          if _prosp else
+          f"Protocol + Reproducibility tabs — the protocol first entered the repository inside a BUILD commit "
+          f"(SHA {_build_sha}), so the build is byte-reproducible but prospective precedence is NOT demonstrated "
+          "here; eligibility is generated from the structured object."),
          "no registration SHA"),
     ]
     rows = []
@@ -926,14 +937,26 @@ def _riskofbias(r, neutral):
                     or f.get("type") == "mixed" or f.get("note"))
         n_ns_ft = sum(1 for f in fund if (f.get("type") or "").startswith("not stated (full text"))
         n_ns_ab = sum(1 for f in fund if (f.get("type") or "").startswith("not stated (abstract"))
+        # UNKNOWN must not be folded into the negative denominator (audit 23): the industry-funded fraction
+        # is over trials whose funding is KNOWN (industry / mixed / public / non-profit, or an industry
+        # drug-supply tie), NOT over the whole pool. "not stated" and "declared (source unclassified)" are
+        # unknown for the industry property and are reported separately, never as "not industry-funded".
+        def _fund_known(f):
+            t = (f.get("type") or "")
+            return (t.startswith("industry") or t == "mixed" or t.startswith("public")
+                    or t.startswith("non-profit") or bool(f.get("note")))
+        n_known = sum(1 for f in fund if _fund_known(f))
+        n_unknown = len(fund) - n_known
         fund_html = ("<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled "
                      "trial, from source — disclosed, not adjusted).</strong> Industry-funded trials are a "
                      "documented reporting-bias dimension (they tend to report more favourable results). For "
                      "each pooled trial the funding source is classified from a verbatim statement in the "
                      "committed source (full text preferred, abstract fallback), including an industry "
                      "<em>drug-supply</em> tie in an otherwise independently funded trial: "
-                     f"<strong>{n_ind} of {len(fund)}</strong> pooled trials are industry-funded or "
-                     "industry-tied (the industry-funded proportion of this pool, for comparison against a "
+                     f"<strong>{n_ind} of {n_known} known</strong> ({n_unknown} unknown) pooled trials are "
+                     "industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN "
+                     "funding — unknown-funding trials are reported separately below, not counted as "
+                     "independently funded — for comparison against a "
                      "comparator's). Absence is labelled by how "
                      f"deeply we looked — {n_ns_ft} with no funding statement in the <strong>full text</strong> "
                      f"(genuinely silent) and {n_ns_ab} where only the <strong>abstract</strong> was available "

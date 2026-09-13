@@ -117,3 +117,28 @@ def test_me32_is_now_rendered_and_no_unchecked_remain():
     assert EL.not_checked() == [], f"unexpected NOT_CHECKED entries: {EL.not_checked()}"
     s = EL.summary()
     assert s.get("NOT_CHECKED", 0) == 0
+
+
+def test_funding_fraction_excludes_unknown_from_denominator():
+    """UNKNOWN funding must not be folded into the non-industry denominator (audit 23): the headline
+    industry-funded fraction is over trials with KNOWN funding, and unknowns are reported separately."""
+    import json
+    import glob
+    from harness import page
+    checked = 0
+    for f in glob.glob(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                    "docs", "reviews", "*", "review.json")):
+        r = json.load(open(f, encoding="utf-8"))
+        fund = r.get("funding") or []
+        if not fund:
+            continue
+        html = page._riskofbias(r, False)
+        n_known = sum(1 for x in fund if ((x.get("type") or "").startswith(("industry", "public", "non-profit"))
+                                          or x.get("type") == "mixed" or x.get("note")))
+        n_unknown = len(fund) - n_known
+        if n_unknown:
+            checked += 1
+            # the page must never present the full pool as the industry denominator when unknowns exist
+            assert f"of {len(fund)}</strong> pooled trials are industry" not in html, os.path.basename(os.path.dirname(f))
+            assert f"of {n_known} known" in html and f"({n_unknown} unknown)" in html, os.path.basename(os.path.dirname(f))
+    assert checked > 0, "no topic with unknown funding found — test would be vacuous"
