@@ -313,11 +313,14 @@ def render(review, neutral: bool = False) -> str:
     # ---- data availability ----
     data = (
         "<h4>Data availability & reproduction</h4>"
-        f"<p>The committed cache, protocol (SHA {_e(sha)}) and code regenerate this review byte-for-byte "
-        "offline. Rebuild with a single command:</p>"
-        f"<pre>python scripts/build_topic.py {_e(review.get('slug'))}</pre>"
-        "<p>Every pooled number is verified against its committed source and gate-enforced; a fresh clone "
-        "reproduces the served page exactly.</p>"
+        f"<p>The committed cache and code regenerate this review from the committed cache as-is "
+        f"(<code>python scripts/build_topic.py {_e(review.get('slug'))}</code>). "
+        "<strong>RETRACTED (round-2): we do NOT currently claim byte-for-byte reproduction from the protocol "
+        f"SHA {_e(sha)}.</strong> Direct testing showed the build consumes mutable post-registration state not "
+        "pinned in any committed manifest, so re-running at the protocol SHA does not regenerate this page. "
+        "'Deterministic replay establishes that the same cache produces the same page; it does not validate "
+        "search completeness or extraction.' A pinned build manifest is required before any byte-for-byte or "
+        "single-command reproduction claim can be restored.</p>"
     )
 
     banner = ("<div class='banner'>This manuscript is <strong>generated from the review object</strong> — "

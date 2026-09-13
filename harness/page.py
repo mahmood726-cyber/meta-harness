@@ -807,14 +807,15 @@ def _reproduction(r, neutral):
                  "yet deliberately did not pool. Honest k over inflated k: a named refusal is a result.</p>"
                  "<table class='arms'><tr><th>Trial</th><th>What was verified</th>"
                  f"<th>Why it was not pooled</th></tr>{rows}</table>")
-    body += ("<div class='banner'><strong>What this reproduction claim covers — and what it does not.</strong> "
-             "It proves DETERMINISTIC REPLAY: re-running from the registration SHA on a fresh clone replays "
-             "the committed cache and regenerates this page byte-for-byte (same inputs → same output). It does "
-             "NOT claim independent REPEATABILITY — that a fresh literature search run today would retrieve the "
-             "same trial set. Search databases update, records are added and revised, so the retrieved set can "
-             "drift; the committed queries are printed verbatim on the Search tab so anyone can re-run them, and "
-             "'re-search mode' (scripts/research_diff.py) measures the drift explicitly rather than assuming none. "
-             "This is the honest form of 'living, not frozen': the analysis is frozen and auditable; the literature is not.</div>")
+    body += ("<div class='absent'><strong>RETRACTED (round-2): reproducibility claim not currently supported.</strong> "
+             "We previously claimed that re-running from the registration SHA on a fresh clone regenerates this page "
+             "byte-for-byte. Direct testing falsified that: running the advertised command changed several canonical "
+             "output files, and running it AT the registered SHA produced an essentially empty review because the "
+             "build consumes MUTABLE POST-REGISTRATION STATE (later caches, extraction state, adapter outputs) that "
+             "is NOT pinned in any committed manifest. Until every build input is pinned in a committed manifest with "
+             "hashes and the build runs from that manifest, this page does NOT claim byte-for-byte reproduction from "
+             "the protocol SHA — only that the analysis is deterministic given the committed cache as-is. Independent "
+             "REPEATABILITY (a fresh search retrieving the same set) was never claimed and is not claimed now.</div>")
     return body
 
 
