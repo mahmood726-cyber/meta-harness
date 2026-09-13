@@ -281,6 +281,14 @@
    "where": "harness/compat.py, pipeline attaches outcome.compat_key, page renders it, census backstop",
    "corpus_reach": 32,
    "evidence": "MEASURED (live: glp1-ra-mace compatibility-key table shows \"0 of 7 pooled trials\" registry-confirmed; 48 pools keyed, 0 hard mismatches, 13 disclose unverified contrast; 0 estimates moved) | to-spec: iv-iron counterfactual live \"would have been 0.61 (0.01-51.59)\" INVALID; 6 per-field plants + 3 positive controls (finerenone/sglt2-ckd/glp1) pass; both directions: 1 refused, 0 newly-passing"
+  },
+  {
+   "audit": "architecture (Mahmood gate 5)",
+   "class": "ARMCONTRAST_INTO_SCREENING — randomised-contrast check moved from post-pool to eligibility; confirmed non-contrasts evicted (X-CONTRAST)",
+   "state": "LANDED_AND_LIVE",
+   "where": "harness/screen.py X-CONTRAST + docs/contrast_evictions.json + pipeline injection",
+   "corpus_reach": 32,
+   "evidence": "MEASURED (live: SoSTART evicted on noac-warfarin; 2 evictions (Palomba 15472166, SoSTART), both screened-in-not-pooled so eligible count corrected, 0 estimates moved; confirmed-only, unverified_no_contrast NOT used to avoid dropping valid trials)"
   }
  ],
  "self_found_vs_audit_found": {
@@ -296,10 +304,11 @@
   "note": "first run where any defect was self-found before the audit; audits still find almost everything."
  },
  "summary": {
-  "LANDED_AND_LIVE": "12 of 35",
+  "LANDED_AND_LIVE": "13 of 36",
   "topics_fully_rebuilt": "32 of 32 (at working-tree HEAD, incl. the un-committed IRR-typing rebuild; 32 of 32 also at committed fa2b45d without IRR-typing)",
   "fixes_landed_in_code_but_not_in_pages": "0 committed fixes are page-stale (the reproduce-all gate forbids it, and the aggregate-artefact staleness that bit audits 25-27 is now closed + guarded by the leak scanner); 1 fix (IRR-typing) is landed-in-code-and-rebuilt-in-pages but NOT YET COMMITTED (a distinct IN_PROGRESS state, not code-vs-page staleness)",
   "corpus_currency": "25 of 32 current, 7 of 32 STALE (6 search-source-errored, 1 eligible-declared-absent) as of 117f3473",
-  "stale_reconciled": "18 of 32 STALE (was 7; known_eligible_missing + search_not_executed wired) LIVE"
+  "stale_reconciled": "18 of 32 STALE (was 7; known_eligible_missing + search_not_executed wired) LIVE",
+  "pinned_audit_identity": "LIVE (content hash in every page header)"
  }
 }
