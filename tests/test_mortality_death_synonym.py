@@ -65,3 +65,16 @@ def test_bare_token_not_broadened():
 def test_variant_swap_both_directions():
     assert "in-hospital mortality" in E._mort_variants("in-hospital death")
     assert "28-day death" in E._mort_variants("28-day mortality")
+
+
+def test_hyphen_insensitive_disease_keyword():
+    # a multi-word DISEASE keyword matches its hyphenated surface form (Fish-Oil/PISCES class)
+    assert E._kw_in_sentence("fish oil", "the fish-oil group had fewer events")
+    assert E._kw_in_sentence("heart failure hospitalisation", "heart-failure hospitalisation was reduced")
+
+
+def test_generic_anchor_is_NOT_hyphen_broadened():
+    # the generic 'primary outcome' anchor must stay EXACT -- hyphen-broadening it pooled ELIXA's
+    # 4-point primary composite into a 3-point MACE topic (its HR sentence names no components).
+    assert not E._kw_in_sentence("primary outcome", "a primary-outcome event occurred")
+    assert not E._kw_in_sentence("primary end point", "a primary end-point event occurred")

@@ -93,6 +93,15 @@ def _kw_in_sentence(k, sl):
     kl = k.lower()
     if kl in sl:
         return True
+    # HYPHEN/SPACE-INSENSITIVE (vocabulary blind-spot, the Fish-Oil/PISCES class): a multi-word
+    # DISEASE keyword must match its hyphenated surface form ("fish oil" vs "fish-oil"). Deliberately
+    # NOT applied to the GENERIC "primary outcome/endpoint" anchors: hyphen-broadening the anchor
+    # pooled ELIXA's FOUR-point primary composite into a three-point MACE topic (its HR sentence names
+    # no components, so the composite guard cannot catch it) -- the anchor must stay exact.
+    if (" " in kl or "-" in kl) and kl not in GENERIC_ANCHORS:
+        kh = kl.replace("-", " ")
+        if " " in kh and kh in sl.replace("-", " "):
+            return True
     if " " in kl:
         return any(v in sl for v in _mort_variants(kl))
     return False

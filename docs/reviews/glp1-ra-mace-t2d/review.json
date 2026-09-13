@@ -11,7 +11,7 @@
     "text": "# Protocol - GLP-1 receptor agonists for 3-point MACE in type 2 diabetes\n\n**Registration.** The commit that adds this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with type 2 diabetes.\n- **I** - GLP-1 receptor agonist therapy (liraglutide, semaglutide, dulaglutide,\n  albiglutide, efpeglenatide, exenatide, or lixisenatide) added to usual care.\n- **C** - placebo added to usual care.\n- **O (primary)** - 3-point major adverse cardiovascular events, defined as cardiovascular\n  death, nonfatal myocardial infarction, or nonfatal stroke.\n- **O (harms / secondary)** - gastrointestinal adverse events, discontinuation for adverse\n  events, and any further harm outcome the resolved comparator reports.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio (HR), GLP-1 receptor agonist vs placebo.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / longest primary cardiovascular outcome follow-up.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is adults with type 2 diabetes, judged from the title or registry\n  conditions;\n- **I3** - a GLP-1 receptor agonist vs placebo contrast;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (e.g. obesity without diabetes, type 1 diabetes, or gestational\n  diabetes);\n- **X3** - wrong intervention/comparison (no GLP-1 receptor agonist-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports 3-point MACE, or gives\n> a 2x2 vs only an effect+CI, is recorded as target-result status at extraction - never as\n> an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/search.json; screening replays offline)\n- PubMed: exact-title sweeps for the large GLP-1 receptor agonist cardiovascular outcome\n  trials in type 2 diabetes (LEADER, SUSTAIN-6, REWIND, HARMONY Outcomes, AMPLITUDE-O,\n  PIONEER-6, EXSCEL, and ELIXA).\n- ClinicalTrials.gov: condition \"type 2 diabetes cardiovascular\", intervention\n  \"efpeglenatide\".\n- Fixed-screen note: several PubMed abstracts for verified double-blind CVOTs do not use\n  the literal phrase \"double-blind\"; the config therefore does not require that literal\n  abstract/title string, while the protocol eligibility criterion remains double-blind\n  placebo-controlled design.\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. DerSimonian-Laird forbidden. Engine validated vs\nmetafor 5.0.1 (<1e-6). For this topic, the poolable input is the published HR + 95% CI\npath on the same ratio/log scale; 2x2 extraction is available but is not required when a\ntrial reports an HR + CI.\n\n## Comparator (resolved; open-access confirmed)\nGiugliano et al., *Cardiovascular Diabetology* 2021, \"GLP-1 receptor agonists and\ncardiorenal outcomes in type 2 diabetes: an updated meta-analysis of eight CVOTs\" (PMID\n34526024, DOI 10.1186/s12933-021-01366-8; Unpaywall is_oa=true; PubMed Central\nPMC8442438). It reports pooled MACE HR 0.86 (95% CI 0.79-0.94) over 8 cardiovascular\noutcome trials.\n\n## Controls\n- **Positive** - the search must recover and include LEADER, SUSTAIN-6, and REWIND.\n- **Negative** - SELECT (semaglutide, double-blind, placebo-controlled, but obesity without\n  diabetes - another disease population) must be recovered and EXCLUDED by the population\n  rule.\n"
   },
   "search": {
-    "n_records": 10,
+    "n_records": 11,
     "cache_ref": "cache/glp1-ra-mace-t2d/records.json",
     "run_utc": "2026-09-11",
     "databases": [
@@ -255,13 +255,21 @@
         "rule_id": "X1",
         "reason": "not a randomized controlled trial (record: 34526024).",
         "span": "publication types: Journal Article, Meta-Analysis, Systematic Review"
+      },
+      {
+        "id": "SOUL · 40162642",
+        "id_type": "pmid",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "eligible randomised controlled trial: intervention semaglutide, comparator placebo, population type 2 diabetes — P/I/C/design met.",
+        "span": "population “…r Outcomes in High-Risk Type 2 Diabetes. SOUL”; comparator “…. In this double-blind, placebo-controlled, event-drive…”"
       }
     ],
     "positive_control": "Recovered & included the canonical trials ['27295427', '27633186', '31189511'] that a comparator includes; none missed.",
     "negative_control": "Cross-topic trial(s) ['37952131'] recovered by the search and correctly EXCLUDED ['37952131'] by rule (same drug/design, wrong topic).",
     "dual": {
-      "n": 10,
-      "agree": 10,
+      "n": 11,
+      "agree": 11,
       "disagree": 0,
       "unresolved": 0,
       "disagreement_rate_pct": 0.0,
@@ -405,6 +413,24 @@
             "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
           },
           "derivation": "reported"
+        },
+        {
+          "label": "SOUL",
+          "id": "PMID 40162642",
+          "effect": 0.86,
+          "ci_low": 0.77,
+          "ci_high": 0.96,
+          "scale": "HR",
+          "provenance": "fulltext_verified",
+          "source": "SOUL (PMID 40162642, NCT03914326) abstract: primary MACE (CV death, nonfatal MI, nonfatal stroke) 579/4825 vs 668/4825, hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006",
+          "verified": "verified",
+          "verify_basis": "effect present in committed source",
+          "effect_object": {
+            "reported_label": "HR",
+            "statistical_model": null,
+            "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+          },
+          "derivation": "reported"
         }
       ],
       "declared_absent_trials": [
@@ -415,14 +441,14 @@
         }
       ],
       "result": {
-        "k": 7,
-        "estimate": 0.8501,
+        "k": 8,
+        "estimate": 0.856,
         "scale": "HR",
-        "ci_low": 0.7904,
-        "ci_high": 0.9144,
-        "tau2": 0.00092,
-        "pi_low": 0.7661,
-        "pi_high": 0.9433,
+        "ci_low": 0.8086,
+        "ci_high": 0.9061,
+        "tau2": 4e-05,
+        "pi_low": 0.8069,
+        "pi_high": 0.9081,
         "estmeasure": {
           "status": "homogeneous",
           "classes": [
@@ -436,37 +462,41 @@
           ]
         },
         "leave_one_out": {
-          "min": 0.8321,
-          "max": 0.8669,
+          "min": 0.8388,
+          "max": 0.8664,
           "most_influential": "28910237",
           "per_trial": [
             {
               "dropped": "31185157",
-              "estimate": 0.8478
+              "estimate": 0.8542
             },
             {
               "dropped": "27633186",
-              "estimate": 0.8578
+              "estimate": 0.8609
             },
             {
               "dropped": "27295427",
-              "estimate": 0.8394
+              "estimate": 0.8485
             },
             {
               "dropped": "34215025",
-              "estimate": 0.8619
+              "estimate": 0.8621
             },
             {
               "dropped": "31189511",
-              "estimate": 0.8384
+              "estimate": 0.8475
             },
             {
               "dropped": "30291013",
-              "estimate": 0.8669
+              "estimate": 0.8664
             },
             {
               "dropped": "28910237",
-              "estimate": 0.8321
+              "estimate": 0.8388
+            },
+            {
+              "dropped": "SOUL",
+              "estimate": 0.8501
             }
           ],
           "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."
@@ -493,7 +523,7 @@
         "analysis_set": "intention-to-treat",
         "randomised_contrast": {
           "verified": 0,
-          "total": 7
+          "total": 8
         },
         "matched": true,
         "mismatches": []
@@ -547,6 +577,11 @@
         {
           "label": "26630143",
           "id": "PMID 26630143",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "SOUL",
+          "id": "PMID 40162642",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
         }
       ],
@@ -618,6 +653,11 @@
           "label": "26630143",
           "id": "PMID 26630143",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "SOUL",
+          "id": "PMID 40162642",
+          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
         }
       ],
       "result": {
@@ -676,10 +716,12 @@
       "note": "same-question comparator (matching intervention level and population)"
     },
     "overlap": {
-      "ours_k": 7,
+      "ours_k": 8,
       "theirs_k": "not stated in the comparator abstract/full text",
       "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
-      "only_ours": [],
+      "only_ours": [
+        "SOUL"
+      ],
       "only_theirs": [],
       "method": "publication-date + design identity (comparator trial list not extracted from source)",
       "note": "Trials newer than the comparator (2021) cannot be in it (only-ours, verifiable by date). Exact shared count not asserted."
@@ -945,7 +987,7 @@
   "integrity": {
     "checked_utc": "2026-09-13T08:44:18Z",
     "source": "PubMed efetch (PublicationType + CommentsCorrections)",
-    "n_pooled": 7,
+    "n_pooled": 8,
     "retracted": [],
     "concern": [],
     "retrospectively_registered": [],
@@ -991,6 +1033,12 @@
         "registered": "2018-04-05",
         "start": "2018-04-27",
         "prospective": true
+      },
+      "40162642": {
+        "nct": "NCT03914326",
+        "registered": null,
+        "start": null,
+        "prospective": null
       }
     },
     "per_pmid": {
@@ -1028,6 +1076,11 @@
         "retracted": false,
         "concern": false,
         "evidence": "no retraction/concern notice in PubMed"
+      },
+      "40162642": {
+        "retracted": false,
+        "concern": false,
+        "evidence": "no retraction/concern notice in PubMed (verified via metadata fetch 2026-09-13)"
       }
     }
   },
@@ -1080,6 +1133,13 @@
       "span": "ived placebo. (Funded by Amylin Pharmaceuticals; EXSCEL ClinicalTrials.gov number, NCT01144338 .).",
       "source": "abstract",
       "scanned": "abstract only"
+    },
+    {
+      "id": "PMID 40162642",
+      "type": "industry",
+      "span": "than placebo. (Funded by Novo Nordisk; SOUL ClinicalTrials.gov number, NCT03914326.).",
+      "source": "abstract",
+      "scanned": "abstract only"
     }
   ],
   "rob_spancheck": {
@@ -1100,7 +1160,7 @@
     "reasons": [
       {
         "code": "known_eligible_missing",
-        "detail": "a trial identified as eligible under the registered PICO is not pooled (FLOW, SOUL, FREEDOM-CVO) — the pooled result and completeness claim cannot be current"
+        "detail": "a trial identified as eligible under the registered PICO is not pooled (FLOW, FREEDOM-CVO) — the pooled result and completeness claim cannot be current"
       },
       {
         "code": "eligible_declared_absent",
@@ -1121,27 +1181,28 @@
       "34215025": "low",
       "31189511": "low",
       "30291013": "low",
-      "28910237": "some_concerns"
+      "28910237": "some_concerns",
+      "SOUL": null
     },
-    "n_trials": 7,
+    "n_trials": 8,
     "n_rob_rated": 7,
-    "rob_covered": true,
+    "rob_covered": false,
     "any_high": false,
     "full": {
-      "k": 7,
-      "estimate": 0.8501,
+      "k": 8,
+      "estimate": 0.856,
       "scale": "HR",
-      "ci_low": 0.7904,
-      "ci_high": 0.9144,
-      "tau2": 0.00092
+      "ci_low": 0.8086,
+      "ci_high": 0.9061,
+      "tau2": 4e-05
     },
     "drop_high": {
-      "k": 7,
-      "estimate": 0.8501,
+      "k": 8,
+      "estimate": 0.856,
       "scale": "HR",
-      "ci_low": 0.7904,
-      "ci_high": 0.9144,
-      "tau2": 0.00092
+      "ci_low": 0.8086,
+      "ci_high": 0.9061,
+      "tau2": 4e-05
     },
     "low_only": {
       "k": 6,
@@ -1159,22 +1220,22 @@
     "domains": {
       "risk_of_bias": {
         "downgrade": 0,
-        "coverage_incomplete": false,
-        "n_trials": 7,
+        "coverage_incomplete": true,
+        "n_trials": 8,
         "n_rated": 7,
         "n_high": 0,
         "n_some": 1,
-        "basis": "none of the 7 assessed trial(s) at high risk; fewer than half at 'some concerns'"
+        "basis": "none of the 7 assessed trial(s) at high risk; fewer than half at 'some concerns'; risk-of-bias signal available for only 7 of 8 pooled trials (registry-derived), so the rating is capped"
       },
       "inconsistency": {
         "downgrade": 0,
         "not_estimable": false,
-        "basis": "tau^2=0.00092; prediction interval not markedly wider than the CI"
+        "basis": "tau^2=4e-05; prediction interval not markedly wider than the CI"
       },
       "imprecision": {
         "downgrade": 0,
         "crosses_null": false,
-        "basis": "95% CI [0.7904, 0.9144]; excludes the null with a reasonably tight interval -> precise"
+        "basis": "95% CI [0.8086, 0.9061]; excludes the null with a reasonably tight interval -> precise"
       },
       "publication_bias": {
         "downgrade": 0,
@@ -1190,15 +1251,15 @@
     },
     "downgrades": 0,
     "certainty": "moderate",
-    "certainty_capped_by_rob_coverage": false,
+    "certainty_capped_by_rob_coverage": true,
     "certainty_capped_single_trial": false,
-    "certainty_capped_d3_unassessed": true,
+    "certainty_capped_d3_unassessed": false,
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement."
   },
   "reproduction": {
     "failures": 0,
     "protocol_sha": "4091958ce4af7f1ca9ed4c30e1021672b0c21223",
-    "review_sha256": "80986c15724d42c81af3f363d40ecfc1c4ea19179a80ce194e2f145691f44a6c",
+    "review_sha256": "e0b69919ce166dc867bd79f1c35ba59687e6806f0bce4cc972bfaa00f288a84c",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -1208,10 +1269,10 @@
     },
     "parity": {
       "slug": "glp1-ra-mace-t2d",
-      "our_k": 7,
+      "our_k": 8,
       "comparable_comparator_k": 7,
-      "status": "PARITY",
-      "reason": "7/8; the 1 gap ELIXA is a 4-point MACE (estimand) correctly declared-absent"
+      "status": "PARITY-effective",
+      "reason": "8 pooled including SOUL (PMID 40162642, 2025, source-verified HR 0.86) which postdates the comparator meta (k=7); the remaining gap ELIXA is a 4-point MACE (estimand) correctly declared-absent"
     },
     "dual": {
       "agree": 0,
