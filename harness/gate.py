@@ -221,6 +221,55 @@ def check_fetch_complete(review_dir):
     return []
 
 
+_ACCESS_OUTCOME_PHRASES = (
+    "re-tested at full text", "retested at full text",
+    "confirmed at full-text level", "confirmed at full text",
+    "publisher-blocked", "publisher blocked",
+    "access-blocked", "access blocked",
+    "paywalled",
+    "pmc disallows xml",
+)
+
+
+def _all_strings(obj):
+    if isinstance(obj, str):
+        yield obj
+    elif isinstance(obj, dict):
+        for v in obj.values():
+            yield from _all_strings(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from _all_strings(v)
+
+
+def check_access_claim_supported(review_dir):
+    """NOT_RUN-as-paywalled (audit 22): a review must not assert a full-text ACCESS OUTCOME — that full text
+    was re-tested/confirmed, or is publisher-blocked / access-blocked / paywalled — when the PMC full-text
+    adapter did not run. An adapter with source_status 'NOT_RUN' established nothing about access, so any such
+    claim is manufactured, and (worse) it is used to justify excluding poolable trials (corticosteroids-covid,
+    sglt2-ckd). Stating that the adapter DID NOT RUN and that a count is absent from the committed abstract is
+    honest and passes; asserting a tested access barrier we never tested does not."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1: no review.json to check access claims"]
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json: {exc}"]
+    ss = (rev.get("search") or {}).get("source_status") or {}
+    if ss.get("PMC full text") != "NOT_RUN":
+        return []  # the full-text adapter ran (or its state is unknown) — access claims are not manufactured here
+    hay = " \n ".join(_all_strings(rev)).lower()
+    hit = [ph for ph in _ACCESS_OUTCOME_PHRASES if ph in hay]
+    if hit:
+        return [f"L1: review asserts a full-text access outcome {hit} while source_status['PMC full text'] "
+                f"== NOT_RUN — the adapter never ran, so 're-tested at full text' / 'publisher-blocked' / "
+                f"'paywalled' is unsupported; state that the adapter did not run and the count is absent from "
+                f"the committed abstract instead of a tested access barrier"]
+    return []
+
+
 def check_no_double_counted_trial(review_dir):
     """Unit-of-analysis: no trial may be pooled more than once WITHIN an outcome (multi-arm shared-control
     double-counting, ME-25). The harness contributes one effect per trial and the multi-arm guard refuses
@@ -612,6 +661,7 @@ def gate_page(review_dir):
                + check_pooled_verified(review_dir)
                + check_manuscript_numbers(review_dir)
                + check_fetch_complete(review_dir)
+               + check_access_claim_supported(review_dir)
                + check_no_double_counted_trial(review_dir)
                + check_pivotal_present(manifest)
                + check_controls(review_dir, manifest)
