@@ -12,6 +12,7 @@ from . import rob_sensitivity as rob_sens_mod
 from . import claim as claim_mod
 from . import invalidation as invalidation_mod
 from . import compat as compat_mod
+from . import protocol_compiler as protocol_compiler_mod
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool, method_text, METHOD_RATIO
 
@@ -986,6 +987,17 @@ def build_review_core(slug, config, records, protocol_sha):
         _ck = compat_mod.outcome_key(_o, review)
         if _ck:
             _o["compat_key"] = _ck
+    # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
+    # config so a divergence (estimand, analysis set, design masking AND/OR) between the registered
+    # prose and the machine rules cannot pass -- the tocilizumab self-certification defect (a check
+    # that reads only the artefact it certifies). Divergences are rendered + counted; each is a defect
+    # to resolve or a dated amendment to declare, never a silent widening.
+    try:
+        _md = open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8").read()
+        _div = protocol_compiler_mod.compare(slug, _md, config)
+        review["protocol_config"] = {"divergences": _div}
+    except OSError:
+        pass
     # RoB-stratified sensitivity re-pool of the primary outcome (regenerates from the object, so the
     # figure the page renders is reproduced, not typed). Uses the same validated pooler.
     # RoB-stratified sensitivity is a RE-POOL, so it must also fail closed on an INCOMPATIBLE primary

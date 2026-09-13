@@ -96,6 +96,20 @@ def _currency_section(docs_dir: str) -> str:
     stale = len(rows)
     current = total - stale
     lis = "".join(f"<li><code>{_E(s)}</code> — {_E(c)}</li>" for s, c in rows)
+    # protocol<->config divergences across the corpus (two independent sources), self-counted.
+    ndiv = ndiv_topics = 0
+    for rp in glob.glob(os.path.join(docs_dir, "reviews", "*", "review.json")):
+        try:
+            rv = json.load(open(rp, encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        dd = ((rv.get("protocol_config") or {}).get("divergences")) or []
+        if dd:
+            ndiv_topics += 1
+            ndiv += len(dd)
+    div_line = (f" Protocol↔config: <strong>{ndiv} divergence(s) across {ndiv_topics} of {total} topics</strong> "
+                f"(prose protocol vs executable config, compared as two independent sources; each a defect "
+                f"to resolve or a dated amendment to declare)." if total else "")
     return (f"<div class='banner'><h2>Corpus currency (invalidation propagation)</h2>"
             f"<p><strong>{current} of {total} topics current; {stale} of {total} STALE.</strong> A topic "
             f"is STALE when a committed signal invalidates a dependent output — a pooled trial is "
@@ -103,7 +117,7 @@ def _currency_section(docs_dir: str) -> str:
             f"flagged ELIGIBLE is not pooled, or a search source errored (retrieval completeness unproven). "
             f"The flag poisons every surface: each STALE topic renders the reason at the top of its page "
             f"and cannot read as a settled current estimate. Published as it falls."
-            + (f"<ul>{lis}</ul>" if rows else "") + "</p></div>")
+            + (f"<ul>{lis}</ul>" if rows else "") + div_line + "</p></div>")
 
 
 def _verification_section(docs_dir: str) -> str:

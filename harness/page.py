@@ -874,6 +874,24 @@ def _reproduction(r, neutral):
                  f"contradictions caught: {n_con}.</strong>"
                  + ("" if n_con == 0 else " " + _e(json.dumps(cc.get("contradictions"))))
                  + "</p>")
+    # PROTOCOL COMPILER (two independent sources): show where the PROSE protocol and the executable
+    # config disagree. A check that reads only the config it certifies cannot fail; this reads both.
+    pc = r.get("protocol_config") or {}
+    pcd = pc.get("divergences")
+    if pcd is not None:
+        if pcd:
+            _rows = "".join(f"<li><code>{_e(x.get('code'))}</code> ({_e(x.get('dimension'))}): prose says "
+                            f"<strong>{_e(x.get('prose'))}</strong>, config enforces "
+                            f"<strong>{_e(x.get('config'))}</strong></li>" for x in pcd)
+            body += ("<h4>Protocol ↔ config divergences (two independent sources)</h4>"
+                     "<p>The prose protocol and the executable config are compared as SEPARATE sources "
+                     "(a conformance check derived from the config it certifies cannot fail). "
+                     f"<strong>{len(pcd)} divergence(s)</strong> — each is a defect to resolve or a dated "
+                     f"amendment to declare, never a silent widening:<ul>{_rows}</ul></p>")
+        else:
+            body += ("<h4>Protocol ↔ config (two independent sources)</h4>"
+                     "<p>The prose protocol and executable config agree on the checked dimensions "
+                     "(estimand, analysis set, design masking). Compared as separate sources.</p>")
     body += ("<div class='absent'><strong>RETRACTED (round-2): reproducibility claim not currently supported.</strong> "
              "We previously claimed that re-running from the registration SHA on a fresh clone regenerates this page "
              "byte-for-byte. Direct testing falsified that: running the advertised command changed several canonical "
