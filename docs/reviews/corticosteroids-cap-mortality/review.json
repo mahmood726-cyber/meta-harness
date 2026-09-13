@@ -979,7 +979,7 @@
       "estimand": "RR",
       "population": "intention-to-treat",
       "timepoint": "30-day or in-hospital",
-      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
       "trials": [
         {
           "label": "36942789",
@@ -989,6 +989,23 @@
           "ci": 47,
           "n2i": 395,
           "source": "abstract arm-level counts (percentage-corroborated): By day 28, death had occurred in 25 of 400 patients (6.2%; 95% confidence interval [CI], 3.9 to 8.6) in the hydrocortisone group and in 47 of 395 patients (11.9%; 95% CI, 8.7 to 15.1) in the placebo g",
+          "provenance": "abstract",
+          "verified": "verified",
+          "verify_basis": "arm counts present in committed source",
+          "effect_object": {
+            "reported_label": "RR",
+            "statistical_model": null,
+            "canonical_estimand": "RISK_RATIO"
+          }
+        },
+        {
+          "label": "25688779",
+          "id": "PMID 25688779",
+          "ai": 6,
+          "n1i": 61,
+          "ci": 9,
+          "n2i": 59,
+          "source": "abstract arm-level counts (percentage-corroborated): In-hospital mortality did not differ between the 2 groups (6 patients [10%] in the methylprednisolone group vs 9 patients [15%] in the placebo group; P = .37); the difference between groups was 5% (95",
           "provenance": "abstract",
           "verified": "verified",
           "verify_basis": "arm counts present in committed source",
@@ -1016,11 +1033,6 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
         },
         {
-          "label": "25688779",
-          "id": "PMID 25688779",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        },
-        {
           "label": "21406101",
           "id": "PMID 21406101",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
@@ -1042,12 +1054,17 @@
         }
       ],
       "result": {
-        "k": 1,
-        "estimate": 0.5253,
+        "k": 2,
+        "estimate": 0.5458,
         "scale": "RR",
-        "ci_low": 0.33,
-        "ci_high": 0.8361,
-        "pi_note": "prediction interval undefined for k=1",
+        "ci_low": 0.0361,
+        "ci_high": 8.2605,
+        "tau2": 0.0,
+        "pi_note": "prediction interval not estimated (k=2): it requires a t-quantile on a single degree of freedom and is not reliable at k=2 (Cochrane) — see the common-effect sensitivity CI instead.",
+        "ci_low_fixed": 0.3589,
+        "ci_high_fixed": 0.8299,
+        "estimate_fixed": 0.5458,
+        "fixed_note": "common-effect (fixed-effect, z-based) sensitivity: with only two trials the HKSJ interval uses a t-multiplier on a single degree of freedom and is very wide; where the two trials agree this conventional interval is the more informative bound.",
         "estmeasure": {
           "status": "homogeneous",
           "classes": [
@@ -1061,7 +1078,7 @@
           ]
         },
         "leave_one_out": {
-          "note": "not assessable at k=1 (leave-one-out needs k>=3)"
+          "note": "not assessable at k=2 (leave-one-out needs k>=3)"
         }
       }
     },
@@ -1273,7 +1290,7 @@
       "note": "same-question comparator (matching intervention level and population)"
     },
     "overlap": {
-      "ours_k": 1,
+      "ours_k": 2,
       "theirs_k": "not stated in the comparator abstract/full text",
       "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
       "only_ours": [],
@@ -1442,26 +1459,27 @@
     "outcome": "All-cause mortality",
     "estimand": "RR",
     "levels": {
-      "36942789": "low"
+      "36942789": "low",
+      "25688779": null
     },
-    "n_trials": 1,
+    "n_trials": 2,
     "n_rob_rated": 1,
-    "rob_covered": true,
+    "rob_covered": false,
     "any_high": false,
     "full": {
-      "k": 1,
-      "estimate": 0.5253,
+      "k": 2,
+      "estimate": 0.5458,
       "scale": "RR",
-      "ci_low": 0.33,
-      "ci_high": 0.8361,
+      "ci_low": 0.0361,
+      "ci_high": 8.2605,
       "tau2": 0.0
     },
     "drop_high": {
-      "k": 1,
-      "estimate": 0.5253,
+      "k": 2,
+      "estimate": 0.5458,
       "scale": "RR",
-      "ci_low": 0.33,
-      "ci_high": 0.8361,
+      "ci_low": 0.0361,
+      "ci_high": 8.2605,
       "tau2": 0.0
     },
     "low_only": {
@@ -1473,29 +1491,29 @@
       "tau2": 0.0
     },
     "drop_high_informative": false,
-    "low_only_informative": false
+    "low_only_informative": true
   },
   "grade": {
     "start": "high",
     "domains": {
       "risk_of_bias": {
         "downgrade": 0,
-        "coverage_incomplete": false,
-        "n_trials": 1,
+        "coverage_incomplete": true,
+        "n_trials": 2,
         "n_rated": 1,
         "n_high": 0,
         "n_some": 0,
-        "basis": "none of the 1 assessed trial(s) at high risk; fewer than half at 'some concerns'"
+        "basis": "none of the 1 assessed trial(s) at high risk; fewer than half at 'some concerns'; risk-of-bias signal available for only 1 of 2 pooled trials (registry-derived), so the rating is capped"
       },
       "inconsistency": {
         "downgrade": 0,
-        "not_estimable": true,
-        "basis": "single trial (k=1): between-study inconsistency is not estimable"
+        "not_estimable": false,
+        "basis": "tau^2=0.0 (no between-study heterogeneity detected)"
       },
       "imprecision": {
-        "downgrade": 0,
-        "crosses_null": false,
-        "basis": "95% CI [0.33, 0.8361]; excludes the null with a reasonably tight interval -> precise; single trial — imprecision judged from the CI, not downgraded merely for k=1"
+        "downgrade": 1,
+        "crosses_null": true,
+        "basis": "95% CI [0.0361, 8.2605]; crosses the null AND is compatible with an appreciable benefit (<=0.75) and an appreciable harm (>=1.25) -> imprecise (the estimate is consistent with both no effect and an appreciable effect)"
       },
       "publication_bias": {
         "downgrade": 0,
@@ -1508,17 +1526,17 @@
         "basis": "directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)"
       }
     },
-    "downgrades": 0,
+    "downgrades": 1,
     "certainty": "moderate",
     "certainty_capped_by_rob_coverage": false,
-    "certainty_capped_single_trial": true,
+    "certainty_capped_single_trial": false,
     "certainty_capped_d3_unassessed": false,
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement."
   },
   "reproduction": {
     "failures": 0,
     "protocol_sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
-    "review_sha256": "300b44a1850d6ed11c10437b2f027c6a9f6bb823f4bea901a110157f3fc71281",
+    "review_sha256": "4f9b90f645b94827b02acf92cb334be4867a623c1685476429e1d06c921a1596",
     "from_cache": true,
     "preregistration": {
       "prospective": false,

@@ -67,13 +67,44 @@ GENERIC_HARM = {"adverse event", "adverse events", "adverse effect", "adverse ef
                 "treatment-emergent adverse event", "treatment emergent adverse event"}
 
 
+_MORT_Y = re.compile(r"\bmortalit(?:y|ies)\b", re.I)
+_MORT_D = re.compile(r"\bdeaths?\b", re.I)
+
+
+def _mort_variants(kl):
+    """Synonym-swapped variants of a PHRASE keyword that names death/mortality, so an
+    incomplete enumeration still links the trial's wording. 'mortality'<->'death' is a
+    pure synonym for an all-cause-mortality outcome, yet a keyword list that spells only
+    'in-hospital death' misses a trial that writes 'in-hospital mortality' (Torres 2015,
+    a corticosteroids-CAP secondary). Only PHRASE keywords (with a qualifier like
+    'in-hospital'/'28-day') are expanded, so a bare 'died' is NOT broadened into matching
+    any 'mortality' sentence -- the swap keeps the qualifier and only trades the one word.
+    General across every mortality topic; downstream composite/round-trip guards still
+    protect binding."""
+    out = set()
+    if _MORT_Y.search(kl):
+        out.add(_MORT_Y.sub("death", kl))
+    if _MORT_D.search(kl):
+        out.add(_MORT_D.sub("mortality", kl))
+    return out
+
+
+def _kw_in_sentence(k, sl):
+    kl = k.lower()
+    if kl in sl:
+        return True
+    if " " in kl:
+        return any(v in sl for v in _mort_variants(kl))
+    return False
+
+
 def _outcome_sentences(abstract, kws):
     # If the outcome has any keyword MORE specific than a bare generic-harm phrase, require a
     # match on one of those specific keywords; else (a genuinely generic "any adverse events"
     # outcome) fall back to matching any keyword.
     specific = [k for k in kws if k.lower() not in GENERIC_HARM]
     sel = specific if specific else kws
-    return [s for s in _sentences(abstract) if any(k.lower() in s.lower() for k in sel)]
+    return [s for s in _sentences(abstract) if any(_kw_in_sentence(k, s.lower()) for k in sel)]
 
 
 def _negated(s, pos):
