@@ -501,9 +501,20 @@ def composite_heterogeneity(outcome_name: str, trial_sources) -> str:
     if not any(w in name for w in ("mace", "major adverse cardiovascular", "major vascular",
                                    "cardiovascular events", "composite")):
         return ""
-    comp_kws = [("unstable angina", "unstable angina"), ("revascular", "revascularization"),
-                ("heart failure", "HF hospitalization"), ("transient ischemic", "TIA"),
-                ("hospital for cardiovascular", "CV hospitalization")]
+    # DERIVED, not authored (audit 24): the component vocabulary must match the ACTUAL pooled endpoint. A
+    # KIDNEY/renal composite's heterogeneity is in its eGFR-decline threshold and kidney-failure definition,
+    # NOT the CV-MACE components — applying the CV vocabulary (which catches "heart failure" from a secondary
+    # CV outcome mentioned in the same abstract) invented an "HF hospitalization" narrative on the sglt2-ckd
+    # and finerenone kidney pools. Pick the vocabulary from the outcome type.
+    _is_kidney = any(w in name for w in ("kidney", "renal", "ckd", "egfr", "nephro"))
+    if _is_kidney:
+        comp_kws = [("50%", "50% eGFR-decline threshold"), ("40%", "40% eGFR-decline threshold"),
+                    ("57%", "57% eGFR-decline threshold"), ("doubling", "creatinine-doubling"),
+                    ("end-stage", "ESKD"), ("dialysis", "ESKD")]
+    else:
+        comp_kws = [("unstable angina", "unstable angina"), ("revascular", "revascularization"),
+                    ("heart failure", "HF hospitalization"), ("transient ischemic", "TIA"),
+                    ("hospital for cardiovascular", "CV hospitalization")]
     # scan ONLY the composite-DEFINITION clause (around 'composite of ...' / 'primary ... was ...'),
     # not the whole abstract -- a trial mentioning HF/revascularization as a SECONDARY outcome must not
     # count (that over-fired on the clean 3-point GLP-1 pool).
