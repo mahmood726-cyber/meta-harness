@@ -521,8 +521,21 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
-      "trials": [],
+      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "trials": [
+        {
+          "label": "36331190",
+          "id": "PMID 36331190",
+          "ai": 6,
+          "n1i": 3304,
+          "ci": 1,
+          "n2i": 3305,
+          "provenance": "fulltext_verified_arms",
+          "source": "EMPA-KIDNEY (PMID 36331190, PMC9761906) full text: 'Ketoacidosis occurred in 6 patients in the empagliflozin group versus 1 patient in the placebo group (0.09 versus 0.02 per 100 patient-years).' Arm sizes empagliflozin 3304 vs placebo 3305 (the randomised/analysis population). SINGLE-TRIAL harm datum: the other two SGLT2-CKD trials pooled for the primary (DAPA-CKD 32970396, CREDENCE 30990260) do not expose per-arm ketoacidosis counts through the committed fetch path (neither is in PMC OA; abstracts give no DKA count), so this outcome is k=1 EMPA-KIDNEY only, not a representative SGLT2-CKD DKA pool.",
+          "verified": "verified",
+          "verify_basis": "arm counts present in committed source"
+        }
+      ],
       "declared_absent_trials": [
         {
           "label": "32970396",
@@ -532,11 +545,6 @@
         {
           "label": "30990260",
           "id": "PMID 30990260",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
-        },
-        {
-          "label": "36331190",
-          "id": "PMID 36331190",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
         },
         {
@@ -571,8 +579,15 @@
         }
       ],
       "result": {
-        "present": false,
-        "reason": "no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract"
+        "k": 1,
+        "estimate": 6.0018,
+        "scale": "RR",
+        "ci_low": 0.723,
+        "ci_high": 49.825,
+        "pi_note": "prediction interval undefined for k=1",
+        "leave_one_out": {
+          "note": "not assessable at k=1 (leave-one-out needs k>=3)"
+        }
       }
     },
     {
@@ -800,7 +815,7 @@
     }
   },
   "integrity": {
-    "checked_utc": "2026-09-11T23:50:15Z",
+    "checked_utc": "2026-09-13T06:06:36Z",
     "source": "PubMed efetch (PublicationType + CommentsCorrections)",
     "n_pooled": 3,
     "retracted": [],
@@ -970,7 +985,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "38478f5e060a9d63bcb073cb652d0e6f70d27c58",
-    "review_sha256": "34de460a21f6034b89101289c627a4aeb28f365922ad13ce9f8e758423a53bc8",
+    "review_sha256": "58a18753065c61814759e3123aa366bcde65710988869f27c8cf0aa1bee36a79",
     "from_cache": true,
     "parity": {
       "slug": "sglt2-ckd-progression",
