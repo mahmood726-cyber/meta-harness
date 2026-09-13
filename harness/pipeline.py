@@ -718,9 +718,31 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                              "interval are not applicable at k=1).")
             out["result"].pop("tau2", None)
     else:
-        out["result"] = {"present": False,
-                         "reason": "no included trial reported this outcome with a percentage-corroborated "
-                                   "count or an effect+CI in its abstract"}
+        # FALSE-ABSENCE guard (audit 28/blinded-AGY, harms class): distinguish GENUINELY NOT REPORTED from
+        # REPORTED-BUT-NOT-EXTRACTABLE. If an outcome keyword appears in an included trial's committed
+        # abstract but no arm counts / effect+CI could be extracted (e.g. a bare percentage with no
+        # denominator — omega3 bleeding "2.7% vs 2.1%", pcsk9 injection-site reactions), the outcome is NOT
+        # absent; saying "no trial reported this" is a false absence (most dangerous for harms). Disclose the
+        # reporting trials and flag for full-text acquisition, which would recover the countable form.
+        _kws = [str(k).lower() for k in (spec.get("keywords") or [spec.get("name", "")]) if k]
+        _reported_by = []
+        for d in included:
+            _ab = ((rec_by_id.get(d["id"], {}) or {}).get("abstract", "") or "").lower()
+            if _ab and any(k in _ab for k in _kws):
+                _reported_by.append(d["id"])
+        if _reported_by:
+            out["result"] = {
+                "present": False, "reported_not_extracted": True, "reported_by": _reported_by[:10],
+                "reason": ("REPORTED but not extractable as a pooled value: " + ", ".join(_reported_by[:6])
+                           + (" and others" if len(_reported_by) > 6 else "")
+                           + " mention this outcome in the committed abstract, but without arm counts or an "
+                           "effect+CI in an extractable form (e.g. a bare percentage with no denominator). This "
+                           "outcome is NOT absent — it is reported-but-not-poolable from the committed source; "
+                           "full-text acquisition would recover the countable form.")}
+        else:
+            out["result"] = {"present": False,
+                             "reason": "no included trial reported this outcome with a percentage-corroborated "
+                                       "count or an effect+CI in its abstract"}
     return out
 
 
