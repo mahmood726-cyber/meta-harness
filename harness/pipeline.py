@@ -10,6 +10,7 @@ from . import extract, screen, scope, verify, locate, unit_of_analysis, funding,
 from . import grade as grade_mod
 from . import rob_sensitivity as rob_sens_mod
 from . import claim as claim_mod
+from . import invalidation as invalidation_mod
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool, method_text, METHOD_RATIO
 
@@ -911,6 +912,11 @@ def build_review_core(slug, config, records, protocol_sha):
         for _r in _cmp.get("reported", []):
             if isinstance(_r, dict):
                 _r["claim"] = claim_mod.derive(_r)
+    # INVALIDATION PROPAGATION: one per-topic STALE verdict from committed signals (retraction of a
+    # pooled trial, primary reported-but-not-extracted, an ELIGIBLE trial declared absent, a search
+    # source that errored). Poisons the dependent outputs -- the page renders a STALE banner and the
+    # index counts STALE topics -- so a known-incomplete/unproven result cannot read as current.
+    review["invalidation"] = invalidation_mod.assess(review)
     # RoB-stratified sensitivity re-pool of the primary outcome (regenerates from the object, so the
     # figure the page renders is reproduced, not typed). Uses the same validated pooler.
     # RoB-stratified sensitivity is a RE-POOL, so it must also fail closed on an INCOMPATIBLE primary

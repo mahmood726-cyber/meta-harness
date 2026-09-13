@@ -74,6 +74,38 @@ def _parity_section(docs_dir: str) -> str:
     return body + "</table></div>"
 
 
+def _currency_section(docs_dir: str) -> str:
+    """Corpus currency, published as it falls: how many topics carry an invalidation flag (STALE)
+    and why. Self-counting from each review's committed invalidation verdict, so the number cannot
+    drift — if 28 of 32 are current, it says 28 of 32."""
+    rows = []
+    total = 0
+    for rp in sorted(glob.glob(os.path.join(docs_dir, "reviews", "*", "review.json"))):
+        try:
+            rev = json.load(open(rp, encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        total += 1
+        inv = rev.get("invalidation") or {}
+        if inv.get("stale"):
+            slug = os.path.basename(os.path.dirname(rp))
+            codes = ", ".join(sorted({r.get("code") for r in inv.get("reasons", []) if r.get("code")}))
+            rows.append((slug, codes))
+    if not total:
+        return ""
+    stale = len(rows)
+    current = total - stale
+    lis = "".join(f"<li><code>{_E(s)}</code> — {_E(c)}</li>" for s, c in rows)
+    return (f"<div class='banner'><h2>Corpus currency (invalidation propagation)</h2>"
+            f"<p><strong>{current} of {total} topics current; {stale} of {total} STALE.</strong> A topic "
+            f"is STALE when a committed signal invalidates a dependent output — a pooled trial is "
+            f"retracted, the primary outcome is reported by a trial that could not be pooled, a trial "
+            f"flagged ELIGIBLE is not pooled, or a search source errored (retrieval completeness unproven). "
+            f"The flag poisons every surface: each STALE topic renders the reason at the top of its page "
+            f"and cannot read as a settled current estimate. Published as it falls."
+            + (f"<ul>{lis}</ul>" if rows else "") + "</p></div>")
+
+
 def _verification_section(docs_dir: str) -> str:
     """The strongest single integrity claim, gate-enforced: every pooled number on every page is
     verified against its committed source span, and a gate limb refuses any page that pools a number
@@ -938,6 +970,7 @@ def build_index(docs_dir: str) -> str:
     # anti-drift: fail closed on an un-accounted numeral in ANY narrative banner
     _validate_prose_numbers(docs_dir, _thesis + _cont + _erate + _xfam + _defaudit + _extval + _spec + _screen + _prov + _stance)
     body = (_thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
+            + _currency_section(docs_dir)
             + _parity_section(docs_dir) + _error_coverage_section(docs_dir) + _stance
             + _fair_section(docs_dir) + body)
 

@@ -128,6 +128,16 @@ def _transparency_counts(r):
 
 def _overview(r, neutral):
     parts = [f"<h2>{_e(r.get('title'))}</h2>", f"<p class='q'>{_e(r.get('question'))}</p>"]
+    # INVALIDATION PROPAGATION: a single STALE verdict poisons the headline. If any dependent output
+    # is known incomplete/superseded/unproven, say so at the top rather than let the result read as
+    # current. Each reason is named; the corpus index publishes the count as it falls.
+    inv = r.get("invalidation") or {}
+    if inv.get("stale"):
+        _rz = "".join(f"<li>{_e(x.get('detail'))}</li>" for x in inv.get("reasons", []))
+        parts.append(
+            "<div class='absent'><strong>STALE — this topic's result is not current.</strong> "
+            "One or more dependent outputs on this page are known to be incomplete, superseded, or "
+            f"unproven, so the result must not be read as a settled current estimate:<ul>{_rz}</ul></div>")
     if not neutral:
         parts.append(
             "<div class='banner'>This page offers <strong>greater auditability, not "
