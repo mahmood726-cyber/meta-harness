@@ -1344,8 +1344,20 @@ def render_page(review: dict, neutral: bool = False) -> str:
     title = _e(review.get("title") or review.get("slug"))
     sub = ("Meta-analysis" if neutral else
            "Reproducible meta-analysis harness — auditability, not authority")
+    # PINNED AUDIT IDENTITY (P0): the content hash uniquely pins the bytes an auditor read, so two
+    # audits of "the same URL" that saw different states can be told apart (the noac-warfarin problem).
+    # GitHub Pages serves only HEAD, so a /@<sha>/ route is not available; the hash IS the pin -- an
+    # auditor cites it, and a different hash is provably a different version. Shown conspicuously in the
+    # header, not buried in the Reproducibility tab.
+    _rep = review.get("reproduction") or {}
+    _csha = str(_rep.get("review_sha256") or "")
+    _pin = ""
+    if _csha:
+        _pin = (f"<div style='font-size:12px;opacity:0.85;margin-top:4px'><strong>Pinned audit identity</strong>"
+                f" — content hash <code>{_e(_csha[:16])}</code>. Cite this hash when auditing; a different "
+                f"hash is a different version of this page.</div>")
     return ("<!doctype html><html lang=en><head><meta charset=utf-8>"
             "<meta name=viewport content='width=device-width,initial-scale=1'>"
             f"<title>{title}</title><style>{_CSS}</style></head><body>"
-            f"<header><h1>{title}</h1><div class=sub>{sub}</div></header>"
+            f"<header><h1>{title}</h1><div class=sub>{sub}</div>{_pin}</header>"
             f"<nav>{nav}</nav><main>{body}</main><script>{_JS}</script></body></html>")
