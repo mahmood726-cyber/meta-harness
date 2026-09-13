@@ -1,15 +1,15 @@
 {
  "_doc": "Recovery pipeline instrument. Every recovery ATTEMPT is recorded with its outcome, earned one trial at a time by fetch -> source-verify -> extract -> round-trip -> rebuild. This REPLACES the forward-scan vocabulary metric (which over-counted: a forward scan cannot tell a genuine synonym gap from by-design composite-specificity). BLOCKED_BY_MATCHER entries, each carrying the exact source string vs the exact registered keyword, ARE the vocabulary measurement -- zero false positives, evidence not guesswork. Outcomes: RECOVERED | REFUSED_ON_SOURCE | BLOCKED_BY_MATCHER | BLOCKED_BY_ACCESS | NOT_FOUND | SCOPE_PENDING.",
  "scoreboard": {
-  "attempted": 9,
+  "attempted": 11,
   "recovered": 5,
   "tightened": 2,
   "cost_significance": 1,
   "toward_null_stayed_nonsig": 2,
-  "refused_on_source": 2,
-  "scope_pending": 1,
+  "refused_on_source": 3,
+  "scope_pending": 2,
   "blocked_by_matcher_resolved": 1,
-  "note": "corrections are NOT systematically flattering: of 5 recoveries, 2 tightened and 3 weakened (1 lost significance, 2 moved toward null); 2 refused on source; 1 held on scope. This is the harness getting more honest as the evidence base completes. [+TECOS BLOCKED_BY_ACCESS: abstract 4-point != topic 3-point MACE; 3-point is a paywalled full-text secondary, unverifiable]",
+  "note": "corrections are NOT systematically flattering: of 5 recoveries, 2 tightened and 3 weakened (1 lost significance, 2 moved toward null); 2 refused on source; 1 held on scope. This is the harness getting more honest as the evidence base completes. [+TECOS BLOCKED_BY_ACCESS: abstract 4-point != topic 3-point MACE; 3-point is a paywalled full-text secondary, unverifiable] [+41663239 REFUSED (pediatric, not mortality); +REMAP-CAP SCOPE_PENDING (90-day vs 30-day/in-hospital + influenza)]",
   "blocked_by_access": 1
  },
  "attempts": [
@@ -90,6 +90,20 @@
    "topic": "dpp4-mace-t2d",
    "status": "BLOCKED_BY_ACCESS",
    "note": "abstract PRIMARY is a 4-point composite (CV death, MI, stroke, hospitalization for unstable angina), HR 0.98 (0.88-1.09) -- NOT the topic 3-point MACE (ELIXA composite-mismatch class). The 3-point MACE (audit-cited HR 0.99 0.89-1.10) is a full-text SECONDARY; TECOS has no PMC full text (paywalled), so it cannot be source-verified. Corrects the audit over-claim that the abstract reports the 3-point estimand. NOT pooled; needs full-text access to the 3-point secondary. [NOW RENDERED: added to dpp4 as ELIGIBLE + declared-absent (estimand mismatch: abstract 4-point composite), NOT pooled -- the composite guard prevented the ELIXA-style mispooling. 3-point remains BLOCKED_BY_ACCESS. dpp4 stays STALE.]"
+  },
+  {
+   "trial": "PMID 41663239",
+   "pmid": "41663239",
+   "topic": "corticosteroids-cap-mortality",
+   "status": "REFUSED_ON_SOURCE",
+   "note": "PEDIATRIC (children 2 months-15 years) -- the topic excludes children; and primary is treatment failure at 72h, not mortality. Verified DOI 10.1136/archdischild-2025-328990. The read-only session listed it as an eligible-missing CAP trial; source shows it is excludable. Not eligible."
+  },
+  {
+   "trial": "REMAP-CAP Corticosteroid Domain",
+   "pmid": "40261382",
+   "topic": "corticosteroids-cap-mortality",
+   "status": "SCOPE_PENDING",
+   "note": "verified adult severe-CAP hydrocortisone vs control, 90-day mortality 78/521 vs 12/122 (adjusted OR ~1.5-1.6, CrI crossing 1), DOI 10.1007/s00134-025-07861-w NCT02735707. But PRIMARY timepoint is 90-day (topic registers 30-day/in-hospital) and it enrolls an influenza stratum (topic excludes influenza). Two registered-scope differences; the compound-timepoint guard will not catch the 90-day. Needs a timepoint/population-scope decision; not silently pooled."
   }
  ],
  "audit_overclaim_caught_at_source": {
@@ -106,6 +120,12 @@
     "topic": "dpp4-mace-t2d",
     "severity": "PROVENANCE_MISLABEL",
     "detail": "auditor said the abstract/primary reports our exact 3-point estimand HR 0.99 (0.89-1.10); the abstract PRIMARY is a 4-point composite HR 0.98 (0.88-1.09). The 3-point 0.99 is likely a real full-text SECONDARY but TECOS is paywalled (no PMC), so unverifiable. Number may be real; provenance was wrong. dpp4 still owed TECOS pending full-text access."
+   },
+   {
+    "trial": "PMID 41663239",
+    "topic": "corticosteroids-cap-mortality",
+    "severity": "WRONG_POPULATION",
+    "detail": "listed as an eligible-missing CAP trial; source shows PEDIATRIC (excluded) + treatment-failure outcome (not mortality)"
    }
   ]
  },
