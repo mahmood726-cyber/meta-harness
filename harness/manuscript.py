@@ -205,12 +205,21 @@ def render(review, neutral: bool = False) -> str:
         reg_methods = (f"The protocol (protocol-only commit {_e(_pre_sha)}) was committed before any "
                        f"synthesis ran; the build replays from SHA {_e(_build_sha)}.")
     else:
-        reg_phrase = (f"reproducible but NOT prospectively registered in this repository: the protocol first "
+        reg_phrase = (f"NOT prospectively registered in this repository: the protocol first "
                       f"entered the repository inside a build commit (SHA {_e(_build_sha)}), so precedence of "
                       f"protocol over synthesis is not demonstrated here")
         reg_methods = (f"The protocol first entered the repository inside a build commit (SHA {_e(_build_sha)}); "
-                       f"the PICO is fixed and the build is byte-reproducible, but this repository's history "
-                       f"does not demonstrate that the protocol preceded synthesis.")
+                       f"the PICO is fixed, but this repository's history does not demonstrate that the protocol "
+                       f"preceded synthesis, and byte-for-byte reproduction from that SHA is not currently claimed.")
+    # RETRACTION propagation: the search claim in Methods must derive from source_status, not be authored.
+    _ss = (review.get("search") or {}).get("source_status") or {}
+    _aact = _ss.get("Registry-first (AACT)")
+    if _aact == "RAN_OK":
+        _search_phrase = "The evidence set was assembled from PubMed/ClinicalTrials.gov retrieval."
+    else:
+        _search_phrase = (f"The registry-first (AACT) adapter did NOT complete for this topic (status "
+                          f"{_e(_aact)}); the evidence set was assembled by known-item retrieval, NOT a completed "
+                          f"registry-first or systematic search (retracted claim).")
     n_absent = len(prim.get("declared_absent_trials", []) or [])
 
     # ---- structured abstract ----
@@ -238,9 +247,12 @@ def render(review, neutral: bool = False) -> str:
     abstract = (
         "<h4>Abstract</h4>"
         f"<p><strong>Question.</strong> {_e(q)}</p>"
-        f"<p><strong>Methods.</strong> A fully reproducible review, {reg_phrase}; a registry-first search was screened "
-        f"by two independent rule screeners with adjudication ({n_screened} records assessed); every pooled "
-        f"number was extracted down a source ladder and verified against its committed source.</p>"
+        f"<p><strong>Methods.</strong> This review is {reg_phrase}. {_search_phrase} "
+        f"Records were screened by two independent rule screeners with adjudication ({n_screened} records "
+        f"assessed); every pooled number was extracted down a source ladder and verified against its "
+        f"committed source. (Deterministic replay establishes that the same committed cache produces the same "
+        f"page; it does not validate search completeness or extraction, and byte-for-byte reproduction from "
+        f"the protocol SHA is not currently claimed — see Data availability.)</p>"
         f"<p><strong>Results.</strong> {result_sentence} "
         + (f"{n_absent} eligible trial(s) were declared absent for this outcome (reported reason on each)."
            if n_absent else "")
