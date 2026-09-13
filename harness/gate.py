@@ -270,6 +270,33 @@ def check_access_claim_supported(review_dir):
     return []
 
 
+def check_parity_our_k(review_dir):
+    """Derived-narrative / stale-panel guard (audit 28): the parity block is a STORED narrative that can
+    survive after the review object changed (omega3 parity claimed we pool OMEMI + OMEGA-REMODEL, which are
+    declared-absent; colchicine-postop named Bessissow as pooled when it is not). You cannot pool MORE than
+    you pooled, so parity.our_k must not EXCEED the primary result's k. (our_k < k is allowed — a legitimate
+    same-scope subset, e.g. we pool 4 but only 2 match the comparator's exact scope.) A suppressed primary
+    has no k and is skipped."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return []
+    try:
+        rev = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    prim = next((o for o in rev.get("outcomes", []) if o.get("primary")), None)
+    res = (prim or {}).get("result") or {}
+    if res.get("suppressed_incompatible"):
+        return []
+    k = res.get("k")
+    our_k = ((rev.get("reproduction") or {}).get("parity") or {}).get("our_k")
+    if isinstance(k, int) and isinstance(our_k, int) and our_k > k:
+        return [f"L1: parity.our_k ({our_k}) EXCEEDS the primary pooled k ({k}) — the parity narrative claims "
+                f"we pool more trials than the live pool contains (a stale panel naming non-pooled trials as "
+                f"pooled). Derive our_k from the live object; a same-scope subset (our_k < k) is fine."]
+    return []
+
+
 def check_no_double_counted_trial(review_dir):
     """Unit-of-analysis: no trial may be pooled more than once WITHIN an outcome (multi-arm shared-control
     double-counting, ME-25). The harness contributes one effect per trial and the multi-arm guard refuses
@@ -662,6 +689,7 @@ def gate_page(review_dir):
                + check_manuscript_numbers(review_dir)
                + check_fetch_complete(review_dir)
                + check_access_claim_supported(review_dir)
+               + check_parity_our_k(review_dir)
                + check_no_double_counted_trial(review_dir)
                + check_pivotal_present(manifest)
                + check_controls(review_dir, manifest)
