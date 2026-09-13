@@ -771,18 +771,25 @@ def _parse_k(abstract):
     return None
 
 
-def effect_in_outcome(abstract, kws):
+def effect_in_outcome(abstract, kws, window=260):
     """Effect+CI associated with THIS outcome. Each effect is assigned to the outcome keyword
     in its CLAUSE = the text since the previous effect match (capped so a far-back keyword
     can't bind). This handles both a long single-outcome sentence (keyword far before its
     effect) and several effects packed in one sentence (recurrence RR, then AE RR, then
-    withdrawal RR) — each effect binds to the keyword in its own clause, not the first."""
+    withdrawal RR) — each effect binds to the keyword in its own clause, not the first.
+
+    window: how far back from an effect the keyword may sit (default 260). A COMPARATOR full text
+    packs many outcomes' effects in one prose paragraph, and a 260-char reach binds an effect to a
+    keyword that names a DIFFERENT (later) outcome mentioned earlier in the paragraph
+    (COMPARATOR_RESULT_CONTEXT_MISMATCH: RRT keyword catching the mortality effect; non-cardiovascular
+    catching the all-cause effect). A tight window makes the binding ATOMIC — the effect binds only to
+    the outcome phrase IMMEDIATELY preceding it — so label+estimate+CI come from one row."""
     abstract = _norm(abstract)
     low = abstract.lower()
     kl = [k.lower() for k in kws]
     prev_end = 0
     for m in _EFFECT.finditer(abstract):
-        clause = low[prev_end:m.start()][-260:]
+        clause = low[prev_end:m.start()][-window:]
         if any(k in clause for k in kl):
             e = _effect_from_match(m)
             if e:
@@ -798,8 +805,15 @@ def comparator_effect(abstract, fulltext, kws):
       2. the FULL TEXT — used ONLY to fill an outcome the abstract does not state.
     Full text must NOT override an abstract headline: full text carries many analyses
     (subgroups, sensitivity) and grabbing one silently substitutes the wrong figure (this is
-    how topic 1's comparator primary became 0.46 instead of the abstract's 0.40)."""
-    return effect_in_outcome(abstract or "", kws) or effect_in_outcome(fulltext or "", kws)
+    how topic 1's comparator primary became 0.46 instead of the abstract's 0.40).
+
+    ATOMIC binding (window=140): a comparator paragraph lists several outcomes' effects, so the effect
+    must bind to the outcome phrase near it, not to a keyword naming another outcome mentioned far
+    earlier in the paragraph (the COMPARATOR_RESULT_CONTEXT_MISMATCH class — right number, wrong row).
+    140 chars is tight enough to keep the binding on the immediately-preceding outcome phrase yet loose
+    enough for a genuinely long single-outcome clause; disambiguating keywords in the topic config do
+    the rest."""
+    return effect_in_outcome(abstract or "", kws, window=140) or effect_in_outcome(fulltext or "", kws, window=140)
 
 
 def extract_meta(abstract, outcome_kws):
