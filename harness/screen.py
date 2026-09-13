@@ -61,6 +61,26 @@ def _has(text: str, terms) -> str | None:
     return None
 
 
+def _all_occurrences_qualified(text: str, term: str, qualifiers) -> bool:
+    """True iff `term` occurs in `text` and EVERY occurrence is immediately preceded by a phenotype
+    qualifier (e.g. 'mildly ' before 'reduced ejection fraction' -> HFmrEF, an included phenotype). Used
+    to suppress a nested exclusion term when the record is uniformly the qualified (included) variant; a
+    single unqualified occurrence (a genuine HFrEF) returns False so the exclusion still fires."""
+    low = text.lower()
+    t = (term or "").lower()
+    if not t:
+        return False
+    ql = [q.lower().strip() for q in qualifiers]
+    i, found = low.find(t), False
+    while i != -1:
+        found = True
+        pre = low[max(0, i - 16):i].rstrip()
+        if not any(pre.endswith(q) for q in ql):
+            return False
+        i = low.find(t, i + 1)
+    return found
+
+
 def _has_intervention(text: str, terms) -> str | None:
     """Like _has, but a mention that is only 'X-resistant/resistance/refractory/intolerant'
     is a POPULATION descriptor, not the randomised intervention, and does not count."""
@@ -280,6 +300,15 @@ def screen_record(rec, inc, neg_pmids):
         return ("exclude", "X1", f"not a randomized controlled trial (record: {label}).",
                 f"publication types: {pts}")
     bad = _has(poptext, inc.get("population_none"))
+    # NESTED-TERMINOLOGY guard (audit 16): an excluded phenotype term whose occurrence in the record's own
+    # text is QUALIFIED into a DIFFERENT, included phenotype must not exclude it. "reduced ejection fraction"
+    # (HFrEF, excluded) sits inside "mildly reduced ejection fraction" (HFmrEF, included); a bare-HFmrEF
+    # record matches the exclusion and X2 fires first. Suppress the exclusion only when EVERY occurrence of
+    # the matched term is immediately preceded by a phenotype qualifier ("mildly", "or preserved"), i.e. the
+    # record is the included variant everywhere it appears — a genuine HFrEF ("reduced ejection fraction",
+    # "with reduced ejection fraction") still excludes because its occurrence is unqualified.
+    if bad and _all_occurrences_qualified(poptext, bad, ("mildly ", "or preserved ", "preserved or ", "mid-range ")):
+        bad = None
     if bad:
         return ("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
                 _span(raw_pop, bad))

@@ -562,6 +562,7 @@ _STATIC_PROSE_NUMERALS = {
     "12": "the ~12% log-scale agreement threshold for external validation (fixed methodological choice)",
     "013505": "Cochrane review identifier CD013505 (a catalogue code, not a claim)",
     "25": "the raw first-pass flip count (25) shown alongside its correction to 12 genuine recoveries",
+    "19": "topics whose provisional GRADE certainty rose when spurious downgrades were removed (fixed historical measurement, vs the pre-fix commit)",
 }
 
 
@@ -899,6 +900,21 @@ def build_index(docs_dir: str) -> str:
                "&lsquo;compatible with no effect&rsquo; to a modest but real benefit that matches the independent "
                "individual-patient-data meta-analysis &mdash; a conclusion change, built entirely from "
                "source-verified numbers.</p>"
+               "<p><strong>Why 19 provisional GRADE ratings rose and none fell &mdash; and why that is not "
+               "inflation.</strong> When the appraisal fixes landed &mdash; a per-trial risk-of-bias source "
+               "hierarchy (a trial&rsquo;s own double-blind text overrules a registry Boolean that read it as "
+               "unblinded), a publication-bias denominator scoped to the screened-eligible set rather than a "
+               "broad drug universe, a rule that stops counting a REGISTERED SECONDARY endpoint as selective "
+               "reporting, and a rounded-CI fix &mdash; 19 topics&rsquo; provisional certainty rose one level "
+               "and none fell. The direction is one-way <em>by construction</em>: each of those fixes DELETES "
+               "a spurious downgrade, and deleting a wrong penalty can only raise or leave a rating, never "
+               "lower it &mdash; so an all-up direction is the expected signature of removing bad downgrades, "
+               "not of inflating good ones. Every raised rating was checked individually against its evidence "
+               "before shipping, and every GENUINE downgrade was retained: spironolactone keeps its imprecision "
+               "downgrade (a wide interval), and omega-3 keeps its risk-of-bias downgrade (a trial with real "
+               "between-arm differential attrition). A fix that raises our own confidence is held to a higher "
+               "bar than one that lowers it, precisely so &lsquo;we fixed a bug&rsquo; can never quietly become "
+               "&lsquo;our evidence is better than we said&rsquo;.</p>"
                "<p>So the honest offer is <strong>the most auditable synthesis, not the most complete one</strong> "
                "&mdash; and where our evidence base was narrower or wrong, the audits caught it precisely "
                "because every number is checkable.</p>"

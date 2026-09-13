@@ -7,7 +7,7 @@
     "sha": "c5dc828d141fe01e81ce46b9a9e29863c2a01918",
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
-    "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%']; and none of ['heart failure with reduced ejection fraction', 'reduced ejection fraction', 'HFrEF', 'ejection fraction of 40% or less', 'left ventricular ejection fraction of 40% or less', 'type 2 diabetes', 'diabetes', 'diabetic', 'chronic kidney disease', 'kidney disease', 'myocardial infarction', 'acute myocardial infarction', 'Fontan', 'single ventricle']; randomised intervention is one of ['empagliflozin', 'Jardiance'] (named in title/conditions); a comparator among ['placebo', 'matching placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
+    "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%', 'mildly reduced ejection fraction', 'heart failure with mildly reduced ejection fraction']; and none of ['heart failure with reduced ejection fraction', 'reduced ejection fraction', 'HFrEF', 'ejection fraction of 40% or less', 'left ventricular ejection fraction of 40% or less', 'type 2 diabetes', 'diabetes', 'diabetic', 'chronic kidney disease', 'kidney disease', 'myocardial infarction', 'acute myocardial infarction', 'Fontan', 'single ventricle']; randomised intervention is one of ['empagliflozin', 'Jardiance'] (named in title/conditions); a comparator among ['placebo', 'matching placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
     "text": "# Protocol - Empagliflozin for cardiovascular death or worsening heart failure in HFmrEF/HFpEF\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure and mildly reduced or preserved ejection fraction\n  (HFmrEF/HFpEF; operationally LVEF >40% or preserved-EF trial eligibility).\n- **I** - Empagliflozin 10 mg daily, added to usual heart-failure therapy.\n- **C** - placebo or matching placebo, added to usual heart-failure therapy.\n- **O (primary)** - time to first composite cardiovascular death or worsening heart\n  failure, where worsening heart failure includes hospitalization or urgent visit for\n  heart failure as defined by the trial.\n- **Estimand** - hazard ratio (HR) with 95% confidence interval.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **Population** - adult HFmrEF/HFpEF or preserved-EF heart-failure population,\n  judged from the title, registry conditions, or trial acronym.\n- **Intervention** - Empagliflozin is named in the title or registry condition/acronym.\n- **Comparator** - placebo or matching placebo.\n- **Design** - randomized, double-blind, placebo-controlled trial.\n\nExclude (reason must be true of the record):\n- **X1** - not a randomized controlled trial.\n- **X2** - wrong population, including HFrEF/LVEF <=40%, diabetes-only, CKD-only,\n  myocardial-infarction, or other non-HFmrEF/HFpEF populations.\n- **X3** - wrong intervention or comparator.\n- **X-DESIGN** - not double-blind/placebo-controlled in the machine-readable record.\n\nEligibility is not decided by outcome reporting. An eligible Empagliflozin HFpEF trial\nthat reports symptoms, hemodynamics, or safety but not the target composite HR is kept\nas target-result absent, not excluded.\n\n## Outcomes\n- **Primary efficacy outcome** - composite cardiovascular death or worsening heart\n  failure; HR estimand; intention-to-treat/randomized population; longest\n  trial-reported randomized follow-up.\n- **Secondary outcomes** - none preregistered for this topic.\n- **Harms** - none preregistered for this topic.\n\n## Search\n- PubMed: UID-anchored queries for EMPEROR-Preserved (PMID 34449189), PRESERVED-HF\n  (PMID 34711976), and CAMEO-DAPA (PMID 37534453), plus configured comparator and\n  negative-control PMIDs.\n- ClinicalTrials.gov: condition \"heart failure with preserved ejection fraction\",\n  intervention \"Empagliflozin\".\n- Citation chasing: enabled and bounded; every reached record is still screened by\n  the same P/I/C/design rules.\n\n## Synthesis method\nRandom-effects inverse-variance on log(HR) using source-reported trial HRs and 95%\nCIs only. Paule-Mandel tau^2; HKSJ 95% CI on t(k-1) with variance floor\nmax(1, Q/(k-1)); prediction interval mu +/- t(k-1)*sqrt(tau^2 + se^2). For k=1,\nthe result is reported as the single trial's own HR with no random-effects pooling.\n\n## Comparator\nPal et al., *Indian Heart Journal* 2023, \"SGLT2 inhibitors and cardiovascular outcomes\nin heart failure with mildly reduced and preserved ejection fraction: A systematic\nreview and meta-analysis\" (PMID 36914068, DOI 10.1016/j.ihj.2023.03.003; Unpaywall\nis_oa=true). This comparator matches the HFmrEF/HFpEF population, placebo comparison,\ncomposite cardiovascular-death/HF-worsening outcome, and HR estimand, but is class-level\nSGLT2 inhibitor evidence rather than Empagliflozin-only evidence; the overlap tab must\ntherefore not claim an identical trial set.\n\n## Controls\n- **Positive** - EMPEROR-Preserved (PMID 34449189) must be recovered and included.\n- **Negative** - DAPA-HF (PMID 31535829), a Empagliflozin/placebo trial with the same\n  endpoint but HFrEF/LVEF <=40%, must be recovered and excluded as wrong population.\n"
   },
   "search": {
@@ -98,7 +98,7 @@
         "id_type": "pmid",
         "decision": "exclude",
         "rule_id": "X2",
-        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify).",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%', 'mildly reduced ejection fraction', 'heart failure with mildly reduced ejection fraction'] (an incidental abstract mention does not qualify).",
         "span": "examined title/conditions: “Cardiovascular and Renal Outcomes with Empagliflozin in Heart Failure.”"
       },
       {
@@ -210,7 +210,7 @@
         "id_type": "pmid",
         "decision": "exclude",
         "rule_id": "X2",
-        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify).",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%', 'mildly reduced ejection fraction', 'heart failure with mildly reduced ejection fraction'] (an incidental abstract mention does not qualify).",
         "span": "examined title/conditions: “Efficacy of Acoramidis on All-Cause Mortality and Cardiovascular Hospitalization in Transt…”"
       },
       {
@@ -626,7 +626,7 @@
         "id_type": "pmid",
         "decision": "exclude",
         "rule_id": "X2",
-        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify).",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%', 'mildly reduced ejection fraction', 'heart failure with mildly reduced ejection fraction'] (an incidental abstract mention does not qualify).",
         "span": "examined title/conditions: “The ManageHF Just-in-Time Adaptive Mobile App Interventions to Promote Self-Management and…”"
       },
       {
@@ -650,7 +650,7 @@
         "id_type": "pmid",
         "decision": "exclude",
         "rule_id": "X2",
-        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify).",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%', 'mildly reduced ejection fraction', 'heart failure with mildly reduced ejection fraction'] (an incidental abstract mention does not qualify).",
         "span": "examined title/conditions: “Empagliflozin Ameliorates Experimental Pulmonary Vascular Remodeling, but May Not Benefit …”"
       },
       {
@@ -738,7 +738,7 @@
         "id_type": "nct",
         "decision": "exclude",
         "rule_id": "X2",
-        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify).",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%', 'mildly reduced ejection fraction', 'heart failure with mildly reduced ejection fraction'] (an incidental abstract mention does not qualify).",
         "span": "examined title/conditions: “Evaluation of the Use of Empagliflozin in Patients with HF with PEF in a Cardiology Outpat…”"
       },
       {
@@ -826,7 +826,7 @@
         "id_type": "nct",
         "decision": "exclude",
         "rule_id": "X2",
-        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify).",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%', 'mildly reduced ejection fraction', 'heart failure with mildly reduced ejection fraction'] (an incidental abstract mention does not qualify).",
         "span": "examined title/conditions: “A Study to Test Whether Vicadrostat in Combination With Empagliflozin Helps People With He…”"
       },
       {
@@ -842,7 +842,7 @@
         "id_type": "nct",
         "decision": "exclude",
         "rule_id": "X2",
-        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify).",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%', 'mildly reduced ejection fraction', 'heart failure with mildly reduced ejection fraction'] (an incidental abstract mention does not qualify).",
         "span": "examined title/conditions: “Improving Cardiovascular Disease Diagnosis and Treatment in Kazakhstan Using Metabolic Cor…”"
       },
       {
@@ -874,7 +874,7 @@
         "id_type": "nct",
         "decision": "exclude",
         "rule_id": "X2",
-        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%'] (an incidental abstract mention does not qualify).",
+        "reason": "population not on-topic: title/conditions do not mention any of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%', 'mildly reduced ejection fraction', 'heart failure with mildly reduced ejection fraction'] (an incidental abstract mention does not qualify).",
         "span": "examined title/conditions: “DICE Study- Diastolic Improvement With Carvedilol & Empagliflozin in Patients With Cirrhos…”"
       },
       {
@@ -1020,7 +1020,7 @@
       "reason": "Same empagliflozin/placebo comparison and endpoint, but population is HFrEF (LVEF <=40%), outside this HFpEF/HFmrEF topic."
     }
   ],
-  "comparator_scope_note": "No same-scope (single-agent) published meta-analysis exists to serve as a like-for-like comparator: empagliflozin in HF with preserved ejection fraction rests on a single pivotal RCT (EMPEROR-Preserved, NCT03057951), so k=1 is the COMPLETE single-drug RCT evidence base for this question, not a search gap. The nearest published synthesis pools the SGLT2-inhibitor CLASS (a different, network-level PICO question); its larger k reflects that broader scope, not evidence this review failed to retrieve. A complete review with k=1 is not a weak review; it is a complete one.",
+  "comparator_scope_note": "k=1 CONTRIBUTING, not a complete-evidence claim: EMPEROR-Preserved (NCT03057951) supplies the only EXTRACTABLE primary-outcome estimate here. This is NOT a claim that the eligible evidence base is a single trial -- 4 records screened in and 3 are declared absent for this pooled number. External audit identified EMPA-VISION (a randomised double-blind trial with a separate HFpEF cohort) as eligible and missed by the trial-level search; the cohort-level screening + concept-query rebuild is the fix. The nearest published synthesis pools the SGLT2-inhibitor CLASS (a broader, network-level PICO), so its larger k is a scope difference, not evidence this review failed to retrieve.",
   "rob2": {
     "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
     "trials": {
@@ -1199,7 +1199,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "c5dc828d141fe01e81ce46b9a9e29863c2a01918",
-    "review_sha256": "8f0a0056a042ecf3516a2e75de90bab3e1ee1b480adc3fdc36800c01e9b2ee09",
+    "review_sha256": "19c7a4586ec1a7c97f5f704ab604b60383586a0d2b06051af0dc508dc8f6bd2d",
     "from_cache": true,
     "dual": {
       "agree": 1,
