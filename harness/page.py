@@ -845,6 +845,47 @@ def _reporting(r, neutral):
             + "".join(rows) + "</table>")
 
 
+def _uoa_sensitivity(r, uoa_ids):
+    """DERIVED (not authored) sensitivity for the unit-of-analysis caveat: re-pool the primary outcome with
+    the cluster/crossover trials' variances INFLATED by a range of design-effect factors, and return the
+    resulting pooled-estimate range. This replaces the (false) claim that omitting the correction 'leaves the
+    point estimate unchanged' — in inverse-variance pooling, changing a study's variance changes its weight
+    and therefore the pooled estimate. Transparent DL random-effects re-pool from the committed per-study
+    (yi, vi); labelled illustrative, not the primary PM+HKSJ estimate."""
+    import math as _m
+    from .rob_sensitivity import _studies_and_scale as _ss
+    from .synth import pool as _pool
+    prim = next((o for o in r.get("outcomes", []) if o.get("primary")), None)
+    if not prim or not prim.get("trials"):
+        return None
+    studies, scale = _ss(prim["trials"], prim.get("estimand", "RR"))
+    try:
+        pr = _pool(studies, scale=scale)
+    except ValueError:
+        return None
+    if pr.k < 2:
+        return None
+    ratio = (scale or "").upper() not in ("MD", "SMD")
+    ids = {str(x).replace("PMID ", "").strip() for x in uoa_ids}
+
+    def _is_uoa(label):
+        return str(label).replace("PMID ", "").strip() in ids
+
+    def _re_estimate(vfactor):
+        yv = [(y, (v * vfactor if _is_uoa(lbl) else v)) for lbl, y, v in pr.per_study]
+        w0 = [1.0 / v for _, v in yv]
+        ybar0 = sum(w * y for w, (y, _) in zip(w0, yv)) / sum(w0)
+        Q = sum(w * (y - ybar0) ** 2 for w, (y, _) in zip(w0, yv))
+        C = sum(w0) - sum(w * w for w in w0) / sum(w0)
+        tau2 = max(0.0, (Q - (len(yv) - 1)) / C) if C > 0 else 0.0
+        w = [1.0 / (v + tau2) for _, v in yv]
+        ybar = sum(wi * y for wi, (y, _) in zip(w, yv)) / sum(w)
+        return _m.exp(ybar) if ratio else ybar
+
+    factors = [1.0, 1.25, 2.0, 4.0, 10.0]
+    return {"scale": scale, "points": [(f, round(_re_estimate(f), 4)) for f in factors]}
+
+
 def _riskofbias(r, neutral):
     """RoB2-style risk of bias, per pooled trial, built from AACT structured design fields + the
     registry-vs-pooled outcome (Domain 5). Partial-but-honest: domains needing human judgement are
@@ -902,17 +943,26 @@ def _riskofbias(r, neutral):
     uoa_html = ""
     if uoa:
         items = "; ".join(f"{_e(u.get('id'))} ({_e(u.get('design'))})" for u in uoa)
+        _sens = _uoa_sensitivity(r, [u.get("id") for u in uoa])
+        _sens_txt = ""
+        if _sens and len(_sens["points"]) > 1:
+            base = _sens["points"][0][1]
+            rng = "; ".join(f"&times;{f:g}&rarr;{est}" for f, est in _sens["points"][1:])
+            _sens_txt = (f" <strong>The pooled point estimate is NOT invariant to this</strong>: inflating only "
+                         f"these trials' variances re-pools (illustrative DL) from {base} to "
+                         f"{_sens['points'][-1][1]} ({rng}) — because changing a study's variance changes its "
+                         "inverse-variance weight, so both the estimate and its interval move.")
         uoa_html = ("<div class='absent'><strong>Unit-of-analysis caveat (disclosed, not adjusted).</strong> "
-                    f"{len(uoa)} pooled trial(s) use a cluster-randomized or crossover design: {items}. "
-                    "They are pooled from patient-level counts <strong>without applying a design effect</strong> "
-                    "(cluster ICC) or a within-subject (crossover) adjustment, because the ICC / paired "
-                    "variance is not reported in the source. <strong>Consequence:</strong> the true variance of "
-                    "these trials is larger than the patient-level calculation assumes, so their inverse-variance "
-                    "<strong>weight in the pool is OVERSTATED</strong> and the pooled confidence interval is "
-                    "<strong>too narrow</strong> (over-precise) — the pooled point estimate is unaffected, but its "
-                    "certainty is optimistic. This is a stated limitation (a documented meta-analysis error class "
-                    "the harness flags but cannot correct without the missing variance component), not a silent "
-                    "simple-parallel pooling.</div>")
+                    f"{len(uoa)} pooled trial(s) use a cluster-randomized or cluster-period (policy) crossover "
+                    f"design: {items}. They are pooled from patient-level counts <strong>without applying a "
+                    "design effect</strong> (cluster ICC / cluster-period correlation), because that variance "
+                    "component is not reported in the source — these are CLUSTER-PERIOD policy crossovers, not "
+                    "within-person crossovers. <strong>Consequence:</strong> the true variance of these trials is "
+                    "larger than the patient-level calculation assumes, so their inverse-variance <strong>weight "
+                    "in the pool is OVERSTATED</strong> and the pooled confidence interval is <strong>too narrow"
+                    "</strong> (over-precise)." + _sens_txt + " This is a stated limitation (a documented "
+                    "meta-analysis error class the harness flags but cannot correct without the missing variance "
+                    "component), not a silent simple-parallel pooling.</div>")
     fund = r.get("funding") or []
     fund_html = ""
     if fund:
