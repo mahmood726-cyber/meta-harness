@@ -79,9 +79,29 @@ def _has_intervention(text: str, terms) -> str | None:
     return None
 
 
+import re as _re2
+# Review/meta-analysis markers in the TITLE: PubMed often tags a meta-analysis only "Journal Article"
+# (colchicine-postop 29766857 "...: A Meta-Analysis" and 36531704 "Meta-analysis of randomized..." were
+# pubtype 'Journal Article' and slipped past a pubtype-only review check, then pooled their pooled RR as
+# if a trial). A primary RCT report never titles itself a meta-analysis/systematic review.
+_REVIEW_TITLE = _re2.compile(
+    r"\bmeta[-\s]?anal(?:ysis|yses)\b|\bsystematic review\b|\bnetwork meta[-\s]?analysis\b|"
+    r"\bpooled analysis\b|\bumbrella review\b|\bscoping review\b|\bnarrative review\b|"
+    r"\bsystematic literature review\b", _re2.I)
+
+
 def _is_review(rec) -> bool:
     pts = [p.lower() for p in rec.get("pubtypes", [])]
-    return any(("review" in p) or ("meta-analysis" in p) or ("meta analysis" in p) for p in pts)
+    if any(("review" in p) or ("meta-analysis" in p) or ("meta analysis" in p) for p in pts):
+        return True
+    # Title-declared meta-analysis/review with an INCOMPLETE pubtype -- but only when the record does
+    # NOT carry a genuine primary-study pubtype. A primary RCT (pubtype 'Randomized Controlled Trial' /
+    # 'Clinical Trial') that ALSO reports a pooled sub-analysis is still a trial: RE-COVER II (24344086),
+    # "Treatment of acute VTE with dabigatran or warfarin and pooled analysis", is pubtype-RCT and must
+    # not be reclassified a review by the title marker.
+    if any(("randomized controlled trial" in p) or ("clinical trial" in p) for p in pts):
+        return False
+    return bool(_REVIEW_TITLE.search(rec.get("title", "") or ""))
 
 
 import re as _re
@@ -99,15 +119,68 @@ def _title_says_rct(rec) -> bool:
     return bool(_TITLE_RCT.search(t)) and not _TITLE_RCT_NOT.search(t)
 
 
+# QUASI-randomisation: alternate/pseudo allocation is NOT a true RCT even when PubMed tags it
+# "Randomized Controlled Trial" (metformin-PCOS cold audit: Chaudhury 2008 is pubtype-RCT but Cochrane
+# classifies it quasi-RCT with cycle-level data). Full-text/abstract evidence overrides the pubtype in
+# BOTH directions -- the mirror of the Chen 2023 pubtype-omission case.
+_QUASI = _re.compile(r"quasi[-\s]?random|pseudo[-\s]?random|alternat(?:e|ely|ing)\s+"
+                     r"(?:allocation|assignment|assigned|allocated)|alternate[-\s]?day allocation", _re.I)
+# The ABSTRACT BODY describing the paper itself as a randomised trial (a self-description, not a review
+# citing trials): 'randomized, double-blind', 'randomly assigned to', '1:1 randomisation', etc.
+_BODY_RCT = _re.compile(
+    r"random(?:i[sz]ed|ly)\b[^.]{0,40}?(?:double[-\s]?blind|placebo|1:1|parallel|to receive|"
+    r"controlled trial|clinical trial|assigned|allocated|two groups|three groups)"
+    r"|(?:double[-\s]?blind|placebo-controlled)[^.]{0,40}?random(?:i[sz]ed|ly)", _re.I)
+
+
+def _body_says_rct(rec) -> bool:
+    """The abstract body explicitly describes THIS study as a randomised trial. Used so an incomplete
+    PubMed PublicationType (missing 'Randomized Controlled Trial') is treated as UNKNOWN, not
+    NOT-AN-RCT -- the Chen 2023 (esketamine) loss: pubtype 'Journal Article' only, abstract says
+    'Phase 3, randomized, double-blind, 1:1 ... vs matching placebo'."""
+    return bool(_BODY_RCT.search(rec.get("abstract", "") or ""))
+
+
+# Publication types that are NOT a primary RCT REPORT. A Comment/Editorial/Letter summarising a trial,
+# a Clinical Trial PROTOCOL (no results yet), a Review/Meta-analysis, an Erratum/News all cite
+# "randomized ... placebo-controlled" language and would otherwise be swept in by the body-RCT signal.
+# (Regression guard: the body-RCT fix wrongly included a Cochrane-review Comment (27688016), a study
+# Protocol (31712614) and an Editorial (39529940) into probiotics.)
+_NONPRIMARY_PT = ("comment", "editorial", "letter", "news", "erratum", "review", "meta-analysis",
+                  "meta analysis", "protocol", "guideline", "biography", "retracted publication",
+                  "retraction of publication", "systematic review")
+
+
+def _quasi_or_nonprimary(rec, pts) -> bool:
+    """True if the record is quasi/alternate-allocated OR carries a non-primary publication type
+    (comment/editorial/protocol/review/letter/erratum). Shared by both screeners."""
+    if any(any(np in p for np in _NONPRIMARY_PT) for p in pts):
+        return True
+    return bool(_QUASI.search((rec.get("abstract", "") or "") + " " + (rec.get("title", "") or "")))
+
+
 def _is_rct(rec) -> bool:
     if rec["id_type"] == "pmid":
         # A primary RCT report, NOT a review/meta-analysis that merely discusses RCTs.
         if _is_review(rec):
             return False
-        if any("randomized controlled trial" in p.lower() for p in rec.get("pubtypes", [])):
+        pts = [p.lower() for p in rec.get("pubtypes", [])]
+        # A non-primary publication type (comment/editorial/protocol/review/letter/erratum) is not a
+        # completed primary RCT report, whatever its abstract cites.
+        if any(any(np in p for np in _NONPRIMARY_PT) for p in pts):
+            return False
+        # NEGATIVE OVERRIDE: an explicit quasi/alternate-allocation statement in the body means this is
+        # not a true RCT, even if the pubtype says "Randomized Controlled Trial".
+        if _QUASI.search((rec.get("abstract", "") or "") + " " + (rec.get("title", "") or "")):
+            return False
+        if any("randomized controlled trial" in p for p in pts):
             return True
-        # Fallback: the TITLE explicitly declares a randomised trial (PubMed pubtype lag/omission).
-        return _title_says_rct(rec)
+        # A design/protocol/rationale paper by TITLE is not a completed RCT (even with RCT language).
+        if _TITLE_RCT_NOT.search(rec.get("title", "") or ""):
+            return False
+        # A missing RCT pubtype is UNKNOWN, not NOT-AN-RCT: accept an explicit self-declaration in the
+        # TITLE or in the ABSTRACT BODY (full text/abstract overrules incomplete metadata).
+        return _title_says_rct(rec) or _body_says_rct(rec)
     return (rec.get("allocation", "") or "").upper() == "RANDOMIZED" or rec.get("study_type", "") == "INTERVENTIONAL"
 
 
@@ -281,8 +354,13 @@ def screen_record_2(rec, inc):
     if _is_review(rec):
         return "exclude"
     text = _text(rec)
+    _pts = [p.lower() for p in rec.get("pubtypes", [])]
+    if rec["id_type"] == "pmid" and (
+            _quasi_or_nonprimary(rec, _pts)
+            or _TITLE_RCT_NOT.search(rec.get("title", "") or "")):
+        return "exclude"  # quasi/alternate allocation, non-primary pubtype, or protocol/design paper
     is_rct = (rec["id_type"] != "pmid"
-              or any("randomized controlled trial" in p.lower() for p in rec.get("pubtypes", []))
+              or any("randomized controlled trial" in p for p in _pts)
               or _title_says_rct(rec) or bool(_RANDOM_TEXT.search(rec.get("abstract", "") or "")))
     if not is_rct:
         return "exclude"
