@@ -214,6 +214,26 @@ def grade(review, ghost=None):
     inc = _inconsistency_domain(res)
     imp = _imprecision_domain(res, scale)
     pub = _pubbias_domain(ghost)
+    # NOT RATEABLE on an incoherent evidence object (audit 21 #5 / refinement 2): if the primary pool mixes
+    # INCOMPATIBLE estimand classes (a recurrent-event rate ratio pooled with a first-event ratio), the
+    # pooled effect is not one coherent quantity, so imprecision/inconsistency are computed from an artefact
+    # and an overall certainty CATEGORY would be meaningless. Show the domain signals; suppress the overall.
+    if (res.get("estmeasure") or {}).get("status") == "incompatible":
+        return {
+            "start": "high",
+            "domains": {"risk_of_bias": rob, "inconsistency": inc, "imprecision": imp,
+                        "publication_bias": pub,
+                        "indirectness": {"downgrade": 0, "not_auto_rated": True,
+                                         "basis": "not auto-rated (human judgement)"}},
+            "downgrades": rob["downgrade"] + inc["downgrade"] + imp["downgrade"] + pub["downgrade"],
+            "certainty": "not_rateable",
+            "not_rateable_reason": ("the primary pool mixes INCOMPATIBLE estimand classes "
+                                    f"({' + '.join((res.get('estmeasure') or {}).get('canonicals', []))}); an "
+                                    "overall certainty cannot be produced from an incoherent effect object — "
+                                    "the domain signals are shown, the overall is suppressed until the estimand "
+                                    "is made coherent (harmonise the measure or split the outcome)"),
+            "basis": "partial GRADE: overall certainty NOT RATEABLE (estimand-incompatible pool).",
+        }
     downgrades = rob["downgrade"] + inc["downgrade"] + imp["downgrade"] + pub["downgrade"]
     idx = min(downgrades, 3)  # high -> moderate -> low -> very_low
     # RoB coverage incompleteness caps at 'moderate' (cannot certify high on unassessed bias)

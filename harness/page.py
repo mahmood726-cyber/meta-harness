@@ -1002,7 +1002,17 @@ def _riskofbias(r, neutral):
             drows.append(f"<tr><td>{_e(lab)}</td><td>{mark}</td><td>{_e(dv.get('basis',''))}</td></tr>")
         cap = (" The rating is capped below <em>high</em> because risk of bias is not assessed for every "
                "pooled trial." if g.get("certainty_capped_by_rob_coverage") else "")
-        grade_html = ("<h4>GRADE certainty (PROVISIONAL — partial, object-derived)</h4>"
+        if g.get("certainty") == "not_rateable":
+            grade_html = ("<h4>GRADE certainty — NOT RATEABLE</h4>"
+                          "<div class='absent'><strong>Overall certainty: not rateable.</strong> "
+                          f"{_e(g.get('not_rateable_reason',''))}. The individual domain signals are shown "
+                          "below, but no overall certainty category is emitted — a partial or incoherent "
+                          "evidence object cannot produce one, and &lsquo;provisional&rsquo; would soften the "
+                          "language without repairing the logic."
+                          "<table class='arms'><tr><th>Domain</th><th>Signal</th><th>Basis</th></tr>"
+                          f"{''.join(drows)}</table></div>")
+        else:
+          grade_html = ("<h4>GRADE certainty (PROVISIONAL — partial, object-derived)</h4>"
                       "<div class='absent'><strong>Overall certainty (provisional): "
                       f"{_e(g.get('certainty','').replace('_',' '))}</strong> "
                       f"(starting from <em>high</em> for randomized trials, {g.get('downgrades',0)} "

@@ -47,7 +47,12 @@ def test_grade_present_and_valid_for_every_primary():
             continue
         g = r.get("grade")
         assert g, f"{slug}: no grade"
-        assert g["certainty"] in ("high", "moderate", "low", "very_low"), slug
+        # 'not_rateable' is a valid state (audit 21 #5): an estimand-incompatible / incoherent pool
+        # yields domain signals but NO overall certainty category, with a reason.
+        assert g["certainty"] in ("high", "moderate", "low", "very_low", "not_rateable"), slug
+        if g["certainty"] == "not_rateable":
+            assert g.get("not_rateable_reason"), f"{slug}: not_rateable without a reason"
+            continue
         # downgrades must equal the sum of domain downgrades (object-derived, not typed)
         s = sum(d.get("downgrade", 0) for d in g["domains"].values())
         assert g["downgrades"] == s, f"{slug}: downgrade total {g['downgrades']} != sum {s}"

@@ -27,25 +27,23 @@ def _b(v):
 
 
 def _d3(attr) -> dict:
-    """RoB2 D3 (missing outcome data). The RoB-relevant signal is BETWEEN-ARM DIFFERENTIAL missingness,
-    NOT overall study discontinuation: a trial can have 17% study-drug discontinuation yet ~95% of the
-    PRIMARY OUTCOME assessed (denosumab/FREEDOM cold audit -- we wrongly downgraded D3 on 17% overall
-    attrition when the outcome was available for 7,393/7,808). So key off the differential; overall
-    study attrition alone does not downgrade. Whether missingness DEPENDS on the outcome still needs
-    human reading, and the basis says so."""
+    """RoB2 D3 (missing outcome data). DEFAULT: NOT ASSESSED (audits 20/21). The only machine-available
+    signal is AACT participant-flow (study discontinuation / overall + between-arm attrition), and study
+    discontinuation is NOT outcome missingness -- whether missingness DEPENDS on the outcome, and whether
+    the OUTCOME itself was available despite discontinuation, need human reading of the trial. We do not
+    have that evidence for any pooled trial, so a D3 LEVEL rating (low/some concerns/high) derived from the
+    attrition PROXY is unearned: it contaminated the low-risk-only sensitivity and the GRADE risk-of-bias
+    input across the corpus. D3 is therefore reported as NOT ASSESSED, with the attrition figures shown as
+    context (a signal for a human), never as the rating. A genuine outcome-missingness rating requires
+    committed outcome-level missingness evidence, which is a human judgement the registry cannot supply."""
     if not attr or attr.get("overall_pct") is None:
         return {"level": "not assessed",
-                "basis": "no AACT participant-flow (milestones) data; outcome-missingness needs human judgement"}
+                "basis": "no AACT participant-flow data; outcome missingness needs human judgement"}
     o, d = attr["overall_pct"], attr.get("differential_pct") or 0
-    note = ("(overall study discontinuation is NOT outcome missingness; the RoB signal is the between-arm "
-            "differential, and outcome-dependence of missingness needs human judgement)")
-    if d < 5:
-        lvl = "low"
-    elif d < 10:
-        lvl = "some concerns"
-    else:
-        lvl = "high"
-    return {"level": lvl, "basis": f"AACT flow: between-arm differential attrition {d}% (overall {o}%) {note}"}
+    return {"level": "not assessed",
+            "basis": (f"not assessed — AACT flow shows between-arm differential attrition {d}% (overall {o}%), "
+                      "but study discontinuation is NOT outcome missingness and outcome-dependence needs human "
+                      "reading; the attrition figures are context, not a risk-of-bias rating")}
 
 
 def assess(design: dict, registered_primaries: list, pooled_outcome: str, matches,

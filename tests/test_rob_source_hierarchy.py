@@ -24,8 +24,9 @@ def test_double_blind_masking_overrides_wrong_booleans():
     assert d["D2_deviations"]["level"] == "low"
     assert d["D4_outcome_measurement"]["level"] == "low"
     assert "FLAGGED" in d["D4_outcome_measurement"]["basis"]  # disagreement flagged, not silent
-    assert d["D3_missing_outcome_data"]["level"] == "low"     # 1.8% differential, not 17% overall
-    assert rob2.overall(d).startswith("low")
+    # D3 is now NOT ASSESSED by default (audits 20/21): the attrition proxy is not outcome missingness.
+    assert d["D3_missing_outcome_data"]["level"] == "not assessed"
+    assert rob2.overall(d).startswith("low")  # low on the ASSESSED domains (D3 needs human judgement)
 
 
 def test_open_label_still_downgrades():
@@ -37,15 +38,14 @@ def test_open_label_still_downgrades():
     assert d["D4_outcome_measurement"]["level"] == "some concerns"
 
 
-def test_d3_keys_off_differential_not_overall():
-    # High overall study discontinuation but small differential -> D3 low (outcome availability high).
-    low = rob2.assess({"allocation": "Randomized", "masking": "Double",
-                       "attrition": {"overall_pct": 30.0, "differential_pct": 2.0}}, ["x"], "x", _MATCH)
-    assert low["D3_missing_outcome_data"]["level"] == "low"
-    # Large between-arm differential -> a real signal.
-    hi = rob2.assess({"allocation": "Randomized", "masking": "Double",
-                      "attrition": {"overall_pct": 20.0, "differential_pct": 12.0}}, ["x"], "x", _MATCH)
-    assert hi["D3_missing_outcome_data"]["level"] == "high"
+def test_d3_not_assessed_by_default_with_attrition_as_context():
+    # D3 is NOT ASSESSED regardless of the attrition proxy (audits 20/21): study discontinuation is not
+    # outcome missingness. The attrition figures appear in the basis as CONTEXT, never as the rating.
+    for diff in (2.0, 12.0):
+        d = rob2.assess({"allocation": "Randomized", "masking": "Double",
+                         "attrition": {"overall_pct": 30.0, "differential_pct": diff}}, ["x"], "x", _MATCH)
+        assert d["D3_missing_outcome_data"]["level"] == "not assessed"
+        assert str(diff) in d["D3_missing_outcome_data"]["basis"]  # attrition shown as context
 
 
 def test_single_blind_does_not_trigger_override():
