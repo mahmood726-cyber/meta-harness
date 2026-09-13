@@ -986,6 +986,11 @@ def build_review_core(slug, config, records, protocol_sha):
     # source that errored). Poisons the dependent outputs -- the page renders a STALE banner and the
     # index counts STALE topics -- so a known-incomplete/unproven result cannot read as current.
     _inv_sig = _invalidation_signals(slug)
+    # Identity crosswalk (read-only session #1, NAMED_BUT_UNBOUND): resolve a record's identifiers so a
+    # trial screened-in under one id (NCT) but pooled under another (PMID) is not falsely counted
+    # eligible-not-pooled. Built from the merged records' own nct field; verified 0 cross-space cases
+    # today, wired as defense-in-depth so it stays 0.
+    _inv_sig["id_nct"] = {str(r["id"]): str(r.get("nct")) for r in merged if r.get("nct")}
     review["invalidation"] = invalidation_mod.assess(review, _inv_sig)
     if _inv_sig.get("never_considered"):
         review["never_considered"] = _inv_sig["never_considered"]

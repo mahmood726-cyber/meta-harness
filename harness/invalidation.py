@@ -41,18 +41,28 @@ def _present(res):
                and res.get("present") is not False and res.get("estimate") is not None)
 
 
-def _eligible_not_pooled(core):
-    """Records screened-in (decision=include) but not pooled in ANY outcome — object-derived."""
+def _eligible_not_pooled(core, id_nct=None):
+    """Records screened-in (decision=include) but not pooled in ANY outcome — object-derived. Resolves
+    identifiers through id_nct (raw id -> nct) so a trial pooled under one identifier and screened under
+    another is not falsely flagged (NAMED_BUT_UNBOUND)."""
+    id_nct = id_nct or {}
     pooled = set()
     for o in (core.get("outcomes") or []):
         for t in (o.get("trials") or []):
-            pooled.add(_norm_id(t.get("id") or t.get("label")))
+            rid = _norm_id(t.get("id") or t.get("label"))
+            pooled.add(rid)
+            if rid in id_nct:
+                pooled.add(_norm_id(id_nct[rid]))
     out = []
     for r in ((core.get("screening") or {}).get("records") or []):
         if r.get("decision") != "include":
             continue
         nid = _norm_id(r.get("id"))
-        if nid and nid not in pooled:
+        if nid and nid in pooled:
+            continue
+        if nid in id_nct and _norm_id(id_nct[nid]) in pooled:
+            continue
+        if nid:
             out.append(r.get("id"))
     # stable, de-duplicated
     seen = set()
@@ -118,7 +128,7 @@ def assess(core, signals=None):
     #    decision is 'include' but which is NOT in the pooled set of any outcome is an eligible trial the
     #    pool does not contain -- the completeness claim cannot be current. Derived from the object, so it
     #    catches prose-only admissions (colchicine-postop, probiotics) the reason-string match missed.
-    elig = _eligible_not_pooled(core)
+    elig = _eligible_not_pooled(core, signals.get("id_nct") or {})
     if elig:
         reasons.append({"code": "eligible_declared_absent",
                         "detail": "screened-in (decision=include) but not pooled in any outcome — eligible "
