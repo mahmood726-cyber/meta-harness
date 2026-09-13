@@ -22,7 +22,51 @@ from typing import Callable, Optional
 
 from .canonical import canonical_json, review_core, review_sha256, sha256_text
 from .page import render_page
+from . import page
 from . import registration
+from . import claim
+
+
+def _claim_check(review_core_obj: dict):
+    """Cross-surface significance-contradiction scan for the canonical claim object.
+
+    For every outcome whose canonical claim is PRESENT, the scan reads THAT outcome's own
+    rendered block (the exact bytes shown for it) and checks it does not ASSERT a significance
+    opposite to the object -- a card saying 'significantly reduced' over an interval that spans
+    no effect (the card<->object mismatch class). The PRIMARY claim is additionally scanned
+    against the overview and manuscript, the headline surfaces that make a significance claim
+    about it. Scoping to each outcome's own bytes is essential: scanning the whole page for one
+    outcome would attribute a (correct) 'not significant' about a harm to a significant primary
+    (the 'search the same bytes you showed' rule). Pure function of the core, so census (build)
+    and reproduce_review (replay) produce it identically. The build FAILS closed on any
+    contradiction."""
+    core = dict(review_core_obj)
+    core.pop("reproduction", None)
+    checked = 0
+    contradictions = []
+    for o in core.get("outcomes", []):
+        res = o.get("result")
+        if not isinstance(res, dict):
+            continue
+        cl = res.get("claim") or claim.derive(res)
+        if not cl.get("present"):
+            continue
+        checked += 1
+        surfaces = {}
+        try:
+            surfaces["outcome block"] = page.render_outcome_block(o)
+        except Exception:
+            pass
+        if o.get("primary"):
+            for name, fn in (("overview", page.render_overview), ("manuscript", page.render_manuscript)):
+                try:
+                    surfaces[name] = fn(core)
+                except Exception:
+                    pass
+        for c in claim.significance_contradictions(cl, surfaces):
+            contradictions.append({"outcome": o.get("name"), **c})
+    return {"claims_checked": checked, "surfaces": ["outcome block", "overview", "manuscript"],
+            "contradictions": contradictions}
 
 
 def _parity_row(root: str, slug: str):
@@ -126,6 +170,14 @@ def build_review_dir(
     _du = _dual_row(_root, manifest_meta.get("slug", ""))
     if _du:
         reproduction["dual"] = _du
+    # CANONICAL-CLAIM cross-surface contradiction gate: every surface must derive its significance
+    # wording from the one claim object. Fail closed if any rendered surface asserts the opposite.
+    _cc = _claim_check(review_core_obj)
+    reproduction["claim_check"] = _cc
+    if _cc["contradictions"]:
+        raise ValueError(
+            "CLAIM-OBJECT CONTRADICTION (build refused): a rendered surface asserts a significance "
+            "opposite to the canonical claim object -> " + json.dumps(_cc["contradictions"]))
     final_review = dict(review_core_obj)
     final_review["reproduction"] = reproduction
     html = render_page(final_review)

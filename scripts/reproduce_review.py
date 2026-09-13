@@ -73,6 +73,7 @@ def reproduce(slug):
     _du = census._dual_row(ROOT, slug)
     if _du:
         repro["dual"] = _du
+    repro["claim_check"] = census._claim_check(core)
     final = dict(core, reproduction=repro)
     if sha256_text(render_page(final)) != sha256_text(served):
         reasons.append("served index.html does not byte-match a re-render from the replayed core")

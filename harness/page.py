@@ -14,6 +14,7 @@ rendered by this same function so a judge cannot tell them apart by structure.
 """
 from __future__ import annotations
 import html
+import json
 import re
 from typing import Any
 
@@ -652,6 +653,25 @@ def _harms(r, neutral):
     return "".join(_outcome_block(o) for o in harms)
 
 
+# Public render wrappers for the canonical-claim contradiction scan (census._claim_check): they
+# expose the SAME per-outcome / overview / manuscript bytes a reader sees, so the scan reads the
+# exact surface it is judging. Named (not private) so the gate can call and tests can patch them.
+def render_outcome_block(o):
+    # show_inputs=False: exclude the per-trial VERBATIM SOURCE SPANS (e.g. a trial abstract's own
+    # "evolocumab significantly reduced ...") from the significance scan. Those are the source's
+    # words about a single trial, not the harness's assertion about the pooled result, and must not
+    # be read as a claim the pooled object could contradict.
+    return _outcome_block(o, show_inputs=False)
+
+
+def render_overview(r, neutral=False):
+    return _overview(r, neutral)
+
+
+def render_manuscript(r, neutral=False):
+    return _manuscript(r, neutral)
+
+
 def _comparator(r, neutral):
     c = r.get("comparator")
     reason = _absent(c)
@@ -807,6 +827,19 @@ def _reproduction(r, neutral):
                  "yet deliberately did not pool. Honest k over inflated k: a named refusal is a result.</p>"
                  "<table class='arms'><tr><th>Trial</th><th>What was verified</th>"
                  f"<th>Why it was not pooled</th></tr>{rows}</table>")
+    # CANONICAL CLAIM OBJECT: every surface derives its significance wording from one object; the build
+    # scans the rendered page + manuscript and fails closed on any surface that asserts the opposite.
+    if cc := rep.get("claim_check"):
+        n_con = len(cc.get("contradictions") or [])
+        body += ("<h4>Canonical claim object (one object, every surface)</h4>"
+                 "<p>Each stated result on this page &mdash; whether it is statistically significant, "
+                 "whether its interval spans no effect &mdash; is derived from a single claim object, "
+                 "not recomputed per surface. At build the rendered page and manuscript are scanned for "
+                 "any wording that asserts the opposite of that object; the build is refused on a "
+                 f"contradiction. <strong>Claims checked: {_e(cc.get('claims_checked'))}; "
+                 f"contradictions caught: {n_con}.</strong>"
+                 + ("" if n_con == 0 else " " + _e(json.dumps(cc.get("contradictions"))))
+                 + "</p>")
     body += ("<div class='absent'><strong>RETRACTED (round-2): reproducibility claim not currently supported.</strong> "
              "We previously claimed that re-running from the registration SHA on a fresh clone regenerates this page "
              "byte-for-byte. Direct testing falsified that: running the advertised command changed several canonical "

@@ -9,6 +9,7 @@ import os
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure
 from . import grade as grade_mod
 from . import rob_sensitivity as rob_sens_mod
+from . import claim as claim_mod
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool, method_text, METHOD_RATIO
 
@@ -897,6 +898,19 @@ def build_review_core(slug, config, records, protocol_sha):
         # Corpus-level RoB span-check agreement (rendered on the RoB tab).
         **({"rob_spancheck": _rsc} if (_rsc := _load_rob_spancheck()) else {}),
     }
+    # CANONICAL CLAIM: one derivation of significance / null-crossing / direction per result,
+    # attached to every outcome (primary, secondary, harms) and every transcribed comparator claim,
+    # so a surface DERIVES the stated judgement from one object instead of recomputing it (the
+    # card<->object mismatch class). Part of the canonical core (hashed into review_sha256), so it
+    # reproduces from the committed cache. Purely additive: no existing rendered number changes.
+    for _o in review.get("outcomes", []):
+        if isinstance(_o.get("result"), dict):
+            _o["result"]["claim"] = claim_mod.derive(_o["result"])
+    _cmp = review.get("comparator")
+    if isinstance(_cmp, dict):
+        for _r in _cmp.get("reported", []):
+            if isinstance(_r, dict):
+                _r["claim"] = claim_mod.derive(_r)
     # RoB-stratified sensitivity re-pool of the primary outcome (regenerates from the object, so the
     # figure the page renders is reproduced, not typed). Uses the same validated pooler.
     # RoB-stratified sensitivity is a RE-POOL, so it must also fail closed on an INCOMPATIBLE primary
@@ -933,6 +947,9 @@ def build_comparator_core(slug, config, records):
     if not outcomes:
         outcomes = [{"name": config["primary_outcome"]["name"], "kind": "efficacy", "primary": True,
                      "estimand": "RR", "result": {"present": False, "reason": "no pooled effect extractable"}}]
+    for _o in outcomes:  # canonical claim on the comparator page's own outcomes too
+        if isinstance(_o.get("result"), dict):
+            _o["result"]["claim"] = claim_mod.derive(_o["result"])
     return {
         "slug": slug + "-comparator", "title": config["title"], "question": config["question"],
         "method_declared": "Random-effects meta-analysis (as reported).",
