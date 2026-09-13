@@ -1153,7 +1153,12 @@
             "note": "independently corroborated by CT.gov structured results"
           },
           "verified": "verified",
-          "verify_basis": "arm counts present in committed source"
+          "verify_basis": "arm counts present in committed source",
+          "effect_object": {
+            "reported_label": "RR",
+            "statistical_model": null,
+            "canonical_estimand": "RISK_RATIO"
+          }
         },
         {
           "label": "30415637",
@@ -1171,7 +1176,12 @@
             "note": "CT.gov structured result present; measures are not both count-derived (abstract effect vs registry counts), shown for corroboration only"
           },
           "verified": "verified",
-          "verify_basis": "effect present in committed source"
+          "verify_basis": "effect present in committed source",
+          "effect_object": {
+            "reported_label": "HR",
+            "statistical_model": null,
+            "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+          }
         },
         {
           "label": "30415628",
@@ -1183,7 +1193,12 @@
           "source": "abstract effect+CI (HR): A primary end-point event occurred in 17.2% of the patients in the icosapent ethyl group, as compared with 22.0% of the patients in the placebo group (hazard ratio, 0.75; 95% confidence interval [CI],",
           "provenance": "abstract",
           "verified": "verified",
-          "verify_basis": "effect present in committed source"
+          "verify_basis": "effect present in committed source",
+          "effect_object": {
+            "reported_label": "HR",
+            "statistical_model": null,
+            "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+          }
         },
         {
           "label": "30146932",
@@ -1201,7 +1216,12 @@
             "note": "CT.gov structured result present; measures are not both count-derived (abstract effect vs registry counts), shown for corroboration only"
           },
           "verified": "verified",
-          "verify_basis": "effect present in committed source"
+          "verify_basis": "effect present in committed source",
+          "effect_object": {
+            "reported_label": "IRR",
+            "statistical_model": "rate / person-time",
+            "canonical_estimand": "INCIDENCE_RATE_RATIO"
+          }
         },
         {
           "label": "22686415",
@@ -1213,7 +1233,12 @@
           "provenance": "fulltext_verified",
           "source": "ORIGIN (PMID 22686415) abstract: 'The use of n-3 fatty acids also had no significant effect on the rates of major vascular events (1034 patients [16.5%] vs. 1017 patients [16.3%]; hazard ratio, 1.01; 95% CI, 0.93 to 1.10; P=0.81)'. ENDPOINT CORRECTION (override): the abstract's stated PRIMARY outcome is 'death from cardiovascular causes' (HR 0.98), which is NOT our outcome; the abstract's MAJOR VASCULAR EVENTS result (our MACE endpoint) is HR 1.01. The generic 'primary outcome' keyword matched ORIGIN's CV-death primary sentence (appearing first), pooling the wrong endpoint; this override pins the correct major-vascular-events value.",
           "verified": "verified",
-          "verify_basis": "effect present in committed source"
+          "verify_basis": "effect present in committed source",
+          "effect_object": {
+            "reported_label": "HR",
+            "statistical_model": null,
+            "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+          }
         },
         {
           "label": "20929341",
@@ -1225,7 +1250,12 @@
           "source": "abstract effect+CI (HR): Neither EPA-DHA nor ALA reduced this primary end point (hazard ratio with EPA-DHA, 1.01; 95% confidence interval [CI], 0.87 to 1.17; P=0.93; hazard ratio with ALA, 0.91; 95% CI, 0.78 to 1.05; P=0.20).",
           "provenance": "abstract",
           "verified": "verified",
-          "verify_basis": "effect present in committed source"
+          "verify_basis": "effect present in committed source",
+          "effect_object": {
+            "reported_label": "HR",
+            "statistical_model": null,
+            "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+          }
         },
         {
           "label": "21115589",
@@ -1237,7 +1267,12 @@
           "provenance": "fulltext_verified",
           "source": "SU.FOL.OM3 (PMID 21115589) full text (PMC2993045, Results / fig 4): 'Allocation to omega 3 fatty acids was not associated with any significant effect on major vascular events (81 v 76 patients, hazard ratio 1.08 (0.79 to 1.47), P=0.64; fig 4).' This is the omega-3 MAIN-EFFECT MARGINAL (omega-3 present vs absent, collapsed over the 2x2 B-vitamin allocation) on the trial's declared primary outcome (major cardiovascular events). Double-blind, placebo-controlled factorial; 2501 patients with a history of myocardial infarction, unstable angina, or ischaemic stroke (secondary prevention). Estimand-matched: major vascular events, HR, intention-to-treat, trial end.",
           "verified": "verified",
-          "verify_basis": "effect present in committed source"
+          "verify_basis": "effect present in committed source",
+          "effect_object": {
+            "reported_label": "HR",
+            "statistical_model": null,
+            "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+          }
         }
       ],
       "declared_absent_trials": [
@@ -1320,17 +1355,35 @@
       "result": {
         "k": 7,
         "estimate": 0.943,
-        "scale": "mixed (HR/IRR/RR)",
+        "scale": "INCOMPATIBLE (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO + RISK_RATIO)",
         "ci_low": 0.846,
         "ci_high": 1.051,
         "tau2": 0.00925,
         "pi_low": 0.7277,
         "pi_high": 1.2218,
+        "estmeasure": {
+          "status": "incompatible",
+          "classes": [
+            "FIRST_EVENT_RATIO",
+            "RATE"
+          ],
+          "canonicals": [
+            "HAZARD_RATIO_FIRST_EVENT",
+            "INCIDENCE_RATE_RATIO",
+            "RISK_RATIO"
+          ],
+          "labels": [
+            "HR",
+            "IRR",
+            "RR"
+          ]
+        },
         "scale_mixed": [
           "HR",
           "IRR",
           "RR"
         ],
+        "estmeasure_incompatible": true,
         "composite_heterogeneity": "pooled trials use each trial's OWN primary composite; component sets differ across trials (varying extra components across trials: revascularization, unstable angina) — the pooled estimate mixes composite definitions (disclosed, not adjusted)",
         "leave_one_out": {
           "min": 0.93,
@@ -1389,7 +1442,12 @@
           "source": "ClinicalTrials.gov results (structured): outcome 'Number of Participants With Event: Atrial Fibrillation (Omega-3 Comparison Only)' 166/7740 (Omega-3) vs 135/7740 (Placebo Omega-3)",
           "provenance": "ctgov_results",
           "verified": "verified",
-          "verify_basis": "arm counts present in committed source"
+          "verify_basis": "arm counts present in committed source",
+          "effect_object": {
+            "reported_label": "RR",
+            "statistical_model": null,
+            "canonical_estimand": "RISK_RATIO"
+          }
         }
       ],
       "declared_absent_trials": [
@@ -1506,6 +1564,18 @@
         "ci_low": 0.9819,
         "ci_high": 1.5398,
         "pi_note": "prediction interval undefined for k=1",
+        "estmeasure": {
+          "status": "homogeneous",
+          "classes": [
+            "FIRST_EVENT_RATIO"
+          ],
+          "canonicals": [
+            "RISK_RATIO"
+          ],
+          "labels": [
+            "RR"
+          ]
+        },
         "leave_one_out": {
           "note": "not assessable at k=1 (leave-one-out needs k>=3)"
         }
@@ -2187,7 +2257,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "13c0136f93aa1d9c52aabf01cc34ef2cc27a677d",
-    "review_sha256": "053fb1935a779e2c638f2408ea60e382be84a51983f4f4f5eacc69ec01454e2a",
+    "review_sha256": "77a6db67f84f5581806788364ec9099c5bdd4934a46e6b29b51fc740cb6c81fe",
     "from_cache": true,
     "parity": {
       "slug": "omega3-cardiovascular-events",

@@ -489,6 +489,17 @@ def _outcome_block(o, show_inputs=True):
             # "mixed (…)"), not the topic's target estimand — the target is stated in the Analysis
             # Method prose, and a row reading "Estimand RR" beside a pooled HR is the defect this fixes.
             ("Estimand", res.get("scale") or o.get("estimand")),
+            ("Estimand compatibility", (
+                ("⚠ INCOMPATIBLE — the pooled trials report DIFFERENT estimand classes ("
+                 + " + ".join((res.get("estmeasure") or {}).get("canonicals", []))
+                 + "): a recurrent-event/rate ratio and a first-event ratio count different things, so "
+                 "the pooled number mixes measures that are not directly poolable — read it as a rough "
+                 "signal, not a valid summary (a stated limitation, surfaced not smoothed)")
+                if (res.get("estmeasure") or {}).get("status") == "incompatible" else
+                ("reported labels differ (" + ", ".join((res.get("estmeasure") or {}).get("labels", []))
+                 + ") but are the SAME compatibility class (first-event relative ratios: RR/OR/HR) — "
+                 "pooled as compatible, not an estimand conflict"
+                 if (res.get("estmeasure") or {}).get("status") == "compatible_labels" else None))),
             ("Analysis population", o.get("population")),
             ("Timepoint", o.get("timepoint")),
             ("Method", o.get("method")),

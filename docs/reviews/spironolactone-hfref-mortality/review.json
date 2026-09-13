@@ -1936,7 +1936,12 @@
           "source": "abstract effect+CI (RR): There were 386 deaths in the placebo group (46 percent) and 284 in the spironolactone group (35 percent; relative risk of death, 0.70; 95 percent confidence interval, 0.60 to 0.82; P<0.001).",
           "provenance": "abstract",
           "verified": "verified",
-          "verify_basis": "effect present in committed source"
+          "verify_basis": "effect present in committed source",
+          "effect_object": {
+            "reported_label": "RR",
+            "statistical_model": null,
+            "canonical_estimand": "RISK_RATIO"
+          }
         },
         {
           "label": "21073363",
@@ -1954,14 +1959,19 @@
             "note": "CT.gov structured result present; measures are not both count-derived (abstract effect vs registry counts), shown for corroboration only"
           },
           "verified": "verified",
-          "verify_basis": "effect present in committed source"
+          "verify_basis": "effect present in committed source",
+          "effect_object": {
+            "reported_label": "HR",
+            "statistical_model": null,
+            "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+          }
         }
       ],
       "declared_absent_trials": [],
       "result": {
         "k": 2,
         "estimate": 0.7218,
-        "scale": "mixed (HR/RR)",
+        "scale": "RR/HR",
         "ci_low": 0.3236,
         "ci_high": 1.6097,
         "tau2": 0.0,
@@ -1970,6 +1980,20 @@
         "ci_high_fixed": 0.8168,
         "estimate_fixed": 0.7218,
         "fixed_note": "common-effect (fixed-effect, z-based) sensitivity: with only two trials the HKSJ interval uses a t-multiplier on a single degree of freedom and is very wide; where the two trials agree this conventional interval is the more informative bound.",
+        "estmeasure": {
+          "status": "compatible_labels",
+          "classes": [
+            "FIRST_EVENT_RATIO"
+          ],
+          "canonicals": [
+            "HAZARD_RATIO_FIRST_EVENT",
+            "RISK_RATIO"
+          ],
+          "labels": [
+            "HR",
+            "RR"
+          ]
+        },
         "scale_mixed": [
           "HR",
           "RR"
@@ -1998,7 +2022,12 @@
           "provenance": "aact_verified",
           "source": "EMPHASIS-HF (PMID 21073363) abstract: 'A serum potassium level exceeding 5.5 mmol per liter occurred in 11.8% of patients in the eplerenone group and 7.2% of those in the placebo group.' ENDPOINT CORRECTION (override): the CT.gov extractor pooled 'hospitalization due to hyperkalemia' (4/1367 vs 3/1376), not hyperkalemia incidence; our outcome is hyperkalemia (serum K+ >5.5). Counts derived from the stated percentages x per-arm N (eplerenone 1367, placebo 1376).",
           "verified": "verified_handchecked",
-          "verify_basis": "AACT-derived arm entry, cross-checked to published %"
+          "verify_basis": "AACT-derived arm entry, cross-checked to published %",
+          "effect_object": {
+            "reported_label": "RR",
+            "statistical_model": null,
+            "canonical_estimand": "RISK_RATIO"
+          }
         }
       ],
       "declared_absent_trials": [
@@ -2015,6 +2044,18 @@
         "ci_low": 1.2891,
         "ci_high": 2.0787,
         "pi_note": "prediction interval undefined for k=1",
+        "estmeasure": {
+          "status": "homogeneous",
+          "classes": [
+            "FIRST_EVENT_RATIO"
+          ],
+          "canonicals": [
+            "RISK_RATIO"
+          ],
+          "labels": [
+            "RR"
+          ]
+        },
         "leave_one_out": {
           "note": "not assessable at k=1 (leave-one-out needs k>=3)"
         }
@@ -2268,7 +2309,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "5d75f715df8176e9e9153fb477848176b84a0e6b",
-    "review_sha256": "0cca2c811c3138bfd2708f67a3eea783bebdefb09c64f2a4abc76fd66a8be1b9",
+    "review_sha256": "a0bb9ef3a2045a10e9d65fbe353f8f4fdeb3535291ee26a3a58a8deec326ea42",
     "from_cache": true,
     "parity": {
       "slug": "spironolactone-hfref-mortality",

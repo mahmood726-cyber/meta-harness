@@ -397,7 +397,12 @@
           "source": "abstract effect+CI (IRR): The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12",
           "provenance": "abstract",
           "verified": "verified",
-          "verify_basis": "effect present in committed source"
+          "verify_basis": "effect present in committed source",
+          "effect_object": {
+            "reported_label": "IRR",
+            "statistical_model": "rate / person-time",
+            "canonical_estimand": "INCIDENCE_RATE_RATIO"
+          }
         },
         {
           "label": "25176939",
@@ -409,7 +414,12 @@
           "provenance": "fulltext_verified",
           "source": "CONFIRM-HF full text (PMC4359359, Table 2 + Results): 'Hospitalizations due to worsening HF ... 10 10 (7.6) ... 32 25 (19.4) ... 0.39 (0.19-0.82) ... 0.009' and 'Treatment with FCM was associated with a significant reduction in the risk of hospitalization due to worsening HF with a time-to-event analysis returning an HR of 0.39 with a 95% CI of (0.19-0.82) (P = 0.009)'. First-event (time-to-event) HR: 10 vs 25 patients with >=1 HF hospitalization.",
           "verified": "verified",
-          "verify_basis": "effect present in committed source"
+          "verify_basis": "effect present in committed source",
+          "effect_object": {
+            "reported_label": "HR",
+            "statistical_model": null,
+            "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+          }
         }
       ],
       "declared_absent_trials": [
@@ -452,7 +462,7 @@
       "result": {
         "k": 2,
         "estimate": 0.6064,
-        "scale": "mixed (HR/IRR)",
+        "scale": "INCOMPATIBLE (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO)",
         "ci_low": 0.0071,
         "ci_high": 51.5861,
         "tau2": 0.17798,
@@ -461,10 +471,26 @@
         "ci_high_fixed": 0.9489,
         "estimate_fixed": 0.7279,
         "fixed_note": "common-effect (fixed-effect, z-based) sensitivity: with only two trials the HKSJ interval uses a t-multiplier on a single degree of freedom and is very wide; where the two trials agree this conventional interval is the more informative bound.",
+        "estmeasure": {
+          "status": "incompatible",
+          "classes": [
+            "FIRST_EVENT_RATIO",
+            "RATE"
+          ],
+          "canonicals": [
+            "HAZARD_RATIO_FIRST_EVENT",
+            "INCIDENCE_RATE_RATIO"
+          ],
+          "labels": [
+            "HR",
+            "IRR"
+          ]
+        },
         "scale_mixed": [
           "HR",
           "IRR"
         ],
+        "estmeasure_incompatible": true,
         "leave_one_out": {
           "note": "not assessable at k=2 (leave-one-out needs k>=3)"
         }
@@ -870,7 +896,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "a56039f46158272c40c9565150903cf87db37c3c",
-    "review_sha256": "43ea00ef2159f78e7fe45806b3c34eed0fe09b6e4acc084c0601ac4b0ed5c0e9",
+    "review_sha256": "75902e56dbea3a307cd0d6411627d59a838f483523628dc070e5204678c7f6fb",
     "from_cache": true,
     "parity": {
       "slug": "iv-iron-hfref-hosp",

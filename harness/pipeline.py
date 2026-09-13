@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import os
 
-from . import extract, screen, scope, verify, locate, unit_of_analysis, funding
+from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure
 from . import grade as grade_mod
 from . import rob_sensitivity as rob_sens_mod
 from .ctgov_results import extract_ctgov
@@ -631,19 +631,33 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # clean scale ("calling it an HR" when it mixed a count-RR and a Cox HR is the shipped defect
         # this kills). The pooling math is unchanged (per-study log-effects); only the displayed scale
         # becomes truthful, and scale_mixed flags it for the page and the weakness survey.
-        eff = set()
+        # ESTIMAND TYPE SYSTEM + three-field object (TIER-1 #2 / audit 18): a pool's estimand status is
+        # decided by COMPATIBILITY CLASS, not by reported label. Mixing labels WITHIN one class (RALES's
+        # Cox "relative risk" + EMPHASIS's "hazard ratio" -- both first-event relative ratios) is
+        # compatible and disclosed, NOT the old alarming "mixed (HR/RR)". Mixing ACROSS classes (a
+        # recurrent-event rate ratio + a first-event hazard ratio -- the iv-iron defect) is a genuine
+        # INCOMPATIBILITY and is flagged as such. The pooling math is unchanged (per-study log-effects).
         for t in trials:
             if t.get("e1i") is not None:
-                eff.add("IRR")
+                _rl = "IRR"
             elif t.get("mean1") is not None:
-                eff.add("MD")
+                _rl = "MD"
             elif t.get("ai") is not None:
-                eff.add(meas)
-            elif t.get("scale"):
-                eff.add(t["scale"])
-        if len(eff) > 1:
-            out["result"]["scale"] = "mixed (" + "/".join(sorted(eff)) + ")"
-            out["result"]["scale_mixed"] = sorted(eff)
+                _rl = meas
+            else:
+                _rl = t.get("scale")
+            # model cue read ONLY from the effect's own tightly-scoped source span (not the whole
+            # abstract), so a distant unrelated "rate ratio"/"Cox" mention cannot mislabel this effect.
+            t["effect_object"] = estmeasure.classify(_rl, t.get("source", "") or "")
+        _compat = estmeasure.pool_compatibility([t["effect_object"] for t in trials])
+        out["result"]["estmeasure"] = _compat
+        if _compat["status"] == "incompatible":
+            out["result"]["scale"] = "INCOMPATIBLE (" + " + ".join(_compat["canonicals"]) + ")"
+            out["result"]["scale_mixed"] = _compat["labels"]
+            out["result"]["estmeasure_incompatible"] = True
+        elif _compat["status"] == "compatible_labels":
+            # one compatibility class, >1 label: keep the pooled ratio scale, disclose the label mix
+            out["result"]["scale_mixed"] = _compat["labels"]
         # DECLARED METHOD MATCHES THE SCALE ACTUALLY POOLED: a mean-difference outcome must carry the
         # mean-difference method string, not the log-ratio one (the melatonin/esketamine/semaglutide-weight
         # defect). Chosen from the ACTUAL result scale via the single source of truth.
