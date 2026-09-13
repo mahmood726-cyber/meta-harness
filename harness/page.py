@@ -122,7 +122,17 @@ def _overview(r, neutral):
     prim = _primary(r)
     if prim and _absent(prim) is None:
         res = prim.get("result") or {}
-        if _absent(res) is None:
+        if res.get("suppressed_incompatible"):
+            # FAIL CLOSED (audit 23): the overview summary must not present a suppressed-incompatible primary
+            # as pooled — no "Trials pooled (k)", no "Pooled effect" row (even with the number popped, the
+            # framing implies a pool). Show the suppression, defer per-trial estimates to Results.
+            parts.append("<h3>Primary outcome</h3>")
+            parts.append(
+                "<div class='absent'><strong>Pooled result SUPPRESSED (estimand-incompatible).</strong> "
+                f"{_e(res.get('suppressed_reason'))} <em>Estimand classes: "
+                f"{_e(' + '.join((res.get('estmeasure') or {}).get('canonicals', [])))}; the "
+                f"{_e(res.get('k'))} eligible trials are shown individually in Results, not pooled.</em></div>")
+        elif _absent(res) is None:
             parts.append("<h3>Primary outcome</h3>")
             pooled = _pooled_ids(prim)
             k = res.get("k")

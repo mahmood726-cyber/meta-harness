@@ -95,9 +95,12 @@ def test_corpus_incompatible_topics_are_fully_suppressed():
         # no pooled numbers survive on the result object
         for k in ("estimate", "ci_low", "ci_high", "tau2", "leave_one_out", "pi_low", "pi_high"):
             assert res.get(k) is None, f"{slug}: pooled '{k}' survived suppression"
-        # renderers fail closed
+        # renderers fail closed — both the detailed Results block AND the overview summary
         block = page._outcome_block(prim)
         assert "SUPPRESSED" in block and "<svg" not in block, f"{slug}: page did not fail closed"
+        ov = page._overview(r, False)
+        assert "SUPPRESSED" in ov, f"{slug}: overview did not fail closed"
+        assert "Trials pooled (k)" not in ov, f"{slug}: overview still frames suppressed outcome as pooled"
         assert manuscript._forest(r) == "", f"{slug}: manuscript forest not suppressed"
         sc = spec_curve(r) or {}
         assert sc.get("not_applicable"), f"{slug}: spec_curve re-pooled a suppressed primary"
