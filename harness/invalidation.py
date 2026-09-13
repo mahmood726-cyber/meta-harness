@@ -86,7 +86,8 @@ def assess(core, signals=None):
                                   "an unknown eligible trial"))})
     # 0b. A named eligible trial the audits identified is not in the pool (completeness void, and the
     #     pooled estimate is known-incomplete). Names carried even before external PMID verification.
-    kem = signals.get("known_eligible_missing") or []
+    kem = [x for x in (signals.get("known_eligible_missing") or [])
+           if x.get("status") != "verification_failed"]
     if kem:
         names = ", ".join(str(x.get("trial")) for x in kem[:6])
         reasons.append({"code": "known_eligible_missing",
