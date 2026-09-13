@@ -453,7 +453,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
         dc = extract.declared_is_composite(spec.get("name", ""))
         ex = extract.extract_trial(rec.get("abstract", ""), spec["keywords"], interv, comp,
-                                   declared_composite=dc)
+                                   declared_composite=dc, estimand=spec.get("estimand"))
         if not ex.get("absent"):
             # ESTIMAND-HOMOGENEITY (composite component count): an N-point MACE outcome must not pool a
             # trial whose own composite has a different component set (e.g. TECOS's 4-point vs 3-point).
@@ -484,7 +484,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # same round-trip + refuse-on-ambiguity guards; keyword-scoped so it reads the outcome's
         # own sentences, not the whole document.
         ft = fulltext_by_pmid.get(d["id"]) if d["id_type"] == "pmid" else None
-        fx = extract.extract_trial(ft, spec["keywords"], interv, comp, declared_composite=dc) if ft else None
+        fx = extract.extract_trial(ft, spec["keywords"], interv, comp, declared_composite=dc,
+                                   estimand=spec.get("estimand")) if ft else None
         if fx and not fx.get("absent"):
             fx["provenance"] = "pmc_fulltext"
             trials.append({"label": label, "id": idstr, **fx})

@@ -647,13 +647,19 @@ def extract_rate(sentence, interv_terms, comp_terms):
     return (e1, t1, e2, t2) if i_pos <= c_pos else (e2, t2, e1, t1)
 
 
-def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_composite=True):
+def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_composite=True, estimand=None):
     """Best conservative extraction for one trial's outcome. Returns dict or a reason.
 
     declared_composite: whether the review's declared outcome is itself a composite. When False
     (a SINGLE declared outcome), sentences that name a composite endpoint are skipped, so a
     composite number is never read as the single outcome (the FAIR-HF2 wrong-endpoint class).
-    Defaults True (guard off) for backward compatibility / callers that do not pass it."""
+    Defaults True (guard off) for backward compatibility / callers that do not pass it.
+
+    estimand: the review's REGISTERED estimand for this outcome. When it is a HAZARD RATIO
+    (time-to-event), the source-reported HR is PREFERRED over arm counts: reconstructing a crude
+    risk ratio from counts discards censoring/follow-up and is the WRONG estimand (dapagliflozin/
+    empagliflozin HFpEF: protocol registers HR, DELIVER/EMPEROR report HR in the abstract, yet the
+    counts were pooled as RR). For any other estimand the historical order (counts first) is kept."""
     abstract = _norm(abstract)
     _skip_composite = not declared_composite
     dm = _DENOM_EACH.search(abstract)
@@ -679,6 +685,20 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
             "cannot be attributed to a single pre-specified comparison; refused (multi-arm guard). "
             "Specify the dose in the topic's intervention terms to pin the arm.")}
     sents = _outcome_sentences(abstract, _effective_kws(abstract, outcome_kws))
+    # REGISTERED-ESTIMAND PREFERENCE (time-to-event): when the review registers a HAZARD RATIO, the
+    # trial's source-reported HR is the correct input and PREEMPTS count reconstruction (a crude RR from
+    # counts discards censoring). Only a genuine HR effect in an outcome sentence is taken; if none is
+    # reported the extractor falls through to the historical count/effect/rate order unchanged.
+    if estimand and "hazard" in str(estimand).lower().replace("hr", "hazard"):
+        for s in sents:
+            if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
+                    or (_skip_composite and _names_composite(s))
+                    or _kw_only_in_null_result(s, outcome_kws)):
+                continue
+            eff = extract_effect(s)
+            if eff and eff[0] == "HR":
+                return {"effect": eff[1], "ci_low": eff[2], "ci_high": eff[3], "scale": "HR",
+                        "source": f"abstract source-reported HR (registered estimand): " + s.strip()[:200]}
     for s in sents:
         if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
                 or (_skip_composite and _names_composite(s))

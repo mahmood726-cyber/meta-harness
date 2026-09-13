@@ -69,3 +69,25 @@ def test_every_live_review_method_matches_its_scale():
         if r:
             bad.append((os.path.basename(rd), r[0]))
     assert not bad, "method/scale mismatches still live: " + "; ".join(f"{s}: {m}" for s, m in bad)
+
+
+def test_hr_estimand_prefers_source_hr_over_counts():
+    """Audit 16 (dapagliflozin/empagliflozin HFpEF): when the review registers a HAZARD RATIO, the
+    source-reported HR must be taken over reconstructing a crude RR from arm counts (which discards
+    censoring). A DELIVER-shaped sentence carries BOTH counts and the HR; the HR must win."""
+    import json, os
+    from harness import extract
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fp = os.path.join(root, "cache", "dapagliflozin-hfpef-hosp", "records.json")
+    tp = os.path.join(root, "topics", "dapagliflozin-hfpef-hosp.json")
+    if not (os.path.exists(fp) and os.path.exists(tp)):
+        return
+    ab = {str(r["id"]): r for r in json.load(open(fp, encoding="utf-8"))["records"]}["36027570"]["abstract"]
+    t = json.load(open(tp, encoding="utf-8"))
+    po = t["primary_outcome"]
+    kws, interv, comp = po["keywords"], t["intervention_terms"], t["comparator_terms"]
+    ex_hr = extract.extract_trial(ab, kws, interv, comp, declared_composite=True, estimand="HR")
+    assert ex_hr.get("scale") == "HR" and ex_hr.get("effect") == 0.82, ex_hr
+    assert ex_hr.get("ai") is None, "HR estimand must not fall back to counts when an HR is reported"
+    ex_def = extract.extract_trial(ab, kws, interv, comp, declared_composite=True)
+    assert ex_def.get("ai") == 512, f"default (no HR estimand) should take counts: {ex_def}"
