@@ -289,6 +289,14 @@
    "where": "harness/screen.py X-CONTRAST + docs/contrast_evictions.json + pipeline injection",
    "corpus_reach": 32,
    "evidence": "MEASURED (live: SoSTART evicted on noac-warfarin; 2 evictions (Palomba 15472166, SoSTART), both screened-in-not-pooled so eligible count corrected, 0 estimates moved; confirmed-only, unverified_no_contrast NOT used to avoid dropping valid trials)"
+  },
+  {
+   "audit": "architecture (Mahmood gate 5b)",
+   "class": "TRIAL<->REPORT ENTITY MODEL — collapse secondary/duplicate reports to parent before counting (records != trials)",
+   "state": "LANDED_AND_LIVE",
+   "where": "docs/study_families.json merged into companion_reports; X-DEDUP; pipeline injection",
+   "corpus_reach": 32,
+   "evidence": "MEASURED (live: esketamine 7/7 secondary reports collapsed, 13->6 screened-in; metformin 2/2 Moll secondaries; 0 estimates moved, positive controls intact; corrects inflated counts both directions)"
   }
  ],
  "self_found_vs_audit_found": {
@@ -304,7 +312,7 @@
   "note": "first run where any defect was self-found before the audit; audits still find almost everything."
  },
  "summary": {
-  "LANDED_AND_LIVE": "13 of 36",
+  "LANDED_AND_LIVE": "14 of 37",
   "topics_fully_rebuilt": "32 of 32 (at working-tree HEAD, incl. the un-committed IRR-typing rebuild; 32 of 32 also at committed fa2b45d without IRR-typing)",
   "fixes_landed_in_code_but_not_in_pages": "0 committed fixes are page-stale (the reproduce-all gate forbids it, and the aggregate-artefact staleness that bit audits 25-27 is now closed + guarded by the leak scanner); 1 fix (IRR-typing) is landed-in-code-and-rebuilt-in-pages but NOT YET COMMITTED (a distinct IN_PROGRESS state, not code-vs-page staleness)",
   "corpus_currency": "25 of 32 current, 7 of 32 STALE (6 search-source-errored, 1 eligible-declared-absent) as of 117f3473",
