@@ -59,7 +59,12 @@ def test_bad_xml_returns_empty_not_crash():
 
 
 def test_xlsx_supplement_renders_row_structured_text():
-    import openpyxl
+    import pytest
+    # openpyxl is an OPTIONAL capability: xlsx-supplement parsing is a local import inside
+    # fulltext._xlsx_text, its one caller (fetch.py) never fails the fetch when it is absent, and the
+    # gate/reproduce path is stdlib-only. Skip (with a reason) rather than fail when it is not installed,
+    # so CI stays honest -- a false PASS would be worse than a documented SKIP.
+    openpyxl = pytest.importorskip("openpyxl", reason="optional xlsx-supplement capability; core is stdlib-only")
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.append(["Arm", "Mean", "SD"])
