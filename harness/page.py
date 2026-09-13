@@ -269,8 +269,10 @@ def _search(r, neutral):
         # PRIMARY search metric: how many of this topic's KNOWN trials the committed registry-first
         # query recovers (reach, not inclusion). Regenerable by re-running scripts/recall.py.
         status = rc.get("status")
-        line = (f"Registry-first RECALL: recovered <strong>{_e(rc.get('recovered'))}/{_e(rc.get('known'))}</strong> "
-                f"of this topic's known trials (enumerated {_e(rc.get('enumerated'))}; status {_e(status)}).")
+        line = (f"Positive-control recovery: the committed registry query re-found "
+                f"<strong>{_e(rc.get('recovered'))}/{_e(rc.get('known'))}</strong> of this topic's "
+                f"PRE-SPECIFIED known trials (pooled + declared positive controls; enumerated "
+                f"{_e(rc.get('enumerated'))}; status {_e(status)}).")
         # A bare recall reads every non-recovery as a search failure. Split the missed trials by CAUSE
         # so the number is honest: trials with no own-publication registry linkage are UNREACHABLE by a
         # registry-first search (the literature predates or omits trial registration), while trials that
@@ -291,9 +293,16 @@ def _search(r, neutral):
             line += f" <span class='muted'>Missed: {_e(', '.join(str(m) for m in rc.get('missed', [])))}.</span>"
         if rc.get("measured_utc"):
             line += f" <span class='muted'>Measured {_e(rc.get('measured_utc'))}.</span>"
-        body += ("<h4>Registry-first recall (reach)</h4><p>" + line
-                 + " Recall is search REACH; whether a recovered trial is eligible/poolable is the "
-                 "screen's and extractor's job — a candidate is not an include.</p>")
+        body += ("<h4>Positive-control recovery (NOT systematic-review recall)</h4><p>" + line
+                 + " <strong>This is not systematic-review recall.</strong> It measures whether the "
+                 "committed registry query re-finds the trials ALREADY KNOWN to the build; a trial that "
+                 "was never in the known set is not in the denominator, so a high value does <strong>not</strong> "
+                 "mean the search is complete — external audits found eligible trials (J-EMPHASIS-HF for "
+                 "spironolactone, PHILO for ticagrelor) entirely absent precisely because they were never in "
+                 "a known set. True recall needs an INDEPENDENTLY-GENERATED reference universe (concept query "
+                 "+ registry enumeration, not the seed list); that rebuild is in progress. Recovery is also "
+                 "search REACH, not inclusion — whether a recovered trial is eligible/poolable is the screen's "
+                 "and extractor's job.</p>")
     g = s.get("ghost")
     if g and g.get("enumerated"):
         # Registry landscape from AACT (broad query = reach, not precision). The strong, actionable
