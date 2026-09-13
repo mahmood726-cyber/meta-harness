@@ -25,7 +25,10 @@ def diagnose(slug):
     cache = json.load(open(os.path.join(ROOT, "cache", slug, "records.json"), encoding="utf-8"))
     recs = {x["id"]: x for x in cache.get("records", [])}
     prim = next((o for o in rev["outcomes"] if o.get("primary")), rev["outcomes"][0])
-    ours = (prim.get("result") or {}).get("k") or 0
+    # A suppressed-incompatible primary contributes 0 to the pool (its trials are shown individually, not
+    # pooled), so ours_k = 0 and the gap vs the comparator is undefined — not "we pooled k".
+    _supp = bool((prim.get("result") or {}).get("suppressed_incompatible"))
+    ours = 0 if _supp else ((prim.get("result") or {}).get("k") or 0)
     theirs = (rev.get("comparator", {}).get("overlap", {}) or {}).get("theirs_k")
     theirs = theirs if isinstance(theirs, int) else None
     pub_unext = reg_only = 0
@@ -38,8 +41,8 @@ def diagnose(slug):
             reg_only += 1
     screened_out = sum(1 for r in rev.get("screening", {}).get("records", []) if r["decision"] == "exclude")
     return {"slug": slug, "ours_k": ours, "theirs_k": theirs,
-            "gap": (theirs - ours) if theirs is not None else None,
-            "pooled": len(prim.get("trials") or []),
+            "gap": None if _supp else ((theirs - ours) if theirs is not None else None),
+            "pooled": 0 if _supp else len(prim.get("trials") or []), "suppressed": _supp,
             "published_unextractable": pub_unext, "registry_only": reg_only,
             "found_screened_out": screened_out}
 
@@ -52,7 +55,7 @@ def main(argv):
     for r in rows:
         t = str(r["theirs_k"]) if r["theirs_k"] is not None else "NS"
         g = str(r["gap"]) if r["gap"] is not None else "?"
-        if r["theirs_k"] is not None:
+        if r["theirs_k"] is not None and not r.get("suppressed"):
             so += r["ours_k"]; to += r["theirs_k"]
         print(f"{r['slug']:40} {r['ours_k']:<4} {t:6} {g:4} | {r['pooled']:^6} "
               f"{r['published_unextractable']:^9} {r['registry_only']:^8} {r['found_screened_out']:^7}")

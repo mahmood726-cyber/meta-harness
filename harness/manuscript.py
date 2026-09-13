@@ -184,6 +184,7 @@ def render(review, neutral: bool = False) -> str:
     lo, hi = _fmt(res.get("ci_low")), _fmt(res.get("ci_high"))
     g = review.get("grade") or {}
     cert = (g.get("certainty") or "").replace("_", " ")
+    _grade_not_rateable = g.get("certainty") == "not_rateable"
     sens = review.get("rob_sensitivity") or {}
     prot = review.get("protocol") or {}
     sha = str(prot.get("sha") or "")[:12]
@@ -240,9 +241,12 @@ def render(review, neutral: bool = False) -> str:
            if n_absent else "")
         + "</p>"
         f"<p><strong>Certainty.</strong> "
-        + (f"Partial GRADE certainty was <strong>{_e(cert)}</strong> "
-           f"(from {g.get('downgrades', 0)} downgrade(s); publication bias assessed from the trial registry, "
-           f"indirectness left to human judgement)." if cert else "Certainty was reported as signals.")
+        + (f"Overall GRADE certainty is <strong>not rateable</strong>: {_e(g.get('not_rateable_reason'))} "
+           "No downgrade count or overall certainty is reported for an incoherent effect object."
+           if _grade_not_rateable else
+           (f"Partial GRADE certainty was <strong>{_e(cert)}</strong> "
+            f"(from {g.get('downgrades', 0)} downgrade(s); publication bias assessed from the trial registry, "
+            f"indirectness left to human judgement)." if cert else "Certainty was reported as signals."))
         + "</p>"
     )
 
@@ -291,8 +295,11 @@ def render(review, neutral: bool = False) -> str:
         lim_bits.append("the trial registry shows unpublished completed trials (possible publication bias)")
     limitations = (
         "<h4>Limitations</h4>"
-        "<p>" + ("This synthesis is limited in that " + "; ".join(lim_bits) + ". " if lim_bits else
-                 "No GRADE domain was downgraded from the machine-computable signals. ")
+        "<p>" + ("Overall GRADE certainty is not rateable for this outcome because the primary pool mixes "
+                 "incompatible estimand classes, so no certainty conclusion (and no 'no domain downgraded' "
+                 "claim) is made. " if _grade_not_rateable else
+                 ("This synthesis is limited in that " + "; ".join(lim_bits) + ". " if lim_bits else
+                  "No GRADE domain was downgraded from the machine-computable signals. "))
         + "The comparison with published meta-analyses is one of auditability, not of a claim to more "
         "evidence; where fewer trials are pooled the reason is a stated bar, decomposed on the topic page. "
         "Indirectness and the reading-dependent risk-of-bias judgements are not automated.</p>"

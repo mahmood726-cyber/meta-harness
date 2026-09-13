@@ -799,13 +799,17 @@ def _reporting(r, neutral):
          "hand-verified AACT arms), round-trip validation on every extraction, outcome-identity gating; refuse on ambiguity.",
          ""),
         ("15 Certainty assessment", bool(res.get("k")),
-         "Results tab — the machine-computable certainty signals are shown: imprecision via the 95% CI"
-         + (" and the prediction interval" if has_pi else "")
-         + (", single-trial (k=1) flagged" if res.get("k") == 1 else "")
-         + ", inconsistency via tau^2. A PARTIAL, object-derived GRADE is now rendered on the Risk-of-bias tab "
-           "(risk-of-bias, inconsistency, imprecision, and registry-based publication bias computed from "
-           "committed fields; indirectness left to human judgement) — a graded certainty label with each "
-           "domain's basis, not a full hand-graded GRADE.",
+         ("Risk-of-bias tab — overall GRADE certainty is NOT RATEABLE: the primary pool mixes incompatible "
+          "estimand classes, so no overall certainty, 95% CI or tau^2 summary is asserted (the domain signals "
+          "are shown, the overall is suppressed until the estimand is made coherent)."
+          if res.get("suppressed_incompatible") else
+          "Results tab — the machine-computable certainty signals are shown: imprecision via the 95% CI"
+          + (" and the prediction interval" if has_pi else "")
+          + (", single-trial (k=1) flagged" if res.get("k") == 1 else "")
+          + ", inconsistency via tau^2. A PARTIAL, object-derived GRADE is now rendered on the Risk-of-bias tab "
+            "(risk-of-bias, inconsistency, imprecision, and registry-based publication bias computed from "
+            "committed fields; indirectness left to human judgement) — a graded certainty label with each "
+            "domain's basis, not a full hand-graded GRADE."),
          ""),
         ("16a Flow with counts at every stage", bool(scr.get("records")),
          "Screening tab — PRISMA flow: identified -> screened -> excluded-by-rule (counts) -> eligible -> pooled k -> declared-absent.",

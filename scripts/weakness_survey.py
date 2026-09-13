@@ -122,11 +122,15 @@ def main(argv):
             # dim 8b estimand/scale homogeneity: a pool mixing ratio scales (RR/OR/HR/IRR) is fragile
             ratio_scales = {s for s in scales if s in ("RR", "OR", "HR", "IRR", "RR-from-counts")}
             norm = {("RR" if s == "RR-from-counts" else s) for s in ratio_scales}
-            if len(norm) > 1 and (o.get("result") or {}).get("k", 0) and (o.get("result") or {}).get("k") > 1:
+            # A suppressed-incompatible outcome is not a pool, so it is neither a "mixed-scale pool" nor a
+            # "fragile pool" here — the mixed scale IS why it is suppressed, reported in full on the page.
+            _o_supp = bool((o.get("result") or {}).get("suppressed_incompatible"))
+            if (len(norm) > 1 and (o.get("result") or {}).get("k", 0)
+                    and (o.get("result") or {}).get("k") > 1 and not _o_supp):
                 mixed_scale_topics.append({"topic": slug, "outcome": o.get("name"), "scales": sorted(norm)})
         # dim 8 fragility
         k = res.get("k")
-        if k is not None:
+        if k is not None and not res.get("suppressed_incompatible"):
             crosses = (res.get("ci_low") is not None and res.get("ci_high") is not None
                        and res.get("ci_low") < 1 < res.get("ci_high"))
             if k <= 2 or res.get("tau2") == 0 or (k and k <= 2 and crosses):

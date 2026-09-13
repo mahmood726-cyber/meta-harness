@@ -119,6 +119,7 @@ def main(argv):
         comp = rev.get("comparator") or {}
         ov = comp.get("overlap") or {}
         sc = (comp.get("scope") or {})
+        suppressed = bool((prim or {}).get("result", {}).get("suppressed_incompatible"))
         our_k = len(prim.get("trials", []) or []) if prim else 0
         theirs_k = ov.get("theirs_k")
         scope_valid = sc.get("scope_valid", True)
@@ -126,10 +127,12 @@ def main(argv):
         for tid, nct, oname in need.get(slug, []):
             cls, info = _classify(nct, oname or "", rowmap)
             classes[str(tid)] = {"nct": nct, "class": cls, "info": info}
-        deficit = (theirs_k - our_k) if (isinstance(theirs_k, int) and scope_valid) else None
+        # A suppressed-incompatible primary is not pooled, so a deficit vs the comparator k is undefined:
+        # its extractable trials exist but are shown individually, not pooled. Report SUPPRESSED, not a k.
+        deficit = (theirs_k - our_k) if (isinstance(theirs_k, int) and scope_valid and not suppressed) else None
         out[slug] = {
-            "our_k": our_k, "theirs_k": theirs_k, "scope_valid": scope_valid,
-            "deficit": deficit if scope_valid else "SCOPE",
+            "our_k": "suppressed" if suppressed else our_k, "theirs_k": theirs_k, "scope_valid": scope_valid,
+            "deficit": "SUPPRESSED" if suppressed else (deficit if scope_valid else "SCOPE"),
             "primary_outcome": prim.get("name") if prim else None,
             "declared_absent": len(need.get(slug, [])),
             "absent_classes": classes,

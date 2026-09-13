@@ -47,9 +47,11 @@ def _score_topic(rev):
         for a in o.get("declared_absent_trials", []) or []:
             ok = bool(a.get("id")) and bool(a.get("reason"))
             add(f"absent:{oname}", a.get("id"), ok, "absent without id+reason" if not ok else "")
-        # the pooled estimate itself: checkable iff it exists and the trials above are pointered
+        # the pooled estimate itself: checkable iff it exists and the trials above are pointered. A
+        # suppressed-incompatible pool has NO pooled estimate, so it must not add an "estimate" claim to
+        # the transparency denominator (that would count a number we deliberately do not report).
         res = o.get("result") or {}
-        if res.get("k"):
+        if res.get("k") and not res.get("suppressed_incompatible"):
             trials_ok = all(bool(t.get("id")) and bool(t.get("source")) for t in (o.get("trials") or []))
             add(f"estimate:{oname}", f"k={res.get('k')}", trials_ok,
                 "pooled estimate not re-derivable (a trial lacks a source)" if not trials_ok else "")

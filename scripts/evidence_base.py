@@ -12,12 +12,18 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def build():
     p = json.load(open(os.path.join(ROOT, "docs", "parity.json"), encoding="utf-8"))
     prow = {r["slug"]: r for r in p if isinstance(r, dict) and r.get("slug")}
-    complete, gap_small, gap_large = [], [], []
+    complete, gap_small, gap_large, suppressed = [], [], [], []
     for f in sorted(glob.glob(os.path.join(ROOT, "docs", "reviews", "*", "review.json"))):
         slug = os.path.basename(os.path.dirname(f))
         r = json.load(open(f, encoding="utf-8"))
         prim = next((o for o in r.get("outcomes", []) if o.get("primary")), None)
-        k = (prim or {}).get("result", {}).get("k") if prim else None
+        res = (prim or {}).get("result") or {}
+        # A suppressed-incompatible primary is NOT a pooled evidence base: it must not be classified as
+        # complete/gap against a comparator k (that counts a non-pool as a pool). Bucket it separately.
+        if res.get("suppressed_incompatible"):
+            suppressed.append({"slug": slug, "reason": "primary pool estimand-incompatible (suppressed)"})
+            continue
+        k = res.get("k") if prim else None
         pr = prow.get(slug)
         if not k or not pr:
             continue
@@ -36,7 +42,8 @@ def build():
                     "gap_small = bar-limited (decomposed on the page); gap_large = a genuinely larger "
                     "literature (reason named per topic).",
             "n_complete": len(complete), "n_gap_small": len(gap_small), "n_gap_large": len(gap_large),
-            "complete": complete, "gap_small": gap_small, "gap_large": gap_large}
+            "n_suppressed": len(suppressed),
+            "complete": complete, "gap_small": gap_small, "gap_large": gap_large, "suppressed": suppressed}
 
 
 if __name__ == "__main__":
