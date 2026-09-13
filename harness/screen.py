@@ -453,9 +453,26 @@ def run(all_recs: list, config: dict) -> dict:
     # of an already-pooled trial was being counted as an eligible trial). A CURATED map (not a title
     # heuristic, which false-fires on real trials) excludes them and links each to its parent.
     companions = {str(c["pmid"]): c for c in (config.get("companion_reports") or [])}
+    # CONFIRMED non-contrast eviction (armcontrast into screening): a curated, audit-confirmed list of
+    # trials whose randomised contrast is NOT the intervention-vs-comparator of interest. Evicted at
+    # ELIGIBILITY (not admitted then disclosed after pooling) with reason code X-CONTRAST. Matches on
+    # raw id / NCT / acronym so a registry-only record is caught. Confirmed-only (never unverified).
+    evict = config.get("contrast_evictions") or []
     decisions = []
     for rec in all_recs:
         rid = str(rec.get("id"))
+        _ekeys = {str(rec.get("id")), str(rec.get("nct") or ""), str(rec.get("acronym") or "")}
+        _ehit = next((e for e in evict
+                      if str(e.get("key")) in _ekeys
+                      or any(str(a) in _ekeys for a in (e.get("alt") or []))), None)
+        if _ehit:
+            decisions.append({"id": rec["id"], "id_type": rec["id_type"],
+                              "label": rec.get("acronym") or "", "decision": "exclude",
+                              "rule_id": "X-CONTRAST",
+                              "reason": f"CONTRAST_ABSENT: {_ehit.get('basis')} (audit-confirmed non-contrast; "
+                                        f"evicted at eligibility, not pooled).",
+                              "span": (rec.get("title") or "")[:120]})
+            continue
         if rid in companions:
             c = companions[rid]
             decisions.append({"id": rec["id"], "id_type": rec["id_type"],

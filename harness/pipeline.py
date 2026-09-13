@@ -817,6 +817,15 @@ def _source_status(slug, config, records, merged):
 
 def build_review_core(slug, config, records, protocol_sha):
     merged = _dedup(records, config.get("pivotal_trials"))
+    # ARMCONTRAST INTO SCREENING: inject this topic's committed, audit-confirmed non-contrast
+    # evictions so screening excludes them at eligibility (not after pooling). Deterministic from
+    # docs/contrast_evictions.json, so build and replay agree.
+    if "contrast_evictions" not in config:
+        try:
+            _ce = json.load(open(os.path.join(ROOT, "docs", "contrast_evictions.json"), encoding="utf-8"))
+            config = dict(config, contrast_evictions=(_ce.get("topics") or {}).get(slug, []))
+        except (OSError, ValueError):
+            pass
     scr = screen.run(merged, config)
     rec_by_id = {r["id"]: r for r in merged}
     included = [d for d in scr["decisions"] if d["decision"] == "include"]
