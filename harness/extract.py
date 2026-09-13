@@ -169,7 +169,23 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
     return (e2, n2, e1, n1)
 
 
-def _effect_from_match(m):
+# A genuine person-time / recurrent INCIDENCE-rate ratio leaves a footprint in the source: an event
+# COUNT that exceeds persons ("occurred 264 times"), an explicit person-time denominator ("per 100
+# person-years"), a TOTAL/recurrent-events phrasing. A bare "rate ratio" WITHOUT any of these, reported
+# for a FIRST event or mortality (one per person), is a first-event relative ratio, not a person-time IRR
+# (audit 22 IRR-mistyping: RECOVERY "died within 28 days, age-adjusted rate ratio"; ASCEND "first serious
+# vascular event, log-rank rate ratio" -- both first-event, both wrongly typed IRR, which manufactured
+# omega3's estimand-incompatibility). Tight, bounded patterns only -- prose inference here previously
+# over-fired, so we require an explicit recurrence/person-time token, never a bare "recurrent"/"total".
+_RECURRENT_PERSONTIME = re.compile(
+    r"\b\d[\d,]*\s+times\b"
+    r"|per\s+(?:100\s+)?(?:patient|person)[-\s]?years?"
+    r"|\btotal\s+(?:number\s+of\s+)?[\w\s]{0,30}?(?:hospitali[sz]ation|event)s\b"
+    r"|recurrent[-\s]events?\b",
+    re.I)
+
+
+def _effect_from_match(m, context=""):
     kind, pt, lo, hi = m.group(1).lower(), float(m.group(2)), float(m.group(3)), float(m.group(4))
     if not (lo < hi and lo > 0 and pt > 0):
         return None
@@ -177,8 +193,11 @@ def _effect_from_match(m):
         if not (0 < pt < 1 and 0 < lo < 1 and 0 < hi < 1):
             return None
         return ("RR", round(1 - pt, 4), round(1 - hi, 4), round(1 - lo, 4))
-    if "rate ratio" in kind or "incidence rate" in kind:
-        scale = "IRR"   # incidence-rate ratio (recurrent-event / person-time estimand)
+    if "incidence rate" in kind:
+        scale = "IRR"   # explicit person-time incidence-rate ratio
+    elif "rate ratio" in kind:
+        # person-time/recurrent IRR only with an explicit recurrence/person-time footprint; else first-event
+        scale = "IRR" if _RECURRENT_PERSONTIME.search(context or "") else "RR"
     elif "odds" in kind or kind == "or":
         scale = "OR"
     elif "hazard" in kind or kind == "hr":
@@ -193,7 +212,7 @@ def _effect_from_match(m):
 def extract_effect(sentence):
     """Return (scale, point, lo, hi) from the FIRST effect+CI phrase, else None."""
     m = _EFFECT.search(sentence)
-    return _effect_from_match(m) if m else None
+    return _effect_from_match(m, sentence) if m else None
 
 
 GENERIC_ANCHORS = {"primary outcome", "primary end point", "primary endpoint",
@@ -791,7 +810,10 @@ def effect_in_outcome(abstract, kws, window=260):
     for m in _EFFECT.finditer(abstract):
         clause = low[prev_end:m.start()][-window:]
         if any(k in clause for k in kl):
-            e = _effect_from_match(m)
+            # context = the outcome clause + the effect phrase, so a recurrence/person-time footprint
+            # ("occurred 264 times", "per person-years", "total ... hospitalizations") preceding the
+            # rate-ratio label is visible when deciding IRR vs first-event.
+            e = _effect_from_match(m, abstract[max(0, m.start() - 260):m.end() + 120])
             if e:
                 return {"effect": e[1], "ci_low": e[2], "ci_high": e[3], "scale": e[0],
                         "source": abstract[prev_end:m.end()].strip()[-240:]}

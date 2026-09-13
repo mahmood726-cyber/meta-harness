@@ -1206,8 +1206,8 @@
           "effect": 0.97,
           "ci_low": 0.87,
           "ci_high": 1.08,
-          "scale": "IRR",
-          "source": "abstract effect+CI (IRR): RESULTS: During a mean follow-up of 7.4 years (adherence rate, 76%), a serious vascular event occurred in 689 patients (8.9%) in the fatty acid group and in 712 (9.2%) in the placebo group (rate ratio",
+          "scale": "RR",
+          "source": "abstract effect+CI (RR): RESULTS: During a mean follow-up of 7.4 years (adherence rate, 76%), a serious vascular event occurred in 689 patients (8.9%) in the fatty acid group and in 712 (9.2%) in the placebo group (rate ratio",
           "provenance": "abstract",
           "cross_source": {
             "ctgov_rr": 0.968,
@@ -1218,9 +1218,9 @@
           "verified": "verified",
           "verify_basis": "effect present in committed source",
           "effect_object": {
-            "reported_label": "IRR",
+            "reported_label": "RR",
             "statistical_model": "rate / person-time",
-            "canonical_estimand": "INCIDENCE_RATE_RATIO"
+            "canonical_estimand": "RISK_RATIO"
           }
         },
         {
@@ -1354,33 +1354,68 @@
       ],
       "result": {
         "k": 7,
-        "scale": "INCOMPATIBLE (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO + RISK_RATIO)",
+        "estimate": 0.943,
+        "scale": "RR",
+        "ci_low": 0.846,
+        "ci_high": 1.051,
+        "tau2": 0.00925,
+        "pi_low": 0.7277,
+        "pi_high": 1.2218,
         "estmeasure": {
-          "status": "incompatible",
+          "status": "compatible_labels",
           "classes": [
-            "FIRST_EVENT_RATIO",
-            "RATE"
+            "FIRST_EVENT_RATIO"
           ],
           "canonicals": [
             "HAZARD_RATIO_FIRST_EVENT",
-            "INCIDENCE_RATE_RATIO",
             "RISK_RATIO"
           ],
           "labels": [
             "HR",
-            "IRR",
             "RR"
           ]
         },
         "scale_mixed": [
           "HR",
-          "IRR",
           "RR"
         ],
-        "estmeasure_incompatible": true,
-        "suppressed_incompatible": true,
-        "suppressed_reason": "pooled effect SUPPRESSED: the trials mix incompatible estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO + RISK_RATIO) — a recurrent-event/rate ratio and a first-event ratio are not one quantity, so no pooled effect, CI, heterogeneity or sensitivity is valid. The per-trial estimates are shown; pool each coherent strand separately.",
-        "composite_heterogeneity": "pooled trials use each trial's OWN primary composite; component sets differ across trials (varying extra components across trials: revascularization, unstable angina) — the pooled estimate mixes composite definitions (disclosed, not adjusted)"
+        "composite_heterogeneity": "pooled trials use each trial's OWN primary composite; component sets differ across trials (varying extra components across trials: revascularization, unstable angina) — the pooled estimate mixes composite definitions (disclosed, not adjusted)",
+        "leave_one_out": {
+          "min": 0.93,
+          "max": 0.9876,
+          "most_influential": "30415628",
+          "per_trial": [
+            {
+              "dropped": "33190147",
+              "estimate": 0.9352
+            },
+            {
+              "dropped": "30415637",
+              "estimate": 0.9478
+            },
+            {
+              "dropped": "30415628",
+              "estimate": 0.9876
+            },
+            {
+              "dropped": "30146932",
+              "estimate": 0.9391
+            },
+            {
+              "dropped": "22686415",
+              "estimate": 0.93
+            },
+            {
+              "dropped": "20929341",
+              "estimate": 0.9338
+            },
+            {
+              "dropped": "21115589",
+              "estimate": 0.9353
+            }
+          ],
+          "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."
+        }
       }
     },
     {
@@ -2131,6 +2166,49 @@
     "defect_found_and_fixed": "EMPHASIS-HF (PMID 21073363, NCT00232180) D1 rated on AACT allocation=NON_RANDOMIZED, contradicted by the abstract (\"randomized, double-blind ... randomly assigned 2737 patients\") -- an AACT registry data error; D1/D2 corrected to low with an abstract-based basis.",
     "unclear_note": "12 unclear = 8 ratings that make no claim (\"not assessed\") + 4 assessor-blinding \"low\" ratings (from the AACT assessor-masked field) that the abstract does not separately mention (registry-derived, not contradicted)."
   },
+  "rob_sensitivity": {
+    "outcome": "Major vascular events / MACE",
+    "estimand": "RR",
+    "levels": {
+      "33190147": "low",
+      "30415637": "low",
+      "30415628": "some_concerns",
+      "30146932": "low",
+      "22686415": "some_concerns",
+      "20929341": "low",
+      "21115589": null
+    },
+    "n_trials": 7,
+    "n_rob_rated": 6,
+    "rob_covered": false,
+    "any_high": false,
+    "full": {
+      "k": 7,
+      "estimate": 0.943,
+      "scale": "RR",
+      "ci_low": 0.846,
+      "ci_high": 1.051,
+      "tau2": 0.00925
+    },
+    "drop_high": {
+      "k": 7,
+      "estimate": 0.943,
+      "scale": "RR",
+      "ci_low": 0.846,
+      "ci_high": 1.051,
+      "tau2": 0.00925
+    },
+    "low_only": {
+      "k": 4,
+      "estimate": 0.9741,
+      "scale": "RR",
+      "ci_low": 0.8867,
+      "ci_high": 1.07,
+      "tau2": 0.0
+    },
+    "drop_high_informative": false,
+    "low_only_informative": true
+  },
   "grade": {
     "start": "high",
     "domains": {
@@ -2144,13 +2222,14 @@
         "basis": "none of the 6 assessed trial(s) at high risk; fewer than half at 'some concerns'; risk-of-bias signal available for only 6 of 7 pooled trials (registry-derived), so the rating is capped"
       },
       "inconsistency": {
-        "downgrade": 0,
+        "downgrade": 1,
         "not_estimable": false,
-        "basis": "tau^2=None"
+        "basis": "tau^2=0.00925; prediction interval [0.7277, 1.2218] is >=2x the CI width -> real heterogeneity"
       },
       "imprecision": {
         "downgrade": 0,
-        "basis": "no confidence interval available"
+        "crosses_null": true,
+        "basis": "95% CI [0.846, 1.051]; crosses the null but excludes an appreciable effect on BOTH sides (within 0.75-1.25) -> precise about the absence of an appreciable effect"
       },
       "publication_bias": {
         "downgrade": 0,
@@ -2161,18 +2240,20 @@
       "indirectness": {
         "downgrade": 0,
         "not_auto_rated": true,
-        "basis": "not auto-rated (human judgement)"
+        "basis": "directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)"
       }
     },
-    "downgrades": 0,
-    "certainty": "not_rateable",
-    "not_rateable_reason": "the primary pool mixes INCOMPATIBLE estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO + RISK_RATIO); an overall certainty cannot be produced from an incoherent effect object — the domain signals are shown, the overall is suppressed until the estimand is made coherent (harmonise the measure or split the outcome)",
-    "basis": "partial GRADE: overall certainty NOT RATEABLE (estimand-incompatible pool)."
+    "downgrades": 1,
+    "certainty": "moderate",
+    "certainty_capped_by_rob_coverage": false,
+    "certainty_capped_single_trial": false,
+    "certainty_capped_d3_unassessed": false,
+    "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement."
   },
   "reproduction": {
     "failures": 0,
     "protocol_sha": "13c0136f93aa1d9c52aabf01cc34ef2cc27a677d",
-    "review_sha256": "70116855972cacac8bd169de68323dd41625af1762061cafa7d99b0737c34367",
+    "review_sha256": "5eea53649e1e5b6f0221f49c9e91f34bd0a0c3a3cc5af8b2ef3c4de905605a87",
     "from_cache": true,
     "preregistration": {
       "prospective": false,

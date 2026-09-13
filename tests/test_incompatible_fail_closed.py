@@ -112,9 +112,12 @@ def test_corpus_incompatible_topics_are_fully_suppressed():
         ms = manuscript.render(r)
         assert "downgrade(s)" not in ms, f"{slug}: manuscript printed a downgrade count for a not-rateable pool"
         assert "No GRADE domain was downgraded" not in ms, f"{slug}: manuscript asserted a GRADE conclusion"
-    # the two known incompatible topics (iv-iron recurrent+first-event mix; omega3) must be among them
+    # iv-iron is the GENUINE incompatible case (first-event HR CONFIRM-HF + recurrent IRR FAIR-HF2, whose
+    # source says "occurred 264 times"). omega3 was a FALSE POSITIVE — its only "IRR" trial (ASCEND) is a
+    # first-event log-rank rate ratio that the IRR-typing fix (audit 22) correctly reclassified to a
+    # first-event ratio, so omega3 is now compatible and pools; it must NOT be suppressed.
     assert "iv-iron-hfref-hosp" in suppressed, f"expected iv-iron suppressed; got {suppressed}"
-    assert "omega3-cardiovascular-events" in suppressed, f"expected omega3 suppressed; got {suppressed}"
+    assert "omega3-cardiovascular-events" not in suppressed, "omega3 was un-suppressed by the IRR-typing fix"
 
 
 def _suppressed_slugs():
