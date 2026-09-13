@@ -31,12 +31,33 @@ def _boundary_re(term: str):
     return r
 
 
+# A negated occurrence of an EXCLUSION term must not fire the exclusion: "no withdrawal effects",
+# "without diabetes", "no rebound insomnia" describe the ABSENCE of the concept, so they are not the
+# excluded population/intervention. Melatonin's Lemoine 2007 (PMID 18036082) -- a real prolonged-release
+# melatonin RCT in primary-insomnia outpatients >=55 -- was wrongly X2-excluded because its title says
+# "no withdrawal effects" and the population_none term 'withdrawal' matched. Cold-audit NEW class:
+# lexical matching creates false EXCLUSIONS via negated terms (the mirror of false inclusions).
+_NEGATION = _re.compile(
+    r"(?:\bno\b|\bnot\b|\bnon-?\b|\bwithout\b|\bfree of\b|\babsence of\b|\babsent\b|\bnever\b|"
+    r"\block of\b|\black of\b|\bnegative for\b|\bnil\b)[\w\s,'\"()-]{0,18}$", _re.I)
+
+
+def _negated_at(text_lower: str, start: int) -> bool:
+    """True if the term matched at `start` is negated by a nearby preceding cue (within ~24 chars)."""
+    return bool(_NEGATION.search(text_lower[max(0, start - 26):start]))
+
+
 def _has(text: str, terms) -> str | None:
+    """Return the first exclusion term with a NON-negated occurrence in text (else None). A term that
+    appears only in negated form ('no withdrawal', 'without diabetes') does not count as a match."""
     t = text.lower()
     for term in terms or []:
         tl = (term or "").lower().strip()
-        if tl and _boundary_re(tl).search(t):
-            return term
+        if not tl:
+            continue
+        for m in _boundary_re(tl).finditer(t):
+            if not _negated_at(t, m.start()):
+                return term
     return None
 
 
@@ -208,6 +229,18 @@ def screen_record(rec, inc, neg_pmids):
                 f"the randomised intervention is not {inc['intervention_any']} "
                 f"(not named in title/conditions; an incidental abstract mention does not qualify).",
                 f"examined: “{_quote(itext_raw)}”")
+    # INTERVENTION-IDENTITY exclusion (cold-audit NEW class: lexical matching false-INCLUDES records
+    # whose intervention only SHARES A SUBSTRING/CLASS with ours). A record can match intervention_any
+    # ("melatonin") yet be the WRONG thing: a receptor agonist/analogue (tasimelteon, ramelteon,
+    # beta-methyl-6-chloromelatonin -> "melatonin agonist"), a COMBINATION (melatonin + magnesium +
+    # zinc), or a trial that only MEASURES our drug while randomising another (doxepin, with melatonin
+    # as a biomarker). intervention_none lists those excluded forms; a match here excludes even though
+    # intervention_any matched. Negation-aware (via _has), so "not a receptor agonist" would not fire.
+    bad_int = _has(itext, inc.get("intervention_none"))
+    if bad_int:
+        return ("exclude", "X3", f"intervention is the wrong form: matches excluded '{bad_int}' "
+                f"(receptor agonist/analogue, combination, or measured-not-randomised).",
+                _span(itext_raw, bad_int))
     comp = _has(text, inc.get("comparator_any"))
     if inc.get("comparator_any") and not comp:
         return ("exclude", "X3", f"no eligible comparator (none of {inc['comparator_any']}).",
