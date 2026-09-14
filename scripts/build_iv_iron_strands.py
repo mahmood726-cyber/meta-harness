@@ -41,6 +41,7 @@ def pool_strand(members):
             "ci_high": round(r.ci_high, 3),
             "tau2": round(r.tau2, 5),
             "crosses_null": hksj_crosses,
+            "ci_provenance": r.ci_provenance,  # engine token: proves this CI came from synth.pool
             "common_effect_sensitivity": {
                 "effect": round(r.estimate_fixed, 3),
                 "ci_low": round(r.ci_low_fixed, 3), "ci_high": round(r.ci_high_fixed, 3),

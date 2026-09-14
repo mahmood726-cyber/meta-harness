@@ -136,6 +136,16 @@ class PoolResult:
     ci_low_fixed: float = None
     ci_high_fixed: float = None
     estimate_fixed: float = None
+    # PROVENANCE of the interval: a token proving this CI came from the canonical PM+HKSJ engine, not a
+    # hand-rolled routine. A gate refuses any RENDERED interval lacking it (the iv-iron strand builder
+    # computed its own z-interval and shipped it as the registered result -- INFERENCE_LAYER_BYPASS; a
+    # check on the NUMBER cannot catch that because the number was right, only the interval's origin was
+    # wrong). Stamped by pool() only; nothing else may set it.
+    ci_provenance: str = None
+
+
+# The one token that certifies an interval as engine-produced. Bump the version if the method changes.
+CI_PROVENANCE = "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1"
 
 
 def _wmean(yi, vi, tau2):
@@ -208,6 +218,7 @@ def pool(studies: Sequence[Study], scale: str = "RR", alpha: float = 0.05) -> Po
         Q=Q, estimate=bt(mu),
         per_study=[(s.label, y, v) for s, (y, v) in zip(studies, yv)],
         ci_low_fixed=bt(ci_low_fixed), ci_high_fixed=bt(ci_high_fixed), estimate_fixed=bt(mu0),
+        ci_provenance=CI_PROVENANCE,
     )
 
 

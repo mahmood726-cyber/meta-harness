@@ -26,6 +26,27 @@ from . import page
 from . import registration
 from . import claim
 from . import compat
+from .synth import CI_PROVENANCE
+
+# Provenances a RENDERED interval may legitimately carry: the canonical engine token, or a single
+# trial's own reported CI printed verbatim at k=1 (not a pool). Anything else is an inference-layer
+# bypass and the build refuses it.
+_VALID_CI_PROVENANCE = {CI_PROVENANCE, "source-reported-CI:k=1-verbatim"}
+
+
+def _interval_provenance_check(core: dict) -> list:
+    """Return a list of (outcome, provenance) for every rendered CI whose provenance token is not
+    engine-certified. Empty on a well-formed corpus."""
+    bad = []
+    for o in (core.get("outcomes") or []):
+        res = o.get("result") or {}
+        if res.get("suppressed_incompatible"):
+            continue
+        if res.get("ci_low") is None or res.get("ci_high") is None:
+            continue
+        if res.get("ci_provenance") not in _VALID_CI_PROVENANCE:
+            bad.append({"outcome": o.get("name"), "ci_provenance": res.get("ci_provenance")})
+    return bad
 
 
 def _claim_check(review_core_obj: dict):
@@ -187,6 +208,15 @@ def build_review_dir(
     if _cbad:
         raise ValueError("COMPATIBILITY-KEY MISMATCH (build refused): a pooled outcome mixes "
                          "incompatible quantities -> " + json.dumps(_cbad))
+    # INTERVAL-PROVENANCE gate (INFERENCE_LAYER_BYPASS): every RENDERED confidence interval must carry
+    # a token proving it came from the canonical PM/HKSJ engine (synth.pool) or is a single trial's own
+    # reported CI (k=1 verbatim). A hand-rolled interval -- the iv-iron strand builder's z-interval,
+    # right number, wrong origin -- has no valid token and is refused here. A check on the NUMBER cannot
+    # catch this; only a check on the interval's PROVENANCE can.
+    _ipbad = _interval_provenance_check(review_core_obj)
+    if _ipbad:
+        raise ValueError("INTERVAL-PROVENANCE (build refused): a rendered CI is not stamped by the "
+                         "canonical engine (INFERENCE_LAYER_BYPASS) -> " + json.dumps(_ipbad))
     final_review = dict(review_core_obj)
     final_review["reproduction"] = reproduction
     html = render_page(final_review)

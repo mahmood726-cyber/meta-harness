@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from harness.census import build_review_dir  # noqa: E402
 from harness.gate import gate_page  # noqa: E402
 from harness.canonical import sha256_text  # noqa: E402
+from harness.synth import CI_PROVENANCE as _CI_PROV  # noqa: E402  (engine token for fixtures)
 
 PROTO_SHA = "0" * 40
 
@@ -49,7 +50,8 @@ def _review_core():
              "estimand": "RR", "population": "ITT", "timepoint": "12 mo",
              "method": "Paule-Mandel RE, HKSJ, PI t_{k-1}",
              "result": {"k": 3, "estimate": 0.47, "ci_low": 0.35, "ci_high": 0.63,
-                        "tau2": 0.0, "pi_low": 0.3, "pi_high": 0.72, "scale": "RR"},
+                        "tau2": 0.0, "pi_low": 0.3, "pi_high": 0.72, "scale": "RR",
+                        "ci_provenance": _CI_PROV},
              "trials": [{"label": "T1", "id": "NCT1", "ai": 20, "n1i": 100,
                          "ci": 40, "n2i": 100, "source": "pub"}]},
             {"name": "Any adverse event", "kind": "harm", "estimand": "RR",
