@@ -16,16 +16,18 @@ from harness import armcontrast  # noqa: E402
 
 
 def pooled(slug):
-    """{pmid: nct} for every pooled trial (across all outcomes) that resolves to an NCT."""
+    """{pid: nct_or_None} for EVERY pooled trial (across all outcomes). A trial with no NCT is KEPT
+    (nct=None) and rendered 'contrast unverified — no registry match', never DROPPED. Dropping a
+    no-NCT/unmatched trial let it pass the randomised-contrast check silently -- the identity gap the
+    external audit flagged (RALES, and any recovery-added trial whose file went stale)."""
     rev = json.load(open(f"{ROOT}/docs/reviews/{slug}/review.json", encoding="utf-8"))
     recs = {str(r["id"]): r for r in json.load(open(f"{ROOT}/cache/{slug}/records.json", encoding="utf-8"))["records"]}
     out = {}
     for o in rev.get("outcomes", []) or []:
         for t in o.get("trials", []) or []:
             pid = str(t.get("id", "")).replace("PMID ", "")
-            nct = recs.get(pid, {}).get("nct") or (pid if pid.startswith("NCT") else None)
-            if nct:
-                out[pid] = nct
+            if pid:
+                out[pid] = recs.get(pid, {}).get("nct") or (pid if pid.startswith("NCT") else None)
     return out
 
 
@@ -39,12 +41,19 @@ def main(argv):
     slugs = [a for a in argv if not a.startswith("-")] or [
         s for s in sorted(os.listdir(f"{ROOT}/docs/reviews")) if os.path.exists(f"{ROOT}/docs/reviews/{s}/review.json")]
     topics = {s: pooled(s) for s in slugs}
-    allnct = {n for d in topics.values() for n in d.values()}
+    allnct = {n for d in topics.values() for n in d.values() if n}
     index = armcontrast.build_arm_index(allnct)  # ONE AACT scan for the whole batch
     for slug, d in topics.items():
         kws = keywords(slug)
         trials = {}
         for pid, nct in d.items():
+            if not nct:
+                # no NCT to check against -> the contrast is UNVERIFIED and shown as such, never a
+                # silent pass (the identity gap: an unidentifiable trial must not read as verified).
+                trials[pid] = {"nct": None, "status": "unverified_no_registry_match",
+                               "basis": "no NCT/registry match for this pooled trial; the randomised "
+                                        "contrast of the intervention of interest cannot be registry-confirmed."}
+                continue
             status, basis = armcontrast.contrast_status(nct, kws, index)
             entry = index.get(nct.upper())
             trials[pid] = {"nct": nct, "status": status, "basis": basis}
