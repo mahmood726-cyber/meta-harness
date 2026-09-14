@@ -25,10 +25,64 @@ from .acquisition import LEDGER_FILENAME, STATES
 METHOD = METHOD_RATIO
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+KNOWN_ITEM_RETRIEVAL_LABEL = "KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH"
+TITLE_SEEDED_RETRIEVAL_LABEL = "TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH"
+CONCEPT_SEARCH_LABEL = "CONCEPT SEARCH — registered P/I/C query, full pagination"
+RETRIEVAL_UNAUDITABLE_DISTINCTION = "an auditable screening ledger attached to an unauditable retrieval process"
+
 
 def _read_text(*p):
     with open(os.path.join(ROOT, *p), encoding="utf-8") as f:
         return f.read().replace("\r\n", "\n").replace("\r", "\n")
+
+
+def _retrieval_basis_kind(query):
+    return "PMID_ENUMERATION" if "[uid]" in str(query or "").lower() else "TITLE_OR_NAME_SEEDED"
+
+
+def classify_retrieval(config, ledger=None):
+    """Classify retrieval from committed object inputs only.
+
+    Without a retrieval ledger, the only replay-safe fact is the committed PubMed query text:
+    `[uid]` queries are known-item retrieval, and every committed non-uid query in this corpus is
+    title/trial-name/DOI anchored rather than a registered P/I/C concept search.
+    """
+    basis = []
+    concept_ran_ok = False
+    if ledger:
+        for src in ledger.get("sources") or []:
+            if src.get("kind") == "PUBMED_CONCEPT_QUERY" and src.get("state") == "RAN_OK":
+                kind = "CONCEPT"
+                concept_ran_ok = True
+            else:
+                kind = _retrieval_basis_kind(src.get("query"))
+            basis.append({"query": src.get("query"), "kind": kind})
+    else:
+        for query in config.get("pubmed_queries") or []:
+            basis.append({"query": query, "kind": _retrieval_basis_kind(query)})
+
+    if concept_ran_ok:
+        cls = "CONCEPT_SEARCH"
+        label = CONCEPT_SEARCH_LABEL
+        retrieval_auditable = True
+    elif basis and all(row.get("kind") == "PMID_ENUMERATION" for row in basis):
+        cls = "KNOWN_ITEM_RETRIEVAL"
+        label = KNOWN_ITEM_RETRIEVAL_LABEL
+        retrieval_auditable = False
+    else:
+        cls = "TITLE_SEEDED_RETRIEVAL"
+        label = TITLE_SEEDED_RETRIEVAL_LABEL
+        retrieval_auditable = False
+    out = {
+        "class": cls,
+        "label": label,
+        "basis": basis,
+        "screening_auditable": True,
+        "retrieval_auditable": retrieval_auditable,
+    }
+    if not retrieval_auditable:
+        out["distinction"] = RETRIEVAL_UNAUDITABLE_DISTINCTION
+    return out
 
 
 _NONPRIMARY = ("letter", "comment", "editorial", "erratum", "news", "biography")
@@ -1035,6 +1089,7 @@ def build_review_core(slug, config, records, protocol_sha):
                    "run_utc": records.get("fetched_utc"), "databases": ["PubMed", "ClinicalTrials.gov"],
                    "sources": [{"name": "PubMed", "queries": records.get("pubmed_queries", [])},
                                {"name": "ClinicalTrials.gov", "queries": [json.dumps(records.get("ctgov_query"))]}],
+                   "retrieval_class": classify_retrieval(config, retrieval_ledger),
                    "source_status": _source_status(slug, config, records, merged, retrieval_ledger),
                    **({"retrieval": _retrieval_summary(retrieval_ledger)} if retrieval_ledger else {}),
                    **({"recall": _rc} if (_rc := _load_recall(slug)) else {}),

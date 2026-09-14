@@ -3,6 +3,10 @@ the renderer still EMITS the state for a core that should trigger it. A future e
 drops one fails here."""
 import harness.page as P
 
+LABEL_A = "KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH"
+LABEL_B = "TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH"
+DISTINCTION = "an auditable screening ledger attached to an unauditable retrieval process"
+
 
 def _base(**kw):
     core = {"title": "T", "question": "Q", "slug": "s",
@@ -16,6 +20,51 @@ def _base(**kw):
 def test_pinned_audit_identity_renderable():
     html = P.render_page(_base())
     assert "Pinned audit identity" in html and "abc123def456abcd"[:16] in html
+    assert "canonical review object" in html
+
+
+def test_known_item_retrieval_state_renderable():
+    core = _base(search={"retrieval_class": {
+        "class": "KNOWN_ITEM_RETRIEVAL",
+        "label": LABEL_A,
+        "basis": [{"query": "123[uid]", "kind": "PMID_ENUMERATION"}],
+        "screening_auditable": True,
+        "retrieval_auditable": False,
+        "distinction": DISTINCTION,
+    }})
+    html = P.render_page(core)
+    assert LABEL_A in html
+    assert DISTINCTION in html
+    assert "1 PMID-enumeration queries; 0 title/name-seeded queries" in html
+
+
+def test_title_seeded_retrieval_state_renderable():
+    core = _base(search={"retrieval_class": {
+        "class": "TITLE_SEEDED_RETRIEVAL",
+        "label": LABEL_B,
+        "basis": [{"query": "trial name[Title]", "kind": "TITLE_OR_NAME_SEEDED"}],
+        "screening_auditable": True,
+        "retrieval_auditable": False,
+        "distinction": DISTINCTION,
+    }})
+    html = P.render_page(core)
+    assert LABEL_B in html
+    assert DISTINCTION in html
+    assert "0 PMID-enumeration queries; 1 title/name-seeded queries" in html
+
+
+def test_concept_search_does_not_render_retrieval_warning():
+    core = _base(search={"retrieval_class": {
+        "class": "CONCEPT_SEARCH",
+        "label": "CONCEPT SEARCH — registered P/I/C query, full pagination",
+        "basis": [{"query": "condition AND drug", "kind": "CONCEPT"}],
+        "screening_auditable": True,
+        "retrieval_auditable": True,
+    }})
+    html = P.render_page(core)
+    assert LABEL_A not in html
+    assert LABEL_B not in html
+    assert DISTINCTION not in html
 
 
 def test_claims_checked_zero_is_a_limitation():

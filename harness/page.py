@@ -35,6 +35,9 @@ TABS = [
     ("reproduction", "Reproducibility"),
 ]
 NEUTRAL_DROP = {"comparator"}
+KNOWN_ITEM_RETRIEVAL_LABEL = "KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH"
+TITLE_SEEDED_RETRIEVAL_LABEL = "TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH"
+RETRIEVAL_UNAUDITABLE_DISTINCTION = "an auditable screening ledger attached to an unauditable retrieval process"
 
 
 def _e(x: Any) -> str:
@@ -196,6 +199,37 @@ def _retrieval_html(ret: dict) -> str:
     return body
 
 
+def _retrieval_class_counts(rc: dict) -> tuple[int, int]:
+    basis = rc.get("basis") or []
+    pmid = sum(1 for row in basis if row.get("kind") == "PMID_ENUMERATION")
+    seeded = sum(1 for row in basis if row.get("kind") == "TITLE_OR_NAME_SEEDED")
+    return pmid, seeded
+
+
+def _retrieval_class_overview(rc: dict) -> str:
+    pmid, seeded = _retrieval_class_counts(rc)
+    return ("<div class='absent'><strong>" + _e(rc.get("label")) + "</strong> "
+            + _e(rc.get("distinction") or "") + ". "
+            + f"{_e(pmid)} PMID-enumeration queries; {_e(seeded)} title/name-seeded queries.</div>")
+
+
+def _retrieval_class_html(rc: dict) -> str:
+    if not rc or not rc.get("label"):
+        return ""
+    block_class = "banner" if rc.get("retrieval_auditable") else "absent"
+    body = (f"<h4>Retrieval class</h4><div class='{block_class}'><p><strong>{_e(rc.get('label'))}</strong>")
+    if rc.get("distinction"):
+        body += " " + _e(rc.get("distinction")) + "."
+    body += "</p></div>"
+    rows = []
+    for row in rc.get("basis") or []:
+        rows.append(f"<tr><td><code>{_e(row.get('query'))}</code></td><td>{_e(row.get('kind'))}</td></tr>")
+    if rows:
+        body += ("<table class='recs'><tr><th>Verbatim query</th><th>Kind</th></tr>"
+                 f"{''.join(rows)}</table>")
+    return body
+
+
 def _ci(res) -> str:
     return f"{_num(res.get('estimate'))} ({res.get('scale')}), 95% CI {_num(res.get('ci_low'))}–{_num(res.get('ci_high'))}"
 
@@ -279,6 +313,9 @@ def _overview(r, neutral):
             "<div class='absent'><strong>STALE — this topic's result is not current.</strong> "
             "One or more dependent outputs on this page are known to be incomplete, superseded, or "
             f"unproven, so the result must not be read as a settled current estimate:<ul>{_rz}</ul></div>")
+    rc = (r.get("search") or {}).get("retrieval_class") or {}
+    if rc.get("class") in ("KNOWN_ITEM_RETRIEVAL", "TITLE_SEEDED_RETRIEVAL"):
+        parts.append(_retrieval_class_overview(rc))
     if not neutral:
         parts.append(
             "<div class='banner'>This page offers <strong>greater auditability, not "
@@ -449,35 +486,8 @@ def _search(r, neutral):
         body += ("<h4>Source status (which adapters ran)</h4><p class='muted'>" + cells +
                  " — RAN_OK = ran and returned records; RAN_ZERO = ran, none matched; RAN_ERROR = "
                  "attempted but failed; NOT_RUN = not attempted for this topic.</p>")
-        # RETRACTION (round-2 P0): the search narrative must be DERIVED from source_status + the committed
-        # provenance classification, never authored. A fetch of named identifiers is not a search; a
-        # RAN_ERROR/NOT_RUN registry adapter did not run. We do NOT claim a registry-first/systematic search
-        # where the evidence is proven-or-unclassified provenance.
-        _aact = ss.get("Registry-first (AACT)")
-        _slug = r.get("slug") or r.get("topic") or ""
-        _prov = None
-        try:
-            import json as _j
-            import os as _o
-            _pj = _o.path.join(_o.path.dirname(_o.path.dirname(_o.path.abspath(__file__))), "docs", "search_provenance.json")
-            _pd = _j.load(open(_pj, encoding="utf-8"))
-            for _cls, _v in (_pd.get("classes") or {}).items():
-                if _slug in (_v.get("topics") or []):
-                    _prov = _cls
-        except Exception:
-            _prov = None
-        if _aact in ("RAN_ERROR", "NOT_RUN") or _prov in ("RAN_ERROR_rendered_as_run", "PMID_ENUMERATION_explicit"):
-            body += ("<div class='absent'><strong>Search provenance — not a completed systematic search.</strong> "
-                     f"The registry-first (AACT) adapter status for this topic is <strong>{_e(_aact)}</strong>"
-                     + ("; its evidence set was assembled by KNOWN-ITEM RETRIEVAL of named publications "
-                        "(UID/PMID-anchored queries for pre-identified trials), which cannot discover an "
-                        "unknown eligible trial. A fetch of named identifiers is not a systematic search."
-                        if _prov == "PMID_ENUMERATION_explicit" or _aact in ("RAN_ERROR", "NOT_RUN") else ".")
-                     + " We retract any claim of a registry-first or systematic search for this topic.</div>")
-        elif _prov is None or _prov == "needs_verbatim_query_check":
-            body += ("<p class='muted'><em>Search provenance: UNCLASSIFIED — the verbatim query set for this "
-                     "topic has not been verified as a concept search vs known-item retrieval; no systematic-"
-                     "search claim is made pending that check.</em></p>")
+    if s.get("retrieval_class"):
+        body += _retrieval_class_html(s["retrieval_class"])
     rc = s.get("recall")
     if rc and rc.get("known"):
         # PRIMARY search metric: how many of this topic's KNOWN trials the committed registry-first
@@ -1602,8 +1612,10 @@ def render_page(review: dict, neutral: bool = False) -> str:
     _pin = ""
     if _csha:
         _pin = (f"<div style='font-size:12px;opacity:0.85;margin-top:4px'><strong>Pinned audit identity</strong>"
-                f" — content hash <code>{_e(_csha[:16])}</code>. Cite this hash when auditing; a different "
-                f"hash is a different version of this page.</div>")
+                f" — content hash of the canonical review object (review_sha256) <code>{_e(_csha[:16])}</code>; "
+                "exact served bytes are attested separately (html_sha256 in manifest.json and the production "
+                "record on the production-records branch). Cite this hash when auditing; a different hash is "
+                "a different version of this page.</div>")
     return ("<!doctype html><html lang=en><head><meta charset=utf-8>"
             "<meta name=viewport content='width=device-width,initial-scale=1'>"
             f"<title>{title}</title><style>{_CSS}</style></head><body>"
