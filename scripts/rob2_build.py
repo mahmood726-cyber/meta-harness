@@ -14,6 +14,13 @@ def _match(a, b):
 
 
 def pooled_ncts(slug):
+    """Return (primary-outcome-name, {pid: nct_or_None}) for EVERY pooled primary-outcome trial.
+    Previously a trial with no NCT (RALES) was DROPPED and never RoB-assessed, and a trial whose NCT
+    is not in the AACT snapshot (J-EMPHASIS NCT01115855, SOUL NCT03914326 -- registered abroad or
+    absent) rendered as 'no registry match / unassessed' even though its identity is known to the
+    Results table. Keep ALL pooled trials keyed by pid; the canonical NCT (from records) rides along
+    for the AACT lookup but is NOT required for assessment -- the abstract-based RoB fallback covers
+    blinding/randomisation for a trial AACT does not carry."""
     rev = json.load(open(f"{ROOT}/docs/reviews/{slug}/review.json", encoding="utf-8"))
     recs = {r["id"]: r for r in json.load(open(f"{ROOT}/cache/{slug}/records.json", encoding="utf-8"))["records"]}
     prim = next((o for o in rev.get("outcomes", []) if o.get("primary")), None)
@@ -21,8 +28,7 @@ def pooled_ncts(slug):
     for t in (prim or {}).get("trials", []) or []:
         pid = str(t.get("id", "")).replace("PMID ", "")
         nct = recs.get(pid, {}).get("nct") or (pid if pid.startswith("NCT") else None)
-        if nct:
-            out[nct] = pid
+        out[pid] = (nct or None)
     return (prim or {}).get("name", ""), out
 
 
@@ -31,9 +37,9 @@ def main(argv):
     slugs = [a for a in argv if not a.startswith("-")] or [
         s for s in sorted(os.listdir(f"{ROOT}/docs/reviews")) if os.path.exists(f"{ROOT}/docs/reviews/{s}/review.json")]
     topics = {s: pooled_ncts(s) for s in slugs}
-    alln = set(n for _, d in topics.values() for n in d)
-    if not alln:
-        print("no pooled NCTs"); return 0
+    alln = set(nct.upper() for _, d in topics.values() for nct in d.values() if nct)
+    if not any(d for _, d in topics.values()):
+        print("no pooled trials"); return 0
     # one pass: designs
     designs = {}
     for r in aact._iter_rows(aact._table("designs")):
@@ -67,15 +73,18 @@ def main(argv):
         recs = {str(r.get("id")): (r.get("abstract") or "")
                 for r in json.load(open(f"{ROOT}/cache/{slug}/records.json", encoding="utf-8")).get("records", [])}
         assess = {}
-        for nct, pid in d.items():
-            design = dict(designs.get(nct.upper()) or {}, attrition=attr.get(nct.upper()))
+        for pid, nct in d.items():
+            NCT = nct.upper() if nct else None
+            design = dict((designs.get(NCT) if NCT else None) or {}, attrition=attr.get(NCT) if NCT else None)
             ab = (recs.get(str(pid)) or "").lower()
             blinded_txt = any(kw in ab for kw in _BLIND_TXT)
             rand_txt = any(kw in ab for kw in _RAND_TXT)
-            dom = rob2.assess(design, regprim.get(nct.upper(), []), pooled_out, _match,
-                              registered_secondaries=regsec.get(nct.upper(), []),
+            dom = rob2.assess(design, regprim.get(NCT, []) if NCT else [], pooled_out, _match,
+                              registered_secondaries=(regsec.get(NCT, []) if NCT else []),
                               blinded_by_text=blinded_txt, randomized_by_text=rand_txt)
-            assess[pid] = {"nct": nct, "overall": rob2.overall(dom), "domains": dom}
+            assess[pid] = {"nct": nct, "registry_in_aact": bool(NCT and NCT in designs),
+                           "assessed_from": ("registry+abstract" if (NCT and NCT in designs) else "abstract only"),
+                           "overall": rob2.overall(dom), "domains": dom}
         print(f"{slug}: " + "; ".join(f"{p}={a['overall'].split('(')[0].strip()}" for p, a in assess.items()))
         if write:
             json.dump({"source": f"AACT {os.path.basename(aact.snapshot_dir())} + registry-vs-pooled (D5)",

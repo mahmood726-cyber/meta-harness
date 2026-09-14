@@ -1118,11 +1118,19 @@ def _riskofbias(r, neutral):
         cells = "".join(f"<td class='absent-cell' title='{_e(_basis)}'>{_e(_na)}</td>" for _ in dom_labels)
         rows.append(f"<tr><td>{_e(pid)}</td><td class='absent-cell'>{_e(_na)}</td>{cells}</tr>")
     n_ass, n_pool = len(pooled) - len(unassessed), len(pooled)
-    cover = (f"<strong>Coverage: {n_ass} of {n_pool} primary-outcome pooled trials have a registry (AACT) "
-             f"match and are assessed below</strong>"
-             + (f"; the other {len(unassessed)} are pooled but have no registry match "
-                f"({_e(', '.join(unassessed))}) and are shown as <em>not assessed</em> with the reason — "
-                "never guessed." if unassessed else " (all primary-outcome pooled trials assessed).")
+    # Every pooled trial is assessed: those whose NCT is in the AACT snapshot use registry design +
+    # the trial's own text; those AACT does not carry (no NCT, or a non-CT.gov/absent registration such
+    # as J-EMPHASIS NCT01115855 or SOUL NCT03914326) are assessed from the ABSTRACT (blinding /
+    # randomisation from the trial's own words) rather than left unassessed. The canonical trial
+    # identity is shared with the Results table; RoB no longer drops a trial it cannot find in AACT.
+    n_reg = sum(1 for pid, a in assessed.items() if pid in pooled and a.get("registry_in_aact"))
+    n_abs = n_ass - n_reg
+    cover = (f"<strong>Coverage: {n_ass} of {n_pool} primary-outcome pooled trials assessed</strong> "
+             f"({n_reg} from registry (AACT) + trial text"
+             + (f", {n_abs} from the abstract where AACT does not carry the trial" if n_abs else "")
+             + ")"
+             + (f"; {len(unassessed)} pooled trial(s) had no assessable source and are shown as "
+                f"<em>not assessed</em> ({_e(', '.join(unassessed))}) — never guessed." if unassessed else "")
              + (f" RoB2 is scoped to the primary outcome; {len(secondary_only)} trial(s) pooled only in "
                 f"secondary outcomes ({_e(', '.join(sorted(secondary_only)))}) are outside this assessment."
                 if secondary_only else "")) if n_pool else ""
