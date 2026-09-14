@@ -50,6 +50,26 @@ we have, the indefensible output it would NOT stop is named below. That list IS 
 - **(5 SEARCH):** `union(displayed queries) == screened set`; comparator matcher rebuilt on one key
   (outcome/estimand identity, granularity, evidence geometry, search date); systematic-search recall (weakest layer).
 
+## Failure taxonomy (auditor's, adopted) — re-tag every defect as one of three
+- **VALUE failure** — the number is wrong. (e.g. a mis-extracted arm count.)
+- **PROCESS failure** — the number may be right but the route that produced it is invalid. (the z-interval:
+  right point estimate, wrong inference path — we had been mis-classing these as value failures that
+  happened to come out right, which is exactly why the z-interval surprised us.)
+- **STATE/CLAIM failure** — the evidence is fine but the interpretation is unjustified. (categorical/
+  methodological contradictions; NOT_ASSESSED rendered as NOT_DOWNGRADED; DECLARED_ABSENT hiding data.)
+Re-tag: strand-CI = PROCESS · percentage-counts = PROCESS(+VALUE) · RoB-unassessed = STATE · endpoint
+mix = STATE · false refusal reason = STATE · right-number-wrong-endpoint = VALUE-shaped STATE.
+
+## Gate refusal history — a gate with no refusal is unvalidated (our own law, applied to ourselves)
+- FIRED ON REAL CORPUS DATA (caught a real defect, not just its plant): compatibility key (iv-iron
+  suppression) · interval-provenance (the strand z-interval) · percentage-provenance (EMPHASIS-HF) ·
+  prevention-screening (colchicine-postop population=outcome) · claim object (significance contradictions
+  during bring-up) · verify gate (pooled-number source checks) · reproduce/leak limbs (staleness).
+- HAS A PLANT, NOT YET FIRED ON REAL DATA (validated it CAN fire, but the corpus has never tripped it):
+  recovery-recheck hard-incompatible branch · nesting guard · RoB-coverage plant · the interval-provenance
+  wrong-token branch. These are validated by plant (they are gates), but have caught no real regression yet
+  — track them; if one never fires across many rebuilds, ask whether the condition can actually occur.
+
 ## Standing self-test (from the auditor): three deployment states, all three carried in the ledger
 `LANDED_IN_CODE` (committed) · `LANDED_IN_SERVED_BYTES` (live URL hash proves it) · `INDEPENDENTLY_VERIFIED`
 (an external party confirmed it). A fix is not done until all three, and "silence about a limitation counts
