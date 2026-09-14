@@ -1,21 +1,21 @@
 {
  "_doc": "Recovery pipeline instrument. Every recovery ATTEMPT is recorded with its outcome, earned one trial at a time by fetch -> source-verify -> extract -> round-trip -> rebuild. This REPLACES the forward-scan vocabulary metric (which over-counted: a forward scan cannot tell a genuine synonym gap from by-design composite-specificity). BLOCKED_BY_MATCHER entries, each carrying the exact source string vs the exact registered keyword, ARE the vocabulary measurement -- zero false positives, evidence not guesswork. Outcomes: RECOVERED | REFUSED_ON_SOURCE | BLOCKED_BY_MATCHER | BLOCKED_BY_ACCESS | NOT_FOUND | SCOPE_PENDING.",
  "scoreboard": {
-  "attempted": 19,
+  "attempted": 22,
   "recovered": 5,
   "tightened": 2,
   "cost_significance": 1,
   "toward_null_stayed_nonsig": 2,
   "refused_on_source": 3,
-  "scope_pending": 4,
+  "scope_pending": 5,
   "blocked_by_matcher_resolved": 1,
   "note": "corrections are NOT systematically flattering: of 5 recoveries, 2 tightened and 3 weakened (1 lost significance, 2 moved toward null); 2 refused on source; 1 held on scope. This is the harness getting more honest as the evidence base completes. [+TECOS BLOCKED_BY_ACCESS: abstract 4-point != topic 3-point MACE; 3-point is a paywalled full-text secondary, unverifiable] [+41663239 REFUSED (pediatric, not mortality); +REMAP-CAP SCOPE_PENDING (90-day vs 30-day/in-hospital + influenza)] [+3 BLOCKED_BY_MATCHER (colchicine-postop COCS/Farzaneh X2 population \"atrial fibrillation\" vs cardiac-surgery/arrhythmia titles; Zarpelon X3 comparator \"control\") -- the earned vocabulary measurement, exact strings recorded; screening-vocab fix deferred to a careful before/after per the ELIXA lesson, not fatigue] [+DIAMOND OUT_OF_SCOPE: dapagliflozin proteinuria crossover, not HFrEF -- correctly excluded; test-set entry corrected] [+Udelson OUT_OF_SCOPE: eplerenone remodeling trial mis-filed under sacubitril-valsartan -- 3rd test-set error; the test set itself is unreliable, which is why recall is computed only against SOURCE_VERIFIED_ELIGIBLE]",
   "blocked_by_access": 1,
   "refusals_outnumber_recoveries": "6 not-integrated of 11 attempted > 5 recovered -- a pipeline that only ever adds evidence is indistinguishable from one that adds anything it can parse",
   "blocked_by_matcher": 3,
-  "out_of_scope": 2,
+  "out_of_scope": 3,
   "test_set_errors_found": 4,
-  "not_found": 1
+  "not_found": 2
  },
  "attempts": [
   {
@@ -175,6 +175,27 @@
    "topic": "iv-iron-hfref-hosp",
    "status": "SCOPE_PENDING",
    "note": "verified IV iron in anemic HF, small functional trial (peak VO2 class); PRIMARY not HF hospitalization. Deferred to the iv-iron 3-strand build."
+  },
+  {
+   "trial": "STEP 8",
+   "pmid": "35015037",
+   "topic": "semaglutide-obesity-weight",
+   "status": "SCOPE_PENDING",
+   "note": "verified (DOI 10.1001/jama.2021.23619, NCT04074161): 3-arm sema 2.4 vs liraglutide vs POOLED placebo (n=85), primary sema-vs-liraglutide (open-label). The sema-vs-PLACEBO contrast (-15.8% vs -1.9%) IS present + double-blinded but is a SUPPORTIVE SECONDARY with a pooled placebo, and the abstract gives no per-arm SDs for MD pooling. SCOPE_PENDING (pooled-placebo secondary + full-text SDs needed). Corrects the audit framing that STEP 8 is a plain active-comparator exclusion."
+  },
+  {
+   "trial": "EMPA-VISION",
+   "pmid": "37070436",
+   "topic": "empagliflozin-hfpef-hosp",
+   "status": "OUT_OF_SCOPE",
+   "note": "empagliflozin cardiac-ENERGETICS trial (31P-MRS phosphocreatine/ATP ratio primary), mechanistic imaging study -- not HF hospitalization. Wrong outcome for empagliflozin-hfpef-hosp. Another test-set entry that is not a hospitalization-outcome miss."
+  },
+  {
+   "trial": "FREEDOM-CVO",
+   "pmid": "(none)",
+   "topic": "glp1-ra-mace-t2d",
+   "status": "NOT_FOUND",
+   "note": "ITCA-650 (exenatide osmotic mini-pump) CV outcomes trial, terminated; no full journal results publication exists to source-verify a MACE HR. Structural reach limit (terminated/unpublished), not a harness miss."
   }
  ],
  "audit_overclaim_caught_at_source": {
