@@ -190,6 +190,47 @@ def _participant_flow_section(docs_dir: str) -> str:
             f"populated and rendered; the judgement is a separate, fresh pass.</p></div>")
 
 
+def _iv_iron_strands_section(docs_dir: str) -> str:
+    """Render docs/iv_iron_strands.json: iv-iron HF-hospitalisation as THREE declared analyses
+    (never one forced pool). The compatibility key keeps strands apart; a cross-strand pool is
+    refused and shown as a counterfactual. Numbers are object-derived from the artefact."""
+    p = os.path.join(docs_dir, "iv_iron_strands.json")
+    if not os.path.exists(p):
+        return ""
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    strands = d.get("strands") or []
+    if not strands:
+        return ""
+    rows = []
+    for s in strands:
+        pool = s.get("pool")
+        if pool:
+            sig = "crosses null" if pool.get("crosses_null") else "significant"
+            res = (f"pooled {pool['effect']} ({pool['ci_low']}&ndash;{pool['ci_high']}), "
+                   f"k={pool['k']}, I&sup2;={pool['I2_pct']}%, {sig}")
+        else:
+            m = s["members"][0]
+            eff = m.get("effect", m.get("crude_rr"))
+            res = f"{_E(m.get('trial'))} {eff} ({_E(m.get('scale'))}), k=1 (single trial)"
+        rows.append(f"<li><strong>Strand {_E(s.get('strand'))}</strong> &mdash; {_E(s.get('name'))} "
+                    f"[<code>{_E(s.get('event_process'))}</code>]: {res}</li>")
+    ref = d.get("refused_cross_endpoint_pool") or {}
+    refline = (f"<p><strong>Refused cross-endpoint pool:</strong> {_E(ref.get('description'))} "
+               f"If forced it would be {_E(ref.get('if_forced_it_would_be'))} &mdash; "
+               f"<code>{_E(ref.get('verdict'))}</code>.</p>" if ref else "")
+    return (f"<div class='banner'><h2>iv-iron HF-hospitalisation: three declared strands, never one "
+            f"forced pool</h2>"
+            f"<p>{_E(d.get('why_topic_is_suppressed'))}</p>"
+            f"<ul>{''.join(rows)}</ul>{refline}"
+            f"<p class='muted'>Every effect is source-verified against the trial's own report; no "
+            f"risk-of-bias or clinical judgement is added here. The compatibility key keeps the "
+            f"strands apart &mdash; where a pool would cross an event-process or endpoint boundary it "
+            f"is refused, not computed.</p></div>")
+
+
 def _verification_section(docs_dir: str) -> str:
     """The strongest single integrity claim, gate-enforced: every pooled number on every page is
     verified against its committed source span, and a gate limb refuses any page that pools a number
@@ -1055,7 +1096,7 @@ def build_index(docs_dir: str) -> str:
     _validate_prose_numbers(docs_dir, _thesis + _cont + _erate + _xfam + _defaudit + _extval + _spec + _screen + _prov + _stance)
     body = (_thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
             + _currency_section(docs_dir) + _recovery_section(docs_dir)
-            + _participant_flow_section(docs_dir)
+            + _participant_flow_section(docs_dir) + _iv_iron_strands_section(docs_dir)
             + _parity_section(docs_dir) + _error_coverage_section(docs_dir) + _stance
             + _fair_section(docs_dir) + body)
 

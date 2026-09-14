@@ -46,11 +46,49 @@ def suppressed_states(docs_dir: str) -> dict:
     return out
 
 
-def _derived_here(obj) -> list:
-    """Derived-stat keys carrying a real (non-null) value anywhere in this object's subtree."""
+def _strand_permitted_ids(data) -> set:
+    """Object ids of derived stats PERMITTED for a suppressed-because-incompatible topic.
+
+    A topic is suppressed when its estimands are INCOMPATIBLE -- the forbidden object is the
+    COMBINED/primary pool. A DECLARED strand pool that stays inside one compatibility class is not
+    that pool; it is the honest decomposition, and publishing it (clearly labelled, alongside the
+    suppression reason and the refused cross-strand counterfactual) is disclosure, not a leak.
+
+    This carve-out is TIGHT and fail-closed. It activates only for an artefact that carries the full
+    honest-disclosure structure -- a `strands` list, `why_topic_is_suppressed`, and
+    `refused_cross_endpoint_pool` -- and it permits derived stats ONLY inside a strand that is
+    compatibility-HOMOGENEOUS: every member declares the SAME (event_process, endpoint) as the strand.
+    A strand that mixes event_process or endpoint (a disguised combined pool) is NOT permitted, so its
+    pool still leaks; and any derived stat attributed to the slug OUTSIDE the strands structure is NOT
+    permitted (the historical iv-iron tau^2 leak still fires)."""
+    permitted = set()
+    if not (isinstance(data, dict) and isinstance(data.get("strands"), list)
+            and data.get("why_topic_is_suppressed") and data.get("refused_cross_endpoint_pool")):
+        return permitted
+    for strand in data["strands"]:
+        if not isinstance(strand, dict):
+            continue
+        ep, endp = strand.get("event_process"), strand.get("endpoint")
+        members = strand.get("members")
+        if not (ep and endp and isinstance(members, list) and members):
+            continue  # malformed -> not permitted (fail closed)
+        homogeneous = all(isinstance(m, dict)
+                          and m.get("event_process") == ep and m.get("endpoint") == endp
+                          for m in members)
+        if homogeneous:
+            permitted.add(id(strand))  # whole strand subtree (members + pool) is permitted
+    return permitted
+
+
+def _derived_here(obj, permitted: set | None = None) -> list:
+    """Derived-stat keys carrying a real (non-null) value anywhere in this object's subtree, EXCEPT
+    inside a subtree whose object id is in `permitted` (a validated homogeneous strand)."""
+    permitted = permitted or set()
     found = []
 
     def walk(o, path=""):
+        if id(o) in permitted:
+            return  # permitted strand subtree -- its pooled stats are legitimate disclosure
         if isinstance(o, dict):
             for k, v in o.items():
                 if k in _DERIVED_KEYS and v is not None and not (k == "ci_crosses_null" and v is False):
@@ -93,9 +131,10 @@ def scan(docs_dir: str) -> list:
             data = json.load(open(f, encoding="utf-8"))
         except (OSError, ValueError):
             continue
+        permitted = _strand_permitted_ids(data)
         seen = set()
         for slug, obj in _attributed_objects(data, set(supp)):
-            found = _derived_here(obj)
+            found = _derived_here(obj, permitted)
             for fnd in found:
                 key = (os.path.basename(f), slug, fnd)
                 if key in seen:
