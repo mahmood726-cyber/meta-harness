@@ -1,0 +1,19 @@
+CI REFUSALS (2026-09-14T16:52:59Z): plant fe8252cd on branch plant/leak-and-fixstate -- the sealed CANARY identifier written into a test file (never named here), and a commit message with no Fix-State trailer
+verify: failure
+deploy: skipped
+2026-09-14T16:52:54.9562537Z VERIFY-ALL: 8 limbs, all run, fail-closed. root=/home/runner/work/meta-harness/meta-harness
+2026-09-14T16:52:54.9563885Z   [             PASS] unit tests (pytest tests/)  (12s)
+2026-09-14T16:52:54.9564766Z   [             PASS] offline reproduction (every live page replays from committed cache)  (17s)
+2026-09-14T16:52:54.9565555Z   [             PASS] publication gate on every live review page  (16s)
+2026-09-14T16:52:54.9566255Z   [             PASS] index currency (generated == committed docs/index.html)  (0s)
+2026-09-14T16:52:54.9566952Z   [             PASS] served-artefact leak scan (docs/*.json)  (0s)
+2026-09-14T16:52:54.9567654Z   [          REFUSED] held-out leak detector (registry/heldout_sealed.json)  (12s)
+2026-09-14T16:52:54.9569321Z   [          REFUSED] fix-state discipline (registry/fixstate.json)  (0s)
+2026-09-14T16:52:54.9569982Z         fe8252cd086c: exactly one Fix-State trailer required; found 0
+2026-09-14T16:52:54.9570650Z   [             PASS] honest-state ratchet (no page may get quieter)  (0s)
+2026-09-14T16:52:54.9571388Z VERIFY-ALL: REFUSED -- 2 of 8 limbs not PASS. Fix the harness, never the gate.
+
+$ and main rejects the SHA:
+remote: error: GH013: Repository rule violations found for refs/heads/main.        
+remote: - Required status check "verify" is failing.        
+ ! [remote rejected]   fe8252cd -> main (push declined due to repository rule violations)
