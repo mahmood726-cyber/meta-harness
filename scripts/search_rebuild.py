@@ -12,7 +12,8 @@ the delicate step, done behind a full 32-topic before/after). Uses PubMed esearc
 """
 import json, os, sys, io, time, urllib.request, urllib.parse
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+if __name__ == "__main__":  # guard: reassigning stdout at import closes a caller's wrapper (re-wrap trap)
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 from harness import lexicon  # noqa: E402
