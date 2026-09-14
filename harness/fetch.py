@@ -5,6 +5,7 @@ runs only when the cache is absent (idempotent), so re-running from a protocol S
 fresh clone replays the committed cache and reproduces byte-for-byte.
 """
 from __future__ import annotations
+import json
 import os
 import re
 import time
@@ -14,6 +15,7 @@ _NCT_RE = re.compile(r"NCT\d{8}")
 
 from . import http
 from . import fulltext as _ft
+from . import acquisition as _acq
 
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 CTGOV = "https://clinicaltrials.gov/api/v2/studies"
@@ -32,12 +34,9 @@ def _epmc_linked(pmid: str, kind: str, pages: int = 2) -> list[str]:
     accounting for metered sources is handled by the caller's source-status record."""
     out = []
     for pg in range(1, pages + 1):
-        try:
-            d = http.get_json(EPMC_ART.format(pmid=pmid, kind=kind),
-                              {"format": "json", "pageSize": 1000, "page": pg})
-            time.sleep(0.2)
-        except Exception:  # noqa: BLE001
-            break
+        d = http.get_json(EPMC_ART.format(pmid=pmid, kind=kind),
+                          {"format": "json", "pageSize": 1000, "page": pg})
+        time.sleep(0.2)
         block = "referenceList" if kind == "references" else "citationList"
         items = (d.get(block, {}) or {}).get("reference" if kind == "references" else "citation", []) or []
         for it in items:
@@ -52,13 +51,10 @@ def _europepmc_pmids(query: str, retmax: int = 40) -> list[str]:
     """Reach adapter: Europe PMC indexes more than PubMed's esearch top-N and ranks differently,
     surfacing registered trials esearch misses. Returns PubMed-indexed PMIDs (SRC:MED) so they
     flow through the same efetch path — consistent metadata + extraction."""
-    try:
-        d = http.get_json(EPMC, {"query": f"({query}) AND SRC:MED", "format": "json",
-                                 "pageSize": retmax, "resultType": "idlist"})
-        time.sleep(0.2)
-        return [r["pmid"] for r in d.get("resultList", {}).get("result", []) if r.get("pmid")]
-    except Exception:  # noqa: BLE001 - reach adapter is additive; never fail the fetch
-        return []
+    d = http.get_json(EPMC, {"query": f"({query}) AND SRC:MED", "format": "json",
+                             "pageSize": retmax, "resultType": "idlist"})
+    time.sleep(0.2)
+    return [r["pmid"] for r in d.get("resultList", {}).get("result", []) if r.get("pmid")]
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -134,19 +130,16 @@ def _efetch(pmids: list[str]) -> list[dict]:
 
 def _refs(pmid: str) -> list[str]:
     """PMIDs the given article cites (comparator-reference seeding for recall)."""
-    try:
-        d = http.get_json(f"{EUTILS}/elink.fcgi",
-                          {"dbfrom": "pubmed", "db": "pubmed", "linkname": "pubmed_pubmed_refs",
-                           "id": pmid, "retmode": "json", "tool": "meta-harness",
-                           "email": "meta-harness@example.org"})
-        time.sleep(0.34)
-        out = []
-        for ls in d.get("linksets", [{}])[0].get("linksetdbs", []):
-            if ls.get("linkname") == "pubmed_pubmed_refs":
-                out = ls.get("links", [])
-        return out
-    except Exception:  # noqa: BLE001
-        return []
+    d = http.get_json(f"{EUTILS}/elink.fcgi",
+                      {"dbfrom": "pubmed", "db": "pubmed", "linkname": "pubmed_pubmed_refs",
+                       "id": pmid, "retmode": "json", "tool": "meta-harness",
+                       "email": "meta-harness@example.org"})
+    time.sleep(0.34)
+    out = []
+    for ls in d.get("linksets", [{}])[0].get("linksetdbs", []):
+        if ls.get("linkname") == "pubmed_pubmed_refs":
+            out = ls.get("links", [])
+    return out
 
 
 def _select_pmc_link(linksetdbs: list[dict]) -> str | None:
@@ -301,71 +294,285 @@ def _apply_cap(pmids: list[str], protected: list[str], cap: int) -> list[str]:
     return [p for p in pmids if p in keep]  # original order, protected guaranteed to survive
 
 
+def _dedupe(values) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for value in values or []:
+        s = str(value)
+        if s and s not in seen:
+            seen.add(s)
+            out.append(s)
+    return out
+
+
+def _append_unique(target: list[str], ids) -> None:
+    have = set(target)
+    for pid in ids or []:
+        s = str(pid)
+        if s and s not in have:
+            target.append(s)
+            have.add(s)
+
+
+def _source_funnel(hits, fetched: int, retained: int | None = None, cap: dict | None = None) -> dict:
+    return {
+        "hits": hits,
+        "fetched": int(fetched),
+        "retained": int(fetched if retained is None else retained),
+        "cap": cap or {"kind": "none", "n": None, "remainder": None},
+    }
+
+
+def _uid_query_result(query: str) -> dict:
+    ids = _dedupe(re.findall(r"(\d+)\s*\[uid\]", query, flags=re.I))
+    return {
+        "ids": ids,
+        "count": len(ids),
+        "state": "RAN_OK" if ids else "RAN_ZERO",
+        "error": None,
+        "funnel": _source_funnel(len(ids), len(ids)),
+    }
+
+
+def _maybe_int(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _europepmc_result(query: str, retmax: int) -> dict:
+    d = http.get_json(EPMC, {"query": f"({query}) AND SRC:MED", "format": "json",
+                             "pageSize": retmax, "resultType": "idlist"})
+    time.sleep(0.2)
+    ids = [str(r["pmid"]) for r in d.get("resultList", {}).get("result", []) if r.get("pmid")]
+    total = _maybe_int(d.get("hitCount"))
+    if total is None:
+        hits = None if ids else 0
+        remainder = None if ids else 0
+    else:
+        hits = total
+        remainder = max(0, total - len(ids))
+    return {
+        "ids": ids,
+        "count": total,
+        "state": "RAN_OK" if ids else "RAN_ZERO",
+        "error": None,
+        "funnel": _source_funnel(
+            hits,
+            len(ids),
+            len(ids),
+            {"kind": "relevance_top_n", "n": retmax, "remainder": remainder},
+        ),
+    }
+
+
+def _registry_first_result(rf_cfg: dict) -> dict:
+    from . import registry_first as _rf
+
+    res = _rf.registry_first_pmids(rf_cfg.get("cond", ""), rf_cfg.get("intr", ""),
+                                   include_isrctn=bool(rf_cfg.get("isrctn")))
+    state = res.get("status", "RAN_ERROR")
+    ids = _dedupe(res.get("pmids", [])) if state != "RAN_ERROR" else []
+    error = None if state != "RAN_ERROR" else (res.get("error") or "registry_first returned RAN_ERROR")
+    hits = len(ids) if state != "RAN_ERROR" else None
+    return {"ids": ids, "count": hits, "state": state, "error": error,
+            "funnel": _source_funnel(hits, len(ids))}
+
+
+def _coerce_source_result(raw, id_getter=None) -> tuple[list[str], str, str | None, dict, object]:
+    if isinstance(raw, dict) and "ids" in raw:
+        state = raw.get("state") or ("RAN_OK" if raw.get("ids") else "RAN_ZERO")
+        ids = _dedupe(raw.get("ids", [])) if state != "RAN_ERROR" else []
+        error = raw.get("error")
+        if state == "RAN_ERROR":
+            error = error or "source returned RAN_ERROR"
+            funnel = _source_funnel(None, 0)
+        else:
+            funnel = raw.get("funnel") or _source_funnel(len(ids), len(ids))
+        return ids, state, error, funnel, raw
+    items = list(raw or [])
+    if id_getter:
+        ids = _dedupe(id_getter(item) for item in items)
+    else:
+        ids = _dedupe(items)
+    return ids, ("RAN_OK" if ids else "RAN_ZERO"), None, _source_funnel(len(ids), len(ids)), items
+
+
+def _run_source(ledger: dict, kind: str, query: str, run_utc: str, discovery_capable: bool,
+                call, id_getter=None) -> tuple[str, list[str], object]:
+    try:
+        ids, state, error, funnel, payload = _coerce_source_result(call(), id_getter=id_getter)
+    except Exception as exc:  # noqa: BLE001 - every adapter failure is explicit provenance.
+        ids, state, error, funnel, payload = [], "RAN_ERROR", str(exc), _source_funnel(None, 0), None
+    source_id = _acq.add_source(ledger, kind, query, run_utc, state, error, funnel, ids, discovery_capable)
+    return source_id, ids, payload
+
+
+_STATUS_RANK = {"NOT_RUN": 0, "RAN_ZERO": 1, "RAN_OK": 2, "RAN_ERROR": 3}
+
+
+def _worst_state(states) -> str:
+    states = [s for s in states if s in _STATUS_RANK]
+    if not states:
+        return "NOT_RUN"
+    return max(states, key=lambda s: _STATUS_RANK[s])
+
+
+def _source_status_from_ledger(ledger: dict, fulltext_status: str) -> dict:
+    by_kind: dict[str, list[str]] = {}
+    for source in ledger.get("sources", []):
+        by_kind.setdefault(source.get("kind"), []).append(source.get("state"))
+    return {
+        "pubmed": _worst_state(
+            by_kind.get("PUBMED_CONCEPT_QUERY", [])
+            + by_kind.get("PUBMED_LEGACY_QUERY", [])
+            + by_kind.get("PUBMED_PMID_ENUMERATION", [])
+        ),
+        "europepmc": _worst_state(by_kind.get("EUROPEPMC_QUERY", [])),
+        "citation_chase": _worst_state(
+            by_kind.get("COMPARATOR_REFERENCES", []) + by_kind.get("CITATION_CHASE", [])
+        ),
+        "registry_first": _worst_state(by_kind.get("REGISTRY_FIRST", [])),
+        "fulltext": fulltext_status,
+    }
+
+
+def _attach_retained_records(ledger: dict, kept_pmids: list[str]) -> None:
+    kept = set(kept_pmids)
+    ledger["records"] = {}
+    for source in ledger.get("sources", []):
+        if source.get("kind") == "CTGOV_SEARCH":
+            continue
+        retained = [rid for rid in source.get("record_ids", []) if rid in kept]
+        source["record_ids"] = retained
+        source.setdefault("funnel", {})["retained"] = len(retained)
+        if retained:
+            _acq.attach_records(ledger, source["source_id"], retained)
+
+
+
 def run(config: dict) -> dict:
-    """Fetch and return the records dict for a topic config (does not write)."""
+    """Fetch records and a retrieval ledger for a topic config (does not write)."""
+    run_utc = config.get("_now", "")
+    ledger = _acq.new_ledger(config["slug"])
     pmids: list[str] = []
+
     for q in config.get("pubmed_queries", []):
-        for pid in _esearch(q, config.get("retmax", 40)):
-            if pid not in pmids:
-                pmids.append(pid)
-        # reach: union in Europe PMC's hits for the same query
-        for pid in _europepmc_pmids(q, config.get("retmax", 40)):
-            if pid not in pmids:
-                pmids.append(pid)
-    for pid in config.get("extra_pmids", []) + config.get("negative_control_pmids", []) + [config.get("comparator_pmid", "")]:
-        if pid and pid not in pmids:
-            pmids.append(pid)
-    # F4 recall: seed with the trials the comparator itself cited, then screen by our rules.
+        kind = _acq.classify_query(q)
+        discovery = kind != "PUBMED_PMID_ENUMERATION"
+        if kind == "PUBMED_PMID_ENUMERATION":
+            _, ids, _ = _run_source(ledger, kind, q, run_utc, discovery, lambda q=q: _uid_query_result(q))
+        else:
+            _, ids, _ = _run_source(
+                ledger,
+                kind,
+                q,
+                run_utc,
+                discovery,
+                lambda q=q: _acq.esearch_all(q, hard_cap=config.get("max_hits")),
+            )
+        _append_unique(pmids, ids)
+
+        retmax = config.get("retmax", 40)
+        _, ids, _ = _run_source(
+            ledger,
+            "EUROPEPMC_QUERY",
+            q,
+            run_utc,
+            True,
+            lambda q=q, retmax=retmax: _europepmc_result(q, retmax),
+        )
+        _append_unique(pmids, ids)
+
+    extras = _dedupe(config.get("extra_pmids", []))
+    if extras:
+        _, ids, _ = _run_source(ledger, "EXTRA_PMIDS", "config.extra_pmids", run_utc, False,
+                                lambda extras=extras: list(extras))
+        _append_unique(pmids, ids)
+
+    # NEGATIVE controls and the comparator are forced in (as before this layer). POSITIVE controls are NOT:
+    # a positive control is a trial the search must FIND on its own -- fetching it by name would make the
+    # positive-control recall check pass vacuously. (Lane A had added them; corrected at integration.)
+    controls = _dedupe(
+        list(config.get("negative_control_pmids", []))
+        + [config.get("comparator_pmid", "")]
+    )
+    if controls:
+        _, ids, _ = _run_source(ledger, "CONTROL_PMIDS", "config negative controls + comparator", run_utc, False,
+                                lambda controls=controls: list(controls))
+        _append_unique(pmids, ids)
+
     if config.get("comparator_pmid") and config.get("seed_comparator_refs", True):
-        for pid in _refs(config["comparator_pmid"]):
-            if pid not in pmids:
-                pmids.append(pid)
-    # Citation chasing via Europe PMC (FREE, no key): backward from the comparator's reference
-    # list (pointer only — every hit is still screened by our own rules) and both directions from
-    # the pivotal trials (positive controls). Finds trials whose abstract never used our keywords
-    # (the DAPA-HF/EMPEROR class). Gated by cite_chase so existing caches are unaffected until a
-    # topic is deliberately re-fetched with it on.
-    cite_status = "NOT_RUN"
+        _, ids, _ = _run_source(
+            ledger,
+            "COMPARATOR_REFERENCES",
+            str(config["comparator_pmid"]),
+            run_utc,
+            True,
+            lambda pmid=config["comparator_pmid"]: _refs(pmid),
+        )
+        _append_unique(pmids, ids)
+
     if config.get("cite_chase"):
         seeds = [config.get("comparator_pmid")] + list(config.get("positive_control_pmids", []))
-        seeds = [s for s in seeds if s]
-        got = 0
-        errors = 0
-        for seed in seeds:
+        for seed in [s for s in seeds if s]:
             for kind in ("references", "citations"):
-                linked = _epmc_linked(seed, kind, pages=config.get("cite_pages", 2))
-                for pid in linked:
-                    if pid not in pmids:
-                        pmids.append(pid)
-                        got += 1
-        cite_status = "RAN_OK" if got else "RAN_ZERO"
-    # REGISTRY-FIRST enumeration (default search path when enabled): enumerate trials by
-    # condition x intervention from ClinicalTrials.gov and resolve each NCT to its PubMed
-    # publication(s), then let SCREENING decide eligibility. Finds trials whose abstract never
-    # used our keywords (GISSI-P/SOFA/OMEGA in omega3). Recall proven at 9/13; precision is the
-    # screen's job. Four-state status recorded; gated by registry_first{cond,intr}.
-    regfirst_status = "NOT_RUN"
+                _, ids, _ = _run_source(
+                    ledger,
+                    "CITATION_CHASE",
+                    f"{seed} {kind} pages={config.get('cite_pages', 2)}",
+                    run_utc,
+                    True,
+                    lambda seed=seed, kind=kind: _epmc_linked(seed, kind, pages=config.get("cite_pages", 2)),
+                )
+                _append_unique(pmids, ids)
+
     rf_cfg = config.get("registry_first")
     if rf_cfg:
-        from . import registry_first as _rf
-        # include_isrctn adds the ISRCTN registry to the enumeration union (WHO trials without an
-        # NCT). Opt-in per topic (registry_first.isrctn: true) since it is a second network source;
-        # default off keeps every current topic's fetch unchanged.
-        res = _rf.registry_first_pmids(rf_cfg.get("cond", ""), rf_cfg.get("intr", ""),
-                                       include_isrctn=bool(rf_cfg.get("isrctn")))
-        regfirst_status = res.get("status", "RAN_ERROR")
-        for pid in res.get("pmids", []):
-            if pid not in pmids:
-                pmids.append(pid)
+        _, ids, _ = _run_source(
+            ledger,
+            "REGISTRY_FIRST",
+            json.dumps(rf_cfg, sort_keys=True),
+            run_utc,
+            True,
+            lambda rf_cfg=rf_cfg: _registry_first_result(rf_cfg),
+        )
+        _append_unique(pmids, ids)
+
     cap = config.get("max_records", 300 if (config.get("cite_chase") or rf_cfg) else 150)
+    before_cap = list(pmids)
     pmids = _apply_cap(pmids, _protected_pmids(config), cap)
+    dropped = [pid for pid in before_cap if pid not in set(pmids)]
+    if dropped:
+        ledger["record_cap"] = {
+            "kind": "record_cap",
+            "n": cap,
+            "before": len(before_cap),
+            "after": len(pmids),
+            "remainder": len(before_cap) - len(pmids),
+        }
+        ledger["dropped_by_cap"] = dropped
+    _attach_retained_records(ledger, pmids)
+
     pubmed = []
     for i in range(0, len(pmids), 20):
         pubmed.extend(_efetch(pmids[i:i + 20]))
+
     ctgov = []
     cg = config.get("ctgov")
     if cg:
-        ctgov = _ctgov_search(cg.get("cond", ""), cg.get("intr", ""))
+        _, _, payload = _run_source(
+            ledger,
+            "CTGOV_SEARCH",
+            json.dumps(cg, sort_keys=True),
+            run_utc,
+            True,
+            lambda cg=cg: _ctgov_search(cg.get("cond", ""), cg.get("intr", "")),
+            id_getter=lambda row: row.get("id"),
+        )
+        ctgov = payload if isinstance(payload, list) else []
+
     comparator_oa = None
     comp_doi = ""
     for r in pubmed:
@@ -382,12 +589,7 @@ def run(config: dict) -> dict:
     comparator_fulltext = ""
     if config.get("comparator_pmid"):
         comparator_fulltext = _pmc_fulltext(config["comparator_pmid"])
-    # Per-trial PMC OA full text (FREE): the pipeline uses it as a fallback when a trial's ABSTRACT
-    # yields no poolable number — this is where per-arm SD / person-time / rate-ratio+CI live that
-    # abstracts omit (Albert's azithromycin IRR 0.73 is in its full text, not its abstract). Gated
-    # by fulltext:true so existing caches are unaffected until a topic opts in and re-fetches.
-    # fulltext_supplements:true additionally pulls the PMC OA package's supplementary spreadsheets/CSV
-    # (where per-arm SD tables have hidden) — the untested reach route; opt-in, per-topic, re-fetch.
+
     fulltext_by_pmid = {}
     if config.get("fulltext"):
         with_sup = bool(config.get("fulltext_supplements"))
@@ -395,7 +597,9 @@ def run(config: dict) -> dict:
             ft = _pmc_fulltext(r["id"], with_supplements=with_sup)
             if ft:
                 fulltext_by_pmid[r["id"]] = ft
-    # AACT/registry-results adapter: structured arm-level outcome tables per NCT with results.
+    fulltext_status = ("RAN_OK" if fulltext_by_pmid else
+                       ("RAN_ZERO" if config.get("fulltext") else "NOT_RUN"))
+
     ncts = []
     for r in pubmed:
         if r.get("nct") and r["nct"] not in ncts:
@@ -408,16 +612,17 @@ def run(config: dict) -> dict:
         oms = _ctgov_results(nct)
         if oms:
             ctgov_results[nct] = oms
-    return {"slug": config["slug"], "fetched_utc": config.get("_now", ""),
+
+    data = {"slug": config["slug"], "fetched_utc": config.get("_now", ""),
             "pubmed_queries": config.get("pubmed_queries", []),
             "ctgov_query": cg, "records": pubmed, "ctgov": ctgov,
             "comparator_pmid": config.get("comparator_pmid"), "comparator_oa": comparator_oa,
             "comparator_fulltext": comparator_fulltext, "ctgov_results": ctgov_results,
             "fulltext_by_pmid": fulltext_by_pmid,
-            "source_status": {"pubmed": "RAN_OK", "europepmc": "RAN_OK",
-                              "citation_chase": cite_status, "registry_first": regfirst_status,
-                              "fulltext": ("RAN_OK" if fulltext_by_pmid else
-                                           ("RAN_ZERO" if config.get("fulltext") else "NOT_RUN"))}}
+            "source_status": _source_status_from_ledger(ledger, fulltext_status)}
+    _acq.finalize(ledger, pubmed, config.get("_now", ""), "REFRESH")
+    data["retrieval_ledger"] = ledger
+    return data
 
 
 def cache_path(slug: str) -> str:
@@ -426,14 +631,24 @@ def cache_path(slug: str) -> str:
 
 def ensure(config: dict, now: str):
     """Fetch into the committed cache if absent; return the loaded records dict."""
-    import json
     path = cache_path(config["slug"])
     if os.path.exists(path):
         with open(path, encoding="utf-8") as f:
             return json.load(f)
     config = dict(config, _now=now)
     data = run(config)
+    ledger = data.get("retrieval_ledger")
+    records_data = dict(data)
+    records_data.pop("retrieval_ledger", None)
+    if isinstance(ledger, dict):
+        violations = _acq.validate(ledger, records_data.get("records", []))
+        if violations:
+            raise ValueError("invalid retrieval ledger: " + "; ".join(violations))
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="") as f:
-        f.write(json.dumps(data, ensure_ascii=False, indent=2))
-    return data
+        f.write(json.dumps(records_data, ensure_ascii=False, indent=2))
+    if isinstance(ledger, dict):
+        with open(os.path.join(os.path.dirname(path), _acq.LEDGER_FILENAME), "w",
+                  encoding="utf-8", newline="") as f:
+            f.write(json.dumps(ledger, ensure_ascii=False, indent=2))
+    return records_data

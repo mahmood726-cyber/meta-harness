@@ -16,62 +16,12 @@ if __name__ == "__main__":  # guard: reassigning stdout at import closes a calle
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-from harness import lexicon  # noqa: E402
-
-# Drug CLASS -> members, for the class-term expansion (SONIA mechanism: search the molecules, not only
-# the class label). Curated for the corpus's classes; a class label in the topic's intervention_terms
-# triggers expansion to every member so a member-named trial is retrievable.
-CLASS_MEMBERS = {
-    "dpp-4 inhibitor": ["sitagliptin", "saxagliptin", "alogliptin", "linagliptin", "vildagliptin",
-                        "omarigliptin", "trelagliptin", "gemigliptin", "teneligliptin", "anagliptin"],
-    "glp-1 receptor agonist": ["semaglutide", "dulaglutide", "liraglutide", "exenatide", "lixisenatide",
-                               "albiglutide", "efpeglenatide"],
-    "sglt2 inhibitor": ["empagliflozin", "dapagliflozin", "canagliflozin", "ertugliflozin", "sotagliflozin"],
-    "mineralocorticoid receptor antagonist": ["spironolactone", "eplerenone", "finerenone", "canrenone"],
-}
-_CLASS_TRIGGERS = {  # substrings in an intervention term that mean "this is the class label"
-    "dpp-4": "dpp-4 inhibitor", "dpp4": "dpp-4 inhibitor",
-    "glp-1": "glp-1 receptor agonist", "glp1": "glp-1 receptor agonist",
-    "sglt2": "sglt2 inhibitor", "sglt-2": "sglt2 inhibitor",
-    "mineralocorticoid": "mineralocorticoid receptor antagonist", "aldosterone": "mineralocorticoid receptor antagonist",
-    "mra": "mineralocorticoid receptor antagonist",
-}
-
-
-def expand_intervention(terms):
-    """Registered intervention terms + class-member expansion + abbreviation variants (recall net)."""
-    out = set()
-    for t in terms or []:
-        tl = lexicon.fold(t)
-        out.add(tl)
-        for trig, cls in _CLASS_TRIGGERS.items():
-            if trig in tl:
-                out.update(CLASS_MEMBERS.get(cls, []))
-        for variant, _ in lexicon.abbrev_variants(tl):
-            out.add(variant)
-    # drop pure class labels/abbreviations that add noise once members are in (keep the words though)
-    return sorted(out)
-
-
-def _or(terms):
-    return " OR ".join(f'"{t}"[tiab]' if " " in t else f"{t}[tiab]" for t in terms if t)
-
-
-def build_query(cfg):
-    """Concept query from registered P/I/C/design. Population OR'd, intervention (class-expanded) OR'd,
-    RCT design filter. Comparator is NOT ANDed in (many eligible trials name only the intervention +
-    'placebo'); design + intervention + population is the recall-safe concept."""
-    inc = cfg.get("include", {})
-    interv = expand_intervention(cfg.get("intervention_terms"))
-    pop = [lexicon.fold(p) for p in (inc.get("population_any") or [])]
-    design = 'randomized controlled trial[pt] OR randomized[tiab] OR randomised[tiab] OR "controlled trial"[tiab]'
-    parts = []
-    if interv:
-        parts.append("(" + _or(interv) + ")")
-    if pop:
-        parts.append("(" + _or(pop) + ")")
-    parts.append("(" + design + ")")
-    return " AND ".join(parts)
+from harness.acquisition import (  # noqa: E402
+    CLASS_MEMBERS,
+    _CLASS_TRIGGERS,
+    concept_query as build_query,
+    expand_intervention,
+)
 
 
 def esearch_all(query, cap=4000):
