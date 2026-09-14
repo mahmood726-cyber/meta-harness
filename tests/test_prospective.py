@@ -83,6 +83,8 @@ def test_declaration_copies_a4_policy_and_freezes_architecture_identity(tmp_path
     assert decl["rerun_policy"] == prospective.rerun_policy_text(root)
     assert decl["time_limit_s"] == 60
     assert decl["invariants"] == ["census", "gate"]
+    assert decl["external_dependency_mutability"] is True
+    assert decl["freeze_claim"] == prospective.MUTABLE_FREEZE_CLAIM
     assert prospective.check_declaration_frozen(root, decl) == decl
 
     _write(root, "harness/plant.py", "PLANT = True\n")
@@ -312,6 +314,56 @@ def test_check_batch_accepts_one_rerun_with_prior_defect(tmp_path: Path) -> None
     assert summary["ok"] is True
     assert summary["run_records"] == 2
     assert summary["defect_entries"] == 1
+    assert summary["external_dependency_mutability"] is True
+    assert summary["freeze_claim"] == prospective.MUTABLE_FREEZE_CLAIM
+
+
+def test_freeze_claim_tracks_mutability_both_ways(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = _mini_root(tmp_path)
+
+    monkeypatch.setattr(
+        prospective.architecture_identity,
+        "mutable_dependencies",
+        lambda _root: ["model_stages.plant: unpinned"],
+    )
+    assert prospective.external_dependency_mutability(root) is True
+    assert prospective.freeze_claim(root) == prospective.MUTABLE_FREEZE_CLAIM
+
+    monkeypatch.setattr(prospective.architecture_identity, "mutable_dependencies", lambda _root: [])
+    monkeypatch.setattr(
+        prospective.architecture_identity,
+        "components",
+        lambda _root: {"model_stages": {"stages": [{"snapshot_pinning": {"pinned": True}}]}},
+    )
+    monkeypatch.setattr(prospective.architecture_identity, "identity", lambda _root: "c" * 64)
+    monkeypatch.setattr(prospective.architecture_identity, "identity_from_components", lambda _components: "d" * 64)
+
+    assert prospective.external_dependency_mutability(root) is False
+    assert prospective.freeze_claim(root) == prospective.IMMUTABLE_FREEZE_CLAIM
+
+    decl = prospective.batch_declaration(
+        root,
+        "batch-frozen",
+        60,
+        ["census"],
+        COMMITMENT,
+        {"definition": "plant universe", "version": "v1", "digest": "b" * 64},
+        declared_utc="2026-09-14T00:00:00Z",
+    )
+    record = prospective.run_record(
+        root,
+        "batch-frozen",
+        "topic-plant",
+        "2026-09-14T00:10:00Z",
+        "2026-09-14T00:11:00Z",
+        "COMPLETED",
+        ["review/index.html"],
+    )
+
+    assert decl["external_dependency_mutability"] is False
+    assert decl["freeze_claim"] == prospective.IMMUTABLE_FREEZE_CLAIM
+    assert record["external_dependency_mutability"] is False
+    assert record["freeze_claim"] == prospective.IMMUTABLE_FREEZE_CLAIM
 
 
 def test_run_record_refuses_unknown_outcome(tmp_path: Path) -> None:
@@ -343,3 +395,22 @@ def test_prospective_module_has_no_release_timing_state_and_run_record_fields_ar
         "next_expected",
     }
     assert forbidden_fields.isdisjoint(record)
+
+
+def test_a5_spec_names_inventory_derived_mutable_model_stages() -> None:
+    spec = (ROOT / "docs" / "PROSPECTIVE_VALIDATION_SPEC.md").read_text(encoding="utf-8")
+    inventory = json.loads((ROOT / "docs" / "model_stage_inventory.json").read_text(encoding="utf-8"))
+    stages = inventory["stages"]
+    mutable_names = [
+        stage["name"]
+        for stage in stages
+        if not (stage.get("snapshot_pinning") or {}).get("pinned")
+    ]
+
+    assert len(stages) == 11
+    assert len(mutable_names) == 11
+    assert "external_dependency_mutability: true" in spec
+    assert "frozen local architecture with mutable external model dependency" in spec
+    assert "11 of 11 model-driven stages" in spec
+    for name in mutable_names:
+        assert f"`{name}`" in spec

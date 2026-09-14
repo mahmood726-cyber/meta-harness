@@ -155,6 +155,16 @@ def test_stale_served_view_refuses():
         assert any("gate_scorecard.json" in r and "stale" in r for r in reasons)
 
 
+def test_served_view_and_index_name_unvalidated_not_green():
+    from harness import index as index_mod
+
+    phrase = gate_scorecard.UNVALIDATED_SENTENCE
+    served = gate_scorecard.served_view(ROOT)
+    assert served["unvalidated_sentence"] == phrase
+    assert served["summary"]["unvalidated_sentence"] == phrase
+    assert phrase in index_mod.build_index(str(ROOT / "docs"))
+
+
 def test_real_registry_passes():
     ok, reasons = gate_scorecard.check(ROOT)
     assert ok, "\n".join(reasons)

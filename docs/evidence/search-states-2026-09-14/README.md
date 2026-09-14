@@ -1,6 +1,6 @@
 # Retrieval class as an object state; honest-state ratchet; regeneration of the 32 pages (2026-09-14)
 
-**Fix state (four-state rule): VERIFIED** - Served labels and ratchet refusal re-demonstrated
+**Fix state (five-state rule): LANDED** - assurance stale: harness/index.py changed
 
 | file | what it is |
 |---|---|

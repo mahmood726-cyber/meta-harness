@@ -1,6 +1,6 @@
 # Acquisition layer - retrieval ledger, four run states, pagination, concept source, regression-corpus recall (2026-09-14)
 
-**Fix state (four-state rule): VERIFIED** - Prefix defect and absence at HEAD re-demonstrated
+**Fix state (five-state rule): INTERNALLY_VERIFIED** - Prefix defect and absence at HEAD re-demonstrated
 
 | file | what it is |
 |---|---|

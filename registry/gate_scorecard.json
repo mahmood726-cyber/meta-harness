@@ -95,7 +95,7 @@
    "false_refusals": [],
    "gate_id": "verify_all.limb_index_currency",
    "known_misses": [],
-   "last_exercised_utc": "2026-09-14T14:37:49Z",
+   "last_exercised_utc": "2026-09-14T18:32:09Z",
    "plant_validations": [
     {
      "evidence": [
@@ -106,7 +106,7 @@
    ],
    "precision_among_adjudicated": {
     "false": 0,
-    "true": 1,
+    "true": 2,
     "value": 1.0
    },
    "production_status": "EXERCISED",
@@ -117,11 +117,18 @@
      ],
      "what": "CI refused a real hand-edited docs/index.html plant and skipped deploy.",
      "when_utc": "2026-09-14T14:37:49Z"
+    },
+    {
+     "evidence": [
+      "commit:17a75f75"
+     ],
+     "what": "The commit message of 17a75f75 records the CI run for 7d5cda77 on branch evidence-indexes, 2026-09-14: index currency refused because evidence-index rows hashed Windows working-tree CRLF bytes while Pages serves LF-normalized committed bytes. Counted as a true production refusal of printed-digest to served-body byte identity, not as a cosmetic CRLF proxy.",
+     "when_utc": "2026-09-14T18:32:09Z"
     }
    ],
    "unresolved": [],
    "validation": "PRODUCTION",
-   "what_it_refuses": "index currency (generated == committed docs/index.html)",
+   "what_it_refuses": "index and evidence-index currency (generated docs/index.html plus byte identity between evidence-index digests and served LF-normalized capture bytes)",
    "where": "scripts/verify_all.py:limb_index_currency"
   },
   {
@@ -1332,6 +1339,95 @@
    "validation": "NO_VALIDATION",
    "what_it_refuses": "Uncaptioned evidence captures, stale evidence indexes, or captions for missing files.",
    "where": "scripts/build_evidence_index.py:main(--check)"
+  },
+  {
+   "exercised": false,
+   "false_refusals": [],
+   "gate_id": "honest_ratchet.compare_blocks",
+   "known_misses": [
+    {
+     "evidence": [
+      "docs/evidence/ratchet-blocks-2026-09-14/README.md",
+      "docs/evidence/ratchet-blocks-2026-09-14/01-prefix-phrase-ratchet-missed-15-blocks.txt"
+     ],
+     "what_got_through": "Before block-level tracking, 15 lost absent/banner honest-state blocks across 32 review pages passed the phrase-only ratchet with zero violations.",
+     "when_utc": "2026-09-14T20:09:59Z"
+    }
+   ],
+   "last_exercised_utc": null,
+   "plant_validations": [
+    {
+     "evidence": [
+      "tests/test_honest_ratchet.py",
+      "docs/evidence/ratchet-blocks-2026-09-14/01-prefix-phrase-ratchet-missed-15-blocks.txt"
+     ],
+     "test": "compare_blocks refuses a lost absent/banner block and allows only a reviewed replacement acknowledgement"
+    }
+   ],
+   "precision_among_adjudicated": {
+    "false": 0,
+    "true": 0,
+    "value": null
+   },
+   "production_status": "UNVALIDATED",
+   "true_refusals": [],
+   "unresolved": [
+    {
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "what": "Only plant validations and pre-fix known misses were found; no dated production true/false refusal of compare_blocks was located.",
+     "when_utc": null
+    }
+   ],
+   "validation": "PLANT_ONLY",
+   "what_it_refuses": "Absent/banner honest-state blocks that vanish without a reviewed replacement acknowledgement.",
+   "where": "harness/honest_ratchet.py:compare_blocks"
+  },
+  {
+   "exercised": false,
+   "false_refusals": [],
+   "gate_id": "pipeline.structural_query_classifier",
+   "known_misses": [
+    {
+     "evidence": [
+      "docs/evidence/query-structure-2026-09-14/README.md",
+      "docs/evidence/query-structure-2026-09-14/classification.json"
+     ],
+     "what_got_through": "Before the structural classifier exposed HAND_WRITTEN_KEYWORD_SEARCH, 4 topics were misclassified by the title-anchored assumption: colchicine-postop-af, colchicine-recurrent-pericarditis, corticosteroids-cap-mortality, and probiotics-aad-prevention.",
+     "when_utc": "2026-09-14T20:09:59Z"
+    }
+   ],
+   "last_exercised_utc": null,
+   "plant_validations": [
+    {
+     "evidence": [
+      "tests/test_retrieval_class.py",
+      "tests/test_honest_states_renderable.py",
+      "docs/evidence/query-structure-2026-09-14/classification.json"
+     ],
+     "test": "structural classifier plants cover uid, DOI/PMID, title, name-seeded, free-text keyword, concept-source, and renderable third-state output"
+    }
+   ],
+   "precision_among_adjudicated": {
+    "false": 0,
+    "true": 0,
+    "value": null
+   },
+   "production_status": "UNVALIDATED",
+   "true_refusals": [],
+   "unresolved": [
+    {
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "what": "Only plant validations and pre-fix known misses were found; no dated production true/false refusal of the structural query classifier was located.",
+     "when_utc": null
+    }
+   ],
+   "validation": "PLANT_ONLY",
+   "what_it_refuses": "Retrieval-state underclassification from committed query structure: known-item, title-seeded, hand-written keyword, or concept search.",
+   "where": "harness/pipeline.py:classify_query/classify_retrieval"
   }
  ],
  "generated_utc": null,

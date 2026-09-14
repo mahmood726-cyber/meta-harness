@@ -26,6 +26,8 @@ DEFECT_ENV = "PROSPECTIVE_DEFECT_LEDGER"
 DEFAULT_DEFECT_DIR = "meta-harness-defects"
 SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 REPO_ROOT = Path(__file__).resolve().parents[1]
+MUTABLE_FREEZE_CLAIM = "frozen local architecture with mutable external model dependency"
+IMMUTABLE_FREEZE_CLAIM = "fully frozen computational system"
 
 
 class ProspectiveRefusal(ValueError):
@@ -114,6 +116,22 @@ def rerun_policy_text(root: str | os.PathLike[str]) -> str:
     return "\n".join(out)
 
 
+def external_dependency_mutability(root: str | os.PathLike[str]) -> bool:
+    """Return whether any architecture-bound external dependency remains mutable."""
+
+    repo = _root_path(root)
+    if architecture_identity.mutable_dependencies(repo):
+        return True
+    stages = architecture_identity.components(repo).get("model_stages", {}).get("stages", [])
+    return any(not ((stage.get("snapshot_pinning") or {}).get("pinned")) for stage in stages)
+
+
+def freeze_claim(root: str | os.PathLike[str]) -> str:
+    """Return the honest freeze claim for the current architecture."""
+
+    return MUTABLE_FREEZE_CLAIM if external_dependency_mutability(root) else IMMUTABLE_FREEZE_CLAIM
+
+
 def batch_declaration(
     root: str | os.PathLike[str],
     batch_id: str,
@@ -140,6 +158,7 @@ def batch_declaration(
         limit_value = limit
 
     components = architecture_identity.components(repo)
+    mutable = external_dependency_mutability(repo)
     return {
         "schema_version": DECLARATION_VERSION,
         "batch_id": batch,
@@ -147,6 +166,8 @@ def batch_declaration(
         "architecture_identity": architecture_identity.identity_from_components(components),
         "architecture_components": components,
         "mutable_dependencies": architecture_identity.mutable_dependencies(repo),
+        "external_dependency_mutability": mutable,
+        "freeze_claim": MUTABLE_FREEZE_CLAIM if mutable else IMMUTABLE_FREEZE_CLAIM,
         "rerun_policy": rerun_policy_text(repo),
         "time_limit_s": limit_value,
         "invariants": _json_list(invariants, "invariants"),
@@ -245,6 +266,7 @@ def run_record(
     _require_safe_name(rid, "run_id")
     if rerun_of is not None and not str(rerun_justification or "").strip():
         raise ProspectiveRefusal("rerun_justification is required when rerun_of is set")
+    mutable = external_dependency_mutability(root)
     return {
         "schema_version": RUN_RECORD_VERSION,
         "run_id": rid,
@@ -253,6 +275,8 @@ def run_record(
         "started_utc": started_utc,
         "finished_utc": finished_utc,
         "architecture_identity": architecture_identity.identity(root),
+        "external_dependency_mutability": mutable,
+        "freeze_claim": MUTABLE_FREEZE_CLAIM if mutable else IMMUTABLE_FREEZE_CLAIM,
         "outcome": outcome,
         "artefact_paths": _json_list(artefact_paths, "artefact_paths"),
         "rerun_of": None if rerun_of is None else str(rerun_of),
@@ -426,6 +450,8 @@ def _validate_record_shape(record: dict[str, Any]) -> list[str]:
         "started_utc",
         "finished_utc",
         "architecture_identity",
+        "external_dependency_mutability",
+        "freeze_claim",
         "outcome",
         "artefact_paths",
         "rerun_of",
@@ -438,6 +464,11 @@ def _validate_record_shape(record: dict[str, Any]) -> list[str]:
         reasons.append(f"run {record.get('run_id')}: invalid outcome {record.get('outcome')!r}")
     if not isinstance(record.get("artefact_paths"), list):
         reasons.append(f"run {record.get('run_id')}: artefact_paths is not a list")
+    if not isinstance(record.get("external_dependency_mutability"), bool):
+        reasons.append(f"run {record.get('run_id')}: external_dependency_mutability is not a boolean")
+    expected_claims = {MUTABLE_FREEZE_CLAIM, IMMUTABLE_FREEZE_CLAIM}
+    if record.get("freeze_claim") not in expected_claims:
+        reasons.append(f"run {record.get('run_id')}: invalid freeze_claim")
     try:
         if record.get("started_utc") and record.get("finished_utc"):
             started = _parse_utc(record["started_utc"])
@@ -478,6 +509,12 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
             reasons.append(
                 f"run {record.get('run_id')}: architecture identity differs from declaration"
             )
+        if record.get("external_dependency_mutability") != decl.get("external_dependency_mutability"):
+            reasons.append(
+                f"run {record.get('run_id')}: external_dependency_mutability differs from declaration"
+            )
+        if record.get("freeze_claim") != decl.get("freeze_claim"):
+            reasons.append(f"run {record.get('run_id')}: freeze_claim differs from declaration")
 
     by_run = {record.get("run_id"): record for record in records if record.get("run_id")}
     reruns_by_topic: dict[str, list[dict[str, Any]]] = {}
@@ -537,5 +574,7 @@ def check_batch(root: str | os.PathLike[str], batch_id: str) -> dict[str, Any]:
         "run_records": len(records),
         "defect_entries": len(defects),
         "architecture_identity": declared_identity,
+        "external_dependency_mutability": decl.get("external_dependency_mutability"),
+        "freeze_claim": decl.get("freeze_claim"),
         "ok": True,
     }

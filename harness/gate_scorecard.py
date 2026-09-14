@@ -20,6 +20,7 @@ AUDITOR_SENTENCE = (
     "A gate architecture that gets noisy teaches people to bypass it, and the "
     "pressure to bypass always arrives as impatience."
 )
+UNVALIDATED_SENTENCE = "a gate with no adjudicated true refusal in production is UNVALIDATED, not green"
 EVENT_LISTS = ("plant_validations", "true_refusals", "false_refusals", "known_misses", "unresolved")
 PRODUCTION_EVENT_LISTS = ("true_refusals", "false_refusals")
 PLACEHOLDER_UTC = "2026-09-14T00:00:00Z"
@@ -152,6 +153,19 @@ def _static_gates() -> list[dict[str, str]]:
             "gate_id": "evidence_index.check",
             "where": "scripts/build_evidence_index.py:main(--check)",
             "what_it_refuses": "Uncaptioned evidence captures, stale evidence indexes, or captions for missing files.",
+        },
+        {
+            "gate_id": "honest_ratchet.compare_blocks",
+            "where": "harness/honest_ratchet.py:compare_blocks",
+            "what_it_refuses": "Absent/banner honest-state blocks that vanish without a reviewed replacement acknowledgement.",
+        },
+        {
+            "gate_id": "pipeline.structural_query_classifier",
+            "where": "harness/pipeline.py:classify_query/classify_retrieval",
+            "what_it_refuses": (
+                "Retrieval-state underclassification from committed query structure: known-item, "
+                "title-seeded, hand-written keyword, or concept search."
+            ),
         },
     ]
 
@@ -433,6 +447,7 @@ def summary(root) -> dict[str, Any]:
             "'refusing' (commit 6b1039cd records the incident)"
         ),
         "auditor_sentence": AUDITOR_SENTENCE,
+        "unvalidated_sentence": UNVALIDATED_SENTENCE,
         "prior_precision_measurement": data.get("prior_precision_measurement", "not found in this repository"),
     }
 
@@ -446,6 +461,7 @@ def served_view(root) -> dict[str, Any]:
         "_doc": "Generated from registry/gate_scorecard.json; do not hand-edit.",
         "source": REGISTRY_PATH,
         "auditor_sentence": AUDITOR_SENTENCE,
+        "unvalidated_sentence": UNVALIDATED_SENTENCE,
         "summary": summary(root),
         "gates": [entries[k] for k in sorted(entries)],
     }

@@ -1,6 +1,6 @@
 # Legacy ledgers for the 32 pre-ledger topics + raw external inputs preserved (2026-09-14)
 
-**Fix state (four-state rule): LANDED** - Legacy retrieval ledgers written and rendered
+**Fix state (five-state rule): INTERNALLY_VERIFIED** - Applied lane R proposed transition as internal verification; external auditor has not yet confirmed anything.
 
 | file | what it is |
 |---|---|

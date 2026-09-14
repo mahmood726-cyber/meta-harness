@@ -3,7 +3,7 @@
 **Arriving cold?** Read `VERIFY-COLD.md` first: it gives the anonymous API calls and expected values that confirm the
 central finding (109053ad: verify failed, Pages deployed) without any narration from us.
 
-**Fix state (four-state rule): VERIFIED** - Re-demonstrated by a non-author fresh clone
+**Fix state (five-state rule): LANDED** - assurance stale: docs/evidence/gate-authority-2026-09-14/08-prefix-hook-lets-failing-test-through.txt changed
 
 Every limb was shown to REFUSE before it was relied on, and shown to PASS on the clean case. Files are
 raw captures (API read-backs, push transcripts, CI ledgers), not summaries.

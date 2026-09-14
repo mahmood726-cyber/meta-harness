@@ -28,7 +28,7 @@ Status: SPECIFIED (control CTRL-A1 in `registry/fixes.json`). The identity VALUE
 (`python -m harness.architecture_identity`, `--check`) and is carried in every production record from c6e1cdef; that is
 a component, not the control. The control — a batch whose runs carry two identities is refused — has been exercised on
 no batch. It was written here as LANDED on 2026-09-14 and corrected the same day: a control does not move from SPECIFIED
-to LANDED because its code was written down clearly, and a passing unit test is the same-run evidence the four-state rule
+to LANDED because its code was written down clearly, and a passing unit test is the same-run evidence the five-state rule
 excludes; LANDED needs a batch-level check executed with its refusal recorded. The identity names 31 mutable dependencies
 today (unpinned requirements, tag-based action refs, external APIs, unpinned model snapshots).
 
@@ -72,11 +72,24 @@ If any stage calls an external model during a prospective batch, the architectur
 available model snapshot or version, the provider, the parameters and the tool configuration; a hosted model name does
 not mean the underlying model is immutable. Complete requests and outputs are archived. If the provider cannot guarantee
 an immutable snapshot, that component is declared a **mutable external dependency**, exactly as search APIs are.
+For every unpinnable or unpinned model stage, the stage record MUST carry `external_dependency_mutability: true`; it is
+not frozen merely because the local code or prompt wrapper is frozen. The run-level freeze claim for a batch containing
+any such stage is exactly "frozen local architecture with mutable external model dependency", not "frozen model" or
+"fully frozen architecture". Lane S implements the field; this section records the requirement and the inventory-derived
+count it must satisfy.
 Status: INVENTORY LANDED — `docs/model_stage_inventory.json`: 11 model-driven stages; NONE calls a model at build time
 (every one reads a committed artefact produced earlier); providers Anthropic (Fable 5.1), OpenAI (GPT-5 via Codex),
 Google (Gemini 3.1 Pro via AGY), plus a local sentence-transformers embedding; NONE is pinned to an immutable snapshot;
 prompts are in the tree for none of the hosted-model stages; requests/outputs are archived only as the committed
 output artefacts. Therefore every model-driven component is a MUTABLE EXTERNAL DEPENDENCY today, declared as such.
+Prospective batch declarations and run records carry `external_dependency_mutability`; it is `true` today. When true,
+the only permitted freeze claim is "frozen local architecture with mutable external model dependency". "Fully frozen
+computational system" is permitted only when `external_dependency_mutability` is false.
+output artefacts. Inventory-derived mutable count: 11 of 11 model-driven stages require
+`external_dependency_mutability: true` today: `embedding_candidate_generation`, `screening_model_adjudication`,
+`outcome_identity_codex`, `locate_span_identity_fable`, `dual_extraction_fable`,
+`blind_error_rate_codex_checker`, `crossfamily_gemini_reextraction`, `crossfamily_blind_judge_gemini`,
+`definition_audit_gemini_fable`, `rob_spancheck_fable`, and `blind_screen_reproducibility`.
 
 ### A6. The eligibility universe is frozen and bound into the commitment
 Otherwise the random draw stays fixed while what it was drawn from quietly changes. The custodian's commitment binds the
@@ -117,10 +130,34 @@ external register can read the names; names not sealed are not protected; being 
 preventable. All 32 current topics are disqualified as prospective validation and remain the adversarial regression
 corpus only.
 
-## Part C — fix states, applied to today's claims (four-state rule)
-`REPORTED` → `LANDED` (code on main, author-demonstrated) → `VERIFIED` (invariant independently demonstrated, not by the
-test that was written with the fix) → `GENERALIZED` (holds on something the fix was not authored against). Mechanically
-enforced as object transitions in `registry/fixes.json` by `harness/fixstate.py`; commit messages carry no authority over
-fix state. Current states are generated into each matching evidence README under `docs/evidence/`; an independent
-re-demonstration lane (Codex, fresh clone) is recorded under `docs/evidence/independent-verification-2026-09-14/` when it
-lands and is the evidence the VERIFIED step requires.
+Settled: the 32 legacy topics are permanently the adversarial regression corpus and are NOT candidates for rehabilitation
+into corpus-v1. They carry two contaminations: evidence-path contamination (the topic names, search failures, and repair
+routes are already exposed) and assurance-record contamination (the verification history now knows where the failures
+were found). Reconstructing both would cost more than rebuilding a fresh corpus.
+
+## Part C — fix states, verifier identity, and assurance staleness (five-state rule)
+The ladder is `REPORTED` -> `LANDED` -> `INTERNALLY_VERIFIED` -> `INDEPENDENTLY_VERIFIED` -> `GENERALIZED`; controls may
+also remain `SPECIFIED`. The bare string `VERIFIED` is not a legal schema state. "Verified by another agent in the same
+development environment" and "verified by an external auditor against served bytes" are materially different claims, so
+today's legacy `VERIFIED` entries migrate only to `INTERNALLY_VERIFIED`. No entry is `INDEPENDENTLY_VERIFIED` after the
+migration; the external auditor has not yet confirmed anything.
+
+Every claim carries `verified_by: {identity, kind}` and every verification object binds claim id, verifier identity and
+kind, evidence id (`path` + `sha256`), architecture identity at verification, method, scope, UTC time, and commit. The
+scope is the list of repo paths or components the verified property depends on; the object also records the current git
+blob SHA for each scoped file. If any scoped blob changes, the assurance is stale: `harness.fixstate.check()` refuses the
+entry while it remains `INTERNALLY_VERIFIED` or `INDEPENDENTLY_VERIFIED`. The mechanical fallback is
+`python -m harness.fixstate --refresh-stale`, which moves the stale entry back to `LANDED` and appends history entries
+with `reason: "assurance stale: <path> changed"`.
+
+This records the defect family explicitly: an assurance claim accepted from the representation of the property rather
+than from the property itself. Benchmark leakage, held-out blinding, deployment authority, and the twelve phantom fixes
+are instances of one failure mode.
+
+`GENERALIZED` keeps its prior meaning: the fix holds on material it was not authored against, with `generalized_on`
+disjoint from `authored_against`. Commit messages carry no authority over fix state. Current states are generated into
+each matching evidence README under `docs/evidence/`, and `docs/fix_ledger.json` is a generated view of
+`registry/fixes.json`.
+
+The honest-state ratchet's own state is PARTIALLY VERIFIED AGAINST DECLARED SENTINELS: unchanged marker counts prove no
+monitored sentinel disappeared, not that no limitation was softened.

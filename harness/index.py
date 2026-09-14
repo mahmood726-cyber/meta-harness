@@ -279,6 +279,7 @@ def _gate_scorecard_section(docs_dir: str) -> str:
             f"{': ' + _E(false_gates) if false_gates else ''}. The named pessimistic incident is "
             f"{_E(s.get('named_pessimistic_incident'))}. "
             f"<strong>{_E(s.get('auditor_sentence'))}</strong> "
+            f"The scorecard rule is: {_E(s.get('unvalidated_sentence'))}. "
             f"Served JSON: <code>gate_scorecard.json</code>.</p></div>")
 
 
@@ -1169,7 +1170,7 @@ def build_index(docs_dir: str) -> str:
                  "<a href='evidence/gate-authority-2026-09-14/01-prefix-deploy-unconditional.txt.html'>the 109053ad capture "
                  "(HTML rendering)</a> or its <a href='evidence/gate-authority-2026-09-14/01-prefix-deploy-unconditional.txt'>raw file</a>, "
                  "and <a href='evidence/gate-authority-2026-09-14/VERIFY-COLD.md.html'>how to verify it without us</a>. "
-                 "The fix states of every claim are in <a href='fix_ledger.json'>fix_ledger.json</a>; the gate scorecard in "
+                 "The five-state fix ledger for every claim is in <a href='fix_ledger.json'>fix_ledger.json</a>; the gate scorecard in "
                  "<a href='gate_scorecard.json'>gate_scorecard.json</a>; the per-file digests of this deployment in "
                  "<a href='_production/manifest.json'>_production/manifest.json</a>.</p></div>")
     body = (_evidence + _thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)

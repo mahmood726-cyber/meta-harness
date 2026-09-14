@@ -1,9 +1,26 @@
-"""Fix-state discipline for the machine-readable fix object store."""
+"""Fix-state discipline for the machine-readable fix object store.
+
+The v2 ladder is SPECIFIED -> REPORTED -> LANDED ->
+INTERNALLY_VERIFIED -> INDEPENDENTLY_VERIFIED -> GENERALIZED.
+There is deliberately no bare VERIFIED state. The old state collapsed
+"verified by another agent in this development environment" with
+"verified by an external auditor against served bytes"; this checker keeps
+those claims separate.
+
+This is the same defect family as accepting an assurance claim from the
+representation of a property rather than from the property itself: benchmark
+leakage, held-out blinding claims, deployment authority claims, and the twelve
+phantom fixes all became possible when an assertion about evidence stood in for
+the evidence property.
+"""
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
+import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from collections import Counter
@@ -13,14 +30,31 @@ from typing import Any
 
 REGISTRY_PATH = Path("registry") / "fixes.json"
 LEDGER_PATH = Path("docs") / "fix_ledger.json"
-STATUSES = ("SPECIFIED", "REPORTED", "LANDED", "VERIFIED", "GENERALIZED")
-FIX_STATUSES = ("REPORTED", "LANDED", "VERIFIED", "GENERALIZED")
+SCHEMA_VERSION = 2
+STATUSES = (
+    "SPECIFIED",
+    "REPORTED",
+    "LANDED",
+    "INTERNALLY_VERIFIED",
+    "INDEPENDENTLY_VERIFIED",
+    "GENERALIZED",
+)
+FIX_STATUSES = (
+    "REPORTED",
+    "LANDED",
+    "INTERNALLY_VERIFIED",
+    "INDEPENDENTLY_VERIFIED",
+    "GENERALIZED",
+)
+VERIFIED_STATUSES = ("INTERNALLY_VERIFIED", "INDEPENDENTLY_VERIFIED")
+VERIFIER_KINDS = ("author", "internal_agent", "external_auditor")
 KINDS = ("fix", "control")
 FORWARD_TRANSITIONS = {
     ("SPECIFIED", "LANDED"),
     ("REPORTED", "LANDED"),
-    ("LANDED", "VERIFIED"),
-    ("VERIFIED", "GENERALIZED"),
+    ("LANDED", "INTERNALLY_VERIFIED"),
+    ("INTERNALLY_VERIFIED", "INDEPENDENTLY_VERIFIED"),
+    ("INDEPENDENTLY_VERIFIED", "GENERALIZED"),
 }
 REQUIRED_ENTRY_KEYS = {
     "finding_id",
@@ -32,6 +66,8 @@ REQUIRED_ENTRY_KEYS = {
     "opened_utc",
     "evidence_dir",
     "history",
+    "verified_by",
+    "verifications",
     "authored_against",
     "generalized_on",
     "executable_evidence",
@@ -44,6 +80,20 @@ REQUIRED_HISTORY_KEYS = {
     "evidence",
     "reason",
 }
+REQUIRED_VERIFICATION_KEYS = {
+    "claim_id",
+    "verifier",
+    "evidence",
+    "architecture_identity",
+    "method",
+    "scope",
+    "scope_blob_shas",
+    "when_utc",
+    "commit",
+}
+REQUIRED_VERIFIER_KEYS = {"identity", "kind"}
+REQUIRED_EVIDENCE_KEYS = {"path", "sha256"}
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _root_path(root: str | os.PathLike[str]) -> Path:
@@ -59,6 +109,15 @@ def _posix(path: str | os.PathLike[str]) -> str:
 
 def _display_path(path: Path) -> str:
     return _posix(path)
+
+
+def _utc_now() -> str:
+    return (
+        _dt.datetime.now(_dt.UTC)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def _run_git(root: Path, args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -80,19 +139,16 @@ def _git_stdout(root: Path, args: list[str]) -> str:
     return _run_git(root, args).stdout
 
 
+def _head_commit(root: Path) -> str:
+    proc = _run_git(root, ["rev-parse", "--verify", "HEAD"], check=False)
+    return proc.stdout.strip() if proc.returncode == 0 else ""
+
+
 def _commit_exists(root: Path, commit: str) -> bool:
     if not isinstance(commit, str) or not commit.strip():
         return False
     proc = _run_git(root, ["cat-file", "-e", f"{commit}^{{commit}}"], check=False)
     return proc.returncode == 0
-
-
-def _first_parent(root: Path, commit: str) -> str | None:
-    proc = _run_git(root, ["rev-list", "--parents", "-n", "1", commit], check=False)
-    if proc.returncode != 0:
-        return None
-    parts = proc.stdout.split()
-    return parts[1] if len(parts) > 1 else None
 
 
 def _path_is_repo_relative(path: str) -> bool:
@@ -102,14 +158,36 @@ def _path_is_repo_relative(path: str) -> bool:
     return bool(parts) and ".." not in parts
 
 
-def _path_exists_in_tree(root: Path, treeish: str, path: str) -> bool:
-    proc = _run_git(root, ["cat-file", "-e", f"{treeish}:{_posix(path)}"], check=False)
-    return proc.returncode == 0
+def _git_blob_sha(root: Path, relpath: str) -> str | None:
+    path = root / relpath
+    if not path.is_file():
+        return None
+    data = path.read_bytes()
+    return hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
+
+
+def _sha256_file(path: Path) -> str | None:
+    if not path.is_file():
+        return None
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def _load_json(path: Path) -> Any:
     with path.open(encoding="utf-8") as fh:
         return json.load(fh)
+
+
+def _write_json(path: Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=1, sort_keys=False) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 def load(root: str | os.PathLike[str]) -> dict[str, Any]:
@@ -138,14 +216,6 @@ def _latest_history(entry: dict[str, Any], status: str) -> dict[str, Any] | None
     return None
 
 
-def _history_entries_for(entry: dict[str, Any], status: str) -> list[dict[str, Any]]:
-    return [
-        item
-        for item in (entry.get("history") or [])
-        if isinstance(item, dict) and item.get("status") == status
-    ]
-
-
 def _has_history_status(entry: dict[str, Any], status: str) -> bool:
     return _latest_history(entry, status) is not None
 
@@ -153,6 +223,33 @@ def _has_history_status(entry: dict[str, Any], status: str) -> bool:
 def _is_at_least(status: str, threshold: str) -> bool:
     order = {value: idx for idx, value in enumerate(STATUSES)}
     return order[status] >= order[threshold]
+
+
+def _scope_blob_shas(root: Path, scope: list[str]) -> dict[str, str | None]:
+    records: dict[str, str | None] = {}
+    for raw in scope:
+        rel = _posix(str(raw))
+        if not _path_is_repo_relative(rel):
+            records[rel] = None
+            continue
+        path = root / rel
+        if path.is_file():
+            records[rel] = _git_blob_sha(root, rel)
+        elif path.is_dir():
+            for child in sorted(p for p in path.rglob("*") if p.is_file()):
+                child_rel = _posix(child.relative_to(root))
+                records[child_rel] = _git_blob_sha(root, child_rel)
+        else:
+            records[rel] = None
+    return records
+
+
+def _evidence_is_external(path: str) -> bool:
+    text = str(path)
+    return (
+        text.startswith(("http://", "https://", "urn:", "doi:", "external:", "signed:"))
+        or not _path_is_repo_relative(text)
+    )
 
 
 def _validate_executable_evidence(root: Path, entry: dict[str, Any], label: str) -> list[str]:
@@ -198,43 +295,148 @@ def _validate_landed(root: Path, entry: dict[str, Any], history: dict[str, Any],
     return []
 
 
-def _validate_verified_current(root: Path, entry: dict[str, Any], history: dict[str, Any], label: str) -> list[str]:
-    reasons: list[str] = []
-    if history.get("by") == entry.get("author"):
-        reasons.append(f"{label}: VERIFIED by must differ from author")
-    evidence = history.get("evidence")
-    if not isinstance(evidence, list) or not evidence:
-        reasons.append(f"{label}: VERIFIED history needs evidence paths")
+def _validate_verifier_obj(verifier: Any, label: str, *, allow_null: bool) -> list[str]:
+    if not isinstance(verifier, dict):
+        return [f"{label}: verifier must be an object"]
+    missing = sorted(REQUIRED_VERIFIER_KEYS - set(verifier))
+    extra = sorted(set(verifier) - REQUIRED_VERIFIER_KEYS)
+    reasons = []
+    if missing:
+        reasons.append(f"{label}: verifier missing keys: {', '.join(missing)}")
+    if extra:
+        reasons.append(f"{label}: verifier unexpected keys: {', '.join(extra)}")
+    identity = verifier.get("identity")
+    kind = verifier.get("kind")
+    if kind is None:
+        if not allow_null or identity is not None:
+            reasons.append(f"{label}: null verifier requires identity=null and is allowed only before verification")
         return reasons
-    for raw_path in evidence:
-        path = str(raw_path)
-        if not _path_is_repo_relative(path):
-            reasons.append(f"{label}: evidence path must be repo-relative: {raw_path!r}")
-            continue
-        if not (root / path).exists():
-            reasons.append(f"{label}: evidence path missing in working tree: {_posix(path)}")
-    commit = history.get("commit")
-    if commit and not _commit_exists(root, commit):
-        reasons.append(f"{label}: VERIFIED history commit does not exist: {commit!r}")
+    if kind not in VERIFIER_KINDS:
+        reasons.append(f"{label}: verifier.kind must be one of {', '.join(VERIFIER_KINDS)} or null")
+    if not isinstance(identity, str) or not identity.strip():
+        reasons.append(f"{label}: verifier.identity must be a non-empty string")
     return reasons
 
 
-def _validate_verified_transition(root: Path, entry: dict[str, Any], history: dict[str, Any], label: str) -> list[str]:
-    reasons = _validate_verified_current(root, entry, history, label)
-    commit = history.get("commit")
-    if not isinstance(commit, str) or not commit.strip() or not _commit_exists(root, commit):
-        reasons.append(f"{label}: VERIFIED transition commit must exist")
+def _validate_evidence_object(root: Path, obj: Any, label: str) -> list[str]:
+    if not isinstance(obj, dict):
+        return [f"{label}: evidence item must be an object"]
+    missing = sorted(REQUIRED_EVIDENCE_KEYS - set(obj))
+    extra = sorted(set(obj) - REQUIRED_EVIDENCE_KEYS)
+    reasons: list[str] = []
+    if missing:
+        reasons.append(f"{label}: evidence item missing keys: {', '.join(missing)}")
+    if extra:
+        reasons.append(f"{label}: evidence item unexpected keys: {', '.join(extra)}")
+    path = obj.get("path")
+    sha = obj.get("sha256")
+    if not isinstance(path, str) or not path:
+        reasons.append(f"{label}: evidence.path must be a non-empty string")
         return reasons
-    parent = _first_parent(root, commit)
-    if parent is None:
-        reasons.append(f"{label}: VERIFIED transition commit has no parent")
+    if not isinstance(sha, str) or not sha:
+        reasons.append(f"{label}: evidence.sha256 must be a non-empty string")
+    if _path_is_repo_relative(path):
+        rel = _posix(path)
+        full = root / rel
+        if not full.is_file():
+            reasons.append(f"{label}: evidence path missing in working tree: {rel}")
+        else:
+            observed = _sha256_file(full)
+            if isinstance(sha, str) and SHA256_RE.fullmatch(sha.lower()) and observed != sha.lower():
+                reasons.append(f"{label}: evidence sha256 mismatch for {rel}")
+    return reasons
+
+
+def _validate_verification(root: Path, entry: dict[str, Any], obj: Any, idx: int, label: str) -> list[str]:
+    vlabel = f"{label}: verifications[{idx}]"
+    if not isinstance(obj, dict):
+        return [f"{vlabel} must be an object"]
+    reasons: list[str] = []
+    missing = sorted(REQUIRED_VERIFICATION_KEYS - set(obj))
+    extra = sorted(set(obj) - REQUIRED_VERIFICATION_KEYS)
+    if missing:
+        reasons.append(f"{vlabel} missing keys: {', '.join(missing)}")
+    if extra:
+        reasons.append(f"{vlabel} unexpected keys: {', '.join(extra)}")
+    if obj.get("claim_id") != entry.get("fix_id"):
+        reasons.append(f"{vlabel}.claim_id must equal fix_id")
+    reasons.extend(_validate_verifier_obj(obj.get("verifier"), vlabel, allow_null=False))
+    evidence = obj.get("evidence")
+    if not isinstance(evidence, list) or not evidence:
+        reasons.append(f"{vlabel}.evidence must be a non-empty list")
+    elif isinstance(evidence, list):
+        for eidx, evidence_obj in enumerate(evidence):
+            reasons.extend(_validate_evidence_object(root, evidence_obj, f"{vlabel}.evidence[{eidx}]"))
+    for key in ("architecture_identity", "method", "when_utc"):
+        if not isinstance(obj.get(key), str) or not obj.get(key):
+            reasons.append(f"{vlabel}.{key} must be a non-empty string")
+    commit = obj.get("commit")
+    if commit and (not isinstance(commit, str) or not _commit_exists(root, commit)):
+        reasons.append(f"{vlabel}.commit does not exist: {commit!r}")
+    scope = obj.get("scope")
+    if not isinstance(scope, list) or not scope:
+        reasons.append(f"{vlabel}.scope must be a non-empty list")
+    else:
+        for raw in scope:
+            if not _path_is_repo_relative(str(raw)):
+                reasons.append(f"{vlabel}.scope path must be repo-relative: {raw!r}")
+    scope_blob_shas = obj.get("scope_blob_shas")
+    if not isinstance(scope_blob_shas, dict) or not scope_blob_shas:
+        reasons.append(f"{vlabel}.scope_blob_shas must be a non-empty object")
+    elif isinstance(scope_blob_shas, dict):
+        for path, blob in scope_blob_shas.items():
+            if not _path_is_repo_relative(str(path)):
+                reasons.append(f"{vlabel}.scope_blob_shas path must be repo-relative: {path!r}")
+            if blob is not None and (not isinstance(blob, str) or not re.fullmatch(r"[0-9a-f]{40}", blob)):
+                reasons.append(f"{vlabel}.scope_blob_shas[{path!r}] must be a git blob sha or null")
+    return reasons
+
+
+def _verification_candidates(entry: dict[str, Any], kind: str) -> list[dict[str, Any]]:
+    return [
+        item
+        for item in (entry.get("verifications") or [])
+        if isinstance(item, dict)
+        and isinstance(item.get("verifier"), dict)
+        and item["verifier"].get("kind") == kind
+    ]
+
+
+def _validate_status_verifications(root: Path, entry: dict[str, Any], label: str) -> list[str]:
+    status = entry.get("status")
+    reasons: list[str] = []
+    verified_by = entry.get("verified_by")
+    if status in ("SPECIFIED", "REPORTED", "LANDED"):
+        if isinstance(verified_by, dict) and (
+            verified_by.get("identity") is not None or verified_by.get("kind") is not None
+        ):
+            reasons.append(f"{label}: non-verified status must use verified_by identity=null, kind=null")
         return reasons
-    for raw_path in history.get("evidence") or []:
-        path = str(raw_path)
-        if _path_is_repo_relative(path) and not _path_exists_in_tree(root, parent, path):
-            reasons.append(
-                f"{label}: VERIFIED evidence did not exist in parent tree {parent[:12]}: {_posix(path)}"
-            )
+
+    if status == "INTERNALLY_VERIFIED":
+        candidates = _verification_candidates(entry, "internal_agent")
+        if not candidates:
+            reasons.append(f"{label}: INTERNALLY_VERIFIED needs an internal_agent verification")
+            return reasons
+        if all((c.get("verifier") or {}).get("identity") == entry.get("author") for c in candidates):
+            reasons.append(f"{label}: INTERNALLY_VERIFIED verifier must differ from author")
+        if isinstance(verified_by, dict) and verified_by.get("kind") != "internal_agent":
+            reasons.append(f"{label}: verified_by.kind must be internal_agent")
+    elif status == "INDEPENDENTLY_VERIFIED":
+        candidates = _verification_candidates(entry, "external_auditor")
+        if not candidates:
+            reasons.append(f"{label}: INDEPENDENTLY_VERIFIED needs an external_auditor verification")
+            return reasons
+        if isinstance(verified_by, dict) and verified_by.get("kind") != "external_auditor":
+            reasons.append(f"{label}: verified_by.kind must be external_auditor")
+        if not any(
+            any(_evidence_is_external(str(ev.get("path"))) for ev in c.get("evidence", []) if isinstance(ev, dict))
+            for c in candidates
+        ):
+            reasons.append(f"{label}: INDEPENDENTLY_VERIFIED needs external evidence outside this repository")
+    elif status == "GENERALIZED":
+        if not entry.get("verifications"):
+            reasons.append(f"{label}: GENERALIZED needs at least one verification object")
     return reasons
 
 
@@ -269,7 +471,9 @@ def _validate_history_shape(entry: dict[str, Any], idx: int) -> list[str]:
         if missing:
             reasons.append(f"{label}: history[{hidx}] missing keys: {', '.join(missing)}")
         status = item.get("status")
-        if status not in STATUSES:
+        if status == "VERIFIED":
+            reasons.append(f"{label}: history[{hidx}] uses refused bare VERIFIED state")
+        elif status not in STATUSES:
             reasons.append(f"{label}: history[{hidx}] has invalid status {status!r}")
         evidence = item.get("evidence")
         if not isinstance(evidence, list):
@@ -277,13 +481,38 @@ def _validate_history_shape(entry: dict[str, Any], idx: int) -> list[str]:
     return reasons
 
 
+def _stale_scope_paths(root: Path, entry: dict[str, Any]) -> list[str]:
+    stale: set[str] = set()
+    for verification in entry.get("verifications") or []:
+        if not isinstance(verification, dict):
+            continue
+        scope = verification.get("scope")
+        recorded = verification.get("scope_blob_shas")
+        if not isinstance(scope, list) or not isinstance(recorded, dict):
+            continue
+        current = _scope_blob_shas(root, [str(item) for item in scope])
+        for path, old_blob in recorded.items():
+            if current.get(path) != old_blob:
+                stale.add(str(path))
+        for path, new_blob in current.items():
+            if recorded.get(path) != new_blob:
+                stale.add(str(path))
+    return sorted(stale)
+
+
+def _validate_staleness(root: Path, entry: dict[str, Any], label: str) -> list[str]:
+    if entry.get("status") not in VERIFIED_STATUSES:
+        return []
+    return [f"{label}: assurance stale: {path} changed" for path in _stale_scope_paths(root, entry)]
+
+
 def validate_store(root: str | os.PathLike[str], store: dict[str, Any]) -> list[str]:
     """Validate the current object store without comparing it to a previous tree."""
 
     repo = _root_path(root)
     reasons: list[str] = []
-    if store.get("schema_version") != 1:
-        reasons.append("registry/fixes.json schema_version must be 1")
+    if store.get("schema_version") != SCHEMA_VERSION:
+        reasons.append(f"registry/fixes.json schema_version must be {SCHEMA_VERSION}")
     if store.get("statuses") != list(STATUSES):
         reasons.append(f"registry/fixes.json statuses must be {list(STATUSES)!r}")
 
@@ -324,6 +553,9 @@ def validate_store(root: str | os.PathLike[str], store: dict[str, Any]) -> list[
         status = entry.get("status")
         if kind not in KINDS:
             reasons.append(f"{label}: kind must be one of {', '.join(KINDS)}")
+        if status == "VERIFIED":
+            reasons.append(f"{label}: refused bare VERIFIED status; use INTERNALLY_VERIFIED or INDEPENDENTLY_VERIFIED")
+            continue
         if status not in STATUSES:
             reasons.append(f"{label}: invalid status {status!r}")
             continue
@@ -348,6 +580,14 @@ def validate_store(root: str | os.PathLike[str], store: dict[str, Any]) -> list[
         if entry.get("executable_evidence") is not None and not isinstance(entry.get("executable_evidence"), dict):
             reasons.append(f"{label}: executable_evidence must be an object or null")
 
+        reasons.extend(_validate_verifier_obj(entry.get("verified_by"), f"{label}: verified_by", allow_null=True))
+        verifications = entry.get("verifications")
+        if not isinstance(verifications, list):
+            reasons.append(f"{label}: verifications must be a list")
+        else:
+            for vidx, verification in enumerate(verifications):
+                reasons.extend(_validate_verification(repo, entry, verification, vidx, label))
+
         reasons.extend(_validate_history_shape(entry, idx))
         if status == "SPECIFIED":
             if not _has_history_status(entry, "SPECIFIED"):
@@ -359,16 +599,15 @@ def validate_store(root: str | os.PathLike[str], store: dict[str, Any]) -> list[
                 reasons.append(f"{label}: {status} status needs LANDED history")
             else:
                 reasons.extend(_validate_landed(repo, entry, landed, label))
-        if _is_at_least(status, "VERIFIED"):
-            verified = _latest_history(entry, "VERIFIED")
-            if verified is None:
-                reasons.append(f"{label}: {status} status needs VERIFIED history")
-            else:
-                reasons.extend(_validate_verified_current(repo, entry, verified, label))
+        if status in VERIFIED_STATUSES:
+            if not _has_history_status(entry, status):
+                reasons.append(f"{label}: {status} status needs {status} history")
         if status == "GENERALIZED":
             if not _has_history_status(entry, "GENERALIZED"):
                 reasons.append(f"{label}: GENERALIZED status needs GENERALIZED history")
             reasons.extend(_validate_generalized(entry, label))
+        reasons.extend(_validate_status_verifications(repo, entry, label))
+        reasons.extend(_validate_staleness(repo, entry, label))
     return reasons
 
 
@@ -409,13 +648,19 @@ def _validate_transition(
     reasons: list[str] = []
     if old_status not in STATUSES or new_status not in STATUSES:
         return [f"{label}: cannot compare invalid statuses {old_status!r}->{new_status!r}"]
-    if not _transition_allowed(old_status, new_status):
-        reasons.append(f"{label}: invalid status transition {old_status}->{new_status}")
-        return reasons
     candidates = [
         item for item in _new_history_entries(old_entry, new_entry)
         if item.get("status") == new_status
     ]
+    if old_status in VERIFIED_STATUSES and new_status == "LANDED":
+        if not candidates:
+            return [f"{label}: status changed {old_status}->LANDED without matching new history entry"]
+        if not all(str(item.get("reason") or "").startswith("assurance stale: ") for item in candidates):
+            return [f"{label}: fallback to LANDED from {old_status} needs assurance stale history reason"]
+        return reasons
+    if not _transition_allowed(old_status, new_status):
+        reasons.append(f"{label}: invalid status transition {old_status}->{new_status}")
+        return reasons
     if not candidates:
         return [f"{label}: status changed {old_status}->{new_status} without matching new history entry"]
     history = candidates[-1]
@@ -425,8 +670,9 @@ def _validate_transition(
         return reasons
     if new_status == "LANDED":
         reasons.extend(_validate_landed(root, new_entry, history, label))
-    elif new_status == "VERIFIED":
-        reasons.extend(_validate_verified_transition(root, new_entry, history, label))
+    elif new_status in VERIFIED_STATUSES:
+        if not str(history.get("reason") or "").strip():
+            reasons.append(f"{label}: {new_status} transition needs a reason")
     elif new_status == "GENERALIZED":
         reasons.extend(_validate_generalized(new_entry, label))
     return reasons
@@ -460,6 +706,8 @@ def check_transitions(root: str | os.PathLike[str], store: dict[str, Any]) -> li
         return []
     old_store = _load_store_from_tree(repo, ref)
     if old_store is None:
+        return []
+    if old_store.get("schema_version") != store.get("schema_version"):
         return []
     old_by_fix = {
         entry.get("fix_id"): entry
@@ -529,10 +777,49 @@ def check(root: str | os.PathLike[str]) -> tuple[bool, list[str]]:
     return not reasons, reasons
 
 
+def refresh_stale(root: str | os.PathLike[str]) -> int:
+    """Move stale verified claims back to LANDED and append fallback history."""
+
+    repo = _root_path(root)
+    store = load(repo)
+    now = _utc_now()
+    commit = _head_commit(repo)
+    changed = 0
+    for entry in entries(store):
+        if entry.get("status") not in VERIFIED_STATUSES:
+            continue
+        stale = _stale_scope_paths(repo, entry)
+        if not stale:
+            continue
+        entry["status"] = "LANDED"
+        entry["verified_by"] = {"identity": None, "kind": None}
+        for path in stale:
+            entry.setdefault("history", []).append(
+                {
+                    "status": "LANDED",
+                    "when_utc": now,
+                    "by": "harness.fixstate --refresh-stale",
+                    "commit": commit,
+                    "evidence": [],
+                    "reason": f"assurance stale: {path} changed",
+                }
+            )
+        changed += 1
+    if changed:
+        _write_json(repo / REGISTRY_PATH, store)
+    return changed
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m harness.fixstate")
-    parser.parse_args(argv)
+    parser.add_argument("--refresh-stale", action="store_true", help="fall stale verified entries back to LANDED")
+    args = parser.parse_args(argv)
     root = _root_path(os.getcwd())
+    if args.refresh_stale:
+        changed = refresh_stale(root)
+        suffix = "y" if changed == 1 else "ies"
+        print(f"FIX-STATE: refresh-stale fallback entries written for {changed} entr{suffix}")
+        return 0
     ok, reasons = check(root)
     if ok:
         store = load(root)

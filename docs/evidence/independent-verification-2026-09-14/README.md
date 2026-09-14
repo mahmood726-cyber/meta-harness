@@ -1,6 +1,6 @@
 Re-demonstrated by: Codex (GPT-5), lane G, fresh clone at f156f89bc51df314b618e7df7ebc90af7768d351, 2026-09-14T17:44:14Z. Not the author of the fixes.
 
-**Fix state (four-state rule): LANDED** - Architecture identity is computed as a structured digest
+**Fix state (five-state rule): INTERNALLY_VERIFIED** - Applied lane R proposed transition as internal verification; external auditor has not yet confirmed anything.
 
 | claim | file | VERDICT |
 |---|---|---|

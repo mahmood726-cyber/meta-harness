@@ -1,6 +1,6 @@
 # Fix Ladder Evidence - 2026-09-14
 
-**Fix state (four-state rule): LANDED** - Object-state ladder and 40-claim ledger evidence landed
+**Fix state (five-state rule): INTERNALLY_VERIFIED** - Applied lane R proposed transition as internal verification; external auditor has not yet confirmed anything.
 
 | Entry # | Class | Proposed fix_state | File |
 |---:|---|---|---|
