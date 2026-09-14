@@ -1,5 +1,27 @@
 # Search-rebuild handover — open this cold, build nothing until you've read it
 
+## STATUS (updated 2026-09-14) — engine built + measured, pipeline integration NOT yet done
+- **Vocabulary layer DONE** (`harness/lexicon.py`, the one shared fold for all consumers): British↔American
+  spelling fold, Greek-letter fold (ω-3→omega-3), mortality↔death, a match-time NESTING GUARD
+  (bare 'mortality'/'death'/'stroke' won't bind a qualified subtype), and PREVENTION_TRIAL_TITLE_OMITS_OUTCOME
+  screening (population from structured fields/abstract for prevention topics). Each shipped with a
+  corpus-wide before/after and a plant. **Abbreviations (CV↔cardiovascular, MI↔MI, HF↔…) are BUILT but
+  HELD OUT of extraction** — wiring them moved colchicine-postop-af 0.67→0.77 via an 'af' mis-bind
+  (END-AF's 63-patient total bound as an arm), the ELIXA class. `lexicon.abbrev_variants` is available
+  for query-building (recall net, no number bound); re-enable in extraction only behind a per-abbrev before/after.
+- **Concept-query engine BUILT + MEASURED**: `scripts/search_rebuild.py` builds from registered
+  P/I/C/design, expands drug classes to members, paginates the full boolean set (no top-N). **Unaided
+  recall 6 of 6 vs the 0/6 baseline** (rendered on the index, `docs/search_recall.json`).
+- **STILL TO DO (the delicate corpus-moving step — do it behind a full 32-topic before/after):**
+  (1) wire the concept query into the pipeline FETCH replacing the enumerated `<uid>[uid]` lists, and
+  source-verify EVERY newly-retrieved trial before it pools (representativeness, not just per-number);
+  (2) reference-list seeding re-enabled and its added recall MEASURED; (3) WHO ICTRP + international
+  registries adapters; (4) search-completeness as its own gated stage that cannot go green on adapter
+  exit codes. The engine and the metric exist; the corpus has NOT been re-fetched.
+
+---
+
+
 This is one of the **two HELD items** (the other is the broad screening-vocabulary fix). It is
 held on purpose: it moves the whole corpus, so it needs a fresh budget and a careful corpus-wide
 before/after — not a deadline rush. The ELIXA regression (a one-line hyphen change silently pooled
