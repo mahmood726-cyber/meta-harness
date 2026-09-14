@@ -11,6 +11,8 @@ No hand-typed numbers: everything comes from the cached source text.
 from __future__ import annotations
 import re
 
+from . import lexicon
+
 NEG = ("not ", "non-", "non ", "never ", "no ")
 _ARM = re.compile(r"(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*\)\s*(?:of|/)\s*(\d+)")
 _ARM2 = re.compile(r"(\d+)\s*/\s*(\d+)\s*\(\s*(\d+(?:\.\d+)?)\s*%\s*[);,]")
@@ -72,26 +74,18 @@ _MORT_D = re.compile(r"\bdeaths?\b", re.I)
 
 
 def _mort_variants(kl):
-    """Synonym-swapped variants of a PHRASE keyword that names death/mortality, so an
-    incomplete enumeration still links the trial's wording. 'mortality'<->'death' is a
-    pure synonym for an all-cause-mortality outcome, yet a keyword list that spells only
-    'in-hospital death' misses a trial that writes 'in-hospital mortality' (Torres 2015,
-    a corticosteroids-CAP secondary). Only PHRASE keywords (with a qualifier like
-    'in-hospital'/'28-day') are expanded, so a bare 'died' is NOT broadened into matching
-    any 'mortality' sentence -- the swap keeps the qualifier and only trades the one word.
-    General across every mortality topic; downstream composite/round-trip guards still
-    protect binding."""
-    out = set()
-    if _MORT_Y.search(kl):
-        out.add(_MORT_Y.sub("death", kl))
-    if _MORT_D.search(kl):
-        out.add(_MORT_D.sub("mortality", kl))
-    return out
+    """Delegates to the shared lexicon (kept as a thin alias so callers/tests keep one entry point)."""
+    return lexicon.mort_variants(kl)
 
 
 def _kw_in_sentence(k, sl):
-    kl = k.lower()
-    if kl in sl:
+    # SHARED FOLD (lexicon): normalise mid-dot, case, and British<->American spelling on BOTH sides
+    # before matching, so the same word is normalised identically in every consumer. This is what lets
+    # a British 'hospitalisation' sentence match an American 'hospitalization' keyword (the AFFIRM-AHF
+    # class). Abbreviations are NOT expanded here (that lands separately, per the ELIXA risk).
+    kl = lexicon.fold(k)
+    slf = lexicon.fold(sl)
+    if kl in slf:
         return True
     # HYPHEN/SPACE-INSENSITIVE (vocabulary blind-spot, the Fish-Oil/PISCES class): a multi-word
     # DISEASE keyword must match its hyphenated surface form ("fish oil" vs "fish-oil"). Deliberately
@@ -100,10 +94,10 @@ def _kw_in_sentence(k, sl):
     # no components, so the composite guard cannot catch it) -- the anchor must stay exact.
     if (" " in kl or "-" in kl) and kl not in GENERIC_ANCHORS:
         kh = kl.replace("-", " ")
-        if " " in kh and kh in sl.replace("-", " "):
+        if " " in kh and kh in slf.replace("-", " "):
             return True
     if " " in kl:
-        return any(v in sl for v in _mort_variants(kl))
+        return any(v in slf for v in lexicon.mort_variants(kl))
     return False
 
 

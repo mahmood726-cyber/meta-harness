@@ -8,6 +8,8 @@ target-result status, handled at extraction).
 from __future__ import annotations
 import re as _re
 
+from . import lexicon
+
 # Token-boundary matcher cache: a bare-substring `in` test matched a screening term inside a
 # longer word, so 'rat' (population_none animal term) matched 'prepaRATion' / 'administRATion'
 # and excluded human RCTs as animal studies (an external audit's finding, reproduced on
@@ -50,9 +52,9 @@ def _negated_at(text_lower: str, start: int) -> bool:
 def _has(text: str, terms) -> str | None:
     """Return the first exclusion term with a NON-negated occurrence in text (else None). A term that
     appears only in negated form ('no withdrawal', 'without diabetes') does not count as a match."""
-    t = text.lower()
+    t = lexicon.fold(text)  # shared fold: British<->American spelling normalised on the haystack
     for term in terms or []:
-        tl = (term or "").lower().strip()
+        tl = lexicon.fold(term or "").strip()
         if not tl:
             continue
         for m in _boundary_re(tl).finditer(t):
@@ -66,11 +68,11 @@ def _all_occurrences_qualified(text: str, term: str, qualifiers) -> bool:
     qualifier (e.g. 'mildly ' before 'reduced ejection fraction' -> HFmrEF, an included phenotype). Used
     to suppress a nested exclusion term when the record is uniformly the qualified (included) variant; a
     single unqualified occurrence (a genuine HFrEF) returns False so the exclusion still fires."""
-    low = text.lower()
-    t = (term or "").lower()
+    low = lexicon.fold(text)
+    t = lexicon.fold(term or "")
     if not t:
         return False
-    ql = [q.lower().strip() for q in qualifiers]
+    ql = [lexicon.fold(q).strip() for q in qualifiers]
     i, found = low.find(t), False
     while i != -1:
         found = True
@@ -84,9 +86,9 @@ def _all_occurrences_qualified(text: str, term: str, qualifiers) -> bool:
 def _has_intervention(text: str, terms) -> str | None:
     """Like _has, but a mention that is only 'X-resistant/resistance/refractory/intolerant'
     is a POPULATION descriptor, not the randomised intervention, and does not count."""
-    t = text.lower()
+    t = lexicon.fold(text)
     for term in terms or []:
-        tl = term.lower()
+        tl = lexicon.fold(term)
         start = 0
         while True:
             i = t.find(tl, start)
@@ -245,7 +247,18 @@ def _span(raw: str, term: str, width: int = 48) -> str:
         return ""
     i = raw.lower().find(term.lower())
     if i < 0:
-        return ""
+        # FOLD-AWARE fallback: the matcher folds British<->American spelling, so a term that matched
+        # (e.g. 'haemorrhage' matched 'hemorrhage') may not be a literal substring of raw. Locate it in
+        # folded space and quote a slightly wider window of the ORIGINAL bytes near that index (fold only
+        # shortens, so the folded index is a safe left-approximation) -- the span stays a real substring.
+        fr, ft = lexicon.fold(raw), lexicon.fold(term)
+        fi = fr.find(ft)
+        if fi < 0:
+            return ""
+        i, pad = fi, 14
+        a = max(0, i - width // 2 - pad)
+        b = min(len(raw), i + len(term) + width // 2 + pad)
+        return ("…" if a > 0 else "") + " ".join(raw[a:b].split()) + ("…" if b < len(raw) else "")
     a = max(0, i - width // 2)
     b = min(len(raw), i + len(term) + width // 2)
     return ("…" if a > 0 else "") + " ".join(raw[a:b].split()) + ("…" if b < len(raw) else "")
