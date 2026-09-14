@@ -1,1575 +1,2792 @@
 {
- "_doc": "Measured gate scorecard: every enumerated production gate is listed. Plant validations are separated from dated production true/false refusals; PLANT_ONLY gates are not production-validated.",
- "auditor_sentence": "A gate architecture that gets noisy teaches people to bypass it, and the pressure to bypass always arrives as impatience.",
+ "_doc": "Measured gate scorecard schema v2. Events are source records; all precision, coverage, validation, and status fields are computed by harness.gate_scorecard.",
+ "adjudicator_independence_sentence": "adjudicator_independence is the share of adjudications made by an external_auditor; today it is expected to be 0 because no external-auditor adjudication is recorded",
+ "auditor_correction": "If the same environment labels its own gate outputs true or false, that is: system produces output -> system labels its own output correct -> agreement read as validation (the 6/6 recall shape). So every refusal is an EVENT with an ADJUDICATION OBJECT, and a gate's numbers are computed only from those objects.",
  "gates": [
   {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "verify_all.limb_unit_tests",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "docs/evidence/gate-authority-2026-09-14/09-new-standard-refuses-index-and-test-plants.txt"
-     ],
-     "test": "failing pytest plant refused by the full local standard"
-    },
-    {
-     "evidence": [
-      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
-      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
-     ],
-     "test": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "unit tests (pytest tests/)",
-   "where": "scripts/verify_all.py:limb_unit_tests"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "verify_all.limb_reproduction",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
-      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
-     ],
-     "test": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "No plant validation or dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "offline reproduction (every live page replays from committed cache)",
-   "where": "scripts/verify_all.py:limb_reproduction"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "verify_all.limb_gate_every_page",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
-      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
-     ],
-     "test": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "No plant validation or dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "publication gate on every live review page",
-   "where": "scripts/verify_all.py:limb_gate_every_page"
-  },
-  {
-   "exercised": true,
-   "false_refusals": [],
-   "gate_id": "verify_all.limb_index_currency",
-   "known_misses": [],
-   "last_exercised_utc": "2026-09-14T18:32:09Z",
-   "plant_validations": [
-    {
-     "evidence": [
-      "docs/evidence/gate-authority-2026-09-14/09-new-standard-refuses-index-and-test-plants.txt"
-     ],
-     "test": "hand-edited docs/index.html plant refused locally"
-    },
-    {
-     "evidence": [
-      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
-      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
-     ],
-     "test": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 2,
-    "value": 1.0
-   },
-   "production_status": "EXERCISED",
-   "true_refusals": [
-    {
-     "evidence": [
-      "docs/evidence/gate-authority-2026-09-14/11-postfix-ci-refuses-hand-edited-index.txt"
-     ],
-     "what": "CI refused a real hand-edited docs/index.html plant and skipped deploy.",
-     "when_utc": "2026-09-14T14:37:49Z"
-    },
-    {
-     "evidence": [
-      "commit:17a75f75"
-     ],
-     "what": "The commit message of 17a75f75 records the CI run for 7d5cda77 on branch evidence-indexes, 2026-09-14: index currency refused because evidence-index rows hashed Windows working-tree CRLF bytes while Pages serves LF-normalized committed bytes. Counted as a true production refusal of printed-digest to served-body byte identity, not as a cosmetic CRLF proxy.",
-     "when_utc": "2026-09-14T18:32:09Z"
-    }
-   ],
-   "unresolved": [],
-   "validation": "PRODUCTION",
-   "what_it_refuses": "index and evidence-index currency (generated docs/index.html plus byte identity between evidence-index digests and served LF-normalized capture bytes)",
-   "where": "scripts/verify_all.py:limb_index_currency"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "verify_all.limb_leak_scan",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_leakscan.py"
-     ],
-     "test": "served artefact leak scanner regression plants"
-    },
-    {
-     "evidence": [
-      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
-      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
-     ],
-     "test": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "served-artefact leak scan (docs/*.json)",
-   "where": "scripts/verify_all.py:limb_leak_scan"
-  },
-  {
-   "exercised": true,
-   "false_refusals": [],
-   "gate_id": "verify_all.limb_heldout",
-   "known_misses": [],
-   "last_exercised_utc": "2026-09-14T16:52:59Z",
-   "plant_validations": [
-    {
-     "evidence": [
-      "docs/evidence/search-acquisition-2026-09-14/05-postfix-heldout-refusals.txt"
-     ],
-     "test": "held-out slug path and measurement plants refused locally"
-    },
-    {
-     "evidence": [
-      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
-      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
-     ],
-     "test": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 1,
-    "value": 1.0
-   },
-   "production_status": "EXERCISED",
-   "true_refusals": [
-    {
-     "evidence": [
-      "docs/evidence/search-states-2026-09-14/04-ci-refuses-sealed-leak-and-missing-fixstate.txt"
-     ],
-     "what": "CI refused a real planted branch containing the sealed held-out identifier in a tracked test file.",
-     "when_utc": "2026-09-14T16:52:59Z"
-    }
-   ],
-   "unresolved": [],
-   "validation": "PRODUCTION",
-   "what_it_refuses": "held-out leak detector (registry/heldout_sealed.json)",
-   "where": "scripts/verify_all.py:limb_heldout"
-  },
-  {
-   "exercised": true,
-   "false_refusals": [
-    {
-     "direction": "pessimistic",
-     "evidence": [
-      "commit:6b1039cd",
-      "docs/evidence/search-states-2026-09-14/04-ci-refuses-sealed-leak-and-missing-fixstate.txt",
-      "registry/fixes.json"
-     ],
-     "what": "Fix-state checker refused an evidence-only commit because the subject contained \"refusing\"; commit 6b1039cd records the structural correction.",
-     "when_utc": "2026-09-14T17:26:40Z"
-    }
-   ],
-   "gate_id": "verify_all.limb_fixstate",
-   "known_misses": [
-    {
-     "evidence": [
-      "docs/evidence/fix-ladder-2026-09-14/README.md",
-      "docs/evidence/fix-ladder-2026-09-14/lane_j_tools.py"
-     ],
-     "what_got_through": "Fix-ladder re-demonstration found 12 LANDED/claimed entries whose mechanism or artifact did not exist: entries 2, 4, 10, 16, 18, 22, 23, 25, 26, 27, 28, and 29.",
-     "when_utc": "2026-09-14T18:36:13Z"
-    }
-   ],
-   "last_exercised_utc": "2026-09-14T17:26:40Z",
-   "plant_validations": [
-    {
-     "evidence": [
-      "docs/evidence/independent-verification-2026-09-14/08-fix-state-ladder.txt",
-      "tests/test_fixstate.py"
-     ],
-     "test": "fix-state ladder temp-clone commit-message plants"
-    },
-    {
-     "evidence": [
-      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
-      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
-     ],
-     "test": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 1,
-    "true": 1,
-    "value": 0.5
-   },
-   "production_status": "EXERCISED",
-   "true_refusals": [
-    {
-     "evidence": [
-      "docs/evidence/search-states-2026-09-14/04-ci-refuses-sealed-leak-and-missing-fixstate.txt"
-     ],
-     "what": "CI refused a real planted branch whose commit message lacked the required Fix-State trailer.",
-     "when_utc": "2026-09-14T16:52:59Z"
-    }
-   ],
-   "unresolved": [],
-   "validation": "PRODUCTION",
-   "what_it_refuses": "fix-state discipline (registry/fixes.json)",
-   "where": "scripts/verify_all.py:limb_fixstate"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "verify_all.limb_honest_ratchet",
-   "known_misses": [
-    {
-     "direction": "pessimistic",
-     "evidence": [
-      "docs/evidence/regeneration-accounting-2026-09-14/README.md"
-     ],
-     "what_got_through": "MISSED true positive: the first regeneration-accounting pass targeted 7f81da01 and reported 0/0/0; re-pointed at b8925e04 it found 15 lost 'Search provenance' honest-state blocks while the phrase-inventory ratchet had passed.",
-     "when_utc": "2026-09-14T20:09:59Z"
-    }
-   ],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "docs/evidence/independent-verification-2026-09-14/09-honest-state-ratchet.txt",
-      "tests/test_honest_ratchet.py"
-     ],
-     "test": "honest-state ratchet review-page quieting plant"
-    },
-    {
-     "evidence": [
-      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
-      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
-     ],
-     "test": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "honest-state ratchet (no page may get quieter)",
-   "where": "scripts/verify_all.py:limb_honest_ratchet"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "verify_all.limb_gate_scorecard",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_gate_scorecard.py"
-     ],
-     "test": "gate scorecard meta-check registry and served-view plants"
-    },
-    {
-     "evidence": [
-      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
-      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
-     ],
-     "test": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "gate scorecard (every gate accounted for)",
-   "where": "scripts/verify_all.py:limb_gate_scorecard"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_access_claim_supported",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_access_claim_gate.py"
-     ],
-     "test": "access-claim gate regression plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "NOT_RUN-as-paywalled (audit 22): a review must not assert a full-text ACCESS OUTCOME — that full text was re-tested/confirmed, or is publisher-blocked / access-blocked / paywalled — when the PMC full-text adapter did not run.",
-   "where": "harness/gate.py:check_access_claim_supported"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_cache_tracked",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "No plant validation or dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "NO_VALIDATION",
-   "what_it_refuses": "A page replays from its committed cache, so that cache MUST be git-tracked — an untracked cache means a fresh clone cannot reproduce the page (this silently broke empagliflozin: the page looked fine, but its cache/<slug>/records.json was never committed).",
-   "where": "harness/gate.py:check_cache_tracked"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_controls",
-   "known_misses": [
-    {
-     "evidence": [
-      "docs/evidence/search-acquisition-2026-09-14/06-concept-source-plant-fires-prefix.txt"
-     ],
-     "what_got_through": "Lane A force-fetched positive_control_pmids, which would have made the positive-control check vacuous; integration review removed it before treating the gate as evidence.",
-     "when_utc": "2026-09-14T15:25:24Z"
-    }
-   ],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_gate_controls.py"
-     ],
-     "test": "screening-control enforcement plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "Screening controls must be ENFORCED, not just reported.",
-   "where": "harness/gate.py:check_controls"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_cross_source",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_cross_source.py"
-     ],
-     "test": "cross-source direction flip plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "The second independent extractor (CT.gov structured vs abstract) may only flag a DIRECTION FLIP as agree=False -- one source says the intervention helps, the other that it harms, on the same outcome family.",
-   "where": "harness/gate.py:check_cross_source"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_duplicate_publication",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_dup_pub.py"
-     ],
-     "test": "duplicate-publication plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "Unit-of-analysis guard: the SAME trial reported in two papers must not be pooled twice.",
-   "where": "harness/gate.py:check_duplicate_publication"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_fetch_complete",
-   "known_misses": [
-    {
-     "evidence": [
-      "docs/evidence/legacy-ledgers-2026-09-14/01-regeneration-with-legacy-ledgers.txt"
-     ],
-     "what_got_through": "Lane I labelled legacy per-query sources NOT_RUN even though they had run with unrecorded yield; review corrected them to RAN_UNRECORDED and made live snapshots refuse that legacy state.",
-     "when_utc": "2026-09-14T17:49:56Z"
-    }
-   ],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_error_library.py"
-     ],
-     "test": "core-source fetch-error plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "A THROTTLED FETCH IS A PARTIAL FETCH, and a partial cache looks exactly like a complete one.",
-   "where": "harness/gate.py:check_fetch_complete"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_limb1",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_gate.py"
-     ],
-     "test": "level-one page gate regression plants"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "Page gate check_limb1.",
-   "where": "harness/gate.py:check_limb1"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_limb2",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_gate.py"
-     ],
-     "test": "level-two page gate regression plants"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "Page gate check_limb2.",
-   "where": "harness/gate.py:check_limb2"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_manuscript_numbers",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_stage_additions.py"
-     ],
-     "test": "manuscript-number mismatch plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "PAPER limb: the generated manuscript must not state a number the object does not carry.",
-   "where": "harness/gate.py:check_manuscript_numbers"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_method_matches_scale",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_method_scale.py"
-     ],
-     "test": "method/scale mismatch plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "The declared analysis-method string must match the scale ACTUALLY pooled — recomputed here independently via synth.method_text so the check cannot be a constant compared to itself (the melatonin cold-audit class: a mean-difference outcome was labelled with the log-ratio method, and the old declared==served limb compared one METHOD constant to itself and could never fire).",
-   "where": "harness/gate.py:check_method_matches_scale"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_no_double_counted_trial",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_error_library.py"
-     ],
-     "test": "within-outcome repeated-trial plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "Unit-of-analysis: no trial may be pooled more than once WITHIN an outcome (multi-arm shared-control double-counting, ME-25).",
-   "where": "harness/gate.py:check_no_double_counted_trial"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_parity_our_k",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_parity_our_k.py"
-     ],
-     "test": "parity narrative stale-panel plants"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "Derived-narrative / stale-panel guard (audit 28): the parity block is a STORED narrative that can survive after the review object changed (omega3 parity claimed we pool OMEMI + OMEGA-REMODEL, which are declared-absent; colchicine-postop named Bessissow as pooled when it is not).",
-   "where": "harness/gate.py:check_parity_our_k"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_pivotal_present",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_gate.py"
-     ],
-     "test": "pivotal-trial absence plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "A generated/fetched cache that omits the topic's PIVOTAL/landmark trial produces a silently empty or wrong result (sacubitril: PARADIGM-HF was absent from Codex's fetch -> k=None).",
-   "where": "harness/gate.py:check_pivotal_present"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_pooled_verified",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_error_library.py"
-     ],
-     "test": "unverified pooled-number plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "THE BAR, made structural: every pooled number's digits must appear in its committed source span (verify.verify_pooled marks 'verified'/'verified_handchecked'/'not-yet').",
-   "where": "harness/gate.py:check_pooled_verified"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_population_identity",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_gate.py"
-     ],
-     "test": "population_none pooled-trial plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "No POOLED trial may match the topic's population_none (external audit: colchicine-postop pooled non-cardiac COP-AF/Bessissow though I2 was cardiac surgery).",
-   "where": "harness/gate.py:check_population_identity"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_preregistration_not_build",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "No plant validation or dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "NO_VALIDATION",
-   "what_it_refuses": "A page that CLAIMS prospective registration (reproduction.preregistration.prospective) must cite a PROTOCOL-ONLY commit — one that contains no fetched cache, extracted review, blind pages or index.",
-   "where": "harness/gate.py:check_preregistration_not_build"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_prespecification_in_protocol",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_gate.py"
-     ],
-     "test": "uncited prespecification-rule plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "A selection rule cited on the page as 'pre-specified' MUST exist in the protocol at its SHA (external audit #9: noac claimed a 'pre-specified approved-dose rule' that was not in the registered protocol).",
-   "where": "harness/gate.py:check_prespecification_in_protocol"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_primary_result",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_gate.py"
-     ],
-     "test": "primary outcome with no pooled result plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "A page whose PRIMARY outcome has no pooled result cannot make its central claim and must not publish (this is what a k=0 decline looks like — the gate refuses it here rather than relying on a human to notice and not commit it).",
-   "where": "harness/gate.py:check_primary_result"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_reproduction",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "No plant validation or dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "NO_VALIDATION",
-   "what_it_refuses": "Level B: re-run the pipeline from the COMMITTED cache + protocol SHA and confirm it regenerates the committed review core (the numbers), not just that the HTML matches the JSON.",
-   "where": "harness/gate.py:check_reproduction"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "gate.check_retraction",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_integrity.py"
-     ],
-     "test": "pooled retracted-trial plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "A pooled RETRACTED trial is a catastrophic defect; refuse the page.",
-   "where": "harness/gate.py:check_retraction"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "census.claim_check",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_claim_object.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "census-claim-check-v1-plant-validations-1",
      "evidence": [
       "tests/test_claim_object.py"
      ],
-     "test": "canonical claim contradiction plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "canonical claim contradiction plant",
+     "when_utc": null,
+     "where": "harness/census.py:_claim_check"
+    },
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "census-claim-check-v1-unresolved-1",
      "evidence": [
       "GATE_GAPS.md"
      ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/census.py:_claim_check"
     }
    ],
-   "validation": "PLANT_ONLY",
+   "gate_id": "census.claim_check",
    "what_it_refuses": "Build-time refusal when rendered significance wording contradicts the canonical claim object.",
    "where": "harness/census.py:_claim_check"
   },
   {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "census.proposition_check",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
+   "events": [
     {
-     "evidence": [
-      "tests/test_proposition_gate.py"
-     ],
-     "test": "categorical and methodological proposition plants"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "Build-time refusal on categorical, membership, or methodological proposition contradictions.",
-   "where": "harness/census.py:build_review_dir"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "census.compatibility_check",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_compat_key.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "census-compatibility-check-v1-plant-validations-1",
      "evidence": [
       "tests/test_compat_key.py"
      ],
-     "test": "incompatible effect-class pool plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "incompatible effect-class pool plant",
+     "when_utc": null,
+     "where": "harness/census.py:build_review_dir"
+    },
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "census-compatibility-check-v1-unresolved-1",
      "evidence": [
       "GATE_GAPS.md"
      ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/census.py:build_review_dir"
     }
    ],
-   "validation": "PLANT_ONLY",
+   "gate_id": "census.compatibility_check",
    "what_it_refuses": "Build-time refusal when a pooled outcome mixes incompatible effect classes.",
    "where": "harness/census.py:build_review_dir"
   },
   {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "census.interval_provenance",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
+   "events": [
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_interval_provenance.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "census-interval-provenance-v1-plant-validations-1",
      "evidence": [
       "tests/test_interval_provenance.py"
      ],
-     "test": "unstamped interval provenance plants"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "unstamped interval provenance plants",
+     "when_utc": null,
+     "where": "harness/census.py:_interval_provenance_check"
+    },
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "census-interval-provenance-v1-unresolved-1",
      "evidence": [
       "GATE_GAPS.md"
      ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/census.py:_interval_provenance_check"
     }
    ],
-   "validation": "PLANT_ONLY",
+   "gate_id": "census.interval_provenance",
    "what_it_refuses": "Build-time refusal when a rendered confidence interval lacks canonical-engine provenance.",
    "where": "harness/census.py:_interval_provenance_check"
   },
   {
-   "exercised": true,
-   "false_refusals": [],
-   "gate_id": "hook.commit_msg",
-   "known_misses": [],
-   "last_exercised_utc": "2026-09-14T15:31:49Z",
-   "plant_validations": [
+   "events": [
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_proposition_gate.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "census-proposition-check-v1-plant-validations-1",
      "evidence": [
-      "docs/evidence/search-acquisition-2026-09-14/05-postfix-heldout-refusals.txt"
+      "tests/test_proposition_gate.py"
      ],
-     "test": "commit-message held-out slug plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 1,
-    "value": 1.0
-   },
-   "production_status": "EXERCISED",
-   "true_refusals": [
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "categorical and methodological proposition plants",
+     "when_utc": null,
+     "where": "harness/census.py:build_review_dir"
+    },
     {
-     "evidence": [
-      "docs/evidence/search-acquisition-2026-09-14/05-postfix-heldout-refusals.txt"
-     ],
-     "what": "The local commit-msg hook refused a commit message naming a held-out topic.",
-     "when_utc": "2026-09-14T15:31:49Z"
-    }
-   ],
-   "unresolved": [],
-   "validation": "PRODUCTION",
-   "what_it_refuses": "Local git commit-msg hook refusal.",
-   "where": ".githooks/commit-msg:hook"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "hook.pre_commit",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "docs/evidence/gate-authority-2026-09-14/09-new-standard-refuses-index-and-test-plants.txt"
-     ],
-     "test": "pre-commit full-standard plant"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "census-proposition-check-v1-unresolved-1",
      "evidence": [
       "GATE_GAPS.md"
      ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/census.py:build_review_dir"
     }
    ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "Local git pre-commit hook refusal.",
-   "where": ".githooks/pre-commit:hook"
+   "gate_id": "census.proposition_check",
+   "what_it_refuses": "Build-time refusal on categorical, membership, or methodological proposition contradictions.",
+   "where": "harness/census.py:build_review_dir"
   },
   {
-   "exercised": true,
-   "false_refusals": [],
-   "gate_id": "ruleset.required_verify",
-   "known_misses": [],
-   "last_exercised_utc": "2026-09-14T14:23:45Z",
-   "plant_validations": [],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 2,
-    "value": 1.0
-   },
-   "production_status": "EXERCISED",
-   "true_refusals": [
+   "events": [
     {
-     "evidence": [
-      "docs/evidence/gate-authority-2026-09-14/06-refusal-server-rejects-direct-push.txt"
-     ],
-     "what": "The main-branch ruleset rejected a direct push from a hooks-free clone because verify was expected.",
-     "when_utc": "2026-09-14T14:22:37Z"
-    },
-    {
-     "evidence": [
-      "docs/evidence/gate-authority-2026-09-14/07-refusal-branch-route-red-check.txt"
-     ],
-     "what": "The main-branch ruleset rejected a plant SHA after its verify check was red.",
-     "when_utc": "2026-09-14T14:23:45Z"
-    }
-   ],
-   "unresolved": [],
-   "validation": "PRODUCTION",
-   "what_it_refuses": "A main-branch update without the required verify status check.",
-   "where": "docs/evidence/gate-authority-2026-09-14/05-ruleset-created.txt:ruleset"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "deploy.check_artifact",
-   "known_misses": [
-    {
-     "evidence": [
-      "docs/evidence/artifact-identity-2026-09-14/01-prefix-deploy-re-tars-unverified-artifact.txt"
-     ],
-     "what_got_through": "The first deploy gate re-checked-out the commit and re-tarred docs in deploy; the artifact deployed was never the verified artifact.",
-     "when_utc": "2026-09-14T15:48:24Z"
-    }
-   ],
-   "last_exercised_utc": null,
-   "plant_validations": [
-    {
-     "evidence": [
-      "tests/test_production_record.py"
-     ],
-     "test": "one-byte artifact mismatch plant"
-    },
-    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "deploy-attest-v1-plant-validations-1",
      "evidence": [
       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
      ],
-     "test": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting",
+     "when_utc": null,
+     "where": "scripts/production_record.py:cmd_attest"
+    },
     {
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "what": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
-    }
-   ],
-   "validation": "PLANT_ONLY",
-   "what_it_refuses": "A Pages artifact whose file set or digests differ from the verified manifest.",
-   "where": "scripts/production_record.py:cmd_check_artifact"
-  },
-  {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "deploy.attest",
-   "known_misses": [
-    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "deploy-attest-v1-known-misses-1",
      "evidence": [
       "docs/evidence/artifact-identity-2026-09-14/01-prefix-deploy-re-tars-unverified-artifact.txt"
      ],
+     "kind": "PRODUCTION",
+     "miss": true,
+     "source_list": "known_misses",
      "what_got_through": "The prefix deploy path did not fetch served bytes back and prove body digests against verified digests.",
-     "when_utc": "2026-09-14T15:48:24Z"
-    }
-   ],
-   "last_exercised_utc": null,
-   "plant_validations": [
+     "what_refused": null,
+     "when_utc": "2026-09-14T15:48:24Z",
+     "where": "scripts/production_record.py:cmd_attest"
+    },
     {
-     "evidence": [
-      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
-      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
-     ],
-     "test": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
-    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "deploy-attest-v1-unresolved-1",
      "evidence": [
       "GATE_GAPS.md"
      ],
-     "what": "No plant validation or dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "No plant validation or dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "scripts/production_record.py:cmd_attest"
     }
    ],
-   "validation": "PLANT_ONLY",
+   "gate_id": "deploy.attest",
    "what_it_refuses": "A deployment whose served bytes do not hash back to the verified manifest.",
    "where": "scripts/production_record.py:cmd_attest"
   },
   {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "evidence_index.check",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [
+   "events": [
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_production_record.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "deploy-check-artifact-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_production_record.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "one-byte artifact mismatch plant",
+     "when_utc": null,
+     "where": "scripts/production_record.py:cmd_check_artifact"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "deploy-check-artifact-v1-plant-validations-2",
      "evidence": [
       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
      ],
-     "test": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting",
+     "when_utc": null,
+     "where": "scripts/production_record.py:cmd_check_artifact"
+    },
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "deploy-check-artifact-v1-known-misses-1",
+     "evidence": [
+      "docs/evidence/artifact-identity-2026-09-14/01-prefix-deploy-re-tars-unverified-artifact.txt"
+     ],
+     "kind": "PRODUCTION",
+     "miss": true,
+     "source_list": "known_misses",
+     "what_got_through": "The first deploy gate re-checked-out the commit and re-tarred docs in deploy; the artifact deployed was never the verified artifact.",
+     "what_refused": null,
+     "when_utc": "2026-09-14T15:48:24Z",
+     "where": "scripts/production_record.py:cmd_check_artifact"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "deploy-check-artifact-v1-unresolved-1",
      "evidence": [
       "GATE_GAPS.md"
      ],
-     "what": "No plant validation or dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
-     "when_utc": null
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "scripts/production_record.py:cmd_check_artifact"
     }
    ],
-   "validation": "PLANT_ONLY",
+   "gate_id": "deploy.check_artifact",
+   "what_it_refuses": "A Pages artifact whose file set or digests differ from the verified manifest.",
+   "where": "scripts/production_record.py:cmd_check_artifact"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "evidence-index-check-v1-plant-validations-1",
+     "evidence": [
+      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting",
+     "when_utc": null,
+     "where": "scripts/build_evidence_index.py:main(--check)"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "evidence-index-check-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "No plant validation or dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "scripts/build_evidence_index.py:main(--check)"
+    }
+   ],
+   "gate_id": "evidence_index.check",
    "what_it_refuses": "Uncaptioned evidence captures, stale evidence indexes, or captions for missing files.",
    "where": "scripts/build_evidence_index.py:main(--check)"
   },
   {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "honest_ratchet.compare_blocks",
-   "known_misses": [
+   "events": [
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_access_claim_gate.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-access-claim-supported-v1-plant-validations-1",
      "evidence": [
-      "docs/evidence/ratchet-blocks-2026-09-14/README.md",
-      "docs/evidence/ratchet-blocks-2026-09-14/01-prefix-phrase-ratchet-missed-15-blocks.txt"
+      "tests/test_access_claim_gate.py"
      ],
-     "what_got_through": "Before block-level tracking, 15 lost absent/banner honest-state blocks across 32 review pages passed the phrase-only ratchet with zero violations.",
-     "when_utc": "2026-09-14T20:09:59Z"
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "access-claim gate regression plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_access_claim_supported"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-access-claim-supported-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_access_claim_supported"
     }
    ],
-   "last_exercised_utc": null,
-   "plant_validations": [
+   "gate_id": "gate.check_access_claim_supported",
+   "what_it_refuses": "NOT_RUN-as-paywalled (audit 22): a review must not assert a full-text ACCESS OUTCOME — that full text was re-tested/confirmed, or is publisher-blocked / access-blocked / paywalled — when the PMC full-text adapter did not run.",
+   "where": "harness/gate.py:check_access_claim_supported"
+  },
+  {
+   "events": [
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-cache-tracked-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "No plant validation or dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_cache_tracked"
+    }
+   ],
+   "gate_id": "gate.check_cache_tracked",
+   "what_it_refuses": "A page replays from its committed cache, so that cache MUST be git-tracked — an untracked cache means a fresh clone cannot reproduce the page (this silently broke empagliflozin: the page looked fine, but its cache/<slug>/records.json was never committed).",
+   "where": "harness/gate.py:check_cache_tracked"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_gate_controls.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-controls-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_gate_controls.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "screening-control enforcement plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_controls"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-controls-v1-known-misses-1",
+     "evidence": [
+      "docs/evidence/search-acquisition-2026-09-14/06-concept-source-plant-fires-prefix.txt"
+     ],
+     "kind": "PRODUCTION",
+     "miss": true,
+     "source_list": "known_misses",
+     "what_got_through": "Lane A force-fetched positive_control_pmids, which would have made the positive-control check vacuous; integration review removed it before treating the gate as evidence.",
+     "what_refused": null,
+     "when_utc": "2026-09-14T15:25:24Z",
+     "where": "harness/gate.py:check_controls"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-controls-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_controls"
+    }
+   ],
+   "gate_id": "gate.check_controls",
+   "what_it_refuses": "Screening controls must be ENFORCED, not just reported.",
+   "where": "harness/gate.py:check_controls"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_cross_source.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-cross-source-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_cross_source.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "cross-source direction flip plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_cross_source"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-cross-source-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_cross_source"
+    }
+   ],
+   "gate_id": "gate.check_cross_source",
+   "what_it_refuses": "The second independent extractor (CT.gov structured vs abstract) may only flag a DIRECTION FLIP as agree=False -- one source says the intervention helps, the other that it harms, on the same outcome family.",
+   "where": "harness/gate.py:check_cross_source"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_dup_pub.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-duplicate-publication-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_dup_pub.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "duplicate-publication plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_duplicate_publication"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-duplicate-publication-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_duplicate_publication"
+    }
+   ],
+   "gate_id": "gate.check_duplicate_publication",
+   "what_it_refuses": "Unit-of-analysis guard: the SAME trial reported in two papers must not be pooled twice.",
+   "where": "harness/gate.py:check_duplicate_publication"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_error_library.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-fetch-complete-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_error_library.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "core-source fetch-error plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_fetch_complete"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-fetch-complete-v1-known-misses-1",
+     "evidence": [
+      "docs/evidence/legacy-ledgers-2026-09-14/01-regeneration-with-legacy-ledgers.txt"
+     ],
+     "kind": "PRODUCTION",
+     "miss": true,
+     "source_list": "known_misses",
+     "what_got_through": "Lane I labelled legacy per-query sources NOT_RUN even though they had run with unrecorded yield; review corrected them to RAN_UNRECORDED and made live snapshots refuse that legacy state.",
+     "what_refused": null,
+     "when_utc": "2026-09-14T17:49:56Z",
+     "where": "harness/gate.py:check_fetch_complete"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-fetch-complete-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_fetch_complete"
+    }
+   ],
+   "gate_id": "gate.check_fetch_complete",
+   "what_it_refuses": "A THROTTLED FETCH IS A PARTIAL FETCH, and a partial cache looks exactly like a complete one.",
+   "where": "harness/gate.py:check_fetch_complete"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_gate.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-limb1-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_gate.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "level-one page gate regression plants",
+     "when_utc": null,
+     "where": "harness/gate.py:check_limb1"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-limb1-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_limb1"
+    }
+   ],
+   "gate_id": "gate.check_limb1",
+   "what_it_refuses": "Page gate check_limb1.",
+   "where": "harness/gate.py:check_limb1"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_gate.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-limb2-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_gate.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "level-two page gate regression plants",
+     "when_utc": null,
+     "where": "harness/gate.py:check_limb2"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-limb2-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_limb2"
+    }
+   ],
+   "gate_id": "gate.check_limb2",
+   "what_it_refuses": "Page gate check_limb2.",
+   "where": "harness/gate.py:check_limb2"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_stage_additions.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-manuscript-numbers-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_stage_additions.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "manuscript-number mismatch plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_manuscript_numbers"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-manuscript-numbers-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_manuscript_numbers"
+    }
+   ],
+   "gate_id": "gate.check_manuscript_numbers",
+   "what_it_refuses": "PAPER limb: the generated manuscript must not state a number the object does not carry.",
+   "where": "harness/gate.py:check_manuscript_numbers"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_method_scale.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-method-matches-scale-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_method_scale.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "method/scale mismatch plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_method_matches_scale"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-method-matches-scale-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_method_matches_scale"
+    }
+   ],
+   "gate_id": "gate.check_method_matches_scale",
+   "what_it_refuses": "The declared analysis-method string must match the scale ACTUALLY pooled — recomputed here independently via synth.method_text so the check cannot be a constant compared to itself (the melatonin cold-audit class: a mean-difference outcome was labelled with the log-ratio method, and the old declared==served limb compared one METHOD constant to itself and could never fire).",
+   "where": "harness/gate.py:check_method_matches_scale"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_error_library.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-no-double-counted-trial-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_error_library.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "within-outcome repeated-trial plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_no_double_counted_trial"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-no-double-counted-trial-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_no_double_counted_trial"
+    }
+   ],
+   "gate_id": "gate.check_no_double_counted_trial",
+   "what_it_refuses": "Unit-of-analysis: no trial may be pooled more than once WITHIN an outcome (multi-arm shared-control double-counting, ME-25).",
+   "where": "harness/gate.py:check_no_double_counted_trial"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_parity_our_k.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-parity-our-k-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_parity_our_k.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "parity narrative stale-panel plants",
+     "when_utc": null,
+     "where": "harness/gate.py:check_parity_our_k"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-parity-our-k-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_parity_our_k"
+    }
+   ],
+   "gate_id": "gate.check_parity_our_k",
+   "what_it_refuses": "Derived-narrative / stale-panel guard (audit 28): the parity block is a STORED narrative that can survive after the review object changed (omega3 parity claimed we pool OMEMI + OMEGA-REMODEL, which are declared-absent; colchicine-postop named Bessissow as pooled when it is not).",
+   "where": "harness/gate.py:check_parity_our_k"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_gate.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-pivotal-present-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_gate.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "pivotal-trial absence plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_pivotal_present"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-pivotal-present-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_pivotal_present"
+    }
+   ],
+   "gate_id": "gate.check_pivotal_present",
+   "what_it_refuses": "A generated/fetched cache that omits the topic's PIVOTAL/landmark trial produces a silently empty or wrong result (sacubitril: PARADIGM-HF was absent from Codex's fetch -> k=None).",
+   "where": "harness/gate.py:check_pivotal_present"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_error_library.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-pooled-verified-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_error_library.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "unverified pooled-number plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_pooled_verified"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-pooled-verified-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_pooled_verified"
+    }
+   ],
+   "gate_id": "gate.check_pooled_verified",
+   "what_it_refuses": "THE BAR, made structural: every pooled number's digits must appear in its committed source span (verify.verify_pooled marks 'verified'/'verified_handchecked'/'not-yet').",
+   "where": "harness/gate.py:check_pooled_verified"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_gate.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-population-identity-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_gate.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "population_none pooled-trial plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_population_identity"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-population-identity-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_population_identity"
+    }
+   ],
+   "gate_id": "gate.check_population_identity",
+   "what_it_refuses": "No POOLED trial may match the topic's population_none (external audit: colchicine-postop pooled non-cardiac COP-AF/Bessissow though I2 was cardiac surgery).",
+   "where": "harness/gate.py:check_population_identity"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-preregistration-not-build-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "No plant validation or dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_preregistration_not_build"
+    }
+   ],
+   "gate_id": "gate.check_preregistration_not_build",
+   "what_it_refuses": "A page that CLAIMS prospective registration (reproduction.preregistration.prospective) must cite a PROTOCOL-ONLY commit — one that contains no fetched cache, extracted review, blind pages or index.",
+   "where": "harness/gate.py:check_preregistration_not_build"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_gate.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-prespecification-in-protocol-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_gate.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "uncited prespecification-rule plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_prespecification_in_protocol"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-prespecification-in-protocol-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_prespecification_in_protocol"
+    }
+   ],
+   "gate_id": "gate.check_prespecification_in_protocol",
+   "what_it_refuses": "A selection rule cited on the page as 'pre-specified' MUST exist in the protocol at its SHA (external audit #9: noac claimed a 'pre-specified approved-dose rule' that was not in the registered protocol).",
+   "where": "harness/gate.py:check_prespecification_in_protocol"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_gate.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-primary-result-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_gate.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "primary outcome with no pooled result plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_primary_result"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-primary-result-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_primary_result"
+    }
+   ],
+   "gate_id": "gate.check_primary_result",
+   "what_it_refuses": "A page whose PRIMARY outcome has no pooled result cannot make its central claim and must not publish (this is what a k=0 decline looks like — the gate refuses it here rather than relying on a human to notice and not commit it).",
+   "where": "harness/gate.py:check_primary_result"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-reproduction-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "No plant validation or dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_reproduction"
+    }
+   ],
+   "gate_id": "gate.check_reproduction",
+   "what_it_refuses": "Level B: re-run the pipeline from the COMMITTED cache + protocol SHA and confirm it regenerates the committed review core (the numbers), not just that the HTML matches the JSON.",
+   "where": "harness/gate.py:check_reproduction"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_integrity.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-retraction-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_integrity.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "pooled retracted-trial plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_retraction"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-retraction-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_retraction"
+    }
+   ],
+   "gate_id": "gate.check_retraction",
+   "what_it_refuses": "A pooled RETRACTED trial is a catastrophic defect; refuse the page.",
+   "where": "harness/gate.py:check_retraction"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_honest_ratchet.py",
+       "docs/evidence/ratchet-blocks-2026-09-14/01-prefix-phrase-ratchet-missed-15-blocks.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "honest-ratchet-compare-blocks-v1-plant-validations-1",
      "evidence": [
       "tests/test_honest_ratchet.py",
       "docs/evidence/ratchet-blocks-2026-09-14/01-prefix-phrase-ratchet-missed-15-blocks.txt"
      ],
-     "test": "compare_blocks refuses a lost absent/banner block and allows only a reviewed replacement acknowledgement"
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "compare_blocks refuses a lost absent/banner block and allows only a reviewed replacement acknowledgement",
+     "when_utc": null,
+     "where": "harness/honest_ratchet.py:compare_blocks"
     },
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "honest-ratchet-compare-blocks-v1-plant-validations-2",
      "evidence": [
       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
      ],
-     "test": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting",
+     "when_utc": null,
+     "where": "harness/honest_ratchet.py:compare_blocks"
+    },
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "honest-ratchet-compare-blocks-v1-known-misses-1",
+     "evidence": [
+      "docs/evidence/ratchet-blocks-2026-09-14/README.md",
+      "docs/evidence/ratchet-blocks-2026-09-14/01-prefix-phrase-ratchet-missed-15-blocks.txt"
+     ],
+     "kind": "PRODUCTION",
+     "miss": true,
+     "source_list": "known_misses",
+     "what_got_through": "Before block-level tracking, 15 lost absent/banner honest-state blocks across 32 review pages passed the phrase-only ratchet with zero violations.",
+     "what_refused": null,
+     "when_utc": "2026-09-14T20:09:59Z",
+     "where": "harness/honest_ratchet.py:compare_blocks"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "honest-ratchet-compare-blocks-v1-unresolved-1",
      "evidence": [
       "GATE_GAPS.md"
      ],
-     "what": "Only plant validations and pre-fix known misses were found; no dated production true/false refusal of compare_blocks was located.",
-     "when_utc": null
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations and pre-fix known misses were found; no dated production true/false refusal of compare_blocks was located.",
+     "when_utc": null,
+     "where": "harness/honest_ratchet.py:compare_blocks"
     }
    ],
-   "validation": "PLANT_ONLY",
+   "gate_id": "honest_ratchet.compare_blocks",
    "what_it_refuses": "Absent/banner honest-state blocks that vanish without a reviewed replacement acknowledgement.",
    "where": "harness/honest_ratchet.py:compare_blocks"
   },
   {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "pipeline.structural_query_classifier",
-   "known_misses": [
+   "events": [
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/search-acquisition-2026-09-14/05-postfix-heldout-refusals.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "hook-commit-msg-v1-plant-validations-1",
      "evidence": [
-      "docs/evidence/query-structure-2026-09-14/README.md",
-      "docs/evidence/query-structure-2026-09-14/classification.json"
+      "docs/evidence/search-acquisition-2026-09-14/05-postfix-heldout-refusals.txt"
      ],
-     "what_got_through": "Before the structural classifier exposed HAND_WRITTEN_KEYWORD_SEARCH, 4 topics were misclassified by the title-anchored assumption: colchicine-postop-af, colchicine-recurrent-pericarditis, corticosteroids-cap-mortality, and probiotics-aad-prevention.",
-     "when_utc": "2026-09-14T20:09:59Z"
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "commit-message held-out slug plant",
+     "when_utc": null,
+     "where": ".githooks/commit-msg:hook"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "hook-commit-msg-v1-true-refusals-1",
+     "evidence": [
+      "docs/evidence/search-acquisition-2026-09-14/05-postfix-heldout-refusals.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "true_refusals",
+     "what_refused": "The local commit-msg hook refused a commit message naming a held-out topic.",
+     "when_utc": "2026-09-14T15:31:49Z",
+     "where": ".githooks/commit-msg:hook"
     }
    ],
-   "last_exercised_utc": null,
-   "plant_validations": [
+   "gate_id": "hook.commit_msg",
+   "what_it_refuses": "Local git commit-msg hook refusal.",
+   "where": ".githooks/commit-msg:hook"
+  },
+  {
+   "events": [
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/gate-authority-2026-09-14/09-new-standard-refuses-index-and-test-plants.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "hook-pre-commit-v1-plant-validations-1",
+     "evidence": [
+      "docs/evidence/gate-authority-2026-09-14/09-new-standard-refuses-index-and-test-plants.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "pre-commit full-standard plant",
+     "when_utc": null,
+     "where": ".githooks/pre-commit:hook"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "hook-pre-commit-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": ".githooks/pre-commit:hook"
+    }
+   ],
+   "gate_id": "hook.pre_commit",
+   "what_it_refuses": "Local git pre-commit hook refusal.",
+   "where": ".githooks/pre-commit:hook"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_retrieval_class.py",
+       "tests/test_honest_states_renderable.py",
+       "docs/evidence/query-structure-2026-09-14/classification.json"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "pipeline-structural-query-classifier-v1-plant-validations-1",
      "evidence": [
       "tests/test_retrieval_class.py",
       "tests/test_honest_states_renderable.py",
       "docs/evidence/query-structure-2026-09-14/classification.json"
      ],
-     "test": "structural classifier plants cover uid, DOI/PMID, title, name-seeded, free-text keyword, concept-source, and renderable third-state output"
-    }
-   ],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "structural classifier plants cover uid, DOI/PMID, title, name-seeded, free-text keyword, concept-source, and renderable third-state output",
+     "when_utc": null,
+     "where": "harness/pipeline.py:classify_query/classify_retrieval"
+    },
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "pipeline-structural-query-classifier-v1-known-misses-1",
+     "evidence": [
+      "docs/evidence/query-structure-2026-09-14/README.md",
+      "docs/evidence/query-structure-2026-09-14/classification.json"
+     ],
+     "kind": "PRODUCTION",
+     "miss": true,
+     "source_list": "known_misses",
+     "what_got_through": "Before the structural classifier exposed HAND_WRITTEN_KEYWORD_SEARCH, 4 topics were misclassified by the title-anchored assumption: colchicine-postop-af, colchicine-recurrent-pericarditis, corticosteroids-cap-mortality, and probiotics-aad-prevention.",
+     "what_refused": null,
+     "when_utc": "2026-09-14T20:09:59Z",
+     "where": "harness/pipeline.py:classify_query/classify_retrieval"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "pipeline-structural-query-classifier-v1-unresolved-1",
      "evidence": [
       "GATE_GAPS.md"
      ],
-     "what": "Only plant validations and pre-fix known misses were found; no dated production true/false refusal of the structural query classifier was located.",
-     "when_utc": null
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations and pre-fix known misses were found; no dated production true/false refusal of the structural query classifier was located.",
+     "when_utc": null,
+     "where": "harness/pipeline.py:classify_query/classify_retrieval"
     }
    ],
-   "validation": "PLANT_ONLY",
+   "gate_id": "pipeline.structural_query_classifier",
    "what_it_refuses": "Retrieval-state underclassification from committed query structure: known-item, title-seeded, hand-written keyword, or concept search.",
    "where": "harness/pipeline.py:classify_query/classify_retrieval"
   },
   {
-   "exercised": false,
-   "false_refusals": [],
-   "gate_id": "verify_all.limb_gate_gaps",
-   "known_misses": [],
-   "last_exercised_utc": null,
-   "plant_validations": [],
-   "precision_among_adjudicated": {
-    "false": 0,
-    "true": 0,
-    "value": null
-   },
-   "production_status": "UNVALIDATED",
-   "true_refusals": [],
-   "unresolved": [
+   "events": [
     {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "ruleset-required-verify-v1-true-refusals-1",
+     "evidence": [
+      "docs/evidence/gate-authority-2026-09-14/06-refusal-server-rejects-direct-push.txt"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "true_refusals",
+     "what_refused": "The main-branch ruleset rejected a direct push from a hooks-free clone because verify was expected.",
+     "when_utc": "2026-09-14T14:22:37Z",
+     "where": "docs/evidence/gate-authority-2026-09-14/05-ruleset-created.txt:ruleset"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "ruleset-required-verify-v1-true-refusals-2",
+     "evidence": [
+      "docs/evidence/gate-authority-2026-09-14/07-refusal-branch-route-red-check.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "true_refusals",
+     "what_refused": "The main-branch ruleset rejected a plant SHA after its verify check was red.",
+     "when_utc": "2026-09-14T14:23:45Z",
+     "where": "docs/evidence/gate-authority-2026-09-14/05-ruleset-created.txt:ruleset"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": "bd57e490",
+     "event_id": "ruleset-required-verify-harvest-34855242632",
+     "evidence": [
+      "docs/evidence/gate-authority-2026-09-14/07-refusal-branch-route-red-check.txt",
+      "github-actions-run:34855242632"
+     ],
+     "kind": "PLANT",
+     "source_list": "harvested",
+     "what_refused": "The main ruleset refused a branch-tested red plant SHA because the required verify status check was failing.",
+     "when_utc": "2026-09-14T14:23:45Z",
+     "where": "CI run 34855242632 on branch plant/item2 for plant bd57e490"
+    }
+   ],
+   "gate_id": "ruleset.required_verify",
+   "what_it_refuses": "A main-branch update without the required verify status check.",
+   "where": "docs/evidence/gate-authority-2026-09-14/05-ruleset-created.txt:ruleset"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/independent-verification-2026-09-14/08-fix-state-ladder.txt",
+       "tests/test_fixstate.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-fixstate-v1-plant-validations-1",
+     "evidence": [
+      "docs/evidence/independent-verification-2026-09-14/08-fix-state-ladder.txt",
+      "tests/test_fixstate.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "fix-state ladder temp-clone commit-message plants",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_fixstate"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-fixstate-v1-plant-validations-2",
+     "evidence": [
+      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_fixstate"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-fixstate-v1-true-refusals-1",
+     "evidence": [
+      "docs/evidence/search-states-2026-09-14/04-ci-refuses-sealed-leak-and-missing-fixstate.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "true_refusals",
+     "what_refused": "CI refused a real planted branch whose commit message lacked the required Fix-State trailer.",
+     "when_utc": "2026-09-14T16:52:59Z",
+     "where": "scripts/verify_all.py:limb_fixstate"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "Claude Opus 5 (session author)",
+       "kind": "author"
+      },
+      "architecture_identity": "bf23f271be758a924bdece2b47113205d79d3c31941f7e37d44f1aff6b9eb878",
+      "evidence": [
+       "commit:6b1039cd",
+       "docs/evidence/search-states-2026-09-14/04-ci-refuses-sealed-leak-and-missing-fixstate.txt"
+      ],
+      "note": "Adjudicated at the time (2026-09-14) as a false refusal in the pessimistic direction: the commit was evidence-only and the word 'refusing' in its subject tripped a vocabulary rule; the structural rule replaced it at 6b1039cd. Author-adjudicated, not independent.",
+      "verdict": "FALSE_POSITIVE",
+      "when_utc": "2026-09-14T23:19:06Z"
+     },
+     "commit": "6b1039cd",
+     "event_id": "verify-all-limb-fixstate-v1-false-refusals-1",
+     "evidence": [
+      "commit:6b1039cd",
+      "docs/evidence/search-states-2026-09-14/04-ci-refuses-sealed-leak-and-missing-fixstate.txt",
+      "registry/fixes.json"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "false_refusals",
+     "what_refused": "Fix-state checker refused an evidence-only commit because the subject contained \"refusing\"; commit 6b1039cd records the structural correction.",
+     "when_utc": "2026-09-14T17:26:40Z",
+     "where": "scripts/verify_all.py:limb_fixstate"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-fixstate-v1-known-misses-1",
+     "evidence": [
+      "docs/evidence/fix-ladder-2026-09-14/README.md",
+      "docs/evidence/fix-ladder-2026-09-14/lane_j_tools.py"
+     ],
+     "kind": "PRODUCTION",
+     "miss": true,
+     "source_list": "known_misses",
+     "what_got_through": "Fix-ladder re-demonstration found 12 LANDED/claimed entries whose mechanism or artifact did not exist: entries 2, 4, 10, 16, 18, 22, 23, 25, 26, 27, 28, and 29.",
+     "what_refused": null,
+     "when_utc": "2026-09-14T18:36:13Z",
+     "where": "scripts/verify_all.py:limb_fixstate"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": "fe8252cd",
+     "event_id": "verify-all-limb-fixstate-harvest-34871203144",
+     "evidence": [
+      "docs/evidence/search-states-2026-09-14/04-ci-refuses-sealed-leak-and-missing-fixstate.txt",
+      "github-actions-run:34871203144"
+     ],
+     "kind": "PLANT",
+     "source_list": "harvested",
+     "what_refused": "The fix-state discipline limb refused the same plant commit because it had no Fix-State trailer.",
+     "when_utc": "2026-09-14T16:52:59Z",
+     "where": "CI run 34871203144 on branch plant/leak-and-fixstate"
+    }
+   ],
+   "gate_id": "verify_all.limb_fixstate",
+   "what_it_refuses": "fix-state discipline (registry/fixes.json)",
+   "where": "scripts/verify_all.py:limb_fixstate"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-gate-every-page-v1-plant-validations-1",
+     "evidence": [
+      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_gate_every_page"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-gate-every-page-v1-unresolved-1",
      "evidence": [
       "GATE_GAPS.md"
      ],
-     "what": "No plant validation or dated production true/false refusal was located for the generated gate-gap table check.",
-     "when_utc": null
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "No plant validation or dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_gate_every_page"
     }
    ],
-   "validation": "NO_VALIDATION",
+   "gate_id": "verify_all.limb_gate_every_page",
+   "what_it_refuses": "publication gate on every live review page",
+   "where": "scripts/verify_all.py:limb_gate_every_page"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-gate-gaps-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "No plant validation or dated production true/false refusal was located for the generated gate-gap table check.",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_gate_gaps"
+    }
+   ],
+   "gate_id": "verify_all.limb_gate_gaps",
    "what_it_refuses": "gate gaps table (sealed what-it-would-not-stop rows)",
    "where": "scripts/verify_all.py:limb_gate_gaps"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_gate_scorecard.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-gate-scorecard-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_gate_scorecard.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "gate scorecard meta-check registry and served-view plants",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_gate_scorecard"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-gate-scorecard-v1-plant-validations-2",
+     "evidence": [
+      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_gate_scorecard"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-gate-scorecard-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_gate_scorecard"
+    }
+   ],
+   "gate_id": "verify_all.limb_gate_scorecard",
+   "what_it_refuses": "gate scorecard (every gate accounted for)",
+   "where": "scripts/verify_all.py:limb_gate_scorecard"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/search-acquisition-2026-09-14/05-postfix-heldout-refusals.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-heldout-v1-plant-validations-1",
+     "evidence": [
+      "docs/evidence/search-acquisition-2026-09-14/05-postfix-heldout-refusals.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "held-out slug path and measurement plants refused locally",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_heldout"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-heldout-v1-plant-validations-2",
+     "evidence": [
+      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_heldout"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-heldout-v1-true-refusals-1",
+     "evidence": [
+      "docs/evidence/search-states-2026-09-14/04-ci-refuses-sealed-leak-and-missing-fixstate.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "true_refusals",
+     "what_refused": "CI refused a real planted branch containing the sealed held-out identifier in a tracked test file.",
+     "when_utc": "2026-09-14T16:52:59Z",
+     "where": "scripts/verify_all.py:limb_heldout"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": "fe8252cd",
+     "event_id": "verify-all-limb-heldout-harvest-34871203144",
+     "evidence": [
+      "docs/evidence/search-states-2026-09-14/04-ci-refuses-sealed-leak-and-missing-fixstate.txt",
+      "github-actions-run:34871203144"
+     ],
+     "kind": "PLANT",
+     "source_list": "harvested",
+     "what_refused": "The held-out leak detector refused a sealed-identifier plant in a tracked test file.",
+     "when_utc": "2026-09-14T16:52:59Z",
+     "where": "CI run 34871203144 on branch plant/leak-and-fixstate"
+    }
+   ],
+   "gate_id": "verify_all.limb_heldout",
+   "what_it_refuses": "held-out leak detector (registry/heldout_sealed.json)",
+   "where": "scripts/verify_all.py:limb_heldout"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/independent-verification-2026-09-14/09-honest-state-ratchet.txt",
+       "tests/test_honest_ratchet.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-honest-ratchet-v1-plant-validations-1",
+     "evidence": [
+      "docs/evidence/independent-verification-2026-09-14/09-honest-state-ratchet.txt",
+      "tests/test_honest_ratchet.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "honest-state ratchet review-page quieting plant",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_honest_ratchet"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-honest-ratchet-v1-plant-validations-2",
+     "evidence": [
+      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_honest_ratchet"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": "7f81da01",
+     "event_id": "verify-all-limb-honest-ratchet-v1-known-misses-1",
+     "evidence": [
+      "docs/evidence/regeneration-accounting-2026-09-14/README.md"
+     ],
+     "kind": "PRODUCTION",
+     "miss": true,
+     "source_list": "known_misses",
+     "what_got_through": "MISSED true positive: the first regeneration-accounting pass targeted 7f81da01 and reported 0/0/0; re-pointed at b8925e04 it found 15 lost 'Search provenance' honest-state blocks while the phrase-inventory ratchet had passed.",
+     "what_refused": null,
+     "when_utc": "2026-09-14T20:09:59Z",
+     "where": "scripts/verify_all.py:limb_honest_ratchet"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-honest-ratchet-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_honest_ratchet"
+    }
+   ],
+   "gate_id": "verify_all.limb_honest_ratchet",
+   "what_it_refuses": "honest-state ratchet (no page may get quieter)",
+   "where": "scripts/verify_all.py:limb_honest_ratchet"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/gate-authority-2026-09-14/09-new-standard-refuses-index-and-test-plants.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-index-currency-v1-plant-validations-1",
+     "evidence": [
+      "docs/evidence/gate-authority-2026-09-14/09-new-standard-refuses-index-and-test-plants.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "hand-edited docs/index.html plant refused locally",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_index_currency"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-index-currency-v1-plant-validations-2",
+     "evidence": [
+      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_index_currency"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-index-currency-v1-true-refusals-1",
+     "evidence": [
+      "docs/evidence/gate-authority-2026-09-14/11-postfix-ci-refuses-hand-edited-index.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "true_refusals",
+     "what_refused": "CI refused a real hand-edited docs/index.html plant and skipped deploy.",
+     "when_utc": "2026-09-14T14:37:49Z",
+     "where": "scripts/verify_all.py:limb_index_currency"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": "17a75f75",
+     "event_id": "verify-all-limb-index-currency-v1-true-refusals-2",
+     "evidence": [
+      "commit:17a75f75",
+      "github-actions-run:34880195507"
+     ],
+     "harvested_from": [
+      "verify-all-limb-index-currency-harvest-34880195507"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "true_refusals",
+     "what_refused": "The commit message of 17a75f75 records the CI run for 7d5cda77 on branch evidence-indexes, 2026-09-14: index currency refused because evidence-index rows hashed Windows working-tree CRLF bytes while Pages serves LF-normalized committed bytes. Counted as a true production refusal of printed-digest to served-body byte identity, not as a cosmetic CRLF proxy.",
+     "when_utc": "2026-09-14T18:32:09Z",
+     "where": "CI run 34880195507 on branch evidence-indexes"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": "c022cf46",
+     "event_id": "verify-all-limb-index-currency-harvest-34856706877",
+     "evidence": [
+      "docs/evidence/gate-authority-2026-09-14/11-postfix-ci-refuses-hand-edited-index.txt",
+      "github-actions-run:34856706877"
+     ],
+     "kind": "PLANT",
+     "source_list": "harvested",
+     "what_refused": "The new verify workflow refused a hand-edited docs/index.html plant under index currency.",
+     "when_utc": "2026-09-14T14:37:49Z",
+     "where": "CI run 34856706877 on branch plant/item3-index-new"
+    }
+   ],
+   "gate_id": "verify_all.limb_index_currency",
+   "what_it_refuses": "index and evidence-index currency (generated docs/index.html plus byte identity between evidence-index digests and served LF-normalized capture bytes)",
+   "where": "scripts/verify_all.py:limb_index_currency"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_leakscan.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-leak-scan-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_leakscan.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "served artefact leak scanner regression plants",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_leak_scan"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-leak-scan-v1-plant-validations-2",
+     "evidence": [
+      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_leak_scan"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-leak-scan-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_leak_scan"
+    }
+   ],
+   "gate_id": "verify_all.limb_leak_scan",
+   "what_it_refuses": "served-artefact leak scan (docs/*.json)",
+   "where": "scripts/verify_all.py:limb_leak_scan"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-reproduction-v1-plant-validations-1",
+     "evidence": [
+      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_reproduction"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-reproduction-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "No plant validation or dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_reproduction"
+    }
+   ],
+   "gate_id": "verify_all.limb_reproduction",
+   "what_it_refuses": "offline reproduction (every live page replays from committed cache)",
+   "where": "scripts/verify_all.py:limb_reproduction"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/gate-authority-2026-09-14/09-new-standard-refuses-index-and-test-plants.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-unit-tests-v1-plant-validations-1",
+     "evidence": [
+      "docs/evidence/gate-authority-2026-09-14/09-new-standard-refuses-index-and-test-plants.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "failing pytest plant refused by the full local standard",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_unit_tests"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+       "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-unit-tests-v1-plant-validations-2",
+     "evidence": [
+      "docs/evidence/target-assertion-2026-09-14/02-postfix-target-lines.txt",
+      "docs/evidence/target-assertion-2026-09-14/03-refusals-planted.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "target assertion: gate prints a TARGET line naming the checked file/ref set or refuses before defaulting",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_unit_tests"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-unit-tests-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_unit_tests"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": "a74b5c42",
+     "event_id": "verify-all-limb-unit-tests-harvest-34854763935",
+     "evidence": [
+      "docs/evidence/gate-authority-2026-09-14/03-refusal-plant-failing-test-not-deployed.txt",
+      "github-actions-run:34854763935"
+     ],
+     "kind": "PLANT",
+     "source_list": "harvested",
+     "what_refused": "The verify workflow refused a deliberately failing unit-test plant.",
+     "when_utc": "2026-09-14T14:19:20Z",
+     "where": "CI run 34854763935 on main for plant a74b5c42"
+    }
+   ],
+   "gate_id": "verify_all.limb_unit_tests",
+   "what_it_refuses": "unit tests (pytest tests/)",
+   "where": "scripts/verify_all.py:limb_unit_tests"
   }
  ],
  "generated_utc": null,
- "prior_precision_measurement": {
-  "evidence": [
-   "COMPLETION.md"
-  ],
-  "false": 2,
-  "true": 12,
-  "value": 0.8571428571428571,
-  "what": "Historical page-audit precision note retained for context only; it is not used in any gate precision calculation. Per-gate precision is computed only from adjudicated production true_refusals and false_refusals in this registry.",
-  "when_utc": null
- }
+ "precision_coverage_sentence": "precision is reported only beside its adjudication coverage; an UNRESOLVED refusal is neither",
+ "schema_version": 2,
+ "unvalidated_sentence": "a gate with no adjudicated true refusal in production is UNVALIDATED, not green"
 }

@@ -1,11 +1,17 @@
-"""Gate scorecard inventory and checks.
+"""Gate scorecard inventory, event adjudications, and checks.
 
-The scorecard is a measured registry, not a firing count: every production gate
-must appear, including gates that have never been exercised.
+The auditor correction is now the scorecard's organizing rule: if the same
+environment labels its own gate outputs true or false, the shape is system
+produces output -> system labels its own output correct -> agreement read as
+validation. That is the 6/6 recall error in gate form. Every refusal is
+therefore an event with an adjudication object, UNRESOLVED is first-class, and
+gate numbers are computed only from those adjudication objects.
 """
 from __future__ import annotations
 
+import argparse
 import ast
+import copy
 import json
 import os
 import re
@@ -18,15 +24,134 @@ from harness.target import TargetUnresolvable, describe_target, refusal as targe
 
 REGISTRY_PATH = "registry/gate_scorecard.json"
 SERVED_PATH = "docs/gate_scorecard.json"
-AUDITOR_SENTENCE = (
-    "A gate architecture that gets noisy teaches people to bypass it, and the "
-    "pressure to bypass always arrives as impatience."
+SCHEMA_VERSION = 2
+
+AUDITOR_CORRECTION = (
+    "If the same environment labels its own gate outputs true or false, that is: "
+    "system produces output -> system labels its own output correct -> agreement "
+    "read as validation (the 6/6 recall shape). So every refusal is an EVENT "
+    "with an ADJUDICATION OBJECT, and a gate's numbers are computed only from "
+    "those objects."
 )
+AUDITOR_SENTENCE = AUDITOR_CORRECTION
 UNVALIDATED_SENTENCE = "a gate with no adjudicated true refusal in production is UNVALIDATED, not green"
-EVENT_LISTS = ("plant_validations", "true_refusals", "false_refusals", "known_misses", "unresolved")
-PRODUCTION_EVENT_LISTS = ("true_refusals", "false_refusals")
+PRECISION_COVERAGE_SENTENCE = (
+    "precision is reported only beside its adjudication coverage; an UNRESOLVED refusal is neither"
+)
+INDEPENDENCE_SENTENCE = (
+    "adjudicator_independence is the share of adjudications made by an external_auditor; "
+    "today it is expected to be 0 because no external-auditor adjudication is recorded"
+)
+
+LEGACY_EVENT_LISTS = ("plant_validations", "true_refusals", "false_refusals", "known_misses", "unresolved")
+LEGACY_FIELDS = set(LEGACY_EVENT_LISTS) | {
+    "validation",
+    "production_status",
+    "exercised",
+    "last_exercised_utc",
+    "precision_among_adjudicated",
+}
+STORED_METRIC_FIELDS = {
+    "adjudicated_precision",
+    "adjudication_coverage",
+    "coverage",
+    "precision",
+    "precision_among_adjudicated",
+}
+EVENT_KINDS = {"PLANT", "PRODUCTION"}
+REFUSAL_VERDICTS = {"TRUE_POSITIVE", "FALSE_POSITIVE", "UNRESOLVED"}
+MISS_VERDICTS = {"TRUE_MISS", "UNRESOLVED"}
+RESOLVED_VERDICTS = {"TRUE_POSITIVE", "FALSE_POSITIVE", "TRUE_MISS"}
+ADJUDICATOR_KINDS = {"author", "internal_agent", "external_auditor", None}
 PLACEHOLDER_UTC = "2026-09-14T00:00:00Z"
 ISO_UTC_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+SHA_RE = re.compile(r"\b[0-9a-fA-F]{7,40}\b")
+EXTERNAL_EVIDENCE_PREFIXES = ("github-actions-run:", "github-actions-job:", "external-record:")
+
+HARVESTED_EVENTS = (
+    {
+        "gate_id": "verify_all.limb_index_currency",
+        "event_id": "verify-all-limb-index-currency-harvest-34880195507",
+        "kind": "PRODUCTION",
+        "when_utc": "2026-09-14T18:32:09Z",
+        "where": "CI run 34880195507 on branch evidence-indexes",
+        "commit": "7d5cda77",
+        "what_refused": (
+            "CI refused evidence-index digest rows that hashed Windows CRLF working-tree bytes "
+            "instead of the LF-normalized bytes served from committed text blobs."
+        ),
+        "evidence": ["commit:17a75f75", "github-actions-run:34880195507"],
+        "dedupe_tokens": ("7d5cda77", "CRLF"),
+    },
+    {
+        "gate_id": "verify_all.limb_unit_tests",
+        "event_id": "verify-all-limb-unit-tests-harvest-34854763935",
+        "kind": "PLANT",
+        "when_utc": "2026-09-14T14:19:20Z",
+        "where": "CI run 34854763935 on main for plant a74b5c42",
+        "commit": "a74b5c42",
+        "what_refused": "The verify workflow refused a deliberately failing unit-test plant.",
+        "evidence": [
+            "docs/evidence/gate-authority-2026-09-14/03-refusal-plant-failing-test-not-deployed.txt",
+            "github-actions-run:34854763935",
+        ],
+    },
+    {
+        "gate_id": "ruleset.required_verify",
+        "event_id": "ruleset-required-verify-harvest-34855242632",
+        "kind": "PLANT",
+        "when_utc": "2026-09-14T14:23:45Z",
+        "where": "CI run 34855242632 on branch plant/item2 for plant bd57e490",
+        "commit": "bd57e490",
+        "what_refused": (
+            "The main ruleset refused a branch-tested red plant SHA because the required verify "
+            "status check was failing."
+        ),
+        "evidence": [
+            "docs/evidence/gate-authority-2026-09-14/07-refusal-branch-route-red-check.txt",
+            "github-actions-run:34855242632",
+        ],
+    },
+    {
+        "gate_id": "verify_all.limb_index_currency",
+        "event_id": "verify-all-limb-index-currency-harvest-34856706877",
+        "kind": "PLANT",
+        "when_utc": "2026-09-14T14:37:49Z",
+        "where": "CI run 34856706877 on branch plant/item3-index-new",
+        "commit": "c022cf46",
+        "what_refused": "The new verify workflow refused a hand-edited docs/index.html plant under index currency.",
+        "evidence": [
+            "docs/evidence/gate-authority-2026-09-14/11-postfix-ci-refuses-hand-edited-index.txt",
+            "github-actions-run:34856706877",
+        ],
+    },
+    {
+        "gate_id": "verify_all.limb_heldout",
+        "event_id": "verify-all-limb-heldout-harvest-34871203144",
+        "kind": "PLANT",
+        "when_utc": "2026-09-14T16:52:59Z",
+        "where": "CI run 34871203144 on branch plant/leak-and-fixstate",
+        "commit": "fe8252cd",
+        "what_refused": "The held-out leak detector refused a sealed-identifier plant in a tracked test file.",
+        "evidence": [
+            "docs/evidence/search-states-2026-09-14/04-ci-refuses-sealed-leak-and-missing-fixstate.txt",
+            "github-actions-run:34871203144",
+        ],
+    },
+    {
+        "gate_id": "verify_all.limb_fixstate",
+        "event_id": "verify-all-limb-fixstate-harvest-34871203144",
+        "kind": "PLANT",
+        "when_utc": "2026-09-14T16:52:59Z",
+        "where": "CI run 34871203144 on branch plant/leak-and-fixstate",
+        "commit": "fe8252cd",
+        "what_refused": "The fix-state discipline limb refused the same plant commit because it had no Fix-State trailer.",
+        "evidence": [
+            "docs/evidence/search-states-2026-09-14/04-ci-refuses-sealed-leak-and-missing-fixstate.txt",
+            "github-actions-run:34871203144",
+        ],
+    },
+)
 
 
 def _root_path(root) -> str:
@@ -47,11 +172,6 @@ def _docline(node: ast.AST, fallback: str) -> str:
 
 def _verify_all_gates(root: str) -> list[dict[str, str]]:
     tree = _read_ast(root, "scripts/verify_all.py")
-    fn_names = {
-        node.name: _docline(node, f"Verification limb {node.name}.")
-        for node in tree.body
-        if isinstance(node, ast.FunctionDef)
-    }
     out: list[dict[str, str]] = []
     for node in tree.body:
         if not isinstance(node, ast.Assign):
@@ -173,7 +293,7 @@ def _static_gates() -> list[dict[str, str]]:
 
 
 def enumerate_gates(root) -> list[dict[str, str]]:
-    """Enumerate production gates from the repository code and gate configuration."""
+    """Enumerate production gates from repository code and gate configuration."""
     root = _root_path(root)
     gates = []
     gates.extend(_verify_all_gates(root))
@@ -242,13 +362,20 @@ def _entries_by_id(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return out
 
 
-def _evidence_values(event: dict[str, Any]) -> list[str]:
-    raw = event.get("evidence", [])
+def _evidence_values(raw: Any) -> list[str]:
     if isinstance(raw, str):
         return [raw]
     if isinstance(raw, list):
         return [x for x in raw if isinstance(x, str)]
     return []
+
+
+def _event_evidence_values(event: dict[str, Any]) -> list[str]:
+    evidence = _evidence_values(event.get("evidence"))
+    adjudication = event.get("adjudication")
+    if isinstance(adjudication, dict):
+        evidence.extend(_evidence_values(adjudication.get("evidence")))
+    return evidence
 
 
 def _rel_path(root: str, rel: str) -> str:
@@ -287,6 +414,8 @@ def _commit_utc_dates(root: str, sha: str) -> set[str]:
 
 
 def _evidence_exists(root: str, ev: str) -> bool:
+    if ev.startswith(EXTERNAL_EVIDENCE_PREFIXES):
+        return True
     if ev.startswith("commit:"):
         return _commit_exists(root, ev.split(":", 1)[1])
     return os.path.exists(_rel_path(root, ev))
@@ -294,6 +423,8 @@ def _evidence_exists(root: str, ev: str) -> bool:
 
 def _timestamp_in_evidence(root: str, when_utc: str, evidence: list[str]) -> bool:
     for ev in evidence:
+        if ev.startswith(EXTERNAL_EVIDENCE_PREFIXES):
+            continue
         if ev.startswith("commit:"):
             if when_utc in _commit_utc_dates(root, ev.split(":", 1)[1]):
                 return True
@@ -307,21 +438,506 @@ def _timestamp_in_evidence(root: str, when_utc: str, evidence: list[str]) -> boo
     return False
 
 
-def _event_dates(entry: dict[str, Any]) -> list[str]:
-    dates = []
-    for name in PRODUCTION_EVENT_LISTS:
-        for event in entry.get(name) or []:
-            if isinstance(event, dict) and isinstance(event.get("when_utc"), str):
-                dates.append(event["when_utc"])
-    return sorted(dates)
-
-
 def _expected_view(root: str) -> str:
     return json.dumps(served_view(root), indent=1, sort_keys=True) + "\n"
 
 
+def _null_adjudication() -> dict[str, Any]:
+    return {
+        "verdict": "UNRESOLVED",
+        "adjudicated_by": {"identity": None, "kind": None},
+        "evidence": [],
+        "architecture_identity": None,
+        "when_utc": None,
+    }
+
+
+def _adjudicator_from_legacy(raw: dict[str, Any]) -> dict[str, Any] | None:
+    adjudicated_by = raw.get("adjudicated_by") or raw.get("adjudicator")
+    if not isinstance(adjudicated_by, dict):
+        return None
+    identity = adjudicated_by.get("identity") or adjudicated_by.get("name")
+    kind = adjudicated_by.get("kind")
+    if not identity or kind not in ADJUDICATOR_KINDS or kind is None:
+        return None
+    return {"identity": identity, "kind": kind}
+
+
+def _architecture_identity(root: str) -> str | None:
+    try:
+        from harness import architecture_identity
+
+        return architecture_identity.identity(root)
+    except Exception:
+        return None
+
+
+def _infer_commit(raw: dict[str, Any], text_fields: list[str]) -> str | None:
+    commit = raw.get("commit")
+    if isinstance(commit, str) and commit:
+        return commit
+    for ev in _evidence_values(raw.get("evidence")):
+        if ev.startswith("commit:"):
+            return ev.split(":", 1)[1]
+    joined = " ".join(x for x in text_fields if isinstance(x, str))
+    match = SHA_RE.search(joined)
+    return match.group(0) if match else None
+
+
+def _looks_like_branch_plant(raw: dict[str, Any], text_fields: list[str]) -> bool:
+    joined = " ".join(x for x in text_fields if isinstance(x, str)).lower()
+    plant_needles = (
+        "branch plant",
+        "branch plant/",
+        " on branch plant/",
+        "plant/",
+        "planted branch",
+        "plant sha",
+        "docs/index.html plant",
+        "unit-test plant",
+        "failing unit test",
+        "held-out topic",
+    )
+    return any(needle in joined for needle in plant_needles)
+
+
+def _legacy_event_id(gate_id: str, list_name: str, idx: int) -> str:
+    stem = re.sub(r"[^a-zA-Z0-9]+", "-", gate_id).strip("-").lower()
+    return f"{stem}-v1-{list_name.replace('_', '-')}-{idx + 1}"
+
+
+def _legacy_event(
+    root: str,
+    entry: dict[str, Any],
+    list_name: str,
+    raw: dict[str, Any],
+    idx: int,
+    arch: str | None,
+) -> dict[str, Any]:
+    evidence = _evidence_values(raw.get("evidence"))
+    when = raw.get("when_utc") if isinstance(raw.get("when_utc"), str) else None
+    where = raw.get("where") if isinstance(raw.get("where"), str) and raw.get("where") else entry.get("where")
+    what = raw.get("what") or raw.get("test") or raw.get("what_got_through")
+    text_fields = [str(x) for x in (what, where, " ".join(evidence))]
+    commit = _infer_commit(raw, text_fields)
+    miss = list_name == "known_misses"
+    status_gap = list_name == "unresolved"
+    if list_name == "plant_validations":
+        kind = "PLANT"
+    elif _looks_like_branch_plant(raw, text_fields):
+        kind = "PLANT"
+    else:
+        kind = "PRODUCTION"
+
+    event: dict[str, Any] = {
+        "event_id": _legacy_event_id(entry["gate_id"], list_name, idx),
+        "kind": kind,
+        "when_utc": when,
+        "where": where,
+        "commit": commit,
+        "what_refused": None if miss else what,
+        "evidence": evidence,
+        "adjudication": _null_adjudication(),
+        "source_list": list_name,
+    }
+    if miss:
+        event["miss"] = True
+        event["what_got_through"] = raw.get("what_got_through") or raw.get("what")
+    if status_gap:
+        event["status_gap"] = True
+
+    adjudicator = _adjudicator_from_legacy(raw)
+    if list_name == "true_refusals" and adjudicator:
+        event["adjudication"] = {
+            "verdict": "TRUE_POSITIVE",
+            "adjudicated_by": {**adjudicator, "kind": "author"},
+            "evidence": evidence,
+            "architecture_identity": arch,
+            "when_utc": when,
+        }
+    elif list_name == "false_refusals" and adjudicator:
+        event["adjudication"] = {
+            "verdict": "FALSE_POSITIVE",
+            "adjudicated_by": {**adjudicator, "kind": "author"},
+            "evidence": evidence,
+            "architecture_identity": arch,
+            "when_utc": when,
+        }
+    elif list_name == "known_misses" and adjudicator:
+        event["adjudication"] = {
+            "verdict": "TRUE_MISS",
+            "adjudicated_by": {**adjudicator, "kind": "author"},
+            "evidence": evidence,
+            "architecture_identity": arch,
+            "when_utc": when,
+        }
+    elif list_name == "plant_validations":
+        event["adjudication"] = {
+            "verdict": "TRUE_POSITIVE",
+            "adjudicated_by": {"identity": "v1 plant-validation test harness", "kind": "internal_agent"},
+            "evidence": evidence,
+            "architecture_identity": arch,
+            "when_utc": when,
+        }
+    return event
+
+
+def _harvest_event(raw: dict[str, Any]) -> dict[str, Any]:
+    event = {k: copy.deepcopy(v) for k, v in raw.items() if k not in {"gate_id", "dedupe_tokens"}}
+    event["adjudication"] = _null_adjudication()
+    event["source_list"] = "harvested"
+    return event
+
+
+def _same_refusal(existing: dict[str, Any], harvest: dict[str, Any]) -> bool:
+    commit = harvest.get("commit")
+    if commit and existing.get("commit") == commit:
+        return True
+    haystack = " ".join(
+        str(x)
+        for x in (
+            existing.get("what_refused"),
+            existing.get("where"),
+            " ".join(_evidence_values(existing.get("evidence"))),
+        )
+        if x
+    )
+    tokens = harvest.get("dedupe_tokens") or ()
+    return bool(tokens) and all(str(token) in haystack for token in tokens)
+
+
+def _merge_harvests(entries: dict[str, dict[str, Any]]) -> dict[str, int]:
+    added = 0
+    enriched = 0
+    for harvest in HARVESTED_EVENTS:
+        gate = entries.get(harvest["gate_id"])
+        if gate is None:
+            continue
+        events = gate.setdefault("events", [])
+        if any(event.get("event_id") == harvest["event_id"] for event in events):
+            continue
+        match = next((event for event in events if _same_refusal(event, harvest)), None)
+        if match is not None:
+            match["where"] = harvest["where"]
+            if not match.get("commit"):
+                match["commit"] = harvest.get("commit")
+            if match.get("kind") != harvest["kind"]:
+                match["kind"] = harvest["kind"]
+            for ev in harvest.get("evidence") or []:
+                match.setdefault("evidence", [])
+                if ev not in match["evidence"]:
+                    match["evidence"].append(ev)
+            match.setdefault("harvested_from", [])
+            if harvest["event_id"] not in match["harvested_from"]:
+                match["harvested_from"].append(harvest["event_id"])
+            enriched += 1
+        else:
+            events.append(_harvest_event(harvest))
+            added += 1
+    return {"added": added, "enriched": enriched}
+
+
+def migrate_data_v1_to_v2(root: str, data: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Return a v2 registry and a deterministic before/after migration report."""
+    if data.get("schema_version") == SCHEMA_VERSION:
+        entries = _entries_by_id(data)
+        harvest = _merge_harvests(entries)
+        after_events = sum(len(e.get("events") or []) for e in entries.values())
+        after_unresolved = sum(
+            1
+            for e in entries.values()
+            for event in e.get("events") or []
+            if event.get("adjudication", {}).get("verdict") == "UNRESOLVED"
+        )
+        return data, {
+            "already_v2": True,
+            "before_events": after_events,
+            "before_unresolved": after_unresolved,
+            "after_events": after_events,
+            "after_unresolved": after_unresolved,
+            "harvest_added": harvest["added"],
+            "harvest_enriched": harvest["enriched"],
+            "lost_apparent_precision_gates": [],
+        }
+
+    old_entries = _entries_by_id(data)
+    arch = _architecture_identity(root)
+    new_entries: list[dict[str, Any]] = []
+    before_events = 0
+    before_unresolved = 0
+    old_precision_gates = []
+
+    for gate_id in sorted(old_entries):
+        entry = old_entries[gate_id]
+        events = []
+        for list_name in LEGACY_EVENT_LISTS:
+            rows = entry.get(list_name) or []
+            if not isinstance(rows, list):
+                rows = []
+            before_events += len(rows)
+            if list_name == "unresolved":
+                before_unresolved += len(rows)
+            for idx, raw in enumerate(rows):
+                if isinstance(raw, dict):
+                    events.append(_legacy_event(root, entry, list_name, raw, idx, arch))
+        if isinstance(entry.get("precision_among_adjudicated"), dict) and entry["precision_among_adjudicated"].get("value") is not None:
+            old_precision_gates.append(gate_id)
+        new_entries.append({
+            "gate_id": gate_id,
+            "where": entry.get("where"),
+            "what_it_refuses": entry.get("what_it_refuses"),
+            "events": events,
+        })
+
+    new_data: dict[str, Any] = {
+        "_doc": (
+            "Measured gate scorecard schema v2. Events are source records; all precision, "
+            "coverage, validation, and status fields are computed by harness.gate_scorecard."
+        ),
+        "schema_version": SCHEMA_VERSION,
+        "auditor_correction": AUDITOR_CORRECTION,
+        "unvalidated_sentence": UNVALIDATED_SENTENCE,
+        "precision_coverage_sentence": PRECISION_COVERAGE_SENTENCE,
+        "adjudicator_independence_sentence": INDEPENDENCE_SENTENCE,
+        "gates": new_entries,
+        "generated_utc": data.get("generated_utc"),
+    }
+    entries = _entries_by_id(new_data)
+    harvest = _merge_harvests(entries)
+    after_events = sum(len(e.get("events") or []) for e in entries.values())
+    after_unresolved = sum(
+        1
+        for e in entries.values()
+        for event in e.get("events") or []
+        if event.get("adjudication", {}).get("verdict") == "UNRESOLVED"
+    )
+    lost = [gate_id for gate_id in old_precision_gates if compute(entries[gate_id])["adjudicated_precision"] is None]
+    report = {
+        "already_v2": False,
+        "before_events": before_events,
+        "before_unresolved": before_unresolved,
+        "after_events": after_events,
+        "after_unresolved": after_unresolved,
+        "harvest_added": harvest["added"],
+        "harvest_enriched": harvest["enriched"],
+        "lost_apparent_precision_gates": lost,
+    }
+    return new_data, report
+
+
+def migrate_v1_to_v2(root) -> dict[str, Any]:
+    root = _root_path(root)
+    data = _registry_data(root)
+    new_data, report = migrate_data_v1_to_v2(root, data)
+    with open(os.path.join(root, *REGISTRY_PATH.split("/")), "w", encoding="utf-8", newline="\n") as f:
+        f.write(json.dumps(new_data, indent=1, sort_keys=True) + "\n")
+    return report
+
+
+def _production_refusals(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        event
+        for event in events
+        if event.get("kind") == "PRODUCTION" and not event.get("miss") and not event.get("status_gap")
+    ]
+
+
+def compute(gate: dict[str, Any]) -> dict[str, Any]:
+    """Compute all scorecard numbers for one gate from adjudication objects."""
+    events = gate.get("events") or []
+    production_refusals = _production_refusals(events)
+    tp = sum(1 for e in production_refusals if e.get("adjudication", {}).get("verdict") == "TRUE_POSITIVE")
+    fp = sum(1 for e in production_refusals if e.get("adjudication", {}).get("verdict") == "FALSE_POSITIVE")
+    unresolved = sum(1 for e in events if e.get("adjudication", {}).get("verdict") == "UNRESOLVED")
+    adjudicated = tp + fp
+    production_total = len(production_refusals)
+    resolved_events = [
+        e for e in events if e.get("adjudication", {}).get("verdict") in RESOLVED_VERDICTS
+    ]
+    external = sum(
+        1
+        for event in resolved_events
+        if event.get("adjudication", {}).get("adjudicated_by", {}).get("kind") == "external_auditor"
+    )
+    plant_validations = sum(
+        1
+        for event in events
+        if event.get("kind") == "PLANT" and event.get("adjudication", {}).get("verdict") == "TRUE_POSITIVE"
+    )
+    true_misses = sum(1 for event in events if event.get("adjudication", {}).get("verdict") == "TRUE_MISS")
+    precision = None if adjudicated == 0 else tp / adjudicated
+    coverage = None if production_total == 0 else adjudicated / production_total
+    independence = None if not resolved_events else external / len(resolved_events)
+    return {
+        "adjudicated_precision": precision,
+        "adjudication_coverage": coverage,
+        "true_positive_production_refusals": tp,
+        "false_positive_production_refusals": fp,
+        "adjudicated_production_refusals": adjudicated,
+        "production_refusals": production_total,
+        "plant_validations": plant_validations,
+        "plant_events": sum(1 for event in events if event.get("kind") == "PLANT"),
+        "unresolved": unresolved,
+        "true_misses": true_misses,
+        "miss_events": sum(1 for event in events if event.get("miss")),
+        "status_gap_events": sum(1 for event in events if event.get("status_gap")),
+        "adjudicator_independence": independence,
+        "adjudications": len(resolved_events),
+        "external_auditor_adjudications": external,
+        "production_status": "EXERCISED" if production_total else "UNVALIDATED",
+        "validation": "PRODUCTION_ADJUDICATED" if adjudicated else "UNVALIDATED",
+        "unvalidated": tp == 0,
+    }
+
+
+def _fmt_value(value: float | None, none_text: str) -> str:
+    if value is None:
+        return none_text
+    return f"{value:.3f}"
+
+
+def format_computed_metrics(metrics: dict[str, Any]) -> str:
+    """Render the required precision+coverage pair, refusing split precision."""
+    if "adjudicated_precision" in metrics and "adjudication_coverage" not in metrics:
+        raise ValueError("precision is reported only beside its adjudication coverage")
+    precision = metrics.get("adjudicated_precision")
+    coverage = metrics.get("adjudication_coverage")
+    precision_text = _fmt_value(precision, "no adjudicated production refusal - UNVALIDATED, not green")
+    coverage_text = _fmt_value(coverage, "no production refusals")
+    return (
+        "adjudicated precision TP/(TP+FP) = "
+        f"{precision_text} ({metrics.get('adjudicated_production_refusals')} adjudicated of "
+        f"{metrics.get('production_refusals')} production refusals = coverage {coverage_text}); "
+        f"plants: {metrics.get('plant_validations')}; UNRESOLVED: {metrics.get('unresolved')}"
+    )
+
+
+def render_gate_line(gate: dict[str, Any]) -> str:
+    return format_computed_metrics(compute(gate))
+
+
+def _validate_event(root: str, gate_id: str, event: Any, idx: int, seen_events: set[str]) -> list[str]:
+    reasons: list[str] = []
+    if not isinstance(event, dict):
+        return [f"{gate_id}: events[{idx}] must be an object"]
+    event_id = event.get("event_id")
+    if not isinstance(event_id, str) or not event_id:
+        reasons.append(f"{gate_id}: events[{idx}] needs event_id")
+    elif event_id in seen_events:
+        reasons.append(f"{gate_id}: duplicate event_id {event_id}")
+    else:
+        seen_events.add(event_id)
+
+    kind = event.get("kind")
+    if kind not in EVENT_KINDS:
+        reasons.append(f"{gate_id}: {event_id}: kind must be PLANT or PRODUCTION")
+    if event.get("counts_as_production") and kind == "PLANT":
+        reasons.append(f"{gate_id}: {event_id}: a PLANT event must not be counted as PRODUCTION")
+
+    for field in ("when_utc", "where", "commit", "what_refused", "evidence", "adjudication"):
+        if field not in event:
+            reasons.append(f"{gate_id}: {event_id}: missing {field}")
+    if not event.get("miss") and not isinstance(event.get("what_refused"), str):
+        reasons.append(f"{gate_id}: {event_id}: what_refused must be a string unless miss=true")
+    if not isinstance(event.get("where"), str) or not event.get("where"):
+        reasons.append(f"{gate_id}: {event_id}: where must be a non-empty string")
+    if event.get("commit") is not None and not isinstance(event.get("commit"), str):
+        reasons.append(f"{gate_id}: {event_id}: commit must be a string or null")
+
+    when = event.get("when_utc")
+    if when is not None:
+        if not isinstance(when, str):
+            reasons.append(f"{gate_id}: {event_id}: when_utc must be an ISO UTC string or null")
+        elif when == PLACEHOLDER_UTC:
+            reasons.append(f"{gate_id}: {event_id}: uses placeholder timestamp {PLACEHOLDER_UTC}")
+        elif not ISO_UTC_RE.fullmatch(when):
+            reasons.append(f"{gate_id}: {event_id}: timestamp must be ISO UTC seconds")
+        else:
+            evidence = _event_evidence_values(event)
+            if (
+                evidence
+                and not event.get("miss")
+                and not event.get("status_gap")
+                and not _timestamp_in_evidence(root, when, evidence)
+            ):
+                reasons.append(f"{gate_id}: {event_id}: timestamp {when} not found in cited evidence")
+    if kind == "PRODUCTION" and not event.get("miss") and not event.get("status_gap") and when is None:
+        reasons.append(f"{gate_id}: {event_id}: production refusal events need dated when_utc")
+
+    evidence = event.get("evidence")
+    if not isinstance(evidence, list):
+        reasons.append(f"{gate_id}: {event_id}: evidence must be a list")
+    else:
+        for ev in _evidence_values(evidence):
+            if not _evidence_exists(root, ev):
+                reasons.append(f"{gate_id}: {event_id}: cited evidence does not exist: {ev}")
+
+    adj = event.get("adjudication")
+    if not isinstance(adj, dict):
+        reasons.append(f"{gate_id}: {event_id}: every event needs an adjudication object")
+        return reasons
+    for field in ("verdict", "adjudicated_by", "evidence", "architecture_identity", "when_utc"):
+        if field not in adj:
+            reasons.append(f"{gate_id}: {event_id}: adjudication missing {field}")
+    verdict = adj.get("verdict")
+    allowed = MISS_VERDICTS if event.get("miss") else REFUSAL_VERDICTS
+    if verdict not in allowed:
+        reasons.append(f"{gate_id}: {event_id}: verdict must be one of {sorted(allowed)}")
+    if verdict == "UNRESOLVED" and str(event.get("counts_as", "")).upper() in {"TP", "FP", "TRUE_POSITIVE", "FALSE_POSITIVE"}:
+        reasons.append(f"{gate_id}: {event_id}: UNRESOLVED events must not be counted into TP or FP")
+
+    by = adj.get("adjudicated_by")
+    if not isinstance(by, dict):
+        reasons.append(f"{gate_id}: {event_id}: adjudicated_by must be an object")
+    else:
+        by_kind = by.get("kind")
+        by_identity = by.get("identity")
+        if by_kind not in ADJUDICATOR_KINDS:
+            reasons.append(f"{gate_id}: {event_id}: adjudicated_by.kind is invalid")
+        if verdict in RESOLVED_VERDICTS:
+            if by_kind is None:
+                reasons.append(f"{gate_id}: {event_id}: {verdict} requires adjudicated_by.kind")
+            if not isinstance(by_identity, str) or not by_identity:
+                reasons.append(f"{gate_id}: {event_id}: {verdict} requires adjudicated_by.identity")
+        if verdict == "UNRESOLVED" and by_kind is not None:
+            reasons.append(f"{gate_id}: {event_id}: UNRESOLVED adjudication must keep adjudicated_by.kind null")
+
+    adj_evidence = adj.get("evidence")
+    if not isinstance(adj_evidence, list):
+        reasons.append(f"{gate_id}: {event_id}: adjudication.evidence must be a list")
+    else:
+        if verdict in RESOLVED_VERDICTS and not _evidence_values(adj_evidence):
+            reasons.append(f"{gate_id}: {event_id}: {verdict} requires adjudication evidence")
+        for ev in _evidence_values(adj_evidence):
+            if not _evidence_exists(root, ev):
+                reasons.append(f"{gate_id}: {event_id}: cited adjudication evidence does not exist: {ev}")
+
+    adj_when = adj.get("when_utc")
+    if adj_when is not None:
+        if not isinstance(adj_when, str) or not ISO_UTC_RE.fullmatch(adj_when):
+            reasons.append(f"{gate_id}: {event_id}: adjudication.when_utc must be ISO UTC seconds or null")
+    arch = adj.get("architecture_identity")
+    if arch is not None and (not isinstance(arch, str) or not arch):
+        reasons.append(f"{gate_id}: {event_id}: architecture_identity must be a string or null")
+    return reasons
+
+
+def _registry_has_stored_metrics(value: Any, path: str = "registry") -> list[str]:
+    reasons: list[str] = []
+    if isinstance(value, dict):
+        for key, sub in value.items():
+            here = f"{path}.{key}"
+            if key in STORED_METRIC_FIELDS:
+                reasons.append(f"{here}: stored precision/coverage numbers are refused; compute them")
+            reasons.extend(_registry_has_stored_metrics(sub, here))
+    elif isinstance(value, list):
+        for idx, sub in enumerate(value):
+            reasons.extend(_registry_has_stored_metrics(sub, f"{path}[{idx}]"))
+    return reasons
+
+
 def check(root) -> tuple[bool, list[str]]:
-    """Check registry coverage, evidence paths, precision counts, and served-view currency."""
+    """Check v2 event schema, evidence paths, computed metrics, and served-view currency."""
     root = _root_path(root)
     target_line = describe_check_target(root)
     if target_line.startswith("TARGET gate_scorecard: COULD-NOT-EXECUTE"):
@@ -334,112 +950,32 @@ def check(root) -> tuple[bool, list[str]]:
     except Exception as exc:  # noqa: BLE001
         return False, [f"{REGISTRY_PATH} unreadable or malformed: {exc}"]
 
+    if data.get("schema_version") != SCHEMA_VERSION:
+        reasons.append(f"{REGISTRY_PATH} must declare schema_version {SCHEMA_VERSION}; run python -m harness.gate_scorecard --migrate-v1-to-v2")
+    reasons.extend(_registry_has_stored_metrics(data))
+
     for gate_id in sorted(set(enumerated) - set(entries)):
         reasons.append(f"{REGISTRY_PATH} missing entry for enumerated gate {gate_id}")
     for gate_id in sorted(set(entries) - set(enumerated)):
         reasons.append(f"{REGISTRY_PATH} has entry for non-enumerated gate {gate_id}")
 
+    seen_events: set[str] = set()
     for gate_id, entry in sorted(entries.items()):
-        for field in (
-            "where",
-            "what_it_refuses",
-            "validation",
-            "production_status",
-            "exercised",
-            "precision_among_adjudicated",
-        ):
+        for field in ("where", "what_it_refuses", "events"):
             if field not in entry:
                 reasons.append(f"{gate_id}: missing {field}")
-        true_events = entry.get("true_refusals") if isinstance(entry.get("true_refusals"), list) else []
-        false_events = entry.get("false_refusals") if isinstance(entry.get("false_refusals"), list) else []
-        plant_events = entry.get("plant_validations") if isinstance(entry.get("plant_validations"), list) else []
-        has_exercise = bool(true_events or false_events)
-        expected_validation = "PRODUCTION" if has_exercise else ("PLANT_ONLY" if plant_events else "NO_VALIDATION")
-        expected_production_status = "EXERCISED" if has_exercise else "UNVALIDATED"
-        if entry.get("validation") != expected_validation:
-            reasons.append(f"{gate_id}: validation must be {expected_validation}")
-        if entry.get("production_status") != expected_production_status:
-            reasons.append(f"{gate_id}: production_status must be {expected_production_status}")
-        for name in EVENT_LISTS:
-            events = entry.get(name)
-            if not isinstance(events, list):
-                reasons.append(f"{gate_id}: {name} must be a list")
-                continue
-            for idx, event in enumerate(events):
-                if not isinstance(event, dict):
-                    reasons.append(f"{gate_id}: {name}[{idx}] must be an object")
-                    continue
-                if name == "plant_validations":
-                    if not isinstance(event.get("test"), str) or not event.get("test"):
-                        reasons.append(f"{gate_id}: plant_validations[{idx}] needs test")
-                    if "when_utc" in event:
-                        reasons.append(f"{gate_id}: plant_validations[{idx}] must not carry when_utc")
-                elif name in PRODUCTION_EVENT_LISTS:
-                    when = event.get("when_utc")
-                    if not isinstance(when, str):
-                        reasons.append(f"{gate_id}: {name}[{idx}] needs dated when_utc")
-                    elif when == PLACEHOLDER_UTC:
-                        reasons.append(f"{gate_id}: {name}[{idx}] uses placeholder timestamp {PLACEHOLDER_UTC}")
-                    elif not ISO_UTC_RE.fullmatch(when):
-                        reasons.append(f"{gate_id}: {name}[{idx}] timestamp must be ISO UTC seconds")
-                    else:
-                        evidence = _evidence_values(event)
-                        if not _timestamp_in_evidence(root, when, evidence):
-                            reasons.append(f"{gate_id}: {name}[{idx}] timestamp {when} not found in cited evidence")
-                    if name == "true_refusals":
-                        bad_tests = [ev for ev in _evidence_values(event) if ev.replace("\\", "/").startswith("tests/")]
-                        if bad_tests:
-                            reasons.append(f"{gate_id}: pytest/test evidence cannot be counted as a true production refusal: {bad_tests}")
-                else:
-                    when = event.get("when_utc")
-                    if when == PLACEHOLDER_UTC:
-                        reasons.append(f"{gate_id}: {name}[{idx}] uses placeholder timestamp {PLACEHOLDER_UTC}")
-                    elif isinstance(when, str) and not ISO_UTC_RE.fullmatch(when):
-                        reasons.append(f"{gate_id}: {name}[{idx}] timestamp must be ISO UTC seconds")
-                for ev in _evidence_values(event):
-                    if not _evidence_exists(root, ev):
-                        reasons.append(f"{gate_id}: cited evidence does not exist: {ev}")
-        if bool(entry.get("exercised")) != has_exercise:
-            reasons.append(f"{gate_id}: exercised must be {has_exercise} based on production true/false refusals")
-        dates = _event_dates(entry)
-        if has_exercise and not entry.get("last_exercised_utc"):
-            reasons.append(f"{gate_id}: last_exercised_utc required when exercised")
-        if dates and entry.get("last_exercised_utc") != dates[-1]:
-            reasons.append(f"{gate_id}: last_exercised_utc must equal latest event date {dates[-1]}")
-        if not has_exercise and entry.get("last_exercised_utc") is not None:
-            reasons.append(f"{gate_id}: last_exercised_utc must be null when never exercised")
-
-        prec = entry.get("precision_among_adjudicated")
-        if not isinstance(prec, dict):
-            reasons.append(f"{gate_id}: precision_among_adjudicated must be an object")
+        for field in sorted(LEGACY_FIELDS & set(entry)):
+            reasons.append(f"{gate_id}: legacy field {field} is refused in schema v2")
+        events = entry.get("events")
+        if not isinstance(events, list):
+            reasons.append(f"{gate_id}: events must be a list")
             continue
-        if "true" not in prec or "false" not in prec:
-            reasons.append(f"{gate_id}: precision stated without both true and false counts")
-            continue
-        true_n, false_n = prec.get("true"), prec.get("false")
-        if not isinstance(true_n, int) or not isinstance(false_n, int):
-            reasons.append(f"{gate_id}: precision counts must be integers")
-            continue
-        if true_n != len(entry.get("true_refusals") or []) or false_n != len(entry.get("false_refusals") or []):
-            reasons.append(f"{gate_id}: precision counts must match true_refusals/false_refusals list lengths")
-        value = prec.get("value")
-        denom = true_n + false_n
-        if denom == 0:
-            if value is not None:
-                reasons.append(f"{gate_id}: precision value must be null with zero adjudicated refusals")
-        elif not isinstance(value, (int, float)) or abs(value - (true_n / denom)) > 1e-9:
-            reasons.append(f"{gate_id}: precision value must equal true/(true+false)")
-
-    prior = data.get("prior_precision_measurement")
-    if isinstance(prior, dict):
-        if prior.get("when_utc") == PLACEHOLDER_UTC:
-            reasons.append(f"prior_precision_measurement uses placeholder timestamp {PLACEHOLDER_UTC}")
-        for ev in _evidence_values(prior):
-            if not _evidence_exists(root, ev):
-                reasons.append(f"prior_precision_measurement evidence does not exist: {ev}")
-
-    if data.get("generated_utc") == PLACEHOLDER_UTC:
-        reasons.append(f"generated_utc uses placeholder timestamp {PLACEHOLDER_UTC}")
+        for idx, event in enumerate(events):
+            reasons.extend(_validate_event(root, gate_id, event, idx, seen_events))
+        try:
+            format_computed_metrics(compute(entry))
+        except ValueError as exc:
+            reasons.append(f"{gate_id}: {exc}")
 
     served = os.path.join(root, *SERVED_PATH.split("/"))
     try:
@@ -453,32 +989,64 @@ def check(root) -> tuple[bool, list[str]]:
     return not reasons, reasons
 
 
+def _enriched_gate(entry: dict[str, Any]) -> dict[str, Any]:
+    out = copy.deepcopy(entry)
+    metrics = compute(entry)
+    out["computed"] = metrics
+    out["scorecard_line"] = format_computed_metrics(metrics)
+    return out
+
+
 def summary(root) -> dict[str, Any]:
     """Return the compact scorecard summary rendered on the site index."""
     root = _root_path(root)
     data = _registry_data(root)
     entries = _entries_by_id(data)
-    unvalidated = sorted(g for g, e in entries.items() if not e.get("exercised"))
-    plant_only = sorted(g for g, e in entries.items() if e.get("validation") == "PLANT_ONLY")
-    true_gates = sorted(g for g, e in entries.items() if e.get("true_refusals"))
-    false_gates = sorted(g for g, e in entries.items() if e.get("false_refusals"))
+    computed = {gid: compute(entry) for gid, entry in entries.items()}
+    unvalidated = sorted(g for g, metrics in computed.items() if metrics["unvalidated"])
+    plant_only = sorted(
+        g
+        for g, entry in entries.items()
+        if any(event.get("kind") == "PLANT" for event in entry.get("events") or [])
+        and computed[g]["production_refusals"] == 0
+    )
+    true_gates = sorted(g for g, metrics in computed.items() if metrics["true_positive_production_refusals"])
+    false_gates = sorted(g for g, metrics in computed.items() if metrics["false_positive_production_refusals"])
+    production_refusal_gates = sorted(g for g, metrics in computed.items() if metrics["production_refusals"])
+    total_adjudications = sum(metrics["adjudications"] for metrics in computed.values())
+    external = sum(metrics["external_auditor_adjudications"] for metrics in computed.values())
+    independence = None if total_adjudications == 0 else external / total_adjudications
+    gate_lines = [
+        {
+            "gate_id": gid,
+            "line": format_computed_metrics(computed[gid]),
+            "computed": computed[gid],
+        }
+        for gid in sorted(entries)
+    ]
     return {
         "gate_count": len(entries),
         "plant_only_count": len(plant_only),
         "plant_only": plant_only,
         "unvalidated_count": len(unvalidated),
         "unvalidated": unvalidated,
+        "production_refusal_gate_count": len(production_refusal_gates),
+        "production_refusal_gates": production_refusal_gates,
         "production_true_refusal_gate_count": len(true_gates),
         "production_true_refusal_gates": true_gates,
         "false_refusal_gate_count": len(false_gates),
         "false_refusal_gates": false_gates,
-        "named_pessimistic_incident": (
-            "fix-state checker refused an evidence-only commit because the subject contained "
-            "'refusing' (commit 6b1039cd records the incident)"
-        ),
-        "auditor_sentence": AUDITOR_SENTENCE,
+        "event_count": sum(len(entry.get("events") or []) for entry in entries.values()),
+        "unresolved_event_count": sum(metrics["unresolved"] for metrics in computed.values()),
+        "plant_validation_count": sum(metrics["plant_validations"] for metrics in computed.values()),
+        "adjudicator_independence": independence,
+        "adjudications": total_adjudications,
+        "external_auditor_adjudications": external,
+        "auditor_sentence": AUDITOR_CORRECTION,
         "unvalidated_sentence": UNVALIDATED_SENTENCE,
-        "prior_precision_measurement": data.get("prior_precision_measurement", "not found in this repository"),
+        "precision_coverage_sentence": PRECISION_COVERAGE_SENTENCE,
+        "adjudicator_independence_sentence": INDEPENDENCE_SENTENCE,
+        "gate_lines": gate_lines,
     }
 
 
@@ -490,10 +1058,14 @@ def served_view(root) -> dict[str, Any]:
     return {
         "_doc": "Generated from registry/gate_scorecard.json; do not hand-edit.",
         "source": REGISTRY_PATH,
-        "auditor_sentence": AUDITOR_SENTENCE,
+        "schema_version": SCHEMA_VERSION,
+        "auditor_correction": AUDITOR_CORRECTION,
+        "auditor_sentence": AUDITOR_CORRECTION,
         "unvalidated_sentence": UNVALIDATED_SENTENCE,
+        "precision_coverage_sentence": PRECISION_COVERAGE_SENTENCE,
+        "adjudicator_independence_sentence": INDEPENDENCE_SENTENCE,
         "summary": summary(root),
-        "gates": [entries[k] for k in sorted(entries)],
+        "gates": [_enriched_gate(entries[k]) for k in sorted(entries)],
     }
 
 
@@ -506,8 +1078,34 @@ def write_served_view(root) -> str:
     return out
 
 
+def _print_migration_report(report: dict[str, Any]) -> None:
+    state = "already schema v2" if report.get("already_v2") else "migrated v1 to schema v2"
+    print(f"gate scorecard: {state}")
+    print(
+        "events: "
+        f"{report['before_events']} before -> {report['after_events']} after; "
+        f"UNRESOLVED: {report['before_unresolved']} before -> {report['after_unresolved']} after; "
+        f"harvest added={report['harvest_added']} enriched={report['harvest_enriched']}"
+    )
+    lost = report.get("lost_apparent_precision_gates") or []
+    if lost:
+        print("gates losing apparent precision because no adjudicator was recorded:")
+        for gate_id in lost:
+            print(f"  - {gate_id}")
+    else:
+        print("gates losing apparent precision because no adjudicator was recorded: none")
+
+
 def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Check or migrate the gate scorecard.")
+    parser.add_argument("--migrate-v1-to-v2", action="store_true", help="Mechanically migrate registry/gate_scorecard.json.")
+    args = parser.parse_args(argv)
+
     root = _root_path(os.getcwd())
+    if args.migrate_v1_to_v2:
+        _print_migration_report(migrate_v1_to_v2(root))
+        return 0
+
     target_line = describe_check_target(root)
     print(target_line)
     if target_line.startswith("TARGET gate_scorecard: COULD-NOT-EXECUTE"):
@@ -518,10 +1116,10 @@ def main(argv: list[str] | None = None) -> int:
         s = summary(root)
         print(
             "gate scorecard: PASS "
-            f"({s['gate_count']} gates; {s['plant_only_count']} PLANT_ONLY; "
-            f"{s['unvalidated_count']} UNVALIDATED; "
-            f"{s['production_true_refusal_gate_count']} with production true refusals; "
-            f"{s['false_refusal_gate_count']} with false refusals)"
+            f"({s['gate_count']} gates; {s['event_count']} events; "
+            f"{s['unresolved_event_count']} UNRESOLVED; "
+            f"{s['production_true_refusal_gate_count']} with adjudicated production true refusals; "
+            f"adjudicator_independence={_fmt_value(s['adjudicator_independence'], 'no adjudications')})"
         )
         return 0
     print("gate scorecard: REFUSED")

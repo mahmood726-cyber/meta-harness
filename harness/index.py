@@ -269,18 +269,36 @@ def _gate_scorecard_section(docs_dir: str) -> str:
         s = gate_scorecard.summary(os.path.dirname(docs_dir))
     except Exception:
         return ""
-    false_gates = ", ".join(s.get("false_refusal_gates") or [])
+    rows = []
+    for row in s.get("gate_lines") or []:
+        rows.append(
+            "<tr>"
+            f"<td><code>{_E(row.get('gate_id'))}</code></td>"
+            f"<td>{_E(row.get('line'))}</td>"
+            "</tr>"
+        )
+    independence = s.get("adjudicator_independence")
+    independence_text = "no adjudications" if independence is None else f"{float(independence):.3f}"
     return (f"<div class='banner'><h2>Gate scorecard: plant validations and production refusals</h2>"
             f"<p><strong>{_E(s.get('gate_count'))} production gates accounted for</strong>; "
-            f"<strong>{_E(s.get('plant_only_count'))}</strong> are <code>PLANT_ONLY</code>; "
+            f"<strong>{_E(s.get('event_count'))}</strong> events; "
+            f"<strong>{_E(s.get('plant_validation_count'))}</strong> adjudicated plant validations; "
             f"<strong>{_E(s.get('unvalidated_count'))}</strong> are <code>UNVALIDATED</code>; "
-            f"<strong>{_E(s.get('production_true_refusal_gate_count'))}</strong> have production true refusals; "
-            f"<strong>{_E(s.get('false_refusal_gate_count'))}</strong> have adjudicated false refusals"
-            f"{': ' + _E(false_gates) if false_gates else ''}. The named pessimistic incident is "
-            f"{_E(s.get('named_pessimistic_incident'))}. "
+            f"<strong>{_E(s.get('unresolved_event_count'))}</strong> events are <code>UNRESOLVED</code>; "
+            f"adjudicator_independence is <strong>{_E(independence_text)}</strong>; "
+            f"<strong>{_E(s.get('production_true_refusal_gate_count'))}</strong> gates have an adjudicated production "
+            f"true refusal; <strong>{_E(s.get('false_refusal_gate_count'))}</strong> have an adjudicated false refusal"
+            + (": " + ", ".join(f"<code>{_E(g)}</code>" for g in (s.get("false_refusal_gates") or []))
+               + " (the named pessimistic incident: the fix-state checker refused an evidence-only commit because its "
+                 "subject contained 'refusing'; commit 6b1039cd records the structural correction; author-adjudicated, "
+                 "not independent)" if s.get("false_refusal_gates") else "")
+            + ". "
             f"<strong>{_E(s.get('auditor_sentence'))}</strong> "
             f"The scorecard rule is: {_E(s.get('unvalidated_sentence'))}. "
-            f"Served JSON: <code>gate_scorecard.json</code>.</p></div>")
+            f"{_E(s.get('precision_coverage_sentence'))}. "
+            f"{_E(s.get('adjudicator_independence_sentence'))}. "
+            f"Served JSON: <code>gate_scorecard.json</code>.</p>"
+            f"<table><tr><th>gate</th><th>computed line</th></tr>{''.join(rows)}</table></div>")
 
 
 def _verification_section(docs_dir: str) -> str:

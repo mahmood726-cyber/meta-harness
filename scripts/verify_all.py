@@ -246,10 +246,10 @@ def limb_gate_scorecard():
         s = gate_scorecard.summary(ROOT)
         detail = (f"{scorecard_target}\n"
                   f"{s['gate_count']} gates accounted for; "
-                  f"{s['plant_only_count']} PLANT_ONLY; "
-                  f"{s['unvalidated_count']} UNVALIDATED; "
-                  f"{s['production_true_refusal_gate_count']} with production true refusals; "
-                  f"{s['false_refusal_gate_count']} with false refusals")
+                  f"{s['event_count']} events; "
+                  f"{s['unresolved_event_count']} UNRESOLVED; "
+                  f"{s['plant_validation_count']} adjudicated plant validations; "
+                  f"{s['production_true_refusal_gate_count']} with adjudicated production true refusals")
         return PASS, _append_target(target_line, detail)
     return REFUSED, _append_target(target_line, scorecard_target + "\n" + "\n".join(reasons))
 
