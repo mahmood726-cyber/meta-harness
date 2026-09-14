@@ -1,8 +1,8 @@
+from __future__ import annotations
+
 import json
 import subprocess
 import sys
-import tempfile
-from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -10,9 +10,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harness import fixstate  # noqa: E402
+from scripts import render_fix_ledger  # noqa: E402
 
 
-def _git(root, *args):
+AUTHOR = "Claude Opus 5 (session author)"
+OTHER = "Codex lane plant"
+
+
+def _git(root: Path, *args: str) -> str:
     return subprocess.run(
         ["git", *args],
         cwd=root,
@@ -24,14 +29,14 @@ def _git(root, *args):
     ).stdout.strip()
 
 
-def _write(root, rel, text):
+def _write(root: Path, rel: str, text: str) -> Path:
     path = root / rel
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
+    path.write_text(text, encoding="utf-8", newline="\n")
     return path
 
 
-def _commit(root, message):
+def _commit(root: Path, message: str) -> str:
     _git(root, "add", "-A")
     _git(
         root,
@@ -46,170 +51,253 @@ def _commit(root, message):
     return _git(root, "rev-parse", "HEAD")
 
 
-@contextmanager
-def _temp_repo():
-    with tempfile.TemporaryDirectory(prefix="fixstate-test-", dir=ROOT) as raw:
-        root = Path(raw)
-        _git(root, "init")
-        yield root
+def _hist(
+    status: str,
+    *,
+    commit: str = "",
+    by: str = OTHER,
+    evidence: list[str] | None = None,
+    reason: str = "",
+) -> dict:
+    return {
+        "status": status,
+        "when_utc": "2026-09-14T00:00:00Z",
+        "by": by,
+        "commit": commit,
+        "evidence": evidence or [],
+        "reason": reason,
+    }
 
 
-def test_no_fix_state_trailer_refused():
-    reasons = fixstate.check_message("ordinary subject\n\nbody\n")
+def _entry(
+    status: str,
+    *,
+    kind: str = "fix",
+    history: list[dict] | None = None,
+    author: str = AUTHOR,
+    executable_evidence: dict | None = None,
+    authored_against: list[str] | None = None,
+    generalized_on: list[str] | None = None,
+) -> dict:
+    return {
+        "finding_id": "PLANT-1",
+        "fix_id": "FIX-PLANT-1",
+        "title": "plant transition",
+        "kind": kind,
+        "status": status,
+        "author": author,
+        "opened_utc": "2026-09-14T00:00:00Z",
+        "evidence_dir": "",
+        "history": history if history is not None else [_hist(status)],
+        "authored_against": authored_against or [],
+        "generalized_on": generalized_on or [],
+        "executable_evidence": executable_evidence,
+    }
 
-    assert any("exactly one Fix-State" in reason for reason in reasons)
+
+def _store(entry: dict) -> dict:
+    return {
+        "schema_version": 1,
+        "statuses": list(fixstate.STATUSES),
+        "entries": [entry],
+    }
 
 
-def test_two_fix_state_trailers_refused():
-    reasons = fixstate.check_message(
-        "subject\n\nFix-State: REPORTED\nFix-State: LANDED\n"
+def _write_store(root: Path, store: dict) -> None:
+    _write(
+        root,
+        "registry/fixes.json",
+        json.dumps(store, ensure_ascii=False, indent=1) + "\n",
     )
 
-    assert any("found 2" in reason for reason in reasons)
+
+def _render_views(root: Path) -> None:
+    render_fix_ledger.render(root)
 
 
-def test_not_a_fix_is_decided_by_what_changed_not_by_the_subject():
-    """THE INSTANCE (2026-09-14): the first checker keyed on subject words and refused an evidence-only commit
-    whose subject said "CI refusing a sealed-identifier leak". Structure, not prose: NOT-A-FIX is allowed when the
-    commit changes only evidence captures / prose, whatever the subject says; and refused when the commit changes
-    the system, however innocent the subject reads."""
-    msg = "Evidence: CI refusing a sealed-identifier leak\n\nFix-State: NOT-A-FIX\n"
-    assert fixstate.check_message(msg, changed_paths=["docs/evidence/x/04-ci.txt", "README.md"]) == []
-    msg2 = "tidy whitespace\n\nFix-State: NOT-A-FIX\n"
-    reasons = fixstate.check_message(msg2, changed_paths=["harness/gate.py"])
-    assert any("changes the system" in r and "harness/gate.py" in r for r in reasons)
-    reasons = fixstate.check_message(msg2, changed_paths=["docs/reviews/zz/index.html"])
-    assert any("changes the system" in r for r in reasons)
-    # a fix subject with a system change and a proper state is fine
-    assert fixstate.check_message("fix the gate\n\nFix-State: LANDED\n", changed_paths=["harness/gate.py"]) == []
+def _repo_with_baseline(tmp_path: Path, old_entry: dict, *, evidence_in_base: bool = True) -> Path:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init")
+    _write(repo, "README.md", "base\n")
+    _commit(repo, "initial")
+    if evidence_in_base:
+        _write(repo, "docs/evidence/proof.txt", "parent proof\n")
+    _write_store(repo, _store(old_entry))
+    _render_views(repo)
+    _commit(repo, "baseline")
+    _write(repo, "anchor.txt", "anchor\n")
+    _commit(repo, "anchor")
+    return repo
 
 
-
-def test_verified_evidence_must_exist_in_parent_not_same_commit():
-    with _temp_repo() as repo:
-        _write(repo, "notes.txt", "base\n")
-        base = _commit(repo, "base\n\nFix-State: LANDED")
-        _write(repo, "evidence/proof.txt", "same commit proof\n")
-        bad = _commit(
-            repo,
-            "claim verified\n\n"
-            "Fix-State: VERIFIED\n"
-            "Fix-Evidence: evidence/proof.txt\n"
-            "Fix-Verified-By: independent replay\n",
-        )
-
-        hits = fixstate.scan_commits(repo, {"enforced_since": base})
-
-    assert hits and hits[0]["sha"] == bad
-    assert any("did not exist in parent tree" in v for v in hits[0]["violations"])
+def _check(repo: Path) -> list[str]:
+    ok, reasons = fixstate.check(repo)
+    assert not ok
+    return reasons
 
 
-def test_verified_evidence_in_parent_with_verifier_passes():
-    with _temp_repo() as repo:
-        _write(repo, "evidence/proof.txt", "parent proof\n")
-        base = _commit(repo, "base\n\nFix-State: LANDED")
-        _write(repo, "notes.txt", "landing\n")
-        _commit(
-            repo,
-            "claim verified\n\n"
-            "Fix-State: VERIFIED\n"
-            "Fix-Evidence: evidence/proof.txt\n"
-            "Fix-Verified-By: independent replay\n",
-        )
+def test_skipped_transition_step_is_refused(tmp_path: Path) -> None:
+    repo = _repo_with_baseline(tmp_path, _entry("REPORTED"))
+    head = _git(repo, "rev-parse", "HEAD")
+    current = _entry(
+        "VERIFIED",
+        history=[
+            _hist("REPORTED"),
+            _hist("VERIFIED", commit=head, evidence=["docs/evidence/proof.txt"]),
+        ],
+    )
+    _write_store(repo, _store(current))
+    _render_views(repo)
 
-        hits = fixstate.scan_commits(repo, {"enforced_since": base})
+    reasons = _check(repo)
 
-    assert hits == []
-
-
-def test_verified_missing_verified_by_refused():
-    with _temp_repo() as repo:
-        _write(repo, "evidence/proof.txt", "parent proof\n")
-        base = _commit(repo, "base\n\nFix-State: LANDED")
-        message = "claim verified\n\nFix-State: VERIFIED\nFix-Evidence: evidence/proof.txt\n"
-
-        reasons = fixstate.check_message(message, root=repo, parent_tree=base)
-
-    assert any("Fix-Verified-By" in reason for reason in reasons)
+    assert any("invalid status transition REPORTED->VERIFIED" in r for r in reasons)
 
 
-def test_verified_evidence_path_must_be_repo_relative():
-    with _temp_repo() as repo:
-        _write(repo, "evidence/proof.txt", "parent proof\n")
-        base = _commit(repo, "base\n\nFix-State: LANDED")
-        message = (
-            "claim verified\n\n"
-            "Fix-State: VERIFIED\n"
-            "Fix-Evidence: ../outside.txt\n"
-            "Fix-Verified-By: independent replay\n"
-        )
+def test_downgrade_to_reported_without_reason_is_refused(tmp_path: Path) -> None:
+    repo = _repo_with_baseline(
+        tmp_path,
+        _entry(
+            "VERIFIED",
+            history=[
+                _hist("LANDED", commit="HEAD"),
+                _hist("VERIFIED", commit="HEAD", evidence=["docs/evidence/proof.txt"]),
+            ],
+        ),
+    )
+    current = _entry(
+        "REPORTED",
+        history=[
+            _hist("LANDED", commit="HEAD"),
+            _hist("VERIFIED", commit="HEAD", evidence=["docs/evidence/proof.txt"]),
+            _hist("REPORTED", reason=""),
+        ],
+    )
+    _write_store(repo, _store(current))
+    _render_views(repo)
 
-        reasons = fixstate.check_message(message, root=repo, parent_tree=base)
+    reasons = _check(repo)
 
-    assert any("repo-relative" in reason for reason in reasons)
-
-
-def test_generalized_overlapping_lists_refused():
-    with _temp_repo() as repo:
-        _write(repo, "evidence/proof.txt", "parent proof\n")
-        base = _commit(repo, "base\n\nFix-State: LANDED")
-        message = (
-            "claim generalized\n\n"
-            "Fix-State: GENERALIZED\n"
-            "Fix-Evidence: evidence/proof.txt\n"
-            "Fix-Verified-By: independent replay\n"
-            "Fix-Authored-Against: topic-a, topic-b\n"
-            "Fix-Generalized-On: topic-b, topic-c\n"
-        )
-
-        reasons = fixstate.check_message(message, root=repo, parent_tree=base)
-
-    assert any("overlap" in reason for reason in reasons)
+    assert any("downgrade to REPORTED needs a reason" in r for r in reasons)
 
 
-def test_generalized_disjoint_lists_passes():
-    with _temp_repo() as repo:
-        _write(repo, "evidence/proof.txt", "parent proof\n")
-        base = _commit(repo, "base\n\nFix-State: LANDED")
-        message = (
-            "claim generalized\n\n"
-            "Fix-State: GENERALIZED\n"
-            "Fix-Evidence: evidence/proof.txt\n"
-            "Fix-Verified-By: independent replay\n"
-            "Fix-Authored-Against: topic-a, topic-b\n"
-            "Fix-Generalized-On: topic-c, topic-d\n"
-        )
+def test_landed_control_without_executable_evidence_is_refused(tmp_path: Path) -> None:
+    repo = _repo_with_baseline(tmp_path, _entry("SPECIFIED", kind="control"))
+    head = _git(repo, "rev-parse", "HEAD")
+    current = _entry(
+        "LANDED",
+        kind="control",
+        history=[_hist("SPECIFIED"), _hist("LANDED", commit=head)],
+        executable_evidence=None,
+    )
+    _write_store(repo, _store(current))
+    _render_views(repo)
 
-        reasons = fixstate.check_message(message, root=repo, parent_tree=base)
+    reasons = _check(repo)
 
-    assert reasons == []
-
-
-def test_landed_alone_passes():
-    assert fixstate.check_message("landed state\n\nFix-State: LANDED\n") == []
+    assert any("control LANDED needs executable_evidence" in r for r in reasons)
 
 
-def test_commit_scan_inert_until_enforced_since_is_set():
-    with _temp_repo() as repo:
-        _write(repo, "notes.txt", "base\n")
-        _commit(repo, "base without trailer")
+def test_landed_control_with_failing_executable_evidence_is_refused(tmp_path: Path) -> None:
+    repo = _repo_with_baseline(tmp_path, _entry("SPECIFIED", kind="control"))
+    head = _git(repo, "rev-parse", "HEAD")
+    current = _entry(
+        "LANDED",
+        kind="control",
+        history=[_hist("SPECIFIED"), _hist("LANDED", commit=head)],
+        executable_evidence={
+            "command": f"{sys.executable} -c \"print('NOPE')\"",
+            "expected_substring": "OK",
+        },
+    )
+    _write_store(repo, _store(current))
+    _render_views(repo)
 
-        hits = fixstate.scan_commits(repo, {"enforced_since": None})
+    reasons = _check(repo)
 
-    assert hits == []
-
-
-def test_check_ledgers_reports_missing_readme_line_and_missing_fix_state():
-    with tempfile.TemporaryDirectory(prefix="fixstate-ledger-", dir=ROOT) as raw:
-        root = Path(raw)
-        _write(root, "docs/evidence/no-state/README.md", "# Evidence\n")
-        _write(root, "docs/fix_ledger.json", json.dumps({"fixes": [{"class": "x"}]}))
-
-        reasons = fixstate.check_ledgers(root)
-
-    assert any("missing four-state Fix state line" in reason for reason in reasons)
-    assert any("missing valid fix_state" in reason for reason in reasons)
+    assert any("missing expected substring" in r for r in reasons)
 
 
-def test_real_ledgers_are_fix_state_clean_after_lane_e_edits():
-    assert fixstate.check_ledgers(ROOT) == []
+def test_verified_by_the_author_is_refused(tmp_path: Path) -> None:
+    repo = _repo_with_baseline(tmp_path, _entry("LANDED", history=[_hist("LANDED", commit="HEAD")]))
+    head = _git(repo, "rev-parse", "HEAD")
+    current = _entry(
+        "VERIFIED",
+        history=[
+            _hist("LANDED", commit=head),
+            _hist("VERIFIED", commit=head, by=AUTHOR, evidence=["docs/evidence/proof.txt"]),
+        ],
+    )
+    _write_store(repo, _store(current))
+    _render_views(repo)
+
+    reasons = _check(repo)
+
+    assert any("VERIFIED by must differ from author" in r for r in reasons)
+
+
+def test_verified_evidence_created_in_same_commit_is_refused(tmp_path: Path) -> None:
+    repo = _repo_with_baseline(tmp_path, _entry("LANDED", history=[_hist("LANDED", commit="HEAD")]), evidence_in_base=False)
+    _write(repo, "docs/evidence/proof.txt", "same commit proof\n")
+    same_commit = _commit(repo, "add proof")
+    current = _entry(
+        "VERIFIED",
+        history=[
+            _hist("LANDED", commit=same_commit),
+            _hist("VERIFIED", commit=same_commit, evidence=["docs/evidence/proof.txt"]),
+        ],
+    )
+    _write_store(repo, _store(current))
+    _render_views(repo)
+
+    reasons = _check(repo)
+
+    assert any("did not exist in parent tree" in r for r in reasons)
+
+
+def test_generalized_overlap_is_refused(tmp_path: Path) -> None:
+    repo = _repo_with_baseline(tmp_path, _entry("VERIFIED", history=[_hist("LANDED", commit="HEAD"), _hist("VERIFIED", commit="HEAD", evidence=["docs/evidence/proof.txt"])]))
+    head = _git(repo, "rev-parse", "HEAD")
+    current = _entry(
+        "GENERALIZED",
+        history=[
+            _hist("LANDED", commit=head),
+            _hist("VERIFIED", commit=head, evidence=["docs/evidence/proof.txt"]),
+            _hist("GENERALIZED", commit=head),
+        ],
+        authored_against=["topic-a", "topic-b"],
+        generalized_on=["topic-b", "topic-c"],
+    )
+    _write_store(repo, _store(current))
+    _render_views(repo)
+
+    reasons = _check(repo)
+
+    assert any("overlaps generalized_on" in r for r in reasons)
+
+
+def test_status_edited_without_history_is_refused(tmp_path: Path) -> None:
+    repo = _repo_with_baseline(tmp_path, _entry("REPORTED"))
+    current = _entry("LANDED", history=[_hist("REPORTED")])
+    _write_store(repo, _store(current))
+    _render_views(repo)
+
+    reasons = _check(repo)
+
+    assert any("without matching new history entry" in r for r in reasons)
+
+
+def test_stale_view_is_refused(tmp_path: Path) -> None:
+    repo = _repo_with_baseline(tmp_path, _entry("REPORTED"))
+    _write(repo, "docs/fix_ledger.json", '{"fixes":[]}\n')
+
+    reasons = _check(repo)
+
+    assert any("docs/fix_ledger.json is stale" in r for r in reasons)
+
+
+def test_real_store_validates() -> None:
+    ok, reasons = fixstate.check(ROOT)
+
+    assert ok, "\n".join(reasons)

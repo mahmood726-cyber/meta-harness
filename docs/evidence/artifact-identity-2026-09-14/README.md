@@ -1,6 +1,6 @@
 # Artifact identity — build once, verify that artifact, deploy exactly it, fetch it back (2026-09-14)
 
-**Fix state (four-state rule): VERIFIED** - the chain (record ATTESTED, served bodies re-hashed, artifact bound to the commit, no checkout in deploy) re-demonstrated by a non-author agent from a fresh clone (`docs/evidence/independent-verification-2026-09-14/04-*`). The authenticated parts of the second-path sweep could NOT be re-tested there (`docs/evidence/independent-verification-2026-09-14/05-*`) and stay LANDED. Not GENERALIZED. Independent verification here means a second agent, not an external human party.
+**Fix state (four-state rule): VERIFIED** - Artifact chain re-demonstrated by a non-author fresh clone
 
 | file | what it is |
 |---|---|

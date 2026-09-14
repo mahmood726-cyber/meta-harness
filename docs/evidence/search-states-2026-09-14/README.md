@@ -1,6 +1,6 @@
 # Retrieval class as an object state; honest-state ratchet; regeneration of the 32 pages (2026-09-14)
 
-**Fix state (four-state rule): VERIFIED** - the served labels and the ratchet refusal re-demonstrated by a non-author agent from a fresh clone (`docs/evidence/independent-verification-2026-09-14/09-*`, `11-*`). Not GENERALIZED. Independent verification here means a second agent, not an external human party.
+**Fix state (four-state rule): VERIFIED** - Served labels and ratchet refusal re-demonstrated
 
 | file | what it is |
 |---|---|

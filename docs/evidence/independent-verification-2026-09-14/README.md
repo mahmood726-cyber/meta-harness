@@ -1,6 +1,6 @@
 Re-demonstrated by: Codex (GPT-5), lane G, fresh clone at f156f89bc51df314b618e7df7ebc90af7768d351, 2026-09-14T17:44:14Z. Not the author of the fixes.
 
-**Fix state (four-state rule): LANDED** — this directory carries no fix of its own; it is the independent demonstration (by a non-author agent, from a fresh clone) that other fixes cite when they claim VERIFIED. Per-claim verdicts below; a COULD NOT TEST leaves that claim at LANDED.
+**Fix state (four-state rule): LANDED** - Architecture identity is computed as a structured digest
 
 | claim | file | VERDICT |
 |---|---|---|

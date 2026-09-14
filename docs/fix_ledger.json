@@ -1,569 +1,1028 @@
 {
- "_doc": "Ledger of every fix relayed to Mahmood across audits 20-27. State vocabulary is FOUR-valued and never folded: LANDED_AND_LIVE (committed, pushed, AND the live URL fetched+read) / LANDED_NOT_LIVE (committed+pushed, live not re-verified) / IN_PROGRESS (lane or edit open now) / QUEUED (nothing started). corpus_reach = of 32 topics, how many the fix has actually reached in the SERVED pages (a code fix not rebuilt into the pages is NOT applied). The pre-commit gate enforces reproduce-all on every machinery commit, so a COMMITTED template fix reaches 32/32 by construction; the historical staleness that let audits 25-27 re-find 'fixed' things was the AGGREGATE docs/*.json artefacts, which were not gated until the leak-scanner limb (fa2b45d).",
- "generated": "2026-09-13 session (Torres synonym fix landed live at 109053ad)",
+ "_doc": "GENERATED VIEW of registry/fixes.json. Do not edit by hand; run scripts/render_fix_ledger.py.",
+ "generated_from": "registry/fixes.json",
+ "schema_version": 1,
  "fixes": [
   {
-   "audit": 20,
+   "finding_id": "FL-01",
+   "fix_id": "FIX-01",
+   "kind": "fix",
    "class": "preregistration-vs-build-SHA + gate limb + 32-topic SHA audit + one-state across renderers",
-   "state": "LANDED_AND_LIVE",
-   "where": "aaca0c5, ef2ee25, fa2b45d (PRISMA-24 unification)",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (live: crystalloids PRISMA-24 'precedence is NOT demonstrated' fetched)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "aaca0c58db2c97c8cd57adbb3b2c351b0f1c9e08",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/01-prereg-sha-state.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/01-prereg-sha-state.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/01-prereg-sha-state.txt"
+    ]
    }
   },
   {
-   "audit": 20,
+   "finding_id": "FL-02",
+   "fix_id": "FIX-02",
+   "kind": "fix",
    "class": "substudy identifier carried through extraction/RoB/funding/GRADE",
-   "state": "QUEUED",
-   "where": "not separately verified this session",
-   "corpus_reach": 0,
-   "evidence": "CLAIMED (relayed in audit-20 batch; not confirmed landed by a test/commit I can point to)",
-   "fix_state": "REPORTED"
+   "fix_state": "REPORTED",
+   "state": "REPORTED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": null
   },
   {
-   "audit": 20,
+   "finding_id": "FL-03",
+   "fix_id": "FIX-03",
+   "kind": "fix",
    "class": "D3 not-assessed default + GRADE cap-below-high + low-risk NOT-ESTIMABLE + disclosure",
-   "state": "LANDED_AND_LIVE",
-   "where": "ef2ee25, 098d8f5",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (live: sglt2-ckd renders 'moderate', D3 cap fired)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "ef2ee2599d8a3a4f8998f0eeca12c5361509fca1",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/03-d3-grade-cap.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/03-d3-grade-cap.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/03-d3-grade-cap.txt"
+    ]
    }
   },
   {
-   "audit": 20,
+   "finding_id": "FL-04",
+   "fix_id": "FIX-04",
+   "kind": "fix",
    "class": "D5 semantic reconciliation",
-   "state": "QUEUED",
-   "where": "not confirmed",
-   "corpus_reach": 0,
-   "evidence": "CLAIMED",
-   "fix_state": "REPORTED"
+   "fix_state": "REPORTED",
+   "state": "REPORTED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": null
   },
   {
-   "audit": 22,
+   "finding_id": "FL-05",
+   "fix_id": "FIX-05",
+   "kind": "fix",
    "class": "registered-estimand-wins-over-source",
-   "state": "LANDED_NOT_LIVE",
-   "where": "cc81dc9",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (test_method_scale); pre-dates this session's live checks",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "cc81dc9e16ec23f7d9a24c6d84a2913f8cd44461",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/05-registered-estimand.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/05-registered-estimand.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/05-registered-estimand.txt"
+    ]
    }
   },
   {
-   "audit": 22,
+   "finding_id": "FL-06",
+   "fix_id": "FIX-06",
+   "kind": "fix",
    "class": "IRR-mistyping (first-event/mortality rate ratio typed as person-time IRR)",
-   "state": "IN_PROGRESS",
-   "where": "extract.py _RECURRENT_PERSONTIME edited + test_irr_typing (6 tests) pass; all 32 rebuilt in working tree; NOT yet committed",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (omega3 un-suppressed -> RR 0.943; RECOVERY/ASCEND->RR; iv-iron stays IRR)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/06-irr-mistyping.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/06-irr-mistyping.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/06-irr-mistyping.txt"
+    ]
    }
   },
   {
-   "audit": 22,
+   "finding_id": "FL-07",
+   "fix_id": "FIX-07",
+   "kind": "fix",
    "class": "NOT_RUN may not justify an inaccessibility/paywall claim + gate limb",
-   "state": "LANDED_AND_LIVE",
-   "where": "5569af1",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (gate fired pre-fix on corticosteroids-covid + sglt2-ckd; honest wording live)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "5569af1b6fb511356eb5d3311b807d820d8f3805",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/07-not-run-wording.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/07-not-run-wording.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/07-not-run-wording.txt"
+    ]
    }
   },
   {
-   "audit": 23,
+   "finding_id": "FL-08",
+   "fix_id": "FIX-08",
+   "kind": "fix",
    "class": "INCOMPATIBLE fails closed + suppression-at-source + 224-artefact leak scan",
-   "state": "LANDED_AND_LIVE",
-   "where": "230512a, a216561, 5c0216b, fa2b45d",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (live: iv-iron/omega3 pages read; leak scan clean; note omega3 later un-suppressed by the IRR fix as a false positive)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "230512ad027b5e1ba52a83272876161a9ab933ef",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/08-incompatible-failclosed.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/08-incompatible-failclosed.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/08-incompatible-failclosed.txt"
+    ]
    }
   },
   {
-   "audit": 23,
+   "finding_id": "FL-09",
+   "fix_id": "FIX-09",
+   "kind": "fix",
    "class": "unknown never counted in a proportion denominator (funding)",
-   "state": "LANDED_AND_LIVE",
-   "where": "fa2b45d",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (live: crystalloids '0 of 1 known (4 unknown)' fetched)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "fa2b45d51fbc2f3c69198366772b7887c168bf7c",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/09-unknown-denominator.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/09-unknown-denominator.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/09-unknown-denominator.txt"
+    ]
    }
   },
   {
-   "audit": 23,
+   "finding_id": "FL-10",
+   "fix_id": "FIX-10",
+   "kind": "fix",
    "class": "cross-module single source-state + no-two-modules-disagree gate limb",
-   "state": "QUEUED",
-   "where": "xmodule_state lane done (drift enumerated); registration axis partly closed by PRISMA-24 unification; the general gate limb not built",
-   "corpus_reach": 0,
-   "evidence": "INFERRED",
-   "fix_state": "REPORTED"
+   "fix_state": "REPORTED",
+   "state": "REPORTED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": null
   },
   {
-   "audit": 23,
+   "finding_id": "FL-11",
+   "fix_id": "FIX-11",
+   "kind": "fix",
    "class": "comparator-scope re-run across 32",
-   "state": "IN_PROGRESS",
-   "where": "comparator_scope lane done: 18/32 mismatch, 5 disclosed; disclosure fix not landed",
-   "corpus_reach": 0,
-   "evidence": "MEASURED (lane)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/11-comparator-scope.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/11-comparator-scope.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/11-comparator-scope.txt"
+    ]
    }
   },
   {
-   "audit": 15,
+   "finding_id": "FL-12",
+   "fix_id": "FIX-12",
+   "kind": "fix",
    "class": "effect-measure three-field type system",
-   "state": "LANDED_NOT_LIVE",
-   "where": "748cb7c",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (test_estmeasure)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "748cb7ca05b08c346f383227bbdc64e8eeacf2da",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/12-effect-measure.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/12-effect-measure.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/12-effect-measure.txt"
+    ]
    }
   },
   {
-   "audit": 15,
+   "finding_id": "FL-13",
+   "fix_id": "FIX-13",
+   "kind": "fix",
    "class": "atomic comparator extraction (COMPARATOR_RESULT_CONTEXT_MISMATCH)",
-   "state": "LANDED_NOT_LIVE",
-   "where": "6e54ba1",
-   "corpus_reach": 32,
-   "evidence": "MEASURED",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "6e54ba1a8e9c84c88c0b9a50fc041d4e68e60bbb",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/13-atomic-comparator.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/13-atomic-comparator.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/13-atomic-comparator.txt"
+    ]
    }
   },
   {
-   "audit": 15,
+   "finding_id": "FL-14",
+   "fix_id": "FIX-14",
+   "kind": "fix",
    "class": "arm-contrast parser + randomised-contrast disclosure",
-   "state": "LANDED_NOT_LIVE",
-   "where": "7f3b552",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (test_armcontrast)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "7f3b5528c2188b672881df92e954e9aaad976ef3",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/14-arm-contrast.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/14-arm-contrast.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/14-arm-contrast.txt"
+    ]
    }
   },
   {
-   "audit": 25,
+   "finding_id": "FL-15",
+   "fix_id": "FIX-15",
+   "kind": "fix",
    "class": "harms decoupled from extraction format + zero-event-is-data",
-   "state": "QUEUED",
-   "where": "not started",
-   "corpus_reach": 0,
-   "evidence": "CLAIMED",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/15-harms-zero-event.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/15-harms-zero-event.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/15-harms-zero-event.txt"
+    ]
    }
   },
   {
-   "audit": 21,
+   "finding_id": "FL-16",
+   "fix_id": "FIX-16",
+   "kind": "fix",
    "class": "NCT->publication link layer + PUBLICATION_FOUND_NOT_EXTRACTED gate + verified subset of 33/67",
-   "state": "IN_PROGRESS",
-   "where": "verify33 lane (offline) found 0 committed primary-report links for CLEAR SYNERGY; denom67 lane running to clean the 67; fetch needs network",
-   "corpus_reach": 0,
-   "evidence": "MEASURED (offline subset = 0 verified so far)",
-   "fix_state": "REPORTED"
+   "fix_state": "REPORTED",
+   "state": "REPORTED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": null
   },
   {
-   "audit": 26,
+   "finding_id": "FL-17",
+   "fix_id": "FIX-17",
+   "kind": "fix",
    "class": "no exclusion on interval width or trial size",
-   "state": "LANDED_AND_LIVE",
-   "where": "by design (never implemented); auditor 26/27 explicitly credited the k=1 tau2/HKSJ/PI refusal",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (audit endorsement)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/17-no-width-size-exclusion.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/17-no-width-size-exclusion.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/17-no-width-size-exclusion.txt"
+    ]
    }
   },
   {
-   "audit": 24,
+   "finding_id": "FL-18",
+   "fix_id": "FIX-18",
+   "kind": "fix",
    "class": "claimed-entity-derived-from-pooled (outcome/intervention/population/drug-class)",
-   "state": "IN_PROGRESS",
-   "where": "claimed_entity lane done: outcome-narrower 2, intervention-umbrella 14, population 3 of 32; the derive+gate implementation not built",
-   "corpus_reach": 0,
-   "evidence": "MEASURED (sweep)",
-   "fix_state": "REPORTED"
+   "fix_state": "REPORTED",
+   "state": "REPORTED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": null
   },
   {
-   "audit": 24,
+   "finding_id": "FL-19",
+   "fix_id": "FIX-19",
+   "kind": "fix",
    "class": "heterogeneity narratives derived, not authored",
-   "state": "QUEUED",
-   "where": "reassurance lane covers the component-check; fix not built",
-   "corpus_reach": 0,
-   "evidence": "CLAIMED",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/19-heterogeneity-derived.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/19-heterogeneity-derived.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/19-heterogeneity-derived.txt"
+    ]
    }
   },
   {
-   "audit": 24,
+   "finding_id": "FL-20",
+   "fix_id": "FIX-20",
+   "kind": "fix",
    "class": "GRADE 'not rateable' extended to 'deferred to human' (not only 'missing')",
-   "state": "LANDED_AND_LIVE",
-   "where": "already covered by the D3 cap (ef2ee25/098d8f5): every topic is capped below high because a required domain is unassessed; indirectness deferral is disclosed",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (sglt2-ckd 'moderate', not 'high')",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "ef2ee2599d8a3a4f8998f0eeca12c5361509fca1",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/20-grade-human-deferral.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/20-grade-human-deferral.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/20-grade-human-deferral.txt"
+    ]
    }
   },
   {
-   "audit": 26,
+   "finding_id": "FL-21",
+   "fix_id": "FIX-21",
+   "kind": "fix",
    "class": "unit-of-analysis for cluster/crossover folded into suppression-at-source",
-   "state": "IN_PROGRESS",
-   "where": "uoa_census lane running (enumerating cluster/crossover/multi-arm trials); mechanism not built",
-   "corpus_reach": 0,
-   "evidence": "INFERRED",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/21-unit-of-analysis.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/21-unit-of-analysis.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/21-unit-of-analysis.txt"
+    ]
    }
   },
   {
-   "audit": 26,
+   "finding_id": "FL-22",
+   "fix_id": "FIX-22",
+   "kind": "fix",
    "class": "computational verification of every 'would not change' reassurance",
-   "state": "IN_PROGRESS",
-   "where": "reassurance lane done; not acted",
-   "corpus_reach": 0,
-   "evidence": "MEASURED (lane)",
-   "fix_state": "REPORTED"
+   "fix_state": "REPORTED",
+   "state": "REPORTED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": null
   },
   {
-   "audit": 26,
+   "finding_id": "FL-23",
+   "fix_id": "FIX-23",
+   "kind": "fix",
    "class": "why the reproduction census missed the BaSICS expected-failure",
-   "state": "IN_PROGRESS",
-   "where": "census_basics lane running",
-   "corpus_reach": 0,
-   "evidence": "INFERRED",
-   "fix_state": "REPORTED"
+   "fix_state": "REPORTED",
+   "state": "REPORTED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": null
   },
   {
-   "audit": 26,
+   "finding_id": "FL-24",
+   "fix_id": "FIX-24",
+   "kind": "fix",
    "class": "timepoint hierarchy + multi-window sweep",
-   "state": "QUEUED",
-   "where": "not started",
-   "corpus_reach": 0,
-   "evidence": "CLAIMED",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/24-timepoint-window.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/24-timepoint-window.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/24-timepoint-window.txt"
+    ]
    }
   },
   {
-   "audit": 26,
+   "finding_id": "FL-25",
+   "fix_id": "FIX-25",
+   "kind": "fix",
    "class": "comparator-predates-our-included-trials rule + sweep",
-   "state": "QUEUED",
-   "where": "reassurance lane collects the predates data; rule not built",
-   "corpus_reach": 0,
-   "evidence": "CLAIMED",
-   "fix_state": "REPORTED"
+   "fix_state": "REPORTED",
+   "state": "REPORTED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": null
   },
   {
-   "audit": 27,
+   "finding_id": "FL-26",
+   "fix_id": "FIX-26",
+   "kind": "fix",
    "class": "domain-level screening + poison-token sweep + platform-trial census",
-   "state": "IN_PROGRESS",
-   "where": "poison_token lane running",
-   "corpus_reach": 0,
-   "evidence": "INFERRED",
-   "fix_state": "REPORTED"
+   "fix_state": "REPORTED",
+   "state": "REPORTED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": null
   },
   {
-   "audit": 24,
+   "finding_id": "FL-27",
+   "fix_id": "FIX-27",
+   "kind": "fix",
    "class": "exclusion_symmetry self-check",
-   "state": "IN_PROGRESS",
-   "where": "exclusion_symmetry lane done (5/32 flagged) BUT has a coverage gap (missed probiotics' 13-trial case); unreg_excl lane running; instrument+gate not built",
-   "corpus_reach": 0,
-   "evidence": "MEASURED (lane, with known gap)",
-   "fix_state": "REPORTED"
+   "fix_state": "REPORTED",
+   "state": "REPORTED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": null
   },
   {
-   "audit": 25,
+   "finding_id": "FL-28",
+   "fix_id": "FIX-28",
+   "kind": "fix",
    "class": "UNREGISTERED_EXCLUSION_CRITERION",
-   "state": "IN_PROGRESS",
-   "where": "unreg_excl lane (13 probiotics trials this class). Torres SPLIT OUT: it was a mortality<->death SYNONYM silent-drop, not an unregistered exclusion -- fixed separately (see mortality-synonym entry).",
-   "corpus_reach": 0,
-   "evidence": "INFERRED",
-   "fix_state": "REPORTED"
+   "fix_state": "REPORTED",
+   "state": "REPORTED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": null
   },
   {
-   "audit": 27,
+   "finding_id": "FL-29",
+   "fix_id": "FIX-29",
+   "kind": "fix",
    "class": "PMID 40261382 (REMAP-CAP CAP report) into the search-rebuild test set as a confirmed true miss",
-   "state": "QUEUED",
-   "where": "not started",
-   "corpus_reach": 0,
-   "evidence": "CLAIMED",
-   "fix_state": "REPORTED"
+   "fix_state": "REPORTED",
+   "state": "REPORTED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": null
   },
   {
-   "audit": 25,
+   "finding_id": "FL-30",
+   "fix_id": "FIX-30",
+   "kind": "fix",
    "class": "new-classes-per-audit trend artefact",
-   "state": "IN_PROGRESS",
-   "where": "docs/class_discovery.json written, staged, not yet committed",
-   "corpus_reach": 0,
-   "evidence": "MEASURED",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/30-class-discovery.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/30-class-discovery.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/30-class-discovery.txt"
+    ]
    }
   },
   {
-   "audit": 27,
+   "finding_id": "FL-31",
+   "fix_id": "FIX-31",
+   "kind": "fix",
    "class": "OUTCOME_KEYWORD_SYNONYM_GAP (mortality<->death) silently drops an eligible trial",
-   "state": "LANDED_AND_LIVE",
-   "where": "109053ad (harness/extract._mort_variants + _kw_in_sentence)",
-   "corpus_reach": 1,
-   "evidence": "MEASURED (live: corticosteroids-cap k=1->2, Torres 25688779 6/61 vs 9/59 pooled; RR 0.525 significant -> 0.546 NOT significant; fetched from Pages)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "109053ad175eafcb77c0c23020f8e367008591c4",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/31-mortality-synonym.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/31-mortality-synonym.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/31-mortality-synonym.txt"
+    ]
    }
   },
   {
-   "audit": 27,
+   "finding_id": "FL-32",
+   "fix_id": "FIX-32",
+   "kind": "fix",
    "class": "ARM_DENOMINATOR_MISBINDING (near-equal arms) -- OWED denominator audit",
-   "state": "LANDED_AND_LIVE",
-   "where": "verified already-correct in committed corpus (no code change needed)",
-   "corpus_reach": 0,
-   "evidence": "MEASURED (SELECT 37952131 AE-discont placebo N = 8801 correct not 8803; semaglutide-weight 1306/655 & 407/204 correct; LoDoCo2 MACE uses source HR, no reconstructed denominator after N/M-parser revert)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/32-arm-denominator.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/32-arm-denominator.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/32-arm-denominator.txt"
+    ]
    }
   },
   {
-   "audit": "architecture (Mahmood COMMIT 1)",
+   "finding_id": "FL-33",
+   "fix_id": "FIX-33",
+   "kind": "fix",
    "class": "CANONICAL_CLAIM_OBJECT — one significance/null-crossing derivation per result; build fails on cross-surface contradiction",
-   "state": "LANDED_AND_LIVE",
-   "where": "5288ee01 (harness/claim.py, pipeline attaches result.claim, census._claim_check gate, page renders claims-checked/contradictions)",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (live: pcsk9-mace reproduction tab shows \"Claims checked: 1; contradictions caught: 0\"; gate passes 32/32, mutation test proves it can fail; 0 estimates moved)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "5288ee017a2c1e84e9798d448bcff32f803561f7",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/33-canonical-claim.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/33-canonical-claim.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/33-canonical-claim.txt"
+    ]
    }
   },
   {
-   "audit": "architecture (Mahmood COMMIT 2)",
+   "finding_id": "FL-34",
+   "fix_id": "FIX-34",
+   "kind": "fix",
    "class": "INVALIDATION_PROPAGATION — one per-topic STALE flag from committed signals poisons every dependent output; corpus reports n of 32 STALE",
-   "state": "LANDED_AND_LIVE",
-   "where": "117f3473 (harness/invalidation.py, pipeline attaches core.invalidation, page STALE banner, index currency section)",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (live: index \"25 of 32 topics current; 7 of 32 STALE\"; STALE banner live on semaglutide-weight; 0 estimates moved)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "117f34737997d72c07636d8d3c735b7afb88ddf0",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/34-invalidation.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/34-invalidation.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/34-invalidation.txt"
+    ]
    }
   },
   {
-   "audit": "architecture (Mahmood COMMIT 3)",
+   "finding_id": "FL-35",
+   "fix_id": "FIX-35",
+   "kind": "fix",
    "class": "POOLING_COMPATIBILITY_KEY — explicit 6-dimension pooling contract per outcome + fail-closed backstop; unifies scattered guards",
-   "state": "LANDED_AND_LIVE",
-   "where": "harness/compat.py, pipeline attaches outcome.compat_key, page renders it, census backstop",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (live: glp1-ra-mace compatibility-key table shows \"0 of 7 pooled trials\" registry-confirmed; 48 pools keyed, 0 hard mismatches, 13 disclose unverified contrast; 0 estimates moved) | to-spec: iv-iron counterfactual live \"would have been 0.61 (0.01-51.59)\" INVALID; 6 per-field plants + 3 positive controls (finerenone/sglt2-ckd/glp1) pass; both directions: 1 refused, 0 newly-passing",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/35-compatibility-key.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/35-compatibility-key.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/35-compatibility-key.txt"
+    ]
    }
   },
   {
-   "audit": "architecture (Mahmood gate 5)",
+   "finding_id": "FL-36",
+   "fix_id": "FIX-36",
+   "kind": "fix",
    "class": "ARMCONTRAST_INTO_SCREENING — randomised-contrast check moved from post-pool to eligibility; confirmed non-contrasts evicted (X-CONTRAST)",
-   "state": "LANDED_AND_LIVE",
-   "where": "harness/screen.py X-CONTRAST + docs/contrast_evictions.json + pipeline injection",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (live: SoSTART evicted on noac-warfarin; 2 evictions (Palomba 15472166, SoSTART), both screened-in-not-pooled so eligible count corrected, 0 estimates moved; confirmed-only, unverified_no_contrast NOT used to avoid dropping valid trials)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/36-armcontrast-screening.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/36-armcontrast-screening.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/36-armcontrast-screening.txt"
+    ]
    }
   },
   {
-   "audit": "architecture (Mahmood gate 5b)",
+   "finding_id": "FL-37",
+   "fix_id": "FIX-37",
+   "kind": "fix",
    "class": "TRIAL<->REPORT ENTITY MODEL — collapse secondary/duplicate reports to parent before counting (records != trials)",
-   "state": "LANDED_AND_LIVE",
-   "where": "docs/study_families.json merged into companion_reports; X-DEDUP; pipeline injection",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (live: esketamine 7/7 secondary reports collapsed, 13->6 screened-in; metformin 2/2 Moll secondaries; 0 estimates moved, positive controls intact; corrects inflated counts both directions)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/37-trial-report-model.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/37-trial-report-model.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/37-trial-report-model.txt"
+    ]
    }
   },
   {
-   "audit": "architecture (Mahmood gate 4)",
+   "finding_id": "FL-38",
+   "fix_id": "FIX-38",
+   "kind": "fix",
    "class": "PROTOCOL_COMPILER + CONFIG_EQUALITY — prose protocol vs executable config as TWO INDEPENDENT sources (defeats self-certification)",
-   "state": "LANDED_AND_LIVE",
-   "where": "harness/protocol_compiler.py, pipeline attaches review.protocol_config, page + index render",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (live index: \"Protocol↔config: 5 divergences across 5 of 32 topics\" — 4 DESIGN_MASKING_ANDOR + 1 ESTIMAND_DIVERGENCE spironolactone; 0 estimates moved)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/38-protocol-compiler.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/38-protocol-compiler.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/38-protocol-compiler.txt"
+    ]
    }
   },
   {
-   "audit": "read-only session (predicate + states)",
+   "finding_id": "FL-39",
+   "fix_id": "FIX-39",
+   "kind": "fix",
    "class": "OBJECT-DERIVED eligible_declared_absent predicate + no_checkable_claim + NEVER_CONSIDERED + identity crosswalk",
-   "state": "LANDED_AND_LIVE",
-   "where": "invalidation.py predicate (decision==include & not-pooled, nct-resolved); docs/never_considered.json; page renders Claims-checked-0 limitation + fifth state",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (live: 3 of 32 current, 29 of 32 STALE — produced by assess(), not hand-entered; iv-iron Claims-checked-0 limitation; spironolactone NEVER_CONSIDERED J-EMPHASIS-HF; 0 cross-space false positives verified; 0 estimates moved)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/39-object-derived-states.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/39-object-derived-states.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/39-object-derived-states.txt"
+    ]
    }
   },
   {
-   "audit": "architecture (commit 6b)",
+   "finding_id": "FL-40",
+   "fix_id": "FIX-40",
+   "kind": "fix",
    "class": "REPORTED vs HARNESS-RECONSTRUCTED derivation provenance on every pooled number",
-   "state": "LANDED_AND_LIVE",
-   "where": "pipeline attaches trial.derivation; page renders per-trial label",
-   "corpus_reach": 32,
-   "evidence": "MEASURED (live: melatonin -17.4 labelled harness-reconstructed not \"trial's own effect\"; glp1 7 HRs source-reported; 0 estimates moved)",
    "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "",
+   "evidence": [
+    "docs/evidence/fix-ladder-2026-09-14/40-derivation-provenance.txt"
+   ],
+   "executable_evidence": null,
    "verification": {
     "by": "Codex lane J",
     "when": "2026-09-14T18:36:13Z",
-    "evidence": "docs/evidence/fix-ladder-2026-09-14/40-derivation-provenance.txt"
+    "evidence": [
+     "docs/evidence/fix-ladder-2026-09-14/40-derivation-provenance.txt"
+    ]
+   }
+  },
+  {
+   "finding_id": "TRANCHE-gate-authority",
+   "fix_id": "TRANCHE-gate-authority",
+   "kind": "fix",
+   "class": "gate-authority",
+   "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "09c5c81b8fd09f31f9373617b8fb1187880a950b",
+   "evidence_dir": "docs/evidence/gate-authority-2026-09-14",
+   "evidence": [
+    "docs/evidence/independent-verification-2026-09-14/01-legacy-pages-red-verify.txt",
+    "docs/evidence/independent-verification-2026-09-14/02-deploy-conditional.txt",
+    "docs/evidence/independent-verification-2026-09-14/06-evidence-served-as-committed.txt"
+   ],
+   "executable_evidence": null,
+   "verification": {
+    "by": "Codex lane G",
+    "when": "2026-09-14T18:36:13Z",
+    "evidence": [
+     "docs/evidence/independent-verification-2026-09-14/01-legacy-pages-red-verify.txt",
+     "docs/evidence/independent-verification-2026-09-14/02-deploy-conditional.txt",
+     "docs/evidence/independent-verification-2026-09-14/06-evidence-served-as-committed.txt"
+    ]
+   }
+  },
+  {
+   "finding_id": "TRANCHE-artifact-identity",
+   "fix_id": "TRANCHE-artifact-identity",
+   "kind": "fix",
+   "class": "artifact-identity",
+   "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "d71959a24b3cb01caf27942b6b789b332c4921fe",
+   "evidence_dir": "docs/evidence/artifact-identity-2026-09-14",
+   "evidence": [
+    "docs/evidence/independent-verification-2026-09-14/04-artifact-identity.txt"
+   ],
+   "executable_evidence": null,
+   "verification": {
+    "by": "Codex lane G",
+    "when": "2026-09-14T18:36:13Z",
+    "evidence": [
+     "docs/evidence/independent-verification-2026-09-14/04-artifact-identity.txt"
+    ]
+   }
+  },
+  {
+   "finding_id": "TRANCHE-acquisition-layer",
+   "fix_id": "TRANCHE-acquisition-layer",
+   "kind": "fix",
+   "class": "acquisition-layer",
+   "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "73e9e55175986de6d12b8eafc5329754300d3491",
+   "evidence_dir": "docs/evidence/search-acquisition-2026-09-14",
+   "evidence": [
+    "docs/evidence/independent-verification-2026-09-14/10-acquisition-prefix-defect.txt"
+   ],
+   "executable_evidence": null,
+   "verification": {
+    "by": "Codex lane G",
+    "when": "2026-09-14T18:36:13Z",
+    "evidence": [
+     "docs/evidence/independent-verification-2026-09-14/10-acquisition-prefix-defect.txt"
+    ]
+   }
+  },
+  {
+   "finding_id": "TRANCHE-held-out-leak-detector",
+   "fix_id": "TRANCHE-held-out-leak-detector",
+   "kind": "fix",
+   "class": "held-out-leak-detector",
+   "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "50f5a67b4fb19ada4716a0df6e6b68c2e4618304",
+   "evidence_dir": "docs/evidence/search-acquisition-2026-09-14",
+   "evidence": [
+    "docs/evidence/independent-verification-2026-09-14/07-heldout-leak-detector.txt"
+   ],
+   "executable_evidence": null,
+   "verification": {
+    "by": "Codex lane G",
+    "when": "2026-09-14T18:36:13Z",
+    "evidence": [
+     "docs/evidence/independent-verification-2026-09-14/07-heldout-leak-detector.txt"
+    ]
+   }
+  },
+  {
+   "finding_id": "TRANCHE-retrieval-states-and-ratchet",
+   "fix_id": "TRANCHE-retrieval-states-and-ratchet",
+   "kind": "fix",
+   "class": "retrieval-states-and-ratchet",
+   "fix_state": "VERIFIED",
+   "state": "VERIFIED",
+   "where": "b8925e043613f9e7926dfe76e3f817f33acff262",
+   "evidence_dir": "docs/evidence/search-states-2026-09-14",
+   "evidence": [
+    "docs/evidence/independent-verification-2026-09-14/09-honest-state-ratchet.txt",
+    "docs/evidence/independent-verification-2026-09-14/11-retrieval-states-served.txt"
+   ],
+   "executable_evidence": null,
+   "verification": {
+    "by": "Codex lane G",
+    "when": "2026-09-14T18:36:13Z",
+    "evidence": [
+     "docs/evidence/independent-verification-2026-09-14/09-honest-state-ratchet.txt",
+     "docs/evidence/independent-verification-2026-09-14/11-retrieval-states-served.txt"
+    ]
+   }
+  },
+  {
+   "finding_id": "TRANCHE-fix-state-ladder",
+   "fix_id": "TRANCHE-fix-state-ladder",
+   "kind": "fix",
+   "class": "fix-state-ladder",
+   "fix_state": "LANDED",
+   "state": "LANDED",
+   "where": "58909dbbf125273dba4251c3be3e25377f7ddf1e",
+   "evidence_dir": "docs/evidence/fix-ladder-2026-09-14",
+   "evidence": [],
+   "executable_evidence": null
+  },
+  {
+   "finding_id": "TRANCHE-architecture-identity",
+   "fix_id": "TRANCHE-architecture-identity",
+   "kind": "fix",
+   "class": "architecture-identity",
+   "fix_state": "LANDED",
+   "state": "LANDED",
+   "where": "c6e1cdef73b305ab78493767947f87a56d1bc8bb",
+   "evidence_dir": "docs/evidence/independent-verification-2026-09-14",
+   "evidence": [],
+   "executable_evidence": null
+  },
+  {
+   "finding_id": "TRANCHE-legacy-ledgers",
+   "fix_id": "TRANCHE-legacy-ledgers",
+   "kind": "fix",
+   "class": "legacy-ledgers",
+   "fix_state": "LANDED",
+   "state": "LANDED",
+   "where": "f928a536156dc99d31fe691fd379b36f33fba47c",
+   "evidence_dir": "docs/evidence/legacy-ledgers-2026-09-14",
+   "evidence": [],
+   "executable_evidence": null
+  },
+  {
+   "finding_id": "TRANCHE-evidence-served",
+   "fix_id": "TRANCHE-evidence-served",
+   "kind": "fix",
+   "class": "evidence-served",
+   "fix_state": "LANDED",
+   "state": "LANDED",
+   "where": "f156f89bc51df314b618e7df7ebc90af7768d351",
+   "evidence_dir": "docs/evidence/independent-verification-2026-09-14",
+   "evidence": [],
+   "executable_evidence": null
+  },
+  {
+   "finding_id": "TRANCHE-evidence-indexes",
+   "fix_id": "TRANCHE-evidence-indexes",
+   "kind": "fix",
+   "class": "evidence-indexes",
+   "fix_state": "LANDED",
+   "state": "LANDED",
+   "where": "7d5cda77d45e9d9a4a37ede37a5b01c59ad0486d",
+   "evidence_dir": "docs/evidence",
+   "evidence": [],
+   "executable_evidence": null
+  },
+  {
+   "finding_id": "CONTROL-A1",
+   "fix_id": "CTRL-A1",
+   "kind": "control",
+   "class": "A1 architecture identity enforced on batches",
+   "fix_state": "SPECIFIED",
+   "state": "SPECIFIED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": {
+    "command": "python -m harness.architecture_identity --json",
+    "expected_substring": "\"identity\""
+   }
+  },
+  {
+   "finding_id": "CONTROL-A2",
+   "fix_id": "CTRL-A2",
+   "kind": "control",
+   "class": "A2 raw external inputs preserved",
+   "fix_state": "SPECIFIED",
+   "state": "SPECIFIED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": {
+    "command": "python -m pytest tests/test_acquisition.py -q",
+    "expected_substring": "passed"
+   }
+  },
+  {
+   "finding_id": "CONTROL-A3",
+   "fix_id": "CTRL-A3",
+   "kind": "control",
+   "class": "A3 out-of-tree defect ledger",
+   "fix_state": "SPECIFIED",
+   "state": "SPECIFIED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": {
+    "command": "python -m pytest tests/test_prospective.py -q",
+    "expected_substring": "passed"
+   }
+  },
+  {
+   "finding_id": "CONTROL-A4",
+   "fix_id": "CTRL-A4",
+   "kind": "control",
+   "class": "A4 rerun policy",
+   "fix_state": "SPECIFIED",
+   "state": "SPECIFIED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": {
+    "command": "python -m pytest tests/test_prospective.py -q",
+    "expected_substring": "passed"
+   }
+  },
+  {
+   "finding_id": "CONTROL-B2",
+   "fix_id": "CTRL-B2",
+   "kind": "control",
+   "class": "B2 release timing",
+   "fix_state": "SPECIFIED",
+   "state": "SPECIFIED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": {
+    "command": "python -m pytest tests/test_prospective.py -q",
+    "expected_substring": "passed"
+   }
+  },
+  {
+   "finding_id": "CONTROL-A5",
+   "fix_id": "CTRL-A5",
+   "kind": "control",
+   "class": "A5 model pinning",
+   "fix_state": "SPECIFIED",
+   "state": "SPECIFIED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": {
+    "command": "python -m harness.architecture_identity --json",
+    "expected_substring": "\"model_stages\""
+   }
+  },
+  {
+   "finding_id": "CONTROL-A6",
+   "fix_id": "CTRL-A6",
+   "kind": "control",
+   "class": "A6 frozen eligibility universe",
+   "fix_state": "SPECIFIED",
+   "state": "SPECIFIED",
+   "where": "",
+   "evidence_dir": "",
+   "evidence": [],
+   "executable_evidence": {
+    "command": "python -m pytest tests/test_prospective.py -q",
+    "expected_substring": "passed"
    }
   }
  ],
- "self_found_vs_audit_found": {
-  "_doc": "the other half of the convergence story: defects WE found before an auditor did.",
-  "self_found": [
-   "served-artefact leak scanner (iv-iron tau2=0.178 aggregate leak)",
-   "preregistration unification across 3 renderer sites",
-   "funding 0 of 1 known (4 unknown)",
-   "spec_curve re-pool of a suppressed primary",
-   "the k<3 leave-one-out note leak"
-  ],
-  "audit_found": "the large majority of all classes 20-27",
-  "note": "first run where any defect was self-found before the audit; audits still find almost everything."
- },
  "summary": {
-  "LANDED_AND_LIVE": "17 of 40",
-  "topics_fully_rebuilt": "32 of 32 (at working-tree HEAD, incl. the un-committed IRR-typing rebuild; 32 of 32 also at committed fa2b45d without IRR-typing)",
-  "fixes_landed_in_code_but_not_in_pages": "0 committed fixes are page-stale (the reproduce-all gate forbids it, and the aggregate-artefact staleness that bit audits 25-27 is now closed + guarded by the leak scanner); 1 fix (IRR-typing) is landed-in-code-and-rebuilt-in-pages but NOT YET COMMITTED (a distinct IN_PROGRESS state, not code-vs-page staleness)",
-  "corpus_currency": "25 of 32 current, 7 of 32 STALE (6 search-source-errored, 1 eligible-declared-absent) as of 117f3473",
-  "stale_reconciled": "29 of 32 STALE (object-derived predicate; 3 current: denosumab, pcsk9, semaglutide-mace) LIVE",
-  "pinned_audit_identity": "LIVE (content hash in every page header)",
-  "six_gates": "1 pinned-URL LIVE | 2 canonical-claim LIVE | 3 invalidation 18/32 STALE LIVE | 4 protocol-compiler 5-divergences LIVE | 5 armcontrast-into-screening 2-evict + trial-report 9-collapse LIVE | 6 compatibility-key LIVE (design-estimator coverage pending)",
-  "codex_network": "BLOCKED (WinError 10013) — fetch queue stays AGY-only"
- },
- "night_log_2026_09_13": {
-  "_doc": "The night the architecture was completed. The central figure: STALE count RISING as each check became able to fire — a defect-discovery curve for our own INSTRUMENTS, not for the corpus. Zero estimates moved throughout; the gates changed what we SAY, never what we COMPUTE.",
-  "stale_progression": [
-   {
-    "count": "7 of 32",
-    "cause": "initial invalidation gate: only source_status RAN_ERROR (6) + a reason-string eligible_declared_absent (1) could fire"
-   },
-   {
-    "count": "18 of 32",
-    "cause": "wired search_not_executed from search_provenance (11: RAN_ERROR-rendered + PMID-enumeration) and known_eligible_missing from the audit record (10)"
-   },
-   {
-    "count": "~24 of 32",
-    "cause": "read-only session hand-derived with external citations (intermediate, not produced by assess())"
-   },
-   {
-    "count": "29 of 32",
-    "cause": "adopted the object-derived predicate: screening decision==include AND not-pooled — catches prose-only admissions no curated list or reason-string could; produced by assess(), not hand-entered; 0 cross-space false positives under identifier resolution"
-   }
-  ],
-  "six_gates_all_live": [
-   "pinned audit URL",
-   "canonical claim object (+Claims-checked-0 failing state)",
-   "invalidation 29/32 STALE",
-   "protocol compiler 5 divergences",
-   "armcontrast-into-screening 2 evict + trial-report 9 collapse",
-   "compatibility key + counterfactual + derivation provenance"
-  ],
-  "invariants_held": "0 displayed estimates moved by ANY structural gate; every gate fires on a plant; positive controls intact (finerenone identical composites, sglt2-ckd/glp1 HRs, screening controls); 32/32 reproduce every commit; leak scan clean; each landing verified on live bytes",
-  "new_states_rendered": [
-   "NEVER_CONSIDERED (fifth state)",
-   "Claims-checked-0 limitation",
-   "reported vs harness-reconstructed derivation",
-   "visible refusal counterfactual",
-   "pinned content hash"
-  ],
-  "test_suite": "312 -> 364",
-  "identity_resolution": "59 same-trial multi-report groups linked from committed data; 0 additional collapses; 2740 PMID-only records need external NCT links (NAMED_BUT_UNBOUND is fetch-dependent); crosswalk gave 0 cross-space false positives so the 29 survives identifier resolution",
-  "recovery_discipline": "ICAP recovery REFUSED on source verification (acute not recurrent population; audit counts not in abstract) — the expected audit false-positive rate, caught not propagated",
-  "codex_network": "BLOCKED (WinError 10013); offline lanes only, and a full-corpus offline sweep times out at 280s"
+  "by_status": {
+   "SPECIFIED": 7,
+   "REPORTED": 12,
+   "LANDED": 5,
+   "VERIFIED": 33,
+   "GENERALIZED": 0
+  },
+  "by_kind": {
+   "control": 7,
+   "fix": 50
+  }
  }
 }

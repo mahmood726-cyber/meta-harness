@@ -1,6 +1,6 @@
 # Legacy ledgers for the 32 pre-ledger topics + raw external inputs preserved (2026-09-14)
 
-**Fix state (four-state rule): LANDED, author-demonstrated; NOT independently VERIFIED; NOT GENERALIZED.**
+**Fix state (four-state rule): LANDED** - Legacy retrieval ledgers written and rendered
 
 | file | what it is |
 |---|---|

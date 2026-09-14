@@ -262,6 +262,26 @@ def _search_recall_section(docs_dir: str) -> str:
     return out
 
 
+def _gate_scorecard_section(docs_dir: str) -> str:
+    """Render the measured gate scorecard summary from registry/gate_scorecard.json."""
+    try:
+        from . import gate_scorecard
+        s = gate_scorecard.summary(os.path.dirname(docs_dir))
+    except Exception:
+        return ""
+    false_gates = ", ".join(s.get("false_refusal_gates") or [])
+    return (f"<div class='banner'><h2>Gate scorecard: plant validations and production refusals</h2>"
+            f"<p><strong>{_E(s.get('gate_count'))} production gates accounted for</strong>; "
+            f"<strong>{_E(s.get('plant_only_count'))}</strong> are <code>PLANT_ONLY</code>; "
+            f"<strong>{_E(s.get('unvalidated_count'))}</strong> are <code>UNVALIDATED</code>; "
+            f"<strong>{_E(s.get('production_true_refusal_gate_count'))}</strong> have production true refusals; "
+            f"<strong>{_E(s.get('false_refusal_gate_count'))}</strong> have adjudicated false refusals"
+            f"{': ' + _E(false_gates) if false_gates else ''}. The named pessimistic incident is "
+            f"{_E(s.get('named_pessimistic_incident'))}. "
+            f"<strong>{_E(s.get('auditor_sentence'))}</strong> "
+            f"Served JSON: <code>gate_scorecard.json</code>.</p></div>")
+
+
 def _verification_section(docs_dir: str) -> str:
     """The strongest single integrity claim, gate-enforced: every pooled number on every page is
     verified against its committed source span, and a gate limb refuses any page that pools a number
@@ -1141,6 +1161,7 @@ def build_index(docs_dir: str) -> str:
             + _currency_section(docs_dir) + _recovery_section(docs_dir)
             + _participant_flow_section(docs_dir) + _iv_iron_strands_section(docs_dir)
             + _search_recall_section(docs_dir)
+            + _gate_scorecard_section(docs_dir)
             + _parity_section(docs_dir) + _error_coverage_section(docs_dir) + _stance
             + _fair_section(docs_dir) + body)
 

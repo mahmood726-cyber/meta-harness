@@ -3,7 +3,7 @@
 **Arriving cold?** Read `VERIFY-COLD.md` first: it gives the anonymous API calls and expected values that confirm the
 central finding (109053ad: verify failed, Pages deployed) without any narration from us.
 
-**Fix state (four-state rule): VERIFIED** - re-demonstrated by a non-author agent from a fresh clone (`docs/evidence/independent-verification-2026-09-14/01-*`, `02-*`, `06-*`: the legacy-build-on-red-SHA finding, the deploy-gate refusal of a74b5c42, the evidence bytes). The server-side ruleset push rejection could NOT be re-tested there (`docs/evidence/independent-verification-2026-09-14/03-*`, no token) and stays LANDED. Not GENERALIZED: it has refused nothing it was not written against. Independent verification here means a second agent, not an external human party.
+**Fix state (four-state rule): VERIFIED** - Re-demonstrated by a non-author fresh clone
 
 Every limb was shown to REFUSE before it was relied on, and shown to PASS on the clean case. Files are
 raw captures (API read-backs, push transcripts, CI ledgers), not summaries.

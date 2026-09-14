@@ -24,18 +24,24 @@ that can be printed and checked:
 - retrieval-adapter versions and the external endpoints they call (mutable external dependencies, declared);
 - the exact production build and deploy path (`.github/workflows/verify.yml`, the `deploy` job's `needs`/`if`).
 Every prospective run records the identity. **A batch whose runs carry two different identities is a failed batch.**
-Status: LANDED — `harness/architecture_identity.py` computes it (`python -m harness.architecture_identity`, `--check`);
-it is carried in every production record from c6e1cdef. It names 31 mutable dependencies today (unpinned requirements,
-tag-based action refs, external APIs, unpinned model snapshots); "frozen" cannot be claimed until those are pinned or
-declared in the batch declaration. Not yet carried in retrieval-ledger snapshots.
+Status: SPECIFIED (control CTRL-A1 in `registry/fixes.json`). The identity VALUE exists and is computed
+(`python -m harness.architecture_identity`, `--check`) and is carried in every production record from c6e1cdef; that is
+a component, not the control. The control — a batch whose runs carry two identities is refused — has been exercised on
+no batch. It was written here as LANDED on 2026-09-14 and corrected the same day: a control does not move from SPECIFIED
+to LANDED because its code was written down clearly, and a passing unit test is the same-run evidence the four-state rule
+excludes; LANDED needs a batch-level check executed with its refusal recorded. The identity names 31 mutable dependencies
+today (unpinned requirements, tag-based action refs, external APIs, unpinned model snapshots).
 
 ### A2. Raw external inputs must be preserved, not only parsed records
 Search APIs and websites change under a frozen architecture. Each run MUST retain: the raw retrieval responses as
 received (bytes, HTTP status), the verbatim query strings, timestamps to the second, the adapter identity (module,
 function, blob SHA) and the source snapshots — enough to tell "the system behaved differently" from "the world changed".
 This extends the retrieval ledger (`harness/acquisition.py`): the ledger points at `raw/` under the snapshot directory.
-Status: LANDED (f928a536) — every live fetch records each HTTP call raw (URL, params, status, body bytes, timestamp,
-adapter identity + blob sha) under `raw/` beside the snapshot, indexed and hashed; legacy snapshots carry `raw_calls: 0`.
+Status: SPECIFIED (control CTRL-A2). The recording code exists (f928a536: every live fetch records each HTTP call raw —
+URL, params, status, body bytes, timestamp, adapter identity + blob sha — under `raw/` beside the snapshot, indexed and
+hashed; legacy snapshots carry `raw_calls: 0`) and is covered by offline tests, but it has preserved the raw inputs of
+no prospective run and no one has yet used the archive to separate "the system behaved differently" from "the world
+changed". Written as LANDED on 2026-09-14 and corrected the same day for the reason given under A1.
 
 ### A3. The defect ledger sits OUTSIDE the frozen architecture
 During a batch, defects are appended; no commit, config, prompt, mapping table, query template or data-cleaning rule may
@@ -114,6 +120,7 @@ corpus only.
 ## Part C — fix states, applied to today's claims (four-state rule)
 `REPORTED` → `LANDED` (code on main, author-demonstrated) → `VERIFIED` (invariant independently demonstrated, not by the
 test that was written with the fix) → `GENERALIZED` (holds on something the fix was not authored against). Mechanically
-enforced on commits by `harness/fixstate.py`. Current states are stated in each evidence README under
-`docs/evidence/`; an independent re-demonstration lane (Codex, fresh clone) is recorded under
-`docs/evidence/independent-verification-2026-09-14/` when it lands and is the evidence the VERIFIED step requires.
+enforced as object transitions in `registry/fixes.json` by `harness/fixstate.py`; commit messages carry no authority over
+fix state. Current states are generated into each matching evidence README under `docs/evidence/`; an independent
+re-demonstration lane (Codex, fresh clone) is recorded under `docs/evidence/independent-verification-2026-09-14/` when it
+lands and is the evidence the VERIFIED step requires.

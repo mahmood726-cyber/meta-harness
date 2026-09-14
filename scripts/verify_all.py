@@ -102,13 +102,15 @@ def limb_heldout():
 
 def limb_fixstate():
     from harness import fixstate
-    registry = fixstate.load(ROOT)
     ok, reasons = fixstate.check(ROOT)
     if not ok:
         return REFUSED, "\n".join(reasons)
-    if registry.get("enforced_since") is None:
-        return PASS, "registry/fixstate.json enforced_since is null; commit scan inert; ledgers pass"
-    return PASS, "registry/fixstate.json commit scan and ledgers pass"
+    registry = fixstate.load(ROOT)
+    counts = {}
+    for entry in fixstate.entries(registry):
+        counts[entry["status"]] = counts.get(entry["status"], 0) + 1
+    detail = ", ".join(f"{status}={counts.get(status, 0)}" for status in fixstate.STATUSES)
+    return PASS, f"registry/fixes.json object store, generated views, and transitions pass ({detail})"
 
 
 def limb_honest_ratchet():
@@ -121,6 +123,19 @@ def limb_honest_ratchet():
     return verdict, detail
 
 
+def limb_gate_scorecard():
+    from harness import gate_scorecard
+    ok, reasons = gate_scorecard.check(ROOT)
+    if ok:
+        s = gate_scorecard.summary(ROOT)
+        return PASS, (f"{s['gate_count']} gates accounted for; "
+                      f"{s['plant_only_count']} PLANT_ONLY; "
+                      f"{s['unvalidated_count']} UNVALIDATED; "
+                      f"{s['production_true_refusal_gate_count']} with production true refusals; "
+                      f"{s['false_refusal_gate_count']} with false refusals")
+    return REFUSED, "\n".join(reasons)
+
+
 LIMBS = [
     ("unit tests (pytest tests/)", limb_unit_tests),
     ("offline reproduction (every live page replays from committed cache)", limb_reproduction),
@@ -128,8 +143,9 @@ LIMBS = [
     ("index currency (generated == committed docs/index.html)", limb_index_currency),
     ("served-artefact leak scan (docs/*.json)", limb_leak_scan),
     ("held-out leak detector (registry/heldout_sealed.json)", limb_heldout),
-    ("fix-state discipline (registry/fixstate.json)", limb_fixstate),
+    ("fix-state discipline (registry/fixes.json)", limb_fixstate),
     ("honest-state ratchet (no page may get quieter)", limb_honest_ratchet),
+    ("gate scorecard (every gate accounted for)", limb_gate_scorecard),
 ]
 
 

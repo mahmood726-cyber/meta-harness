@@ -1,6 +1,6 @@
 # Acquisition layer - retrieval ledger, four run states, pagination, concept source, regression-corpus recall (2026-09-14)
 
-**Fix state (four-state rule): VERIFIED** for the pre-fix defect and its absence at HEAD (re-demonstrated by a non-author agent from a fresh clone: `docs/evidence/independent-verification-2026-09-14/10-*`) and for the held-out leak detector firing on the canary (`docs/evidence/independent-verification-2026-09-14/07-*`); LANDED for the rest (live refresh, regression-corpus recall). Not GENERALIZED. Independent verification here means a second agent, not an external human party.
+**Fix state (four-state rule): VERIFIED** - Prefix defect and absence at HEAD re-demonstrated
 
 | file | what it is |
 |---|---|

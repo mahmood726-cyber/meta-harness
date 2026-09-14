@@ -1,49 +1,67 @@
-"""Four-state fix discipline for commit messages and evidence ledgers."""
+"""Fix-state discipline for the machine-readable fix object store."""
 from __future__ import annotations
 
 import argparse
-import glob
 import json
 import os
-import re
 import subprocess
 import sys
+from collections import Counter
+from pathlib import Path
+from typing import Any
 
 
-REGISTRY_PATH = os.path.join("registry", "fixstate.json")
-LEDGER_PATH = os.path.join("docs", "fix_ledger.json")
-FIX_STATES = ("REPORTED", "LANDED", "VERIFIED", "GENERALIZED")
-NON_FIX = "NOT-A-FIX"
-TRAILER_RE = re.compile(r"^([A-Za-z0-9-]+):[ \t]*(.*)$")
-# STRUCTURE, NOT PROSE (2026-09-14). The first version keyed NOT-A-FIX on words in the subject ("fix", "refus",
-# "gate"...) and refused an evidence-only commit whose subject said "CI refusing a leak" -- a gate acquiring reach
-# beyond the failure it was written for. A checker that prose can trigger or defeat is matching the wrong thing.
-# The rule is now about WHAT THE COMMIT CHANGES: NOT-A-FIX is permitted only when every changed path is outside the
-# system -- evidence captures and prose. Any change to code, hooks, workflows, configuration, caches or served
-# pages is a claim about the system's behaviour and must carry REPORTED / LANDED / VERIFIED / GENERALIZED.
-NON_SYSTEM_PATH_RE = re.compile(r"^(docs/evidence/|evidence/|LANE-[A-Z]-REPORT\.md$|[^/]+\.md$)")  # evidence/ = pre-move location
-README_STATE_RE = re.compile(
-    r"^\*\*Fix state.*:\s*(REPORTED|LANDED|VERIFIED|GENERALIZED)\b",
-    re.MULTILINE,
-)
+REGISTRY_PATH = Path("registry") / "fixes.json"
+LEDGER_PATH = Path("docs") / "fix_ledger.json"
+STATUSES = ("SPECIFIED", "REPORTED", "LANDED", "VERIFIED", "GENERALIZED")
+FIX_STATUSES = ("REPORTED", "LANDED", "VERIFIED", "GENERALIZED")
+KINDS = ("fix", "control")
+FORWARD_TRANSITIONS = {
+    ("SPECIFIED", "LANDED"),
+    ("REPORTED", "LANDED"),
+    ("LANDED", "VERIFIED"),
+    ("VERIFIED", "GENERALIZED"),
+}
+REQUIRED_ENTRY_KEYS = {
+    "finding_id",
+    "fix_id",
+    "title",
+    "kind",
+    "status",
+    "author",
+    "opened_utc",
+    "evidence_dir",
+    "history",
+    "authored_against",
+    "generalized_on",
+    "executable_evidence",
+}
+REQUIRED_HISTORY_KEYS = {
+    "status",
+    "when_utc",
+    "by",
+    "commit",
+    "evidence",
+    "reason",
+}
 
 
-def _root_path(root) -> str:
-    return os.path.abspath(os.fspath(root))
+def _root_path(root: str | os.PathLike[str]) -> Path:
+    return Path(root).resolve()
 
 
-def _posix(path: str) -> str:
-    clean = path.replace("\\", "/")
+def _posix(path: str | os.PathLike[str]) -> str:
+    clean = os.fspath(path).replace("\\", "/")
     while clean.startswith("./"):
         clean = clean[2:]
     return clean
 
 
-def _rel(root: str, path: str) -> str:
-    return _posix(os.path.relpath(path, root))
+def _display_path(path: Path) -> str:
+    return _posix(path)
 
 
-def _run_git(root: str, args: list[str]) -> str:
+def _run_git(root: Path, args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
     proc = subprocess.run(
         ["git", *args],
         cwd=root,
@@ -52,328 +70,486 @@ def _run_git(root: str, args: list[str]) -> str:
         encoding="utf-8",
         errors="replace",
     )
-    if proc.returncode != 0:
+    if check and proc.returncode != 0:
         detail = (proc.stderr or proc.stdout or "").strip()
         raise RuntimeError(f"git {' '.join(args)} failed: {detail}")
-    return proc.stdout
+    return proc
 
 
-def load(root) -> dict:
-    """Load the fix-state registry from registry/fixstate.json under root."""
-    with open(os.path.join(_root_path(root), REGISTRY_PATH), encoding="utf-8") as f:
-        return json.load(f)
+def _git_stdout(root: Path, args: list[str]) -> str:
+    return _run_git(root, args).stdout
 
 
-def parse_trailers(message: str) -> dict[str, list[str]]:
-    """Parse contiguous git-style ``Key: value`` trailer lines at message end."""
-    lines = message.splitlines()
-    while lines and not lines[-1].strip():
-        lines.pop()
-
-    block: list[tuple[str, str]] = []
-    idx = len(lines) - 1
-    while idx >= 0:
-        match = TRAILER_RE.match(lines[idx])
-        if not match:
-            break
-        block.append((match.group(1), match.group(2).strip()))
-        idx -= 1
-
-    trailers: dict[str, list[str]] = {}
-    for key, value in reversed(block):
-        trailers.setdefault(key, []).append(value)
-    return trailers
-
-
-def _values(trailers: dict[str, list[str]], key: str) -> list[str]:
-    values: list[str] = []
-    for found, found_values in trailers.items():
-        if found.lower() == key.lower():
-            values.extend(found_values)
-    return values
-
-
-def _list_items(values: list[str]) -> list[str]:
-    items: list[str] = []
-    for value in values:
-        for item in re.split(r"[,;]", value):
-            clean = item.strip()
-            if clean:
-                items.append(clean)
-    return items
-
-
-def _subject(message: str) -> str:
-    for line in message.splitlines():
-        if line.strip():
-            return line.strip()
-    return ""
-
-
-def _path_is_repo_relative(path: str) -> bool:
-    if not path or os.path.isabs(path):
+def _commit_exists(root: Path, commit: str) -> bool:
+    if not isinstance(commit, str) or not commit.strip():
         return False
-    parts = [part for part in _posix(path).split("/") if part]
-    return ".." not in parts
-
-
-def _evidence_exists_in_parent(root: str, parent_tree: str, path: str) -> bool:
-    spec = f"{parent_tree}:{_posix(path)}"
-    proc = subprocess.run(
-        ["git", "cat-file", "-e", spec],
-        cwd=root,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    proc = _run_git(root, ["cat-file", "-e", f"{commit}^{{commit}}"], check=False)
     return proc.returncode == 0
 
 
-def _verified_violations(message: str, root=None, parent_tree=None) -> list[str]:
-    trailers = parse_trailers(message)
-    evidence = _values(trailers, "Fix-Evidence")
-    verified_by = [value for value in _values(trailers, "Fix-Verified-By") if value.strip()]
-    violations: list[str] = []
-
-    if not evidence:
-        violations.append("VERIFIED/GENERALIZED requires at least one Fix-Evidence: <path> trailer")
-    if not verified_by:
-        violations.append("VERIFIED/GENERALIZED requires non-empty Fix-Verified-By: <text>")
-
-    if not evidence:
-        return violations
-
-    if root is None:
-        violations.append("VERIFIED/GENERALIZED evidence cannot be checked without a repository root")
-        return violations
-
-    root = _root_path(root)
-    parent = parent_tree or "HEAD"
-    for raw_path in evidence:
-        path = raw_path.strip()
-        if not _path_is_repo_relative(path):
-            violations.append(f"Fix-Evidence path must be repo-relative: {raw_path!r}")
-            continue
-        if not parent:
-            violations.append(f"Fix-Evidence did not exist in a parent tree: {_posix(path)}")
-            continue
-        if not _evidence_exists_in_parent(root, parent, path):
-            violations.append(
-                f"Fix-Evidence did not exist in parent tree {parent}: {_posix(path)}"
-            )
-    return violations
-
-
-def system_paths(changed_paths) -> list[str]:
-    """The changed paths that are part of the system (everything not an evidence capture or prose)."""
-    return sorted(p for p in (changed_paths or []) if not NON_SYSTEM_PATH_RE.match(p.replace("\\", "/")))
-
-
-def check_message(message: str, root=None, parent_tree=None, changed_paths=None) -> list[str]:
-    """Return fix-state trailer violations for one commit message. `changed_paths` is the commit's file list
-    (structure); when it is None the structural rule cannot be evaluated and is skipped (callers that have a
-    tree -- the hook and the scan -- always pass it)."""
-    trailers = parse_trailers(message)
-    state_values = [value.strip() for value in _values(trailers, "Fix-State")]
-    allowed = set(FIX_STATES) | {NON_FIX}
-    violations: list[str] = []
-    state = state_values[0] if state_values else None
-
-    if len(state_values) != 1:
-        violations.append(f"exactly one Fix-State trailer required; found {len(state_values)}")
-    elif state not in allowed:
-        violations.append(
-            "Fix-State must be one of "
-            + ", ".join([*FIX_STATES, NON_FIX])
-            + f"; got {state!r}"
-        )
-
-    if state == NON_FIX and changed_paths is not None:
-        sysp = system_paths(changed_paths)
-        if sysp:
-            violations.append("NOT-A-FIX but the commit changes the system (" + ", ".join(sysp[:5])
-                              + (", ..." if len(sysp) > 5 else "") + "); state REPORTED/LANDED/VERIFIED/GENERALIZED")
-
-    if state in {"VERIFIED", "GENERALIZED"}:
-        violations.extend(_verified_violations(message, root=root, parent_tree=parent_tree))
-
-    if state == "GENERALIZED":
-        authored_against = _list_items(_values(trailers, "Fix-Authored-Against"))
-        generalized_on = _list_items(_values(trailers, "Fix-Generalized-On"))
-        if not authored_against:
-            violations.append("GENERALIZED requires Fix-Authored-Against: <list>")
-        if not generalized_on:
-            violations.append("GENERALIZED requires Fix-Generalized-On: <list>")
-        overlap = sorted({item for item in authored_against} & {item for item in generalized_on})
-        if overlap:
-            violations.append(
-                "GENERALIZED authored-against and generalized-on lists overlap: "
-                + ", ".join(overlap)
-            )
-
-    return violations
-
-
-def _first_parent(root: str, sha: str) -> str | None:
-    parts = _run_git(root, ["rev-list", "--parents", "-n", "1", sha]).split()
+def _first_parent(root: Path, commit: str) -> str | None:
+    proc = _run_git(root, ["rev-list", "--parents", "-n", "1", commit], check=False)
+    if proc.returncode != 0:
+        return None
+    parts = proc.stdout.split()
     return parts[1] if len(parts) > 1 else None
 
 
-def scan_commits(root, registry: dict) -> list[dict]:
-    """Scan first-parent commits after registry['enforced_since']."""
-    root = _root_path(root)
-    enforced_since = registry.get("enforced_since")
-    if enforced_since is None:
-        return []
-    shas = _run_git(
-        root,
-        ["rev-list", "--first-parent", "--reverse", f"{enforced_since}..HEAD"],
-    ).splitlines()
-    hits = []
-    for sha in shas:
-        message = _run_git(root, ["log", "-1", "--format=%B", sha])
-        # The structural NOT-A-FIX rule applies to commits AFTER registry['structural_rule_since'] (the commit that
-        # introduced it). Earlier commits were labelled under the subject-word rule and are not re-judged; two of
-        # them (f156f89b, 7f81da01) would fail it and are recorded in the registry as mislabelled under the old rule.
-        changed = None
-        since = registry.get("structural_rule_since")
-        if since:
-            since_sha = _run_git(root, ["rev-parse", since]).strip()
-            is_after = subprocess.run(["git", "merge-base", "--is-ancestor", since_sha, sha], cwd=root).returncode == 0
-            if is_after and since_sha != sha:
-                changed = _run_git(root, ["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", sha]).splitlines()
-        violations = check_message(message, root=root, parent_tree=_first_parent(root, sha), changed_paths=changed)
-        if violations:
-            hits.append({"sha": sha, "violations": violations})
-    return hits
+def _path_is_repo_relative(path: str) -> bool:
+    if not isinstance(path, str) or not path or os.path.isabs(path):
+        return False
+    parts = [part for part in _posix(path).split("/") if part]
+    return bool(parts) and ".." not in parts
 
 
-def check_ledgers(root) -> list[str]:
-    """Check evidence README state lines and docs/fix_ledger.json fix_state fields."""
-    root = _root_path(root)
-    reasons: list[str] = []
+def _path_exists_in_tree(root: Path, treeish: str, path: str) -> bool:
+    proc = _run_git(root, ["cat-file", "-e", f"{treeish}:{_posix(path)}"], check=False)
+    return proc.returncode == 0
 
-    for path in sorted(glob.glob(os.path.join(root, "docs", "evidence", "*", "README.md"))):
-        try:
-            text = open(path, encoding="utf-8").read()
-        except OSError as exc:
-            reasons.append(f"{_rel(root, path)} unreadable: {exc}")
-            continue
-        if not README_STATE_RE.search(text):
-            reasons.append(f"{_rel(root, path)} missing four-state Fix state line")
 
-    ledger_path = os.path.join(root, LEDGER_PATH)
+def _load_json(path: Path) -> Any:
+    with path.open(encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def load(root: str | os.PathLike[str]) -> dict[str, Any]:
+    """Load ``registry/fixes.json`` from ``root``."""
+
+    return _load_json(_root_path(root) / REGISTRY_PATH)
+
+
+def entries(store: dict[str, Any]) -> list[dict[str, Any]]:
+    raw = store.get("entries")
+    return raw if isinstance(raw, list) else []
+
+
+def _entry_label(entry: dict[str, Any], idx: int) -> str:
+    return str(entry.get("fix_id") or entry.get("finding_id") or f"entries[{idx}]")
+
+
+def _history_key(history: dict[str, Any]) -> str:
+    return json.dumps(history, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
+def _latest_history(entry: dict[str, Any], status: str) -> dict[str, Any] | None:
+    for item in reversed(entry.get("history") or []):
+        if isinstance(item, dict) and item.get("status") == status:
+            return item
+    return None
+
+
+def _history_entries_for(entry: dict[str, Any], status: str) -> list[dict[str, Any]]:
+    return [
+        item
+        for item in (entry.get("history") or [])
+        if isinstance(item, dict) and item.get("status") == status
+    ]
+
+
+def _has_history_status(entry: dict[str, Any], status: str) -> bool:
+    return _latest_history(entry, status) is not None
+
+
+def _is_at_least(status: str, threshold: str) -> bool:
+    order = {value: idx for idx, value in enumerate(STATUSES)}
+    return order[status] >= order[threshold]
+
+
+def _validate_executable_evidence(root: Path, entry: dict[str, Any], label: str) -> list[str]:
+    evidence = entry.get("executable_evidence")
+    if not isinstance(evidence, dict):
+        return [f"{label}: control LANDED needs executable_evidence"]
+    command = evidence.get("command")
+    expected = evidence.get("expected_substring")
+    if not isinstance(command, str) or not command.strip():
+        return [f"{label}: executable_evidence.command must be a non-empty string"]
+    if not isinstance(expected, str) or not expected:
+        return [f"{label}: executable_evidence.expected_substring must be a non-empty string"]
     try:
-        ledger = json.load(open(ledger_path, encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        return reasons + [f"{LEDGER_PATH} unreadable: {exc}"]
-
-    fixes = ledger.get("fixes")
-    if not isinstance(fixes, list):
-        return reasons + [f"{LEDGER_PATH}['fixes'] must be a list"]
-    for idx, entry in enumerate(fixes):
-        if not isinstance(entry, dict):
-            reasons.append(f"{LEDGER_PATH} fixes[{idx}] must be an object")
-            continue
-        state = entry.get("fix_state")
-        if state not in FIX_STATES:
-            label = entry.get("class", "<unknown>")
-            reasons.append(f"{LEDGER_PATH} fixes[{idx}] {label!r} missing valid fix_state")
-    return reasons
-
-
-def _registry_violations(registry: dict) -> list[str]:
-    reasons: list[str] = []
-    if registry.get("version") != 1:
-        reasons.append(f"{REGISTRY_PATH} version must be 1")
-    if registry.get("states") != list(FIX_STATES):
-        reasons.append(f"{REGISTRY_PATH} states must be {list(FIX_STATES)!r}")
-    if registry.get("non_fix") != NON_FIX:
-        reasons.append(f"{REGISTRY_PATH} non_fix must be {NON_FIX!r}")
-    return reasons
-
-
-def check(root) -> tuple[bool, list[str]]:
-    """Run registry, commit-message, and evidence-ledger checks."""
-    root = _root_path(root)
-    reasons: list[str] = []
-    try:
-        registry = load(root)
-    except Exception as exc:
-        return False, [f"fix-state registry could not be loaded: {exc}"]
-
-    reasons.extend(_registry_violations(registry))
-
-    try:
-        for reason in check_ledgers(root):
-            reasons.append(reason)
-    except Exception as exc:
-        reasons.append(f"fix-state ledger scan could not run: {exc}")
-
-    try:
-        for hit in scan_commits(root, registry):
-            for violation in hit["violations"]:
-                reasons.append(f"{hit['sha'][:12]}: {violation}")
-    except Exception as exc:
-        reasons.append(f"fix-state commit-message scan could not run: {exc}")
-
-    return not reasons, reasons
-
-
-def _message_check(root: str, path: str) -> int:
-    try:
-        message = open(path, encoding="utf-8").read()
+        proc = subprocess.run(
+            command,
+            cwd=root,
+            shell=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired:
+        return [f"{label}: executable_evidence timed out after 120 seconds"]
     except OSError as exc:
-        print(f"FIX-STATE: REFUSED -- commit message unreadable: {exc}")
-        return 1
+        return [f"{label}: executable_evidence could not run: {exc}"]
+    output = (proc.stdout or "") + (proc.stderr or "")
+    reasons: list[str] = []
+    if proc.returncode != 0:
+        reasons.append(f"{label}: executable_evidence exited {proc.returncode}")
+    if expected not in output:
+        reasons.append(f"{label}: executable_evidence missing expected substring {expected!r}")
+    return reasons
 
-    staged = _run_git(root, ["diff", "--cached", "--name-only"]).splitlines()
-    violations = check_message(message, root=root, parent_tree="HEAD", changed_paths=staged)
-    if violations:
-        print("FIX-STATE: REFUSED")
-        for violation in violations:
-            print(f"  - {violation}")
-        return 1
-    print("FIX-STATE: PASS")
-    return 0
+
+def _validate_landed(root: Path, entry: dict[str, Any], history: dict[str, Any], label: str) -> list[str]:
+    commit = history.get("commit")
+    if not _commit_exists(root, commit):
+        return [f"{label}: LANDED history commit does not exist: {commit!r}"]
+    if entry.get("kind") == "control":
+        return _validate_executable_evidence(root, entry, label)
+    return []
+
+
+def _validate_verified_current(root: Path, entry: dict[str, Any], history: dict[str, Any], label: str) -> list[str]:
+    reasons: list[str] = []
+    if history.get("by") == entry.get("author"):
+        reasons.append(f"{label}: VERIFIED by must differ from author")
+    evidence = history.get("evidence")
+    if not isinstance(evidence, list) or not evidence:
+        reasons.append(f"{label}: VERIFIED history needs evidence paths")
+        return reasons
+    for raw_path in evidence:
+        path = str(raw_path)
+        if not _path_is_repo_relative(path):
+            reasons.append(f"{label}: evidence path must be repo-relative: {raw_path!r}")
+            continue
+        if not (root / path).exists():
+            reasons.append(f"{label}: evidence path missing in working tree: {_posix(path)}")
+    commit = history.get("commit")
+    if commit and not _commit_exists(root, commit):
+        reasons.append(f"{label}: VERIFIED history commit does not exist: {commit!r}")
+    return reasons
+
+
+def _validate_verified_transition(root: Path, entry: dict[str, Any], history: dict[str, Any], label: str) -> list[str]:
+    reasons = _validate_verified_current(root, entry, history, label)
+    commit = history.get("commit")
+    if not isinstance(commit, str) or not commit.strip() or not _commit_exists(root, commit):
+        reasons.append(f"{label}: VERIFIED transition commit must exist")
+        return reasons
+    parent = _first_parent(root, commit)
+    if parent is None:
+        reasons.append(f"{label}: VERIFIED transition commit has no parent")
+        return reasons
+    for raw_path in history.get("evidence") or []:
+        path = str(raw_path)
+        if _path_is_repo_relative(path) and not _path_exists_in_tree(root, parent, path):
+            reasons.append(
+                f"{label}: VERIFIED evidence did not exist in parent tree {parent[:12]}: {_posix(path)}"
+            )
+    return reasons
+
+
+def _validate_generalized(entry: dict[str, Any], label: str) -> list[str]:
+    authored = entry.get("authored_against")
+    generalized = entry.get("generalized_on")
+    reasons: list[str] = []
+    if not isinstance(generalized, list) or not generalized:
+        reasons.append(f"{label}: GENERALIZED needs generalized_on")
+    if not isinstance(authored, list):
+        reasons.append(f"{label}: authored_against must be a list")
+        authored = []
+    if not isinstance(generalized, list):
+        generalized = []
+    overlap = sorted(set(map(str, authored)) & set(map(str, generalized)))
+    if overlap:
+        reasons.append(f"{label}: GENERALIZED authored_against overlaps generalized_on: {', '.join(overlap)}")
+    return reasons
+
+
+def _validate_history_shape(entry: dict[str, Any], idx: int) -> list[str]:
+    label = _entry_label(entry, idx)
+    reasons: list[str] = []
+    history = entry.get("history")
+    if not isinstance(history, list):
+        return [f"{label}: history must be a list"]
+    for hidx, item in enumerate(history):
+        if not isinstance(item, dict):
+            reasons.append(f"{label}: history[{hidx}] must be an object")
+            continue
+        missing = sorted(REQUIRED_HISTORY_KEYS - set(item))
+        if missing:
+            reasons.append(f"{label}: history[{hidx}] missing keys: {', '.join(missing)}")
+        status = item.get("status")
+        if status not in STATUSES:
+            reasons.append(f"{label}: history[{hidx}] has invalid status {status!r}")
+        evidence = item.get("evidence")
+        if not isinstance(evidence, list):
+            reasons.append(f"{label}: history[{hidx}].evidence must be a list")
+    return reasons
+
+
+def validate_store(root: str | os.PathLike[str], store: dict[str, Any]) -> list[str]:
+    """Validate the current object store without comparing it to a previous tree."""
+
+    repo = _root_path(root)
+    reasons: list[str] = []
+    if store.get("schema_version") != 1:
+        reasons.append("registry/fixes.json schema_version must be 1")
+    if store.get("statuses") != list(STATUSES):
+        reasons.append(f"registry/fixes.json statuses must be {list(STATUSES)!r}")
+
+    raw_entries = store.get("entries")
+    if not isinstance(raw_entries, list):
+        return reasons + ["registry/fixes.json entries must be a list"]
+
+    seen_finding: set[str] = set()
+    seen_fix: set[str] = set()
+    for idx, entry in enumerate(raw_entries):
+        if not isinstance(entry, dict):
+            reasons.append(f"entries[{idx}] must be an object")
+            continue
+        label = _entry_label(entry, idx)
+        missing = sorted(REQUIRED_ENTRY_KEYS - set(entry))
+        if missing:
+            reasons.append(f"{label}: missing keys: {', '.join(missing)}")
+        extra = sorted(set(entry) - REQUIRED_ENTRY_KEYS)
+        if extra:
+            reasons.append(f"{label}: unexpected keys: {', '.join(extra)}")
+
+        finding_id = entry.get("finding_id")
+        fix_id = entry.get("fix_id")
+        if not isinstance(finding_id, str) or not finding_id:
+            reasons.append(f"{label}: finding_id must be a non-empty string")
+        elif finding_id in seen_finding:
+            reasons.append(f"{label}: duplicate finding_id {finding_id}")
+        else:
+            seen_finding.add(finding_id)
+        if not isinstance(fix_id, str) or not fix_id:
+            reasons.append(f"{label}: fix_id must be a non-empty string")
+        elif fix_id in seen_fix:
+            reasons.append(f"{label}: duplicate fix_id {fix_id}")
+        else:
+            seen_fix.add(fix_id)
+
+        kind = entry.get("kind")
+        status = entry.get("status")
+        if kind not in KINDS:
+            reasons.append(f"{label}: kind must be one of {', '.join(KINDS)}")
+        if status not in STATUSES:
+            reasons.append(f"{label}: invalid status {status!r}")
+            continue
+        if status == "SPECIFIED" and kind != "control":
+            reasons.append(f"{label}: SPECIFIED is allowed only for controls")
+        if kind == "fix" and status not in FIX_STATUSES:
+            reasons.append(f"{label}: fix entries cannot use status {status}")
+
+        evidence_dir = entry.get("evidence_dir")
+        if evidence_dir:
+            if not isinstance(evidence_dir, str) or not _path_is_repo_relative(evidence_dir):
+                reasons.append(f"{label}: evidence_dir must be repo-relative")
+            elif not (repo / evidence_dir).is_dir():
+                reasons.append(f"{label}: evidence_dir does not exist: {_posix(evidence_dir)}")
+        elif evidence_dir != "":
+            reasons.append(f"{label}: evidence_dir must be a string")
+
+        if not isinstance(entry.get("authored_against"), list):
+            reasons.append(f"{label}: authored_against must be a list")
+        if not isinstance(entry.get("generalized_on"), list):
+            reasons.append(f"{label}: generalized_on must be a list")
+        if entry.get("executable_evidence") is not None and not isinstance(entry.get("executable_evidence"), dict):
+            reasons.append(f"{label}: executable_evidence must be an object or null")
+
+        reasons.extend(_validate_history_shape(entry, idx))
+        if status == "SPECIFIED":
+            if not _has_history_status(entry, "SPECIFIED"):
+                reasons.append(f"{label}: SPECIFIED status needs SPECIFIED history")
+            continue
+        if _is_at_least(status, "LANDED"):
+            landed = _latest_history(entry, "LANDED")
+            if landed is None:
+                reasons.append(f"{label}: {status} status needs LANDED history")
+            else:
+                reasons.extend(_validate_landed(repo, entry, landed, label))
+        if _is_at_least(status, "VERIFIED"):
+            verified = _latest_history(entry, "VERIFIED")
+            if verified is None:
+                reasons.append(f"{label}: {status} status needs VERIFIED history")
+            else:
+                reasons.extend(_validate_verified_current(repo, entry, verified, label))
+        if status == "GENERALIZED":
+            if not _has_history_status(entry, "GENERALIZED"):
+                reasons.append(f"{label}: GENERALIZED status needs GENERALIZED history")
+            reasons.extend(_validate_generalized(entry, label))
+    return reasons
+
+
+def _transition_allowed(old_status: str, new_status: str) -> bool:
+    if new_status == "REPORTED":
+        return True
+    return (old_status, new_status) in FORWARD_TRANSITIONS
+
+
+def _new_history_entries(old_entry: dict[str, Any], new_entry: dict[str, Any]) -> list[dict[str, Any]]:
+    old_keys = Counter(
+        _history_key(item)
+        for item in (old_entry.get("history") or [])
+        if isinstance(item, dict)
+    )
+    out: list[dict[str, Any]] = []
+    for item in new_entry.get("history") or []:
+        if not isinstance(item, dict):
+            continue
+        key = _history_key(item)
+        if old_keys[key]:
+            old_keys[key] -= 1
+        else:
+            out.append(item)
+    return out
+
+
+def _validate_transition(
+    root: Path,
+    old_entry: dict[str, Any],
+    new_entry: dict[str, Any],
+) -> list[str]:
+    label = str(new_entry.get("fix_id") or new_entry.get("finding_id"))
+    old_status = old_entry.get("status")
+    new_status = new_entry.get("status")
+    if old_status == new_status:
+        return []
+    reasons: list[str] = []
+    if old_status not in STATUSES or new_status not in STATUSES:
+        return [f"{label}: cannot compare invalid statuses {old_status!r}->{new_status!r}"]
+    if not _transition_allowed(old_status, new_status):
+        reasons.append(f"{label}: invalid status transition {old_status}->{new_status}")
+        return reasons
+    candidates = [
+        item for item in _new_history_entries(old_entry, new_entry)
+        if item.get("status") == new_status
+    ]
+    if not candidates:
+        return [f"{label}: status changed {old_status}->{new_status} without matching new history entry"]
+    history = candidates[-1]
+    if new_status == "REPORTED":
+        if not str(history.get("reason") or "").strip():
+            reasons.append(f"{label}: downgrade to REPORTED needs a reason")
+        return reasons
+    if new_status == "LANDED":
+        reasons.extend(_validate_landed(root, new_entry, history, label))
+    elif new_status == "VERIFIED":
+        reasons.extend(_validate_verified_transition(root, new_entry, history, label))
+    elif new_status == "GENERALIZED":
+        reasons.extend(_validate_generalized(new_entry, label))
+    return reasons
+
+
+def _baseline_ref(root: Path) -> str | None:
+    branch = _run_git(root, ["branch", "--show-current"], check=False).stdout.strip()
+    if branch and branch != "main":
+        proc = _run_git(root, ["merge-base", "HEAD", "origin/main"], check=False)
+        if proc.returncode == 0 and proc.stdout.strip():
+            return proc.stdout.strip()
+    proc = _run_git(root, ["rev-parse", "--verify", "HEAD~1"], check=False)
+    if proc.returncode == 0 and proc.stdout.strip():
+        return "HEAD~1"
+    return None
+
+
+def _load_store_from_tree(root: Path, ref: str) -> dict[str, Any] | None:
+    proc = _run_git(root, ["show", f"{ref}:{_posix(REGISTRY_PATH)}"], check=False)
+    if proc.returncode != 0:
+        return None
+    return json.loads(proc.stdout)
+
+
+def check_transitions(root: str | os.PathLike[str], store: dict[str, Any]) -> list[str]:
+    """Validate status edits from the baseline tree to the working tree."""
+
+    repo = _root_path(root)
+    ref = _baseline_ref(repo)
+    if ref is None:
+        return []
+    old_store = _load_store_from_tree(repo, ref)
+    if old_store is None:
+        return []
+    old_by_fix = {
+        entry.get("fix_id"): entry
+        for entry in entries(old_store)
+        if isinstance(entry, dict) and entry.get("fix_id")
+    }
+    reasons: list[str] = []
+    for entry in entries(store):
+        fix_id = entry.get("fix_id")
+        old_entry = old_by_fix.get(fix_id)
+        if old_entry is None:
+            continue
+        reasons.extend(_validate_transition(repo, old_entry, entry))
+    return reasons
+
+
+def _expected_views(root: Path) -> tuple[dict[str, Any], dict[str, str]]:
+    from scripts import render_fix_ledger
+
+    store = load(root)
+    return render_fix_ledger.render_ledger(store), render_fix_ledger.render_readme_updates(root, store)
+
+
+def check_generated_views(root: str | os.PathLike[str]) -> list[str]:
+    """Refuse stale generated views of ``registry/fixes.json``."""
+
+    repo = _root_path(root)
+    reasons: list[str] = []
+    try:
+        expected_ledger, readme_updates = _expected_views(repo)
+    except Exception as exc:
+        return [f"generated view render failed: {type(exc).__name__}: {exc}"]
+
+    ledger_path = repo / LEDGER_PATH
+    try:
+        current = _load_json(ledger_path)
+    except (OSError, ValueError) as exc:
+        return [f"{_display_path(LEDGER_PATH)} unreadable: {exc}"]
+    if current != expected_ledger:
+        reasons.append(f"{_display_path(LEDGER_PATH)} is stale; run python scripts/render_fix_ledger.py")
+
+    for rel, want in readme_updates.items():
+        path = repo / rel
+        try:
+            got = path.read_text(encoding="utf-8")
+        except OSError as exc:
+            reasons.append(f"{rel} unreadable: {exc}")
+            continue
+        if got != want:
+            reasons.append(f"{rel} fix-state line is stale; run python scripts/render_fix_ledger.py")
+    return reasons
+
+
+def check(root: str | os.PathLike[str]) -> tuple[bool, list[str]]:
+    """Validate the fix object store, generated views, and status transitions."""
+
+    repo = _root_path(root)
+    try:
+        store = load(repo)
+    except Exception as exc:
+        return False, [f"fix object store could not be loaded: {exc}"]
+
+    reasons: list[str] = []
+    reasons.extend(validate_store(repo, store))
+    reasons.extend(check_generated_views(repo))
+    reasons.extend(check_transitions(repo, store))
+    return not reasons, reasons
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m harness.fixstate")
-    parser.add_argument("--message", help="commit message file to check")
-    args = parser.parse_args(argv)
+    parser.parse_args(argv)
     root = _root_path(os.getcwd())
-
-    if args.message:
-        return _message_check(root, args.message)
-
-    try:
-        registry = load(root)
-        ledger_reasons = check_ledgers(root)
-        commit_hits = scan_commits(root, registry)
-    except Exception as exc:
-        print(f"FIX-STATE: REFUSED -- {type(exc).__name__}: {exc}")
-        return 1
-
-    print(f"FIX-STATE: registry={REGISTRY_PATH} states={','.join(FIX_STATES)}")
-    print(f"FIX-STATE: ledgers {'PASS' if not ledger_reasons else 'REFUSED'}")
-    if registry.get("enforced_since") is None:
-        print("FIX-STATE: commit-message scan PASS (not enforced yet)")
-    else:
-        print(
-            "FIX-STATE: commit-message scan "
-            f"{'PASS' if not commit_hits else 'REFUSED'} ({len(commit_hits)} violation(s))"
-        )
-
     ok, reasons = check(root)
-    if not ok:
-        print("FIX-STATE: REFUSED")
-        for reason in reasons:
-            print(f"  - {reason}")
-        return 1
-    print("FIX-STATE: PASS")
-    return 0
+    if ok:
+        store = load(root)
+        counts = Counter(entry["status"] for entry in entries(store))
+        print(f"FIX-STATE: registry={_posix(REGISTRY_PATH)} entries={len(entries(store))}")
+        print(
+            "FIX-STATE: statuses "
+            + ", ".join(f"{status}={counts.get(status, 0)}" for status in STATUSES)
+        )
+        print("FIX-STATE: generated views PASS")
+        print("FIX-STATE: transitions PASS")
+        print("FIX-STATE: PASS")
+        return 0
+    print("FIX-STATE: REFUSED")
+    for reason in reasons:
+        print(f"  - {reason}")
+    return 1
 
 
 if __name__ == "__main__":

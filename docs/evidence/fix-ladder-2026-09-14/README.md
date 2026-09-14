@@ -1,6 +1,6 @@
 # Fix Ladder Evidence - 2026-09-14
 
-**Fix state (four-state rule): LANDED** - this directory is evidence for other claims.
+**Fix state (four-state rule): LANDED** - Object-state ladder and 40-claim ledger evidence landed
 
 | Entry # | Class | Proposed fix_state | File |
 |---:|---|---|---|
