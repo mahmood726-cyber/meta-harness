@@ -1,7 +1,7 @@
 {
  "_doc": "Recovery pipeline instrument. Every recovery ATTEMPT is recorded with its outcome, earned one trial at a time by fetch -> source-verify -> extract -> round-trip -> rebuild. This REPLACES the forward-scan vocabulary metric (which over-counted: a forward scan cannot tell a genuine synonym gap from by-design composite-specificity). BLOCKED_BY_MATCHER entries, each carrying the exact source string vs the exact registered keyword, ARE the vocabulary measurement -- zero false positives, evidence not guesswork. Outcomes: RECOVERED | REFUSED_ON_SOURCE | BLOCKED_BY_MATCHER | BLOCKED_BY_ACCESS | NOT_FOUND | SCOPE_PENDING.",
  "scoreboard": {
-  "attempted": 25,
+  "attempted": 30,
   "recovered": 5,
   "tightened": 2,
   "cost_significance": 1,
@@ -15,7 +15,8 @@
   "blocked_by_matcher": 3,
   "out_of_scope": 3,
   "test_set_errors_found": 4,
-  "not_found": 2
+  "not_found": 4,
+  "unverified_reach_limit": 3
  },
  "attempts": [
   {
@@ -217,6 +218,41 @@
    "topic": "doac-vte-recurrence",
    "status": "REFUSED_ON_SOURCE",
    "note": "phase-II DOSE-RANGING (3-4 dose arms vs LMWH/VKA), imaging-augmented composite outcome (symptomatic VTE + asymptomatic ultrasound/perfusion deterioration), not clean recurrent VTE. Multi-arm guard + outcome mismatch -> correctly excludable; the topic uses the phase-III trials at approved dose. Source-verified."
+  },
+  {
+   "trial": "NCT02552342",
+   "pmid": "(NCT only)",
+   "topic": "corticosteroids-cap-mortality",
+   "status": "NOT_FOUND",
+   "note": "CT.gov-verified EXACT PICO match: methylprednisolone vs normal saline, severe CAP PSI 4-5, primary 30-day all-cause mortality, n=610 -- but has_results=false and no publication in any source (status UNKNOWN since 2017). Eligible trial, NO extractable result anywhere -- a genuine evidence gap (results-unavailable), not a matcher or access-tier failure. Stays a corticosteroids-cap completeness caveat."
+  },
+  {
+   "trial": "FISSH",
+   "pmid": "NCT03677102",
+   "topic": "balanced-crystalloids-vs-saline-mortality",
+   "status": "NOT_FOUND",
+   "note": "zero linked publications on CT.gov (per read-only session); no extractable result. Results-unavailable reach limit."
+  },
+  {
+   "trial": "SONIA",
+   "pmid": "(name only)",
+   "topic": "corticosteroids-cap-mortality",
+   "status": "UNVERIFIED",
+   "note": "name-only in the audit record; no confirmed PMID. Requires author/name search with uncertain yield (several likely small/non-English/registry-only). Recorded as a structural reach limit pending an identifier; not asserted eligible."
+  },
+  {
+   "trial": "McHardy/El-Ghamrawy/Mikami/Sabry/Nafae/Snijders (corticosteroid-CAP set)",
+   "pmid": "(name only)",
+   "topic": "corticosteroids-cap-mortality",
+   "status": "UNVERIFIED",
+   "note": "name-only in the audit record; no confirmed PMID. Requires author/name search with uncertain yield (several likely small/non-English/registry-only). Recorded as a structural reach limit pending an identifier; not asserted eligible."
+  },
+  {
+   "trial": "Sarzaeem",
+   "pmid": "(name only)",
+   "topic": "corticosteroids-covid19-mortality",
+   "status": "UNVERIFIED",
+   "note": "name-only in the audit record; no confirmed PMID. Requires author/name search with uncertain yield (several likely small/non-English/registry-only). Recorded as a structural reach limit pending an identifier; not asserted eligible."
   }
  ],
  "audit_overclaim_caught_at_source": {
