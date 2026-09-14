@@ -12,6 +12,7 @@ from . import rob_sensitivity as rob_sens_mod
 from . import claim as claim_mod
 from . import invalidation as invalidation_mod
 from . import compat as compat_mod
+from . import recovery_recheck as recovery_recheck_mod
 from . import protocol_compiler as protocol_compiler_mod
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool, method_text, METHOD_RATIO
@@ -1011,6 +1012,16 @@ def build_review_core(slug, config, records, protocol_sha):
                 _t["derivation"] = "reconstructed"
             elif _t.get("effect") is not None:
                 _t["derivation"] = "reported"
+        # RECOVERY-INDUCED-INCOMPATIBILITY RECHECK: a recovery is verified before integration, but
+        # adding a trial can break the POOL it joins. Re-run the compatibility contract on the whole
+        # outcome AFTER integration (derivation now set) and record the verdict + any disclosure. This
+        # runs every build, so it re-checks after any recovery, not just when the trial was verified.
+        _rr = recovery_recheck_mod.recheck_outcome(_o, review)
+        if _rr:
+            _o["recovery_recheck"] = _rr
+            _disc = recovery_recheck_mod.disclosure(_rr)
+            if _disc:
+                _o["recovery_disclosure"] = _disc
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config so a divergence (estimand, analysis set, design masking AND/OR) between the registered
     # prose and the machine rules cannot pass -- the tocilizumab self-certification defect (a check

@@ -589,17 +589,18 @@ def _outcome_block(o, show_inputs=True):
             # "mixed (…)"), not the topic's target estimand — the target is stated in the Analysis
             # Method prose, and a row reading "Estimand RR" beside a pooled HR is the defect this fixes.
             ("Estimand", res.get("scale") or o.get("estimand")),
+            # The authoritative compatibility contract is the Compatibility key block below (compat.py,
+            # the shipped gate). The only estmeasure verdict surfaced here is the INCOMPATIBLE warning;
+            # the old "reported labels differ … SAME compatibility class (RR/OR/HR)" sentence was a
+            # SECOND, looser compatibility judgement that contradicted the gate (OR/RR/HR are distinct
+            # estimands, not one poolable class) and is removed — the compat key now judges the label mix.
             ("Estimand compatibility", (
                 ("⚠ INCOMPATIBLE — the pooled trials report DIFFERENT estimand classes ("
                  + " + ".join((res.get("estmeasure") or {}).get("canonicals", []))
                  + "): a recurrent-event/rate ratio and a first-event ratio count different things, so "
                  "the pooled number mixes measures that are not directly poolable — read it as a rough "
                  "signal, not a valid summary (a stated limitation, surfaced not smoothed)")
-                if (res.get("estmeasure") or {}).get("status") == "incompatible" else
-                ("reported labels differ (" + ", ".join((res.get("estmeasure") or {}).get("labels", []))
-                 + ") but are the SAME compatibility class (first-event relative ratios: RR/OR/HR) — "
-                 "pooled as compatible, not an estimand conflict"
-                 if (res.get("estmeasure") or {}).get("status") == "compatible_labels" else None))),
+                if (res.get("estmeasure") or {}).get("status") == "incompatible" else None)),
             ("Analysis population", o.get("population")),
             ("Timepoint", o.get("timepoint")),
             ("Method", o.get("method")),
@@ -623,8 +624,12 @@ def _outcome_block(o, show_inputs=True):
         ck = o.get("compat_key")
         if ck:
             rc = ck.get("randomised_contrast") or {}
+            _labels = ck.get("effect_measure") or []
             body += "<h5>Compatibility key (pooling contract)</h5>" + _kv([
                 ("Effect-measure class", ", ".join(ck.get("event_process") or []) or None),
+                # Factual: the distinct reported labels actually pooled (HR, RR, …). Not a reassurance
+                # that they are identical -- the recovery-recheck limitation below states the caveat.
+                ("Effect-measure labels pooled", ", ".join(_labels) if len(set(_labels)) > 1 else None),
                 ("Endpoint", ck.get("endpoint")),
                 ("Follow-up window", ck.get("follow_up_window")),
                 ("Analysis set", ck.get("analysis_set")),
@@ -632,6 +637,12 @@ def _outcome_block(o, show_inputs=True):
                  (f"{rc.get('verified')} of {rc.get('total')} pooled trials"
                   if rc.get("total") else None)),
             ])
+        # RECOVERY-INDUCED-INCOMPATIBILITY disclosure: a pool that mixes effect-measure labels at small
+        # k (e.g. a recovery adding a reconstructed RR to a published RR + HR pool) is surfaced as an
+        # approximation to weigh, never smoothed over. Object-derived from the recovery-recheck verdict.
+        _rdisc = o.get("recovery_disclosure")
+        if _rdisc:
+            body += f"<p class='note'>⚠ {_e(_rdisc)}</p>"
         # A k stated without the contributing trials named is the container-vs-contents
         # defect. When trials are enumerable, name them (below). When they are not (a
         # transcribed comparator), say so plainly so the bare k is not mistaken for auditable.
