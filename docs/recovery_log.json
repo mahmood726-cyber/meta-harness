@@ -1,7 +1,7 @@
 {
  "_doc": "Recovery pipeline instrument. Every recovery ATTEMPT is recorded with its outcome, earned one trial at a time by fetch -> source-verify -> extract -> round-trip -> rebuild. This REPLACES the forward-scan vocabulary metric (which over-counted: a forward scan cannot tell a genuine synonym gap from by-design composite-specificity). BLOCKED_BY_MATCHER entries, each carrying the exact source string vs the exact registered keyword, ARE the vocabulary measurement -- zero false positives, evidence not guesswork. Outcomes: RECOVERED | REFUSED_ON_SOURCE | BLOCKED_BY_MATCHER | BLOCKED_BY_ACCESS | NOT_FOUND | SCOPE_PENDING.",
  "scoreboard": {
-  "attempted": 11,
+  "attempted": 14,
   "recovered": 5,
   "tightened": 2,
   "cost_significance": 1,
@@ -9,9 +9,10 @@
   "refused_on_source": 3,
   "scope_pending": 2,
   "blocked_by_matcher_resolved": 1,
-  "note": "corrections are NOT systematically flattering: of 5 recoveries, 2 tightened and 3 weakened (1 lost significance, 2 moved toward null); 2 refused on source; 1 held on scope. This is the harness getting more honest as the evidence base completes. [+TECOS BLOCKED_BY_ACCESS: abstract 4-point != topic 3-point MACE; 3-point is a paywalled full-text secondary, unverifiable] [+41663239 REFUSED (pediatric, not mortality); +REMAP-CAP SCOPE_PENDING (90-day vs 30-day/in-hospital + influenza)]",
+  "note": "corrections are NOT systematically flattering: of 5 recoveries, 2 tightened and 3 weakened (1 lost significance, 2 moved toward null); 2 refused on source; 1 held on scope. This is the harness getting more honest as the evidence base completes. [+TECOS BLOCKED_BY_ACCESS: abstract 4-point != topic 3-point MACE; 3-point is a paywalled full-text secondary, unverifiable] [+41663239 REFUSED (pediatric, not mortality); +REMAP-CAP SCOPE_PENDING (90-day vs 30-day/in-hospital + influenza)] [+3 BLOCKED_BY_MATCHER (colchicine-postop COCS/Farzaneh X2 population \"atrial fibrillation\" vs cardiac-surgery/arrhythmia titles; Zarpelon X3 comparator \"control\") -- the earned vocabulary measurement, exact strings recorded; screening-vocab fix deferred to a careful before/after per the ELIXA lesson, not fatigue]",
   "blocked_by_access": 1,
-  "refusals_outnumber_recoveries": "6 not-integrated of 11 attempted > 5 recovered -- a pipeline that only ever adds evidence is indistinguishable from one that adds anything it can parse"
+  "refusals_outnumber_recoveries": "6 not-integrated of 11 attempted > 5 recovered -- a pipeline that only ever adds evidence is indistinguishable from one that adds anything it can parse",
+  "blocked_by_matcher": 3
  },
  "attempts": [
   {
@@ -105,6 +106,36 @@
    "topic": "corticosteroids-cap-mortality",
    "status": "SCOPE_PENDING",
    "note": "verified adult severe-CAP hydrocortisone vs control, 90-day mortality 78/521 vs 12/122 (adjusted OR ~1.5-1.6, CrI crossing 1), DOI 10.1007/s00134-025-07861-w NCT02735707. But PRIMARY timepoint is 90-day (topic registers 30-day/in-hospital) and it enrolls an influenza stratum (topic excludes influenza). Two registered-scope differences; the compound-timepoint guard will not catch the 90-day. Needs a timepoint/population-scope decision; not silently pooled."
+  },
+  {
+   "trial": "COCS",
+   "pmid": "36286314",
+   "topic": "colchicine-postop-af",
+   "status": "BLOCKED_BY_MATCHER",
+   "matcher": "screening population (X2)",
+   "source_string": "Colchicine in Cardiac Surgery: The COCS Randomized Clinical Trial",
+   "registered_keyword": "atrial fibrillation",
+   "note": "eligible colchicine-vs-placebo POAF-prevention trial (POAF 21/... reported) excluded because the population matcher requires \"atrial fibrillation\" in the title, but AF is the OUTCOME not the population of a prevention trial"
+  },
+  {
+   "trial": "Farzaneh",
+   "pmid": "42132185",
+   "topic": "colchicine-postop-af",
+   "status": "BLOCKED_BY_MATCHER",
+   "matcher": "screening population (X2)",
+   "source_string": "Short-Term, Weight-Adjusted Colchicine to Prevent Post-CABG Arrhythmias",
+   "registered_keyword": "atrial fibrillation",
+   "note": "source says \"Post-CABG Arrhythmias\", not \"atrial fibrillation\"; POAF 17.x% colchicine vs placebo reported"
+  },
+  {
+   "trial": "Zarpelon",
+   "pmid": "27223641",
+   "topic": "colchicine-postop-af",
+   "status": "BLOCKED_BY_MATCHER",
+   "matcher": "screening comparator (X3)",
+   "source_string": "control group",
+   "registered_keyword": "comparator_any = [placebo, usual care, standard, no colchicine, no-colchicine] (lacks \"control\")",
+   "note": "eligible colchicine-vs-control POAF trial (title HAS atrial fibrillation) excluded because \"control\" is not a registered comparator term"
   }
  ],
  "audit_overclaim_caught_at_source": {
@@ -192,5 +223,14 @@
    "gate": "verify limb",
    "event": "refused the J-EMPHASIS commit until the arm sizes n=111/110 were located in the committed source span"
   }
- ]
+ ],
+ "vocabulary_measurement_earned": {
+  "_doc": "BLOCKED_BY_MATCHER entries ARE the vocabulary blind-spot measurement -- earned one trial at a time, exact source-string vs registered-keyword, zero false positives. Grows into evidence to drive a normalisation layer.",
+  "count": 4,
+  "classes": [
+   "primary-outcome hyphen (SOUL, resolved)",
+   "population \"atrial fibrillation\" not in prevention-trial title (COCS, Farzaneh)",
+   "comparator \"control\" missing (Zarpelon)"
+  ]
+ }
 }
