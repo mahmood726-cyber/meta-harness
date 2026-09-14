@@ -1,0 +1,30 @@
+NEW STANDARD, LOCAL REFUSALS (2026-09-14T14:29:36Z) -- scripts/verify_all.py at working tree of 3541540f + uncommitted item-3 files
+
+=== plant A: hand-edited docs/index.html (same edit as branch plant/item3-index-old) ===
+VERIFY-ALL: 5 limbs, all run, fail-closed. root=C:\meta-harness
+  [             PASS] unit tests (pytest tests/)  (26s)
+  [             PASS] offline reproduction (every live page replays from committed cache)  (32s)
+  [             PASS] publication gate on every live review page  (26s)
+  [          REFUSED] index currency (generated == committed docs/index.html)  (0s)
+        docs/index.html is stale or hand-edited (differs from build_index). Regenerate & stage: python -m harness.index docs && git add docs/index.html
+  [             PASS] served-artefact leak scan (docs/*.json)  (0s)
+VERIFY-ALL: REFUSED -- 1 of 5 limbs not PASS. Fix the harness, never the gate.
+(verify_all exit=0)
+restored; docs/index.html clean: 0 lines
+
+=== plant B: failing unit test staged, NEW hook run ===
+GATE: running the full standard (scripts/verify_all.py) -- same limbs as CI
+VERIFY-ALL: 5 limbs, all run, fail-closed. root=C:\meta-harness
+  [          REFUSED] unit tests (pytest tests/)  (27s)
+        ............................................F........................... [ 80%]
+        ........................................................................ [ 96%]
+        ................                                                         [100%]
+        1 failed, 447 passed in 25.19s
+  [             PASS] offline reproduction (every live page replays from committed cache)  (32s)
+  [             PASS] publication gate on every live review page  (26s)
+  [             PASS] index currency (generated == committed docs/index.html)  (0s)
+  [             PASS] served-artefact leak scan (docs/*.json)  (0s)
+VERIFY-ALL: REFUSED -- 1 of 5 limbs not PASS. Fix the harness, never the gate.
+(hook exit=1)
+
+NOTE: in plant A the "(verify_all exit=0)" line is the exit of `grep` at the end of a pipe, not of verify_all -- a pipe artefact. The probe is the ledger line "[REFUSED] index currency" and the final "VERIFY-ALL: REFUSED". Plant B used PIPESTATUS[0] and reads the hook exit correctly (1).

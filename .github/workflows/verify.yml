@@ -5,6 +5,10 @@ name: verify
 # tests, does not reproduce, or does not pass the publication gate. This is the reproducibility claim
 # made independent of one machine's hook configuration.
 #
+# ONE STANDARD (2026-09-14): CI and the local hook both run scripts/verify_all.py -- the same limbs in
+# the same order. Before this, CI ran no index-currency check (a hand-edited served index passed CI)
+# and the hook ran no unit tests; see evidence/gate-authority-2026-09-14/08-*, 09-*.
+#
 # DEPLOY IS CONDITIONAL ON VERIFY (gate authority, 2026-09-14). Pages used to be built by GitHub's
 # automatic "pages build and deployment" from main:/docs on EVERY push, so a SHA whose `verify` run
 # failed was still served (109053ad, 2026-09-13: unit tests red, Pages green). The Pages source is now
@@ -32,22 +36,8 @@ jobs:
           python-version: "3.13"
       - name: Install dependencies
         run: python -m pip install --upgrade pip numpy scipy pytest openpyxl  # openpyxl: exercise the optional xlsx-supplement test (importorskip guards its absence)
-      - name: Unit tests
-        run: python -m pytest tests/ -q
-      - name: Offline reproduction (every live page replays byte-for-byte from committed cache)
-        run: python scripts/reproduce_review.py
-      - name: Publication gate on every live review page
-        run: |
-          set -e
-          fail=0
-          for d in docs/reviews/*/; do
-            if [ -f "$d/review.json" ]; then
-              python -m harness.gate "$d" || fail=1
-            fi
-          done
-          if [ "$fail" -ne 0 ]; then
-            echo "CI: one or more pages failed the publication gate"; exit 1
-          fi
+      - name: The full standard (scripts/verify_all.py -- identical to the local pre-commit hook)
+        run: python scripts/verify_all.py
 
   # The ONLY route to the served site. Runs only for a push to main whose `verify` job succeeded.
   # A skipped/failed deploy leaves the last good deployment being served.
