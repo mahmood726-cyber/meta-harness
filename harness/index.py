@@ -231,6 +231,33 @@ def _iv_iron_strands_section(docs_dir: str) -> str:
             f"is refused, not computed.</p></div>")
 
 
+def _search_recall_section(docs_dir: str) -> str:
+    """Render docs/search_recall.json: unaided concept-query recall against the verified test set.
+    The honest number, query-driven not test-set-driven."""
+    p = os.path.join(docs_dir, "search_recall.json")
+    if not os.path.exists(p):
+        return ""
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    rows = "".join(
+        f"<li><strong>{_E(r.get('trial'))}</strong> ({_E(r.get('topic'))}): "
+        f"{'recalled' if r.get('recalled') else 'MISSED'} — in {_E(r.get('hits_in_boolean_set'))} "
+        f"boolean hits, <span class='muted'>{_E(r.get('via'))}</span></li>"
+        for r in (d.get("results") or []))
+    return (f"<div class='banner'><h2>Search rebuild: unaided concept-query recall</h2>"
+            f"<p><strong>{_E(d.get('concept_query_unaided_recall'))}</strong> against the "
+            f"{_E(d.get('denominator'))} — up from a <strong>{_E(d.get('baseline_unaided_recall'))}</strong> "
+            f"baseline (the current per-topic queries are enumerated PMID lists that discover nothing "
+            f"new). A query built from the REGISTERED P/I/C/design with drug-class expansion "
+            f"(GLP-1 class&rarr;semaglutide, MRA class&rarr;eplerenone), paginated over the full boolean "
+            f"result set (never a top-N relevance cut).</p>"
+            f"<p class='muted'>{_E(d.get('improvement_provenance'))}</p>"
+            f"<ul>{rows}</ul>"
+            f"<p class='muted'>{_E(d.get('scope'))}</p></div>")
+
+
 def _verification_section(docs_dir: str) -> str:
     """The strongest single integrity claim, gate-enforced: every pooled number on every page is
     verified against its committed source span, and a gate limb refuses any page that pools a number
@@ -1097,6 +1124,7 @@ def build_index(docs_dir: str) -> str:
     body = (_thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
             + _currency_section(docs_dir) + _recovery_section(docs_dir)
             + _participant_flow_section(docs_dir) + _iv_iron_strands_section(docs_dir)
+            + _search_recall_section(docs_dir)
             + _parity_section(docs_dir) + _error_coverage_section(docs_dir) + _stance
             + _fair_section(docs_dir) + body)
 
