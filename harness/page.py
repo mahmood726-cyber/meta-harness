@@ -255,6 +255,21 @@ def _retrieval_class_html(rc: dict) -> str:
     return body
 
 
+def _search_provenance_html(rc: dict) -> str:
+    sp = (rc or {}).get("search_provenance") or {}
+    if not sp:
+        return ""
+    return (
+        "<div class='absent'>"
+        f"<strong>{_e(sp.get('heading'))}</strong> "
+        "The registry-first (AACT) adapter status for this topic is "
+        f"<strong>{_e(sp.get('registry_first_status'))}</strong>; "
+        f"{_e(sp.get('class_statement'))}, "
+        f"{_e(sp.get('discovery_statement'))} "
+        f"{_e(sp.get('retraction'))}</div>"
+    )
+
+
 def _ci(res) -> str:
     return f"{_num(res.get('estimate'))} ({res.get('scale')}), 95% CI {_num(res.get('ci_low'))}–{_num(res.get('ci_high'))}"
 
@@ -513,6 +528,7 @@ def _search(r, neutral):
                  "attempted but failed; NOT_RUN = not attempted for this topic.</p>")
     if s.get("retrieval_class"):
         body += _retrieval_class_html(s["retrieval_class"])
+        body += _search_provenance_html(s["retrieval_class"])
     rc = s.get("recall")
     if rc and rc.get("known"):
         # PRIMARY search metric: how many of this topic's KNOWN trials the committed registry-first

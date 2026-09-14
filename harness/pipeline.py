@@ -32,6 +32,33 @@ HAND_WRITTEN_KEYWORD_SEARCH_LABEL = "HAND-WRITTEN KEYWORD SEARCH — NOT A REGIS
 CONCEPT_SEARCH_LABEL = "CONCEPT SEARCH — registered P/I/C query, full pagination"
 RETRIEVAL_UNAUDITABLE_DISTINCTION = "an auditable screening ledger attached to an unauditable retrieval process"
 RETRIEVAL_RETRACTION = "We retract any claim of a registry-first or systematic search for this topic."
+SEARCH_PROVENANCE_HEADING = "Search provenance — not a completed systematic search."
+SEARCH_PROVENANCE_CLASS_STATEMENTS = {
+    "KNOWN_ITEM_RETRIEVAL": (
+        "its evidence set was assembled by KNOWN-ITEM RETRIEVAL of named publications "
+        "(UID/PMID-anchored queries for pre-identified trials)"
+    ),
+    "TITLE_SEEDED_RETRIEVAL": (
+        "its evidence set was assembled by TITLE-SEEDED RETRIEVAL "
+        "(title/name-anchored queries for pre-identified trials)"
+    ),
+    "HAND_WRITTEN_KEYWORD_SEARCH": (
+        "its PubMed queries are hand-written keyword strings that were never registered as a concept search"
+    ),
+}
+SEARCH_PROVENANCE_DISCOVERY_STATEMENTS = {
+    "KNOWN_ITEM_RETRIEVAL": (
+        "which cannot discover an unknown eligible trial. A fetch of named identifiers is not a systematic search."
+    ),
+    "TITLE_SEEDED_RETRIEVAL": (
+        "which cannot discover an unknown eligible trial. A query seeded with the names of known trials "
+        "is not a systematic search."
+    ),
+    "HAND_WRITTEN_KEYWORD_SEARCH": (
+        "whose discovery reach is unmeasured — a zero here reads as not observed, never as absent. "
+        "A hand-written keyword query is not a documented systematic search."
+    ),
+}
 
 
 def _read_text(*p):
@@ -135,7 +162,21 @@ def _retrieval_basis_kind(query):
     return classify_query(query)
 
 
-def classify_retrieval(config, ledger=None):
+def _search_provenance_object(cls, registry_first_status):
+    class_statement = SEARCH_PROVENANCE_CLASS_STATEMENTS.get(cls)
+    discovery_statement = SEARCH_PROVENANCE_DISCOVERY_STATEMENTS.get(cls)
+    if class_statement is None or discovery_statement is None:
+        return None
+    return {
+        "heading": SEARCH_PROVENANCE_HEADING,
+        "registry_first_status": registry_first_status,
+        "class_statement": class_statement,
+        "discovery_statement": discovery_statement,
+        "retraction": RETRIEVAL_RETRACTION,
+    }
+
+
+def classify_retrieval(config, ledger=None, registry_first_status=None):
     """Classify retrieval from committed object inputs only.
 
     Without a retrieval ledger, the replay-safe fact is the committed PubMed query text.
@@ -185,6 +226,7 @@ def classify_retrieval(config, ledger=None):
     if not retrieval_auditable:
         out["distinction"] = RETRIEVAL_UNAUDITABLE_DISTINCTION
         out["retraction"] = RETRIEVAL_RETRACTION
+        out["search_provenance"] = _search_provenance_object(cls, registry_first_status)
     return out
 
 
@@ -1180,6 +1222,13 @@ def build_review_core(slug, config, records, protocol_sha):
                               "rule_id": d["rule_id"], "reason": d["reason"],
                               "span": d.get("span", "")} for d in scr["decisions"]]
 
+    source_status = _source_status(slug, config, records, merged, retrieval_ledger)
+    retrieval_class = classify_retrieval(
+        config,
+        retrieval_ledger,
+        source_status.get("Registry-first (AACT)"),
+    )
+
     review = {
         "slug": slug, "title": config["title"], "question": config["question"],
         "method_declared": _declared_method,
@@ -1193,8 +1242,8 @@ def build_review_core(slug, config, records, protocol_sha):
                    "run_utc": records.get("fetched_utc"), "databases": ["PubMed", "ClinicalTrials.gov"],
                    "sources": [{"name": "PubMed", "queries": records.get("pubmed_queries", [])},
                                {"name": "ClinicalTrials.gov", "queries": [json.dumps(records.get("ctgov_query"))]}],
-                   "retrieval_class": classify_retrieval(config, retrieval_ledger),
-                   "source_status": _source_status(slug, config, records, merged, retrieval_ledger),
+                   "retrieval_class": retrieval_class,
+                   "source_status": source_status,
                    **({"retrieval": _retrieval_summary(retrieval_ledger)} if retrieval_ledger else {}),
                    **({"recall": _rc} if (_rc := _load_recall(slug)) else {}),
                    **({"ghost": _gh} if (_gh := _load_ghost(slug)) else {})},

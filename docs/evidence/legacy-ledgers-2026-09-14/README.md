@@ -1,6 +1,6 @@
 # Legacy ledgers for the 32 pre-ledger topics + raw external inputs preserved (2026-09-14)
 
-**Fix state (five-state rule): INTERNALLY_VERIFIED** - Applied lane R proposed transition as internal verification; external auditor has not yet confirmed anything.
+**Fix state (five-state rule): LANDED** - assurance stale: harness/page.py changed
 
 | file | what it is |
 |---|---|
