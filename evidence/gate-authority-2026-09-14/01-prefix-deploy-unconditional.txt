@@ -1,0 +1,21 @@
+PRE-FIX RECORD (captured 2026-09-14T14:14:11Z via GitHub API): Pages deployed a SHA whose verify run FAILED.
+
+$ gh api repos/mahmood726-cyber/meta-harness/pages
+{"build_type":"legacy","html_url":"https://mahmood726-cyber.github.io/meta-harness/","source":{"branch":"main","path":"/docs"},"status":"built"}
+
+$ gh run list --branch main (runs for 109053ad and dd909d5b)
+2026-09-13T18:46:45Z 109053ad [pages build and deployment] success run=34775673376
+2026-09-13T18:46:45Z dd909d5b [verify] failure run=34775673734
+2026-09-13T18:44:29Z 109053ad [verify] failure run=34775559625
+2026-09-13T18:44:28Z 109053ad [pages build and deployment] success run=34775558931
+
+$ failing step of the verify run on 109053ad:
+Unit tests
+
+$ branch protection / rulesets on main:
+{"message":"Branch not protected","documentation_url":"https://docs.github.com/rest/branches/branch-protection#get-branc
+[]
+
+$ is core.hooksPath committed? (git config is local; .git/config is not versioned)
+.githooks
+0

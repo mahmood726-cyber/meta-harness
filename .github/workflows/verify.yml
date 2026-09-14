@@ -4,12 +4,21 @@ name: verify
 # any clone (whether or not it has core.hooksPath=.githooks installed) cannot land a page that fails
 # tests, does not reproduce, or does not pass the publication gate. This is the reproducibility claim
 # made independent of one machine's hook configuration.
+#
+# DEPLOY IS CONDITIONAL ON VERIFY (gate authority, 2026-09-14). Pages used to be built by GitHub's
+# automatic "pages build and deployment" from main:/docs on EVERY push, so a SHA whose `verify` run
+# failed was still served (109053ad, 2026-09-13: unit tests red, Pages green). The Pages source is now
+# "GitHub Actions" and the only deploy path is the `deploy` job below, which `needs: verify` -- a red
+# verify means no deploy, and the previously served version stays up. Nothing else may deploy.
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   verify:
@@ -39,3 +48,27 @@ jobs:
           if [ "$fail" -ne 0 ]; then
             echo "CI: one or more pages failed the publication gate"; exit 1
           fi
+
+  # The ONLY route to the served site. Runs only for a push to main whose `verify` job succeeded.
+  # A skipped/failed deploy leaves the last good deployment being served.
+  deploy:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deployment
+        uses: actions/deploy-pages@v4
