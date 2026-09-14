@@ -1,0 +1,20 @@
+PRE-FIX RECORD (2026-09-14T15:01:07Z): a held-out slug planted in a test file; today's standard (acq/base ef1d1bf3, identical to main in every gate) must not notice.
+
+$ hard-coded target list naming the topics the 6/6 was measured on (scripts/search_rebuild.py):
+107:TARGETS = {  # the 6 SOURCE_VERIFIED_ELIGIBLE trials -> (topic, target PMID)
+108-    "PHILO": ("ticagrelor-vs-clopidogrel-acs", "26376600"),
+109-    "J-EMPHASIS-HF": ("spironolactone-hfref-mortality", "28824029"),
+110-    "CLEAR SYNERGY (OASIS-9)": ("colchicine-secondary-cv-prevention", "39555823"),
+111-    "TECOS": ("dpp4-mace-t2d", "26052984"),
+112-    "omarigliptin CV trial": ("dpp4-mace-t2d", "28893244"),
+113-    "SOUL": ("glp1-ra-mace-t2d", "40162642"),
+114-}
+115-
+
+$ planted tests/test_plant_heldout.py naming a held-out slug; pytest on it:
+1 passed in 0.59s
+$ any hook/limb that scans for held-out slugs? grep -l heldout harness/*.py scripts/verify_all.py .githooks/*:
+(none)
+$ commit-msg hook present? ls .githooks:
+pre-commit*
+-> the plant passes; a commit whose message names a held-out topic is checked by nothing.

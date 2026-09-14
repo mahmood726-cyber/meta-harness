@@ -84,12 +84,23 @@ def limb_leak_scan():
     return PASS, "no served aggregate publishes a pooled statistic for a suppressed-state topic"
 
 
+def limb_heldout():
+    from harness import heldout
+    registry = heldout.load(ROOT)
+    ok, reasons = heldout.check(ROOT)
+    if not ok:
+        return REFUSED, "\n".join(reasons)
+    _, detail = heldout.measurement_current(ROOT, registry)
+    return PASS, detail
+
+
 LIMBS = [
     ("unit tests (pytest tests/)", limb_unit_tests),
     ("offline reproduction (every live page replays from committed cache)", limb_reproduction),
     ("publication gate on every live review page", limb_gate_every_page),
     ("index currency (generated == committed docs/index.html)", limb_index_currency),
     ("served-artefact leak scan (docs/*.json)", limb_leak_scan),
+    ("held-out isolation (registry/heldout.json)", limb_heldout),
 ]
 
 
