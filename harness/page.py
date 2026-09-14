@@ -137,6 +137,9 @@ def _retrieval_state_text(src: dict) -> str:
         return "<strong>NOT_RUN</strong>: not attempted"
     if state == "RAN_OK":
         return "<strong>RAN_OK</strong>: ran and returned records"
+    if state == "RAN_UNRECORDED":
+        return ("<strong>RAN_UNRECORDED</strong>: attempted by a pre-ledger fetch; its yield was never recorded, so "
+                "neither a count nor a zero can be shown (legacy only — a live run may not carry this state)")
     return f"<strong>{_e(state)}</strong>"
 
 
@@ -150,8 +153,8 @@ def _retrieval_mode_label(mode: Any) -> str:
     if mode == "REFRESH":
         return "REFRESH: live search run on that date"
     if mode == "LEGACY_UNRECORDED":
-        return ("LEGACY_UNRECORDED: records fetched before the retrieval ledger existed; which query "
-                "found each record was not recorded")
+        return ("LEGACY_UNRECORDED: a pre-ledger fetch; which query retrieved which record was not "
+                "recorded; every record's found_by names this single source")
     return _e(mode)
 
 

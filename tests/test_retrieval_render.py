@@ -171,6 +171,45 @@ def test_found_by_values_render_in_screening_table():
     assert "UNRECORDED" in html
 
 
+def test_legacy_unrecorded_snapshot_renders_contract_unknown_hits_and_found_by():
+    core = _core()
+    core["search"]["retrieval"] = {
+        "snapshot": {
+            "records_sha256": "1234567890abcdef",
+            "retrieved_utc": "2026-01-02",
+            "mode": "LEGACY_UNRECORDED",
+            "raw_calls": 0,
+        },
+        "sources": [
+            {
+                "source_id": "legacy_unrecorded#1",
+                "kind": "LEGACY_UNRECORDED",
+                "query": "q1 || q2",
+                "run_utc": "2026-01-02",
+                "state": "RAN_OK",
+                "error": None,
+                "discovery_capable": False,
+                "funnel": {
+                    "hits": None,
+                    "fetched": 2,
+                    "retained": 2,
+                    "cap": {"kind": "none", "n": None, "remainder": None},
+                },
+                "n_records": 2,
+            }
+        ],
+        "state_counts": {"RAN_OK": 1, "RAN_ZERO": 0, "RAN_ERROR": 0, "NOT_RUN": 0},
+        "discovery_capable_sources": 0,
+        "enumeration_only": False,
+    }
+    core["screening"]["records"][0]["found_by"] = ["legacy_unrecorded#1"]
+    html = render_page(core)
+    assert "LEGACY_UNRECORDED: a pre-ledger fetch" in html
+    assert "which query retrieved which record was not recorded" in html
+    assert "unknown -&gt; 2 -&gt; 2" in html
+    assert "legacy_unrecorded#1" in html
+
+
 def test_deleting_retrieval_block_suppresses_retrieval_strings():
     core = deepcopy(_core())
     del core["search"]["retrieval"]

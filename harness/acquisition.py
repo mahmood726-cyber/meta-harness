@@ -47,13 +47,17 @@ Fourteen live topics have only such queries: they have had NO search, not a weak
 FILE LAYOUT
   cache/<slug>/records.json                       pinned snapshot records (unchanged shape)
   cache/<slug>/retrieval_ledger.json              pinned snapshot ledger (schema below)
+  cache/<slug>/raw/INDEX.json                     pinned raw retrieval-response index, if the cache was freshly fetched
   cache/<slug>/snapshots/<retrieved_utc>-<sha8>/  refresh outputs: records.json + retrieval_ledger.json
+  cache/<slug>/snapshots/<retrieved_utc>-<sha8>/raw/<source_id>/<NNN>.json
+                                                    raw retrieval responses for that dated refresh
 
 LEDGER SCHEMA (version 1)
   {
     "version": 1, "slug": "<slug>",
     "snapshot": {"records_sha256": "<sha256 of canonical_json(records list)>", "retrieved_utc": "YYYY-MM-DD",
-                 "mode": "REFRESH" | "LEGACY_UNRECORDED", "engine_sha": "<git blob sha of harness/acquisition.py>"},
+                 "mode": "REFRESH" | "LEGACY_UNRECORDED", "engine_sha": "<git blob sha of harness/acquisition.py>",
+                 "raw_calls": int, "raw_index_sha256": "<sha256 of raw/INDEX.json, if raw_calls > 0>"},
     "sources": [
       {"source_id": "<kind-lowercase>#<n>", "kind": <SOURCE_KINDS>, "query": "<verbatim>", "run_utc": "YYYY-MM-DD",
        "state": <STATES>, "error": null | "<text>", "discovery_capable": true|false,
@@ -75,6 +79,9 @@ import os
 import shutil
 import subprocess
 import time
+import base64
+from contextlib import contextmanager
+from datetime import datetime, timezone
 from typing import Any
 
 from . import http
@@ -83,7 +90,12 @@ from .canonical import canonical_json
 
 LEDGER_VERSION = 1
 
-STATES = ("RAN_OK", "RAN_ZERO", "RAN_ERROR", "NOT_RUN")
+STATES = ("RAN_OK", "RAN_ZERO", "RAN_ERROR", "NOT_RUN",
+          # RAN_UNRECORDED: LEGACY ONLY. A pre-ledger fetch attempted this source (the code path ran it) but its
+          # yield was never recorded. Neither NOT_RUN ("not attempted") nor RAN_OK ("returned records") is true, and
+          # asserting either would fabricate. A live run (snapshot.mode == REFRESH) may never produce it -- validate()
+          # refuses it there -- so it can only describe the past, never hide a present failure.
+          "RAN_UNRECORDED")
 SNAPSHOT_MODES = ("REFRESH", "LEGACY_UNRECORDED")
 SOURCE_KINDS = (
     "PUBMED_CONCEPT_QUERY",      # built from the registered P/I/C/design; paginated full boolean set
@@ -97,6 +109,7 @@ SOURCE_KINDS = (
     "EXTRA_PMIDS",               # config.extra_pmids: hand-named, discovery_capable=false
     "CONTROL_PMIDS",             # NEGATIVE controls + the comparator itself (positive controls must be FOUND, never forced)
     "MODEL_CALL",                # a model asked to find/recover a trial: query = the verbatim prompt
+    "LEGACY_UNRECORDED",         # a pre-ledger fetch; which query retrieved which record was not recorded; every record's found_by names this single source.
 )
 CAP_KINDS = ("none", "relevance_top_n", "record_cap", "hard_hits_cap")
 
@@ -107,6 +120,134 @@ SNAPSHOT_DIRNAME = "snapshots"
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+
+
+def _utc_now_seconds() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _jsonable(value: Any) -> Any:
+    """Keep raw-call params replayable without assuming third-party encoders."""
+    try:
+        json.dumps(value, ensure_ascii=False)
+        return value
+    except TypeError:
+        if isinstance(value, dict):
+            return {str(k): _jsonable(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [_jsonable(v) for v in value]
+        return str(value)
+
+
+def _adapter_blob_sha(adapter: str | None) -> str:
+    module_name = ".".join(str(adapter or "").split(".")[:-1])
+    path = None
+    if module_name:
+        try:
+            import importlib
+
+            mod = importlib.import_module(module_name)
+            path = getattr(mod, "__file__", None)
+        except Exception:  # noqa: BLE001 - provenance should not make acquisition fail.
+            path = None
+    if not path:
+        path = os.path.join(ROOT, "harness", "fetch.py")
+    try:
+        proc = subprocess.run(
+            ["git", "hash-object", os.path.relpath(path, ROOT)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return proc.stdout.strip() or "unknown"
+    except Exception:  # noqa: BLE001 - git is provenance, not a runtime dependency.
+        return "unknown"
+
+
+class RawRecorder:
+    """Run-local raw-response recorder; writes bodies only when the snapshot is written."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+        self._source_id: str | None = None
+        self._adapter: str | dict[str, Any] | None = None
+
+    @contextmanager
+    def source(self, source_id: str, adapter: str | dict[str, Any]):
+        prev_source, prev_adapter = self._source_id, self._adapter
+        self._source_id, self._adapter = source_id, adapter
+        try:
+            yield
+        finally:
+            self._source_id, self._adapter = prev_source, prev_adapter
+
+    def record_current(self, url: str, params: dict | None, status: Any, body_bytes: bytes) -> None:
+        if self._source_id is None:
+            return
+        self.record(self._source_id, url, params, status, body_bytes, self._adapter)
+
+    def record(self, source_id: str, url: str, params: dict | None,
+               status: Any, body_bytes: bytes, adapter: str | dict[str, Any] | None) -> None:
+        if isinstance(adapter, dict):
+            adapter_name = adapter.get("adapter")
+            adapter_sha = adapter.get("adapter_blob_sha") or _adapter_blob_sha(adapter_name)
+        else:
+            adapter_name = str(adapter or "unknown")
+            adapter_sha = _adapter_blob_sha(adapter_name)
+        body = bytes(body_bytes or b"")
+        self.calls.append({
+            "source_id": str(source_id),
+            "url": str(url),
+            "params": _jsonable(params or {}),
+            "status": status,
+            "fetched_utc": _utc_now_seconds(),
+            "adapter": adapter_name,
+            "adapter_blob_sha": adapter_sha,
+            "body_sha256": hashlib.sha256(body).hexdigest(),
+            "body_bytes": body,
+        })
+
+    @property
+    def count(self) -> int:
+        return len(self.calls)
+
+    def write_snapshot(self, snapshot_dir: str) -> tuple[int, str | None]:
+        if not self.calls:
+            return 0, None
+        raw_root = os.path.join(snapshot_dir, "raw")
+        os.makedirs(raw_root, exist_ok=True)
+        per_source: dict[str, int] = {}
+        index: list[dict[str, Any]] = []
+        for call in self.calls:
+            source_id = call["source_id"]
+            per_source[source_id] = per_source.get(source_id, 0) + 1
+            dirname = os.path.join(raw_root, source_id)
+            os.makedirs(dirname, exist_ok=True)
+            filename = f"{per_source[source_id]:03d}.json"
+            relpath = "/".join(["raw", source_id, filename])
+            body = bytes(call.get("body_bytes") or b"")
+            payload = {k: v for k, v in call.items() if k != "body_bytes"}
+            payload["body_bytes_b64"] = base64.b64encode(body).decode("ascii")
+            raw_bytes = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+            with open(os.path.join(dirname, filename), "wb") as f:
+                f.write(raw_bytes)
+            index.append({
+                "source_id": source_id,
+                "path": relpath,
+                "url": call.get("url"),
+                "params": call.get("params"),
+                "status": call.get("status"),
+                "fetched_utc": call.get("fetched_utc"),
+                "adapter": call.get("adapter"),
+                "adapter_blob_sha": call.get("adapter_blob_sha"),
+                "body_sha256": call.get("body_sha256"),
+                "file_sha256": hashlib.sha256(raw_bytes).hexdigest(),
+            })
+        index_bytes = json.dumps(index, ensure_ascii=False, indent=2).encode("utf-8")
+        with open(os.path.join(raw_root, "INDEX.json"), "wb") as f:
+            f.write(index_bytes)
+        return len(index), hashlib.sha256(index_bytes).hexdigest()
 
 
 def _none_cap() -> dict:
@@ -284,10 +425,16 @@ def _dedupe_strings(values) -> list[str]:
     return out
 
 
-def add_source(ledger: dict, kind: str, query: str, run_utc: str, state: str,
-               error: str | None, funnel: dict, record_ids, discovery_capable: bool) -> str:
+def reserve_source_id(ledger: dict, kind: str) -> str:
     n = 1 + sum(1 for source in ledger.get("sources", []) if source.get("kind") == kind)
     source_id = f"{kind.lower()}#{n}"
+    return source_id
+
+
+def add_source(ledger: dict, kind: str, query: str, run_utc: str, state: str,
+               error: str | None, funnel: dict, record_ids, discovery_capable: bool,
+               source_id: str | None = None) -> str:
+    source_id = source_id or reserve_source_id(ledger, kind)
     source = {
         "source_id": source_id,
         "kind": kind,
@@ -335,11 +482,12 @@ def finalize(ledger: dict, records_list, retrieved_utc: str, mode: str) -> dict:
         "retrieved_utc": retrieved_utc,
         "mode": mode,
         "engine_sha": _engine_sha(),
+        "raw_calls": 0,
     }
     return ledger
 
 
-def validate(ledger: dict, records_list) -> list[str]:
+def validate(ledger: dict, records_list, snapshot_dir: str | None = None) -> list[str]:
     errors: list[str] = []
     if not isinstance(ledger, dict):
         return ["ledger is not a dict"]
@@ -353,6 +501,13 @@ def validate(ledger: dict, records_list) -> list[str]:
     if not isinstance(records, dict):
         errors.append("records is not a dict")
         records = {}
+    snapshot = ledger.get("snapshot")
+    if isinstance(snapshot, dict):
+        raw_calls = snapshot.get("raw_calls") or 0
+        if raw_calls and snapshot_dir:
+            raw_index = os.path.join(snapshot_dir, "raw", "INDEX.json")
+            if not os.path.exists(raw_index):
+                errors.append("snapshot.raw_calls > 0 but raw/INDEX.json is missing")
 
     source_ids: set[str] = set()
     for source in sources:
@@ -369,6 +524,8 @@ def validate(ledger: dict, records_list) -> list[str]:
         state = source.get("state")
         if state not in STATES:
             errors.append(f"{sid or '<unknown>'}: unknown state {state!r}")
+        if state == "RAN_UNRECORDED" and (ledger.get("snapshot") or {}).get("mode") != "LEGACY_UNRECORDED":
+            errors.append(f"{sid or '<unknown>'}: RAN_UNRECORDED is a legacy-only state; a live run must record its yield")
         funnel = source.get("funnel")
         if not isinstance(funnel, dict):
             errors.append(f"{sid or '<unknown>'}: funnel is not a dict")
@@ -430,6 +587,8 @@ def load_ledger(slug: str, root: str = ROOT) -> dict | None:
 def _records_without_ledger(records_dict: dict) -> dict:
     out = dict(records_dict)
     out.pop("retrieval_ledger", None)
+    out.pop("_raw_recorder", None)
+    out.pop("_raw_calls", None)
     return out
 
 
@@ -441,6 +600,16 @@ def write_snapshot(slug: str, records_dict: dict, ledger: dict, root: str = ROOT
         raise ValueError("ledger must be finalized before writing a snapshot")
     snapshot_dir = os.path.join(root, "cache", slug, SNAPSHOT_DIRNAME, f"{retrieved_utc}-{sha[:8]}")
     os.makedirs(snapshot_dir, exist_ok=True)
+    raw_recorder = records_dict.get("_raw_recorder")
+    if isinstance(raw_recorder, RawRecorder):
+        raw_calls, raw_index_sha = raw_recorder.write_snapshot(snapshot_dir)
+    else:
+        raw_calls, raw_index_sha = 0, None
+    ledger.setdefault("snapshot", {})["raw_calls"] = raw_calls
+    if raw_index_sha:
+        ledger["snapshot"]["raw_index_sha256"] = raw_index_sha
+    else:
+        ledger["snapshot"].pop("raw_index_sha256", None)
     clean_records = _records_without_ledger(records_dict)
     with open(os.path.join(snapshot_dir, "records.json"), "w", encoding="utf-8", newline="") as f:
         f.write(json.dumps(clean_records, ensure_ascii=False, indent=2))
@@ -467,4 +636,8 @@ def refresh(config: dict, now: str, root: str = ROOT) -> str:
     violations = validate(ledger, data.get("records", []))
     if violations:
         raise ValueError("invalid retrieval ledger: " + "; ".join(violations))
-    return write_snapshot(config["slug"], data, ledger, root=root)
+    snapshot_dir = write_snapshot(config["slug"], data, ledger, root=root)
+    violations = validate(ledger, data.get("records", []), snapshot_dir=snapshot_dir)
+    if violations:
+        raise ValueError("invalid retrieval snapshot: " + "; ".join(violations))
+    return snapshot_dir

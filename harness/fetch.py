@@ -5,6 +5,7 @@ runs only when the cache is absent (idempotent), so re-running from a protocol S
 fresh clone replays the committed cache and reproduces byte-for-byte.
 """
 from __future__ import annotations
+from contextlib import nullcontext
 import json
 import os
 import re
@@ -400,12 +401,27 @@ def _coerce_source_result(raw, id_getter=None) -> tuple[list[str], str, str | No
 
 
 def _run_source(ledger: dict, kind: str, query: str, run_utc: str, discovery_capable: bool,
-                call, id_getter=None) -> tuple[str, list[str], object]:
+                call, id_getter=None, adapter: str | None = None) -> tuple[str, list[str], object]:
+    source_id = _acq.reserve_source_id(ledger, kind)
+    recorder = getattr(http, "RECORDER", None)
+    scope = recorder.source(source_id, adapter or "harness.fetch._run_source") if recorder else nullcontext()
     try:
-        ids, state, error, funnel, payload = _coerce_source_result(call(), id_getter=id_getter)
+        with scope:
+            ids, state, error, funnel, payload = _coerce_source_result(call(), id_getter=id_getter)
     except Exception as exc:  # noqa: BLE001 - every adapter failure is explicit provenance.
         ids, state, error, funnel, payload = [], "RAN_ERROR", str(exc), _source_funnel(None, 0), None
-    source_id = _acq.add_source(ledger, kind, query, run_utc, state, error, funnel, ids, discovery_capable)
+    source_id = _acq.add_source(
+        ledger,
+        kind,
+        query,
+        run_utc,
+        state,
+        error,
+        funnel,
+        ids,
+        discovery_capable,
+        source_id=source_id,
+    )
     return source_id, ids, payload
 
 
@@ -452,7 +468,7 @@ def _attach_retained_records(ledger: dict, kept_pmids: list[str]) -> None:
 
 
 
-def run(config: dict) -> dict:
+def _run_with_recorder(config: dict, recorder: _acq.RawRecorder) -> dict:
     """Fetch records and a retrieval ledger for a topic config (does not write)."""
     run_utc = config.get("_now", "")
     ledger = _acq.new_ledger(config["slug"])
@@ -467,7 +483,8 @@ def run(config: dict) -> dict:
     _has_terms = bool(config.get("intervention_terms")) or bool((config.get("include") or {}).get("population_any"))
     if _cq and _has_terms:
         _, ids, _ = _run_source(ledger, "PUBMED_CONCEPT_QUERY", _cq, run_utc, True,
-                                lambda q=_cq: _acq.esearch_all(q, hard_cap=config.get("max_hits")))
+                                lambda q=_cq: _acq.esearch_all(q, hard_cap=config.get("max_hits")),
+                                adapter="harness.acquisition.esearch_all")
         _append_unique(pmids, ids)
     else:
         _acq.add_source(ledger, "PUBMED_CONCEPT_QUERY", _cq, run_utc, "NOT_RUN", None,
@@ -477,7 +494,15 @@ def run(config: dict) -> dict:
         kind = _acq.classify_query(q)
         discovery = kind != "PUBMED_PMID_ENUMERATION"
         if kind == "PUBMED_PMID_ENUMERATION":
-            _, ids, _ = _run_source(ledger, kind, q, run_utc, discovery, lambda q=q: _uid_query_result(q))
+            _, ids, _ = _run_source(
+                ledger,
+                kind,
+                q,
+                run_utc,
+                discovery,
+                lambda q=q: _uid_query_result(q),
+                adapter="harness.fetch._uid_query_result",
+            )
         else:
             _, ids, _ = _run_source(
                 ledger,
@@ -486,6 +511,7 @@ def run(config: dict) -> dict:
                 run_utc,
                 discovery,
                 lambda q=q: _acq.esearch_all(q, hard_cap=config.get("max_hits")),
+                adapter="harness.acquisition.esearch_all",
             )
         _append_unique(pmids, ids)
 
@@ -497,13 +523,15 @@ def run(config: dict) -> dict:
             run_utc,
             True,
             lambda q=q, retmax=retmax: _europepmc_result(q, retmax),
+            adapter="harness.fetch._europepmc_result",
         )
         _append_unique(pmids, ids)
 
     extras = _dedupe(config.get("extra_pmids", []))
     if extras:
         _, ids, _ = _run_source(ledger, "EXTRA_PMIDS", "config.extra_pmids", run_utc, False,
-                                lambda extras=extras: list(extras))
+                                lambda extras=extras: list(extras),
+                                adapter="harness.fetch._protected_config_pmids")
         _append_unique(pmids, ids)
 
     # NEGATIVE controls and the comparator are forced in (as before this layer). POSITIVE controls are NOT:
@@ -515,7 +543,8 @@ def run(config: dict) -> dict:
     )
     if controls:
         _, ids, _ = _run_source(ledger, "CONTROL_PMIDS", "config negative controls + comparator", run_utc, False,
-                                lambda controls=controls: list(controls))
+                                lambda controls=controls: list(controls),
+                                adapter="harness.fetch._protected_config_pmids")
         _append_unique(pmids, ids)
 
     if config.get("comparator_pmid") and config.get("seed_comparator_refs", True):
@@ -526,6 +555,7 @@ def run(config: dict) -> dict:
             run_utc,
             True,
             lambda pmid=config["comparator_pmid"]: _refs(pmid),
+            adapter="harness.fetch._refs",
         )
         _append_unique(pmids, ids)
 
@@ -540,6 +570,7 @@ def run(config: dict) -> dict:
                     run_utc,
                     True,
                     lambda seed=seed, kind=kind: _epmc_linked(seed, kind, pages=config.get("cite_pages", 2)),
+                    adapter="harness.fetch._epmc_linked",
                 )
                 _append_unique(pmids, ids)
 
@@ -552,6 +583,7 @@ def run(config: dict) -> dict:
             run_utc,
             True,
             lambda rf_cfg=rf_cfg: _registry_first_result(rf_cfg),
+            adapter="harness.registry_first.registry_first_pmids",
         )
         _append_unique(pmids, ids)
 
@@ -576,7 +608,8 @@ def run(config: dict) -> dict:
 
     pubmed = []
     for i in range(0, len(pmids), 20):
-        pubmed.extend(_efetch(pmids[i:i + 20]))
+        with recorder.source(f"pubmed_efetch#{i // 20 + 1}", "harness.fetch._efetch"):
+            pubmed.extend(_efetch(pmids[i:i + 20]))
 
     ctgov = []
     cg = config.get("ctgov")
@@ -589,6 +622,7 @@ def run(config: dict) -> dict:
             True,
             lambda cg=cg: _ctgov_search(cg.get("cond", ""), cg.get("intr", "")),
             id_getter=lambda row: row.get("id"),
+            adapter="harness.fetch._ctgov_search",
         )
         ctgov = payload if isinstance(payload, list) else []
 
@@ -640,8 +674,21 @@ def run(config: dict) -> dict:
             "fulltext_by_pmid": fulltext_by_pmid,
             "source_status": _source_status_from_ledger(ledger, fulltext_status)}
     _acq.finalize(ledger, pubmed, config.get("_now", ""), "REFRESH")
+    ledger["snapshot"]["raw_calls"] = recorder.count
     data["retrieval_ledger"] = ledger
+    data["_raw_recorder"] = recorder
     return data
+
+
+def run(config: dict) -> dict:
+    """Fetch records and a retrieval ledger for a topic config (does not write)."""
+    recorder = _acq.RawRecorder()
+    previous_recorder = http.RECORDER
+    http.RECORDER = recorder
+    try:
+        return _run_with_recorder(config, recorder)
+    finally:
+        http.RECORDER = previous_recorder
 
 
 def cache_path(slug: str) -> str:
@@ -659,11 +706,22 @@ def ensure(config: dict, now: str):
     ledger = data.get("retrieval_ledger")
     records_data = dict(data)
     records_data.pop("retrieval_ledger", None)
+    raw_recorder = records_data.pop("_raw_recorder", None)
     if isinstance(ledger, dict):
         violations = _acq.validate(ledger, records_data.get("records", []))
         if violations:
             raise ValueError("invalid retrieval ledger: " + "; ".join(violations))
     os.makedirs(os.path.dirname(path), exist_ok=True)
+    if isinstance(ledger, dict) and isinstance(raw_recorder, _acq.RawRecorder):
+        raw_calls, raw_index_sha = raw_recorder.write_snapshot(os.path.dirname(path))
+        ledger.setdefault("snapshot", {})["raw_calls"] = raw_calls
+        if raw_index_sha:
+            ledger["snapshot"]["raw_index_sha256"] = raw_index_sha
+        else:
+            ledger["snapshot"].pop("raw_index_sha256", None)
+        violations = _acq.validate(ledger, records_data.get("records", []), snapshot_dir=os.path.dirname(path))
+        if violations:
+            raise ValueError("invalid retrieval snapshot: " + "; ".join(violations))
     with open(path, "w", encoding="utf-8", newline="") as f:
         f.write(json.dumps(records_data, ensure_ascii=False, indent=2))
     if isinstance(ledger, dict):

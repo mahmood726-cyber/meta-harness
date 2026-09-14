@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import json
 import os
 import shutil
@@ -47,6 +49,130 @@ def _mute_optional_network(monkeypatch):
     monkeypatch.setattr(fetch, "_efetch", _fake_efetch)
     monkeypatch.setattr(fetch, "_pmc_fulltext", lambda *args, **kwargs: "")
     monkeypatch.setattr(fetch, "_ctgov_results", lambda _nct: None)
+
+
+class _FakeResponse:
+    def __init__(self, body: bytes, status: int = 200):
+        self.body = body
+        self.status = status
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return False
+
+    def read(self):
+        return self.body
+
+    def getcode(self):
+        return self.status
+
+
+def test_run_records_raw_http_body_and_clears_recorder(monkeypatch):
+    _mute_optional_network(monkeypatch)
+    monkeypatch.setattr(fetch, "_europepmc_result", _empty_epmc)
+    monkeypatch.setattr(fetch.http.time, "sleep", lambda _seconds: None)
+    body = b'{"esearchresult":{"count":"1","idlist":["101"]}}'
+
+    def fake_urlopen(_request, timeout=30):
+        return _FakeResponse(body)
+
+    monkeypatch.setattr(fetch.http.urllib.request, "urlopen", fake_urlopen)
+    out = fetch.run({
+        "slug": "__plant_acq__",
+        "concept_query": False,
+        "pubmed_queries": ["plant[tiab]"],
+        "seed_comparator_refs": False,
+        "_now": "2026-09-14",
+    })
+
+    assert fetch.http.RECORDER is None
+    recorder = out["_raw_recorder"]
+    assert recorder.count == 1
+    call = recorder.calls[0]
+    assert call["source_id"] == "pubmed_legacy_query#1"
+    assert call["status"] == 200
+    assert call["body_bytes"] == body
+    assert call["body_sha256"] == hashlib.sha256(body).hexdigest()
+    assert call["adapter"] == "harness.acquisition.esearch_all"
+    assert out["retrieval_ledger"]["snapshot"]["raw_calls"] == 1
+
+
+def test_write_snapshot_writes_raw_index_and_raw_files():
+    slug = "__plant_acq__"
+    tmp_root = tempfile.mkdtemp(prefix="__plant_acq_raw__", dir=os.getcwd())
+    try:
+        records = [_record("101")]
+        ledger = acq.new_ledger(slug)
+        sid = acq.add_source(
+            ledger,
+            "PUBMED_LEGACY_QUERY",
+            "plant[tiab]",
+            "2026-09-14",
+            "RAN_OK",
+            None,
+            {"hits": 1, "fetched": 1, "retained": 1,
+             "cap": {"kind": "none", "n": None, "remainder": None}},
+            ["101"],
+            True,
+        )
+        acq.attach_records(ledger, sid, ["101"])
+        acq.finalize(ledger, records, "2026-09-14", "REFRESH")
+        recorder = acq.RawRecorder()
+        body = b'{"ok":true}'
+        recorder.record(sid, "https://example.test/search", {"term": "plant"}, 200, body,
+                        "harness.fetch._europepmc_result")
+
+        snapshot_dir = acq.write_snapshot(
+            slug,
+            {"slug": slug, "fetched_utc": "2026-09-14", "records": records, "_raw_recorder": recorder},
+            ledger,
+            root=tmp_root,
+        )
+
+        index_path = os.path.join(snapshot_dir, "raw", "INDEX.json")
+        assert os.path.exists(index_path)
+        assert ledger["snapshot"]["raw_calls"] == 1
+        with open(index_path, "rb") as f:
+            index_bytes = f.read()
+        assert ledger["snapshot"]["raw_index_sha256"] == hashlib.sha256(index_bytes).hexdigest()
+        index = json.loads(index_bytes.decode("utf-8"))
+        raw_path = os.path.join(snapshot_dir, *index[0]["path"].split("/"))
+        with open(raw_path, "rb") as f:
+            raw_bytes = f.read()
+        assert index[0]["file_sha256"] == hashlib.sha256(raw_bytes).hexdigest()
+        payload = json.loads(raw_bytes.decode("utf-8"))
+        assert payload["body_sha256"] == hashlib.sha256(body).hexdigest()
+        assert base64.b64decode(payload["body_bytes_b64"]) == body
+        assert acq.validate(ledger, records, snapshot_dir=snapshot_dir) == []
+    finally:
+        shutil.rmtree(tmp_root, ignore_errors=True)
+
+
+def test_ran_error_source_records_failed_raw_call(monkeypatch):
+    _mute_optional_network(monkeypatch)
+    monkeypatch.setattr(fetch, "_europepmc_result", _empty_epmc)
+    monkeypatch.setattr(fetch.http.time, "sleep", lambda _seconds: None)
+
+    def fake_urlopen(_request, timeout=30):
+        raise OSError("socket down")
+
+    monkeypatch.setattr(fetch.http.urllib.request, "urlopen", fake_urlopen)
+    out = fetch.run({
+        "slug": "__plant_acq__",
+        "concept_query": False,
+        "pubmed_queries": ["plant[tiab]"],
+        "seed_comparator_refs": False,
+        "_now": "2026-09-14",
+    })
+
+    src = next(s for s in out["retrieval_ledger"]["sources"] if s["kind"] == "PUBMED_LEGACY_QUERY")
+    assert src["state"] == "RAN_ERROR"
+    call = out["_raw_recorder"].calls[0]
+    assert call["source_id"] == src["source_id"]
+    assert call["status"] == "EXCEPTION"
+    assert b"socket down" in call["body_bytes"]
 
 
 def test_adapter_exception_is_ran_error_and_drives_europepmc_status(monkeypatch):

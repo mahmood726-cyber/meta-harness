@@ -883,6 +883,7 @@ _LEDGER_SOURCE_GROUPS = {
     "COMPARATOR_REFERENCES": "Citation chase",
     "CITATION_CHASE": "Citation chase",
     "MODEL_CALL": "Model call",
+    "LEGACY_UNRECORDED": "Legacy unrecorded retrieval",
 }
 _STATE_SEVERITY = {"RAN_OK": 0, "RAN_ZERO": 1, "NOT_RUN": 2, "RAN_ERROR": 3}
 

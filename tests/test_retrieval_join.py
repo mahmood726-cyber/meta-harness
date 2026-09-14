@@ -150,7 +150,7 @@ def test_build_review_core_joins_retrieval_ledger(monkeypatch):
 
         retrieval = core["search"]["retrieval"]
         assert retrieval["snapshot"]["records_sha256"] == "fedcba9876543210"
-        assert retrieval["state_counts"] == {"RAN_OK": 1, "RAN_ZERO": 1, "RAN_ERROR": 1, "NOT_RUN": 1}
+        assert retrieval["state_counts"] == {"RAN_OK": 1, "RAN_ZERO": 1, "RAN_ERROR": 1, "NOT_RUN": 1, "RAN_UNRECORDED": 0}
         assert retrieval["discovery_capable_sources"] == 4
         assert retrieval["enumeration_only"] is False
         assert all("record_ids" not in src for src in retrieval["sources"])
