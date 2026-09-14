@@ -210,12 +210,10 @@ def _iv_iron_strands_section(docs_dir: str) -> str:
 
 
 def _search_recall_section(docs_dir: str) -> str:
-    """Render search recall HONESTLY. The headline is docs/search_recall_heldout.json: recall measured only on the
-    held-out topics (registry/heldout.json -- zero contact with the engine's development, enforced by
-    harness/heldout.py). docs/search_recall.json (6 of 6) is rendered BELOW it for what it is: a development-set
-    number measured on trials hard-coded into the engine and already pooled before it was written, which the repo's
-    own next measurement showed does not generalise. Publishing the held-out number, whatever it is, is the point."""
-    ph = os.path.join(docs_dir, "search_recall_heldout.json")
+    """Render search recall HONESTLY. The headline is now the named regression corpus, not
+    prospective validation: all current topics have been exposed, so future held-out validation
+    must use an external register revealed only when the prospective run begins."""
+    ph = os.path.join(docs_dir, "search_recall_regression_corpus.json")
     pd = os.path.join(docs_dir, "search_recall.json")
     out = ""
     if os.path.exists(ph):
@@ -234,14 +232,17 @@ def _search_recall_section(docs_dir: str) -> str:
                 for r in (h.get("per_topic") or []))
             hist = "".join(f"<li>{_E(e.get('measured_utc'))}: {_E(e.get('recall_text'))} (engine <code>{_E(str(e.get('engine_sha'))[:12])}</code>)</li>"
                            for e in (h.get("history") or []))
-            out += (f"<div class='banner'><h2>Search recall, held-out: <strong>{_E(sm.get('recall_text'))}</strong> "
+            out += (f"<div class='banner'><h2>Search recall, regression corpus (not prospective validation): "
+                    f"<strong>{_E(sm.get('recall_text'))}</strong> "
                     f"known-eligible trials recalled unaided</h2>"
-                    f"<p>Measured {_E(sm.get('measured_utc'))} on the {_E(sm.get('topics'))} held-out topics in "
-                    f"<code>registry/heldout.json</code> &mdash; topics with no contact with the engine's development "
-                    f"(a mechanism, not an intention: a held-out slug in a test, fixture, target list or commit message "
-                    f"refuses the build). Denominator per topic = pooled primary trials + eligible-declared-absent trials "
-                    f"with a PMID. Engine pinned at <code>{_E(str(h.get('engine_sha'))[:12])}</code>; any change to the "
-                    f"engine must publish a new row here before it can land.</p>"
+                    f"<p>Measured {_E(sm.get('measured_utc'))} on the {_E(sm.get('topics'))} named regression-corpus "
+                    f"topics in <code>registry/regression_recall_topics.json</code>. All 32 current corpus topics are "
+                    f"disqualified as held-out because they have been exposed through audits, URLs, commit history, or "
+                    f"regression work; prospective validation will use topics held outside the repository and revealed "
+                    f"only when that run begins. Denominator per topic = pooled primary trials + "
+                    f"eligible-declared-absent trials with a PMID. Engine pinned at "
+                    f"<code>{_E(str(h.get('engine_sha'))[:12])}</code>; any change to the engine must publish a new "
+                    f"regression-corpus row here before it can land.</p>"
                     f"<table><tr><th>topic</th><th>source state</th><th>boolean hits</th><th>recalled</th></tr>{rows}</table>"
                     + (f"<p class='muted'>Not scored (search state not OK/ZERO): {_E(', '.join(sm.get('topics_not_scored') or []))}.</p>"
                        if sm.get("topics_not_scored") else "")
@@ -252,7 +253,7 @@ def _search_recall_section(docs_dir: str) -> str:
         except (OSError, ValueError):
             d = None
         if d:
-            out += (f"<div class='absent'><strong>Development-set recall (not a held-out measurement): "
+            out += (f"<div class='absent'><strong>Development-set recall (not validation): "
                     f"{_E(d.get('concept_query_unaided_recall'))}.</strong> This earlier figure was measured on the six "
                     f"trials hard-coded into the engine&rsquo;s target list, all already source-verified and pooled before "
                     f"the engine was written; it is a fit statistic, not recall, and the engine&rsquo;s own next measurement "

@@ -86,12 +86,34 @@ def limb_leak_scan():
 
 def limb_heldout():
     from harness import heldout
-    registry = heldout.load(ROOT)
     ok, reasons = heldout.check(ROOT)
     if not ok:
-        return REFUSED, "\n".join(reasons)
+        verdict = NOEXEC if heldout.MISSING_KEY_REASON in reasons else REFUSED
+        return verdict, "\n".join(reasons)
+    registry = heldout.load(ROOT)
     _, detail = heldout.measurement_current(ROOT, registry)
     return PASS, detail
+
+
+def limb_fixstate():
+    from harness import fixstate
+    registry = fixstate.load(ROOT)
+    ok, reasons = fixstate.check(ROOT)
+    if not ok:
+        return REFUSED, "\n".join(reasons)
+    if registry.get("enforced_since") is None:
+        return PASS, "registry/fixstate.json enforced_since is null; commit scan inert; ledgers pass"
+    return PASS, "registry/fixstate.json commit scan and ledgers pass"
+
+
+def limb_honest_ratchet():
+    from harness import honest_ratchet
+    ok, reasons = honest_ratchet.check(ROOT)
+    if ok:
+        return PASS, "rendered honest-state marker counts did not decrease"
+    detail = "\n".join(reasons)
+    verdict = NOEXEC if any(str(r).startswith(NOEXEC) for r in reasons) else REFUSED
+    return verdict, detail
 
 
 LIMBS = [
@@ -100,7 +122,9 @@ LIMBS = [
     ("publication gate on every live review page", limb_gate_every_page),
     ("index currency (generated == committed docs/index.html)", limb_index_currency),
     ("served-artefact leak scan (docs/*.json)", limb_leak_scan),
-    ("held-out isolation (registry/heldout.json)", limb_heldout),
+    ("held-out leak detector (registry/heldout_sealed.json)", limb_heldout),
+    ("fix-state discipline (registry/fixstate.json)", limb_fixstate),
+    ("honest-state ratchet (no page may get quieter)", limb_honest_ratchet),
 ]
 
 

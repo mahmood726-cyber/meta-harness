@@ -1,26 +1,26 @@
-"""HELD-OUT search recall -- the only recall number this repository may publish for its concept-query engine.
+"""Regression-corpus search recall -- not prospective validation.
 
 WHY. The previous number (6 of 6, docs/search_recall.json) was measured on six trials hard-coded into the engine's
 TARGETS table and already pooled before the engine was written; the next commit found the engine retrieved 0/64,
-2/80, 6/80, 6/71 of held records on other topics. A recall measured on the development set is a fit statistic,
-not a recall. This script measures ONLY the topics in registry/heldout.json (selected mechanically for zero contact
-with the engine's development; harness/heldout.py refuses any commit that lets them into a test, fixture, target
-list or commit message afterwards).
+2/80, 6/80, 6/71 of held records on other topics. A recall measured on the development set is a fit statistic, not
+a recall. An external auditor later disqualified all 32 current topics from prospective validation because they have
+been exposed through audits, URLs, commit history, or regression work. This script therefore measures only a named
+adversarial regression corpus in registry/regression_recall_topics.json; prospective validation uses topics held
+outside the repository.
 
 WHAT IS MEASURED (network; PubMed esearch, full pagination, no cap):
-  for each held-out topic: query = acquisition.concept_query(topic config)  -- the engine as committed, untouched
+  for each regression-corpus topic: query = acquisition.concept_query(topic config) -- the engine as committed
   known-eligible set  = PMIDs of the pooled PRIMARY-outcome trials
                       + PMIDs of eligible-declared-absent trials on the primary outcome (eligible, not extractable)
                         (registry-only ids without a PMID are listed but cannot score)
   recall = |known-eligible PMIDs retrieved by the query| / |known-eligible PMIDs|
   and, per topic, the boolean hit count and the source state (a RAN_ERROR topic scores nothing and says so).
 
-OUTPUT docs/search_recall_heldout.json (appended history; engine_sha = git blob sha of harness/acquisition.py at
-measurement). harness/heldout.measurement_current refuses the standard if the engine changes without a re-measure,
-so every engine change publishes its held-out number -- including a worse one. What this cannot prevent: a human
-reading these numbers and tuning to them; the history makes that visible as a series, it does not make it impossible.
+OUTPUT docs/search_recall_regression_corpus.json (appended history; engine_sha = git blob sha of
+harness/acquisition.py at measurement). harness/heldout.measurement_current refuses the standard if the engine
+changes without a re-measure, so every engine change publishes its regression-corpus number -- including a worse one.
 
-Usage: python scripts/measure_heldout_recall.py            (writes the artefact; prints the table)
+Usage: python scripts/measure_regression_corpus_recall.py  (writes the artefact; prints the table)
 """
 from __future__ import annotations
 import datetime
@@ -37,7 +37,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 from harness import acquisition  # noqa: E402
 
-OUT = os.path.join(ROOT, "docs", "search_recall_heldout.json")
+TOPICS = os.path.join(ROOT, "registry", "regression_recall_topics.json")
+OUT = os.path.join(ROOT, "docs", "search_recall_regression_corpus.json")
+VALIDATION_STATUS = ("REGRESSION_CORPUS — not prospective validation: all 32 corpus topics are disqualified as "
+                     "held-out (exposed through audits, URLs, commit history); measured on the 5 corpus topics "
+                     "that had zero contact with engine tuning")
 
 
 def _engine_sha() -> str:
@@ -85,7 +89,7 @@ def measure(slug: str) -> dict:
 
 
 def main() -> int:
-    reg = json.load(open(os.path.join(ROOT, "registry", "heldout.json"), encoding="utf-8"))
+    reg = json.load(open(TOPICS, encoding="utf-8"))
     now = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%MZ")
     sha = _engine_sha()
     rows = [measure(s) for s in reg["slugs"]]
@@ -105,14 +109,15 @@ def main() -> int:
             prev = {}
     history = list(prev.get("history") or [])
     history.append(summary)
-    out = {"_doc": ("HELD-OUT concept-query recall: measured only on registry/heldout.json topics (zero contact with the "
-                    "engine's development), against each topic's pinned known-eligible set (pooled primary trials + "
-                    "eligible-declared-absent trials with PMIDs). Published whatever it is. engine_sha pins the engine "
-                    "that was measured; verify_all refuses the standard if harness/acquisition.py changes without a new "
-                    "entry here. The earlier 6-of-6 (docs/search_recall.json) was a development-set number, not recall."),
+    out = {"_doc": ("REGRESSION-CORPUS concept-query recall: measured on the named regression topics in "
+                    "registry/regression_recall_topics.json, against each topic's pinned known-eligible set "
+                    "(pooled primary trials + eligible-declared-absent trials with PMIDs). Published whatever it is. "
+                    "engine_sha pins the engine that was measured; verify_all refuses the standard if "
+                    "harness/acquisition.py changes without a new entry here. This is not prospective validation."),
+           "validation_status": VALIDATION_STATUS,
            "engine_sha": sha, "measured_utc": now, "summary": summary, "per_topic": rows, "history": history}
     io.open(OUT, "w", encoding="utf-8", newline="\n").write(json.dumps(out, indent=1, ensure_ascii=False) + "\n")
-    print(f"HELD-OUT RECALL {summary['recall_text']} over {len(scored)} scored topics (engine {sha[:12]}, {now})")
+    print(f"REGRESSION-CORPUS RECALL {summary['recall_text']} over {len(scored)} scored topics (engine {sha[:12]}, {now})")
     for r in rows:
         print(f"  {r['slug']:42s} state={r['state']:9s} hits={str(r['hits_in_boolean_set']):>6s} "
               f"recalled {r['recalled']}/{r['denominator']}  missed={r['missed_pmids']}")
