@@ -16,6 +16,7 @@ from . import compat as compat_mod
 from . import recovery_recheck as recovery_recheck_mod
 from . import absence as absence_mod
 from . import protocol_compiler as protocol_compiler_mod
+from .limitations import build_limitations
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool, method_text, METHOD_RATIO
 from .acquisition import LEDGER_FILENAME, STATES
@@ -1404,6 +1405,7 @@ def build_review_core(slug, config, records, protocol_sha):
     # publication bias computed from committed fields; indirectness left to human judgement).
     if (_grade := grade_mod.grade(review, _load_ghost(slug))):
         review["grade"] = _grade
+    review["limitations"] = build_limitations(review)
     return review
 
 
