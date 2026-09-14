@@ -105,6 +105,97 @@ def _kv(rows) -> str:
     return f"<table class='kv'>{trs}</table>"
 
 
+def _retrieval_value(x: Any) -> str:
+    return "unknown" if x is None else _e(x)
+
+
+def _retrieval_first(d: dict, keys: tuple[str, ...]) -> Any:
+    for k in keys:
+        if k in d and d.get(k) is not None:
+            return d.get(k)
+    return None
+
+
+def _retrieval_cap_text(cap: dict | None) -> str:
+    if not cap:
+        return "none"
+    return (f"{_e(cap.get('kind') or 'unknown')} "
+            f"(n={_retrieval_value(cap.get('n'))}; remainder={_retrieval_value(cap.get('remainder'))})")
+
+
+def _retrieval_state_text(src: dict) -> str:
+    state = src.get("state")
+    if state == "RAN_ERROR":
+        return ("<strong>RAN_ERROR</strong>: attempted and FAILED — its zero is not observed, not absent. "
+                f"Error: {_retrieval_value(src.get('error'))}")
+    if state == "RAN_ZERO":
+        return "<strong>RAN_ZERO</strong>: ran; nothing matched"
+    if state == "NOT_RUN":
+        return "<strong>NOT_RUN</strong>: not attempted"
+    if state == "RAN_OK":
+        return "<strong>RAN_OK</strong>: ran and returned records"
+    return f"<strong>{_e(state)}</strong>"
+
+
+def _retrieval_kind_label(kind: Any) -> str:
+    if kind == "PUBMED_PMID_ENUMERATION":
+        return "PMID enumeration — not a search; can retrieve only what it was told"
+    return _e(kind)
+
+
+def _retrieval_mode_label(mode: Any) -> str:
+    if mode == "REFRESH":
+        return "REFRESH: live search run on that date"
+    if mode == "LEGACY_UNRECORDED":
+        return ("LEGACY_UNRECORDED: records fetched before the retrieval ledger existed; which query "
+                "found each record was not recorded")
+    return _e(mode)
+
+
+def _retrieval_html(ret: dict) -> str:
+    snap = ret.get("snapshot") or {}
+    sha8 = str(snap.get("records_sha256") or "")[:8]
+    body = ("<h4>Retrieval snapshot</h4><div class='banner'>"
+            f"<p><strong>Snapshot:</strong> records_sha256 <code>{_e(sha8)}</code>; "
+            f"retrieved_utc {_e(snap.get('retrieved_utc'))}; mode {_retrieval_mode_label(snap.get('mode'))}.</p>"
+            "<p>This page is a REPLAY of that snapshot: re-running from the protocol SHA regenerates "
+            "it byte-for-byte. A live re-search is a separate, dated event (see Re-search below if present).</p>"
+            "</div>")
+    rc = ret.get("record_cap")
+    if rc:
+        retrieved = _retrieval_first(rc, ("retrieved", "n_retrieved", "records_retrieved", "before"))
+        retained = _retrieval_first(rc, ("retained", "n_retained", "records_retained", "after"))
+        n = _retrieval_first(rc, ("n", "cap", "record_cap"))
+        remainder = _retrieval_first(rc, ("remainder", "not_screened", "n_not_screened"))
+        body += ("<p class='note'>"
+                 f"{_retrieval_value(retrieved)} records retrieved, {_retrieval_value(retained)} retained "
+                 f"after the record cap (n={_retrieval_value(n)}); {_retrieval_value(remainder)} not screened"
+                 "</p>")
+    if ret.get("enumeration_only"):
+        body += ("<div class='absent'><strong>No search was run for this topic: every PubMed source "
+                 "is a PMID enumeration.</strong></div>")
+    rows = []
+    for src in ret.get("sources") or []:
+        funnel = src.get("funnel") or {}
+        flow = (f"{_retrieval_value(funnel.get('hits'))} -&gt; "
+                f"{_retrieval_value(funnel.get('fetched'))} -&gt; "
+                f"{_retrieval_value(funnel.get('retained'))}")
+        rows.append(
+            f"<tr><td>{_retrieval_kind_label(src.get('kind'))}</td>"
+            f"<td><code>{_e(src.get('query'))}</code></td>"
+            f"<td>{_e(src.get('run_utc'))}</td>"
+            f"<td>{_retrieval_state_text(src)}</td>"
+            f"<td>{flow}</td>"
+            f"<td>{_retrieval_cap_text(funnel.get('cap'))}</td>"
+            f"<td>{'yes' if src.get('discovery_capable') else 'no'}</td></tr>")
+    if rows:
+        body += ("<h4>Retrieval sources</h4>"
+                 "<table class='recs'><tr><th>Kind</th><th>Query</th><th>Run date</th><th>State</th>"
+                 "<th>hits -&gt; fetched -&gt; retained</th><th>Cap</th><th>Discovery-capable</th></tr>"
+                 f"{''.join(rows)}</table>")
+    return body
+
+
 def _ci(res) -> str:
     return f"{_num(res.get('estimate'))} ({res.get('scale')}), 95% CI {_num(res.get('ci_low'))}–{_num(res.get('ci_high'))}"
 
@@ -345,6 +436,8 @@ def _search(r, neutral):
         ("Committed cache", s.get("cache_ref")),
         ("Run (UTC)", s.get("run_utc")),
     ] if v is not None])
+    if s.get("retrieval"):
+        body += _retrieval_html(s["retrieval"])
     ss = s.get("source_status") or {}
     if ss:
         # Four-state per source: which adapters ran, returned nothing, errored, or were not attempted
@@ -451,14 +544,25 @@ def _screening(r, neutral):
     if reason:
         return _absent_block(reason)
     recs = s.get("records", []) or []
-    head = ("<tr><th>Record</th><th>Type</th><th>Decision</th><th>Rule</th>"
-            "<th>Reason (true of the record)</th><th>Verbatim span (from the record)</th></tr>")
-    rows = "".join(
-        f"<tr><td>{_e(x.get('id'))}</td><td>{_e(x.get('id_type'))}</td>"
-        f"<td class='dec-{_e(x.get('decision'))}'>{_e(x.get('decision'))}</td>"
-        f"<td>{_e(x.get('rule_id'))}</td><td>{_e(x.get('reason'))}</td>"
-        f"<td class='span'>{_e(x.get('span'))}</td></tr>"
-        for x in recs)
+    if (r.get("search") or {}).get("retrieval"):
+        head = ("<tr><th>Record</th><th>Type</th><th>Decision</th><th>Rule</th><th>Found by</th>"
+                "<th>Reason (true of the record)</th><th>Verbatim span (from the record)</th></tr>")
+        rows = "".join(
+            f"<tr><td>{_e(x.get('id'))}</td><td>{_e(x.get('id_type'))}</td>"
+            f"<td class='dec-{_e(x.get('decision'))}'>{_e(x.get('decision'))}</td>"
+            f"<td>{_e(x.get('rule_id'))}</td><td>{_e(', '.join(x.get('found_by') or []))}</td>"
+            f"<td>{_e(x.get('reason'))}</td>"
+            f"<td class='span'>{_e(x.get('span'))}</td></tr>"
+            for x in recs)
+    else:
+        head = ("<tr><th>Record</th><th>Type</th><th>Decision</th><th>Rule</th>"
+                "<th>Reason (true of the record)</th><th>Verbatim span (from the record)</th></tr>")
+        rows = "".join(
+            f"<tr><td>{_e(x.get('id'))}</td><td>{_e(x.get('id_type'))}</td>"
+            f"<td class='dec-{_e(x.get('decision'))}'>{_e(x.get('decision'))}</td>"
+            f"<td>{_e(x.get('rule_id'))}</td><td>{_e(x.get('reason'))}</td>"
+            f"<td class='span'>{_e(x.get('span'))}</td></tr>"
+            for x in recs)
     n_inc = sum(1 for x in recs if x.get("decision") == "include")
     integ = r.get("integrity")
     integ_html = ""

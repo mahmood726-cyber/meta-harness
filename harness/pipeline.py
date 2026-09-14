@@ -17,6 +17,7 @@ from . import absence as absence_mod
 from . import protocol_compiler as protocol_compiler_mod
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool, method_text, METHOD_RATIO
+from .acquisition import LEDGER_FILENAME, STATES
 
 # Back-compat alias: the ratio-scale method is the historical default. Per-outcome and manifest
 # method strings are now chosen by synth.method_text(scale) so a mean-difference outcome is never
@@ -380,6 +381,14 @@ def _load_dose_selection(slug):
         return json.load(open(p, encoding="utf-8"))
     except (OSError, ValueError):
         return None
+
+
+def _load_retrieval_ledger(slug):
+    p = os.path.join(ROOT, "cache", slug, LEDGER_FILENAME)
+    if not os.path.exists(p):
+        return None
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def _with_model_adjudication(slug, dual, decisions):
@@ -808,12 +817,79 @@ def _outcome_specs(config):
     return specs
 
 
-def _source_status(slug, config, records, merged):
+_LEDGER_SOURCE_GROUPS = {
+    "PUBMED_CONCEPT_QUERY": "PubMed",
+    "PUBMED_LEGACY_QUERY": "PubMed",
+    "PUBMED_PMID_ENUMERATION": "PubMed",
+    "EXTRA_PMIDS": "PubMed",
+    "CONTROL_PMIDS": "PubMed",
+    "EUROPEPMC_QUERY": "Europe PMC (OA + metadata)",
+    "CTGOV_SEARCH": "ClinicalTrials.gov",
+    "REGISTRY_FIRST": "Registry-first (AACT)",
+    "COMPARATOR_REFERENCES": "Citation chase",
+    "CITATION_CHASE": "Citation chase",
+    "MODEL_CALL": "Model call",
+}
+_STATE_SEVERITY = {"RAN_OK": 0, "RAN_ZERO": 1, "NOT_RUN": 2, "RAN_ERROR": 3}
+
+
+def _ledger_source_status(ledger):
+    out = {}
+    for src in ledger.get("sources") or []:
+        state = src.get("state")
+        group = _LEDGER_SOURCE_GROUPS.get(src.get("kind")) or src.get("kind") or src.get("source_id")
+        if not group or state not in _STATE_SEVERITY:
+            continue
+        prev = out.get(group)
+        if prev is None or _STATE_SEVERITY[state] > _STATE_SEVERITY[prev]:
+            out[group] = state
+    return out
+
+
+def _retrieval_summary(ledger):
+    sources = []
+    state_counts = {state: 0 for state in STATES}
+    discovery_capable_sources = 0
+    for src in ledger.get("sources") or []:
+        state = src.get("state")
+        if state in state_counts:
+            state_counts[state] += 1
+        if src.get("discovery_capable"):
+            discovery_capable_sources += 1
+        sources.append({
+            "source_id": src.get("source_id"),
+            "kind": src.get("kind"),
+            "query": src.get("query"),
+            "run_utc": src.get("run_utc"),
+            "state": state,
+            "error": src.get("error"),
+            "discovery_capable": bool(src.get("discovery_capable")),
+            "funnel": dict(src.get("funnel") or {}),
+            "n_records": len(src.get("record_ids") or []),
+        })
+    return {
+        "snapshot": dict(ledger["snapshot"]),
+        "record_cap": ledger.get("record_cap"),
+        "sources": sources,
+        "state_counts": state_counts,
+        "discovery_capable_sources": discovery_capable_sources,
+        "enumeration_only": discovery_capable_sources == 0,
+    }
+
+
+def _source_status(slug, config, records, merged, ledger=None):
     """Four-state (RAN_OK / RAN_ZERO / RAN_ERROR / NOT_RUN) per search source, so a reader can see
     which adapters ran, which returned nothing, and which were not attempted for this topic. Prefers
     the status fetch actually recorded (records.source_status) and fills the rest DETERMINISTICALLY
     from committed artifacts (recall.json, fulltext_by_pmid, ctgov presence) — replay-safe, no network,
     process-metadata only (never a pooled number)."""
+    # With a ledger, the adapter states are the RECORDED ones (worst state wins per named group), laid over
+    # the inferred base so groups the ledger never ran (e.g. PMC full text) still render as NOT_RUN rather
+    # than vanishing -- a missing row reads as "not observed", not as "did not run".
+    if ledger:
+        base = _source_status(slug, config, records, merged, None)
+        base.update(_ledger_source_status(ledger))
+        return base
     committed = records.get("source_status") or {}
     ft = records.get("fulltext_by_pmid") or {}
     rc = _load_recall(slug) or {}
@@ -830,6 +906,8 @@ def _source_status(slug, config, records, merged):
 
 def build_review_core(slug, config, records, protocol_sha):
     merged = _dedup(records, config.get("pivotal_trials"))
+    retrieval_ledger = _load_retrieval_ledger(slug)
+    retrieval_records = (retrieval_ledger.get("records") or {}) if retrieval_ledger else {}
     # ARMCONTRAST INTO SCREENING: inject this topic's committed, audit-confirmed non-contrast
     # evictions so screening excludes them at eligibility (not after pooling). Deterministic from
     # docs/contrast_evictions.json, so build and replay agree.
@@ -928,6 +1006,22 @@ def build_review_core(slug, config, records, protocol_sha):
     # The SERVED method (set on the manifest by build_topic from the primary's ACTUAL result scale) is
     # derived independently, so the gate's declared==served limb can actually fail when they diverge.
     _declared_method = method_text((primary.get("estimand") or "RR"))
+    if retrieval_ledger:
+        screening_records = []
+        for d in scr["decisions"]:
+            found_by = (retrieval_records.get(str(d["id"])) or {}).get("found_by") or ["UNRECORDED"]
+            screening_records.append({
+                "id": (f"{rec_by_id.get(d['id'],{}).get('acronym')} · " if rec_by_id.get(d['id'],{}).get('acronym') else "") + str(d["id"]),
+                "id_type": d["id_type"], "decision": d["decision"],
+                "rule_id": d["rule_id"], "reason": d["reason"],
+                "span": d.get("span", ""), "found_by": found_by,
+            })
+    else:
+        screening_records = [{"id": (f"{rec_by_id.get(d['id'],{}).get('acronym')} · " if rec_by_id.get(d['id'],{}).get('acronym') else "") + str(d["id"]),
+                              "id_type": d["id_type"], "decision": d["decision"],
+                              "rule_id": d["rule_id"], "reason": d["reason"],
+                              "span": d.get("span", "")} for d in scr["decisions"]]
+
     review = {
         "slug": slug, "title": config["title"], "question": config["question"],
         "method_declared": _declared_method,
@@ -941,13 +1035,11 @@ def build_review_core(slug, config, records, protocol_sha):
                    "run_utc": records.get("fetched_utc"), "databases": ["PubMed", "ClinicalTrials.gov"],
                    "sources": [{"name": "PubMed", "queries": records.get("pubmed_queries", [])},
                                {"name": "ClinicalTrials.gov", "queries": [json.dumps(records.get("ctgov_query"))]}],
-                   "source_status": _source_status(slug, config, records, merged),
+                   "source_status": _source_status(slug, config, records, merged, retrieval_ledger),
+                   **({"retrieval": _retrieval_summary(retrieval_ledger)} if retrieval_ledger else {}),
                    **({"recall": _rc} if (_rc := _load_recall(slug)) else {}),
                    **({"ghost": _gh} if (_gh := _load_ghost(slug)) else {})},
-        "screening": {"records": [{"id": (f"{rec_by_id.get(d['id'],{}).get('acronym')} · " if rec_by_id.get(d['id'],{}).get('acronym') else "") + str(d["id"]),
-                                   "id_type": d["id_type"], "decision": d["decision"],
-                                   "rule_id": d["rule_id"], "reason": d["reason"],
-                                   "span": d.get("span", "")} for d in scr["decisions"]],
+        "screening": {"records": screening_records,
                       "positive_control": scr["positive_control"], "negative_control": scr["negative_control"],
                       "dual": _with_model_adjudication(slug, screen.run_dual(merged, config), scr["decisions"])},
         "outcomes": outcomes,
