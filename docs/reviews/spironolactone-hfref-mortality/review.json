@@ -2093,32 +2093,18 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
-      "trials": [
-        {
-          "label": "21073363",
-          "id": "PMID 21073363",
-          "ai": 161,
-          "n1i": 1367,
-          "ci": 99,
-          "n2i": 1376,
-          "provenance": "aact_verified",
-          "source": "EMPHASIS-HF (PMID 21073363) abstract: 'A serum potassium level exceeding 5.5 mmol per liter occurred in 11.8% of patients in the eplerenone group and 7.2% of those in the placebo group.' ENDPOINT CORRECTION (override): the CT.gov extractor pooled 'hospitalization due to hyperkalemia' (4/1367 vs 3/1376), not hyperkalemia incidence; our outcome is hyperkalemia (serum K+ >5.5). Counts derived from the stated percentages x per-arm N (eplerenone 1367, placebo 1376).",
-          "verified": "verified_handchecked",
-          "verify_basis": "AACT-derived arm entry, cross-checked to published %",
-          "effect_object": {
-            "reported_label": "RR",
-            "statistical_model": null,
-            "canonical_estimand": "RISK_RATIO"
-          },
-          "derivation": "reconstructed"
-        }
-      ],
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "trials": [],
       "declared_absent_trials": [
         {
           "label": "10471456",
           "id": "PMID 10471456",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract"
+        },
+        {
+          "label": "21073363",
+          "id": "PMID 21073363",
+          "reason": "hyperkalemia (serum K+ >5.5) is reported in the EMPHASIS-HF abstract ONLY as percentages (11.8% eplerenone vs 7.2% placebo) with NO per-arm denominator, and the full text is not open-access; the CT.gov structured field is the WRONG endpoint (hospitalization due to hyperkalemia, 4/1367). Percentages alone are insufficient under the extraction policy: the earlier counts 161/1367 vs 99/1376 were synthesized as % x an unverified denominator (they sum to 2743 != the trial's randomised 2737) and were wrongly badged aact_verified. A % x denominator synthesis is harness-reconstructed, never source-verified, so it must not be pooled. Declared absent rather than pool a fabricated count/CI."
         },
         {
           "label": "J-EMPHASIS-HF",
@@ -2127,65 +2113,22 @@
         }
       ],
       "result": {
-        "k": 1,
-        "estimate": 1.637,
-        "scale": "RR",
-        "ci_low": 1.2891,
-        "ci_high": 2.0787,
-        "pi_note": "prediction interval undefined for k=1",
-        "estmeasure": {
-          "status": "homogeneous",
-          "classes": [
-            "FIRST_EVENT_RATIO"
-          ],
-          "canonicals": [
-            "RISK_RATIO"
-          ],
-          "labels": [
-            "RR"
-          ]
-        },
-        "leave_one_out": {
-          "note": "not assessable at k=1 (leave-one-out needs k>=3)"
-        },
+        "present": false,
+        "reported_not_extracted": true,
+        "reported_by": [
+          "10471456",
+          "21073363",
+          "28824029"
+        ],
+        "reason": "REPORTED but not extractable as a pooled value: 10471456, 21073363, 28824029 mention this outcome in the committed abstract, but without arm counts or an effect+CI in an extractable form (e.g. a bare percentage with no denominator). This outcome is NOT absent — it is reported-but-not-poolable from the committed source; full-text acquisition would recover the countable form.",
         "claim": {
-          "present": true,
-          "significant": true,
-          "crosses_null": false,
-          "touches_null": false,
-          "null": 1.0,
-          "direction": "harm",
-          "significant_fixed": null
+          "present": false,
+          "significant": false,
+          "crosses_null": null,
+          "touches_null": null,
+          "null": null,
+          "direction": null
         }
-      },
-      "compat_key": {
-        "effect_measure": [
-          "RR"
-        ],
-        "event_process": [
-          "FIRST_EVENT_RATIO"
-        ],
-        "endpoint": "single endpoint",
-        "follow_up_window": null,
-        "analysis_set": null,
-        "randomised_contrast": {
-          "verified": 0,
-          "total": 1
-        },
-        "matched": true,
-        "mismatches": []
-      },
-      "recovery_recheck": {
-        "hard_incompatible": false,
-        "mismatches": [],
-        "effect_measure_labels": [
-          "RR"
-        ],
-        "k": 1,
-        "reconstructed_members": [
-          "21073363"
-        ],
-        "label_mix_small_k": false
       }
     },
     {
@@ -2501,7 +2444,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "5d75f715df8176e9e9153fb477848176b84a0e6b",
-    "review_sha256": "1bbeedf291a62fdf36ac78667ca7db0c4bf96084e79ddf00ffbd88e8c6d286bb",
+    "review_sha256": "0e32e9ba3c1ddfb36a214f8a3c604ae6e94566a6950b685e141f23e0ad97e5f3",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -2530,7 +2473,7 @@
       "conflict": 0
     },
     "claim_check": {
-      "claims_checked": 2,
+      "claims_checked": 1,
       "surfaces": [
         "outcome block",
         "overview",
