@@ -209,8 +209,12 @@ def _iv_iron_strands_section(docs_dir: str) -> str:
         pool = s.get("pool")
         if pool:
             sig = "crosses null" if pool.get("crosses_null") else "significant"
+            sens = pool.get("common_effect_sensitivity") or {}
+            sens_txt = (f" <span class='muted'>[common-effect sensitivity {sens['effect']} "
+                        f"({sens['ci_low']}&ndash;{sens['ci_high']}), not the registered result]</span>"
+                        if sens else "")
             res = (f"pooled {pool['effect']} ({pool['ci_low']}&ndash;{pool['ci_high']}), "
-                   f"k={pool['k']}, I&sup2;={pool['I2_pct']}%, {sig}")
+                   f"k={pool['k']}, HKSJ/PM &tau;&sup2;={pool.get('tau2')}, <strong>{sig}</strong>{sens_txt}")
         else:
             m = s["members"][0]
             eff = m.get("effect", m.get("crude_rr"))

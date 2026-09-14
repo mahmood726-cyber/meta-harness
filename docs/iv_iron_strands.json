@@ -5,7 +5,7 @@
  "why_topic_is_suppressed": "Strands A and B measure the SAME endpoint (HF hospitalisation) two incompatible ways -- first-event HR (CONFIRM-HF) vs recurrent rate ratio (AFFIRM-AHF + FAIR-HF2). A hazard ratio of the first event and a rate ratio of all events are not the same quantity and cannot be pooled; the single-pool primary is therefore correctly suppressed. The strands below are the honest decomposition.",
  "refused_cross_endpoint_pool": {
   "description": "The recurrent-event rate ratios do NOT form one pool. A pool of AFFIRM-AHF's HF-hosp-ALONE rate (0.74) with IRONMAN's HF-hosp+CV-death COMPOSITE rate (0.82) crosses the endpoint dimension of the compatibility key.",
-  "if_forced_it_would_be": "0.783 (0.666-0.921) -- this is the 0.783 figure previously treated as the recurrent strand; it mixes endpoints and is refused, not published.",
+  "if_forced_it_would_be": "0.783 (0.275-2.233) -- this is the 0.783 figure previously treated as the recurrent strand; it mixes endpoints and is refused, not published.",
   "verdict": "REFUSED -- endpoint mismatch (HF-hosp alone vs composite)"
  },
  "strands": [
@@ -65,16 +65,20 @@
     }
    ],
    "pool": {
-    "estimand": "common-effect (inverse-variance, log scale)",
+    "estimand": "random-effects, Paule-Mandel tau^2, HKSJ 95% CI on t(k-1) (the registered method)",
     "k": 2,
     "effect": 0.765,
-    "ci_low": 0.636,
-    "ci_high": 0.919,
-    "Q": 0.168,
-    "df": 1,
-    "I2_pct": 0.0,
-    "crosses_null": false,
-    "note_k2": "k=2: tau^2 and a prediction interval are not estimable; reported as a common-effect summary."
+    "ci_low": 0.232,
+    "ci_high": 2.522,
+    "tau2": 0.0,
+    "crosses_null": true,
+    "common_effect_sensitivity": {
+     "effect": 0.765,
+     "ci_low": 0.636,
+     "ci_high": 0.919,
+     "note": "z-based common-effect (fixed) interval, shown ONLY as a small-k sensitivity; NOT the registered result. At k=2 it is far narrower than the HKSJ interval."
+    },
+    "note_k2": "k=2: the HKSJ interval uses a t-multiplier on ONE degree of freedom (t=12.7), so the registered interval is wide and here crosses the null; the tight common-effect sensitivity is not the headline."
    },
    "k": 2
   },
@@ -111,16 +115,20 @@
     }
    ],
    "pool": {
-    "estimand": "common-effect (inverse-variance, log scale)",
+    "estimand": "random-effects, Paule-Mandel tau^2, HKSJ 95% CI on t(k-1) (the registered method)",
     "k": 2,
     "effect": 0.807,
-    "ci_low": 0.686,
-    "ci_high": 0.949,
-    "Q": 0.05,
-    "df": 1,
-    "I2_pct": 0.0,
-    "crosses_null": false,
-    "note_k2": "k=2: tau^2 and a prediction interval are not estimable; reported as a common-effect summary."
+    "ci_low": 0.281,
+    "ci_high": 2.312,
+    "tau2": 0.0,
+    "crosses_null": true,
+    "common_effect_sensitivity": {
+     "effect": 0.807,
+     "ci_low": 0.686,
+     "ci_high": 0.949,
+     "note": "z-based common-effect (fixed) interval, shown ONLY as a small-k sensitivity; NOT the registered result. At k=2 it is far narrower than the HKSJ interval."
+    },
+    "note_k2": "k=2: the HKSJ interval uses a t-multiplier on ONE degree of freedom (t=12.7), so the registered interval is wide and here crosses the null; the tight common-effect sensitivity is not the headline."
    },
    "k": 2
   },

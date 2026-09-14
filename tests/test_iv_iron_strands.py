@@ -41,6 +41,31 @@ def test_strand_pools_reproduce_from_members():
         assert abs(mu - s["pool"]["effect"]) < 0.005, (s["strand"], mu, s["pool"]["effect"])
 
 
+def test_strand_ci_is_canonical_hksj_not_z():
+    # The strand CI MUST come from the canonical PM/HKSJ engine, never a bespoke z interval.
+    # PLANT: a z-based common-effect interval (the shipped bug) would be far narrower and would flip
+    # 'crosses null' to 'significant' at k=2. Assert the served CI equals HKSJ and NOT the z-fixed one.
+    from harness.synth import Study, pool
+    doc = _load()
+    checked = 0
+    for s in doc["strands"]:
+        p = s.get("pool")
+        if not p:
+            continue
+        studies = [Study(label=m["trial"], effect=m["effect"], ci_low=m["ci_low"], ci_high=m["ci_high"])
+                   for m in s["members"]]
+        r = pool(studies, scale="RR")
+        assert abs(p["ci_low"] - round(r.ci_low, 3)) < 0.002, (s["strand"], p["ci_low"], r.ci_low)
+        assert abs(p["ci_high"] - round(r.ci_high, 3)) < 0.002, (s["strand"], p["ci_high"], r.ci_high)
+        # must NOT be the z-fixed common-effect interval (the bug)
+        assert not (abs(p["ci_low"] - round(r.ci_low_fixed, 3)) < 0.002
+                    and abs(p["ci_high"] - round(r.ci_high_fixed, 3)) < 0.002), s["strand"]
+        # at k=2 with t(1)=12.7 both strands cross the null under the registered method
+        assert p["crosses_null"] is True, s["strand"]
+        checked += 1
+    assert checked == 2
+
+
 def test_endpoint_split_is_declared_and_cross_pool_refused():
     doc = _load()
     # Strand B (HF-alone) and Strand C (composite) are distinct endpoints.
