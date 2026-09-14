@@ -28,6 +28,7 @@ from harness.canonical import review_sha256, sha256_text  # noqa: E402
 from harness.pipeline import build_review_core  # noqa: E402
 from harness.page import render_page  # noqa: E402
 from harness import census  # noqa: E402
+from harness import proposition  # noqa: E402
 from harness.registration import protocol_sha as _registration_sha  # noqa: E402
 from harness import registration as _reg  # noqa: E402
 
@@ -74,6 +75,7 @@ def reproduce(slug):
     if _du:
         repro["dual"] = _du
     repro["claim_check"] = census._claim_check(core)
+    repro["proposition_check"] = {"checked": True, "contradictions": proposition.contradictions(core)}
     final = dict(core, reproduction=repro)
     if sha256_text(render_page(final)) != sha256_text(served):
         reasons.append("served index.html does not byte-match a re-render from the replayed core")

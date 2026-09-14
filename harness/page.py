@@ -960,6 +960,16 @@ def _reproduction(r, neutral):
                  f"contradictions caught: {n_con}.</strong>"
                  + ("" if n_con == 0 else " " + _e(json.dumps(cc.get("contradictions"))))
                  + "</p>" + _zero)
+        # SEVENTH GATE (categorical/membership + methodological): the two contradiction families a
+        # significance check cannot see. Rendered so the reader sees it ran (build refuses on any).
+        if (pc := rep.get("proposition_check")) is not None:
+            _pcon = pc.get("contradictions") or []
+            body += ("<p>Beyond significance, the build also refuses any <strong>categorical/membership</strong> "
+                     "contradiction (a trial both pooled and declared-absent, a suppressed pool that still shows "
+                     "an estimate, a record both eligible and excluded) or <strong>methodological</strong> one "
+                     "(a current-headline claim on an invalidated topic, an unsupported preregistration-precedence "
+                     f"claim). <strong>Proposition contradictions caught: {len(_pcon)}.</strong>"
+                     + ("" if not _pcon else " " + _e(json.dumps(_pcon))) + "</p>")
     # NEVER_CONSIDERED (fifth trial state): in-scope trials absent from every identifier space — never
     # retrieved, so invisible to screening/PRISMA/declared-absent unless shown here. The true search gap.
     nc = r.get("never_considered")

@@ -26,6 +26,7 @@ from . import page
 from . import registration
 from . import claim
 from . import compat
+from . import proposition
 from .synth import CI_PROVENANCE
 
 # Provenances a RENDERED interval may legitimately carry: the canonical engine token, or a single
@@ -200,6 +201,15 @@ def build_review_dir(
         raise ValueError(
             "CLAIM-OBJECT CONTRADICTION (build refused): a rendered surface asserts a significance "
             "opposite to the canonical claim object -> " + json.dumps(_cc["contradictions"]))
+    # SEVENTH GATE — categorical/membership + methodological proposition contradictions (the two families
+    # a significance check cannot see: a trial BOTH pooled and declared-absent, a suppressed pool that
+    # still renders an estimate, a record BOTH eligible and excluded, a current-headline claim on an
+    # invalidated topic, a preregistration-precedence claim it cannot support). Object-derived; fail closed.
+    _pbad = proposition.contradictions(review_core_obj)
+    reproduction["proposition_check"] = {"checked": True, "contradictions": _pbad}
+    if _pbad:
+        raise ValueError("PROPOSITION CONTRADICTION (build refused): a categorical/membership or "
+                         "methodological proposition and its negation are asserted at once -> " + json.dumps(_pbad))
     # COMPATIBILITY-KEY backstop: refuse a rendered pool whose trials do not share the hard
     # dimensions (an incompatible effect-measure class inside a pool). Defense in depth -- the
     # upstream guards already suppress these, so this passes on a well-formed corpus and fires
