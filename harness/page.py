@@ -1353,12 +1353,20 @@ def _riskofbias(r, neutral):
         for k, lab in order:
             dv = doms.get(k, {})
             dn = dv.get("downgrade", 0)
-            mark = ("&minus;1" if dn == 1 else f"&minus;{dn}" if dn else "not downgraded")
-            if dv.get("not_auto_rated"):
-                mark = "human judgement"
+            # NOT_ASSESSED != NOT_DOWNGRADED: an unassessed domain must NOT render as "not downgraded"
+            # (which reads as assessed-and-clean). Say NOT ASSESSED, and that it is not evidence of no concern.
+            if not dv.get("assessed", True):
+                mark = "human judgement" if dv.get("not_auto_rated") else "<strong>NOT ASSESSED</strong>"
+            else:
+                mark = ("&minus;1" if dn == 1 else f"&minus;{dn}" if dn else "not downgraded")
             drows.append(f"<tr><td>{_e(lab)}</td><td>{mark}</td><td>{_e(dv.get('basis',''))}</td></tr>")
         cap = (" The rating is capped below <em>high</em> because risk of bias is not assessed for every "
                "pooled trial." if g.get("certainty_capped_by_rob_coverage") else "")
+        if g.get("certainty_capped_unassessed_domain"):
+            _un = ", ".join(d.replace("_", " ") for d in (g.get("unassessed_domains") or []))
+            cap += (f" The rating is capped below <em>high</em> because a required GRADE domain was NOT "
+                    f"ASSESSED ({_un}); an unassessed domain is not evidence of no concern, so the top "
+                    f"certainty cannot be certified until it is rated (unassessed never counts as favourable).")
         if g.get("certainty_capped_d3_unassessed"):
             cap += (" The rating is capped below <em>high</em> because D3 (missing outcome data), a required "
                     "risk-of-bias domain, is NOT ASSESSED for any pooled trial (no outcome-missingness "

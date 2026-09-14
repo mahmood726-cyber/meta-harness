@@ -48,6 +48,7 @@ def _rob_domain(review):
     n_high = sum(1 for x in rated if x == "high")
     n_some = sum(1 for x in rated if x == "some_concerns")
     down = 0
+    assessed = n_rated > 0
     if n_rated == 0 and n > 0:
         # External audit (C-ROB-1): zero assessed CANNOT establish low risk. "No assessed trial at
         # high risk" is not a clean bill when nothing was assessed -- it is no information. Coverage
@@ -69,7 +70,7 @@ def _rob_domain(review):
     if coverage_incomplete and n_rated > 0:
         basis += (f"; risk-of-bias signal available for only {n_rated} of {n} pooled trials "
                   f"(registry-derived), so the rating is capped")
-    return {"downgrade": down, "coverage_incomplete": coverage_incomplete,
+    return {"downgrade": down, "coverage_incomplete": coverage_incomplete, "assessed": assessed,
             "n_trials": n, "n_rated": n_rated, "n_high": n_high, "n_some": n_some, "basis": basis}
 
 
@@ -77,7 +78,7 @@ def _inconsistency_domain(res):
     k = res.get("k")
     tau2 = res.get("tau2")
     if k is None or k < 2:
-        return {"downgrade": 0, "not_estimable": True,
+        return {"downgrade": 0, "not_estimable": True, "assessed": False,
                 "basis": "single trial (k=1): between-study inconsistency is not estimable"}
     # PI substantially wider than CI (on the log scale for ratios) signals real heterogeneity.
     down = 0
@@ -98,7 +99,7 @@ def _inconsistency_domain(res):
             pass
     else:
         basis += " (no between-study heterogeneity detected)" if tau2 == 0 else ""
-    return {"downgrade": down, "not_estimable": False, "basis": basis}
+    return {"downgrade": down, "not_estimable": False, "assessed": True, "basis": basis}
 
 
 def _imprecision_domain(res, scale):
@@ -112,7 +113,7 @@ def _imprecision_domain(res, scale):
     k = res.get("k")
     cil, cih = res.get("ci_low"), res.get("ci_high")
     if cil is None or cih is None:
-        return {"downgrade": 0, "basis": "no confidence interval available"}
+        return {"downgrade": 0, "assessed": False, "basis": "no confidence interval available"}
     is_md = (scale or "").upper() == "MD"
     null = 0.0 if is_md else 1.0
     # ROUNDED-CI precision hierarchy (tranexamic-acid cold audit): a CI bound printed EXACTLY on the null
@@ -166,12 +167,12 @@ def _imprecision_domain(res, scale):
         # crosses the null and reaches an appreciable effect is still downgraded; a tight null-excluding
         # CI is not. (A narrow CI is itself evidence the information size was adequate.)
         basis += "; single trial — imprecision judged from the CI, not downgraded merely for k=1"
-    return {"downgrade": min(down, 2), "crosses_null": crosses, "basis": basis}
+    return {"downgrade": min(down, 2), "crosses_null": crosses, "assessed": True, "basis": basis}
 
 
 def _pubbias_domain(ghost):
     if not ghost:
-        return {"downgrade": 0, "not_assessable": True,
+        return {"downgrade": 0, "not_assessable": True, "assessed": False,
                 "basis": "no registry ghost census available for this topic"}
     enum = ghost.get("enumerated") or 0
     ongoing = ghost.get("ongoing_or_recent") or 0
@@ -187,7 +188,7 @@ def _pubbias_domain(ghost):
     # report the fraction as descriptive only.
     pico_scoped = bool(ghost.get("pico_scoped"))
     if not pico_scoped:
-        return {"downgrade": 0, "not_assessable": True, "ghost_fraction": round(frac, 3),
+        return {"downgrade": 0, "not_assessable": True, "assessed": False, "ghost_fraction": round(frac, 3),
                 "basis": (f"registry census ({ghost_ub} of ~{completed} completed unpublished, {frac:.0%}) was "
                           "enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a "
                           "contaminated denominator cannot be this PICO's publication-bias rate, so publication "
@@ -197,7 +198,7 @@ def _pubbias_domain(ghost):
              f"no published result (upper bound {frac:.0%}); assessed from the registry, not a funnel plot")
     if down:
         basis += " -> downgraded"
-    return {"downgrade": down, "ghost_fraction": round(frac, 3), "basis": basis}
+    return {"downgrade": down, "ghost_fraction": round(frac, 3), "assessed": True, "basis": basis}
 
 
 CERT = ["high", "moderate", "low", "very_low"]
@@ -223,7 +224,7 @@ def grade(review, ghost=None):
             "start": "high",
             "domains": {"risk_of_bias": rob, "inconsistency": inc, "imprecision": imp,
                         "publication_bias": pub,
-                        "indirectness": {"downgrade": 0, "not_auto_rated": True,
+                        "indirectness": {"downgrade": 0, "not_auto_rated": True, "assessed": False,
                                          "basis": "not auto-rated (human judgement)"}},
             "downgrades": rob["downgrade"] + inc["downgrade"] + imp["downgrade"] + pub["downgrade"],
             "certainty": "not_rateable",
@@ -265,6 +266,22 @@ def grade(review, ghost=None):
     if d3_all_unassessed and idx == 0:
         idx = 1
         d3_capped = True
+    # NOT_ASSESSED != NOT_DOWNGRADED (external audit, STATE root system item 2). A GRADE domain that was
+    # not assessed contributes downgrade=0 to the sum, which is arithmetically identical to a domain that
+    # WAS assessed and found clean -- so an unassessed domain silently reads as favourable and could let a
+    # body of evidence be certified HIGH without publication bias or indirectness ever being evaluated.
+    # `UNASSESSED NEVER COUNTS AS FAVOURABLE`: any unassessed domain caps certainty below HIGH (you cannot
+    # certify the top rating on a domain you did not look at). Indirectness is structurally never
+    # machine-assessed here, so this partial GRADE's honest ceiling is MODERATE until a human rates it --
+    # the ceiling is now ENFORCED, not left to coincide with an incidental downgrade. Data-driven: if a
+    # domain becomes assessable, it stops capping automatically.
+    _dm = {"risk_of_bias": rob, "inconsistency": inc, "imprecision": imp,
+           "publication_bias": pub, "indirectness": {"assessed": False}}
+    unassessed = [name for name, d in _dm.items() if not d.get("assessed", True)]
+    unassessed_cap = False
+    if unassessed and idx == 0:
+        idx = 1
+        unassessed_cap = True
     return {
         "start": "high",
         "domains": {
@@ -272,7 +289,7 @@ def grade(review, ghost=None):
             "inconsistency": inc,
             "imprecision": imp,
             "publication_bias": pub,
-            "indirectness": {"downgrade": 0, "not_auto_rated": True,
+            "indirectness": {"downgrade": 0, "not_auto_rated": True, "assessed": False,
                              "basis": "directness of population/intervention/comparator/outcome is a human "
                                       "judgement; not auto-rated (the scope note on the page states the PICO)"},
         },
@@ -281,6 +298,8 @@ def grade(review, ghost=None):
         "certainty_capped_by_rob_coverage": capped,
         "certainty_capped_single_trial": single_trial_capped,
         "certainty_capped_d3_unassessed": d3_capped,
+        "certainty_capped_unassessed_domain": unassessed_cap,
+        "unassessed_domains": unassessed,
         "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication "
                  "bias are computed from committed fields; indirectness is left to human judgement.",
     }
