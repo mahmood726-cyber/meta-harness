@@ -232,5 +232,28 @@
    "population \"atrial fibrillation\" not in prevention-trial title (COCS, Farzaneh)",
    "comparator \"control\" missing (Zarpelon)"
   ]
+ },
+ "prevention_trial_title_omits_outcome": {
+  "_doc": "A category error, not a synonym gap: for a PREVENTION question, requiring the OUTCOME term in the title/conditions is structurally guaranteed to fail, because a prevention trial names the ENROLLED POPULATION (e.g. cardiac surgery), not the condition it prevents (AF). Distinct from vocabulary: no synonym expansion fixes it; the screening DESIGN must not key the population criterion on the prevented outcome.",
+  "confirmed": [
+   {
+    "topic": "colchicine-postop-af",
+    "evidence": "COCS \"Colchicine in Cardiac Surgery\" and Farzaneh \"Post-CABG Arrhythmias\" X2-excluded because population_any requires \"atrial fibrillation\"; enrolled population is cardiac-surgery patients, AF is the outcome"
+   }
+  ],
+  "plausible_same_shape_needs_adjudication": [
+   {
+    "topic": "probiotics-aad-prevention",
+    "pop_term": "antibiotic-associated diarrhoea",
+    "enrolled": "patients receiving antibiotics"
+   },
+   {
+    "topic": "vitamin-d-acute-respiratory-infection",
+    "pop_term": "acute respiratory infection",
+    "enrolled": "general adults/children"
+   }
+  ],
+  "not_the_defect": "HFpEF/HFrEF/CKD/COPD/coronary topics correctly key the population on the ENROLLED disease population, not the outcome -- a heuristic scan flags ~10 but most are correct; a clean count needs per-topic adjudication (population-is-outcome vs population-is-disease), NOT reported as a number per the no-noisy-instrument rule",
+  "fix_note": "belongs with the deferred screening-design work (careful corpus-wide before/after), NOT a fast lexical patch -- the ELIXA class"
  }
 }
