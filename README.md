@@ -42,6 +42,22 @@ python tests/test_gate.py
 The gate is fail-closed: if it cannot execute, it refuses. **Never** `--no-verify`,
 never edit a gate that is refusing you — fix the harness that produced the page.
 
+## How a commit lands (gate authority, 2026-09-14)
+The gates above are enforced **server-side**, so they survive `git clone` and do not depend
+on anyone having installed a hook:
+
+- **Pages deploys only from a green `verify`.** The Pages source is "GitHub Actions"; the sole
+  deploy path is the `deploy` job in `.github/workflows/verify.yml`, which `needs: verify`.
+  A red `verify` means no deploy and the last good deployment stays served.
+- **`main` accepts a push only if `verify` already passed on that exact SHA** (repository
+  ruleset, no bypass actors). So every landing is: push to a branch -> wait for `verify`
+  -> `git push origin <sha>:main`. A direct push of an unchecked or red commit is rejected
+  by the server (`GH013`). The same rule blocks force-pushes and deletion of `main`.
+- `.githooks/pre-commit` (`git config core.hooksPath .githooks`) runs the same standard
+  locally so you find out before the push; it is a convenience, not the enforcement.
+
+The refusals were demonstrated before being relied on: `evidence/gate-authority-2026-09-14/`.
+
 ## Reproducibility contract
 - Stdlib-only. The page is a **pure, deterministic** function of a `review.json`
   object; `review_sha256` covers the review core, `html_sha256` covers the served
