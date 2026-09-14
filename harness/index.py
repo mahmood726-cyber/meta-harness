@@ -363,22 +363,31 @@ def _external_agreement_section(docs_dir: str) -> str:
         d = json.load(open(p, encoding="utf-8"))
     except (OSError, ValueError):
         return ""
-    n, ag = d.get("n_topics"), d.get("agree_within_12pct")
+    n = d.get("n_topics")
     if not n:
         return ""
-    dv = n - ag
+    ag = d.get("same_estimand_agree", d.get("agree_within_12pct", 0))
+    sd = d.get("same_estimand_diverge", 0)
+    cp = d.get("cross_estimand_pending", 0)
+    co = d.get("cross_estimand_opposite", 0)
+    nc = d.get("non_comparable", 0)
+    same_n = ag + sd
     return (f"<div class='banner'><h2>External validation: our pooled numbers vs the published meta-analyses'</h2>"
-            f"<p>The strongest check is against an external hand-built standard. For every topic with a named "
-            f"open-access comparator we compared <strong>our pooled primary estimate to that published "
-            f"meta-analysis's own reported pooled estimate</strong> on the same question. <strong>{ag} of {n}</strong> "
-            f"agree within ~12% on the log scale &mdash; our independent, from-scratch synthesis lands on the "
-            f"same number as the peer-reviewed review (e.g. NOAC stroke/SE 0.81 vs 0.81; GLP-1 MACE 0.85 vs "
-            f"0.86; probiotics AAD 0.63 vs 0.63; finerenone kidney 0.84 vs 0.84). Every one of the {dv} "
-            f"divergences is adjudicated in <code>docs/external_agreement.json</code> and is a documented "
-            f"<strong>smaller-evidence-base</strong> case (we pool k=1 where the comparator pools many &mdash; "
-            f"metformin-PCOS, elderly-statins, CAP-steroids) or a <strong>scale/scope mismatch</strong> "
-            f"(esketamine MADRS-change vs response-rate), not an extraction error. This is pooled-level "
-            f"agreement. <strong>The per-trial head-to-head was attempted against the gold standard</strong> "
+            f"<p>The strongest check is against an external hand-built standard: our pooled primary estimate vs "
+            f"the published comparator meta-analysis's reported pooled estimate. But a comparison is only 'the "
+            f"same question' when the two share the <strong>same estimand</strong> — an RR is not an OR is not an "
+            f"HR (an odds ratio sits further from 1 than a risk ratio for common events; a hazard ratio is a rate, "
+            f"not a risk), so comparing them on the log scale as if interchangeable is a "
+            f"<em>comparator-context mismatch</em>. Keying on the estimand: of {n} topics, <strong>{same_n} are "
+            f"same-estimand comparisons, and {ag} of those agree within ~12%</strong> on the log scale "
+            f"(the genuine same-question agreements); {sd} same-estimand comparison(s) diverge (adjudicated). "
+            f"<strong>{cp} are cross-estimand</strong> (e.g. our HR vs their OR): direction-consistent but the "
+            f"same-question agreement claim is <strong>SUPPRESSED</strong> until a scale-matched, "
+            f"event-rate-justified conversion is verified — a previous version counted these as agreements, "
+            f"which compared different quantities. {co} cross-estimand comparison(s) disagree on direction, and "
+            f"{nc} outcome(s) are not comparable at all (a mean difference vs a rate). Every case is enumerated "
+            f"in <code>docs/external_agreement.json</code>. This is pooled-level agreement. "
+            f"<strong>The per-trial head-to-head was attempted against the gold standard</strong> "
             f"(the Cochrane review CD013505 of metformin for PCOS ovulation): its pooled OR 2.64 (k=13) sits "
             f"far from our single-trial OR 8.25 (k=1) &mdash; a stark, honest illustration of the small-k "
             f"weakness the expansion tier targets &mdash; but a true number-by-number check is <strong>blocked "
@@ -793,8 +802,11 @@ def _prose_derived_numerals(docs_dir: str) -> set:
     if os.path.exists(ea):
         try:
             e = json.load(open(ea, encoding="utf-8"))
-            n, ag = e.get("n_topics"), e.get("agree_within_12pct")
-            for v in (n, ag, (n - ag) if (isinstance(n, int) and isinstance(ag, int)) else None):
+            ag = e.get("same_estimand_agree", e.get("agree_within_12pct"))
+            sd = e.get("same_estimand_diverge", 0)
+            for v in (e.get("n_topics"), ag, sd, e.get("cross_estimand_pending"),
+                      e.get("cross_estimand_opposite"), e.get("non_comparable"),
+                      (ag + sd) if isinstance(ag, int) and isinstance(sd, int) else None):
                 if isinstance(v, int):
                     out.add(str(v))
             for row in e.get("rows", []):
