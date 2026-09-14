@@ -39,6 +39,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
@@ -80,6 +81,13 @@ def _walk_files(docs: str) -> list[str]:
 
 
 def cmd_manifest(a) -> int:
+    repo_root = Path(__file__).resolve().parents[1]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+    from harness import architecture_identity
+
+    architecture_components = architecture_identity.components(repo_root)
+    architecture_digest = architecture_identity.identity_from_components(architecture_components)
     docs = a.docs
     files = {rel: _sha256_file(os.path.join(docs, rel)) for rel in _walk_files(docs)}
     # Bind each review page's detached exact-byte attestation to the per-file digest.
@@ -104,6 +112,7 @@ def cmd_manifest(a) -> int:
            "commit_sha": commit, "computed_utc": _now(),
            "verify_run_id": os.environ.get("GITHUB_RUN_ID"), "verify_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
            "workflow_ref": os.environ.get("GITHUB_WORKFLOW_REF"), "n_files": len(files), "files": files,
+           "architecture_identity": architecture_digest, "architecture_components": architecture_components,
            "review_page_bindings": bindings}
     if broken:
         print("MANIFEST REFUSED: exact-byte attestation not bound:\n  " + "\n  ".join(broken))
@@ -176,6 +185,8 @@ def cmd_attest(a) -> int:
         "deploy_run_id": os.environ.get("GITHUB_RUN_ID"), "deploy_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
         "deploy_job": os.environ.get("GITHUB_JOB"), "environment": a.environment, "page_url": a.base_url,
         "pages_artifact_id": a.pages_artifact_id, "manifest_sha256": _sha256_file(a.manifest),
+        "architecture_identity": man.get("architecture_identity"),
+        "architecture_components": man.get("architecture_components"),
         "n_files": len(man["files"]), "n_equal": sum(1 for v in fetched.values() if v["equal"]),
         "n_mismatch": len(pending), "fetch_rounds": rounds, "attested_utc": _now(),
         "review_page_bindings": man.get("review_page_bindings"), "files": fetched,

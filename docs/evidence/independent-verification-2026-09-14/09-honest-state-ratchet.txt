@@ -1,0 +1,53 @@
+CLAIM 9: Honest-state ratchet passes here and refuses a review page made quieter.
+Captured by Codex (GPT-5), lane G at 2026-09-14T17:41:23Z from f156f89bc51df314b618e7df7ebc90af7768d351.
+No Authorization header was sent unless a section explicitly says otherwise.
+
+## honest ratchet in this clone
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -m harness.honest_ratchet --base HEAD~1
+cwd: C:\mh-acq-G
+exit: 0
+STDOUT:
+honest-state ratchet: PASS
+STDERR:
+
+## temp clone
+$ git clone --quiet C:\mh-acq-G F:\claude-temp\mh-lane-g-claim9-dpmxfkfz\meta-harness-local
+cwd: C:\mh-acq-G
+exit: 0
+STDOUT:
+STDERR:
+
+## remove one STALE marker from review page
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -c "from pathlib import Path
+p=Path('docs/reviews/balanced-crystalloids-vs-saline-mortality/index.html')
+s=p.read_text(encoding='utf-8')
+needle='STALE — this topic'
+assert needle in s
+p.write_text(s.replace(needle, 'STALE MARKER REMOVED', 1), encoding='utf-8', newline='\n')
+print('removed one STALE marker from docs/reviews/balanced-crystalloids-vs-saline-mortality/index.html')
+"
+cwd: F:\claude-temp\mh-lane-g-claim9-dpmxfkfz\meta-harness-local
+exit: 0
+STDOUT:
+removed one STALE marker from docs/reviews/balanced-crystalloids-vs-saline-mortality/index.html
+STDERR:
+
+## honest ratchet after marker removal
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -m harness.honest_ratchet
+cwd: F:\claude-temp\mh-lane-g-claim9-dpmxfkfz\meta-harness-local
+exit: 1
+STDOUT:
+honest-state ratchet: REFUSED
+docs/reviews/balanced-crystalloids-vs-saline-mortality/index.html: stale: base count 1, new count 0
+STDERR:
+
+## Parsed audit
+{
+  "main_pass": true,
+  "stale_page_modified": "docs/reviews/balanced-crystalloids-vs-saline-mortality/index.html",
+  "temp_clone": "F:\\claude-temp\\mh-lane-g-claim9-dpmxfkfz\\meta-harness-local",
+  "temp_refused_stale_drop": true
+}
+
+VERDICT: REPRODUCED
+WHY: Honest ratchet passed here and refused a temp working tree where one served STALE marker was removed.

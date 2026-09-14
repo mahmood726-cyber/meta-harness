@@ -1,0 +1,54 @@
+CLAIM 11: Retrieval state labels are served for class A/B pages and the old 'pending that check' hedge is absent.
+Captured by Codex (GPT-5), lane G at 2026-09-14T17:41:36Z from f156f89bc51df314b618e7df7ebc90af7768d351.
+No Authorization header was sent unless a section explicitly says otherwise.
+
+## Local review class inventory
+$ python stdlib json over docs/reviews/*/review.json
+{
+  "KNOWN_ITEM_RETRIEVAL": {
+    "count": 11,
+    "sample": [
+      "dapagliflozin-hfpef-hosp",
+      "doac-vte-recurrence",
+      "dpp4-mace-t2d",
+      "empagliflozin-hfpef-hosp",
+      "glp1-ra-mace-t2d"
+    ]
+  },
+  "TITLE_SEEDED_RETRIEVAL": {
+    "count": 21,
+    "sample": [
+      "balanced-crystalloids-vs-saline-mortality",
+      "colchicine-postop-af",
+      "colchicine-recurrent-pericarditis",
+      "colchicine-secondary-cv-prevention",
+      "corticosteroids-cap-mortality"
+    ]
+  }
+}
+
+## Served selected review checks
+$ fetch 3 KNOWN_ITEM_RETRIEVAL and 3 TITLE_SEEDED_RETRIEVAL pages; search exact labels and distinction sentence
+dapagliflozin-hfpef-hosp	class=KNOWN_ITEM_RETRIEVAL	HTTP=200	label=True	distinction=True	pending_that_check=False
+doac-vte-recurrence	class=KNOWN_ITEM_RETRIEVAL	HTTP=200	label=True	distinction=True	pending_that_check=False
+dpp4-mace-t2d	class=KNOWN_ITEM_RETRIEVAL	HTTP=200	label=True	distinction=True	pending_that_check=False
+balanced-crystalloids-vs-saline-mortality	class=TITLE_SEEDED_RETRIEVAL	HTTP=200	label=True	distinction=True	pending_that_check=False
+colchicine-postop-af	class=TITLE_SEEDED_RETRIEVAL	HTTP=200	label=True	distinction=True	pending_that_check=False
+colchicine-recurrent-pericarditis	class=TITLE_SEEDED_RETRIEVAL	HTTP=200	label=True	distinction=True	pending_that_check=False
+
+## Served all-page stale hedge scan
+$ fetch all 32 review pages; search 'pending that check'
+{
+  "checked": 32,
+  "pending_hits_or_http_failures": []
+}
+
+## Parsed audit
+{
+  "failures": [],
+  "pending_all_count": 0,
+  "selected_count": 6
+}
+
+VERDICT: REPRODUCED
+WHY: Three pages from each retrieval class served the exact labels and distinction sentence, and none of the 32 served pages contained the old hedge.
