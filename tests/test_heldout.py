@@ -68,7 +68,7 @@ def _registry_with_canary(*tokens, enforced_since=None):
 
 @contextmanager
 def _temp_repo():
-    with tempfile.TemporaryDirectory(prefix="heldout-test-", dir=ROOT) as raw:
+    with tempfile.TemporaryDirectory(prefix="heldout-test-", ignore_cleanup_errors=True) as raw:
         root = Path(raw)
         _init_repo(root)
         yield root
@@ -134,7 +134,7 @@ def test_self_test_requires_sealed_canary_and_passes_when_present():
 
 
 def test_check_fails_closed_when_key_is_missing(monkeypatch):
-    with tempfile.TemporaryDirectory(prefix="heldout-nokey-", dir=ROOT) as raw:
+    with tempfile.TemporaryDirectory(prefix="heldout-nokey-", ignore_cleanup_errors=True) as raw:
         root = Path(raw)
         monkeypatch.delenv("HELDOUT_KEY", raising=False)
         monkeypatch.setattr(heldout, "KEY_FILE", str(root / "missing.key"))

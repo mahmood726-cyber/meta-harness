@@ -6,11 +6,15 @@ once a warning has been served, a template edit must not silently make that page
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
+import json
 import os
 import re
 import subprocess
+from html.parser import HTMLParser
 from pathlib import Path
+from typing import Any
 
 
 MARKERS = {
@@ -22,12 +26,21 @@ MARKERS = {
     "retrieval_class": [
         "KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH",
         "TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH",
+        "HAND-WRITTEN KEYWORD SEARCH — NOT A REGISTERED CONCEPT SEARCH; NOT A SYSTEMATIC SEARCH",
         "an auditable screening ledger attached to an unauditable retrieval process",
     ],
+    "search_provenance": ["Search provenance", "not a completed systematic search"],
     "suppressed_pool": ["Pooled result SUPPRESSED"],
-    "retraction": ["RETRACT", "retracted", "withdrawn", "superseded"],
+    "retraction": ["retract", "retraction", "we retract", "retracted", "withdrawn", "superseded"],
     "declared_absent": ["declared absent", "DECLARED_ABSENT"],
     "not_assessed": ["not assessed", "NOT_ASSESSED"],
+}
+ACK_PATH = Path("docs") / "ratchet_acknowledgements.json"
+BLOCK_CLASSES = ("absent", "banner")
+BLOCK_RATCHET_BASE_REFS = ("b8925e04~1",)
+RETRACTION_RE = {
+    phrase: re.compile(r"\b" + r"\s+".join(map(re.escape, phrase.split())) + r"\b", re.IGNORECASE)
+    for phrase in MARKERS["retraction"]
 }
 
 
@@ -48,10 +61,76 @@ def _rendered_text(src: str) -> str:
     return re.sub(r"\s+", " ", html.unescape(src)).strip()
 
 
+def _count_marker(text: str, kind: str, phrases: list[str]) -> int:
+    if kind == "retraction":
+        return sum(len(RETRACTION_RE[phrase].findall(text)) for phrase in phrases)
+    return sum(text.count(_rendered_text(phrase)) for phrase in phrases)
+
+
 def inventory(src: str) -> dict[str, int]:
     text = _rendered_text(src)
-    return {kind: sum(text.count(_rendered_text(phrase)) for phrase in phrases)
-            for kind, phrases in MARKERS.items()}
+    return {kind: _count_marker(text, kind, phrases) for kind, phrases in MARKERS.items()}
+
+
+class _BlockParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.active: list[dict[str, Any]] = []
+        self.out: list[dict[str, str]] = []
+        self.skip_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.lower()
+        if tag in {"script", "style"}:
+            self.skip_depth += 1
+        for block in self.active:
+            if tag == "div":
+                block["depth"] += 1
+            block["parts"].append(" ")
+        cls = _tracked_class(dict(attrs).get("class"))
+        if tag == "div" and cls:
+            self.active.append({"cls": cls, "depth": 1, "parts": []})
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.lower()
+        if tag in {"script", "style"} and self.skip_depth:
+            self.skip_depth -= 1
+        done = []
+        for block in self.active:
+            block["parts"].append(" ")
+            if tag == "div":
+                block["depth"] -= 1
+                if block["depth"] == 0:
+                    done.append(block)
+        for block in done:
+            self.active.remove(block)
+            text = re.sub(r"\s+", " ", html.unescape("".join(block["parts"]))).strip()
+            digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            self.out.append({"cls": block["cls"], "text": text, "sha256": digest})
+
+    def handle_data(self, data: str) -> None:
+        if self.skip_depth:
+            return
+        for block in self.active:
+            block["parts"].append(data)
+
+
+def _tracked_class(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    classes = set(raw.split())
+    for cls in BLOCK_CLASSES:
+        if cls in classes:
+            return cls
+    return None
+
+
+def blocks(src: str) -> list[dict[str, str]]:
+    """Return visible absent/banner blocks with their rendered text digest."""
+    parser = _BlockParser()
+    parser.feed(src)
+    parser.close()
+    return parser.out
 
 
 def compare(base_html: str, new_html: str) -> list[str]:
@@ -62,6 +141,67 @@ def compare(base_html: str, new_html: str) -> list[str]:
         if base[kind] > 0 and new[kind] < base[kind]:
             out.append(f"{kind}: base count {base[kind]}, new count {new[kind]}")
     return out
+
+
+def _ack_entries(acknowledgements: Any) -> list[dict[str, Any]]:
+    if isinstance(acknowledgements, dict):
+        raw = acknowledgements.get("acknowledgements", [])
+    else:
+        raw = acknowledgements
+    if not isinstance(raw, list):
+        return []
+    return [item for item in raw if isinstance(item, dict)]
+
+
+def _valid_ack(entry: dict[str, Any], lost: dict[str, str], new_shas: set[str], page: str) -> bool:
+    return (
+        entry.get("page") == page
+        and entry.get("lost_sha256") == lost["sha256"]
+        and isinstance(entry.get("lost_text_prefix"), str)
+        and bool(entry["lost_text_prefix"])
+        and lost["text"].startswith(entry["lost_text_prefix"])
+        and entry.get("replaced_by_sha256") in new_shas
+        and all(isinstance(entry.get(key), str) and entry.get(key).strip() for key in ("reason", "when_utc", "by"))
+    )
+
+
+def compare_blocks(
+    base_blocks: list[dict[str, str]],
+    new_blocks: list[dict[str, str]],
+    acknowledgements: Any,
+    page: str,
+) -> list[str]:
+    """Refuse absent/banner blocks that vanished without a reviewed replacement acknowledgement."""
+    new_shas = {block["sha256"] for block in new_blocks}
+    entries = _ack_entries(acknowledgements)
+    out = []
+    for block in base_blocks:
+        if block["sha256"] in new_shas:
+            continue
+        if any(_valid_ack(entry, block, new_shas, page) for entry in entries):
+            continue
+        prefix = block["text"][:120]
+        out.append(f"lost {block['cls']} block {block['sha256']}: {prefix}")
+    return out
+
+
+def _load_acknowledgements(root: str | os.PathLike[str]) -> tuple[Any, list[str]]:
+    path = Path(root) / ACK_PATH
+    if not path.exists():
+        return [], []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return [], [f"COULD-NOT-EXECUTE: cannot read {ACK_PATH.as_posix()}: {exc}"]
+    if isinstance(data, dict):
+        if not isinstance(data.get("_doc"), str) or not data["_doc"].strip():
+            return data, [f"COULD-NOT-EXECUTE: {ACK_PATH.as_posix()} missing _doc"]
+        if not isinstance(data.get("acknowledgements"), list):
+            return data, [f"COULD-NOT-EXECUTE: {ACK_PATH.as_posix()} acknowledgements must be a list"]
+        return data, []
+    if isinstance(data, list):
+        return data, []
+    return [], [f"COULD-NOT-EXECUTE: {ACK_PATH.as_posix()} must be a list or object"]
 
 
 def _verify_ref(root: str | os.PathLike[str], ref: str) -> str | None:
@@ -104,6 +244,17 @@ def _base_pages(root: str | os.PathLike[str], ref: str) -> tuple[list[str] | Non
     return sorted(pages), None
 
 
+def _block_base_refs(root: str | os.PathLike[str], ref: str) -> list[str]:
+    seen = {ref}
+    out = [ref]
+    for raw_ref in BLOCK_RATCHET_BASE_REFS:
+        resolved = _verify_ref(root, raw_ref)
+        if resolved and resolved not in seen:
+            seen.add(resolved)
+            out.append(resolved)
+    return out
+
+
 def _show(root: str | os.PathLike[str], ref: str, path: str) -> tuple[str | None, str | None]:
     p = _run(root, ["show", f"{ref}:{path}"])
     if p.returncode != 0:
@@ -121,6 +272,9 @@ def check(root: str | os.PathLike[str], base_ref: str | None = None) -> tuple[bo
 
     root_path = Path(root)
     reasons = []
+    acknowledgements, ack_errors = _load_acknowledgements(root_path)
+    reasons.extend(ack_errors)
+    block_reasons_seen: set[tuple[str, str]] = set()
     for rel in pages or []:
         base_html, err = _show(root, ref, rel)
         if err:
@@ -134,6 +288,31 @@ def check(root: str | os.PathLike[str], base_ref: str | None = None) -> tuple[bo
             continue
         for violation in compare(base_html or "", new_html):
             reasons.append(f"{rel}: {violation}")
+
+    for block_ref in _block_base_refs(root, ref):
+        block_pages, err = _base_pages(root, block_ref)
+        if err:
+            reasons.append(err)
+            continue
+        for rel in block_pages or []:
+            if block_ref != ref and rel == "docs/index.html":
+                continue
+            base_html, err = _show(root, block_ref, rel)
+            if err:
+                reasons.append(err)
+                continue
+            new_path = root_path.joinpath(*rel.split("/"))
+            try:
+                new_html = new_path.read_text(encoding="utf-8") if new_path.exists() else ""
+            except OSError as exc:
+                reasons.append(f"COULD-NOT-EXECUTE: cannot read working-tree {rel}: {exc}")
+                continue
+            for violation in compare_blocks(blocks(base_html or ""), blocks(new_html), acknowledgements, rel):
+                key = (rel, violation.split(":", 1)[0])
+                if key in block_reasons_seen:
+                    continue
+                block_reasons_seen.add(key)
+                reasons.append(f"{rel}: {violation}")
     return not reasons, reasons
 
 

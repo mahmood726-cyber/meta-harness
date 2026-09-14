@@ -5,6 +5,7 @@ a fresh clone reproduces byte-for-byte.
 from __future__ import annotations
 import json
 import os
+import re
 
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure
 from . import grade as grade_mod
@@ -27,8 +28,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 KNOWN_ITEM_RETRIEVAL_LABEL = "KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH"
 TITLE_SEEDED_RETRIEVAL_LABEL = "TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH"
+HAND_WRITTEN_KEYWORD_SEARCH_LABEL = "HAND-WRITTEN KEYWORD SEARCH — NOT A REGISTERED CONCEPT SEARCH; NOT A SYSTEMATIC SEARCH"
 CONCEPT_SEARCH_LABEL = "CONCEPT SEARCH — registered P/I/C query, full pagination"
 RETRIEVAL_UNAUDITABLE_DISTINCTION = "an auditable screening ledger attached to an unauditable retrieval process"
+RETRIEVAL_RETRACTION = "We retract any claim of a registry-first or systematic search for this topic."
 
 
 def _read_text(*p):
@@ -36,16 +39,107 @@ def _read_text(*p):
         return f.read().replace("\r\n", "\n").replace("\r", "\n")
 
 
+_DOI_RE = re.compile(r"\b10\.\d{4,}/\S+", re.IGNORECASE)
+_PMID_LITERAL_RE = re.compile(r"(?<!\d)\d{7,9}(?!\d)(?!\s*\[uid\])", re.IGNORECASE)
+_TITLE_FIELD_RE = re.compile(r"\[(?:title|ti)(?:/[^\]]+)?\]", re.IGNORECASE)
+_ACRONYM_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9-])([A-Z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*)(?![A-Za-z0-9-])")
+_YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
+_JOURNAL_RE = re.compile(
+    r"\b(?:JAMA|Lancet|N Engl J Med|NEJM|BMJ|Circulation|Eur J Heart Fail|J Am Coll Cardiol|Ann Intern Med)\b",
+    re.IGNORECASE,
+)
+_NON_TRIAL_ACRONYMS = {
+    "AAD",
+    "ACS",
+    "AF",
+    "ARDS",
+    "BIO-K",
+    "CAP",
+    "CKD",
+    "CL1285",
+    "COPD",
+    "COVID",
+    "COVID-19",
+    "CV",
+    "GG",
+    "HFPEF",
+    "HFREF",
+    "IL-6",
+    "JAMA",
+    "MACE",
+    "MADRS",
+    "OR",
+    "PIC",
+    "PPH",
+    "RCT",
+    "RR",
+    "T2D",
+}
+_BOOLEAN_TOKENS = {"AND", "OR", "NOT"}
+
+
+def _trial_acronym_tokens(query: str) -> list[str]:
+    tokens = []
+    for token in _ACRONYM_TOKEN_RE.findall(query):
+        upper = token.upper()
+        if upper in _BOOLEAN_TOKENS or upper in _NON_TRIAL_ACRONYMS:
+            continue
+        if "-" in token or any(ch.isdigit() for ch in token) or (token.isupper() and len(token) >= 4):
+            tokens.append(token)
+    return tokens
+
+
+def _journal_year_features(query: str) -> list[str]:
+    years = _YEAR_RE.findall(query)
+    if not years:
+        return []
+    journals = [m.group(0) for m in _JOURNAL_RE.finditer(query)]
+    return [f"journal_year_seed:{journal}+{year}" for journal in journals for year in years]
+
+
+def _query_classification(query):
+    text = str(query or "")
+    lower = text.lower()
+    features = []
+
+    if "[uid]" in lower:
+        features.append("uid_field:[uid]")
+    for doi in _DOI_RE.findall(text):
+        features.append(f"doi_literal:{doi}")
+    for pmid in _PMID_LITERAL_RE.findall(text):
+        features.append(f"pmid_literal:{pmid}")
+    for tag in _TITLE_FIELD_RE.findall(text):
+        features.append(f"title_field_tag:{tag}")
+    name_text = _DOI_RE.sub(" ", text)
+    features.extend(f"trial_acronym_token:{token}" for token in _trial_acronym_tokens(name_text))
+    features.extend(_journal_year_features(text))
+
+    if any(f.startswith("uid_field:") for f in features):
+        kind = "PMID_ENUMERATION"
+    elif any(f.startswith(("doi_literal:", "pmid_literal:")) for f in features):
+        kind = "IDENTIFIER_SEEDED"
+    elif any(f.startswith("title_field_tag:") for f in features):
+        kind = "TITLE_ANCHORED"
+    elif any(f.startswith(("trial_acronym_token:", "journal_year_seed:")) for f in features):
+        kind = "NAME_SEEDED"
+    else:
+        kind = "FREE_TEXT_KEYWORD"
+    return {"kind": kind, "features": features}
+
+
+def classify_query(query):
+    return _query_classification(query)["kind"]
+
+
 def _retrieval_basis_kind(query):
-    return "PMID_ENUMERATION" if "[uid]" in str(query or "").lower() else "TITLE_OR_NAME_SEEDED"
+    return classify_query(query)
 
 
 def classify_retrieval(config, ledger=None):
     """Classify retrieval from committed object inputs only.
 
-    Without a retrieval ledger, the only replay-safe fact is the committed PubMed query text:
-    `[uid]` queries are known-item retrieval, and every committed non-uid query in this corpus is
-    title/trial-name/DOI anchored rather than a registered P/I/C concept search.
+    Without a retrieval ledger, the replay-safe fact is the committed PubMed query text.
+    The classifier uses only structural features visible in that text.
     """
     basis = []
     concept_ran_ok = False
@@ -53,13 +147,17 @@ def classify_retrieval(config, ledger=None):
         for src in ledger.get("sources") or []:
             if src.get("kind") == "PUBMED_CONCEPT_QUERY" and src.get("state") == "RAN_OK":
                 kind = "CONCEPT"
+                features = ["concept_source_ran_ok:PUBMED_CONCEPT_QUERY"]
                 concept_ran_ok = True
             else:
-                kind = _retrieval_basis_kind(src.get("query"))
-            basis.append({"query": src.get("query"), "kind": kind})
+                detail = _query_classification(src.get("query"))
+                kind = detail["kind"]
+                features = detail["features"]
+            basis.append({"query": src.get("query"), "kind": kind, "features": features})
     else:
         for query in config.get("pubmed_queries") or []:
-            basis.append({"query": query, "kind": _retrieval_basis_kind(query)})
+            detail = _query_classification(query)
+            basis.append({"query": query, "kind": detail["kind"], "features": detail["features"]})
 
     if concept_ran_ok:
         cls = "CONCEPT_SEARCH"
@@ -68,6 +166,10 @@ def classify_retrieval(config, ledger=None):
     elif basis and all(row.get("kind") == "PMID_ENUMERATION" for row in basis):
         cls = "KNOWN_ITEM_RETRIEVAL"
         label = KNOWN_ITEM_RETRIEVAL_LABEL
+        retrieval_auditable = False
+    elif basis and all(row.get("kind") in ("PMID_ENUMERATION", "FREE_TEXT_KEYWORD") for row in basis):
+        cls = "HAND_WRITTEN_KEYWORD_SEARCH"
+        label = HAND_WRITTEN_KEYWORD_SEARCH_LABEL
         retrieval_auditable = False
     else:
         cls = "TITLE_SEEDED_RETRIEVAL"
@@ -82,6 +184,7 @@ def classify_retrieval(config, ledger=None):
     }
     if not retrieval_auditable:
         out["distinction"] = RETRIEVAL_UNAUDITABLE_DISTINCTION
+        out["retraction"] = RETRIEVAL_RETRACTION
     return out
 
 

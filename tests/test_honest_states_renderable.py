@@ -5,7 +5,9 @@ import harness.page as P
 
 LABEL_A = "KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH"
 LABEL_B = "TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH"
+LABEL_C = "HAND-WRITTEN KEYWORD SEARCH — NOT A REGISTERED CONCEPT SEARCH; NOT A SYSTEMATIC SEARCH"
 DISTINCTION = "an auditable screening ledger attached to an unauditable retrieval process"
+RETRACTION = "We retract any claim of a registry-first or systematic search for this topic."
 
 
 def _base(**kw):
@@ -31,10 +33,12 @@ def test_known_item_retrieval_state_renderable():
         "screening_auditable": True,
         "retrieval_auditable": False,
         "distinction": DISTINCTION,
+        "retraction": RETRACTION,
     }})
     html = P.render_page(core)
     assert LABEL_A in html
     assert DISTINCTION in html
+    assert RETRACTION in html
     assert "1 PMID-enumeration queries; 0 title/name-seeded queries" in html
 
 
@@ -46,11 +50,30 @@ def test_title_seeded_retrieval_state_renderable():
         "screening_auditable": True,
         "retrieval_auditable": False,
         "distinction": DISTINCTION,
+        "retraction": RETRACTION,
     }})
     html = P.render_page(core)
     assert LABEL_B in html
     assert DISTINCTION in html
+    assert RETRACTION in html
     assert "0 PMID-enumeration queries; 1 title/name-seeded queries" in html
+
+
+def test_hand_written_keyword_retrieval_state_renderable():
+    core = _base(search={"retrieval_class": {
+        "class": "HAND_WRITTEN_KEYWORD_SEARCH",
+        "label": LABEL_C,
+        "basis": [{"query": "drug disease randomized placebo", "kind": "FREE_TEXT_KEYWORD", "features": []}],
+        "screening_auditable": True,
+        "retrieval_auditable": False,
+        "distinction": DISTINCTION,
+        "retraction": RETRACTION,
+    }})
+    html = P.render_page(core)
+    assert LABEL_C in html
+    assert DISTINCTION in html
+    assert RETRACTION in html
+    assert "0 PMID-enumeration queries; 0 title/name-seeded queries; 1 free-text keyword queries" in html
 
 
 def test_concept_search_does_not_render_retrieval_warning():
@@ -64,7 +87,9 @@ def test_concept_search_does_not_render_retrieval_warning():
     html = P.render_page(core)
     assert LABEL_A not in html
     assert LABEL_B not in html
+    assert LABEL_C not in html
     assert DISTINCTION not in html
+    assert RETRACTION not in html
 
 
 def test_claims_checked_zero_is_a_limitation():

@@ -37,7 +37,9 @@ TABS = [
 NEUTRAL_DROP = {"comparator"}
 KNOWN_ITEM_RETRIEVAL_LABEL = "KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH"
 TITLE_SEEDED_RETRIEVAL_LABEL = "TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH"
+HAND_WRITTEN_KEYWORD_SEARCH_LABEL = "HAND-WRITTEN KEYWORD SEARCH — NOT A REGISTERED CONCEPT SEARCH; NOT A SYSTEMATIC SEARCH"
 RETRIEVAL_UNAUDITABLE_DISTINCTION = "an auditable screening ledger attached to an unauditable retrieval process"
+RETRIEVAL_RETRACTION = "We retract any claim of a registry-first or systematic search for this topic."
 
 
 def _e(x: Any) -> str:
@@ -202,18 +204,32 @@ def _retrieval_html(ret: dict) -> str:
     return body
 
 
-def _retrieval_class_counts(rc: dict) -> tuple[int, int]:
+def _retrieval_class_counts(rc: dict) -> dict[str, int]:
     basis = rc.get("basis") or []
     pmid = sum(1 for row in basis if row.get("kind") == "PMID_ENUMERATION")
-    seeded = sum(1 for row in basis if row.get("kind") == "TITLE_OR_NAME_SEEDED")
-    return pmid, seeded
+    seeded = sum(1 for row in basis if row.get("kind") in (
+        "TITLE_OR_NAME_SEEDED",
+        "TITLE_ANCHORED",
+        "NAME_SEEDED",
+        "IDENTIFIER_SEEDED",
+    ))
+    free = sum(1 for row in basis if row.get("kind") == "FREE_TEXT_KEYWORD")
+    return {"pmid": pmid, "seeded": seeded, "free": free}
 
 
 def _retrieval_class_overview(rc: dict) -> str:
-    pmid, seeded = _retrieval_class_counts(rc)
-    return ("<div class='absent'><strong>" + _e(rc.get("label")) + "</strong> "
-            + _e(rc.get("distinction") or "") + ". "
-            + f"{_e(pmid)} PMID-enumeration queries; {_e(seeded)} title/name-seeded queries.</div>")
+    counts = _retrieval_class_counts(rc)
+    parts = ["<div class='absent'><strong>" + _e(rc.get("label")) + "</strong>"]
+    if rc.get("retraction"):
+        parts.append(" " + _e(rc.get("retraction")))
+    if rc.get("distinction"):
+        parts.append(" " + _e(rc.get("distinction")) + ".")
+    parts.append(
+        f" {_e(counts['pmid'])} PMID-enumeration queries; "
+        f"{_e(counts['seeded'])} title/name-seeded queries; "
+        f"{_e(counts['free'])} free-text keyword queries.</div>"
+    )
+    return "".join(parts)
 
 
 def _retrieval_class_html(rc: dict) -> str:
@@ -221,14 +237,20 @@ def _retrieval_class_html(rc: dict) -> str:
         return ""
     block_class = "banner" if rc.get("retrieval_auditable") else "absent"
     body = (f"<h4>Retrieval class</h4><div class='{block_class}'><p><strong>{_e(rc.get('label'))}</strong>")
+    if rc.get("retraction"):
+        body += " " + _e(rc.get("retraction"))
     if rc.get("distinction"):
         body += " " + _e(rc.get("distinction")) + "."
     body += "</p></div>"
     rows = []
     for row in rc.get("basis") or []:
-        rows.append(f"<tr><td><code>{_e(row.get('query'))}</code></td><td>{_e(row.get('kind'))}</td></tr>")
+        features = "; ".join(row.get("features") or [])
+        rows.append(
+            f"<tr><td><code>{_e(row.get('query'))}</code></td>"
+            f"<td>{_e(row.get('kind'))}</td><td>{_e(features)}</td></tr>"
+        )
     if rows:
-        body += ("<table class='recs'><tr><th>Verbatim query</th><th>Kind</th></tr>"
+        body += ("<table class='recs'><tr><th>Verbatim query</th><th>Kind</th><th>Features fired</th></tr>"
                  f"{''.join(rows)}</table>")
     return body
 
@@ -317,7 +339,7 @@ def _overview(r, neutral):
             "One or more dependent outputs on this page are known to be incomplete, superseded, or "
             f"unproven, so the result must not be read as a settled current estimate:<ul>{_rz}</ul></div>")
     rc = (r.get("search") or {}).get("retrieval_class") or {}
-    if rc.get("class") in ("KNOWN_ITEM_RETRIEVAL", "TITLE_SEEDED_RETRIEVAL"):
+    if rc.get("class") in ("KNOWN_ITEM_RETRIEVAL", "TITLE_SEEDED_RETRIEVAL", "HAND_WRITTEN_KEYWORD_SEARCH"):
         parts.append(_retrieval_class_overview(rc))
     if not neutral:
         parts.append(

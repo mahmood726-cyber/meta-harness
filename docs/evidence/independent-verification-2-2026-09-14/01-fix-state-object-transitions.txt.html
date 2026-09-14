@@ -1,0 +1,441 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>01-fix-state-object-transitions.txt (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>01-fix-state-object-transitions.txt</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/independent-verification-2-2026-09-14/01-fix-state-object-transitions.txt</code>; its SHA-256 is <code>edf23e9b1a5f95cb79f93da5cc6518e223e5604c512a104f36895867cbed0952</code> (15,882 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> Claim 1 raw transcript: temp-clone fix-state mutation plants refuse invalid transitions, author self-verification, failing executable controls, and commit-message-only changes; the real store passes.</p><pre># Claim 1 - Fix-state object transitions
+
+Fresh clone: C:\mh-acq-R\.lane-r-work\fresh
+
+## a-status-without-history
+$ cd C:\mh-acq-R
+$ git clone --no-hardlinks C:\mh-acq-R\.lane-r-work\fresh C:\mh-acq-R\.lane-r-work\fixstate-a-status-without-history
+[exit 0]
+Cloning into &#x27;C:\mh-acq-R\.lane-r-work\fixstate-a-status-without-history&#x27;...
+done.
+Updating files:  64% (741/1155)
+Updating files:  65% (751/1155)
+Updating files:  66% (763/1155)
+Updating files:  67% (774/1155)
+Updating files:  68% (786/1155)
+Updating files:  69% (797/1155)
+Updating files:  70% (809/1155)
+Updating files:  71% (821/1155)
+Updating files:  72% (832/1155)
+Updating files:  73% (844/1155)
+Updating files:  74% (855/1155)
+Updating files:  75% (867/1155)
+Updating files:  76% (878/1155)
+Updating files:  77% (890/1155)
+Updating files:  78% (901/1155)
+Updating files:  79% (913/1155)
+Updating files:  80% (924/1155)
+Updating files:  81% (936/1155)
+Updating files:  82% (948/1155)
+Updating files:  83% (959/1155)
+Updating files:  84% (971/1155)
+Updating files:  85% (982/1155)
+Updating files:  86% (994/1155)
+Updating files:  87% (1005/1155)
+Updating files:  88% (1017/1155)
+Updating files:  89% (1028/1155)
+Updating files:  90% (1040/1155)
+Updating files:  91% (1052/1155)
+Updating files:  92% (1063/1155)
+Updating files:  93% (1075/1155)
+Updating files:  94% (1086/1155)
+Updating files:  95% (1098/1155)
+Updating files:  96% (1109/1155)
+Updating files:  97% (1121/1155)
+Updating files:  98% (1132/1155)
+Updating files:  99% (1144/1155)
+Updating files: 100% (1155/1155)
+Updating files: 100% (1155/1155), done.
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-a-status-without-history
+$ git checkout -b lane-r-a-status-without-history
+[exit 0]
+Switched to a new branch &#x27;lane-r-a-status-without-history&#x27;
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-a-status-without-history
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe scripts/render_fix_ledger.py
+[exit 0]
+rendered docs/fix_ledger.json and evidence README fix-state lines
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-a-status-without-history
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -m harness.fixstate
+[exit 1]
+FIX-STATE: REFUSED
+  - TRANCHE-fix-state-ladder: VERIFIED status needs VERIFIED history
+  - TRANCHE-fix-state-ladder: status changed LANDED-&gt;VERIFIED without matching new history entry
+observed_expected_refusal=True
+
+## b-skip-landed-to-generalized
+$ cd C:\mh-acq-R
+$ git clone --no-hardlinks C:\mh-acq-R\.lane-r-work\fresh C:\mh-acq-R\.lane-r-work\fixstate-b-skip-landed-to-generalized
+[exit 0]
+Cloning into &#x27;C:\mh-acq-R\.lane-r-work\fixstate-b-skip-landed-to-generalized&#x27;...
+done.
+Updating files:  60% (699/1155)
+Updating files:  61% (705/1155)
+Updating files:  62% (717/1155)
+Updating files:  63% (728/1155)
+Updating files:  64% (740/1155)
+Updating files:  65% (751/1155)
+Updating files:  66% (763/1155)
+Updating files:  67% (774/1155)
+Updating files:  68% (786/1155)
+Updating files:  69% (797/1155)
+Updating files:  70% (809/1155)
+Updating files:  71% (821/1155)
+Updating files:  72% (832/1155)
+Updating files:  73% (844/1155)
+Updating files:  74% (855/1155)
+Updating files:  75% (867/1155)
+Updating files:  76% (878/1155)
+Updating files:  77% (890/1155)
+Updating files:  78% (901/1155)
+Updating files:  79% (913/1155)
+Updating files:  80% (924/1155)
+Updating files:  81% (936/1155)
+Updating files:  82% (948/1155)
+Updating files:  83% (959/1155)
+Updating files:  84% (971/1155)
+Updating files:  85% (982/1155)
+Updating files:  86% (994/1155)
+Updating files:  87% (1005/1155)
+Updating files:  88% (1017/1155)
+Updating files:  89% (1028/1155)
+Updating files:  90% (1040/1155)
+Updating files:  91% (1052/1155)
+Updating files:  92% (1063/1155)
+Updating files:  93% (1075/1155)
+Updating files:  94% (1086/1155)
+Updating files:  95% (1098/1155)
+Updating files:  96% (1109/1155)
+Updating files:  97% (1121/1155)
+Updating files:  98% (1132/1155)
+Updating files:  99% (1144/1155)
+Updating files: 100% (1155/1155)
+Updating files: 100% (1155/1155), done.
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-b-skip-landed-to-generalized
+$ git checkout -b lane-r-b-skip-landed-to-generalized
+[exit 0]
+Switched to a new branch &#x27;lane-r-b-skip-landed-to-generalized&#x27;
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-b-skip-landed-to-generalized
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe scripts/render_fix_ledger.py
+[exit 0]
+rendered docs/fix_ledger.json and evidence README fix-state lines
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-b-skip-landed-to-generalized
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -m harness.fixstate
+[exit 1]
+FIX-STATE: REFUSED
+  - TRANCHE-fix-state-ladder: invalid status transition LANDED-&gt;GENERALIZED
+observed_expected_refusal=True
+
+## c-control-landed-failing-executable
+$ cd C:\mh-acq-R
+$ git clone --no-hardlinks C:\mh-acq-R\.lane-r-work\fresh C:\mh-acq-R\.lane-r-work\fixstate-c-control-landed-failing-executable
+[exit 0]
+Cloning into &#x27;C:\mh-acq-R\.lane-r-work\fixstate-c-control-landed-failing-executable&#x27;...
+done.
+Updating files:  52% (606/1155)
+Updating files:  53% (613/1155)
+Updating files:  54% (624/1155)
+Updating files:  55% (636/1155)
+Updating files:  56% (647/1155)
+Updating files:  57% (659/1155)
+Updating files:  58% (670/1155)
+Updating files:  59% (682/1155)
+Updating files:  60% (693/1155)
+Updating files:  61% (705/1155)
+Updating files:  62% (717/1155)
+Updating files:  63% (728/1155)
+Updating files:  64% (740/1155)
+Updating files:  65% (751/1155)
+Updating files:  66% (763/1155)
+Updating files:  67% (774/1155)
+Updating files:  68% (786/1155)
+Updating files:  69% (797/1155)
+Updating files:  70% (809/1155)
+Updating files:  71% (821/1155)
+Updating files:  72% (832/1155)
+Updating files:  73% (844/1155)
+Updating files:  74% (855/1155)
+Updating files:  75% (867/1155)
+Updating files:  76% (878/1155)
+Updating files:  77% (890/1155)
+Updating files:  78% (901/1155)
+Updating files:  79% (913/1155)
+Updating files:  80% (924/1155)
+Updating files:  81% (936/1155)
+Updating files:  82% (948/1155)
+Updating files:  83% (959/1155)
+Updating files:  84% (971/1155)
+Updating files:  85% (982/1155)
+Updating files:  86% (994/1155)
+Updating files:  87% (1005/1155)
+Updating files:  88% (1017/1155)
+Updating files:  89% (1028/1155)
+Updating files:  90% (1040/1155)
+Updating files:  91% (1052/1155)
+Updating files:  92% (1063/1155)
+Updating files:  93% (1075/1155)
+Updating files:  94% (1086/1155)
+Updating files:  95% (1098/1155)
+Updating files:  96% (1109/1155)
+Updating files:  97% (1121/1155)
+Updating files:  98% (1132/1155)
+Updating files:  99% (1144/1155)
+Updating files: 100% (1155/1155)
+Updating files: 100% (1155/1155), done.
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-c-control-landed-failing-executable
+$ git checkout -b lane-r-c-control-landed-failing-executable
+[exit 0]
+Switched to a new branch &#x27;lane-r-c-control-landed-failing-executable&#x27;
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-c-control-landed-failing-executable
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe scripts/render_fix_ledger.py
+[exit 0]
+rendered docs/fix_ledger.json and evidence README fix-state lines
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-c-control-landed-failing-executable
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -m harness.fixstate
+[exit 1]
+FIX-STATE: REFUSED
+  - CTRL-A1: executable_evidence missing expected substring &#x27;OK&#x27;
+  - CTRL-A1: executable_evidence missing expected substring &#x27;OK&#x27;
+observed_expected_refusal=True
+
+## d-verified-by-author
+$ cd C:\mh-acq-R
+$ git clone --no-hardlinks C:\mh-acq-R\.lane-r-work\fresh C:\mh-acq-R\.lane-r-work\fixstate-d-verified-by-author
+[exit 0]
+Cloning into &#x27;C:\mh-acq-R\.lane-r-work\fixstate-d-verified-by-author&#x27;...
+done.
+Updating files:  29% (344/1155)
+Updating files:  30% (347/1155)
+Updating files:  31% (359/1155)
+Updating files:  32% (370/1155)
+Updating files:  33% (382/1155)
+Updating files:  34% (393/1155)
+Updating files:  35% (405/1155)
+Updating files:  36% (416/1155)
+Updating files:  37% (428/1155)
+Updating files:  38% (439/1155)
+Updating files:  39% (451/1155)
+Updating files:  40% (462/1155)
+Updating files:  41% (474/1155)
+Updating files:  42% (486/1155)
+Updating files:  43% (497/1155)
+Updating files:  44% (509/1155)
+Updating files:  45% (520/1155)
+Updating files:  46% (532/1155)
+Updating files:  47% (543/1155)
+Updating files:  48% (555/1155)
+Updating files:  49% (566/1155)
+Updating files:  50% (578/1155)
+Updating files:  51% (590/1155)
+Updating files:  52% (601/1155)
+Updating files:  53% (613/1155)
+Updating files:  54% (624/1155)
+Updating files:  55% (636/1155)
+Updating files:  56% (647/1155)
+Updating files:  57% (659/1155)
+Updating files:  58% (670/1155)
+Updating files:  59% (682/1155)
+Updating files:  60% (693/1155)
+Updating files:  61% (705/1155)
+Updating files:  62% (717/1155)
+Updating files:  63% (728/1155)
+Updating files:  64% (740/1155)
+Updating files:  65% (751/1155)
+Updating files:  66% (763/1155)
+Updating files:  67% (774/1155)
+Updating files:  68% (786/1155)
+Updating files:  69% (797/1155)
+Updating files:  70% (809/1155)
+Updating files:  71% (821/1155)
+Updating files:  72% (832/1155)
+Updating files:  73% (844/1155)
+Updating files:  74% (855/1155)
+Updating files:  75% (867/1155)
+Updating files:  76% (878/1155)
+Updating files:  77% (890/1155)
+Updating files:  78% (901/1155)
+Updating files:  79% (913/1155)
+Updating files:  80% (924/1155)
+Updating files:  81% (936/1155)
+Updating files:  82% (948/1155)
+Updating files:  83% (959/1155)
+Updating files:  84% (971/1155)
+Updating files:  85% (982/1155)
+Updating files:  86% (994/1155)
+Updating files:  87% (1005/1155)
+Updating files:  88% (1017/1155)
+Updating files:  89% (1028/1155)
+Updating files:  90% (1040/1155)
+Updating files:  91% (1052/1155)
+Updating files:  92% (1063/1155)
+Updating files:  93% (1075/1155)
+Updating files:  94% (1086/1155)
+Updating files:  95% (1098/1155)
+Updating files:  96% (1109/1155)
+Updating files:  97% (1121/1155)
+Updating files:  98% (1132/1155)
+Updating files:  99% (1144/1155)
+Updating files:  99% (1149/1155)
+Updating files: 100% (1155/1155)
+Updating files: 100% (1155/1155), done.
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-d-verified-by-author
+$ git checkout -b lane-r-d-verified-by-author
+[exit 0]
+Switched to a new branch &#x27;lane-r-d-verified-by-author&#x27;
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-d-verified-by-author
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe scripts/render_fix_ledger.py
+[exit 0]
+rendered docs/fix_ledger.json and evidence README fix-state lines
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-d-verified-by-author
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -m harness.fixstate
+[exit 1]
+FIX-STATE: REFUSED
+  - TRANCHE-fix-state-ladder: VERIFIED by must differ from author
+  - TRANCHE-fix-state-ladder: VERIFIED by must differ from author
+observed_expected_refusal=True
+
+## e-commit-message-wording-only
+$ cd C:\mh-acq-R
+$ git clone --no-hardlinks C:\mh-acq-R\.lane-r-work\fresh C:\mh-acq-R\.lane-r-work\fixstate-e-commit-message
+[exit 0]
+Cloning into &#x27;C:\mh-acq-R\.lane-r-work\fixstate-e-commit-message&#x27;...
+done.
+Updating files:  34% (397/1155)
+Updating files:  35% (405/1155)
+Updating files:  36% (416/1155)
+Updating files:  37% (428/1155)
+Updating files:  38% (439/1155)
+Updating files:  39% (451/1155)
+Updating files:  40% (462/1155)
+Updating files:  41% (474/1155)
+Updating files:  42% (486/1155)
+Updating files:  43% (497/1155)
+Updating files:  44% (509/1155)
+Updating files:  45% (520/1155)
+Updating files:  46% (532/1155)
+Updating files:  47% (543/1155)
+Updating files:  48% (555/1155)
+Updating files:  49% (566/1155)
+Updating files:  50% (578/1155)
+Updating files:  51% (590/1155)
+Updating files:  52% (601/1155)
+Updating files:  53% (613/1155)
+Updating files:  54% (624/1155)
+Updating files:  55% (636/1155)
+Updating files:  56% (647/1155)
+Updating files:  57% (659/1155)
+Updating files:  58% (670/1155)
+Updating files:  59% (682/1155)
+Updating files:  60% (693/1155)
+Updating files:  61% (705/1155)
+Updating files:  62% (717/1155)
+Updating files:  63% (728/1155)
+Updating files:  64% (740/1155)
+Updating files:  65% (751/1155)
+Updating files:  66% (763/1155)
+Updating files:  67% (774/1155)
+Updating files:  68% (786/1155)
+Updating files:  69% (797/1155)
+Updating files:  70% (809/1155)
+Updating files:  71% (821/1155)
+Updating files:  71% (827/1155)
+Updating files:  72% (832/1155)
+Updating files:  73% (844/1155)
+Updating files:  74% (855/1155)
+Updating files:  75% (867/1155)
+Updating files:  76% (878/1155)
+Updating files:  77% (890/1155)
+Updating files:  78% (901/1155)
+Updating files:  79% (913/1155)
+Updating files:  80% (924/1155)
+Updating files:  81% (936/1155)
+Updating files:  82% (948/1155)
+Updating files:  83% (959/1155)
+Updating files:  84% (971/1155)
+Updating files:  85% (982/1155)
+Updating files:  86% (994/1155)
+Updating files:  87% (1005/1155)
+Updating files:  88% (1017/1155)
+Updating files:  89% (1028/1155)
+Updating files:  90% (1040/1155)
+Updating files:  91% (1052/1155)
+Updating files:  92% (1063/1155)
+Updating files:  93% (1075/1155)
+Updating files:  94% (1086/1155)
+Updating files:  95% (1098/1155)
+Updating files:  96% (1109/1155)
+Updating files:  97% (1121/1155)
+Updating files:  98% (1132/1155)
+Updating files:  99% (1144/1155)
+Updating files: 100% (1155/1155)
+Updating files: 100% (1155/1155), done.
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-e-commit-message
+$ git checkout -b lane-r-commit-message-only
+[exit 0]
+Switched to a new branch &#x27;lane-r-commit-message-only&#x27;
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-e-commit-message
+$ git hash-object registry/fixes.json
+[exit 0]
+4c22389238f091495dae4ee6da121ec0944999e4
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-e-commit-message
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -c &quot;import json,collections; d=json.load(open(&#x27;registry/fixes.json&#x27;,encoding=&#x27;utf-8&#x27;)); print(collections.Counter(e[&#x27;status&#x27;] for e in d[&#x27;entries&#x27;]))&quot;
+[exit 0]
+Counter({&#x27;VERIFIED&#x27;: 33, &#x27;REPORTED&#x27;: 12, &#x27;SPECIFIED&#x27;: 7, &#x27;LANDED&#x27;: 5})
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-e-commit-message
+$ git -c &quot;user.name=Codex Lane R&quot; -c user.email=codex-lane-r@example.test commit --allow-empty --no-verify -m &quot;lane R plant wording one lands nothing&quot;
+[exit 0]
+[lane-r-commit-message-only 7ff07b57] lane R plant wording one lands nothing
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-e-commit-message
+$ git -c &quot;user.name=Codex Lane R&quot; -c user.email=codex-lane-r@example.test commit --allow-empty --no-verify -m &quot;different wording still lands nothing&quot;
+[exit 0]
+[lane-r-commit-message-only bfb30318] different wording still lands nothing
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-e-commit-message
+$ git hash-object registry/fixes.json
+[exit 0]
+4c22389238f091495dae4ee6da121ec0944999e4
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-e-commit-message
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -c &quot;import json,collections; d=json.load(open(&#x27;registry/fixes.json&#x27;,encoding=&#x27;utf-8&#x27;)); print(collections.Counter(e[&#x27;status&#x27;] for e in d[&#x27;entries&#x27;]))&quot;
+[exit 0]
+Counter({&#x27;VERIFIED&#x27;: 33, &#x27;REPORTED&#x27;: 12, &#x27;SPECIFIED&#x27;: 7, &#x27;LANDED&#x27;: 5})
+
+$ cd C:\mh-acq-R\.lane-r-work\fixstate-e-commit-message
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -m harness.fixstate
+[exit 0]
+FIX-STATE: registry=registry/fixes.json entries=57
+FIX-STATE: statuses SPECIFIED=7, REPORTED=12, LANDED=5, VERIFIED=33, GENERALIZED=0
+FIX-STATE: generated views PASS
+FIX-STATE: transitions PASS
+FIX-STATE: PASS
+state_unchanged_and_check_passed=True
+
+## real-store-validates
+$ cd C:\mh-acq-R\.lane-r-work\fresh
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -m harness.fixstate
+[exit 0]
+FIX-STATE: registry=registry/fixes.json entries=57
+FIX-STATE: statuses SPECIFIED=7, REPORTED=12, LANDED=5, VERIFIED=33, GENERALIZED=0
+FIX-STATE: generated views PASS
+FIX-STATE: transitions PASS
+FIX-STATE: PASS
+real_store_pass=True
+
+VERDICT: REPRODUCED
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

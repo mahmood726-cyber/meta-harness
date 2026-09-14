@@ -1,0 +1,22 @@
+# Claim 6 - Prospective controls are specified, not landed
+
+Fresh clone: C:\mh-acq-R\.lane-r-work\fresh
+
+## registry-statuses
+$ python -c "read registry/fixes.json and print CTRL-A1..A6/B2 statuses"
+{"CTRL-A1": "SPECIFIED", "CTRL-A2": "SPECIFIED", "CTRL-A3": "SPECIFIED", "CTRL-A4": "SPECIFIED", "CTRL-A5": "SPECIFIED", "CTRL-A6": "SPECIFIED", "CTRL-B2": "SPECIFIED"}
+all_specified=True
+## declaration-search
+$ glob prospective/*/declaration.json
+[]
+no_declaration_json=True
+## pytest
+$env:TMP=C:\mh-acq-R\.lane-r-work\fresh\.tmp-lane-r-pytest; $env:TEMP=C:\mh-acq-R\.lane-r-work\fresh\.tmp-lane-r-pytest; python -m pytest tests/test_prospective.py -q
+$ cd C:\mh-acq-R\.lane-r-work\fresh
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -m pytest tests/test_prospective.py -q
+[exit 0]
+...........                                                              [100%]
+11 passed in 4.35s
+prospective_tests_pass=True
+
+VERDICT: REPRODUCED

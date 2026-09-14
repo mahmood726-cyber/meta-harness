@@ -1,0 +1,1393 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>07-architecture-identity.txt (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>07-architecture-identity.txt</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/independent-verification-2-2026-09-14/07-architecture-identity.txt</code>; its SHA-256 is <code>230ce6ae5e35f9b5edbc42a92f36af88222a5146579b1fd72a750ee0892fa5d0</code> (52,355 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> Claim 7 raw transcript: production record for HEAD is fetched and local architecture identity is checked against it, with component differences named if environment drift is detected.</p><pre># Claim 7 - Architecture identity
+
+Fresh clone: C:\mh-acq-R\.lane-r-work\fresh
+HEAD: 1f6f8b67cbb4ebaa0d769b33c470ad0e3beb6de6
+
+## production-record-fetch
+$ GET https://raw.githubusercontent.com/mahmood726-cyber/meta-harness/production-records/1f6f8b67cbb4ebaa0d769b33c470ad0e3beb6de6.json
+[http 200] bytes=281130 error=
+## check-command
+$ cd C:\mh-acq-R\.lane-r-work\fresh
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -m harness.architecture_identity --check 35f4ad6e3efe608085d37b7f81d5666542df3e712947294910ce5b4b10581683
+[exit 1]
+architecture_identity: 1f85f0f050e9d07ef3cafa64ef11ee85b2b9e8eea6eea7cfdea0021f9b895508
+components:
+{
+  &quot;build_deploy_path&quot;: {
+    &quot;deploy_jobs&quot;: [
+      {
+        &quot;if&quot;: &quot;github.event_name == &#x27;push&#x27; &amp;&amp; github.ref == &#x27;refs/heads/main&#x27;&quot;,
+        &quot;name&quot;: &quot;deploy&quot;,
+        &quot;needs&quot;: &quot;verify&quot;
+      }
+    ],
+    &quot;jobs&quot;: [
+      {
+        &quot;if&quot;: null,
+        &quot;name&quot;: &quot;verify&quot;,
+        &quot;needs&quot;: null
+      },
+      {
+        &quot;if&quot;: &quot;github.event_name == &#x27;push&#x27; &amp;&amp; github.ref == &#x27;refs/heads/main&#x27;&quot;,
+        &quot;name&quot;: &quot;deploy&quot;,
+        &quot;needs&quot;: &quot;verify&quot;
+      }
+    ],
+    &quot;sha256&quot;: &quot;2c03f778045952db189777a36ee382d116cf7bca9a7140a19fe2a06b10c106ac&quot;,
+    &quot;verify_yml_sha256&quot;: &quot;ac0d4ce29d517fffd228d7b566536fe243b04039d4e96956233d1cd70d9062f8&quot;
+  },
+  &quot;commit_sha&quot;: &quot;1f6f8b67cbb4ebaa0d769b33c470ad0e3beb6de6&quot;,
+  &quot;configuration&quot;: {
+    &quot;files&quot;: [
+      {
+        &quot;git_blob_sha&quot;: &quot;94cc8999c93be32120f114326b34e2ca999958c2&quot;,
+        &quot;path&quot;: &quot;protocols/antibiotics-vs-appendectomy-appendicitis.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;f0e78ce74fbba0a6c448f5e3b9c0fc2f1e2d9b48&quot;,
+        &quot;path&quot;: &quot;protocols/azithromycin-copd-exacerbation.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;54cf2c790154981e8346f13572fc5cb63d085ad7&quot;,
+        &quot;path&quot;: &quot;protocols/balanced-crystalloids-vs-saline-mortality.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;ba0a72551f3accd32b1266dd5b202e1f3dae3449&quot;,
+        &quot;path&quot;: &quot;protocols/colchicine-postop-af.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;e0653d5aaf56024396b41168f4825112537fdbaf&quot;,
+        &quot;path&quot;: &quot;protocols/colchicine-recurrent-pericarditis.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;9b4a20ebdf895a5993c5e0137e268017bb08e234&quot;,
+        &quot;path&quot;: &quot;protocols/colchicine-secondary-cv-prevention.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;557e2e06f1aab9b0c28d358feeac81ab081fd01e&quot;,
+        &quot;path&quot;: &quot;protocols/corticosteroids-cap-mortality.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;98fb978755008cf10316211c036daac1643bac07&quot;,
+        &quot;path&quot;: &quot;protocols/corticosteroids-covid19-mortality.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;33855d8975400af27689b1dd7ff82d7914531fda&quot;,
+        &quot;path&quot;: &quot;protocols/dapagliflozin-hfpef-hosp.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;2597cf6aac1ee8463a652ad5755e6b568787a45e&quot;,
+        &quot;path&quot;: &quot;protocols/denosumab-vertebral-fracture.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;bfa2ac23eff28615e8b4b85c55756cba9c297148&quot;,
+        &quot;path&quot;: &quot;protocols/doac-vte-recurrence.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;178141e7b31d409be07851569a0d3a6d5e0bac99&quot;,
+        &quot;path&quot;: &quot;protocols/dpp4-mace-t2d.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;e6e4508699efb18085901bcfd4d36d5f61927ff7&quot;,
+        &quot;path&quot;: &quot;protocols/empagliflozin-hfpef-hosp.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;d2c39eada600fc7388a72d20d4bca1ef103e0e50&quot;,
+        &quot;path&quot;: &quot;protocols/esketamine-trd-madrs.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;f0ce34937c22a483f44070fc6fdc711557d476f1&quot;,
+        &quot;path&quot;: &quot;protocols/finerenone-ckd-t2d-renal.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;4eae921fe7f4387c9164c0c628d06b4874652842&quot;,
+        &quot;path&quot;: &quot;protocols/glp1-ra-mace-t2d.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;d55774f2e1e2f4cd03aa4acbcdca595a8cc9197c&quot;,
+        &quot;path&quot;: &quot;protocols/hfnc-vs-conventional-o2-reintubation.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;434a03fa31045c1d7accf0182a9f4eb52ec1fbfb&quot;,
+        &quot;path&quot;: &quot;protocols/iv-iron-hfref-hosp.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;39741f48c7275e19a9c496edcf0909def23af523&quot;,
+        &quot;path&quot;: &quot;protocols/melatonin-primary-insomnia-sol.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;91724243d5dbd454b7f7030cf2d1193340722578&quot;,
+        &quot;path&quot;: &quot;protocols/metformin-pcos-ovulation.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;b437f9f92cdb469dd3d54fe6102348cf81b5c81d&quot;,
+        &quot;path&quot;: &quot;protocols/noac-vs-warfarin-af-stroke.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;03ae3d1c22457c27fa5e75e77db726cb3126a33b&quot;,
+        &quot;path&quot;: &quot;protocols/omega3-cardiovascular-events.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;92488d9a45bf5ec0c4e4f7f8d3639acab750932b&quot;,
+        &quot;path&quot;: &quot;protocols/pcsk9-mace.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;8066c3fc182f6728d28e6e322d084c9f1a461ee2&quot;,
+        &quot;path&quot;: &quot;protocols/probiotics-aad-prevention.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;c99a9c32f45fa0d5f86e4eb319303105d238b33d&quot;,
+        &quot;path&quot;: &quot;protocols/prone-positioning-ards-mortality.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;7c19bc99f52b0f7c3efaeca62e95657298de54f5&quot;,
+        &quot;path&quot;: &quot;protocols/sacubitril-valsartan-hfref.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;8bbd4ea4462759a8c65657fb7cbf405ca25f3adc&quot;,
+        &quot;path&quot;: &quot;protocols/semaglutide-obesity-mace.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;90e24543fc770d61b59f16277e3371d0e59a058f&quot;,
+        &quot;path&quot;: &quot;protocols/semaglutide-obesity-weight.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;2db945d48f4b2be51a11b82c18e0483fdc6f66d0&quot;,
+        &quot;path&quot;: &quot;protocols/sglt2-ckd-progression.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;b91355e60ade8b0c3c8d96dffb29d560153bd5f4&quot;,
+        &quot;path&quot;: &quot;protocols/sglt2-hfref-hosp-cvdeath.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;0c930e4a011940c74661e76eeeb648a5e40d6fb5&quot;,
+        &quot;path&quot;: &quot;protocols/sglt2-primary-prevention-hf.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;74fa51a3af268320f08cf2b79ef941cc7277350a&quot;,
+        &quot;path&quot;: &quot;protocols/spironolactone-hfref-mortality.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;e47d10229c3985d91c020d82e743fcdf9aa98c5a&quot;,
+        &quot;path&quot;: &quot;protocols/statins-primary-prevention-elderly.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;2f715e7352d43f157d2fb8e9ca85a5ab58d11011&quot;,
+        &quot;path&quot;: &quot;protocols/ticagrelor-vs-clopidogrel-acs.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;5009bb2ef927be6629397955890b318c51b91df9&quot;,
+        &quot;path&quot;: &quot;protocols/tocilizumab-covid19-mortality.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;2a3bc27ebd3dd2b20ccb9c5b31109bd7fd0782cf&quot;,
+        &quot;path&quot;: &quot;protocols/tranexamic-acid-pph.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;f98234764030a8baeb2e9428d4a5150d67f6dc30&quot;,
+        &quot;path&quot;: &quot;protocols/vitamin-d-acute-respiratory-infection.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;a3d77493c9ddef3842ff37bef8d59fabcc2a42ef&quot;,
+        &quot;path&quot;: &quot;protocols/zinc-common-cold-duration.md&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;471c91973b17ee75527120996fcd4dd2cc6dee97&quot;,
+        &quot;path&quot;: &quot;registry/blind_map.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;4c22389238f091495dae4ee6da121ec0944999e4&quot;,
+        &quot;path&quot;: &quot;registry/fixes.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;6443120332dddb234973bf311b369af8e6f5b0d0&quot;,
+        &quot;path&quot;: &quot;registry/gate_scorecard.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;b3c2e8104f1a4f639424d5df262e7ec818b14bb4&quot;,
+        &quot;path&quot;: &quot;registry/heldout_sealed.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;659f78e436251d19e97c2bf91aac8aaa5c30c144&quot;,
+        &quot;path&quot;: &quot;registry/regression_recall_topics.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;989d1135429da25132ac2955eb1b0a1159f7f701&quot;,
+        &quot;path&quot;: &quot;topics/antibiotics-vs-appendectomy-appendicitis.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;3d0d41f0af76db1dc8b3f6376fc65055a791ea53&quot;,
+        &quot;path&quot;: &quot;topics/azithromycin-copd-exacerbation.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;0194af1003aa4bf739a9221fb70d38a4bbb944a8&quot;,
+        &quot;path&quot;: &quot;topics/balanced-crystalloids-vs-saline-mortality.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;51c827060091847fcce7676f5c70c90f7a96e78b&quot;,
+        &quot;path&quot;: &quot;topics/colchicine-postop-af.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;1423f2e02e9843e32b544f4515cff402b9b80d1f&quot;,
+        &quot;path&quot;: &quot;topics/colchicine-recurrent-pericarditis.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;f26ab3d687426e2caa59ce40a2972447ee0d857f&quot;,
+        &quot;path&quot;: &quot;topics/colchicine-secondary-cv-prevention.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;52198d37dc76feabfd26da8b21df9143313de4f5&quot;,
+        &quot;path&quot;: &quot;topics/corticosteroids-cap-mortality.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;ebfc73405ec5781c01cdf7f05d1072abfaf08d15&quot;,
+        &quot;path&quot;: &quot;topics/corticosteroids-covid19-mortality.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;0ca9a9f527b7ec7e6e20259343e83a939dd78449&quot;,
+        &quot;path&quot;: &quot;topics/dapagliflozin-hfpef-hosp.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;fb74555e6ecf19744cdaa42811277acb2c506a78&quot;,
+        &quot;path&quot;: &quot;topics/denosumab-vertebral-fracture.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;f63c515d570c160b7bdb6e0a63f225c9a11030af&quot;,
+        &quot;path&quot;: &quot;topics/doac-vte-recurrence.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;ae5102c4d1fc7943dd6eb4bd5028b41c53f61dda&quot;,
+        &quot;path&quot;: &quot;topics/dpp4-mace-t2d.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;b0fc77eccdfccdbc00669856f57b7bd8ea122401&quot;,
+        &quot;path&quot;: &quot;topics/empagliflozin-hfpef-hosp.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;77017bc8c59309f44983bd428dfd19ab166eef5d&quot;,
+        &quot;path&quot;: &quot;topics/esketamine-trd-madrs.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;657f9137ea9f4a851954022dba27eb4aadb0e309&quot;,
+        &quot;path&quot;: &quot;topics/finerenone-ckd-t2d-renal.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;c0a0c060a0736963d75550a1b846933fe03d4f7f&quot;,
+        &quot;path&quot;: &quot;topics/glp1-ra-mace-t2d.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;4aa5ef4462096a27c5cbc59324ca9839208fd489&quot;,
+        &quot;path&quot;: &quot;topics/hfnc-vs-conventional-o2-reintubation.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;134e89c4bb987e0dbff9ac9492240c9b58514943&quot;,
+        &quot;path&quot;: &quot;topics/iv-iron-hfref-hosp.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;b523e1b4fd601d2e6a8524f5b4299f85382ebd18&quot;,
+        &quot;path&quot;: &quot;topics/melatonin-primary-insomnia-sol.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;c0bc67a6571f1a2e3d34dfc39f06fd7303ed4b15&quot;,
+        &quot;path&quot;: &quot;topics/metformin-pcos-ovulation.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;f830b334f7bc9bdd90e44f9aa6d5b197174de5f5&quot;,
+        &quot;path&quot;: &quot;topics/noac-vs-warfarin-af-stroke.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;191ebcb91dbb93702df3578104aa0fc5c1f0b00f&quot;,
+        &quot;path&quot;: &quot;topics/omega3-cardiovascular-events.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;b1d2a8b27c0486c281f146cbbb921b0818f94c14&quot;,
+        &quot;path&quot;: &quot;topics/pcsk9-mace.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;6356ffbfa23afd9847b1b202bd2d3048e712b2fa&quot;,
+        &quot;path&quot;: &quot;topics/probiotics-aad-prevention.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;ea3675011e5030050e91f86d24acbe6f7fc08f3e&quot;,
+        &quot;path&quot;: &quot;topics/prone-positioning-ards-mortality.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;5570056b84910bff193a8dbd299ae7932524f006&quot;,
+        &quot;path&quot;: &quot;topics/sacubitril-valsartan-hfref.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;0eafe3e7942800fdc96a27fc2933a02906294c88&quot;,
+        &quot;path&quot;: &quot;topics/semaglutide-obesity-mace.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;c19644b564db1ab10637ea0265f4b5613376d854&quot;,
+        &quot;path&quot;: &quot;topics/semaglutide-obesity-weight.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;e349330640e978db7a1643dca1aadefeddf411be&quot;,
+        &quot;path&quot;: &quot;topics/sglt2-ckd-progression.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;9e9c741de26586ce419a22cbba28b57f82ed1c6e&quot;,
+        &quot;path&quot;: &quot;topics/sglt2-hfref-hosp-cvdeath.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;6b050a1ce0dce4f8bb99819548abfc3fff63d1ac&quot;,
+        &quot;path&quot;: &quot;topics/sglt2-primary-prevention-hf.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;89b503c8ebba3854ae3c61ebc0a36ab845541c76&quot;,
+        &quot;path&quot;: &quot;topics/spironolactone-hfref-mortality.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;2332a74c65555044ba4fe56fd80304fcf2807e3a&quot;,
+        &quot;path&quot;: &quot;topics/statins-primary-prevention-elderly.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;11f0446c6c24cd7331586bccf302c838a5109364&quot;,
+        &quot;path&quot;: &quot;topics/ticagrelor-vs-clopidogrel-acs.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;6040e246a2eca4f7805a78a69521f342a2f98cd0&quot;,
+        &quot;path&quot;: &quot;topics/tocilizumab-covid19-mortality.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;41ae1fdb73b3dcf1e08f182c21219a206b3330f4&quot;,
+        &quot;path&quot;: &quot;topics/tranexamic-acid-pph.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;1e65d562b944d33e2770cca60d7852fe219a18af&quot;,
+        &quot;path&quot;: &quot;topics/vitamin-d-acute-respiratory-infection.json&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;6334c1b9a480afbe3627d1d3c30506386ac61347&quot;,
+        &quot;path&quot;: &quot;topics/zinc-common-cold-duration.json&quot;
+      }
+    ],
+    &quot;sha256&quot;: &quot;b5e589f000f49ca618f7954ab0435e0811b937fe575933e92500ba10df17c6a5&quot;
+  },
+  &quot;dependencies&quot;: {
+    &quot;installed_versions&quot;: {
+      &quot;numpy&quot;: {
+        &quot;distribution&quot;: &quot;numpy&quot;,
+        &quot;installed&quot;: true,
+        &quot;version&quot;: &quot;2.4.4&quot;
+      },
+      &quot;openpyxl&quot;: {
+        &quot;distribution&quot;: &quot;openpyxl&quot;,
+        &quot;installed&quot;: true,
+        &quot;version&quot;: &quot;3.1.5&quot;
+      },
+      &quot;scipy&quot;: {
+        &quot;distribution&quot;: &quot;scipy&quot;,
+        &quot;installed&quot;: true,
+        &quot;version&quot;: &quot;1.17.1&quot;
+      },
+      &quot;sentence_transformers&quot;: {
+        &quot;distribution&quot;: &quot;sentence-transformers&quot;,
+        &quot;installed&quot;: true,
+        &quot;version&quot;: &quot;5.6.0&quot;
+      }
+    },
+    &quot;lockfiles_present&quot;: [],
+    &quot;pinned&quot;: false,
+    &quot;python&quot;: {
+      &quot;executable&quot;: &quot;python.exe&quot;,
+      &quot;implementation&quot;: &quot;CPython&quot;,
+      &quot;version&quot;: &quot;3.13.13&quot;
+    },
+    &quot;reason&quot;: &quot;requirements.txt has no exact pins; no lockfile; CI installs latest at run time&quot;,
+    &quot;requirements&quot;: [
+      &quot;numpy&gt;=2.0&quot;,
+      &quot;scipy&gt;=1.13&quot;
+    ],
+    &quot;requirements_txt_sha256&quot;: &quot;281afdd76e8744673d93653217faf95a5ea88cddc8f792ca814a30d4ea0f4138&quot;,
+    &quot;sha256&quot;: &quot;05845f038eda363802ee6fa19bd6393db43594659477f4b5e135216cbcf8704c&quot;
+  },
+  &quot;harness_code&quot;: {
+    &quot;files&quot;: [
+      {
+        &quot;git_blob_sha&quot;: &quot;a86e37b9b6aeaec87308e145ac2fb3b3762880cc&quot;,
+        &quot;path&quot;: &quot;harness/__init__.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;ee66c747d5d74f8dd3d400ff6c1b76a59761d9e8&quot;,
+        &quot;path&quot;: &quot;harness/aact.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;856d295c036211cafd314aa7001b7ccc5c3ea439&quot;,
+        &quot;path&quot;: &quot;harness/absence.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;aabf7b0e56c7b2e34cf681cfd03c84d64fd99a6b&quot;,
+        &quot;path&quot;: &quot;harness/acquisition.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;96a007b86ce7fce9595cffcdee387b067186c496&quot;,
+        &quot;path&quot;: &quot;harness/architecture_identity.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;dfcf188a08594cb7a475754f2c4d374657dc4803&quot;,
+        &quot;path&quot;: &quot;harness/armcontrast.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904&quot;,
+        &quot;path&quot;: &quot;harness/canonical.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;138258eefe41313fae082011bfe1533bea7d363b&quot;,
+        &quot;path&quot;: &quot;harness/census.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;e5e763607cee39b029a2ed5cf7784477fe5608ed&quot;,
+        &quot;path&quot;: &quot;harness/cites.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;cdfe67579c97a46cb666ab38caa8a266e796ef12&quot;,
+        &quot;path&quot;: &quot;harness/claim.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;9557dad43630a4aaea885545eb0f4991eb1069ee&quot;,
+        &quot;path&quot;: &quot;harness/compat.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;ecfa43f0825e3cc75e7b81f81baa6af68a40a06e&quot;,
+        &quot;path&quot;: &quot;harness/ctgov_results.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;df4ea711858bcd7edd320f9af1c6364ac1f04914&quot;,
+        &quot;path&quot;: &quot;harness/embed.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;32c0778298de7504b0f345e25a87350d681e62a8&quot;,
+        &quot;path&quot;: &quot;harness/error_library.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;205ebdf400b804f259654ba3cf244c36aaf631b0&quot;,
+        &quot;path&quot;: &quot;harness/estmeasure.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;e4580644b81b33bd85fbaf4372cfde8a26c3113d&quot;,
+        &quot;path&quot;: &quot;harness/extract.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;26db40068c598ab42eaa55357329b8d1cfe291e7&quot;,
+        &quot;path&quot;: &quot;harness/fda.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24&quot;,
+        &quot;path&quot;: &quot;harness/fetch.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;2ec5c7ad448db0ccec529625da1bc63f4c86ecc7&quot;,
+        &quot;path&quot;: &quot;harness/fixstate.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;423a3c7e2674205d4ee6affd8e8aad60cd7d862e&quot;,
+        &quot;path&quot;: &quot;harness/fulltext.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;0bbfa9fbe5c23411e53fb28601dbbeb090aa042a&quot;,
+        &quot;path&quot;: &quot;harness/funding.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;de7235d5ef49b0ab19420ca953feac0abacf2078&quot;,
+        &quot;path&quot;: &quot;harness/gate.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;9472ca18aae4074046fa1e5fd56e103d016d9830&quot;,
+        &quot;path&quot;: &quot;harness/gate_scorecard.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;0da289350cc2e2ede0bf44018829aae099c65d37&quot;,
+        &quot;path&quot;: &quot;harness/grade.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;fb8db4e0c883e14337100a7698aaf8d08456d7e6&quot;,
+        &quot;path&quot;: &quot;harness/heldout.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;06e7ff5321025a7131d9a69b8b282b7a70a81b84&quot;,
+        &quot;path&quot;: &quot;harness/honest_ratchet.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;28a752b06b1d899069c6e9a3b4fcb425c8b0b392&quot;,
+        &quot;path&quot;: &quot;harness/http.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;1a9340e3a62a1bdded87f9175f8945172483c4f5&quot;,
+        &quot;path&quot;: &quot;harness/identity.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;69fb3c460cdc42a7070a6bb2d1843e941a80d38d&quot;,
+        &quot;path&quot;: &quot;harness/index.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;8f749ec1dc9890ea7ae14b9cf6e970aaf7c69969&quot;,
+        &quot;path&quot;: &quot;harness/integrity.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;bc07aba5e6ebf0a0e133720f2b71e32028684493&quot;,
+        &quot;path&quot;: &quot;harness/invalidation.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;3c33bd9515ee45938a56e6d9312f8810f44b2b79&quot;,
+        &quot;path&quot;: &quot;harness/leakscan.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;7476c269906812e87115cff381dba24422258070&quot;,
+        &quot;path&quot;: &quot;harness/lexicon.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;1ffd11acf28fa249d9e561c10c9bdb2223a5f72b&quot;,
+        &quot;path&quot;: &quot;harness/locate.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;50c106616e86ce6fcc688493e9c522df1ee8a4a7&quot;,
+        &quot;path&quot;: &quot;harness/manuscript.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;bd05093c9b0e0a747cfa5d728d8a2ef5a69b826a&quot;,
+        &quot;path&quot;: &quot;harness/page.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;260fb2cb112d7c0e29d34f7edb18cb0e2ca37c73&quot;,
+        &quot;path&quot;: &quot;harness/pipeline.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d&quot;,
+        &quot;path&quot;: &quot;harness/proposition.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;96dbf8ec8de64aa21bd6e697948e86464e9bc687&quot;,
+        &quot;path&quot;: &quot;harness/prospective.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;900baaefe3dd557dabcf9fe65b3c29d5e76e14a8&quot;,
+        &quot;path&quot;: &quot;harness/protocol_compiler.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;ab5bc8c3920b2d729a894c206325fd2a5dc8215a&quot;,
+        &quot;path&quot;: &quot;harness/recovery_recheck.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;25cb6d9b6b331596c6559042667ab795ecba91de&quot;,
+        &quot;path&quot;: &quot;harness/registration.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;acb2bae5f3e3c37e538547944574ea72cac4b324&quot;,
+        &quot;path&quot;: &quot;harness/registry_first.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;8e8f002de7b5457f686a3855b6b70ef44ddfbb13&quot;,
+        &quot;path&quot;: &quot;harness/registry_multi.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;3e67183f5e1805969c2e39bb61451332b2e99ad5&quot;,
+        &quot;path&quot;: &quot;harness/rob2.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;c9c5b003c0bb6a20e6df6b0dd59baf9b365f7941&quot;,
+        &quot;path&quot;: &quot;harness/rob_sensitivity.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;020e491b342a4c3488537ef419b2932cf305fb5b&quot;,
+        &quot;path&quot;: &quot;harness/scope.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;d04e18c7c9962d6f34f8642fc3c5879ea1a406d6&quot;,
+        &quot;path&quot;: &quot;harness/screen.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;11c4f0001515c713d25ca741191a77133b3db853&quot;,
+        &quot;path&quot;: &quot;harness/spec_curve.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;9c78aca6f8fc13be0476fa1d89aacc8633ff8a50&quot;,
+        &quot;path&quot;: &quot;harness/synth.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;aecf93a5aef9caf6af0d527beaa69e0b982f868a&quot;,
+        &quot;path&quot;: &quot;harness/unit_of_analysis.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;6ab1bc3a102d1ab1a121c04f9652c0b02a652f22&quot;,
+        &quot;path&quot;: &quot;harness/verify.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;007693e34ae63b894eda62e22a6a98a0fd940bcd&quot;,
+        &quot;path&quot;: &quot;scripts/arm_candidates.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;4be192f3bb024b06913afc0bee94e2db3a395e4c&quot;,
+        &quot;path&quot;: &quot;scripts/arm_contrast_build.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;16e5f21b02531f9d95eaa21890d4e5adc78d9554&quot;,
+        &quot;path&quot;: &quot;scripts/build_aact_arms.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;89ac3b558ef11d9e86b2b80f3266b679f4eb187b&quot;,
+        &quot;path&quot;: &quot;scripts/build_evidence_index.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;051d01d35dfde7d5944a6114ba687abd03757413&quot;,
+        &quot;path&quot;: &quot;scripts/build_iv_iron_strands.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;7aa8105dd8d7014311549b07f8c2bf0fe1049ff0&quot;,
+        &quot;path&quot;: &quot;scripts/build_topic.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;e30638d6aed896b4e5dd59779d9f5f29b7763eb0&quot;,
+        &quot;path&quot;: &quot;scripts/crossfamily_compare.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;e2ab3f8e1cffc49c9f163e6b3e0d494ab0407a7b&quot;,
+        &quot;path&quot;: &quot;scripts/deficit.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;84532c709939e74594dbd3af08231fe8b1972ca4&quot;,
+        &quot;path&quot;: &quot;scripts/dual_assemble.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;db938e6c90d75ed096df7b4a4fd542fa77f7683f&quot;,
+        &quot;path&quot;: &quot;scripts/dual_collect.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;417cf83fb1abd4114b86022c5d9f2ab2b46ef637&quot;,
+        &quot;path&quot;: &quot;scripts/dual_compare.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;6cde5df68d75ca9563d2bb480d26ed9d29fdc23c&quot;,
+        &quot;path&quot;: &quot;scripts/dual_screen.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;06678904c95f44a6f938323e0523051ea4eeb7b9&quot;,
+        &quot;path&quot;: &quot;scripts/embed_eval.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;26b1819e9bbb64156b25eb9c721baad437df9b76&quot;,
+        &quot;path&quot;: &quot;scripts/error_coverage.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;cf4b310f6042ebe6b948ea4a20f4ef44fc1dc08e&quot;,
+        &quot;path&quot;: &quot;scripts/error_rate_compare.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;bc018ccef96b582a8aa5db7e57fa3d9fd15bfe37&quot;,
+        &quot;path&quot;: &quot;scripts/error_rate_pass2.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;4a7f5c9f0dfad80c143f92dea4944031dc1162e9&quot;,
+        &quot;path&quot;: &quot;scripts/evidence_base.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;7e4836a6bda79ce0fc4cdf1e3ee27b8fae377e0e&quot;,
+        &quot;path&quot;: &quot;scripts/external_agreement.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;1da94a3cfc8e5e85dc22c7d2bcac316edda9061c&quot;,
+        &quot;path&quot;: &quot;scripts/fill_matrix.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;42550b0424c84ce1a153633a222eba0faf330e95&quot;,
+        &quot;path&quot;: &quot;scripts/ghost_census.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;0db3af6a7f97be60c5cb8b79a4e2a5a9bdbcd4b6&quot;,
+        &quot;path&quot;: &quot;scripts/integrity_check.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;6a3e58306c9b5d33af5dda1a0b3ff4731ebec1d9&quot;,
+        &quot;path&quot;: &quot;scripts/itt_sweep.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;0b036bda724ebd3cd5ad83cdd967d01f00aa168f&quot;,
+        &quot;path&quot;: &quot;scripts/kgap.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;b40120179158a693110bf452976a444840366ccb&quot;,
+        &quot;path&quot;: &quot;scripts/lane_fulltext.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;53b76e39800051fa0e6b98e9a3f4e31460208efa&quot;,
+        &quot;path&quot;: &quot;scripts/lane_itt.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;e95dacabe0ef94ff684f5ea3c9cca2e62b017bea&quot;,
+        &quot;path&quot;: &quot;scripts/lane_notextracted.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;94da3f5788c1faaeaba7596f4e10912062f20e44&quot;,
+        &quot;path&quot;: &quot;scripts/lane_notextracted_scoped.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;11450901eea3b983f43bb05a95dafce0cf92968a&quot;,
+        &quot;path&quot;: &quot;scripts/lane_overrides.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;d83ddb795ef82c0768acf109564de655b600be2a&quot;,
+        &quot;path&quot;: &quot;scripts/lane_search_screen.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;a32f70f418c6e892cfb5c9ce551e1d88ac4d30fd&quot;,
+        &quot;path&quot;: &quot;scripts/measure_regression_corpus_recall.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;c82b213e76f0840f7055a940ec1fbdd761cea9c7&quot;,
+        &quot;path&quot;: &quot;scripts/outcome_judgments.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;85539d2f101af384725e270cbfd2ea54c08b531f&quot;,
+        &quot;path&quot;: &quot;scripts/prisma_compare.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;5a1b93fb6d5c1fb293c622c797dabbb148a5ee1a&quot;,
+        &quot;path&quot;: &quot;scripts/prisma_fair_compare.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;36df641f3d7b0ec3cf94240e4b57e94cb8821274&quot;,
+        &quot;path&quot;: &quot;scripts/production_record.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;f88eb84c09b1e0752ef45c9e934e6eeb484a76df&quot;,
+        &quot;path&quot;: &quot;scripts/provenance.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;e1b03ab932a52e8424e25cfbcfdbe22373423dd6&quot;,
+        &quot;path&quot;: &quot;scripts/recall.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;4ff8ae41c4a5ff994a9c5fb477b0b61537d0a8a3&quot;,
+        &quot;path&quot;: &quot;scripts/recall_aact.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;d3ff025bad96f340570b92223c62b69fed222567&quot;,
+        &quot;path&quot;: &quot;scripts/reject_sample.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;cac1b7dacf7b92e0627423ecc62917e3fd514ddb&quot;,
+        &quot;path&quot;: &quot;scripts/render_fix_ledger.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;c282e54e15a61f11da8e94224156d574fabe6ab5&quot;,
+        &quot;path&quot;: &quot;scripts/render_gate_scorecard.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;d874133c5606c9c313aaf37a68fae7a8ff8771d2&quot;,
+        &quot;path&quot;: &quot;scripts/reproduce_review.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;30a5dc9b9fe25552d38110b6ec1d61e587204844&quot;,
+        &quot;path&quot;: &quot;scripts/research_diff.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;b68f4553c3b4fd2f4fea6b5c006b18c588c52a9d&quot;,
+        &quot;path&quot;: &quot;scripts/rob2_build.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;bff8bc22535931192674a289dca1691e8f20dc86&quot;,
+        &quot;path&quot;: &quot;scripts/rob_sensitivity.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;41606a409a34f6b372533b535f9ef6ffb4c8d9a2&quot;,
+        &quot;path&quot;: &quot;scripts/run_prospective_topic.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;c5abd9f0972d23a42b248145fd0ba5d790a71a7f&quot;,
+        &quot;path&quot;: &quot;scripts/scope_audit.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;f7f4eafc4ce46443744ec6b0f459b9446a5fefc6&quot;,
+        &quot;path&quot;: &quot;scripts/screen_adjudicate.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;ae17268e26ddd035b04ad94813068ff015343829&quot;,
+        &quot;path&quot;: &quot;scripts/screen_reproducibility.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;7dcf118bd0350cbdd2da72064402485b9b3268a7&quot;,
+        &quot;path&quot;: &quot;scripts/search_rebuild.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;ddcf43e988ee17d67b6b79b248ba5864a3bf4838&quot;,
+        &quot;path&quot;: &quot;scripts/search_scale.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;35470713e7f8d38b7ce8837c72ac23af5a6833f1&quot;,
+        &quot;path&quot;: &quot;scripts/spec_curve.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;6e119340846b05966d9d530391df566b4ebea719&quot;,
+        &quot;path&quot;: &quot;scripts/transparency_score.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;d6587c9b7bbf275fef57412e308589e657ceb860&quot;,
+        &quot;path&quot;: &quot;scripts/validate_synth.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;2395cb77a4722d84988c92bd8d1423293957bb2e&quot;,
+        &quot;path&quot;: &quot;scripts/verify_all.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;3c46b23f87cf44db63111590c81870dda482da26&quot;,
+        &quot;path&quot;: &quot;scripts/verify_verified_arms.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;cc30cc80d20fe1409b741f5f07bf81b4ed8a55c7&quot;,
+        &quot;path&quot;: &quot;scripts/weakness_survey.py&quot;
+      },
+      {
+        &quot;git_blob_sha&quot;: &quot;d7009576be26cfb95b221ffc7531bd0854c5268e&quot;,
+        &quot;path&quot;: &quot;scripts/write_legacy_ledgers.py&quot;
+      }
+    ],
+    &quot;sha256&quot;: &quot;8f4e96dcd1e3758315694aa011d5f60314d69c94b9fdf310929ab136859bf704&quot;
+  },
+  &quot;hooks&quot;: {
+    &quot;files&quot;: [
+      {
+        &quot;path&quot;: &quot;.githooks/commit-msg&quot;,
+        &quot;sha256&quot;: &quot;a9945dfe183ec1b8617e506c68b83b1be572127437cd97924b51264af51aae8d&quot;
+      },
+      {
+        &quot;path&quot;: &quot;.githooks/pre-commit&quot;,
+        &quot;sha256&quot;: &quot;115af35894dbfbaba9ecc156c70098c991bc774d34d8844e99561ca03b782475&quot;
+      }
+    ],
+    &quot;sha256&quot;: &quot;d81de63ce4bf9ddd60522cfae23badf74fe2d178368b2e561a5cf83e6a0cab60&quot;
+  },
+  &quot;model_stages&quot;: {
+    &quot;inventory_path&quot;: &quot;docs/model_stage_inventory.json&quot;,
+    &quot;inventory_sha256&quot;: &quot;5aae8d92e51ee8b2b3407fd9d07b5a0eb1cb231b65d2fad9b738e14dfab98dfb&quot;,
+    &quot;sha256&quot;: &quot;65a5d9d88f0ac030f7d15582d1d519ee256039b9a30ad2b6dca91e7cddf550d0&quot;,
+    &quot;stages&quot;: [
+      {
+        &quot;archive&quot;: {
+          &quot;archived&quot;: true,
+          &quot;location&quot;: &quot;cache/embeddings.json&quot;,
+          &quot;request_archive&quot;: false,
+          &quot;response_archive&quot;: &quot;committed embedding vectors&quot;
+        },
+        &quot;live_at_build_time&quot;: false,
+        &quot;live_call_path&quot;: &quot;Only manual scripts using harness.embed with allow_model=True can load the model on cache miss.&quot;,
+        &quot;model_identifier&quot;: &quot;sentence-transformers/all-MiniLM-L6-v2&quot;,
+        &quot;name&quot;: &quot;embedding_candidate_generation&quot;,
+        &quot;parameters&quot;: {
+          &quot;deficit_and_rob_match_threshold&quot;: 0.45,
+          &quot;dimension&quot;: 384,
+          &quot;dual_screen_threshold&quot;: 0.3,
+          &quot;normalize&quot;: true
+        },
+        &quot;prompt_digest&quot;: null,
+        &quot;prompt_in_tree&quot;: false,
+        &quot;provider&quot;: &quot;Hugging Face sentence-transformers local runtime&quot;,
+        &quot;snapshot_pinning&quot;: {
+          &quot;pinned&quot;: false,
+          &quot;reason&quot;: &quot;MODEL_ID has no Hugging Face revision or weights digest; cache misses load the current resolved model.&quot;
+        },
+        &quot;tool_config&quot;: {
+          &quot;cache&quot;: &quot;cache/embeddings.json&quot;,
+          &quot;cache_key&quot;: &quot;sha1(MODEL_ID + &#x27;|&#x27; + text)&quot;
+        },
+        &quot;where&quot;: &quot;harness/embed.py:embed; harness/embed.py:rank; scripts/dual_screen.py:main; scripts/deficit.py:_classify; scripts/rob2_build.py:_match&quot;
+      },
+      {
+        &quot;archive&quot;: {
+          &quot;archived&quot;: true,
+          &quot;location&quot;: &quot;cache/*/screen_adjudication.json&quot;,
+          &quot;request_archive&quot;: false,
+          &quot;response_archive&quot;: &quot;committed adjudication JSON&quot;
+        },
+        &quot;live_at_build_time&quot;: false,
+        &quot;live_call_path&quot;: &quot;scripts/screen_adjudicate.py writes supplied judgments; it does not call a model itself.&quot;,
+        &quot;model_identifier&quot;: &quot;adjudicator&quot;,
+        &quot;name&quot;: &quot;screening_model_adjudication&quot;,
+        &quot;parameters&quot;: {
+          &quot;conflict_review&quot;: true,
+          &quot;eligible_if_judgment&quot;: &quot;include&quot;
+        },
+        &quot;prompt_digest&quot;: null,
+        &quot;prompt_in_tree&quot;: false,
+        &quot;provider&quot;: &quot;external/manual adjudicator record&quot;,
+        &quot;snapshot_pinning&quot;: {
+          &quot;pinned&quot;: false,
+          &quot;reason&quot;: &quot;Committed records identify only &#x27;adjudicator&#x27; and do not include provider snapshot or immutable version.&quot;
+        },
+        &quot;tool_config&quot;: {
+          &quot;cache_pattern&quot;: &quot;cache/&lt;topic&gt;/screen_adjudication.json&quot;,
+          &quot;consumed_by&quot;: &quot;harness.pipeline._with_model_adjudication&quot;
+        },
+        &quot;where&quot;: &quot;harness/pipeline.py:_with_model_adjudication; scripts/screen_adjudicate.py:main&quot;
+      },
+      {
+        &quot;archive&quot;: {
+          &quot;archived&quot;: true,
+          &quot;location&quot;: &quot;cache/balanced-crystalloids-vs-saline-mortality/outcome_judgments.json&quot;,
+          &quot;request_archive&quot;: false,
+          &quot;response_archive&quot;: &quot;committed judgment JSON&quot;
+        },
+        &quot;live_at_build_time&quot;: false,
+        &quot;live_call_path&quot;: &quot;Live call only when scripts/outcome_judgments.py is invoked with --codex.&quot;,
+        &quot;model_identifier&quot;: &quot;codex-default unless --model is supplied&quot;,
+        &quot;name&quot;: &quot;outcome_identity_codex&quot;,
+        &quot;parameters&quot;: {
+          &quot;mode&quot;: &quot;codex exec -s read-only --skip-git-repo-check&quot;,
+          &quot;output_contract&quot;: &quot;JSON object with answer and reason&quot;,
+          &quot;temperature&quot;: &quot;not recorded&quot;
+        },
+        &quot;prompt_digest&quot;: null,
+        &quot;prompt_in_tree&quot;: false,
+        &quot;provider&quot;: &quot;OpenAI Codex CLI&quot;,
+        &quot;snapshot_pinning&quot;: {
+          &quot;pinned&quot;: false,
+          &quot;reason&quot;: &quot;Default Codex model is resolved by the CLI unless --model is supplied; committed cache does not include immutable snapshot.&quot;
+        },
+        &quot;tool_config&quot;: {
+          &quot;cache_pattern&quot;: &quot;cache/&lt;topic&gt;/outcome_judgments.json&quot;,
+          &quot;prompt_template_source&quot;: &quot;scripts/outcome_judgments.py:build_prompt&quot;
+        },
+        &quot;where&quot;: &quot;scripts/outcome_judgments.py:_ask_codex; harness/pipeline.py:_load_outcome_judgments&quot;
+      },
+      {
+        &quot;archive&quot;: {
+          &quot;archived&quot;: true,
+          &quot;location&quot;: &quot;cache/*/locate_judgments.json&quot;,
+          &quot;request_archive&quot;: false,
+          &quot;response_archive&quot;: &quot;committed location judgments with prompt_hash fields&quot;
+        },
+        &quot;live_at_build_time&quot;: false,
+        &quot;live_call_path&quot;: &quot;No live call in harness/locate.py; committed locate_judgments.json files are replayed.&quot;,
+        &quot;model_identifier&quot;: &quot;fable-5.1&quot;,
+        &quot;name&quot;: &quot;locate_span_identity_fable&quot;,
+        &quot;parameters&quot;: {
+          &quot;date_recorded&quot;: &quot;2026-09-12 in committed artifacts&quot;,
+          &quot;temperature&quot;: &quot;not recorded&quot;
+        },
+        &quot;prompt_digest&quot;: null,
+        &quot;prompt_in_tree&quot;: false,
+        &quot;provider&quot;: &quot;Fable&quot;,
+        &quot;snapshot_pinning&quot;: {
+          &quot;pinned&quot;: false,
+          &quot;reason&quot;: &quot;Artifacts record fable-5.1 but no immutable provider snapshot or model weights digest.&quot;
+        },
+        &quot;tool_config&quot;: {
+          &quot;cache_pattern&quot;: &quot;cache/&lt;topic&gt;/locate_judgments.json&quot;
+        },
+        &quot;where&quot;: &quot;harness/locate.py:load_judgments; harness/pipeline.py evidence-span consumers&quot;
+      },
+      {
+        &quot;archive&quot;: {
+          &quot;archived&quot;: true,
+          &quot;location&quot;: &quot;docs/dual_extraction.json and docs/dual_extract.json&quot;,
+          &quot;request_archive&quot;: false,
+          &quot;response_archive&quot;: &quot;derived committed outputs only&quot;
+        },
+        &quot;live_at_build_time&quot;: false,
+        &quot;live_call_path&quot;: &quot;Scripts assemble and collect files; raw model work happened outside the committed tree under ignored scratchpad files.&quot;,
+        &quot;model_identifier&quot;: &quot;Fable family, exact snapshot not recorded in committed output&quot;,
+        &quot;name&quot;: &quot;dual_extraction_fable&quot;,
+        &quot;parameters&quot;: {
+          &quot;seed&quot;: &quot;not recorded&quot;,
+          &quot;task&quot;: &quot;blind dual extraction of spans and numeric fields&quot;
+        },
+        &quot;prompt_digest&quot;: null,
+        &quot;prompt_in_tree&quot;: false,
+        &quot;provider&quot;: &quot;Fable&quot;,
+        &quot;snapshot_pinning&quot;: {
+          &quot;pinned&quot;: false,
+          &quot;reason&quot;: &quot;Committed dual extraction output does not include immutable model snapshot, prompt archive, or request archive.&quot;
+        },
+        &quot;tool_config&quot;: {
+          &quot;derived_outputs&quot;: [
+            &quot;docs/dual_extraction.json&quot;,
+            &quot;docs/dual_extract.json&quot;
+          ],
+          &quot;scratchpad_inputs&quot;: &quot;scratchpad/dual_* (not committed)&quot;
+        },
+        &quot;where&quot;: &quot;scripts/dual_assemble.py:main; scripts/dual_collect.py:main; scripts/dual_compare.py:main; docs/dual_extraction.json&quot;
+      },
+      {
+        &quot;archive&quot;: {
+          &quot;archived&quot;: true,
+          &quot;location&quot;: &quot;docs/error_rate.json and docs/error_rate_sample.json&quot;,
+          &quot;request_archive&quot;: false,
+          &quot;response_archive&quot;: &quot;committed summary outputs only&quot;
+        },
+        &quot;live_at_build_time&quot;: false,
+        &quot;live_call_path&quot;: &quot;No live model call in compare scripts; they read ignored scratchpad checker outputs and write committed summaries.&quot;,
+        &quot;model_identifier&quot;: &quot;GPT-5 as documented in docs/crossfamily.json&quot;,
+        &quot;name&quot;: &quot;blind_error_rate_codex_checker&quot;,
+        &quot;parameters&quot;: {
+          &quot;sample_method&quot;: &quot;blind offline checker records&quot;,
+          &quot;temperature&quot;: &quot;not recorded&quot;
+        },
+        &quot;prompt_digest&quot;: null,
+        &quot;prompt_in_tree&quot;: false,
+        &quot;provider&quot;: &quot;OpenAI Codex&quot;,
+        &quot;snapshot_pinning&quot;: {
+          &quot;pinned&quot;: false,
+          &quot;reason&quot;: &quot;The checker model snapshot and raw request/response archive are not committed.&quot;
+        },
+        &quot;tool_config&quot;: {
+          &quot;derived_outputs&quot;: [
+            &quot;docs/error_rate.json&quot;,
+            &quot;docs/error_rate_sample.json&quot;
+          ],
+          &quot;scratchpad_inputs&quot;: &quot;scratchpad/errorrate/* (not committed)&quot;
+        },
+        &quot;where&quot;: &quot;scripts/error_rate_compare.py:main; scripts/error_rate_pass2.py:main; docs/error_rate.json; docs/error_rate_sample.json&quot;
+      },
+      {
+        &quot;archive&quot;: {
+          &quot;archived&quot;: true,
+          &quot;location&quot;: &quot;docs/crossfamily_raw.json and docs/crossfamily.json&quot;,
+          &quot;request_archive&quot;: false,
+          &quot;response_archive&quot;: &quot;committed raw and derived JSON&quot;
+        },
+        &quot;live_at_build_time&quot;: false,
+        &quot;live_call_path&quot;: &quot;No live call in the compare script; it consumes committed or scratchpad raw outputs.&quot;,
+        &quot;model_identifier&quot;: &quot;Gemini 3.1 Pro (High) via AGY&quot;,
+        &quot;name&quot;: &quot;crossfamily_gemini_reextraction&quot;,
+        &quot;parameters&quot;: {
+          &quot;blinding&quot;: &quot;blind re-extraction against page values&quot;,
+          &quot;reasoning_level&quot;: &quot;High&quot;
+        },
+        &quot;prompt_digest&quot;: null,
+        &quot;prompt_in_tree&quot;: false,
+        &quot;provider&quot;: &quot;Google Gemini via AGY&quot;,
+        &quot;snapshot_pinning&quot;: {
+          &quot;pinned&quot;: false,
+          &quot;reason&quot;: &quot;Model label is provider/version text, not an immutable snapshot digest; prompts in scratchpad are not committed.&quot;
+        },
+        &quot;tool_config&quot;: {
+          &quot;derived_output&quot;: &quot;docs/crossfamily.json&quot;,
+          &quot;prompt_archive&quot;: &quot;scratchpad/xfam/prompts (not committed)&quot;,
+          &quot;raw_output&quot;: &quot;docs/crossfamily_raw.json&quot;
+        },
+        &quot;where&quot;: &quot;scripts/crossfamily_compare.py:main; docs/crossfamily_raw.json; docs/crossfamily.json&quot;
+      },
+      {
+        &quot;archive&quot;: {
+          &quot;archived&quot;: true,
+          &quot;location&quot;: &quot;docs/crossfamily_judge.json and docs/fair_judge.json&quot;,
+          &quot;request_archive&quot;: false,
+          &quot;response_archive&quot;: &quot;committed judge JSON&quot;
+        },
+        &quot;live_at_build_time&quot;: false,
+        &quot;live_call_path&quot;: &quot;No live call in build; committed judge artifacts are replayed.&quot;,
+        &quot;model_identifier&quot;: &quot;Gemini 3.1 Pro (High) via AGY&quot;,
+        &quot;name&quot;: &quot;crossfamily_blind_judge_gemini&quot;,
+        &quot;parameters&quot;: {
+          &quot;blinding&quot;: &quot;same blinded page-vs-comparator pairs&quot;,
+          &quot;reasoning_level&quot;: &quot;High&quot;
+        },
+        &quot;prompt_digest&quot;: null,
+        &quot;prompt_in_tree&quot;: false,
+        &quot;provider&quot;: &quot;Google Gemini via AGY&quot;,
+        &quot;snapshot_pinning&quot;: {
+          &quot;pinned&quot;: false,
+          &quot;reason&quot;: &quot;Judge artifacts do not bind an immutable provider snapshot or raw request archive.&quot;
+        },
+        &quot;tool_config&quot;: {
+          &quot;outputs&quot;: [
+            &quot;docs/crossfamily_judge.json&quot;,
+            &quot;docs/fair_judge.json&quot;
+          ],
+          &quot;scratchpad_inputs&quot;: &quot;scratchpad/xjudge (not committed)&quot;
+        },
+        &quot;where&quot;: &quot;docs/crossfamily_judge.json; docs/fair_judge.json&quot;
+      },
+      {
+        &quot;archive&quot;: {
+          &quot;archived&quot;: true,
+          &quot;location&quot;: &quot;docs/definition_audit.json&quot;,
+          &quot;request_archive&quot;: false,
+          &quot;response_archive&quot;: &quot;committed audit JSON&quot;
+        },
+        &quot;live_at_build_time&quot;: false,
+        &quot;live_call_path&quot;: &quot;No live call in build; committed definition audit artifact is replayed.&quot;,
+        &quot;model_identifier&quot;: &quot;Gemini 3.1 Pro (High) via AGY plus Fable&quot;,
+        &quot;name&quot;: &quot;definition_audit_gemini_fable&quot;,
+        &quot;parameters&quot;: {
+          &quot;raw_outputs&quot;: &quot;scratchpad/defaudit (not committed)&quot;,
+          &quot;scope&quot;: &quot;every pooled row&quot;
+        },
+        &quot;prompt_digest&quot;: null,
+        &quot;prompt_in_tree&quot;: false,
+        &quot;provider&quot;: &quot;Google Gemini via AGY and Fable&quot;,
+        &quot;snapshot_pinning&quot;: {
+          &quot;pinned&quot;: false,
+          &quot;reason&quot;: &quot;Audit artifact names model families but does not pin immutable snapshots or commit raw prompts.&quot;
+        },
+        &quot;tool_config&quot;: {
+          &quot;output&quot;: &quot;docs/definition_audit.json&quot;
+        },
+        &quot;where&quot;: &quot;docs/definition_audit.json&quot;
+      },
+      {
+        &quot;archive&quot;: {
+          &quot;archived&quot;: true,
+          &quot;location&quot;: &quot;docs/rob_spancheck.json&quot;,
+          &quot;request_archive&quot;: false,
+          &quot;response_archive&quot;: &quot;committed span-check JSON&quot;
+        },
+        &quot;live_at_build_time&quot;: false,
+        &quot;live_call_path&quot;: &quot;No live call in build; committed RoB span-check artifact is replayed.&quot;,
+        &quot;model_identifier&quot;: &quot;Fable cross-family checker&quot;,
+        &quot;name&quot;: &quot;rob_spancheck_fable&quot;,
+        &quot;parameters&quot;: {
+          &quot;sample&quot;: &quot;cross-family RoB span-check sample&quot;,
+          &quot;seed&quot;: 20260912
+        },
+        &quot;prompt_digest&quot;: null,
+        &quot;prompt_in_tree&quot;: false,
+        &quot;provider&quot;: &quot;Fable&quot;,
+        &quot;snapshot_pinning&quot;: {
+          &quot;pinned&quot;: false,
+          &quot;reason&quot;: &quot;Artifact identifies Fable checker but not an immutable model snapshot.&quot;
+        },
+        &quot;tool_config&quot;: {
+          &quot;output&quot;: &quot;docs/rob_spancheck.json&quot;
+        },
+        &quot;where&quot;: &quot;docs/rob_spancheck.json; harness/index.py render consumers&quot;
+      },
+      {
+        &quot;archive&quot;: {
+          &quot;archived&quot;: true,
+          &quot;location&quot;: &quot;docs/screen_reproducibility.json&quot;,
+          &quot;request_archive&quot;: false,
+          &quot;response_archive&quot;: &quot;committed summary JSON&quot;
+        },
+        &quot;live_at_build_time&quot;: false,
+        &quot;live_call_path&quot;: &quot;No live call in script; it reads ignored scratchpad screen outputs and writes a committed summary.&quot;,
+        &quot;model_identifier&quot;: &quot;not recorded in committed artifact&quot;,
+        &quot;name&quot;: &quot;blind_screen_reproducibility&quot;,
+        &quot;parameters&quot;: {
+          &quot;raw_outputs&quot;: &quot;scratchpad/screen/out_scr_*.json (not committed)&quot;,
+          &quot;task&quot;: &quot;independent blind screener versus committed rule screener&quot;
+        },
+        &quot;prompt_digest&quot;: null,
+        &quot;prompt_in_tree&quot;: false,
+        &quot;provider&quot;: &quot;model-assisted external screener&quot;,
+        &quot;snapshot_pinning&quot;: {
+          &quot;pinned&quot;: false,
+          &quot;reason&quot;: &quot;Model/provider identifier, snapshot, and raw prompts are not recorded in the committed artifact.&quot;
+        },
+        &quot;tool_config&quot;: {
+          &quot;output&quot;: &quot;docs/screen_reproducibility.json&quot;
+        },
+        &quot;where&quot;: &quot;scripts/screen_reproducibility.py:main; docs/screen_reproducibility.json&quot;
+      }
+    ]
+  },
+  &quot;retrieval_adapters&quot;: {
+    &quot;adapters&quot;: [
+      {
+        &quot;endpoints&quot;: [
+          {
+            &quot;label&quot;: &quot;pubmed_eutils&quot;,
+            &quot;mutable_external&quot;: true,
+            &quot;url&quot;: &quot;https://eutils.ncbi.nlm.nih.gov/entrez/eutils&quot;
+          }
+        ],
+        &quot;file_sha256&quot;: &quot;af80663a7408b2986eaaa5d6d9174c4c311d9d0f8e19be5368ad952bb1d9c1d3&quot;,
+        &quot;path&quot;: &quot;harness/acquisition.py&quot;,
+        &quot;version_git_blob_sha&quot;: &quot;aabf7b0e56c7b2e34cf681cfd03c84d64fd99a6b&quot;
+      },
+      {
+        &quot;endpoints&quot;: [
+          {
+            &quot;label&quot;: &quot;pubmed_eutils&quot;,
+            &quot;mutable_external&quot;: true,
+            &quot;url&quot;: &quot;https://eutils.ncbi.nlm.nih.gov/entrez/eutils&quot;
+          },
+          {
+            &quot;label&quot;: &quot;clinicaltrials_gov_v2&quot;,
+            &quot;mutable_external&quot;: true,
+            &quot;url&quot;: &quot;https://clinicaltrials.gov/api/v2/studies&quot;
+          },
+          {
+            &quot;label&quot;: &quot;pmc_oa&quot;,
+            &quot;mutable_external&quot;: true,
+            &quot;url&quot;: &quot;https://www.ncbi.nlm.nih.gov/pmc/utils/oa/oa.fcgi&quot;
+          },
+          {
+            &quot;label&quot;: &quot;europe_pmc_search&quot;,
+            &quot;mutable_external&quot;: true,
+            &quot;url&quot;: &quot;https://www.ebi.ac.uk/europepmc/webservices/rest/search&quot;
+          },
+          {
+            &quot;label&quot;: &quot;europe_pmc_articles&quot;,
+            &quot;mutable_external&quot;: true,
+            &quot;url&quot;: &quot;https://www.ebi.ac.uk/europepmc/webservices/rest/MED/{pmid}/{kind}&quot;
+          },
+          {
+            &quot;label&quot;: &quot;unpaywall&quot;,
+            &quot;mutable_external&quot;: true,
+            &quot;url&quot;: &quot;https://api.unpaywall.org/v2/{doi}&quot;
+          }
+        ],
+        &quot;file_sha256&quot;: &quot;204501de42657a3e7d0a97916bcfba23670192f0093bc1c950a5428c7e42d5bc&quot;,
+        &quot;path&quot;: &quot;harness/fetch.py&quot;,
+        &quot;version_git_blob_sha&quot;: &quot;e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24&quot;
+      },
+      {
+        &quot;endpoints&quot;: [
+          {
+            &quot;label&quot;: &quot;generic_urlopen&quot;,
+            &quot;mutable_external&quot;: true,
+            &quot;url&quot;: &quot;urllib.request.Request/urlopen caller-supplied URLs&quot;
+          }
+        ],
+        &quot;file_sha256&quot;: &quot;72dcaf50d7f8135327d4b8da4ebc949571dfa37196473edebfec26671ba5fe82&quot;,
+        &quot;path&quot;: &quot;harness/http.py&quot;,
+        &quot;version_git_blob_sha&quot;: &quot;28a752b06b1d899069c6e9a3b4fcb425c8b0b392&quot;
+      },
+      {
+        &quot;endpoints&quot;: [
+          {
+            &quot;label&quot;: &quot;clinicaltrials_gov_v2&quot;,
+            &quot;mutable_external&quot;: true,
+            &quot;url&quot;: &quot;https://clinicaltrials.gov/api/v2/studies&quot;
+          },
+          {
+            &quot;label&quot;: &quot;pubmed_eutils&quot;,
+            &quot;mutable_external&quot;: true,
+            &quot;url&quot;: &quot;https://eutils.ncbi.nlm.nih.gov/entrez/eutils&quot;
+          },
+          {
+            &quot;label&quot;: &quot;isrctn&quot;,
+            &quot;mutable_external&quot;: true,
+            &quot;url&quot;: &quot;https://www.isrctn.com/api/query/format/default&quot;
+          }
+        ],
+        &quot;file_sha256&quot;: &quot;a2a17b867501129eac70d17f1b8cccecc6db0e742fabd36294a05a8564cd4ba8&quot;,
+        &quot;path&quot;: &quot;harness/registry_first.py&quot;,
+        &quot;version_git_blob_sha&quot;: &quot;acb2bae5f3e3c37e538547944574ea72cac4b324&quot;
+      }
+    ],
+    &quot;sha256&quot;: &quot;691305aad33a0b5de784899a4614ece0c69a27854e03d6f953457034ef0a96aa&quot;
+  },
+  &quot;tree_sha&quot;: &quot;e9f71797d0964f27cf6bdfc5d6e2c71b47a37f90&quot;,
+  &quot;workflow&quot;: {
+    &quot;files&quot;: [
+      {
+        &quot;path&quot;: &quot;.github/workflows/verify.yml&quot;,
+        &quot;sha256&quot;: &quot;ac0d4ce29d517fffd228d7b566536fe243b04039d4e96956233d1cd70d9062f8&quot;
+      }
+    ],
+    &quot;sha256&quot;: &quot;321826a31d323ff27fe90c7ac34c3fa0b6e85adb749f185eb1bf867655bc06c3&quot;,
+    &quot;uses&quot;: [
+      {
+        &quot;action&quot;: &quot;actions/checkout&quot;,
+        &quot;line&quot;: 44,
+        &quot;path&quot;: &quot;.github/workflows/verify.yml&quot;,
+        &quot;pinned_to_sha&quot;: false,
+        &quot;ref&quot;: &quot;v4&quot;,
+        &quot;uses&quot;: &quot;actions/checkout@v4&quot;
+      },
+      {
+        &quot;action&quot;: &quot;actions/setup-python&quot;,
+        &quot;line&quot;: 47,
+        &quot;path&quot;: &quot;.github/workflows/verify.yml&quot;,
+        &quot;pinned_to_sha&quot;: false,
+        &quot;ref&quot;: &quot;v5&quot;,
+        &quot;uses&quot;: &quot;actions/setup-python@v5&quot;
+      },
+      {
+        &quot;action&quot;: &quot;actions/upload-artifact&quot;,
+        &quot;line&quot;: 62,
+        &quot;path&quot;: &quot;.github/workflows/verify.yml&quot;,
+        &quot;pinned_to_sha&quot;: false,
+        &quot;ref&quot;: &quot;v4&quot;,
+        &quot;uses&quot;: &quot;actions/upload-artifact@v4&quot;
+      },
+      {
+        &quot;action&quot;: &quot;actions/upload-pages-artifact&quot;,
+        &quot;line&quot;: 72,
+        &quot;path&quot;: &quot;.github/workflows/verify.yml&quot;,
+        &quot;pinned_to_sha&quot;: false,
+        &quot;ref&quot;: &quot;v3&quot;,
+        &quot;uses&quot;: &quot;actions/upload-pages-artifact@v3&quot;
+      },
+      {
+        &quot;action&quot;: &quot;actions/download-artifact&quot;,
+        &quot;line&quot;: 95,
+        &quot;path&quot;: &quot;.github/workflows/verify.yml&quot;,
+        &quot;pinned_to_sha&quot;: false,
+        &quot;ref&quot;: &quot;v4&quot;,
+        &quot;uses&quot;: &quot;actions/download-artifact@v4&quot;
+      },
+      {
+        &quot;action&quot;: &quot;actions/download-artifact&quot;,
+        &quot;line&quot;: 100,
+        &quot;path&quot;: &quot;.github/workflows/verify.yml&quot;,
+        &quot;pinned_to_sha&quot;: false,
+        &quot;ref&quot;: &quot;v4&quot;,
+        &quot;uses&quot;: &quot;actions/download-artifact@v4&quot;
+      },
+      {
+        &quot;action&quot;: &quot;actions/deploy-pages&quot;,
+        &quot;line&quot;: 108,
+        &quot;path&quot;: &quot;.github/workflows/verify.yml&quot;,
+        &quot;pinned_to_sha&quot;: false,
+        &quot;ref&quot;: &quot;v4&quot;,
+        &quot;uses&quot;: &quot;actions/deploy-pages@v4&quot;
+      },
+      {
+        &quot;action&quot;: &quot;actions/upload-artifact&quot;,
+        &quot;line&quot;: 121,
+        &quot;path&quot;: &quot;.github/workflows/verify.yml&quot;,
+        &quot;pinned_to_sha&quot;: false,
+        &quot;ref&quot;: &quot;v4&quot;,
+        &quot;uses&quot;: &quot;actions/upload-artifact@v4&quot;
+      }
+    ]
+  }
+}
+mutable_dependencies:
+[
+  &quot;requirements.txt: requirements.txt has no exact pins; no lockfile; CI installs latest at run time&quot;,
+  &quot;.github/workflows/verify.yml:44: actions/checkout@v4 is not pinned to a 40-hex commit SHA&quot;,
+  &quot;.github/workflows/verify.yml:47: actions/setup-python@v5 is not pinned to a 40-hex commit SHA&quot;,
+  &quot;.github/workflows/verify.yml:62: actions/upload-artifact@v4 is not pinned to a 40-hex commit SHA&quot;,
+  &quot;.github/workflows/verify.yml:72: actions/upload-pages-artifact@v3 is not pinned to a 40-hex commit SHA&quot;,
+  &quot;.github/workflows/verify.yml:95: actions/download-artifact@v4 is not pinned to a 40-hex commit SHA&quot;,
+  &quot;.github/workflows/verify.yml:100: actions/download-artifact@v4 is not pinned to a 40-hex commit SHA&quot;,
+  &quot;.github/workflows/verify.yml:108: actions/deploy-pages@v4 is not pinned to a 40-hex commit SHA&quot;,
+  &quot;.github/workflows/verify.yml:121: actions/upload-artifact@v4 is not pinned to a 40-hex commit SHA&quot;,
+  &quot;retrieval_adapters.harness/acquisition.py.pubmed_eutils: https://eutils.ncbi.nlm.nih.gov/entrez/eutils is a mutable external API&quot;,
+  &quot;retrieval_adapters.harness/fetch.py.pubmed_eutils: https://eutils.ncbi.nlm.nih.gov/entrez/eutils is a mutable external API&quot;,
+  &quot;retrieval_adapters.harness/fetch.py.clinicaltrials_gov_v2: https://clinicaltrials.gov/api/v2/studies is a mutable external API&quot;,
+  &quot;retrieval_adapters.harness/fetch.py.pmc_oa: https://www.ncbi.nlm.nih.gov/pmc/utils/oa/oa.fcgi is a mutable external API&quot;,
+  &quot;retrieval_adapters.harness/fetch.py.europe_pmc_search: https://www.ebi.ac.uk/europepmc/webservices/rest/search is a mutable external API&quot;,
+  &quot;retrieval_adapters.harness/fetch.py.europe_pmc_articles: https://www.ebi.ac.uk/europepmc/webservices/rest/MED/{pmid}/{kind} is a mutable external API&quot;,
+  &quot;retrieval_adapters.harness/fetch.py.unpaywall: https://api.unpaywall.org/v2/{doi} is a mutable external API&quot;,
+  &quot;retrieval_adapters.harness/http.py.generic_urlopen: urllib.request.Request/urlopen caller-supplied URLs is a mutable external API&quot;,
+  &quot;retrieval_adapters.harness/registry_first.py.clinicaltrials_gov_v2: https://clinicaltrials.gov/api/v2/studies is a mutable external API&quot;,
+  &quot;retrieval_adapters.harness/registry_first.py.pubmed_eutils: https://eutils.ncbi.nlm.nih.gov/entrez/eutils is a mutable external API&quot;,
+  &quot;retrieval_adapters.harness/registry_first.py.isrctn: https://www.isrctn.com/api/query/format/default is a mutable external API&quot;,
+  &quot;model_stages.embedding_candidate_generation: sentence-transformers/all-MiniLM-L6-v2 unpinned - MODEL_ID has no Hugging Face revision or weights digest; cache misses load the current resolved model.&quot;,
+  &quot;model_stages.screening_model_adjudication: adjudicator unpinned - Committed records identify only &#x27;adjudicator&#x27; and do not include provider snapshot or immutable version.&quot;,
+  &quot;model_stages.outcome_identity_codex: codex-default unless --model is supplied unpinned - Default Codex model is resolved by the CLI unless --model is supplied; committed cache does not include immutable snapshot.&quot;,
+  &quot;model_stages.locate_span_identity_fable: fable-5.1 unpinned - Artifacts record fable-5.1 but no immutable provider snapshot or model weights digest.&quot;,
+  &quot;model_stages.dual_extraction_fable: Fable family, exact snapshot not recorded in committed output unpinned - Committed dual extraction output does not include immutable model snapshot, prompt archive, or request archive.&quot;,
+  &quot;model_stages.blind_error_rate_codex_checker: GPT-5 as documented in docs/crossfamily.json unpinned - The checker model snapshot and raw request/response archive are not committed.&quot;,
+  &quot;model_stages.crossfamily_gemini_reextraction: Gemini 3.1 Pro (High) via AGY unpinned - Model label is provider/version text, not an immutable snapshot digest; prompts in scratchpad are not committed.&quot;,
+  &quot;model_stages.crossfamily_blind_judge_gemini: Gemini 3.1 Pro (High) via AGY unpinned - Judge artifacts do not bind an immutable provider snapshot or raw request archive.&quot;,
+  &quot;model_stages.definition_audit_gemini_fable: Gemini 3.1 Pro (High) via AGY plus Fable unpinned - Audit artifact names model families but does not pin immutable snapshots or commit raw prompts.&quot;,
+  &quot;model_stages.rob_spancheck_fable: Fable cross-family checker unpinned - Artifact identifies Fable checker but not an immutable model snapshot.&quot;,
+  &quot;model_stages.blind_screen_reproducibility: not recorded in committed artifact unpinned - Model/provider identifier, snapshot, and raw prompts are not recorded in the committed artifact.&quot;
+]
+architecture identity mismatch: expected 35f4ad6e3efe608085d37b7f81d5666542df3e712947294910ce5b4b10581683, observed 1f85f0f050e9d07ef3cafa64ef11ee85b2b9e8eea6eea7cfdea0021f9b895508
+## comparison
+production_record_architecture_identity=35f4ad6e3efe608085d37b7f81d5666542df3e712947294910ce5b4b10581683
+computed_here_architecture_identity=1f85f0f050e9d07ef3cafa64ef11ee85b2b9e8eea6eea7cfdea0021f9b895508
+identity_match=false
+component_differences:
+dependencies: production=226f9e3fe505ab08ce18d4c5bcbbc273bb4b4ed1a2ba9f97b5a942ee4dc2ebfd local=05845f038eda363802ee6fa19bd6393db43594659477f4b5e135216cbcf8704c
+
+VERDICT: REPRODUCED
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

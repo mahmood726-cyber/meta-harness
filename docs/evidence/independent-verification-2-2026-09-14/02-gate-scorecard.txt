@@ -1,0 +1,129 @@
+# Claim 2 - Gate scorecard
+
+Fresh clone: C:\mh-acq-R\.lane-r-work\fresh
+
+## real-scorecard-pass
+$ cd C:\mh-acq-R\.lane-r-work\fresh
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -m harness.gate_scorecard
+[exit 0]
+gate scorecard: PASS (39 gates; 27 PLANT_ONLY; 34 UNVALIDATED; 5 with production true refusals; 1 with false refusals)
+scorecard_pass=True
+
+## missing-gate-entry-plant
+$ cd C:\mh-acq-R
+$ git clone --no-hardlinks C:\mh-acq-R\.lane-r-work\fresh C:\mh-acq-R\.lane-r-work\gate-scorecard-missing-entry
+[exit 0]
+Cloning into 'C:\mh-acq-R\.lane-r-work\gate-scorecard-missing-entry'...
+done.
+Updating files:  60% (696/1155)
+Updating files:  61% (705/1155)
+Updating files:  62% (717/1155)
+Updating files:  63% (728/1155)
+Updating files:  64% (740/1155)
+Updating files:  65% (751/1155)
+Updating files:  66% (763/1155)
+Updating files:  67% (774/1155)
+Updating files:  68% (786/1155)
+Updating files:  69% (797/1155)
+Updating files:  70% (809/1155)
+Updating files:  71% (821/1155)
+Updating files:  72% (832/1155)
+Updating files:  73% (844/1155)
+Updating files:  74% (855/1155)
+Updating files:  75% (867/1155)
+Updating files:  76% (878/1155)
+Updating files:  77% (890/1155)
+Updating files:  78% (901/1155)
+Updating files:  79% (913/1155)
+Updating files:  80% (924/1155)
+Updating files:  81% (936/1155)
+Updating files:  82% (948/1155)
+Updating files:  83% (959/1155)
+Updating files:  84% (971/1155)
+Updating files:  85% (982/1155)
+Updating files:  86% (994/1155)
+Updating files:  87% (1005/1155)
+Updating files:  88% (1017/1155)
+Updating files:  89% (1028/1155)
+Updating files:  90% (1040/1155)
+Updating files:  91% (1052/1155)
+Updating files:  92% (1063/1155)
+Updating files:  93% (1075/1155)
+Updating files:  94% (1086/1155)
+Updating files:  95% (1098/1155)
+Updating files:  96% (1109/1155)
+Updating files:  97% (1121/1155)
+Updating files:  98% (1132/1155)
+Updating files:  99% (1144/1155)
+Updating files: 100% (1155/1155)
+Updating files: 100% (1155/1155), done.
+
+$ cd C:\mh-acq-R\.lane-r-work\gate-scorecard-missing-entry
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -m harness.gate_scorecard
+[exit 1]
+gate scorecard: REFUSED
+  - registry/gate_scorecard.json missing entry for enumerated gate gate.check_plant
+observed_expected_refusal=True
+
+## dangling-evidence-plant
+$ cd C:\mh-acq-R
+$ git clone --no-hardlinks C:\mh-acq-R\.lane-r-work\fresh C:\mh-acq-R\.lane-r-work\gate-scorecard-dangling-evidence
+[exit 0]
+Cloning into 'C:\mh-acq-R\.lane-r-work\gate-scorecard-dangling-evidence'...
+done.
+Updating files:  70% (816/1155)
+Updating files:  71% (821/1155)
+Updating files:  72% (832/1155)
+Updating files:  73% (844/1155)
+Updating files:  74% (855/1155)
+Updating files:  75% (867/1155)
+Updating files:  76% (878/1155)
+Updating files:  77% (890/1155)
+Updating files:  78% (901/1155)
+Updating files:  79% (913/1155)
+Updating files:  80% (924/1155)
+Updating files:  81% (936/1155)
+Updating files:  82% (948/1155)
+Updating files:  83% (959/1155)
+Updating files:  84% (971/1155)
+Updating files:  85% (982/1155)
+Updating files:  86% (994/1155)
+Updating files:  87% (1005/1155)
+Updating files:  88% (1017/1155)
+Updating files:  89% (1028/1155)
+Updating files:  90% (1040/1155)
+Updating files:  91% (1052/1155)
+Updating files:  92% (1063/1155)
+Updating files:  93% (1075/1155)
+Updating files:  94% (1086/1155)
+Updating files:  95% (1098/1155)
+Updating files:  96% (1109/1155)
+Updating files:  97% (1121/1155)
+Updating files:  98% (1132/1155)
+Updating files:  99% (1144/1155)
+Updating files: 100% (1155/1155)
+Updating files: 100% (1155/1155), done.
+
+$ cd C:\mh-acq-R\.lane-r-work\gate-scorecard-dangling-evidence
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe scripts/render_gate_scorecard.py
+[exit 0]
+wrote docs\gate_scorecard.json
+
+$ cd C:\mh-acq-R\.lane-r-work\gate-scorecard-dangling-evidence
+$ C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe -m harness.gate_scorecard
+[exit 1]
+gate scorecard: REFUSED
+  - verify_all.limb_unit_tests: cited evidence does not exist: docs/evidence/no-such-capture-lane-r.txt
+observed_expected_refusal=True
+
+## served-view-byte-comparison-and-counts
+$ GET https://mahmood726-cyber.github.io/meta-harness/gate_scorecard.json
+[http 200] bytes=43154 error=
+$ git show HEAD:docs/gate_scorecard.json | sha256
+served_sha256=ad14d2d848a954e6bdacd957e22745642acd09c02666b3116f6e6d4ada261df7
+committed_blob_sha256=ad14d2d848a954e6bdacd957e22745642acd09c02666b3116f6e6d4ada261df7
+served_equals_committed_blob=True
+registry_counts=(gates=39, PLANT_ONLY=27, UNVALIDATED=34, production_true_refusal_gates=5, false_refusal_gates=1)
+counts_match_claim=True
+
+VERDICT: REPRODUCED
