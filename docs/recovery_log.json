@@ -1,7 +1,7 @@
 {
  "_doc": "Recovery pipeline instrument. Every recovery ATTEMPT is recorded with its outcome, earned one trial at a time by fetch -> source-verify -> extract -> round-trip -> rebuild. This REPLACES the forward-scan vocabulary metric (which over-counted: a forward scan cannot tell a genuine synonym gap from by-design composite-specificity). BLOCKED_BY_MATCHER entries, each carrying the exact source string vs the exact registered keyword, ARE the vocabulary measurement -- zero false positives, evidence not guesswork. Outcomes: RECOVERED | REFUSED_ON_SOURCE | BLOCKED_BY_MATCHER | BLOCKED_BY_ACCESS | NOT_FOUND | SCOPE_PENDING.",
  "scoreboard": {
-  "attempted": 31,
+  "attempted": 32,
   "recovered": 5,
   "tightened": 2,
   "cost_significance": 1,
@@ -238,14 +238,14 @@
    "pmid": "(name only)",
    "topic": "corticosteroids-cap-mortality",
    "status": "UNVERIFIED",
-   "note": "name-only in the audit record; no confirmed PMID. Requires author/name search with uncertain yield (several likely small/non-English/registry-only). Recorded as a structural reach limit pending an identifier; not asserted eligible."
+   "note": "name-only in the audit record; no confirmed PMID. Requires author/name search with uncertain yield (several likely small/non-English/registry-only). Recorded as a structural reach limit pending an identifier; not asserted eligible. [CONFIRMED reach limit: a clean known-item search for \"Nafae ... severe CAP randomized\" returns 0 -- these need the DEFERRED concept-query/reference-seeding search rebuild, not a per-trial fetch. This is a search-completeness gap, correctly documented.]"
   },
   {
    "trial": "McHardy/El-Ghamrawy/Mikami/Sabry/Nafae/Snijders (corticosteroid-CAP set)",
    "pmid": "(name only)",
    "topic": "corticosteroids-cap-mortality",
    "status": "UNVERIFIED",
-   "note": "name-only in the audit record; no confirmed PMID. Requires author/name search with uncertain yield (several likely small/non-English/registry-only). Recorded as a structural reach limit pending an identifier; not asserted eligible."
+   "note": "name-only in the audit record; no confirmed PMID. Requires author/name search with uncertain yield (several likely small/non-English/registry-only). Recorded as a structural reach limit pending an identifier; not asserted eligible. [CONFIRMED reach limit: a clean known-item search for \"Nafae ... severe CAP randomized\" returns 0 -- these need the DEFERRED concept-query/reference-seeding search rebuild, not a per-trial fetch. This is a search-completeness gap, correctly documented.]"
   },
   {
    "trial": "Sarzaeem",
@@ -260,6 +260,13 @@
    "topic": "iv-iron-hfref-hosp",
    "status": "SOURCE_VERIFIED_STRAND_DEFERRED",
    "note": "recurrent-event rate-ratio strand source-verified, pools to ~0.78 (0.67-0.92) reproducing the published 0.77; NOT integrated -- the 3-strand architecture on the suppressed topic is the deferred delicate build, per instruction to build strands not force a pool."
+  },
+  {
+   "trial": "Nafae",
+   "pmid": "(name only)",
+   "topic": "corticosteroids-cap-mortality",
+   "status": "NOT_FOUND",
+   "note": "clean known-item search returns 0; needs the deferred concept-query/reference-seeding rebuild. Search-completeness gap."
   }
  ],
  "audit_overclaim_caught_at_source": {
@@ -423,5 +430,30 @@
   },
   "first_event_strand": "AFFIRM-AHF first HF-hosp-or-CV-death HR 0.80 (0.66-0.98); IRONMAN + others -- to be assembled",
   "participant_level_strand": "Toblli/IRON-HF functional/biomarker trials feed here, not the hospitalization pool"
+ },
+ "queue_boundary_reached": {
+  "_doc": "The tractable SINGLE-TRIAL recovery queue is exhausted (31 attempts recorded, all with earned outcomes). What remains is qualitatively different and either explicitly DEFERRED or bulk:",
+  "remaining": [
+   {
+    "item": "corticosteroid-CAP author-name set (Nafae/McHardy/El-Ghamrawy/Mikami/Sabry/Snijders) + SONIA",
+    "why": "not reachable by known-item search (Nafae=0 hits); needs the DEFERRED concept-query/reference-seeding search rebuild"
+   },
+   {
+    "item": "abstract-only sweep across all 32",
+    "why": "bulk; already surfaced at corpus level by the eligible_declared_absent predicate (the 29/32 STALE)"
+   },
+   {
+    "item": "AACT participant-flow pull for D3 RoB",
+    "why": "a larger per-topic build, not a single-trial fetch"
+   },
+   {
+    "item": "iv-iron 3-strand pipeline integration",
+    "why": "DEFERRED delicate architecture on the suppressed topic; recurrent strand already source-verified (~0.78, reproduces 0.77)"
+   },
+   {
+    "item": "broad screening-vocabulary fix (PREVENTION_TRIAL_TITLE_OMITS_OUTCOME etc.)",
+    "why": "DEFERRED -- the ELIXA broad-lexical class, needs careful corpus-wide before/after"
+   }
+  ]
  }
 }
