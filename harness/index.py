@@ -1157,7 +1157,22 @@ def build_index(docs_dir: str) -> str:
     _defaudit = _definition_audit_section(docs_dir)
     # anti-drift: fail closed on an un-accounted numeral in ANY narrative banner
     _validate_prose_numbers(docs_dir, _thesis + _cont + _erate + _xfam + _defaudit + _extval + _spec + _screen + _prov + _stance)
-    body = (_thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
+    # EVIDENCE BUNDLE, linked first and by full URL: the auditor's fetcher could not reach the bundle and the
+    # directory was not in any crawl. Every capture is served raw and as an HTML rendering (their layer refuses
+    # text/plain), with its SHA-256 beside it. A reader who verifies only what we say about the evidence has verified
+    # nothing; this link is the route to the bytes.
+    _evidence = ("<div class='banner'><h2>Evidence bundle — raw captures of what was found and what refused</h2>"
+                 "<p>Every finding this site reports about itself (a commit that failed verification and was deployed anyway, "
+                 "the refusals after the fix, the independent re-demonstrations, the gate scorecard, the accounting of every "
+                 "regeneration) is served as raw captures with the SHA-256 of each file, at "
+                 "<a href='evidence/'>https://mahmood726-cyber.github.io/meta-harness/evidence/</a>. Start with "
+                 "<a href='evidence/gate-authority-2026-09-14/01-prefix-deploy-unconditional.txt.html'>the 109053ad capture "
+                 "(HTML rendering)</a> or its <a href='evidence/gate-authority-2026-09-14/01-prefix-deploy-unconditional.txt'>raw file</a>, "
+                 "and <a href='evidence/gate-authority-2026-09-14/VERIFY-COLD.md.html'>how to verify it without us</a>. "
+                 "The fix states of every claim are in <a href='fix_ledger.json'>fix_ledger.json</a>; the gate scorecard in "
+                 "<a href='gate_scorecard.json'>gate_scorecard.json</a>; the per-file digests of this deployment in "
+                 "<a href='_production/manifest.json'>_production/manifest.json</a>.</p></div>")
+    body = (_evidence + _thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
             + _currency_section(docs_dir) + _recovery_section(docs_dir)
             + _participant_flow_section(docs_dir) + _iv_iron_strands_section(docs_dir)
             + _search_recall_section(docs_dir)

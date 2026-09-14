@@ -50,8 +50,28 @@ def _size(p: str) -> int:
 
 
 def _captures(d: str) -> list[str]:
-    return sorted(f for f in os.listdir(os.path.join(EV, d))
-                  if os.path.isfile(os.path.join(EV, d, f)) and f not in GENERATED)
+    files = {f for f in os.listdir(os.path.join(EV, d)) if os.path.isfile(os.path.join(EV, d, f))}
+    # generated: index.html and every "<capture>.html" twin whose capture exists beside it
+    return sorted(f for f in files if f not in GENERATED and not (f.endswith(".html") and f[:-5] in files))
+
+
+def render_twin(d: str, f: str, caption: str) -> str:
+    """HTML twin of a raw capture, for fetchers that refuse non-HTML content types (the auditor's did: every capture
+    is served as text/plain or text/markdown, everything they had ever read from us was text/html). The capture is
+    shown VERBATIM in a <pre>; the raw file's URL and SHA-256 are stated; the digest is of the RAW file, not of this
+    wrapper -- the attestation covers the raw bytes and this page is a rendering of them."""
+    p = os.path.join(EV, d, f)
+    raw = _served_bytes(p).decode("utf-8", "replace")
+    url = f"{SITE}{d}/{f}"
+    return (f"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+            f"<title>{html.escape(f)} (rendered capture)</title><style>{STYLE}pre{{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}}</style></head><body>"
+            f"<h1>{html.escape(f)}</h1><p class=\"note\"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the "
+            f"capture verbatim. The raw file is served at <code>{html.escape(url)}</code>; its SHA-256 is <code>{_sha(p)}</code> "
+            f"({_size(p):,} bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in "
+            f"<code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse "
+            f"text/plain and text/markdown.</p><p><em>What it proves:</em> {html.escape(caption)}</p>"
+            f"<pre>{html.escape(raw)}</pre>"
+            f"<p><a href=\"./\">This directory's index</a> · <a href=\"../\">All evidence</a></p></body></html>\n")
 
 
 def render_dir(d: str, cap: dict) -> str:
@@ -60,7 +80,8 @@ def render_dir(d: str, cap: dict) -> str:
     for f in _captures(d):
         p = os.path.join(EV, d, f)
         url = f"{SITE}{d}/{f}"
-        rows.append(f"<tr><td><a href=\"{html.escape(f)}\">{html.escape(f)}</a><br><code>{html.escape(url)}</code></td>"
+        rows.append(f"<tr><td><a href=\"{html.escape(f)}.html\">{html.escape(f)} (HTML rendering)</a> · <a href=\"{html.escape(f)}\">raw</a>"
+                    f"<br><code>{html.escape(url)}.html</code><br><code>{html.escape(url)}</code></td>"
                     f"<td>{html.escape(cap[f])}</td><td class='sha'>{_size(p):,} B<br><code>{_sha(p)}</code></td></tr>")
     return (f"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
             f"<title>{html.escape(title)}</title><style>{STYLE}</style></head><body>"
@@ -68,7 +89,7 @@ def render_dir(d: str, cap: dict) -> str:
             f"byte-for-byte as committed under <code>docs/evidence/{html.escape(d)}/</code>; the SHA-256 shown is of those bytes. Fetch the URL, "
             f"hash the body, compare. This index page is generated from <code>CAPTIONS.json</code> and is the only non-capture file here.</p>"
             f"<p>{html.escape(cap.get('_intro', ''))}</p>"
-            f"<table><tr><th>file / full URL</th><th>what it proves</th><th>size / SHA-256 of committed bytes</th></tr>{''.join(rows)}</table>"
+            f"<table><tr><th>file: HTML rendering / raw (full URLs)</th><th>what it proves</th><th>size / SHA-256 of committed bytes</th></tr>{''.join(rows)}</table>"
             f"<p><a href=\"../\">All evidence</a> · <a href=\"../../_production/manifest.json\">per-file manifest of the deployed tree</a></p></body></html>\n")
 
 
@@ -113,6 +134,8 @@ def build() -> dict[str, str]:
         raise SystemExit("EVIDENCE INDEX REFUSED:\n  " + "\n  ".join(problems))
     for d in sorted(x for x in os.listdir(EV) if os.path.isdir(os.path.join(EV, x))):
         out[os.path.join(EV, d, "index.html")] = render_dir(d, caps[d])
+        for f in _captures(d):
+            out[os.path.join(EV, d, f + ".html")] = render_twin(d, f, caps[d][f])
     out[os.path.join(EV, "index.html")] = render_top(caps)
     return out
 

@@ -1,0 +1,24 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>01-prefix-deploy-re-tars-unverified-artifact.txt (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>01-prefix-deploy-re-tars-unverified-artifact.txt</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/artifact-identity-2026-09-14/01-prefix-deploy-re-tars-unverified-artifact.txt</code>; its SHA-256 is <code>dd6ca8bf258dbda14d22b884fe9a12084889a615cfc241d74d4b6c64f8b7477f</code> (2,268 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> PRE-FIX from run 34863913498: the deploy job ran its own checkout and created artifact 10356385911; verify produced no artifact — the deployed bytes were never the verified bytes.</p><pre>PRE-FIX RECORD (2026-09-14T15:48:24Z) -- the deploy job deployed an artifact that verify never saw.
+Repo: https://github.com/mahmood726-cyber/meta-harness  main=73e9e55175986de6d12b8eafc5329754300d3491
+
+$ gh run view 34863913498 --json jobs   (run for main 73e9e551, 2026-09-14)
+verify: Set up job | Run actions/checkout@v4 | Run actions/setup-python@v5 | Install dependencies | The full standard (scripts/verify_all.py -- identical to the local pre-commit hook) | Post Run actions/setup-python@v5 | Post Run actions/checkout@v4 | Complete job
+deploy: Set up job | Run actions/checkout@v4 | Run actions/configure-pages@v5 | Run actions/upload-pages-artifact@v3 | Run actions/deploy-pages@v4 | Post Run actions/checkout@v4 | Complete job
+
+$ GET /repos/mahmood726-cyber/meta-harness/actions/runs/34863913498/artifacts
+id=10356385911 name=github-pages size=1829015 digest=sha256:f521e1a2695fbc0c0816e6706e77d1007f3aef3af6a0f4f38207f530d1bea552 created=2026-09-14T15:43:48Z workflow_run.head_sha=73e9e55175986de6d12b8eafc5329754300d3491
+
+$ deploy job log: the upload happens INSIDE deploy (after its own checkout):
+﻿2026-09-14T15:43:43.8414882Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-14T15:43:43.8425347Z ##[group]Run actions/checkout@v4
+2026-09-14T15:43:43.8426767Z with:
+2026-09-14T15:43:43.8427654Z   repository: mahmood726-cyber/meta-harness
+2026-09-14T15:43:43.8436602Z   token: ***
+2026-09-14T15:43:43.8437599Z   ssh-strict: true
+2026-09-14T15:43:43.8438481Z   ssh-user: git
+2026-09-14T15:43:43.8439454Z   persist-credentials: true
+2026-09-14T15:43:43.8440612Z   clean: true
+2026-09-14T15:43:43.8441542Z   sparse-checkout-cone-mode: true
+
+READING: verify checked a checkout of 73e9e551 and produced nothing. deploy checked out 73e9e551 AGAIN, tarred docs/ into artifact 10356385911 and deployed it. The two trees agreeing is an assumption (same git SHA), not a check: nothing verified THAT artifact, no per-file digest was recorded, and nothing fetched the served bytes back.
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

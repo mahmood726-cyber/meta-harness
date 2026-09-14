@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>03-prefix-heldout-unenforced.txt (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>03-prefix-heldout-unenforced.txt</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/search-acquisition-2026-09-14/03-prefix-heldout-unenforced.txt</code>; its SHA-256 is <code>19dc667cc432851e99cf4874db9cd34853b7d31d99d1bdce769bf5ab9d717277</code> (1,097 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> PRE-FIX: a held-out slug planted in a test file passed the whole standard; no hook or limb read commit messages.</p><pre>PRE-FIX RECORD (2026-09-14T15:01:07Z): a held-out slug planted in a test file; today&#x27;s standard (acq/base ef1d1bf3, identical to main in every gate) must not notice.
+
+$ hard-coded target list naming the topics the 6/6 was measured on (scripts/search_rebuild.py):
+107:TARGETS = {  # the 6 SOURCE_VERIFIED_ELIGIBLE trials -&gt; (topic, target PMID)
+108-    &quot;PHILO&quot;: (&quot;ticagrelor-vs-clopidogrel-acs&quot;, &quot;26376600&quot;),
+109-    &quot;J-EMPHASIS-HF&quot;: (&quot;spironolactone-hfref-mortality&quot;, &quot;28824029&quot;),
+110-    &quot;CLEAR SYNERGY (OASIS-9)&quot;: (&quot;colchicine-secondary-cv-prevention&quot;, &quot;39555823&quot;),
+111-    &quot;TECOS&quot;: (&quot;dpp4-mace-t2d&quot;, &quot;26052984&quot;),
+112-    &quot;omarigliptin CV trial&quot;: (&quot;dpp4-mace-t2d&quot;, &quot;28893244&quot;),
+113-    &quot;SOUL&quot;: (&quot;glp1-ra-mace-t2d&quot;, &quot;40162642&quot;),
+114-}
+115-
+
+$ planted tests/test_plant_heldout.py naming a held-out slug; pytest on it:
+1 passed in 0.59s
+$ any hook/limb that scans for held-out slugs? grep -l heldout harness/*.py scripts/verify_all.py .githooks/*:
+(none)
+$ commit-msg hook present? ls .githooks:
+pre-commit*
+-&gt; the plant passes; a commit whose message names a held-out topic is checked by nothing.
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>
