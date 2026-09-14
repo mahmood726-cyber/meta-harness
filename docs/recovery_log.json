@@ -1,7 +1,7 @@
 {
  "_doc": "Recovery pipeline instrument. Every recovery ATTEMPT is recorded with its outcome, earned one trial at a time by fetch -> source-verify -> extract -> round-trip -> rebuild. This REPLACES the forward-scan vocabulary metric (which over-counted: a forward scan cannot tell a genuine synonym gap from by-design composite-specificity). BLOCKED_BY_MATCHER entries, each carrying the exact source string vs the exact registered keyword, ARE the vocabulary measurement -- zero false positives, evidence not guesswork. Outcomes: RECOVERED | REFUSED_ON_SOURCE | BLOCKED_BY_MATCHER | BLOCKED_BY_ACCESS | NOT_FOUND | SCOPE_PENDING.",
  "scoreboard": {
-  "attempted": 30,
+  "attempted": 31,
   "recovered": 5,
   "tightened": 2,
   "cost_significance": 1,
@@ -253,6 +253,13 @@
    "topic": "corticosteroids-covid19-mortality",
    "status": "UNVERIFIED",
    "note": "name-only in the audit record; no confirmed PMID. Requires author/name search with uncertain yield (several likely small/non-English/registry-only). Recorded as a structural reach limit pending an identifier; not asserted eligible."
+  },
+  {
+   "trial": "iv-iron recurrent strand (AFFIRM-AHF + IRONMAN)",
+   "pmid": "33197395+36347265",
+   "topic": "iv-iron-hfref-hosp",
+   "status": "SOURCE_VERIFIED_STRAND_DEFERRED",
+   "note": "recurrent-event rate-ratio strand source-verified, pools to ~0.78 (0.67-0.92) reproducing the published 0.77; NOT integrated -- the 3-strand architecture on the suppressed topic is the deferred delicate build, per instruction to build strands not force a pool."
   }
  ],
  "audit_overclaim_caught_at_source": {
@@ -403,5 +410,18 @@
    }
   ],
   "consequence": "the headline unaided-recall metric is computed ONLY against SOURCE_VERIFIED_ELIGIBLE entries (currently 6; baseline recall 0/6, all confirmed misses); measuring against an unverified list would reproduce the very failure we document."
+ },
+ "iv_iron_three_strand_plan": {
+  "_doc": "iv-iron is estimand-SUPPRESSED (mixing first-event and rate). The audit-specified fix is THREE prespecified strands, not one pool. Recurrent-event strand SOURCE-VERIFIED here; pipeline strand-architecture integration is the deferred delicate build (do it fresh, careful before/after).",
+  "recurrent_event_strand": {
+   "trials": [
+    "AFFIRM-AHF (33197395): total HF hosp RR 0.74 (0.58-0.94)",
+    "IRONMAN (36347265): recurrent HF hosp+CV death RR 0.82 (0.66-1.02)"
+   ],
+   "pooled": "~0.78 (0.67-0.92), reproduces published two-trial 0.77 (0.65-0.91)",
+   "status": "SOURCE_VERIFIED, reproduces target; NOT yet integrated (strand architecture deferred)"
+  },
+  "first_event_strand": "AFFIRM-AHF first HF-hosp-or-CV-death HR 0.80 (0.66-0.98); IRONMAN + others -- to be assembled",
+  "participant_level_strand": "Toblli/IRON-HF functional/biomarker trials feed here, not the hospitalization pool"
  }
 }
