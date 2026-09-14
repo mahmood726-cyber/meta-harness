@@ -458,6 +458,21 @@ def run(config: dict) -> dict:
     ledger = _acq.new_ledger(config["slug"])
     pmids: list[str] = []
 
+    # THE CONCEPT QUERY RUNS FOR EVERY TOPIC, FIRST. Fourteen live topics have only `<uid>[uid]` enumerations
+    # as pubmed_queries -- they have had no search at all. The query built from the registered P/I/C/design is
+    # the discovery-capable source; the legacy queries below are recorded for what they are. Skipped (NOT_RUN,
+    # stated) only when the config carries neither intervention nor population terms, because a bare design
+    # filter is not a question. Opt out per topic with concept_query: false (recorded as NOT_RUN, never silent).
+    _cq = _acq.concept_query(config) if config.get("concept_query", True) else ""
+    _has_terms = bool(config.get("intervention_terms")) or bool((config.get("include") or {}).get("population_any"))
+    if _cq and _has_terms:
+        _, ids, _ = _run_source(ledger, "PUBMED_CONCEPT_QUERY", _cq, run_utc, True,
+                                lambda q=_cq: _acq.esearch_all(q, hard_cap=config.get("max_hits")))
+        _append_unique(pmids, ids)
+    else:
+        _acq.add_source(ledger, "PUBMED_CONCEPT_QUERY", _cq, run_utc, "NOT_RUN", None,
+                        _source_funnel(None, 0), [], True)
+
     for q in config.get("pubmed_queries", []):
         kind = _acq.classify_query(q)
         discovery = kind != "PUBMED_PMID_ENUMERATION"
@@ -540,9 +555,13 @@ def run(config: dict) -> dict:
         )
         _append_unique(pmids, ids)
 
-    cap = config.get("max_records", 300 if (config.get("cite_chase") or rf_cfg) else 150)
+    # RECORD CAP: a size cap is a ranked truncation and cannot close a k gap (pivotal is not largest). The
+    # default is therefore NO cap; a topic that sets max_records keeps it, and the truncation is recorded on the
+    # ledger (record_cap + dropped_by_cap) and rendered with its remainder -- never silent.
+    cap = config.get("max_records")
     before_cap = list(pmids)
-    pmids = _apply_cap(pmids, _protected_pmids(config), cap)
+    if cap:
+        pmids = _apply_cap(pmids, _protected_pmids(config), cap)
     dropped = [pid for pid in before_cap if pid not in set(pmids)]
     if dropped:
         ledger["record_cap"] = {

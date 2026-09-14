@@ -1,0 +1,9 @@
+PLANT FIRES PRE-FIX (2026-09-14T15:35:46Z): tests/test_acquisition.py::test_concept_query_is_a_source_on_every_fetch_and_enumeration_only_topics_discover
+--- with harness/fetch.py as landed in 0e90e3c6 (lane A, concept query classified but never run) ---
+>       assert kinds[0] == "PUBMED_CONCEPT_QUERY", kinds
+E       assert 'PUBMED_PMID_ENUMERATION' == 'PUBMED_CONCEPT_QUERY'
+1 failed, 7 deselected in 0.91s
+--- with the fix (concept query runs first as a discovery-capable source; no default record cap) ---
+3 passed, 5 deselected in 0.62s
+
+--- live refresh BEFORE the fix, for the record (snapshot 2026-09-14-a72ee34d on the smallest held-out topic): sources were enumeration + legacy title query + Europe PMC(top-40, remainder 589) + comparator refs + registry-first + ctgov; NO concept source; record cap 422->300 (122 dropped). See the ledger in that snapshot dir (not committed).

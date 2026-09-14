@@ -220,3 +220,40 @@ def test_concept_query_matches_search_rebuild_import_parity():
         "intervention_terms": ["DPP-4 inhibitor"],
     }
     assert acq.concept_query(cfg) == search_rebuild.build_query(cfg)
+
+
+def test_concept_query_is_a_source_on_every_fetch_and_enumeration_only_topics_discover(monkeypatch):
+    """PLANT (piece 3): a topic whose only pubmed_queries are `<uid>[uid]` enumerations has had NO search.
+    Pre-fix, fetch.run recorded the enumeration and nothing else (a refresh discovered nothing). Now the concept
+    query built from the registered P/I/C runs FIRST as a discovery-capable source."""
+    _mute_optional_network(monkeypatch)
+    monkeypatch.setattr(fetch, "_europepmc_result", _empty_epmc)
+    seen = {}
+
+    def fake_esearch_all(q, hard_cap=None, **kw):
+        seen["q"] = q
+        return {"ids": ["901", "902"], "count": 2, "state": "RAN_OK", "error": None,
+                "funnel": {"hits": 2, "fetched": 2, "retained": 2, "cap": {"kind": "none", "n": None, "remainder": None}}}
+    monkeypatch.setattr(fetch._acq, "esearch_all", fake_esearch_all)
+    out = fetch.run({"slug": "__plant_acq__", "pubmed_queries": ["1[uid] OR 2[uid]"],
+                     "intervention_terms": ["plantumab"], "include": {"population_any": ["plant syndrome"]},
+                     "seed_comparator_refs": False, "_now": "2026-09-14"})
+    ledger = out["retrieval_ledger"]
+    kinds = [s["kind"] for s in ledger["sources"]]
+    assert kinds[0] == "PUBMED_CONCEPT_QUERY", kinds
+    src = ledger["sources"][0]
+    assert src["state"] == "RAN_OK" and src["discovery_capable"] is True
+    assert "plantumab" in seen["q"] and "plant syndrome" in seen["q"] and "randomized" in seen["q"]
+    assert {"901", "902"} <= set(ledger["records"]) and ledger["records"]["901"]["found_by"] == ["pubmed_concept_query#1"]
+    assert any(s["kind"] == "PUBMED_PMID_ENUMERATION" and s["discovery_capable"] is False for s in ledger["sources"])
+    # no record cap by default: nothing dropped, nothing recorded
+    assert "record_cap" not in ledger
+
+
+def test_concept_query_not_run_is_stated_when_no_terms(monkeypatch):
+    _mute_optional_network(monkeypatch)
+    monkeypatch.setattr(fetch, "_europepmc_result", _empty_epmc)
+    out = fetch.run({"slug": "__plant_acq__", "pubmed_queries": ["1[uid]"], "seed_comparator_refs": False,
+                     "_now": "2026-09-14"})
+    src = out["retrieval_ledger"]["sources"][0]
+    assert src["kind"] == "PUBMED_CONCEPT_QUERY" and src["state"] == "NOT_RUN" and src["error"] is None
