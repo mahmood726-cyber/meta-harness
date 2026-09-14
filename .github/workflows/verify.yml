@@ -50,6 +50,8 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --upgrade pip numpy scipy pytest openpyxl  # openpyxl: exercise the optional xlsx-supplement test (importorskip guards its absence)
       - name: The full standard (scripts/verify_all.py -- identical to the local pre-commit hook)
+        env:
+          HELDOUT_KEY: ${{ secrets.HELDOUT_KEY }}   # the held-out leak detector fails CLOSED without it (never a pass)
         run: python scripts/verify_all.py
       - name: "Per-file SHA-256 manifest of the tree the standard just passed (binds each page's html_sha256)"
         id: manifest
