@@ -1,8 +1,21 @@
 # Reproducible meta-analysis harness
 
 **What this is.** A harness that builds a meta-analysis from a *committed protocol*
-and publishes it as a tabbed, auditable page. The protocol commit SHA **is** the
-registration: it lands before any search runs.
+and publishes it as a tabbed, auditable page. Every one of the 32 served pages is
+**re-derivable from committed inputs**: it replays from the committed cache on a fresh
+clone (the `verify` limb runs that replay on all 32 before anything deploys).
+
+**What is NOT established, stated up front.** Registration-time reproduction is *not*
+established for the legacy corpus. No topic has a protocol-only registration commit
+(each protocol was first committed inside a build), and every page carries a
+retraction of the earlier claim that re-running from the protocol SHA regenerates it
+byte-for-byte: the build consumes post-registration state that the protocol commit
+does not pin. Nor was `k` met by our own search on most topics: 11 of 32 ran
+known-item retrieval and 17 title-seeded retrieval (trial sets pre-identified), 4 a
+hand-written keyword search, 0 a registered concept search — every page states its
+class and retracts any systematic-search claim. The 32 legacy topics are therefore
+the adversarial regression corpus, not a validation set; prospective validation is
+specified, not landed (`docs/PROSPECTIVE_VALIDATION_SPEC.md`).
 
 **What this is not.** It is **not** a claim of stronger evidence than the published
 comparators. The offer is **greater auditability**: every number traces to a
@@ -11,28 +24,34 @@ hand-edit breaks the gate.
 
 ## The loop
 ```
-protocol committed FIRST (the SHA is the registration)
+protocol committed (intended FIRST; for the legacy corpus it was committed inside a build)
   -> search  -> screen (a rule id on every record)
   -> extract (five fields, source hierarchy)
   -> synthesise UNDER THE DECLARED METHOD
   -> tabbed page -> published on this surface
-  -> re-run from that SHA on a FRESH CLONE and diff (reproduction census)
+  -> replay from the COMMITTED CACHE on a fresh clone and diff (reproduction census, 32 of 32)
   -> blinded AI judges OUR URL vs THE PUBLISHED OPEN-ACCESS META
 ```
+The replay step proves re-derivability from committed inputs, not reproduction from
+registration — see "What is NOT established" above.
 Every deficiency a judge names is fixed in the **harness**, never patched on the
 page.
 
 ## The two-limb publication gate (`harness/gate.py`, enforced by `.githooks/pre-commit`)
 A page publishes only if **both** hold:
 
-1. **Reproducibility & integrity** — reproduces from a fresh clone with the
-   reproduction census at **0 failures**; the *served* analysis method equals the
-   *declared* method; nothing is hand-made (any hand-edit changes the served bytes
-   and breaks the census pin).
+1. **Reproducibility & integrity** — replays from the committed cache on a fresh
+   clone with the reproduction census at **0 failures**; the *served* analysis method
+   equals the *declared* method; nothing is hand-made (any hand-edit changes the served
+   bytes and breaks the census pin).
 2. **Named published open-access comparator** — a comparator with PMID/DOI, marked
    open access, with the **trial-set overlap stated on the page**. An identical
-   estimate on an identical trial set is arithmetic, not corroboration — so `k`
-   must be met by *our own* search, and the overlap is always shown.
+   estimate on an identical trial set is arithmetic, not corroboration — so the page
+   states how `k` was met (known-item / title-seeded / hand-written keyword / concept
+   search) and any parity figure is reported split by that class; the known-item and
+   title-seeded groups are not evidence of search capability. The exact trial-set
+   overlap is not yet machine-measured on any topic (comparator tables are not
+   machine-exposed); the page states what is verifiable by date.
 
 `tests/test_gate.py` proves the gate **refuses** each failure mode. Run it:
 ```
@@ -74,7 +93,7 @@ eligibility universe, and the tamper-evident-not-blinded claim) are recorded as 
 
 ## Layout
 ```
-protocols/        one .md per PICO topic; committing it is the registration
+protocols/        one .md per PICO topic; its commit is the intended registration (not protocol-only for the legacy 32)
 cache/            committed fetch-once search caches (offline-replayable)
 harness/          canonical, page, census, gate, index (+ pipeline, synth to come)
 docs/             GitHub Pages root: generated index + reviews/<slug>/

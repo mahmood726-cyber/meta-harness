@@ -278,6 +278,7 @@ def freshness(entry: dict[str, Any], root: str | os.PathLike[str]) -> tuple[str,
 
     repo = _root_path(root)
     moved: list[str] = []
+    deps = []
     for raw, recorded in sorted(_seal_dependencies(entry).items()):
         rel = _posix(str(raw))
         if _is_generated_view(rel):
@@ -285,8 +286,11 @@ def freshness(entry: dict[str, Any], root: str | os.PathLike[str]) -> tuple[str,
             # pages are rendered from it; sealing them makes every caption rewrite invalidate the
             # seal that the caption reports -- a seal must bind evidence, never its own rendering.
             continue
-        current = _git_blob_sha(repo, rel) if _path_is_repo_relative(rel) else None
-        if current != recorded:
+        deps.append((rel, recorded))
+    # one batched git call per entry, not one subprocess per dependency
+    current = gitblob.blob_shas(repo, [rel for rel, _ in deps if _path_is_repo_relative(rel)])
+    for rel, recorded in deps:
+        if current.get(rel) != recorded:
             moved.append(rel)
     return ("STALE", moved) if moved else ("CURRENT", [])
 
