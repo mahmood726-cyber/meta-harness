@@ -325,12 +325,21 @@ def screen_record(rec, inc, neg_pmids):
     if bad:
         return ("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
                 _span(raw_pop, bad))
-    popok = _has(poptext, inc.get("population_any"))
+    # PREVENTION_TRIAL_TITLE_OMITS_OUTCOME: a prevention trial names the ENROLLED POPULATION it recruits
+    # ("Colchicine in Cardiac Surgery", "Post-CABG Arrhythmia"), not the outcome it prevents. Requiring
+    # the population term in the TITLE alone structurally fails for such trials, so for a topic flagged
+    # `prevention` a positive population signal in the STRUCTURED conditions or ABSTRACT overrides a
+    # negative title signal. The intervention-in-title anchor below still applies, so an incidental
+    # abstract mention in a trial that is not actually OF the intervention cannot slip in.
+    pop_haystack = _text(rec) if inc.get("prevention") else poptext
+    pop_haystack_raw = _text_raw(rec) if inc.get("prevention") else raw_pop
+    popok = _has(pop_haystack, inc.get("population_any"))
     if inc.get("population_any") and not popok:
+        _where = "title/conditions/abstract" if inc.get("prevention") else "title/conditions"
         return ("exclude", "X2",
-                f"population not on-topic: title/conditions do not mention any of {inc['population_any']} "
-                f"(an incidental abstract mention does not qualify).",
-                f"examined title/conditions: “{_quote(raw_pop)}”")
+                f"population not on-topic: {_where} do not mention any of {inc['population_any']}"
+                + ("" if inc.get("prevention") else " (an incidental abstract mention does not qualify)") + ".",
+                f"examined {_where}: “{_quote(pop_haystack_raw)}”")
     # Title-anchoring for the intervention exists to reject INCIDENTAL abstract mentions in PMID
     # records; for a CT.gov (nct) record the STRUCTURED interventions field is reliable and must be
     # used (else an edoxaban AF trial whose title is "A Study to Assess..." is wrongly X3-excluded
@@ -365,7 +374,7 @@ def screen_record(rec, inc, neg_pmids):
         return ("exclude", "X-DESIGN", f"not double-blind/placebo-controlled (record: {label}).",
                 f"no 'placebo'/'double-blind'/'masked' in text; registry masking = {masking}")
     # include: quote the actual matched population and comparator words
-    pop_span = _span(raw_pop, popok) if popok else ""
+    pop_span = _span(pop_haystack_raw, popok) if popok else ""
     comp_span = _span(raw_all, comp) if comp else ""
     ev = "; ".join(s for s in (f"population “{pop_span}”" if pop_span else "",
                                f"comparator “{comp_span}”" if comp_span else "") if s)
