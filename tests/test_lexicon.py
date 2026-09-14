@@ -57,3 +57,30 @@ def test_PLANT_screening_matches_british_exclusion_term():
     assert S._has("a paediatric cohort was enrolled", ["pediatric"]) == "pediatric"
     # and the reverse spelling on the record side
     assert S._has("a pediatric cohort", ["paediatric"]) == "paediatric"
+
+
+# --- nesting guard (match time): a bare head must not bind a qualified subtype ---
+
+def test_nesting_guard_rejects_qualified_subtype():
+    assert L.matches_only_as_subtype("mortality", L.fold("cardiovascular mortality was 4%"))
+    assert L.matches_only_as_subtype("stroke", L.fold("ischaemic stroke occurred in 12"))
+    assert L.matches_only_as_subtype("death", L.fold("death due to bleeding in 3 patients"))
+
+
+def test_nesting_guard_allows_broad_outcome():
+    assert not L.matches_only_as_subtype("mortality", L.fold("all-cause mortality was 10%"))
+    assert not L.matches_only_as_subtype("mortality", L.fold("total mortality 10% vs 12%"))
+    # both subtype AND broad present -> broad is really there, allow
+    assert not L.matches_only_as_subtype("mortality", L.fold("all-cause mortality 10%; cardiovascular mortality 4%"))
+    # a multi-word keyword carries its own scope -> never guarded
+    assert not L.matches_only_as_subtype("cardiovascular mortality", L.fold("cardiovascular mortality 4%"))
+
+
+def test_PLANT_kw_in_sentence_rejects_subtype_only():
+    # PLANT: pre-guard a bare 'mortality' keyword substring-matched 'cardiovascular mortality' and bound
+    # a CV-death number to an all-cause outcome. The match-time guard rejects it.
+    cv_only = "cardiovascular mortality was 4% versus 5%"
+    assert "mortality" in cv_only          # pre-guard: naive substring matches
+    assert not E._kw_in_sentence("mortality", cv_only)   # guard: rejected
+    # but a genuine all-cause sentence still matches the bare keyword
+    assert E._kw_in_sentence("mortality", "all-cause mortality was 10% versus 12%")

@@ -79,3 +79,46 @@ def mort_variants(kl: str) -> set:
     if _MORT_D.search(kl):
         out.add(_MORT_D.sub("mortality", kl))
     return out
+
+
+# --- nesting guard at MATCH TIME --------------------------------------------------------------
+# A broad head term denotes a DIFFERENT (narrower) outcome when it appears only as a qualified
+# subtype: 'mortality' inside 'cardiovascular mortality', 'stroke' inside 'ischaemic stroke',
+# 'death' inside 'death due to bleeding'. Binding a broad keyword to such a sentence is the
+# right-number-wrong-endpoint defect. The subtype qualifier can sit BEFORE the head ('cardiovascular
+# mortality') or introduce a cause AFTER it ('death due to/from bleeding'). Guard is checked at match
+# time (as the HFmrEF case is), never encoded per topic.
+_SUBTYPE_HEADS = {
+    "mortality": {"pre": ["cardiovascular", "cardiac", "cancer", "vascular", "coronary", "non-cardiovascular",
+                          "noncardiovascular", "sudden", "cerebrovascular", "respiratory", "infection-related",
+                          "pump-failure", "arrhythmic"], "cause": True},
+    "death": {"pre": ["cardiovascular", "cardiac", "cancer", "vascular", "coronary", "sudden",
+                      "cerebrovascular", "arrhythmic"], "cause": True},
+    "stroke": {"pre": ["ischaemic", "ischemic", "haemorrhagic", "hemorrhagic", "fatal", "non-fatal",
+                       "nonfatal", "disabling", "embolic"], "cause": False},
+}
+_CAUSE_RE = re.compile(r"^\s*(?:due to|from|caused by|attributable to|related to|secondary to)\b")
+
+
+def matches_only_as_subtype(keyword_folded: str, text_folded: str) -> bool:
+    """True if `keyword_folded` is a BARE head term (mortality/death/stroke, no qualifier of its own)
+    that appears in `text_folded` ONLY as a qualified subtype (every occurrence preceded by a subtype
+    qualifier, or followed by a 'due to <cause>'), so a match would bind a narrower, different outcome.
+    Returns False for a multi-word keyword (it already carries its own scope) and whenever the head
+    appears unqualified at least once (then the broad outcome is genuinely present)."""
+    head = keyword_folded.strip()
+    spec = _SUBTYPE_HEADS.get(head)
+    if not spec:
+        return False  # not a guarded bare head (multi-word keywords carry their own scope)
+    pres = spec["pre"]
+    idxs = [m.start() for m in re.finditer(r"(?<![a-z])" + re.escape(head) + r"(?![a-z])", text_folded)]
+    if not idxs:
+        return False
+    for i in idxs:
+        pre = text_folded[max(0, i - 22):i].rstrip()
+        pre_qualified = any(pre.endswith(q) for q in pres)
+        after = text_folded[i + len(head):]
+        cause_qualified = spec["cause"] and bool(_CAUSE_RE.match(after))
+        if not (pre_qualified or cause_qualified):
+            return False  # an UNqualified occurrence -> the broad outcome is really present
+    return True  # every occurrence was a qualified subtype

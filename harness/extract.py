@@ -85,6 +85,12 @@ def _kw_in_sentence(k, sl):
     # class). Abbreviations are NOT expanded here (that lands separately, per the ELIXA risk).
     kl = lexicon.fold(k)
     slf = lexicon.fold(sl)
+    # NESTING GUARD (match time): a bare head term (mortality/death/stroke) must not bind a sentence
+    # where it appears ONLY as a qualified subtype ('cardiovascular mortality', 'ischaemic stroke',
+    # 'death due to bleeding') -- that is the right-number-wrong-endpoint defect. A multi-word keyword
+    # carries its own scope and is unaffected.
+    if lexicon.matches_only_as_subtype(kl, slf):
+        return False
     if kl in slf:
         return True
     # HYPHEN/SPACE-INSENSITIVE (vocabulary blind-spot, the Fish-Oil/PISCES class): a multi-word
