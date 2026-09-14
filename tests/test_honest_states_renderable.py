@@ -31,6 +31,22 @@ def test_never_considered_renderable():
     assert "Never considered" in html and "J-EMPHASIS-HF" in html
 
 
+def test_stale_marking_renderable():
+    # A STALE verdict must poison the headline visibly. "silence about a limitation counts as a
+    # regression" (external auditor): a template change that drops the STALE banner fails here.
+    core = _base(invalidation={"stale": True,
+                               "reasons": [{"code": "known_eligible_missing", "detail": "trial X eligible, not pooled"}]})
+    html = P.render_page(core)
+    assert "STALE" in html and "not current" in html
+
+
+def test_engine_provenance_claim_is_visible_and_qualified():
+    # The engine-validation claim must be rendered AND honestly qualified (canonical path, not every
+    # pathway). A reader/auditor must be able to see the gate exists from the rendered surface.
+    from harness.synth import METHOD_RATIO
+    assert "canonical code path" in METHOD_RATIO and "gate-checked to originate here" in METHOD_RATIO
+
+
 def test_suppressed_counterfactual_renderable():
     core = _base()
     core["outcomes"] = [{"name": "O", "primary": True, "kind": "efficacy",
