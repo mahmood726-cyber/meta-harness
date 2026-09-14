@@ -210,30 +210,55 @@ def _iv_iron_strands_section(docs_dir: str) -> str:
 
 
 def _search_recall_section(docs_dir: str) -> str:
-    """Render docs/search_recall.json: unaided concept-query recall against the verified test set.
-    The honest number, query-driven not test-set-driven."""
-    p = os.path.join(docs_dir, "search_recall.json")
-    if not os.path.exists(p):
-        return ""
-    try:
-        d = json.load(open(p, encoding="utf-8"))
-    except (OSError, ValueError):
-        return ""
-    rows = "".join(
-        f"<li><strong>{_E(r.get('trial'))}</strong> ({_E(r.get('topic'))}): "
-        f"{'recalled' if r.get('recalled') else 'MISSED'} — in {_E(r.get('hits_in_boolean_set'))} "
-        f"boolean hits, <span class='muted'>{_E(r.get('via'))}</span></li>"
-        for r in (d.get("results") or []))
-    return (f"<div class='banner'><h2>Search rebuild: unaided concept-query recall</h2>"
-            f"<p><strong>{_E(d.get('concept_query_unaided_recall'))}</strong> against the "
-            f"{_E(d.get('denominator'))} — up from a <strong>{_E(d.get('baseline_unaided_recall'))}</strong> "
-            f"baseline (the current per-topic queries are enumerated PMID lists that discover nothing "
-            f"new). A query built from the REGISTERED P/I/C/design with drug-class expansion "
-            f"(GLP-1 class&rarr;semaglutide, MRA class&rarr;eplerenone), paginated over the full boolean "
-            f"result set (never a top-N relevance cut).</p>"
-            f"<p class='muted'>{_E(d.get('improvement_provenance'))}</p>"
-            f"<ul>{rows}</ul>"
-            f"<p class='muted'>{_E(d.get('scope'))}</p></div>")
+    """Render search recall HONESTLY. The headline is docs/search_recall_heldout.json: recall measured only on the
+    held-out topics (registry/heldout.json -- zero contact with the engine's development, enforced by
+    harness/heldout.py). docs/search_recall.json (6 of 6) is rendered BELOW it for what it is: a development-set
+    number measured on trials hard-coded into the engine and already pooled before it was written, which the repo's
+    own next measurement showed does not generalise. Publishing the held-out number, whatever it is, is the point."""
+    ph = os.path.join(docs_dir, "search_recall_heldout.json")
+    pd = os.path.join(docs_dir, "search_recall.json")
+    out = ""
+    if os.path.exists(ph):
+        try:
+            h = json.load(open(ph, encoding="utf-8"))
+        except (OSError, ValueError):
+            h = None
+        if h:
+            sm = h.get("summary") or {}
+            rows = "".join(
+                f"<tr><td>{_E(r.get('slug'))}</td><td><code>{_E(r.get('state'))}</code></td>"
+                f"<td>{_E(r.get('hits_in_boolean_set') if r.get('hits_in_boolean_set') is not None else 'unknown')}</td>"
+                f"<td>{_E(r.get('recalled'))} of {_E(r.get('denominator'))}"
+                + (f" ({_E(len(r.get('missed_pmids') or []))} missed)" if r.get('missed_pmids') else "")
+                + (f" &mdash; <span class='muted'>{_E(r.get('error'))}</span>" if r.get('error') else "") + "</td></tr>"
+                for r in (h.get("per_topic") or []))
+            hist = "".join(f"<li>{_E(e.get('measured_utc'))}: {_E(e.get('recall_text'))} (engine <code>{_E(str(e.get('engine_sha'))[:12])}</code>)</li>"
+                           for e in (h.get("history") or []))
+            out += (f"<div class='banner'><h2>Search recall, held-out: <strong>{_E(sm.get('recall_text'))}</strong> "
+                    f"known-eligible trials recalled unaided</h2>"
+                    f"<p>Measured {_E(sm.get('measured_utc'))} on the {_E(sm.get('topics'))} held-out topics in "
+                    f"<code>registry/heldout.json</code> &mdash; topics with no contact with the engine's development "
+                    f"(a mechanism, not an intention: a held-out slug in a test, fixture, target list or commit message "
+                    f"refuses the build). Denominator per topic = pooled primary trials + eligible-declared-absent trials "
+                    f"with a PMID. Engine pinned at <code>{_E(str(h.get('engine_sha'))[:12])}</code>; any change to the "
+                    f"engine must publish a new row here before it can land.</p>"
+                    f"<table><tr><th>topic</th><th>source state</th><th>boolean hits</th><th>recalled</th></tr>{rows}</table>"
+                    + (f"<p class='muted'>Not scored (search state not OK/ZERO): {_E(', '.join(sm.get('topics_not_scored') or []))}.</p>"
+                       if sm.get("topics_not_scored") else "")
+                    + f"<p class='muted'>History (every published measurement, oldest first):</p><ul>{hist}</ul></div>")
+    if os.path.exists(pd):
+        try:
+            d = json.load(open(pd, encoding="utf-8"))
+        except (OSError, ValueError):
+            d = None
+        if d:
+            out += (f"<div class='absent'><strong>Development-set recall (not a held-out measurement): "
+                    f"{_E(d.get('concept_query_unaided_recall'))}.</strong> This earlier figure was measured on the six "
+                    f"trials hard-coded into the engine&rsquo;s target list, all already source-verified and pooled before "
+                    f"the engine was written; it is a fit statistic, not recall, and the engine&rsquo;s own next measurement "
+                    f"on held records found 0/64, 2/80, 6/80 and 6/71. It is retained here so the correction is visible, "
+                    f"and it is not the number this site reports for search recall.</div>")
+    return out
 
 
 def _verification_section(docs_dir: str) -> str:
