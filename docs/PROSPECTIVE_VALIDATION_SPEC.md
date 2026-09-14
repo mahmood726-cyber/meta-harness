@@ -24,15 +24,18 @@ that can be printed and checked:
 - retrieval-adapter versions and the external endpoints they call (mutable external dependencies, declared);
 - the exact production build and deploy path (`.github/workflows/verify.yml`, the `deploy` job's `needs`/`if`).
 Every prospective run records the identity. **A batch whose runs carry two different identities is a failed batch.**
-Status: BUILD IN PROGRESS — `harness/architecture_identity.py` (Codex lane H); the identity is to be carried in every
-retrieval ledger snapshot and every production record. Until it lands, no run may claim "frozen".
+Status: LANDED — `harness/architecture_identity.py` computes it (`python -m harness.architecture_identity`, `--check`);
+it is carried in every production record from c6e1cdef. It names 31 mutable dependencies today (unpinned requirements,
+tag-based action refs, external APIs, unpinned model snapshots); "frozen" cannot be claimed until those are pinned or
+declared in the batch declaration. Not yet carried in retrieval-ledger snapshots.
 
 ### A2. Raw external inputs must be preserved, not only parsed records
 Search APIs and websites change under a frozen architecture. Each run MUST retain: the raw retrieval responses as
 received (bytes, HTTP status), the verbatim query strings, timestamps to the second, the adapter identity (module,
 function, blob SHA) and the source snapshots — enough to tell "the system behaved differently" from "the world changed".
 This extends the retrieval ledger (`harness/acquisition.py`): the ledger points at `raw/` under the snapshot directory.
-Status: BUILD IN PROGRESS — Codex lane I. Today's ledger stores verbatim queries, states and funnels but NOT raw bodies.
+Status: LANDED (f928a536) — every live fetch records each HTTP call raw (URL, params, status, body bytes, timestamp,
+adapter identity + blob sha) under `raw/` beside the snapshot, indexed and hashed; legacy snapshots carry `raw_calls: 0`.
 
 ### A3. The defect ledger sits OUTSIDE the frozen architecture
 During a batch, defects are appended; no commit, config, prompt, mapping table, query template or data-cleaning rule may
@@ -63,9 +66,11 @@ If any stage calls an external model during a prospective batch, the architectur
 available model snapshot or version, the provider, the parameters and the tool configuration; a hosted model name does
 not mean the underlying model is immutable. Complete requests and outputs are archived. If the provider cannot guarantee
 an immutable snapshot, that component is declared a **mutable external dependency**, exactly as search APIs are.
-Status: INVENTORY IN PROGRESS — Codex lane H is enumerating which stages call which providers at build time, which read
-committed artefacts produced by an earlier model call, and which can be pinned. The answer is recorded in
-`docs/model_stage_inventory.json` when it lands; until then no stage may be described as pinned.
+Status: INVENTORY LANDED — `docs/model_stage_inventory.json`: 11 model-driven stages; NONE calls a model at build time
+(every one reads a committed artefact produced earlier); providers Anthropic (Fable 5.1), OpenAI (GPT-5 via Codex),
+Google (Gemini 3.1 Pro via AGY), plus a local sentence-transformers embedding; NONE is pinned to an immutable snapshot;
+prompts are in the tree for none of the hosted-model stages; requests/outputs are archived only as the committed
+output artefacts. Therefore every model-driven component is a MUTABLE EXTERNAL DEPENDENCY today, declared as such.
 
 ### A6. The eligibility universe is frozen and bound into the commitment
 Otherwise the random draw stays fixed while what it was drawn from quietly changes. The custodian's commitment binds the
