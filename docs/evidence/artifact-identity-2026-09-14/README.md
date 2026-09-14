@@ -1,6 +1,6 @@
 # Artifact identity — build once, verify that artifact, deploy exactly it, fetch it back (2026-09-14)
 
-**Fix state (orthogonal fields rule): LANDED / INTERNAL / INSTANCE / STALE** - generated from TRANCHE-artifact-identity; verified by Codex lane G (internal_agent); evidence: docs/evidence/independent-verification-2026-09-14/04-artifact-identity.txt; stale dependencies: scripts/production_record.py
+**Fix state (orthogonal fields rule): LANDED / INTERNAL / INSTANCE / STALE** - generated from TRANCHE-artifact-identity; verified by Codex lane G (internal_agent); evidence: docs/evidence/independent-verification-2026-09-14/04-artifact-identity.txt; stale dependencies: harness/architecture_identity.py, scripts/production_record.py
 
 | file | what it is |
 |---|---|

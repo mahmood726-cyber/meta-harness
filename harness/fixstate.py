@@ -27,6 +27,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from harness import gitblob
 from harness.target import TargetUnresolvable, describe_target, refusal as target_refusal
 
 
@@ -182,12 +183,10 @@ def _path_is_repo_relative(path: str) -> bool:
 
 
 def _git_blob_sha(root: Path, relpath: str) -> str | None:
-    rel = _posix(relpath)
-    path = root / rel
-    if not path.is_file():
-        return None
-    data = path.read_bytes()
-    return hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
+    # The identity git would store (clean filter applied), never a sha1 of the raw worktree bytes:
+    # 85 tracked files are CRLF on a Windows worktree and LF in the index, so raw-byte hashing made a
+    # seal read CURRENT locally and STALE on CI (harness/gitblob.py).
+    return gitblob.blob_sha(root, _posix(relpath))
 
 
 def _sha256_file(path: Path) -> str | None:
@@ -238,13 +237,15 @@ def _scope_blob_shas(root: Path, scope: list[str]) -> dict[str, str | None]:
             continue
         path = root / rel
         if path.is_file():
-            records[rel] = _git_blob_sha(root, rel)
+            records[rel] = None  # filled by the batched call below
         elif path.is_dir():
             for child in sorted(p for p in path.rglob("*") if p.is_file()):
-                child_rel = _posix(child.relative_to(root))
-                records[child_rel] = _git_blob_sha(root, child_rel)
+                records[_posix(child.relative_to(root))] = None
         else:
             records[rel] = None
+    wanted = [rel for rel in records if (root / rel).is_file()]
+    if wanted:
+        records.update(gitblob.blob_shas(root, wanted))
     return records
 
 
@@ -1053,11 +1054,61 @@ def _summary_line(store: dict[str, Any], root: Path) -> str:
     )
 
 
+def _raw_bytes_blob_sha(path: Path) -> str | None:
+    """The pre-2026-09-14 identity: sha1 over "blob <len>\\0<raw worktree bytes>" -- CRLF-dependent."""
+    if not path.is_file():
+        return None
+    data = path.read_bytes()
+    return hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
+
+
+def rehash_seals(root: str | os.PathLike[str]) -> tuple[int, list[str]]:
+    """Convert seal dependencies recorded with the raw-byte sha1 into git-normalised blob ids.
+
+    Only a dependency whose recorded value equals the raw-byte sha1 of the CURRENT file is converted
+    (the bytes are unchanged; only the hashing method moves). Anything else is left as recorded and
+    reported -- this is a conversion of identity method, never a re-seal of changed content.
+    """
+    repo = _root_path(root)
+    store = load(repo)
+    changed = 0
+    refused: list[str] = []
+    for entry in entries(store):
+        deps = _seal_dependencies(entry)
+        if not deps:
+            continue
+        rels = [_posix(str(raw)) for raw in deps]
+        normalised = gitblob.blob_shas(repo, [rel for rel in rels if _path_is_repo_relative(rel)])
+        for rel, recorded in list(deps.items()):
+            rel = _posix(str(rel))
+            if not _path_is_repo_relative(rel):
+                continue
+            new = normalised.get(rel)
+            if new is None or new == recorded:
+                continue
+            if _raw_bytes_blob_sha(repo / rel) == recorded:
+                deps[rel] = new
+                changed += 1
+            else:
+                refused.append(f"{_entry_label(entry, 0)}: {rel} recorded {recorded[:12]} is neither the raw-byte nor the normalised identity of the current file; left as recorded (STALE)")
+        entry["seal"]["dependencies"] = dict(sorted(deps.items()))
+    _write_json(repo / REGISTRY_PATH, store)
+    return changed, refused
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m harness.fixstate")
     parser.add_argument("--migrate-v2-to-v3", action="store_true", help="rewrite registry/fixes.json to schema v3")
+    parser.add_argument("--rehash-seals", action="store_true",
+                        help="convert seals recorded as raw-byte sha1 to git-normalised blob ids where the bytes are unchanged")
     args = parser.parse_args(argv)
     root = _root_path(os.getcwd())
+    if args.rehash_seals:
+        changed, refused = rehash_seals(root)
+        print(f"FIX-STATE: reseal converted={changed} refused={len(refused)}")
+        for item in refused:
+            print("  - " + item)
+        return 0 if not refused else 1
     if args.migrate_v2_to_v3:
         try:
             store = migrate_v2_to_v3(root)

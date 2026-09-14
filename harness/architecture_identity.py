@@ -20,6 +20,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from harness import gitblob
 from harness.canonical import canonical_json
 
 
@@ -114,13 +115,11 @@ def _git(root: Path, *args: str) -> str | None:
 
 
 def _git_blob_sha(root: Path, relpath: str) -> str | None:
-    path = root / relpath
-    if not path.is_file():
-        return None
-    # Computed in-process: identical to `git hash-object` for a blob (sha1 over "blob <len>\0<bytes>"), and one
-    # subprocess per file made the identity cost ~19 s (187 files) -- too slow to run on every commit and in CI.
-    data = path.read_bytes()
-    return hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
+    # The blob git would store (clean filter applied) via one batched `git hash-object --stdin-paths`
+    # per component (harness/gitblob.py). The earlier in-process sha1 of the raw bytes avoided ~19 s of
+    # per-file subprocesses but differed between a CRLF worktree and an LF checkout -- an architecture
+    # identity that depends on which machine computed it is not an identity.
+    return gitblob.blob_sha(root, relpath)
 
 
 def _iter_files(root: Path, rel_dir: str, pattern: str = "*") -> list[Path]:
@@ -144,22 +143,24 @@ def _blob_component(root: Path, rel_dirs: tuple[str, ...]) -> dict[str, Any]:
     for rel_dir in rel_dirs:
         glob = "*.py" if rel_dir in {"harness", "scripts"} else "*"
         files.extend(_iter_files(root, rel_dir, glob))
-    records = []
-    for path in sorted(files):
-        rel = _rel(root, path)
-        records.append({"path": rel, "git_blob_sha": _git_blob_sha(root, rel)})
+    records = _blob_records(root, files)
     payload = "".join(f"{r['path']}\0{r['git_blob_sha']}\n" for r in records)
     return {"sha256": _sha256_text(payload), "files": records}
+
+
+def _blob_records(root: Path, files: list[Path]) -> list[dict[str, Any]]:
+    """Blob identities as git stores them (clean filter applied), one batched git call for the set:
+    a CRLF worktree and an LF checkout must yield the same architecture identity (harness/gitblob.py)."""
+    rels = [_rel(root, path) for path in sorted(files)]
+    shas = gitblob.blob_shas(root, rels)
+    return [{"path": rel, "git_blob_sha": shas.get(rel)} for rel in rels]
 
 
 def _configuration_component(root: Path) -> dict[str, Any]:
     files: list[Path] = []
     for rel_dir, glob in (("topics", "*.json"), ("protocols", "*.md"), ("registry", "*.json")):
         files.extend(_iter_files(root, rel_dir, glob))
-    records = []
-    for path in sorted(files):
-        rel = _rel(root, path)
-        records.append({"path": rel, "git_blob_sha": _git_blob_sha(root, rel)})
+    records = _blob_records(root, files)
     payload = "".join(f"{r['path']}\0{r['git_blob_sha']}\n" for r in records)
     return {"sha256": _sha256_text(payload), "files": records}
 
