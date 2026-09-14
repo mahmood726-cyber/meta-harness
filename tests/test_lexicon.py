@@ -50,6 +50,25 @@ def test_PLANT_greek_omega_matches_spelled_keyword():
     assert E._kw_in_sentence("omega-3 fatty acids", sent)
 
 
+# --- abbreviations: available for query-building, HELD OUT of the extraction matcher (ELIXA risk) ---
+
+def test_abbrev_variants_curated_pairs():
+    # expansion phrase -> whole-token abbreviation
+    vs = dict(L.abbrev_variants(L.fold("myocardial infarction")))
+    assert vs.get("mi") is True  # whole-token
+    vs2 = dict(L.abbrev_variants(L.fold("mace")))  # abbreviation -> expansion (substring-safe)
+    assert "major adverse cardiovascular events" in vs2 and vs2["major adverse cardiovascular events"] is False
+
+
+def test_abbreviations_are_NOT_wired_into_extraction():
+    # HELD: abbreviation expansion must NOT rebind a pooled number in the extractor. Its own
+    # before/after moved colchicine-postop-af 0.67->0.77 (END-AF 27502857 mis-bound its 63-patient
+    # TOTAL as an arm on an 'af' match). So a bare 'af' keyword must NOT match an 'AF' sentence here.
+    # the full phrase keyword must NOT expand to its abbreviation in the extractor
+    assert not E._kw_in_sentence("atrial fibrillation", "the primary end point of AF occurred in 63 patients")
+    assert not E._kw_in_sentence("myocardial infarction", "the rate of MI was 5%")
+
+
 def test_fold_does_not_expand_abbreviations():
     # abbreviation expansion is a SEPARATE, later change (ELIXA risk). fold must never do it.
     assert "cardiovascular" not in L.fold("cv death")

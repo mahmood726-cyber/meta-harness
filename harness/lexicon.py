@@ -113,6 +113,43 @@ _SUBTYPE_HEADS = {
 _CAUSE_RE = re.compile(r"^\s*(?:due to|from|caused by|attributable to|related to|secondary to)\b")
 
 
+# --- abbreviation pairs (LAST, separate, ELIXA-risk) ------------------------------------------
+# Curated clinical abbreviation<->expansion pairs. Expansion is a phrase (substring-safe); the
+# abbreviation is a SHORT token that MUST match on whole-token boundaries only, so 'hf' never
+# matches inside 'HFpEF' and 'mi' never matches inside 'mimic'. Kept deliberately small and specific;
+# a broad abbreviation table is exactly the ELIXA over-broadening risk, so this stays curated and is
+# opt-in (callers pass abbrev=True), never part of the default fold.
+_ABBREV = {
+    "cardiovascular": "cv",
+    "myocardial infarction": "mi",
+    "heart failure": "hf",
+    "atrial fibrillation": "af",
+    "major adverse cardiovascular events": "mace",
+    "acute coronary syndrome": "acs",
+    "venous thromboembolism": "vte",
+    "chronic kidney disease": "ckd",
+    "heart failure hospitalization": "hfh",
+}
+_EXPANSION = {v: k for k, v in _ABBREV.items()}
+
+
+def abbrev_variants(keyword_folded: str):
+    """Yield (variant, whole_token) alternate forms of a folded keyword under the curated abbreviation
+    map. whole_token=True means the variant is a short abbreviation that must match on token boundaries
+    (never inside a longer word). Empty when the keyword neither contains a known expansion nor is a
+    known abbreviation. Never chains (one substitution only) to avoid runaway broadening."""
+    kw = keyword_folded.strip()
+    out = []
+    # keyword is exactly a known abbreviation -> offer its expansion (phrase, substring-safe)
+    if kw in _EXPANSION:
+        out.append((_EXPANSION[kw], False))
+    # keyword contains a known expansion phrase -> offer the abbreviated form (whole-token)
+    for phrase, ab in _ABBREV.items():
+        if phrase in kw:
+            out.append((kw.replace(phrase, ab), True))
+    return out
+
+
 def matches_only_as_subtype(keyword_folded: str, text_folded: str) -> bool:
     """True if `keyword_folded` is a BARE head term (mortality/death/stroke, no qualifier of its own)
     that appears in `text_folded` ONLY as a qualified subtype (every occurrence preceded by a subtype

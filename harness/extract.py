@@ -104,6 +104,12 @@ def _kw_in_sentence(k, sl):
             return True
     if " " in kl:
         return any(v in slf for v in lexicon.mort_variants(kl))
+    # ABBREVIATION expansion (curated) is HELD OUT of the extraction matcher: its own corpus-wide
+    # before/after moved colchicine-postop-af 0.67->0.77 because 'af' whole-token re-selected a
+    # different sentence and END-AF (27502857) mis-bound its 63-patient TOTAL as an arm count -- the
+    # ELIXA over-broadening class. lexicon.abbrev_variants stays available for query-building (where a
+    # broader recall net is wanted and no number is bound), but extraction must not silently rebind a
+    # pooled number on an abbreviation. Re-enable here only behind a per-abbreviation before/after.
     return False
 
 
