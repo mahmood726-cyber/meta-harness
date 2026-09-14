@@ -15,9 +15,13 @@ LEDGER_PATH = os.path.join("docs", "fix_ledger.json")
 FIX_STATES = ("REPORTED", "LANDED", "VERIFIED", "GENERALIZED")
 NON_FIX = "NOT-A-FIX"
 TRAILER_RE = re.compile(r"^([A-Za-z0-9-]+):[ \t]*(.*)$")
-ASSERTS_FIX_RE = re.compile(
-    r"(?i)(\bfix(?:ed|es)?\b|\bcloses\b|\bclose\s+the\b|\bp0\b|\bgate\b|\brefus\w*)"
-)
+# STRUCTURE, NOT PROSE (2026-09-14). The first version keyed NOT-A-FIX on words in the subject ("fix", "refus",
+# "gate"...) and refused an evidence-only commit whose subject said "CI refusing a leak" -- a gate acquiring reach
+# beyond the failure it was written for. A checker that prose can trigger or defeat is matching the wrong thing.
+# The rule is now about WHAT THE COMMIT CHANGES: NOT-A-FIX is permitted only when every changed path is outside the
+# system -- evidence captures and prose. Any change to code, hooks, workflows, configuration, caches or served
+# pages is a claim about the system's behaviour and must carry REPORTED / LANDED / VERIFIED / GENERALIZED.
+NON_SYSTEM_PATH_RE = re.compile(r"^(docs/evidence/|evidence/|LANE-[A-Z]-REPORT\.md$|[^/]+\.md$)")  # evidence/ = pre-move location
 README_STATE_RE = re.compile(
     r"^\*\*Fix state.*:\s*(REPORTED|LANDED|VERIFIED|GENERALIZED)\b",
     re.MULTILINE,
@@ -161,8 +165,15 @@ def _verified_violations(message: str, root=None, parent_tree=None) -> list[str]
     return violations
 
 
-def check_message(message: str, root=None, parent_tree=None) -> list[str]:
-    """Return fix-state trailer violations for one commit message."""
+def system_paths(changed_paths) -> list[str]:
+    """The changed paths that are part of the system (everything not an evidence capture or prose)."""
+    return sorted(p for p in (changed_paths or []) if not NON_SYSTEM_PATH_RE.match(p.replace("\\", "/")))
+
+
+def check_message(message: str, root=None, parent_tree=None, changed_paths=None) -> list[str]:
+    """Return fix-state trailer violations for one commit message. `changed_paths` is the commit's file list
+    (structure); when it is None the structural rule cannot be evaluated and is skipped (callers that have a
+    tree -- the hook and the scan -- always pass it)."""
     trailers = parse_trailers(message)
     state_values = [value.strip() for value in _values(trailers, "Fix-State")]
     allowed = set(FIX_STATES) | {NON_FIX}
@@ -178,8 +189,11 @@ def check_message(message: str, root=None, parent_tree=None) -> list[str]:
             + f"; got {state!r}"
         )
 
-    if state == NON_FIX and ASSERTS_FIX_RE.search(_subject(message)):
-        violations.append("this message asserts a fix; state it")
+    if state == NON_FIX and changed_paths is not None:
+        sysp = system_paths(changed_paths)
+        if sysp:
+            violations.append("NOT-A-FIX but the commit changes the system (" + ", ".join(sysp[:5])
+                              + (", ..." if len(sysp) > 5 else "") + "); state REPORTED/LANDED/VERIFIED/GENERALIZED")
 
     if state in {"VERIFIED", "GENERALIZED"}:
         violations.extend(_verified_violations(message, root=root, parent_tree=parent_tree))
@@ -219,7 +233,17 @@ def scan_commits(root, registry: dict) -> list[dict]:
     hits = []
     for sha in shas:
         message = _run_git(root, ["log", "-1", "--format=%B", sha])
-        violations = check_message(message, root=root, parent_tree=_first_parent(root, sha))
+        # The structural NOT-A-FIX rule applies to commits AFTER registry['structural_rule_since'] (the commit that
+        # introduced it). Earlier commits were labelled under the subject-word rule and are not re-judged; two of
+        # them (f156f89b, 7f81da01) would fail it and are recorded in the registry as mislabelled under the old rule.
+        changed = None
+        since = registry.get("structural_rule_since")
+        if since:
+            since_sha = _run_git(root, ["rev-parse", since]).strip()
+            is_after = subprocess.run(["git", "merge-base", "--is-ancestor", since_sha, sha], cwd=root).returncode == 0
+            if is_after and since_sha != sha:
+                changed = _run_git(root, ["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", sha]).splitlines()
+        violations = check_message(message, root=root, parent_tree=_first_parent(root, sha), changed_paths=changed)
         if violations:
             hits.append({"sha": sha, "violations": violations})
     return hits
@@ -304,7 +328,8 @@ def _message_check(root: str, path: str) -> int:
         print(f"FIX-STATE: REFUSED -- commit message unreadable: {exc}")
         return 1
 
-    violations = check_message(message, root=root, parent_tree="HEAD")
+    staged = _run_git(root, ["diff", "--cached", "--name-only"]).splitlines()
+    violations = check_message(message, root=root, parent_tree="HEAD", changed_paths=staged)
     if violations:
         print("FIX-STATE: REFUSED")
         for violation in violations:

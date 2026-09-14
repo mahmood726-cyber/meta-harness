@@ -58,6 +58,12 @@ on anyone having installed a hook:
 
 The refusals were demonstrated before being relied on: `evidence/gate-authority-2026-09-14/`.
 
+## Prospective validation
+The auditor's freeze requirements and protocol (architecture identity, raw-input preservation, the defect
+ledger outside the frozen tree, the no-silent-rerun policy, custody, release timing, model-stage binding, the frozen
+eligibility universe, and the tamper-evident-not-blinded claim) are recorded as requirements in
+`docs/PROSPECTIVE_VALIDATION_SPEC.md` (served at `/PROSPECTIVE_VALIDATION_SPEC.md`).
+
 ## Reproducibility contract
 - Stdlib-only. The page is a **pure, deterministic** function of a `review.json`
   object; `review_sha256` covers the review core, `html_sha256` covers the served

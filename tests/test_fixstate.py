@@ -68,10 +68,21 @@ def test_two_fix_state_trailers_refused():
     assert any("found 2" in reason for reason in reasons)
 
 
-def test_not_a_fix_cannot_have_fix_subject():
-    reasons = fixstate.check_message("fix the gate\n\nFix-State: NOT-A-FIX\n")
+def test_not_a_fix_is_decided_by_what_changed_not_by_the_subject():
+    """THE INSTANCE (2026-09-14): the first checker keyed on subject words and refused an evidence-only commit
+    whose subject said "CI refusing a sealed-identifier leak". Structure, not prose: NOT-A-FIX is allowed when the
+    commit changes only evidence captures / prose, whatever the subject says; and refused when the commit changes
+    the system, however innocent the subject reads."""
+    msg = "Evidence: CI refusing a sealed-identifier leak\n\nFix-State: NOT-A-FIX\n"
+    assert fixstate.check_message(msg, changed_paths=["docs/evidence/x/04-ci.txt", "README.md"]) == []
+    msg2 = "tidy whitespace\n\nFix-State: NOT-A-FIX\n"
+    reasons = fixstate.check_message(msg2, changed_paths=["harness/gate.py"])
+    assert any("changes the system" in r and "harness/gate.py" in r for r in reasons)
+    reasons = fixstate.check_message(msg2, changed_paths=["docs/reviews/zz/index.html"])
+    assert any("changes the system" in r for r in reasons)
+    # a fix subject with a system change and a proper state is fine
+    assert fixstate.check_message("fix the gate\n\nFix-State: LANDED\n", changed_paths=["harness/gate.py"]) == []
 
-    assert "this message asserts a fix; state it" in reasons
 
 
 def test_verified_evidence_must_exist_in_parent_not_same_commit():
