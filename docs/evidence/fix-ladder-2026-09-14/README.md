@@ -1,6 +1,6 @@
 # Fix Ladder Evidence - 2026-09-14
 
-**Fix state (five-state rule): INTERNALLY_VERIFIED** - Applied lane R proposed transition as internal verification; external auditor has not yet confirmed anything.
+**Fix state (five-state rule): LANDED** - assurance stale: tests/test_fixstate.py changed
 
 | Entry # | Class | Proposed fix_state | File |
 |---:|---|---|---|

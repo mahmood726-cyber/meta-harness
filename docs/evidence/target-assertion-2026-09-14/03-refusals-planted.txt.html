@@ -1,0 +1,34 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>03-refusals-planted.txt (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>03-refusals-planted.txt</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/target-assertion-2026-09-14/03-refusals-planted.txt</code>; its SHA-256 is <code>32acfa3d2676202a20f873c345defac017625b217c8e2b64e687cc3a60b061b6</code> (1,538 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> Refusal plants: unresolved ratchet base, verify_all outside a resolvable git tree, missing scorecard registry, and refused unsupported downgrade reason.</p><pre>Planted refusal evidence.
+
+1. Honest ratchet unresolved base ref.
+
+Command: python -m harness.honest_ratchet --base no-such-ref
+Output:
+TARGET honest_ratchet: COULD-NOT-EXECUTE base ref not resolvable: no-such-ref
+honest-state ratchet: COULD-NOT-EXECUTE
+
+2. Verify-all invoked where no git tree can be resolved.
+
+Plant: `tests/test_verify_all_target.py::test_verify_all_refuses_when_cwd_is_not_git_tree`
+Mechanism: subprocess runs `scripts/verify_all.py` from a temp cwd with `GIT_CEILING_DIRECTORIES` set to stop parent-repo discovery.
+Expected refusal asserted by the test:
+TARGET verify_all: COULD-NOT-EXECUTE
+VERIFY-ALL: COULD-NOT-EXECUTE
+
+3. Gate scorecard with missing registry path.
+
+Plant: `tests/test_gate_scorecard.py::test_missing_registry_path_refuses_as_unnamed_target`
+Expected refusal asserted by the test:
+TARGET gate_scorecard: COULD-NOT-EXECUTE missing required path: registry/gate_scorecard.json
+
+4. Fix-state downward transition with an ordinary reason.
+
+Plant: `tests/test_fixstate.py::test_downgrade_to_reported_requires_detector_or_stale_reason`
+Expected refusal asserted by the test:
+downgrade to REPORTED refused; reason must begin detector proven to miss or assurance stale
+
+Focused plant run:
+python -m pytest tests/test_verify_all_target.py tests/test_gate_scorecard.py::test_missing_registry_path_refuses_as_unnamed_target tests/test_fixstate.py::test_downgrade_to_reported_requires_detector_or_stale_reason -q
+...                                                                      [100%]
+3 passed in 1.93s
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

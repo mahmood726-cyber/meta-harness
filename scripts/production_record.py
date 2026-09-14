@@ -41,6 +41,11 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+_IMPORT_ROOT = Path(__file__).resolve().parents[1]
+if str(_IMPORT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_IMPORT_ROOT))
+from harness.target import TargetUnresolvable, describe_target, refusal as target_refusal
+
 if __name__ == "__main__":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
@@ -80,7 +85,59 @@ def _walk_files(docs: str) -> list[str]:
     return sorted(out)
 
 
+def _script_root() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
+def _manifest_target(docs: str) -> str:
+    repo_root = _script_root()
+    docs_abs = os.path.abspath(docs)
+    paths = [os.path.join(docs_abs, rel) for rel in _walk_files(docs)]
+    try:
+        return describe_target(repo_root, refs=("HEAD",), paths=paths, label="production_record.manifest")
+    except TargetUnresolvable as exc:
+        return target_refusal("production_record.manifest", str(exc))
+
+
+def _load_manifest_for_target(path: str, label: str) -> tuple[dict | None, str | None]:
+    try:
+        return json.load(open(path, encoding="utf-8")), None
+    except (OSError, ValueError) as exc:
+        return None, target_refusal(label, f"manifest unreadable: {exc}")
+
+
+def _artifact_target(manifest: str, tar_path: str) -> str:
+    repo_root = _script_root()
+    man, err = _load_manifest_for_target(manifest, "production_record.check_artifact")
+    if err:
+        return err
+    paths = [manifest, tar_path, *list((man.get("files") or {}).keys())]
+    refs = (man.get("commit_sha"),) if man.get("commit_sha") else ()
+    try:
+        return describe_target(repo_root, refs=refs, paths=paths, label="production_record.check_artifact")
+    except TargetUnresolvable as exc:
+        return target_refusal("production_record.check_artifact", str(exc))
+
+
+def _attest_target(manifest: str, base_url: str) -> str:
+    repo_root = _script_root()
+    man, err = _load_manifest_for_target(manifest, "production_record.attest")
+    if err:
+        return err
+    base = base_url.rstrip("/") + "/"
+    urls = [base + rel for rel in (man.get("files") or {})]
+    refs = (man.get("commit_sha"),) if man.get("commit_sha") else ()
+    try:
+        return describe_target(repo_root, refs=refs, paths=urls, label="production_record.attest")
+    except TargetUnresolvable as exc:
+        return target_refusal("production_record.attest", str(exc))
+
+
 def cmd_manifest(a) -> int:
+    target_line = _manifest_target(a.docs)
+    print(target_line)
+    if target_line.startswith("TARGET production_record.manifest: COULD-NOT-EXECUTE"):
+        return 1
     repo_root = Path(__file__).resolve().parents[1]
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
@@ -124,6 +181,10 @@ def cmd_manifest(a) -> int:
 
 
 def cmd_check_artifact(a) -> int:
+    target_line = _artifact_target(a.manifest, a.tar)
+    print(target_line)
+    if target_line.startswith("TARGET production_record.check_artifact: COULD-NOT-EXECUTE"):
+        return 1
     man = json.load(open(a.manifest, encoding="utf-8"))
     want = man["files"]
     got = {}
@@ -156,6 +217,10 @@ def _fetch(url: str, timeout: int = 60) -> tuple[int, bytes]:
 
 
 def cmd_attest(a) -> int:
+    target_line = _attest_target(a.manifest, a.base_url)
+    print(target_line)
+    if target_line.startswith("TARGET production_record.attest: COULD-NOT-EXECUTE"):
+        return 1
     man = json.load(open(a.manifest, encoding="utf-8"))
     base = a.base_url.rstrip("/") + "/"
     deadline = time.time() + a.retry_seconds

@@ -1,6 +1,6 @@
 # Artifact identity — build once, verify that artifact, deploy exactly it, fetch it back (2026-09-14)
 
-**Fix state (five-state rule): INTERNALLY_VERIFIED** - Artifact chain re-demonstrated by a non-author fresh clone
+**Fix state (five-state rule): LANDED** - assurance stale: scripts/production_record.py changed
 
 | file | what it is |
 |---|---|

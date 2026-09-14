@@ -1,10 +1,15 @@
 import hashlib
 import json
+import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
 from harness import honest_ratchet
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_compare_refuses_when_stale_marker_drops():
@@ -153,3 +158,29 @@ def test_check_refuses_when_working_tree_drops_absent_block():
         assert ok is False
         assert any("lost absent block" in reason for reason in reasons)
         assert any("Search provenance lost block text" in reason for reason in reasons)
+
+
+def test_cli_refuses_unresolvable_base_with_target_line():
+    with tempfile.TemporaryDirectory(prefix="honest-ratchet-target-", ignore_cleanup_errors=True) as raw:
+        repo = Path(raw) / "repo"
+        repo.mkdir(parents=True)
+        _git(repo, "init")
+        _git(repo, "config", "user.email", "test@example.test")
+        _git(repo, "config", "user.name", "Test User")
+        (repo / "README.md").write_text("base\n", encoding="utf-8", newline="\n")
+        _git(repo, "add", "README.md")
+        _git(repo, "commit", "-m", "base")
+
+        proc = subprocess.run(
+            [sys.executable, "-m", "harness.honest_ratchet", "--base", "no-such-ref"],
+            cwd=repo,
+            env={**os.environ, "PYTHONPATH": str(ROOT)},
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+
+    assert proc.returncode == 1
+    assert "TARGET honest_ratchet: COULD-NOT-EXECUTE base ref not resolvable: no-such-ref" in proc.stdout

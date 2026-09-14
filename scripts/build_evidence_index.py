@@ -21,6 +21,9 @@ import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+from harness.target import TargetUnresolvable, describe_target, refusal as target_refusal  # noqa: E402
+
 EV = os.path.join(ROOT, "docs", "evidence")
 SITE = "https://mahmood726-cyber.github.io/meta-harness/evidence/"
 GENERATED = ("index.html",)
@@ -53,6 +56,25 @@ def _captures(d: str) -> list[str]:
     files = {f for f in os.listdir(os.path.join(EV, d)) if os.path.isfile(os.path.join(EV, d, f))}
     # generated: index.html and every "<capture>.html" twin whose capture exists beside it
     return sorted(f for f in files if f not in GENERATED and not (f.endswith(".html") and f[:-5] in files))
+
+
+def _target_paths() -> list[str]:
+    paths = [os.path.join("docs", "evidence", "CAPTIONS.json")]
+    if not os.path.isdir(EV):
+        return paths
+    for d in sorted(x for x in os.listdir(EV) if os.path.isdir(os.path.join(EV, x))):
+        for f in _captures(d):
+            paths.append(os.path.join("docs", "evidence", d, f))
+    return paths
+
+
+def describe_check_target() -> str:
+    if not os.path.isfile(os.path.join(EV, "CAPTIONS.json")):
+        return target_refusal("evidence_index", "missing required path: docs/evidence/CAPTIONS.json")
+    try:
+        return describe_target(ROOT, paths=_target_paths(), label="evidence_index")
+    except TargetUnresolvable as exc:
+        return target_refusal("evidence_index", str(exc))
 
 
 def render_twin(d: str, f: str, caption: str) -> str:
@@ -141,6 +163,10 @@ def build() -> dict[str, str]:
 
 
 def main(argv) -> int:
+    target_line = describe_check_target()
+    print(target_line)
+    if target_line.startswith("TARGET evidence_index: COULD-NOT-EXECUTE"):
+        return 1
     pages = build()
     if "--check" in argv:
         stale = [p for p, want in pages.items()

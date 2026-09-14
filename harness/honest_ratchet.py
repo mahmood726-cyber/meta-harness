@@ -16,6 +16,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 
+from harness.target import TargetUnresolvable, describe_target, refusal as target_refusal
+
 
 MARKERS = {
     "stale": ["STALE — this topic"],
@@ -211,25 +213,26 @@ def _verify_ref(root: str | os.PathLike[str], ref: str) -> str | None:
     return None
 
 
-def _resolve_base(root: str | os.PathLike[str], base_ref: str | None) -> tuple[str | None, str | None]:
+def _resolve_base(root: str | os.PathLike[str], base_ref: str | None) -> tuple[str | None, str | None, str | None]:
     explicit = base_ref or os.environ.get("RATCHET_BASE")
     if explicit:
         ref = _verify_ref(root, explicit)
         if ref:
-            return ref, None
-        return None, f"COULD-NOT-EXECUTE: base ref not resolvable: {explicit}"
+            source = "--base" if base_ref else "RATCHET_BASE"
+            return ref, source, None
+        return None, None, f"COULD-NOT-EXECUTE: base ref not resolvable: {explicit}"
 
     origin = _verify_ref(root, "origin/main")
     head = _verify_ref(root, "HEAD")
     if origin and head and origin != head:
         p = _run(root, ["merge-base", "HEAD", "origin/main"])
         if p.returncode == 0 and p.stdout.strip():
-            return p.stdout.strip(), None
+            return p.stdout.strip(), "merge-base origin/main", None
 
     previous = _verify_ref(root, "HEAD~1")
     if previous:
-        return previous, None
-    return None, "COULD-NOT-EXECUTE: no ratchet base ref resolvable"
+        return previous, "HEAD~1", None
+    return None, None, "COULD-NOT-EXECUTE: no ratchet base ref resolvable"
 
 
 def _base_pages(root: str | os.PathLike[str], ref: str) -> tuple[list[str] | None, str | None]:
@@ -255,6 +258,28 @@ def _block_base_refs(root: str | os.PathLike[str], ref: str) -> list[str]:
     return out
 
 
+def describe_check_target(root: str | os.PathLike[str], base_ref: str | None = None) -> str:
+    """Describe the ratchet target without running the ratchet comparison."""
+
+    ref, source, err = _resolve_base(root, base_ref)
+    if err:
+        return target_refusal("honest_ratchet", err.replace("COULD-NOT-EXECUTE: ", ""))
+    pages, err = _base_pages(root, ref)
+    if err:
+        return target_refusal("honest_ratchet", err.replace("COULD-NOT-EXECUTE: ", ""))
+    block_refs = _block_base_refs(root, ref)
+    paths = list(pages or [])
+    paths.append(ACK_PATH.as_posix())
+    try:
+        line = describe_target(root, refs=(ref,), paths=paths, label="honest_ratchet")
+    except TargetUnresolvable as exc:
+        return target_refusal("honest_ratchet", str(exc))
+    return (
+        f"{line} base_resolution={source} pages={len(pages or [])} "
+        f"block_floor_refs={','.join(block_refs)}"
+    )
+
+
 def _show(root: str | os.PathLike[str], ref: str, path: str) -> tuple[str | None, str | None]:
     p = _run(root, ["show", f"{ref}:{path}"])
     if p.returncode != 0:
@@ -263,7 +288,7 @@ def _show(root: str | os.PathLike[str], ref: str, path: str) -> tuple[str | None
 
 
 def check(root: str | os.PathLike[str], base_ref: str | None = None) -> tuple[bool, list[str]]:
-    ref, err = _resolve_base(root, base_ref)
+    ref, _source, err = _resolve_base(root, base_ref)
     if err:
         return False, [err]
     pages, err = _base_pages(root, ref)
@@ -320,6 +345,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base", help="base git ref to compare against")
     args = parser.parse_args(argv)
+    target_line = describe_check_target(os.getcwd(), args.base)
+    print(target_line)
+    if target_line.startswith("TARGET honest_ratchet: COULD-NOT-EXECUTE"):
+        print("honest-state ratchet: COULD-NOT-EXECUTE")
+        return 1
     ok, reasons = check(os.getcwd(), args.base)
     if ok:
         print("honest-state ratchet: PASS")

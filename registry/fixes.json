@@ -2470,7 +2470,7 @@
    "fix_id": "TRANCHE-artifact-identity",
    "title": "artifact-identity",
    "kind": "fix",
-   "status": "INTERNALLY_VERIFIED",
+   "status": "LANDED",
    "author": "Claude Opus 5 (session author)",
    "opened_utc": "2026-09-14T18:36:13Z",
    "evidence_dir": "docs/evidence/artifact-identity-2026-09-14",
@@ -2492,14 +2492,22 @@
       "docs/evidence/independent-verification-2026-09-14/04-artifact-identity.txt"
      ],
      "reason": "Artifact chain re-demonstrated by a non-author fresh clone"
+    },
+    {
+     "status": "LANDED",
+     "when_utc": "2026-09-14T21:29:50Z",
+     "by": "harness.fixstate --refresh-stale",
+     "commit": "a3872489b684b077a97b6f079410b25ed906a234",
+     "evidence": [],
+     "reason": "assurance stale: scripts/production_record.py changed"
     }
    ],
    "authored_against": [],
    "generalized_on": [],
    "executable_evidence": null,
    "verified_by": {
-    "identity": "Codex lane G",
-    "kind": "internal_agent"
+    "identity": null,
+    "kind": null
    },
    "verifications": [
     {
@@ -2636,7 +2644,7 @@
    "fix_id": "TRANCHE-held-out-leak-detector",
    "title": "held-out-leak-detector",
    "kind": "fix",
-   "status": "INTERNALLY_VERIFIED",
+   "status": "LANDED",
    "author": "Claude Opus 5 (session author)",
    "opened_utc": "2026-09-14T18:36:13Z",
    "evidence_dir": "docs/evidence/search-acquisition-2026-09-14",
@@ -2658,14 +2666,30 @@
       "docs/evidence/independent-verification-2026-09-14/07-heldout-leak-detector.txt"
      ],
      "reason": "Canary refusal re-demonstrated"
+    },
+    {
+     "status": "LANDED",
+     "when_utc": "2026-09-14T21:29:50Z",
+     "by": "harness.fixstate --refresh-stale",
+     "commit": "a3872489b684b077a97b6f079410b25ed906a234",
+     "evidence": [],
+     "reason": "assurance stale: harness/heldout.py changed"
+    },
+    {
+     "status": "LANDED",
+     "when_utc": "2026-09-14T21:29:50Z",
+     "by": "harness.fixstate --refresh-stale",
+     "commit": "a3872489b684b077a97b6f079410b25ed906a234",
+     "evidence": [],
+     "reason": "assurance stale: harness/leakscan.py changed"
     }
    ],
    "authored_against": [],
    "generalized_on": [],
    "executable_evidence": null,
    "verified_by": {
-    "identity": "Codex lane G",
-    "kind": "internal_agent"
+    "identity": null,
+    "kind": null
    },
    "verifications": [
     {
@@ -2720,7 +2744,7 @@
    "fix_id": "TRANCHE-retrieval-states-and-ratchet",
    "title": "retrieval-states-and-ratchet",
    "kind": "fix",
-   "status": "LANDED",
+   "status": "REPORTED",
    "author": "Claude Opus 5 (session author)",
    "opened_utc": "2026-09-14T18:36:13Z",
    "evidence_dir": "docs/evidence/search-states-2026-09-14",
@@ -2751,6 +2775,16 @@
      "commit": "005f2fd27cb850b4725a6b3e43daa8d4b20870d0",
      "evidence": [],
      "reason": "assurance stale: harness/index.py changed"
+    },
+    {
+     "status": "REPORTED",
+     "when_utc": "2026-09-14T21:30:58Z",
+     "by": "Codex lane X (on the integrator's instruction)",
+     "commit": "a3872489b684b077a97b6f079410b25ed906a234",
+     "evidence": [
+      "docs/evidence/regeneration-accounting-2026-09-14/README.md"
+     ],
+     "reason": "detector proven to miss the property it exists to protect: at b8925e04 the phrase-inventory ratchet passed while 15 pages lost a 'Search provenance' honest-state block (docs/evidence/regeneration-accounting-2026-09-14); block-level comparison was added at 005f2fd2 and is a separate claim"
     }
    ],
    "authored_against": [],
@@ -2813,7 +2847,7 @@
    "fix_id": "TRANCHE-fix-state-ladder",
    "title": "fix-state-ladder",
    "kind": "fix",
-   "status": "INTERNALLY_VERIFIED",
+   "status": "LANDED",
    "author": "Claude Opus 5 (session author)",
    "opened_utc": "2026-09-14T18:36:13Z",
    "evidence_dir": "docs/evidence/fix-ladder-2026-09-14",
@@ -2836,14 +2870,30 @@
       "docs/evidence/independent-verification-2-2026-09-14/README.md"
      ],
      "reason": "Applied lane R proposed transition as internal verification; external auditor has not yet confirmed anything."
+    },
+    {
+     "status": "LANDED",
+     "when_utc": "2026-09-14T21:29:50Z",
+     "by": "harness.fixstate --refresh-stale",
+     "commit": "a3872489b684b077a97b6f079410b25ed906a234",
+     "evidence": [],
+     "reason": "assurance stale: harness/fixstate.py changed"
+    },
+    {
+     "status": "LANDED",
+     "when_utc": "2026-09-14T21:29:50Z",
+     "by": "harness.fixstate --refresh-stale",
+     "commit": "a3872489b684b077a97b6f079410b25ed906a234",
+     "evidence": [],
+     "reason": "assurance stale: tests/test_fixstate.py changed"
     }
    ],
    "authored_against": [],
    "generalized_on": [],
    "executable_evidence": null,
    "verified_by": {
-    "identity": "Codex lane R (non-author)",
-    "kind": "internal_agent"
+    "identity": null,
+    "kind": null
    },
    "verifications": [
     {
@@ -4461,6 +4511,66 @@
    "authored_against": [],
    "generalized_on": [],
    "executable_evidence": null
+  },
+  {
+   "finding_id": "TRANCHE-block-level-ratchet",
+   "fix_id": "TRANCHE-block-level-ratchet",
+   "title": "block-level-ratchet (known limit: cannot see softening inside an unchanged block set)",
+   "kind": "fix",
+   "status": "LANDED",
+   "author": "Codex lane X",
+   "opened_utc": "2026-09-14T21:30:58Z",
+   "evidence_dir": "docs/evidence/ratchet-blocks-2026-09-14",
+   "history": [
+    {
+     "status": "LANDED",
+     "when_utc": "2026-09-14T21:30:58Z",
+     "by": "Codex lane X",
+     "commit": "005f2fd27cb850b4725a6b3e43daa8d4b20870d0",
+     "evidence": [
+      "docs/evidence/ratchet-blocks-2026-09-14"
+     ],
+     "reason": "Block-level absent/banner comparison landed; known limit: cannot see softening inside an unchanged block set."
+    }
+   ],
+   "authored_against": [],
+   "generalized_on": [],
+   "executable_evidence": null,
+   "verified_by": {
+    "identity": null,
+    "kind": null
+   },
+   "verifications": []
+  },
+  {
+   "finding_id": "TRANCHE-target-assertion",
+   "fix_id": "TRANCHE-target-assertion",
+   "title": "target-assertion: every check names its target or refuses",
+   "kind": "fix",
+   "status": "LANDED",
+   "author": "Codex lane X",
+   "opened_utc": "2026-09-14T21:30:58Z",
+   "evidence_dir": "docs/evidence/target-assertion-2026-09-14",
+   "history": [
+    {
+     "status": "LANDED",
+     "when_utc": "2026-09-14T21:30:58Z",
+     "by": "Codex lane X",
+     "commit": "a3872489b684b077a97b6f079410b25ed906a234",
+     "evidence": [
+      "docs/evidence/target-assertion-2026-09-14"
+     ],
+     "reason": "every listed check names its target or refuses."
+    }
+   ],
+   "authored_against": [],
+   "generalized_on": [],
+   "executable_evidence": null,
+   "verified_by": {
+    "identity": null,
+    "kind": null
+   },
+   "verifications": []
   }
  ]
 }

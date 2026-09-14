@@ -16,6 +16,8 @@ import glob
 import json
 import os
 
+from harness.target import TargetUnresolvable, describe_target, refusal as target_refusal
+
 # Derived pooled statistics that must NOT be published for a topic whose primary pool is suppressed/refused.
 _DERIVED_KEYS = {
     "estimate", "ci_low", "ci_high", "tau2", "i2",
@@ -145,8 +147,25 @@ def scan(docs_dir: str) -> list:
     return leaks
 
 
+def describe_scan_target(docs_dir: str, root: str | None = None) -> str:
+    root = os.path.abspath(root or os.getcwd())
+    docs_abs = os.path.abspath(docs_dir)
+    paths = []
+    for pattern in (os.path.join(docs_abs, "*.json"), os.path.join(docs_abs, "reviews", "*", "review.json")):
+        for path in sorted(glob.glob(pattern)):
+            paths.append(os.path.relpath(path, root).replace(os.sep, "/"))
+    try:
+        return describe_target(root, paths=paths, label="leakscan")
+    except TargetUnresolvable as exc:
+        return target_refusal("leakscan", str(exc))
+
+
 def main(argv):
     docs = argv[0] if argv else "docs"
+    target_line = describe_scan_target(docs)
+    print(target_line)
+    if target_line.startswith("TARGET leakscan: COULD-NOT-EXECUTE"):
+        return 1
     supp = suppressed_states(docs)
     leaks = scan(docs)
     print(f"suppressed-state topics: {len(supp)} ({', '.join(sorted(supp))})")

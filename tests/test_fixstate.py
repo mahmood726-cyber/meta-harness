@@ -252,6 +252,40 @@ def test_downgrade_to_reported_without_reason_is_refused(tmp_path: Path) -> None
     assert any("downgrade to REPORTED needs a reason" in r for r in reasons)
 
 
+def test_downgrade_to_reported_requires_detector_or_stale_reason(tmp_path: Path) -> None:
+    repo = _repo_with_baseline(tmp_path, _entry("LANDED", history=[_hist("LANDED", commit="HEAD")]))
+    current = _entry(
+        "REPORTED",
+        history=[
+            _hist("LANDED", commit="HEAD"),
+            _hist("REPORTED", reason="ordinary regression note"),
+        ],
+    )
+    _write_store(repo, _store(current))
+    _render_views(repo)
+
+    reasons = _check(repo)
+
+    assert any("downgrade to REPORTED refused" in r for r in reasons)
+
+
+def test_downgrade_to_reported_allows_detector_miss_reason(tmp_path: Path) -> None:
+    repo = _repo_with_baseline(tmp_path, _entry("LANDED", history=[_hist("LANDED", commit="HEAD")]))
+    current = _entry(
+        "REPORTED",
+        history=[
+            _hist("LANDED", commit="HEAD"),
+            _hist("REPORTED", reason="detector proven to miss the protected property"),
+        ],
+    )
+    _write_store(repo, _store(current))
+    _render_views(repo)
+
+    ok, reasons = fixstate.check(repo)
+
+    assert ok, "\n".join(reasons)
+
+
 def test_landed_control_without_executable_evidence_is_refused(tmp_path: Path) -> None:
     repo = _repo_with_baseline(tmp_path, _entry("SPECIFIED", kind="control"))
     head = _git(repo, "rev-parse", "HEAD")

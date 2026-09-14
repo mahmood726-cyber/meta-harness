@@ -13,6 +13,8 @@ import subprocess
 from datetime import datetime, timezone
 from typing import Any
 
+from harness.target import TargetUnresolvable, describe_target, refusal as target_refusal
+
 
 REGISTRY_PATH = "registry/gate_scorecard.json"
 SERVED_PATH = "docs/gate_scorecard.json"
@@ -198,6 +200,31 @@ def _registry_data(root: str) -> dict[str, Any]:
     return data
 
 
+def _target_paths(root: str) -> list[str]:
+    _ = root
+    return [
+        REGISTRY_PATH,
+        SERVED_PATH,
+        "scripts/verify_all.py",
+        "harness/gate.py",
+        "harness/census.py",
+        "harness/gate_scorecard.py",
+    ]
+
+
+def describe_check_target(root) -> str:
+    """Return the target line for the scorecard registry check."""
+
+    root = _root_path(root)
+    for rel in (REGISTRY_PATH, SERVED_PATH):
+        if not os.path.isfile(_rel_path(root, rel)):
+            return target_refusal("gate_scorecard", f"missing required path: {rel}")
+    try:
+        return describe_target(root, paths=_target_paths(root), label="gate_scorecard")
+    except TargetUnresolvable as exc:
+        return target_refusal("gate_scorecard", str(exc))
+
+
 def _entries_by_id(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
     entries = data.get("gates")
     if not isinstance(entries, list):
@@ -296,6 +323,9 @@ def _expected_view(root: str) -> str:
 def check(root) -> tuple[bool, list[str]]:
     """Check registry coverage, evidence paths, precision counts, and served-view currency."""
     root = _root_path(root)
+    target_line = describe_check_target(root)
+    if target_line.startswith("TARGET gate_scorecard: COULD-NOT-EXECUTE"):
+        return False, [target_line]
     reasons: list[str] = []
     enumerated = {gate["gate_id"]: gate for gate in enumerate_gates(root)}
     try:
@@ -478,6 +508,11 @@ def write_served_view(root) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     root = _root_path(os.getcwd())
+    target_line = describe_check_target(root)
+    print(target_line)
+    if target_line.startswith("TARGET gate_scorecard: COULD-NOT-EXECUTE"):
+        print("gate scorecard: COULD-NOT-EXECUTE")
+        return 1
     ok, reasons = check(root)
     if ok:
         s = summary(root)

@@ -40,11 +40,26 @@ def _evidence_paths(data: dict) -> set[str]:
     return out
 
 
+def _git_fixture(tmp: Path) -> None:
+    """The scorecard check must name its target (HEAD); a mini root that is not a git tree is a
+    refusal, not a pass. Lane X's tests passed only because its TMP lay inside the clone, so HEAD
+    resolved by accident -- make the fixture a real, committed repository instead."""
+    env = {"GIT_AUTHOR_NAME": "fixture", "GIT_AUTHOR_EMAIL": "fixture@example.invalid",
+           "GIT_COMMITTER_NAME": "fixture", "GIT_COMMITTER_EMAIL": "fixture@example.invalid",
+           "HOME": str(tmp), "USERPROFILE": str(tmp)}
+    import os
+    import subprocess
+    full_env = {**os.environ, **env}
+    for cmd in (["git", "init", "-q"], ["git", "add", "-A"], ["git", "commit", "-q", "-m", "fixture"]):
+        subprocess.run(cmd, cwd=tmp, check=True, capture_output=True, env=full_env)
+
+
 @contextmanager
 def _mini_root():
     with tempfile.TemporaryDirectory(prefix="gate-scorecard-test-", ignore_cleanup_errors=True) as raw:
         tmp = Path(raw)
         _populate_mini_root(tmp)
+        _git_fixture(tmp)
         yield tmp
 
 
@@ -110,6 +125,16 @@ def test_dangling_evidence_path_refuses():
         ok, reasons = gate_scorecard.check(root)
         assert not ok
         assert any("cited evidence does not exist" in r for r in reasons)
+
+
+def test_missing_registry_path_refuses_as_unnamed_target():
+    with _mini_root() as root:
+        (root / gate_scorecard.REGISTRY_PATH).unlink()
+        ok, reasons = gate_scorecard.check(root)
+        assert not ok
+        assert reasons == [
+            "TARGET gate_scorecard: COULD-NOT-EXECUTE missing required path: registry/gate_scorecard.json"
+        ]
 
 
 def test_precision_without_both_counts_refuses():

@@ -36,12 +36,37 @@ if __name__ == "__main__":
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 from harness import acquisition  # noqa: E402
+from harness.target import TargetUnresolvable, describe_target, refusal as target_refusal  # noqa: E402
 
 TOPICS = os.path.join(ROOT, "registry", "regression_recall_topics.json")
 OUT = os.path.join(ROOT, "docs", "search_recall_regression_corpus.json")
 VALIDATION_STATUS = ("REGRESSION_CORPUS — not prospective validation: all 32 corpus topics are disqualified as "
                      "held-out (exposed through audits, URLs, commit history); measured on the 5 corpus topics "
                      "that had zero contact with engine tuning")
+
+
+def _target_paths(reg: dict | None = None) -> list[str]:
+    paths = [
+        os.path.join("registry", "regression_recall_topics.json"),
+        os.path.join("docs", "search_recall_regression_corpus.json"),
+        os.path.join("harness", "acquisition.py"),
+    ]
+    if reg:
+        for slug in reg.get("slugs") or []:
+            paths.append(os.path.join("topics", slug + ".json"))
+            paths.append(os.path.join("docs", "reviews", slug, "review.json"))
+    return paths
+
+
+def describe_measurement_target() -> str:
+    try:
+        reg = json.load(open(TOPICS, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return target_refusal("regression_corpus_recall", f"registry unreadable: {exc}")
+    try:
+        return describe_target(ROOT, paths=_target_paths(reg), label="regression_corpus_recall")
+    except TargetUnresolvable as exc:
+        return target_refusal("regression_corpus_recall", str(exc))
 
 
 def _engine_sha() -> str:
@@ -89,6 +114,10 @@ def measure(slug: str) -> dict:
 
 
 def main() -> int:
+    target_line = describe_measurement_target()
+    print(target_line)
+    if target_line.startswith("TARGET regression_corpus_recall: COULD-NOT-EXECUTE"):
+        return 1
     reg = json.load(open(TOPICS, encoding="utf-8"))
     now = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%MZ")
     sha = _engine_sha()

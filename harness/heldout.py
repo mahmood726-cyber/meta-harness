@@ -37,6 +37,8 @@ import sys
 import tempfile
 from typing import Iterable
 
+from harness.target import TargetUnresolvable, describe_target, refusal as target_refusal
+
 
 REGISTRY_PATH = os.path.join("registry", "heldout_sealed.json")
 MEASUREMENT_PATH = os.path.join("docs", "search_recall_regression_corpus.json")
@@ -73,6 +75,19 @@ def load(root) -> dict:
     """Load the sealed detector registry."""
     with open(os.path.join(_root_path(root), REGISTRY_PATH), encoding="utf-8") as f:
         return json.load(f)
+
+
+def describe_check_target(root) -> str:
+    """Return a target line for the sealed held-out detector."""
+
+    root = _root_path(root)
+    paths = [REGISTRY_PATH, MEASUREMENT_PATH, os.path.join("harness", "acquisition.py")]
+    if not os.path.isfile(os.path.join(root, REGISTRY_PATH)):
+        return target_refusal("heldout", f"missing required path: {_posix(REGISTRY_PATH)}")
+    try:
+        return describe_target(root, paths=paths, label="heldout")
+    except TargetUnresolvable as exc:
+        return target_refusal("heldout", str(exc))
 
 
 def load_key(root) -> str | None:
@@ -351,6 +366,10 @@ def main(argv: list[str] | None = None) -> int:
         print(canary_token(key))
         return 0
 
+    target_line = describe_check_target(root)
+    print(target_line)
+    if target_line.startswith("TARGET heldout: COULD-NOT-EXECUTE"):
+        return 1
     ok, reasons = check(root)
     print(f"HELD-OUT: registry={REGISTRY_PATH}")
     if not ok:

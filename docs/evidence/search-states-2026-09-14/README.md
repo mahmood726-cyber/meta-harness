@@ -1,6 +1,6 @@
 # Retrieval class as an object state; honest-state ratchet; regeneration of the 32 pages (2026-09-14)
 
-**Fix state (five-state rule): LANDED** - assurance stale: harness/index.py changed
+**Fix state (five-state rule): REPORTED** - detector proven to miss the property it exists to protect: at b8925e04 the phrase-inventory ratchet passed while 15 pages lost a 'Search provenance' honest-state block (docs/evidence/regeneration-accounting-2026-09-14); block-level comparison was added at 005f2fd2 and is a separate claim
 
 | file | what it is |
 |---|---|

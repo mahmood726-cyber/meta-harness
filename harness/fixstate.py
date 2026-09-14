@@ -27,6 +27,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from harness.target import TargetUnresolvable, describe_target, refusal as target_refusal
+
 
 REGISTRY_PATH = Path("registry") / "fixes.json"
 LEDGER_PATH = Path("docs") / "fix_ledger.json"
@@ -56,6 +58,7 @@ FORWARD_TRANSITIONS = {
     ("INTERNALLY_VERIFIED", "INDEPENDENTLY_VERIFIED"),
     ("INDEPENDENTLY_VERIFIED", "GENERALIZED"),
 }
+REPORTED_DOWNGRADE_PREFIXES = ("detector proven to miss", "assurance stale")
 REQUIRED_ENTRY_KEYS = {
     "finding_id",
     "fix_id",
@@ -612,9 +615,11 @@ def validate_store(root: str | os.PathLike[str], store: dict[str, Any]) -> list[
 
 
 def _transition_allowed(old_status: str, new_status: str) -> bool:
-    if new_status == "REPORTED":
-        return True
     return (old_status, new_status) in FORWARD_TRANSITIONS
+
+
+def _reported_downgrade_allowed(reason: str) -> bool:
+    return any(reason.startswith(prefix) for prefix in REPORTED_DOWNGRADE_PREFIXES)
 
 
 def _new_history_entries(old_entry: dict[str, Any], new_entry: dict[str, Any]) -> list[dict[str, Any]]:
@@ -659,14 +664,21 @@ def _validate_transition(
             return [f"{label}: fallback to LANDED from {old_status} needs assurance stale history reason"]
         return reasons
     if not _transition_allowed(old_status, new_status):
-        reasons.append(f"{label}: invalid status transition {old_status}->{new_status}")
-        return reasons
+        if new_status != "REPORTED":
+            reasons.append(f"{label}: invalid status transition {old_status}->{new_status}")
+            return reasons
     if not candidates:
         return [f"{label}: status changed {old_status}->{new_status} without matching new history entry"]
     history = candidates[-1]
     if new_status == "REPORTED":
-        if not str(history.get("reason") or "").strip():
+        reason = str(history.get("reason") or "")
+        if not reason.strip():
             reasons.append(f"{label}: downgrade to REPORTED needs a reason")
+        elif not _reported_downgrade_allowed(reason):
+            reasons.append(
+                f"{label}: downgrade to REPORTED refused; reason must begin "
+                f"{' or '.join(REPORTED_DOWNGRADE_PREFIXES)}"
+            )
         return reasons
     if new_status == "LANDED":
         reasons.extend(_validate_landed(root, new_entry, history, label))
@@ -688,6 +700,26 @@ def _baseline_ref(root: Path) -> str | None:
     if proc.returncode == 0 and proc.stdout.strip():
         return "HEAD~1"
     return None
+
+
+def describe_check_target(root: str | os.PathLike[str]) -> str:
+    """Return the target line for the fix-state object-store check."""
+
+    repo = _root_path(root)
+    paths = [
+        _posix(REGISTRY_PATH),
+        _posix(LEDGER_PATH),
+        "scripts/render_fix_ledger.py",
+    ]
+    for rel in (_posix(REGISTRY_PATH), _posix(LEDGER_PATH)):
+        if not (repo / rel).is_file():
+            return target_refusal("fixstate", f"missing required path: {rel}")
+    ref = _baseline_ref(repo)
+    refs = (ref,) if ref else ()
+    try:
+        return describe_target(repo, refs=refs, paths=paths, label="fixstate")
+    except TargetUnresolvable as exc:
+        return target_refusal("fixstate", str(exc))
 
 
 def _load_store_from_tree(root: Path, ref: str) -> dict[str, Any] | None:
@@ -765,6 +797,9 @@ def check(root: str | os.PathLike[str]) -> tuple[bool, list[str]]:
     """Validate the fix object store, generated views, and status transitions."""
 
     repo = _root_path(root)
+    target_line = describe_check_target(repo)
+    if target_line.startswith("TARGET fixstate: COULD-NOT-EXECUTE"):
+        return False, [target_line]
     try:
         store = load(repo)
     except Exception as exc:
@@ -820,6 +855,11 @@ def main(argv: list[str] | None = None) -> int:
         suffix = "y" if changed == 1 else "ies"
         print(f"FIX-STATE: refresh-stale fallback entries written for {changed} entr{suffix}")
         return 0
+    target_line = describe_check_target(root)
+    print(target_line)
+    if target_line.startswith("TARGET fixstate: COULD-NOT-EXECUTE"):
+        print("FIX-STATE: COULD-NOT-EXECUTE")
+        return 1
     ok, reasons = check(root)
     if ok:
         store = load(root)
