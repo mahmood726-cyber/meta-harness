@@ -1,12 +1,12 @@
 {
  "_doc": "Recovery pipeline instrument. Every recovery ATTEMPT is recorded with its outcome, earned one trial at a time by fetch -> source-verify -> extract -> round-trip -> rebuild. This REPLACES the forward-scan vocabulary metric (which over-counted: a forward scan cannot tell a genuine synonym gap from by-design composite-specificity). BLOCKED_BY_MATCHER entries, each carrying the exact source string vs the exact registered keyword, ARE the vocabulary measurement -- zero false positives, evidence not guesswork. Outcomes: RECOVERED | REFUSED_ON_SOURCE | BLOCKED_BY_MATCHER | BLOCKED_BY_ACCESS | NOT_FOUND | SCOPE_PENDING.",
  "scoreboard": {
-  "attempted": 22,
+  "attempted": 25,
   "recovered": 5,
   "tightened": 2,
   "cost_significance": 1,
   "toward_null_stayed_nonsig": 2,
-  "refused_on_source": 3,
+  "refused_on_source": 6,
   "scope_pending": 5,
   "blocked_by_matcher_resolved": 1,
   "note": "corrections are NOT systematically flattering: of 5 recoveries, 2 tightened and 3 weakened (1 lost significance, 2 moved toward null); 2 refused on source; 1 held on scope. This is the harness getting more honest as the evidence base completes. [+TECOS BLOCKED_BY_ACCESS: abstract 4-point != topic 3-point MACE; 3-point is a paywalled full-text secondary, unverifiable] [+41663239 REFUSED (pediatric, not mortality); +REMAP-CAP SCOPE_PENDING (90-day vs 30-day/in-hospital + influenza)] [+3 BLOCKED_BY_MATCHER (colchicine-postop COCS/Farzaneh X2 population \"atrial fibrillation\" vs cardiac-surgery/arrhythmia titles; Zarpelon X3 comparator \"control\") -- the earned vocabulary measurement, exact strings recorded; screening-vocab fix deferred to a careful before/after per the ELIXA lesson, not fatigue] [+DIAMOND OUT_OF_SCOPE: dapagliflozin proteinuria crossover, not HFrEF -- correctly excluded; test-set entry corrected] [+Udelson OUT_OF_SCOPE: eplerenone remodeling trial mis-filed under sacubitril-valsartan -- 3rd test-set error; the test set itself is unreliable, which is why recall is computed only against SOURCE_VERIFIED_ELIGIBLE]",
@@ -196,6 +196,27 @@
    "topic": "glp1-ra-mace-t2d",
    "status": "NOT_FOUND",
    "note": "ITCA-650 (exenatide osmotic mini-pump) CV outcomes trial, terminated; no full journal results publication exists to source-verify a MACE HR. Structural reach limit (terminated/unpublished), not a harness miss."
+  },
+  {
+   "trial": "EINSTEIN-DVT dose-ranging",
+   "pmid": "18621928",
+   "topic": "doac-vte-recurrence",
+   "status": "REFUSED_ON_SOURCE",
+   "note": "phase-II DOSE-RANGING (3-4 dose arms vs LMWH/VKA), imaging-augmented composite outcome (symptomatic VTE + asymptomatic ultrasound/perfusion deterioration), not clean recurrent VTE. Multi-arm guard + outcome mismatch -> correctly excludable; the topic uses the phase-III trials at approved dose. Source-verified."
+  },
+  {
+   "trial": "Botticelli",
+   "pmid": "18541000",
+   "topic": "doac-vte-recurrence",
+   "status": "REFUSED_ON_SOURCE",
+   "note": "phase-II DOSE-RANGING (3-4 dose arms vs LMWH/VKA), imaging-augmented composite outcome (symptomatic VTE + asymptomatic ultrasound/perfusion deterioration), not clean recurrent VTE. Multi-arm guard + outcome mismatch -> correctly excludable; the topic uses the phase-III trials at approved dose. Source-verified."
+  },
+  {
+   "trial": "ODIXa-DVT",
+   "pmid": "17576867",
+   "topic": "doac-vte-recurrence",
+   "status": "REFUSED_ON_SOURCE",
+   "note": "phase-II DOSE-RANGING (3-4 dose arms vs LMWH/VKA), imaging-augmented composite outcome (symptomatic VTE + asymptomatic ultrasound/perfusion deterioration), not clean recurrent VTE. Multi-arm guard + outcome mismatch -> correctly excludable; the topic uses the phase-III trials at approved dose. Source-verified."
   }
  ],
  "audit_overclaim_caught_at_source": {
