@@ -1035,6 +1035,21 @@ def build_review_core(slug, config, records, protocol_sha):
         review["protocol_config"] = {"divergences": _div}
     except OSError:
         pass
+    # DECLARED STRANDS on the TOPIC PAGE: where a topic's single pool is suppressed (incompatible
+    # estimands) and a committed strands artefact (docs/<*>_strands.json, slug-matched) decomposes it
+    # into compatible strands, attach it so the TOPIC page renders the same strands the index shows.
+    # Otherwise the topic page would render a bare refusal while the index renders four strands for the
+    # same review -- a categorical/state contradiction between two surfaces. The artefact is a committed
+    # docs/*.json, so the gate's dependency rule already forces a rebuild if it changes (no staleness).
+    import glob as _glob
+    for _sp in _glob.glob(os.path.join(ROOT, "docs", "*_strands.json")):
+        try:
+            _sd = json.load(open(_sp, encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if _sd.get("slug") == slug:
+            review["strands"] = _sd
+            break
     # RoB-stratified sensitivity re-pool of the primary outcome (regenerates from the object, so the
     # figure the page renders is reproduced, not typed). Uses the same validated pooler.
     # RoB-stratified sensitivity is a RE-POOL, so it must also fail closed on an INCOMPATIBLE primary

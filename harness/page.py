@@ -126,6 +126,40 @@ def _transparency_counts(r):
     return ok, total, comp
 
 
+def render_strands_section(d: dict) -> str:
+    """Render a topic's declared strands (docs/<*>_strands.json content). Shared by the topic page
+    (where the single pool is suppressed) and the index, so both surfaces show the SAME strands from
+    the ONE artefact -- no categorical/state contradiction between two surfaces."""
+    strands = (d or {}).get("strands") or []
+    if not strands:
+        return ""
+    rows = []
+    for s in strands:
+        pool = s.get("pool")
+        if pool:
+            sig = "crosses null" if pool.get("crosses_null") else "significant"
+            sens = pool.get("common_effect_sensitivity") or {}
+            senstxt = (f" <span class='note'>[common-effect sensitivity {_e(sens.get('effect'))} "
+                       f"({_e(sens.get('ci_low'))}–{_e(sens.get('ci_high'))}), NOT the registered result]</span>"
+                       if sens else "")
+            res = (f"pooled {_e(pool.get('effect'))} ({_e(pool.get('ci_low'))}–{_e(pool.get('ci_high'))}), "
+                   f"k={_e(pool.get('k'))}, HKSJ/PM &tau;&sup2;={_e(pool.get('tau2'))}, <strong>{sig}</strong>{senstxt}")
+        else:
+            m = (s.get("members") or [{}])[0]
+            res = f"{_e(m.get('trial'))} {_e(m.get('effect', m.get('crude_rr')))} ({_e(m.get('scale'))}), k=1 (single trial)"
+        rows.append(f"<li><strong>Strand {_e(s.get('strand'))}</strong> — {_e(s.get('name'))} "
+                    f"[<code>{_e(s.get('event_process'))}</code>]: {res}</li>")
+    ref = d.get("refused_cross_endpoint_pool") or {}
+    refline = (f"<p><strong>Refused cross-endpoint pool:</strong> {_e(ref.get('description'))} "
+               f"If forced it would be {_e(ref.get('if_forced_it_would_be'))} — "
+               f"<code>{_e(ref.get('verdict'))}</code>.</p>" if ref else "")
+    return (f"<div class='banner'><h3>Declared strands (the single pool is suppressed; these are the "
+            f"endpoint-clean decompositions)</h3><p>{_e(d.get('why_topic_is_suppressed'))}</p>"
+            f"<ul>{''.join(rows)}</ul>{refline}"
+            f"<p class='note'>Every effect source-verified; intervals from the canonical engine. The "
+            f"compatibility key keeps strands apart; a cross-strand pool is refused, not computed.</p></div>")
+
+
 def _overview(r, neutral):
     parts = [f"<h2>{_e(r.get('title'))}</h2>", f"<p class='q'>{_e(r.get('question'))}</p>"]
     # INVALIDATION PROPAGATION: a single STALE verdict poisons the headline. If any dependent output
@@ -156,6 +190,10 @@ def _overview(r, neutral):
                 f"{_e(res.get('suppressed_reason'))} <em>Estimand classes: "
                 f"{_e(' + '.join((res.get('estmeasure') or {}).get('canonicals', [])))}; the "
                 f"{_e(res.get('k'))} eligible trials are shown individually in Results, not pooled.</em></div>")
+            # DECLARED STRANDS: show the same endpoint-clean decomposition the index shows, so the topic
+            # page does not render a bare refusal while the index renders four strands for the same review.
+            if r.get("strands"):
+                parts.append(render_strands_section(r["strands"]))
         elif _absent(res) is None:
             parts.append("<h3>Primary outcome</h3>")
             pooled = _pooled_ids(prim)

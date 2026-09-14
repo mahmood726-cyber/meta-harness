@@ -191,9 +191,9 @@ def _participant_flow_section(docs_dir: str) -> str:
 
 
 def _iv_iron_strands_section(docs_dir: str) -> str:
-    """Render docs/iv_iron_strands.json: iv-iron HF-hospitalisation as THREE declared analyses
-    (never one forced pool). The compatibility key keeps strands apart; a cross-strand pool is
-    refused and shown as a counterfactual. Numbers are object-derived from the artefact."""
+    """Render the iv-iron declared strands via the SHARED renderer (harness.page.render_strands_section),
+    the SAME function the topic page uses, so the index and the topic page cannot disagree about what the
+    review concluded. Numbers are object-derived from the one artefact (docs/iv_iron_strands.json)."""
     p = os.path.join(docs_dir, "iv_iron_strands.json")
     if not os.path.exists(p):
         return ""
@@ -201,38 +201,12 @@ def _iv_iron_strands_section(docs_dir: str) -> str:
         d = json.load(open(p, encoding="utf-8"))
     except (OSError, ValueError):
         return ""
-    strands = d.get("strands") or []
-    if not strands:
+    from .page import render_strands_section
+    inner = render_strands_section(d)
+    if not inner:
         return ""
-    rows = []
-    for s in strands:
-        pool = s.get("pool")
-        if pool:
-            sig = "crosses null" if pool.get("crosses_null") else "significant"
-            sens = pool.get("common_effect_sensitivity") or {}
-            sens_txt = (f" <span class='muted'>[common-effect sensitivity {sens['effect']} "
-                        f"({sens['ci_low']}&ndash;{sens['ci_high']}), not the registered result]</span>"
-                        if sens else "")
-            res = (f"pooled {pool['effect']} ({pool['ci_low']}&ndash;{pool['ci_high']}), "
-                   f"k={pool['k']}, HKSJ/PM &tau;&sup2;={pool.get('tau2')}, <strong>{sig}</strong>{sens_txt}")
-        else:
-            m = s["members"][0]
-            eff = m.get("effect", m.get("crude_rr"))
-            res = f"{_E(m.get('trial'))} {eff} ({_E(m.get('scale'))}), k=1 (single trial)"
-        rows.append(f"<li><strong>Strand {_E(s.get('strand'))}</strong> &mdash; {_E(s.get('name'))} "
-                    f"[<code>{_E(s.get('event_process'))}</code>]: {res}</li>")
-    ref = d.get("refused_cross_endpoint_pool") or {}
-    refline = (f"<p><strong>Refused cross-endpoint pool:</strong> {_E(ref.get('description'))} "
-               f"If forced it would be {_E(ref.get('if_forced_it_would_be'))} &mdash; "
-               f"<code>{_E(ref.get('verdict'))}</code>.</p>" if ref else "")
-    return (f"<div class='banner'><h2>iv-iron HF-hospitalisation: three declared strands, never one "
-            f"forced pool</h2>"
-            f"<p>{_E(d.get('why_topic_is_suppressed'))}</p>"
-            f"<ul>{''.join(rows)}</ul>{refline}"
-            f"<p class='muted'>Every effect is source-verified against the trial's own report; no "
-            f"risk-of-bias or clinical judgement is added here. The compatibility key keeps the "
-            f"strands apart &mdash; where a pool would cross an event-process or endpoint boundary it "
-            f"is refused, not computed.</p></div>")
+    return (f"<div class='banner'><h2>iv-iron HF-hospitalisation: declared strands (topic-page and index "
+            f"render the same artefact)</h2>{inner}</div>")
 
 
 def _search_recall_section(docs_dir: str) -> str:
