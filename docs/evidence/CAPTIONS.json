@@ -1,0 +1,85 @@
+{
+ "_top": {
+  "start": "The single finding most worth verifying first: on 2026-09-13, commit 109053ad failed its CI verification (step 'Unit tests') and GitHub's automatic legacy Pages build deployed that same commit anyway. The capture below is the API read-back taken on 2026-09-14 before anything was changed; VERIFY-COLD.md gives the anonymous API calls and expected values so it can be re-checked without us.",
+  "start_url": "https://mahmood726-cyber.github.io/meta-harness/evidence/gate-authority-2026-09-14/01-prefix-deploy-unconditional.txt",
+  "verify": "This site is deployed only by the deploy job of .github/workflows/verify.yml, which consumes the artifact the verify job produced and fetches every file back. The per-file SHA-256 manifest of the deployed tree is served at https://mahmood726-cyber.github.io/meta-harness/_production/manifest.json (key files['evidence/<dir>/<file>']). The post-deploy attestation record for each deployment is at https://raw.githubusercontent.com/mahmood726-cyber/meta-harness/production-records/<full commit sha>.json. Each directory index below also prints the SHA-256 of every capture's committed bytes.",
+  "fallbacks": {
+   "Raw content host (the 109053ad capture)": "https://raw.githubusercontent.com/mahmood726-cyber/meta-harness/main/docs/evidence/gate-authority-2026-09-14/01-prefix-deploy-unconditional.txt",
+   "API: the failed verify run": "https://api.github.com/repos/mahmood726-cyber/meta-harness/actions/runs/34775559625",
+   "API: the legacy Pages build that deployed it": "https://api.github.com/repos/mahmood726-cyber/meta-harness/actions/runs/34775558931",
+   "API: the commit": "https://api.github.com/repos/mahmood726-cyber/meta-harness/commits/109053ad175eafcb77c0c23020f8e367008591c4",
+   "API: the deployment and its statuses": "https://api.github.com/repos/mahmood726-cyber/meta-harness/deployments/6425095939/statuses",
+   "Codeload tarball of the whole tree": "https://codeload.github.com/mahmood726-cyber/meta-harness/tar.gz/refs/heads/main",
+   "Production records branch (raw)": "https://raw.githubusercontent.com/mahmood726-cyber/meta-harness/production-records/README.md"
+  }
+ },
+ "gate-authority-2026-09-14": {
+  "_title": "Gate authority (2026-09-14): deploy conditional on verification; server-side rule; one standard",
+  "_intro": "Before this tranche a commit that failed CI was served (109053ad). These captures show the pre-fix state from the API, the refusals after the fix, and the clean cases.",
+  "01-prefix-deploy-unconditional.txt": "PRE-FIX, from the API: verify run 34775559625 on 109053ad FAILED (Unit tests) at 18:44:29Z; the legacy 'pages build and deployment' run 34775558931 on the same SHA SUCCEEDED at 18:44:28Z; main had no branch protection and no rulesets; Pages source was the legacy branch build.",
+  "02-pages-source-switch.txt": "The settings change: Pages source switched from the legacy branch build to GitHub Actions, read back as build_type=workflow.",
+  "03-refusal-plant-failing-test-not-deployed.txt": "REFUSAL: a deliberately failing test (a74b5c42) pushed to main from a clone with no hooks: verify FAILED, the deploy job was SKIPPED, no deployment exists for that SHA, the served page hash is unchanged.",
+  "04-clean-revert-deployed.txt": "CLEAN CASE: the revert (8af8dfb0) pushed from the same hooks-free clone: verify succeeded, deploy succeeded, deployment 6439113037 recorded.",
+  "05-ruleset-created.txt": "The server-side rule: ruleset 23314494 on main requiring the verify check, no bypass actors, force-push and deletion blocked; read back active.",
+  "06-refusal-server-rejects-direct-push.txt": "REFUSAL: a hooks-free clone pushes an unchecked failing commit straight to main: rejected by the server (GH013, 'Required status check verify is expected'); main unchanged.",
+  "07-refusal-branch-route-red-check.txt": "REFUSAL: the same failing SHA pushed to a branch (verify ran and failed) then pushed to main: rejected (GH013, 'verify is failing'); main unchanged.",
+  "08-prefix-hook-lets-failing-test-through.txt": "PRE-FIX: with a failing test staged, the old local hook printed 'nothing to gate' and exited 0.",
+  "09-new-standard-refuses-index-and-test-plants.txt": "REFUSAL (local): the unified standard refuses a hand-edited served index ([REFUSED] index currency) and a staged failing test ([REFUSED] unit tests, hook exit 1).",
+  "10-prefix-old-ci-green-on-hand-edited-index.txt": "PRE-FIX in CI: the old workflow went GREEN on a branch whose served docs/index.html was hand-edited.",
+  "11-postfix-ci-refuses-hand-edited-index.txt": "REFUSAL in CI: the same hand-edit on the new workflow is refused under 'index currency', deploy skipped, and main rejects the SHA.",
+  "README.md": "Ledger of this tranche: pre-fix, fix, refusal and clean-case per item, with the fix state under the four-state rule.",
+  "VERIFY-COLD.md": "How to verify the 109053ad finding yourself with anonymous API calls and the exact expected values."
+ },
+ "artifact-identity-2026-09-14": {
+  "_title": "Artifact identity (2026-09-14): build once, verify that artifact, deploy exactly it, fetch it back",
+  "_intro": "The first gated deploy re-tarred an artifact verify had never seen. These captures show that defect from the run logs, the second-path sweep, what could not be closed, and the first chained deploy.",
+  "01-prefix-deploy-re-tars-unverified-artifact.txt": "PRE-FIX from run 34863913498: the deploy job ran its own checkout and created artifact 10356385911; verify produced no artifact — the deployed bytes were never the verified bytes.",
+  "02-second-path-search.txt": "Every deploy/bypass surface with the API read-back: Pages config, all workflows (including GitHub's dynamic legacy one), dispatch attempt refused (422), environment policy, legacy builds, deployments, ruleset, collaborators, token permissions.",
+  "03-latent-paths-closed.txt": "The gh-pages environment policy deleted (main only); the dynamic legacy workflow cannot be disabled by API (422) — inert while the Pages source is Actions; admin-only bypass.",
+  "04-postfix-first-chained-deploy.txt": "POST-FIX run 34866009285: verify uploaded the manifest and the pages artifact; deploy (no checkout) checked 238/238 files against the manifest, deployed, fetched 238/238 back equal; record published to branch production-records; independent re-fetch from another machine equal.",
+  "README.md": "Ledger of this tranche with the fix state under the four-state rule."
+ },
+ "search-acquisition-2026-09-14": {
+  "_title": "Acquisition layer (2026-09-14): retrieval ledger, run states, pagination, concept source, regression-corpus recall",
+  "_intro": "Nothing recorded how a record was found. These captures show the old fetch's defects offline, the plants, a live refresh with full provenance, and the recall measurement.",
+  "01-prefix-fetch-defects.txt": "PRE-FIX, offline demonstration on the old fetch: esearch asked for 40 of 764 hits with no remainder recorded; a Europe PMC exception was written as RAN_OK; records carried no provenance field; the cache had no per-query count, date or state.",
+  "02-heldout-selection.txt": "Mechanical selection of the five topics with zero contact with the search engine's development (later disqualified as held-out by the auditor; they are the regression-recall set).",
+  "03-prefix-heldout-unenforced.txt": "PRE-FIX: a held-out slug planted in a test file passed the whole standard; no hook or limb read commit messages.",
+  "04-heldout-recall-measurement.txt": "The measurement: 18 of 20 known-eligible trials recalled unaided across the five topics (published as regression-corpus recall, not prospective validation).",
+  "05-postfix-heldout-refusals.txt": "REFUSALS (first, plaintext design): a commit message naming a held-out topic, a held-out slug in a test file, an engine edit without a new measurement — each refused; the slug is redacted in the file.",
+  "06-concept-source-plant-fires-prefix.txt": "PLANT fires pre-fix: with lane A's fetch the concept query was classified but never run (assert fails); passes after the fix.",
+  "07-live-refresh-postfix.txt": "LIVE REFRESH on one topic: concept source 165 hits/165 fetched; Europe PMC top-40 disclosed with remainder 589; 521 records every one with found_by; the pooled trial found by four independent sources; pinned records byte-unchanged.",
+  "README.md": "Ledger of this tranche with the fix state under the four-state rule."
+ },
+ "search-states-2026-09-14": {
+  "_title": "Retrieval class as an object state (2026-09-14): two rendered states on all 32 pages; the honest-state ratchet",
+  "_intro": "Pages rendered a hedge read from a side file. These captures show that, the regeneration proof, the states now served, and the ratchet refusing a lost honest state.",
+  "01-prefix-hedge-not-state.txt": "PRE-FIX: 17 of 32 pages rendered 'has not been verified as a concept search vs known-item retrieval… pending that check' from a side file at render time; no object carried a retrieval class.",
+  "02-regeneration-scientific-content-unchanged.txt": "After regenerating all 32 pages: every review object canonically identical to its predecessor once search.retrieval_class is stripped; no primary result moved.",
+  "03-ratchet-and-states-on-regenerated-pages.txt": "Ratchet PASS against origin/main; 11 pages KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH, 21 TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH, the distinction sentence on 32, hedge on 0; a planted STALE drop is REFUSED.",
+  "04-ci-refuses-sealed-leak-and-missing-fixstate.txt": "REFUSALS in CI on a branch plant: the sealed canary identifier in a test file ([REFUSED] held-out leak detector) and a commit message with no fix-state trailer ([REFUSED] fix-state discipline); main rejects the SHA.",
+  "README.md": "Ledger of this tranche with the fix state under the four-state rule."
+ },
+ "legacy-ledgers-2026-09-14": {
+  "_title": "Legacy ledgers for the 32 pre-ledger topics; raw external inputs preserved (2026-09-14)",
+  "_intro": "The 32 committed caches predate the retrieval ledger. Each now carries an explicit LEGACY_UNRECORDED ledger and the pages render it.",
+  "01-regeneration-with-legacy-ledgers.txt": "The 32 pages rebuilt after writing explicit LEGACY_UNRECORDED ledgers: per-key comparison shows only provenance keys and the retrieval-class basis listing changed; no primary result moved; every page renders the snapshot mode, the REPLAY sentence, a found-by column and unknown hit counts.",
+  "README.md": "What the legacy ledger asserts and refuses to assert; the fix state under the four-state rule."
+ },
+ "independent-verification-2026-09-14": {
+  "_title": "Independent re-demonstration (2026-09-14): eleven claims re-performed by a non-author agent from a fresh clone",
+  "_intro": "Codex (GPT-5), not the author of any fix, re-ran every claim from a fresh clone with raw commands and outputs. 9 REPRODUCED, 2 COULD NOT TEST (no token in that sandbox).",
+  "01-legacy-pages-red-verify.txt": "REPRODUCED anonymously: verify run 34775559625 failed (Unit tests) and legacy Pages run 34775558931 succeeded on 109053ad; deployment 6425095939 success.",
+  "02-deploy-conditional.txt": "REPRODUCED: the deploy job needs verify; the red SHA a74b5c42 has no deployment.",
+  "03-server-side-rule.txt": "COULD NOT TEST: the ruleset read back as expected anonymously, but the push-rejection test needed credentials the sandbox did not have.",
+  "04-artifact-identity.txt": "REPRODUCED: the production record for main is ATTESTED; served files re-hashed independently equal their verified digests; the pages artifact is bound to the commit; the deploy job has no checkout step.",
+  "05-second-path-sweep.txt": "COULD NOT TEST in full: anonymous endpoints reproduced their expected state; Pages config, dispatch (422) and token-permission endpoints needed authentication.",
+  "06-evidence-served-as-committed.txt": "REPRODUCED: every file under docs/evidence/ served byte-identical to its committed blob.",
+  "07-heldout-leak-detector.txt": "REPRODUCED: the detector passes on the tree and REFUSES when the canary identifier is written into a tracked file in a temp clone.",
+  "08-fix-state-ladder.txt": "REPRODUCED: a commit without a trailer is refused; VERIFIED with evidence created in the same commit is refused.",
+  "09-honest-state-ratchet.txt": "REPRODUCED: the ratchet passes, then REFUSES when a STALE block is removed from a page.",
+  "10-acquisition-prefix-defect.txt": "REPRODUCED: at ef1d1bf3 a raised Europe PMC exception is recorded as RAN_OK; at HEAD the acquisition tests pass.",
+  "11-retrieval-states-served.txt": "REPRODUCED: the exact class-A and class-B labels and the distinction sentence are in the served HTML; 'pending that check' on none of the 32.",
+  "README.md": "Table of claims, files and verdicts; the fix state under the four-state rule."
+ }
+}

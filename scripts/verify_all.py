@@ -70,7 +70,12 @@ def limb_index_currency():
     if cur != want:
         return REFUSED, ("docs/index.html is stale or hand-edited (differs from build_index). "
                          "Regenerate & stage: python -m harness.index docs && git add docs/index.html")
-    return PASS, "generated index == committed docs/index.html"
+    # The evidence entry pages are generated from docs/evidence/CAPTIONS.json under the same rule: a capture with no
+    # caption, a caption with no file, or a stale index page refuses (an auditor must never open an unexplained file).
+    rc, out = _run([sys.executable, os.path.join("scripts", "build_evidence_index.py"), "--check"])
+    if rc != 0:
+        return REFUSED, out.strip().splitlines()[-1] if out.strip() else "evidence index check failed"
+    return PASS, "generated index == committed docs/index.html; evidence indexes current"
 
 
 def limb_leak_scan():
