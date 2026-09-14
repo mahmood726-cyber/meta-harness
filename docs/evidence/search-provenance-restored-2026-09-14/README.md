@@ -1,6 +1,6 @@
 # Search provenance restored 2026-09-14
 
-**Fix state (five-state rule): LANDED** - the fifteen lost blocks restored from the object on 32 of 32
+**Fix state (orthogonal fields rule): LANDED / NONE / INSTANCE / CURRENT** - generated from TRANCHE-search-provenance-restored
 
 This evidence bundle restores the Search provenance absent block from `search.retrieval_class.search_provenance`, not from page-local inference.
 

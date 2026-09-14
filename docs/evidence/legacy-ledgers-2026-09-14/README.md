@@ -1,6 +1,6 @@
 # Legacy ledgers for the 32 pre-ledger topics + raw external inputs preserved (2026-09-14)
 
-**Fix state (five-state rule): LANDED** - assurance stale: harness/page.py changed
+**Fix state (orthogonal fields rule): LANDED / INTERNAL / INSTANCE / STALE** - generated from TRANCHE-legacy-ledgers; verified by Codex lane R (non-author) (internal_agent); evidence: docs/evidence/independent-verification-2-2026-09-14/03-legacy-ledgers-32-pages.txt, docs/evidence/independent-verification-2-2026-09-14/README.md; stale dependencies: harness/page.py
 
 | file | what it is |
 |---|---|

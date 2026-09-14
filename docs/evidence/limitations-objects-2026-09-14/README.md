@@ -1,6 +1,6 @@
 # Limitations as structured objects (2026-09-14)
 
-**Fix state (five-state rule): LANDED** - object layer and byte-identical comparison; page rendering not yet switched (stages 3-7 outstanding).
+**Fix state (orthogonal fields rule): LANDED / NONE / INSTANCE / CURRENT** - generated from TRANCHE-limitations-as-objects
 
 Stage reached: object layer plus legacy byte/text comparison. The served review-page blocks remain rendered by page.py; review.json now carries structured limitations.
 

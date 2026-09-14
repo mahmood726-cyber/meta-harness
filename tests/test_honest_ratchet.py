@@ -105,6 +105,30 @@ def test_compare_blocks_allows_acknowledged_replacement_block():
     assert honest_ratchet.compare_blocks(base, new, acknowledgements, "docs/reviews/x/index.html") == []
 
 
+def _ack(page, lost, new, reason="reviewed replacement"):
+    return {"page": page, "lost_sha256": lost["sha256"], "lost_text_prefix": lost["text"][:20],
+            "replaced_by_sha256": new["sha256"], "reason": reason, "when_utc": "2026-09-14T20:00:00Z", "by": "Unit Test"}
+
+
+def test_compare_blocks_follows_a_transitive_acknowledgement_chain():
+    """A base several commits back skips intermediate replacements: A -> B and B -> C are each reviewed,
+    only C is on the page. Plant (pre-fix): with A -> B and B -> C both signed, the base block A was still
+    refused because B is not on the page. Every link must still be a signed acknowledgement."""
+    page = "docs/reviews/x/index.html"
+    a = honest_ratchet.blocks("<div class='banner'>Gate scorecard: 41 gates ; 29 PLANT_ONLY</div>")[0]
+    b = honest_ratchet.blocks("<div class='banner'>Gate scorecard: 41 gates ; 33 PLANT_ONLY</div>")[0]
+    c = honest_ratchet.blocks("<div class='banner'>Gate scorecard: 42 gates ; 33 PLANT_ONLY</div>")[0]
+    chain = {"acknowledgements": [_ack(page, a, b), _ack(page, b, c)]}
+    assert honest_ratchet.compare_blocks([a], [c], chain, page) == []
+    # a broken chain (the middle link missing, or unsigned) still refuses
+    assert honest_ratchet.compare_blocks([a], [c], {"acknowledgements": [_ack(page, a, b)]}, page) != []
+    unsigned = {"acknowledgements": [_ack(page, a, b), dict(_ack(page, b, c), by="")]}
+    assert honest_ratchet.compare_blocks([a], [c], unsigned, page) != []
+    # a chain on a different page does not carry over
+    other = {"acknowledgements": [_ack(page, a, b), _ack("docs/index.html", b, c)]}
+    assert honest_ratchet.compare_blocks([a], [c], other, page) != []
+
+
 def _git(root, *args):
     return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True)
 

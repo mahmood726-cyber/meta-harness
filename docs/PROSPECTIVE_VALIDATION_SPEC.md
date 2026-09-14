@@ -135,27 +135,36 @@ into corpus-v1. They carry two contaminations: evidence-path contamination (the 
 routes are already exposed) and assurance-record contamination (the verification history now knows where the failures
 were found). Reconstructing both would cost more than rebuilding a fresh corpus.
 
-## Part C — fix states, verifier identity, and assurance staleness (five-state rule)
-The ladder is `REPORTED` -> `LANDED` -> `INTERNALLY_VERIFIED` -> `INDEPENDENTLY_VERIFIED` -> `GENERALIZED`; controls may
-also remain `SPECIFIED`. The bare string `VERIFIED` is not a legal schema state. "Verified by another agent in the same
-development environment" and "verified by an external auditor against served bytes" are materially different claims, so
-today's legacy `VERIFIED` entries migrate only to `INTERNALLY_VERIFIED`. No entry is `INDEPENDENTLY_VERIFIED` after the
-migration; the external auditor has not yet confirmed anything.
+## Part C — fix states, verifier identity, and computed freshness (orthogonal fields)
+Independence and generalisation are different dimensions; a single ordinal state cannot express them honestly. Putting
+"generalised" above "independently checked" lets a reader infer external independence from an internal corpus sweep, so
+the representation becomes stronger than the property. The schema is therefore four orthogonal fields:
+- `implementation`: `REPORTED` or `LANDED`; controls may remain `SPECIFIED`.
+- `verification`: `NONE`, `INTERNAL`, or `INDEPENDENT`.
+- `scope`: `INSTANCE`, `REGRESSION_SET`, `CORPUS`, or `HELD_OUT`.
+- freshness: `CURRENT` or `STALE`, computed from the seal and never stored as authority.
 
-Every claim carries `verified_by: {identity, kind}` and every verification object binds claim id, verifier identity and
-kind, evidence id (`path` + `sha256`), architecture identity at verification, method, scope, UTC time, and commit. The
-scope is the list of repo paths or components the verified property depends on; the object also records the current git
-blob SHA for each scoped file. If any scoped blob changes, the assurance is stale: `harness.fixstate.check()` refuses the
-entry while it remains `INTERNALLY_VERIFIED` or `INDEPENDENTLY_VERIFIED`. The mechanical fallback is
-`python -m harness.fixstate --refresh-stale`, which moves the stale entry back to `LANDED` and appends history entries
-with `reason: "assurance stale: <path> changed"`.
+A claim reads, for example, `LANDED / INDEPENDENT / INSTANCE / CURRENT` or
+`LANDED / INTERNAL / CORPUS / CURRENT`; none implies another. `SPECIFIED` is legal only for controls. A served pooled
+number is a claim too, so result entries are tracked alongside fixes and controls.
+
+Every claim carries `verified_by: {identity, kind}`, a `verifications` list, and a `seal`. Each verification object binds
+claim id, verifier identity and kind, evidence (`path`, `url`, or `external_record`, with `sha256` when applicable),
+architecture identity at verification, method, `scope_paths`, UTC time, and commit. The seal records the repo-path
+dependencies and configuration the assertion rests on. `harness.fixstate.freshness(entry, root)` recomputes git blob
+SHAs from the working tree and returns `CURRENT` only when every sealed dependency matches; otherwise it returns `STALE`
+with the moved paths. Staleness is a fact, not a refusal. The checker refuses a stored `freshness` key and refuses
+`INTERNAL` or `INDEPENDENT` verification with an empty seal.
+
+The external auditor has verified one new independent fact only: GitHub workflow-failure notification emails held by the
+auditor show that `scripts/verify_all.py` is executable and currently refuses commits. That claim is
+`LANDED / INDEPENDENT / INSTANCE`; its evidence is the failed `verify` workflow run ids recorded in
+`registry/fixes.json`. The deployment chain and the 109053ad pre-fix record stay at their current verification level;
+the email evidence does not upgrade those adjacent claims.
 
 This records the defect family explicitly: an assurance claim accepted from the representation of the property rather
 than from the property itself. Benchmark leakage, held-out blinding, deployment authority, and the twelve phantom fixes
-are instances of one failure mode.
-
-`GENERALIZED` keeps its prior meaning: the fix holds on material it was not authored against, with `generalized_on`
-disjoint from `authored_against`. Commit messages carry no authority over fix state. Current states are generated into
+are instances of one failure mode. Commit messages carry no authority over fix state. Current states are generated into
 each matching evidence README under `docs/evidence/`, and `docs/fix_ledger.json` is a generated view of
 `registry/fixes.json`.
 

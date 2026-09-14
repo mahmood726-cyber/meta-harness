@@ -1,6 +1,6 @@
 Re-demonstrated by: Codex (GPT-5), lane G, fresh clone at f156f89bc51df314b618e7df7ebc90af7768d351, 2026-09-14T17:44:14Z. Not the author of the fixes.
 
-**Fix state (five-state rule): INTERNALLY_VERIFIED** - Applied lane R proposed transition as internal verification; external auditor has not yet confirmed anything.
+**Fix state (orthogonal fields rule): LANDED / INTERNAL / INSTANCE / CURRENT** - generated from TRANCHE-architecture-identity; verified by Codex lane R (non-author) (internal_agent); evidence: docs/evidence/independent-verification-2-2026-09-14/07-architecture-identity.txt, docs/evidence/independent-verification-2-2026-09-14/README.md
 
 | claim | file | VERDICT |
 |---|---|---|

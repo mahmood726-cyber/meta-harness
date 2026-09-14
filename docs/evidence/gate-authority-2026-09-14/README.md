@@ -3,7 +3,7 @@
 **Arriving cold?** Read `VERIFY-COLD.md` first: it gives the anonymous API calls and expected values that confirm the
 central finding (109053ad: verify failed, Pages deployed) without any narration from us.
 
-**Fix state (five-state rule): LANDED** - assurance stale: docs/evidence/gate-authority-2026-09-14/08-prefix-hook-lets-failing-test-through.txt changed
+**Fix state (orthogonal fields rule): LANDED / INTERNAL / INSTANCE / STALE** - generated from TRANCHE-gate-authority; verified by Codex lane G (internal_agent); evidence: docs/evidence/independent-verification-2026-09-14/01-legacy-pages-red-verify.txt, docs/evidence/independent-verification-2026-09-14/02-deploy-conditional.txt, docs/evidence/independent-verification-2026-09-14/06-evidence-served-as-committed.txt; stale dependencies: docs/evidence/gate-authority-2026-09-14/05-ruleset-created.txt, docs/evidence/gate-authority-2026-09-14/08-prefix-hook-lets-failing-test-through.txt, scripts/verify_all.py
 
 Every limb was shown to REFUSE before it was relied on, and shown to PASS on the clean case. Files are
 raw captures (API read-backs, push transcripts, CI ledgers), not summaries.

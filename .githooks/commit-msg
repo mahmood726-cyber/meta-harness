@@ -10,6 +10,15 @@ command -v "$PY" >/dev/null 2>&1 || { echo "GATE: 'python' not found - refusing 
 [ -f "$1" ] || { echo "GATE: commit message file missing - refusing (fail closed)"; exit 1; }
 [ -f harness/heldout.py ] || { echo "GATE: harness/heldout.py missing - refusing (fail closed)"; exit 1; }
 
+if grep -E '(^|[^A-Z_])(INTERNALLY_VERIFIED|INDEPENDENTLY_VERIFIED|GENERALIZED|VERIFIED)([^A-Z_]|$)' "$1" >/dev/null 2>&1; then
+  echo "GATE: old fix-state ladder word in commit message - refusing"
+  exit 1
+fi
+if grep -E '(^|[[:space:]])(status|statuses|fix_state)[[:space:]]*:' "$1" >/dev/null 2>&1; then
+  echo "GATE: commit messages carry no fix-state authority - refusing"
+  exit 1
+fi
+
 OUT="$("$PY" -m harness.heldout --message "$1" 2>&1)"
 RC=$?
 [ -z "$OUT" ] || printf '%s\n' "$OUT"

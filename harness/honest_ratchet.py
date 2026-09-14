@@ -176,11 +176,25 @@ def compare_blocks(
     """Refuse absent/banner blocks that vanished without a reviewed replacement acknowledgement."""
     new_shas = {block["sha256"] for block in new_blocks}
     entries = _ack_entries(acknowledgements)
+    # A base several commits back can skip intermediate replacements (A -> B acknowledged, B -> C
+    # acknowledged, only C on the page). Follow the reviewed chain transitively: a replacement is
+    # acceptable if it is on the page or is itself the lost sha of another reviewed acknowledgement
+    # for the same page whose chain ends on the page. Every link is still a signed acknowledgement.
+    reachable = set(new_shas)
+    changed = True
+    while changed:
+        changed = False
+        for entry in entries:
+            if entry.get("page") == page and entry.get("replaced_by_sha256") in reachable \
+                    and isinstance(entry.get("lost_sha256"), str) and entry["lost_sha256"] not in reachable \
+                    and all(isinstance(entry.get(k), str) and entry.get(k).strip() for k in ("reason", "when_utc", "by")):
+                reachable.add(entry["lost_sha256"])
+                changed = True
     out = []
     for block in base_blocks:
         if block["sha256"] in new_shas:
             continue
-        if any(_valid_ack(entry, block, new_shas, page) for entry in entries):
+        if any(_valid_ack(entry, block, reachable, page) for entry in entries):
             continue
         prefix = block["text"][:120]
         out.append(f"lost {block['cls']} block {block['sha256']}: {prefix}")

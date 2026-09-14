@@ -192,10 +192,26 @@ def limb_fixstate():
     if not ok:
         return REFUSED, _append_target(target_line, "\n".join(reasons))
     registry = fixstate.load(ROOT)
-    counts = {}
+    impl = {}
+    verification = {}
+    scope = {}
+    freshness = {}
     for entry in fixstate.entries(registry):
-        counts[entry["status"]] = counts.get(entry["status"], 0) + 1
-    detail = ", ".join(f"{status}={counts.get(status, 0)}" for status in fixstate.STATUSES)
+        impl[entry["implementation"]] = impl.get(entry["implementation"], 0) + 1
+        verification[entry["verification"]] = verification.get(entry["verification"], 0) + 1
+        scope[entry["scope"]] = scope.get(entry["scope"], 0) + 1
+        state = fixstate.freshness_state(entry, ROOT)
+        freshness[state] = freshness.get(state, 0) + 1
+    detail = (
+        "implementation "
+        + ", ".join(f"{value}={impl.get(value, 0)}" for value in fixstate.CONTROL_IMPLEMENTATIONS)
+        + "; verification "
+        + ", ".join(f"{value}={verification.get(value, 0)}" for value in fixstate.VERIFICATIONS)
+        + "; scope "
+        + ", ".join(f"{value}={scope.get(value, 0)}" for value in fixstate.SCOPES)
+        + "; freshness "
+        + ", ".join(f"{value}={freshness.get(value, 0)}" for value in fixstate.FRESHNESS)
+    )
     return PASS, _append_target(target_line, f"registry/fixes.json object store, generated views, and transitions pass ({detail})")
 
 
@@ -238,6 +254,12 @@ def limb_gate_scorecard():
     return REFUSED, _append_target(target_line, scorecard_target + "\n" + "\n".join(reasons))
 
 
+def limb_gate_gaps():
+    rc, out = _run([sys.executable, os.path.join("scripts", "render_gate_gaps.py"), "--check"])
+    tail = "\n".join(out.strip().splitlines()[-10:])
+    return (PASS if rc == 0 else REFUSED), tail
+
+
 LIMBS = [
     ("unit tests (pytest tests/)", limb_unit_tests),
     ("offline reproduction (every live page replays from committed cache)", limb_reproduction),
@@ -248,6 +270,7 @@ LIMBS = [
     ("fix-state discipline (registry/fixes.json)", limb_fixstate),
     ("honest-state ratchet (no page may get quieter)", limb_honest_ratchet),
     ("gate scorecard (every gate accounted for)", limb_gate_scorecard),
+    ("gate gaps table (sealed what-it-would-not-stop rows)", limb_gate_gaps),
 ]
 
 

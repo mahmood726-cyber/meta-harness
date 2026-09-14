@@ -1,6 +1,6 @@
 # Target assertion 2026-09-14
 
-**Fix state (five-state rule): LANDED** - every listed check names its target or refuses.
+**Fix state (orthogonal fields rule): LANDED / NONE / INSTANCE / CURRENT** - generated from TRANCHE-target-assertion
 
 Finding closed: a check that does not print the commit, tree state, and file/URL set it examined can be mistaken for a check run against the intended target. The lane adds a shared `TARGET` line to every touched check and makes unresolved refs or unnamed file sets stop as `COULD-NOT-EXECUTE`.
 

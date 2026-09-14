@@ -1,6 +1,6 @@
 # Acquisition layer - retrieval ledger, four run states, pagination, concept source, regression-corpus recall (2026-09-14)
 
-**Fix state (five-state rule): INTERNALLY_VERIFIED** - Prefix defect and absence at HEAD re-demonstrated
+**Fix state (orthogonal fields rule): LANDED / INTERNAL / INSTANCE / CURRENT** - generated from TRANCHE-acquisition-layer; verified by Codex lane G (internal_agent); evidence: docs/evidence/independent-verification-2026-09-14/10-acquisition-prefix-defect.txt
 
 | file | what it is |
 |---|---|

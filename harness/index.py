@@ -1170,7 +1170,7 @@ def build_index(docs_dir: str) -> str:
                  "<a href='evidence/gate-authority-2026-09-14/01-prefix-deploy-unconditional.txt.html'>the 109053ad capture "
                  "(HTML rendering)</a> or its <a href='evidence/gate-authority-2026-09-14/01-prefix-deploy-unconditional.txt'>raw file</a>, "
                  "and <a href='evidence/gate-authority-2026-09-14/VERIFY-COLD.md.html'>how to verify it without us</a>. "
-                 "The five-state fix ledger for every claim is in <a href='fix_ledger.json'>fix_ledger.json</a>; the gate scorecard in "
+                 "The orthogonal fix ledger for every claim is in <a href='fix_ledger.json'>fix_ledger.json</a>; the gate scorecard in "
                  "<a href='gate_scorecard.json'>gate_scorecard.json</a>; the per-file digests of this deployment in "
                  "<a href='_production/manifest.json'>_production/manifest.json</a>.</p></div>")
     body = (_evidence + _thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)

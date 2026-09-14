@@ -1,6 +1,6 @@
 # Fix Ladder Evidence - 2026-09-14
 
-**Fix state (five-state rule): LANDED** - assurance stale: tests/test_fixstate.py changed
+**Fix state (orthogonal fields rule): LANDED / INTERNAL / INSTANCE / STALE** - generated from TRANCHE-fix-state-ladder; verified by Codex lane R (non-author) (internal_agent); evidence: docs/evidence/independent-verification-2-2026-09-14/01-fix-state-object-transitions.txt, docs/evidence/independent-verification-2-2026-09-14/README.md; stale dependencies: harness/fixstate.py, scripts/render_fix_ledger.py, tests/test_fixstate.py
 
 | Entry # | Class | Proposed fix_state | File |
 |---:|---|---|---|
