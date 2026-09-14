@@ -1,7 +1,7 @@
 {
  "_doc": "Recovery pipeline instrument. Every recovery ATTEMPT is recorded with its outcome, earned one trial at a time by fetch -> source-verify -> extract -> round-trip -> rebuild. This REPLACES the forward-scan vocabulary metric (which over-counted: a forward scan cannot tell a genuine synonym gap from by-design composite-specificity). BLOCKED_BY_MATCHER entries, each carrying the exact source string vs the exact registered keyword, ARE the vocabulary measurement -- zero false positives, evidence not guesswork. Outcomes: RECOVERED | REFUSED_ON_SOURCE | BLOCKED_BY_MATCHER | BLOCKED_BY_ACCESS | NOT_FOUND | SCOPE_PENDING.",
  "scoreboard": {
-  "attempted": 14,
+  "attempted": 15,
   "recovered": 5,
   "tightened": 2,
   "cost_significance": 1,
@@ -9,10 +9,11 @@
   "refused_on_source": 3,
   "scope_pending": 2,
   "blocked_by_matcher_resolved": 1,
-  "note": "corrections are NOT systematically flattering: of 5 recoveries, 2 tightened and 3 weakened (1 lost significance, 2 moved toward null); 2 refused on source; 1 held on scope. This is the harness getting more honest as the evidence base completes. [+TECOS BLOCKED_BY_ACCESS: abstract 4-point != topic 3-point MACE; 3-point is a paywalled full-text secondary, unverifiable] [+41663239 REFUSED (pediatric, not mortality); +REMAP-CAP SCOPE_PENDING (90-day vs 30-day/in-hospital + influenza)] [+3 BLOCKED_BY_MATCHER (colchicine-postop COCS/Farzaneh X2 population \"atrial fibrillation\" vs cardiac-surgery/arrhythmia titles; Zarpelon X3 comparator \"control\") -- the earned vocabulary measurement, exact strings recorded; screening-vocab fix deferred to a careful before/after per the ELIXA lesson, not fatigue]",
+  "note": "corrections are NOT systematically flattering: of 5 recoveries, 2 tightened and 3 weakened (1 lost significance, 2 moved toward null); 2 refused on source; 1 held on scope. This is the harness getting more honest as the evidence base completes. [+TECOS BLOCKED_BY_ACCESS: abstract 4-point != topic 3-point MACE; 3-point is a paywalled full-text secondary, unverifiable] [+41663239 REFUSED (pediatric, not mortality); +REMAP-CAP SCOPE_PENDING (90-day vs 30-day/in-hospital + influenza)] [+3 BLOCKED_BY_MATCHER (colchicine-postop COCS/Farzaneh X2 population \"atrial fibrillation\" vs cardiac-surgery/arrhythmia titles; Zarpelon X3 comparator \"control\") -- the earned vocabulary measurement, exact strings recorded; screening-vocab fix deferred to a careful before/after per the ELIXA lesson, not fatigue] [+DIAMOND OUT_OF_SCOPE: dapagliflozin proteinuria crossover, not HFrEF -- correctly excluded; test-set entry corrected]",
   "blocked_by_access": 1,
   "refusals_outnumber_recoveries": "6 not-integrated of 11 attempted > 5 recovered -- a pipeline that only ever adds evidence is indistinguishable from one that adds anything it can parse",
-  "blocked_by_matcher": 3
+  "blocked_by_matcher": 3,
+  "out_of_scope": 1
  },
  "attempts": [
   {
@@ -136,6 +137,13 @@
    "source_string": "control group",
    "registered_keyword": "comparator_any = [placebo, usual care, standard, no colchicine, no-colchicine] (lacks \"control\")",
    "note": "eligible colchicine-vs-control POAF trial (title HAS atrial fibrillation) excluded because \"control\" is not a registered comparator term"
+  },
+  {
+   "trial": "DIAMOND",
+   "pmid": "NCT03190694",
+   "topic": "sglt2-hfref-hosp-cvdeath",
+   "status": "OUT_OF_SCOPE",
+   "note": "CT.gov-verified: dapagliflozin vs placebo in NON-DIABETIC PROTEINURIA/CKD, 6-week crossover, phase 2, n=53, primary outcome 24-hr proteinuria -- NOT HFrEF, not hospitalization/CV death. The sglt2-hfref matcher correctly EXCLUDES it; the test set mislabeled it an eligible miss. Correct non-recovery."
   }
  ],
  "audit_overclaim_caught_at_source": {
