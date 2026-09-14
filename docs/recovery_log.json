@@ -1,20 +1,21 @@
 {
  "_doc": "Recovery pipeline instrument. Every recovery ATTEMPT is recorded with its outcome, earned one trial at a time by fetch -> source-verify -> extract -> round-trip -> rebuild. This REPLACES the forward-scan vocabulary metric (which over-counted: a forward scan cannot tell a genuine synonym gap from by-design composite-specificity). BLOCKED_BY_MATCHER entries, each carrying the exact source string vs the exact registered keyword, ARE the vocabulary measurement -- zero false positives, evidence not guesswork. Outcomes: RECOVERED | REFUSED_ON_SOURCE | BLOCKED_BY_MATCHER | BLOCKED_BY_ACCESS | NOT_FOUND | SCOPE_PENDING.",
  "scoreboard": {
-  "attempted": 16,
+  "attempted": 19,
   "recovered": 5,
   "tightened": 2,
   "cost_significance": 1,
   "toward_null_stayed_nonsig": 2,
   "refused_on_source": 3,
-  "scope_pending": 2,
+  "scope_pending": 4,
   "blocked_by_matcher_resolved": 1,
   "note": "corrections are NOT systematically flattering: of 5 recoveries, 2 tightened and 3 weakened (1 lost significance, 2 moved toward null); 2 refused on source; 1 held on scope. This is the harness getting more honest as the evidence base completes. [+TECOS BLOCKED_BY_ACCESS: abstract 4-point != topic 3-point MACE; 3-point is a paywalled full-text secondary, unverifiable] [+41663239 REFUSED (pediatric, not mortality); +REMAP-CAP SCOPE_PENDING (90-day vs 30-day/in-hospital + influenza)] [+3 BLOCKED_BY_MATCHER (colchicine-postop COCS/Farzaneh X2 population \"atrial fibrillation\" vs cardiac-surgery/arrhythmia titles; Zarpelon X3 comparator \"control\") -- the earned vocabulary measurement, exact strings recorded; screening-vocab fix deferred to a careful before/after per the ELIXA lesson, not fatigue] [+DIAMOND OUT_OF_SCOPE: dapagliflozin proteinuria crossover, not HFrEF -- correctly excluded; test-set entry corrected] [+Udelson OUT_OF_SCOPE: eplerenone remodeling trial mis-filed under sacubitril-valsartan -- 3rd test-set error; the test set itself is unreliable, which is why recall is computed only against SOURCE_VERIFIED_ELIGIBLE]",
   "blocked_by_access": 1,
   "refusals_outnumber_recoveries": "6 not-integrated of 11 attempted > 5 recovered -- a pipeline that only ever adds evidence is indistinguishable from one that adds anything it can parse",
   "blocked_by_matcher": 3,
   "out_of_scope": 2,
-  "test_set_errors_found": 3
+  "test_set_errors_found": 4,
+  "not_found": 1
  },
  "attempts": [
   {
@@ -153,6 +154,27 @@
    "topic": "sacubitril-valsartan-hfref",
    "status": "OUT_OF_SCOPE",
    "note": "PubMed-verified (DOI 10.1161/CIRCHEARTFAILURE.109.906909): EPLERENONE vs placebo on LV REMODELING (end-diastolic volume index) in mild-moderate HF, n=226 -- wrong intervention (not sacubitril/valsartan) AND wrong outcome (echo remodeling, not mortality/hosp). Mis-filed under sacubitril-valsartan in the test set. Third test-set error (after DIAMOND out-of-scope and REMAP-CAP mis-filed)."
+  },
+  {
+   "trial": "ZODIAC",
+   "pmid": "(none given)",
+   "topic": "sglt2-hfref-hosp-cvdeath",
+   "status": "NOT_FOUND",
+   "note": "no identifiable sglt2-HFrEF RCT named ZODIAC; the well-known ZODIAC is the Zwolle OBSERVATIONAL outpatient-diabetes cohort (not an RCT). PubMed search surfaces EMPEROR-Reduced etc., no ZODIAC trial. Likely a 4th test-set error (observational/non-existent RCT). Recorded NOT_FOUND pending an identifier; not eligible as stated."
+  },
+  {
+   "trial": "Toblli 2007",
+   "pmid": "17950147",
+   "topic": "iv-iron-hfref-hosp",
+   "status": "SCOPE_PENDING",
+   "note": "verified IV iron vs placebo, anemic chronic HF, but PRIMARY is NT-proBNP/CRP + functional parameters, NOT HF hospitalization. Contributes (if at all) to the participant-level strand of the deferred iv-iron 3-strand build, not the hospitalization pool. iv-iron deferred."
+  },
+  {
+   "trial": "IRON-HF",
+   "pmid": "23680589",
+   "topic": "iv-iron-hfref-hosp",
+   "status": "SCOPE_PENDING",
+   "note": "verified IV iron in anemic HF, small functional trial (peak VO2 class); PRIMARY not HF hospitalization. Deferred to the iv-iron 3-strand build."
   }
  ],
  "audit_overclaim_caught_at_source": {
