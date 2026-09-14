@@ -191,7 +191,7 @@ def test_commit_scan_inert_until_enforced_since_is_set():
 def test_check_ledgers_reports_missing_readme_line_and_missing_fix_state():
     with tempfile.TemporaryDirectory(prefix="fixstate-ledger-", dir=ROOT) as raw:
         root = Path(raw)
-        _write(root, "evidence/no-state/README.md", "# Evidence\n")
+        _write(root, "docs/evidence/no-state/README.md", "# Evidence\n")
         _write(root, "docs/fix_ledger.json", json.dumps({"fixes": [{"class": "x"}]}))
 
         reasons = fixstate.check_ledgers(root)

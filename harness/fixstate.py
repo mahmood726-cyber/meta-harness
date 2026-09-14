@@ -230,7 +230,7 @@ def check_ledgers(root) -> list[str]:
     root = _root_path(root)
     reasons: list[str] = []
 
-    for path in sorted(glob.glob(os.path.join(root, "evidence", "*", "README.md"))):
+    for path in sorted(glob.glob(os.path.join(root, "docs", "evidence", "*", "README.md"))):
         try:
             text = open(path, encoding="utf-8").read()
         except OSError as exc:
