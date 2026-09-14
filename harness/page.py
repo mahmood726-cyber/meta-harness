@@ -13,6 +13,7 @@ which page is the harness's). Both the harness page and the comparator benchmark
 rendered by this same function so a judge cannot tell them apart by structure.
 """
 from __future__ import annotations
+import collections
 import html
 import json
 import re
@@ -70,11 +71,26 @@ def _absent_block(reason: str) -> str:
     return f'<div class="absent"><strong>DECLARED ABSENT.</strong> {_e(reason)}</div>'
 
 
-def _absent_label(reason) -> str:
-    """External audit (C-EXTRACT-1): do NOT say "absent" when only the abstract was checked — the
-    outcome may exist in the full text. Classify the per-trial reason: a genuine exclusion (wrong
-    population/composite/estimand) stays "excluded"; an abstract-only miss is labelled "not extracted
-    (abstract only; full text not retrieved)" so it is not read as evidence the outcome does not exist."""
+# ABSENCE-STATE ONTOLOGY (external audit, STATE root system): the per-trial `state` set in the pipeline
+# is the authority for how a declared-absent trial is labelled — a machine-checkable field, not a guess
+# off the reason string. Only NO_OUTCOME_DATA_IN_SOURCE licenses the strong "declared absent" claim (a
+# statement about the TRIAL). The other states are statements about US (extraction/retrieval) or a
+# deliberate refusal of a number that WAS found — none is evidence the outcome does not exist.
+_ABSENCE_STATE_LABEL = {
+    "NO_OUTCOME_DATA_IN_SOURCE": "declared absent — no outcome data in the retrieved source",
+    "EXTRACTION_NOT_PERFORMED": "not extracted — the outcome's number IS in the source (extraction gap, not trial absence)",
+    "SOURCE_NOT_RETRIEVED": "not established — abstract only; full text not retrieved, so absence in the trial is unproven",
+    "REFUSED_ON_EVIDENCE": "excluded on evidence — a number was found and deliberately not pooled (see reason)",
+}
+
+
+def _absent_label(reason, state=None) -> str:
+    """Label a declared-absent trial. Prefer the explicit ontology `state` (machine-set in the pipeline);
+    fall back to the legacy reason heuristic only for objects that predate the state field. External
+    audit (C-EXTRACT-1): do NOT say "absent" when only the abstract was checked — the outcome may exist
+    in the full text; and NEVER read a machine extraction-gap as evidence the trial lacks the outcome."""
+    if state and state in _ABSENCE_STATE_LABEL:
+        return _ABSENCE_STATE_LABEL[state]
     rl = (reason or "").lower()
     if any(w in rl for w in ("exclud", "wrong ", "estimand", "non-cardiac", "population", "per-protocol",
                              "per protocol", "completers", "different composite", "first-attack")):
@@ -575,7 +591,7 @@ def _trial_inputs(o):
         rows.append(f"<tr><td>{_e(t.get('label'))}</td><td>{_e(t.get('id'))}</td>"
                     f"<td>{inp}</td><td>{src}</td></tr>")
     absent = "".join(f"<tr><td>{_e(t.get('label'))}</td><td>{_e(t.get('id'))}</td>"
-                     f"<td class='absent-cell'>{_e(_absent_label(t.get('reason')))}</td><td>{_e(t.get('reason'))}</td></tr>"
+                     f"<td class='absent-cell'>{_e(_absent_label(t.get('reason'), t.get('state')))}</td><td>{_e(t.get('reason'))}</td></tr>"
                      for t in o.get("declared_absent_trials", []) or [])
     return ("<table class='arms'><tr><th>Trial</th><th>Id</th><th>Input</th><th>Source</th></tr>"
             + rows_join(rows) + absent + "</table>")
@@ -693,13 +709,19 @@ def _outcome_block(o, show_inputs=True):
     n_abs = len(o.get("declared_absent_trials") or [])
     if show_inputs and (n_pool or n_abs):
         if n_abs and n_pool:
+            _states = collections.Counter((t.get("state") or "") for t in (o.get("declared_absent_trials") or []))
+            _nd = _states.get("NO_OUTCOME_DATA_IN_SOURCE", 0)
             body += (f"<p class='note'>k = {n_pool}: the {n_pool} trial(s) named below were "
                      f"pooled; {n_abs} further screened-in trial(s) had no poolable value for this "
-                     f"outcome <em>in the abstract</em> and are listed below. Most are marked "
-                     f"<em>not extracted — abstract only, full text not retrieved</em>: that is an "
-                     f"extraction limit, NOT evidence the outcome is absent from the trial. A full-text "
-                     f"retrieval pass is the fix (in progress); genuine exclusions are labelled "
-                     f"<em>excluded</em> with their reason.</p>")
+                     f"outcome and are listed below with an explicit <em>absence state</em>. These are "
+                     f"four different things and only one is a claim about the trial: "
+                     f"<em>no outcome data in source</em> (the full text was retrieved and is silent — the "
+                     f"only state that means the trial itself lacks the outcome; {_nd} here) vs. "
+                     f"<em>not extracted</em> (the number IS in the retrieved source — an extraction gap, "
+                     f"about us, not the trial), <em>abstract only, full text not retrieved</em> (absence "
+                     f"in the trial is unproven), and <em>excluded on evidence</em> (a number was found and "
+                     f"deliberately not pooled — see reason). An unassessed outcome never counts as "
+                     f"favourable to the intervention.</p>")
         body += _trial_inputs(o)
     return body
 

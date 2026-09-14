@@ -13,6 +13,7 @@ from . import claim as claim_mod
 from . import invalidation as invalidation_mod
 from . import compat as compat_mod
 from . import recovery_recheck as recovery_recheck_mod
+from . import absence as absence_mod
 from . import protocol_compiler as protocol_compiler_mod
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool, method_text, METHOD_RATIO
@@ -455,7 +456,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         _abs_over = (verified_effects or {}).get(d["id"]) or (verified_arms or {}).get(d["id"])
         if (_abs_over and _abs_over.get("override") and _abs_over.get("absent")
                 and _abs_over.get("outcome") == spec.get("name")):
-            absent.append({"label": label, "id": idstr,
+            absent.append({"label": label, "id": idstr, "absent_kind": "adjudicated_absent",
+                           "state": _abs_over.get("state"),  # override may pin the ontology state; else defaulted below
                            "reason": _abs_over.get("reason", "declared absent (override): the committed source "
                                      "reports no value for this outcome; the extracted number was a different endpoint")})
             continue
@@ -501,7 +503,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                    or extract.population_mismatch(ex.get("source", ""))
                    or extract.timepoint_mismatch(spec.get("timepoint", ""), ex.get("source", "")))
             if _mm:
-                absent.append({"label": label, "id": idstr, "reason": _mm})
+                absent.append({"label": label, "id": idstr, "absent_kind": "refused_on_evidence", "reason": _mm})
                 continue
             ex["provenance"] = "abstract"
             t = {"label": label, "id": idstr, **ex}
@@ -567,7 +569,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "scale": ve.get("scale", "HR"), "provenance": "fulltext_verified",
                            "source": ve.get("source", "full-text-verified effect+CI")})
             continue
-        absent.append({"label": label, "id": idstr, "reason": ex["reason"]})
+        absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
     # ESTIMAND-CONSISTENCY GUARD (continuous topics): a mean-difference topic must pool ONLY continuous
     # per-arm mean/SD data. If the source hierarchy fell through to a COUNT/proportion or a ratio effect
     # for a trial (e.g. a multi-arm trial whose continuous MADRS was refused, then a "% with >=50% response"
@@ -579,7 +581,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             if t.get("mean1") is not None:
                 kept.append(t)
             else:
-                absent.append({"label": t["label"], "id": t["id"],
+                absent.append({"label": t["label"], "id": t["id"], "absent_kind": "refused_on_evidence",
                                "reason": ("estimand mismatch: this is a mean-difference (continuous) topic, "
                                           "but the only extractable value for this trial was a count/proportion "
                                           "or a ratio effect (not a per-arm mean/SD) — declared absent rather "
@@ -600,7 +602,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         for t in trials:
             tw = t.get("timeframe_weeks")
             if tw is not None and abs(tw - tp) > tol:
-                absent.append({"label": t["label"], "id": t["id"],
+                absent.append({"label": t["label"], "id": t["id"], "absent_kind": "refused_on_evidence",
                                "reason": (f"timepoint mismatch: the pre-registered primary timepoint is "
                                           f"Week {tp}, but this trial's source reports the outcome at "
                                           f"Week {tw:g} ({t.get('timeframe','')}) — declared absent rather "
@@ -617,7 +619,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             pid = str(t.get("id", "")).replace("PMID ", "")
             j = locate.rejects(locate_judgments, pid, spec["name"])
             if j:
-                absent.append({"label": t["label"], "id": t["id"],
+                absent.append({"label": t["label"], "id": t["id"], "absent_kind": "refused_on_evidence",
                                "reason": (f"model outcome-identity gate (model-derived) — {j.get('reject_reason','')}: "
                                           + j.get("why", "")),
                                "locate_judgment": j})
@@ -1024,6 +1026,47 @@ def build_review_core(slug, config, records, protocol_sha):
             _disc = recovery_recheck_mod.disclosure(_rr)
             if _disc:
                 _o["recovery_disclosure"] = _disc
+    # ABSENCE-STATE ONTOLOGY (external audit, STATE root system): "declared absent" conflated four
+    # epistemically different things and let a page assert "no harms recorded" while the source in fact
+    # reports the harm (dpp4 SAVOR HF-hospitalisation 1.27; REWIND GI 2347/4949). Attach a per-trial
+    # `state` to every declared-absent entry so the strong DECLARED_ABSENT claim (a statement about the
+    # TRIAL) is reserved for NO_OUTCOME_DATA_IN_SOURCE, and a machine failure to extract a number that
+    # IS in the source reads as EXTRACTION_NOT_PERFORMED (a statement about US). Only the machine-absent
+    # kind is classified from the source; a deliberate refusal (estimand/timepoint/identity mismatch)
+    # kept its number and is REFUSED_ON_EVIDENCE — never an assertion the outcome is absent from the
+    # trial. `UNASSESSED NEVER COUNTS AS FAVOURABLE`.
+    _kw_by_name = {sp.get("name"): sp.get("keywords") for sp, _ in _outcome_specs(config)}
+    for _o in review.get("outcomes", []):
+        _kws = _kw_by_name.get(_o.get("name")) or []
+        for _t in (_o.get("declared_absent_trials") or []):
+            _kind = _t.get("absent_kind")
+            if _kind == "refused_on_evidence":
+                _t["state"] = "REFUSED_ON_EVIDENCE"
+                _t["state_basis"] = ("a number for this outcome WAS extracted from the source and then "
+                                     "deliberately not pooled (see reason); this is NOT a claim the trial "
+                                     "lacks the outcome")
+                continue
+            if _kind == "adjudicated_absent":
+                _t.setdefault("state", None)
+                if not _t.get("state"):
+                    _t["state"] = "NO_OUTCOME_DATA_IN_SOURCE"
+                    _t["state_basis"] = ("human-adjudicated against the committed source: it reports no value "
+                                         "for THIS outcome")
+                else:
+                    _t.setdefault("state_basis", "human-adjudicated override")
+                continue
+            # machine_absent (or legacy entries with no kind): classify from the source we actually hold.
+            _pid = str(_t.get("id", "")).replace("PMID ", "")
+            _ab = (rec_by_id.get(_pid) or {}).get("abstract", "")
+            _ftp = os.path.join(ROOT, "cache", slug, f"ft_{_pid}.txt")
+            _ft = None
+            if os.path.exists(_ftp):
+                try:
+                    _ft = open(_ftp, encoding="utf-8").read()
+                except OSError:
+                    _ft = None
+            _st, _basis = absence_mod.classify(_kws, _ab, _ft)
+            _t["state"], _t["state_basis"] = _st, _basis
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config so a divergence (estimand, analysis set, design masking AND/OR) between the registered
     # prose and the machine rules cannot pass -- the tocilizumab self-certification defect (a check
