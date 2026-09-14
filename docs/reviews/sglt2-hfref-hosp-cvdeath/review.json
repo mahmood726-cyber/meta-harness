@@ -2,11 +2,11 @@
   "slug": "sglt2-hfref-hosp-cvdeath",
   "title": "SGLT2 inhibitors vs placebo for cardiovascular death or heart-failure hospitalisation in HFrEF",
   "question": "In adults with heart failure with reduced ejection fraction, do SGLT2 inhibitors reduce the composite of cardiovascular death or hospitalisation for heart failure versus placebo? (Double-blind placebo-controlled RCTs.)",
-  "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+  "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
   "protocol": {
     "sha": "43f5f12e367109bebd37936a8177ef00c6dcf1f6",
     "committed_utc": "2026-09-11",
-    "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+    "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['heart failure', 'HFrEF', 'reduced ejection fraction']; and none of ['preserved ejection fraction', 'HFpEF', 'mildly reduced', 'diabetes', 'diabetic', 'diabete', 'type 2 diabetes', 'chronic kidney disease', 'kidney disease', 'myocardial infarction']; randomised intervention is one of ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'dapagliflozin', 'empagliflozin'] (named in title/conditions); a comparator among ['placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
     "text": "# Protocol - SGLT2 inhibitors for cardiovascular death or heart-failure hospitalisation in HFrEF\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure with reduced ejection fraction (HFrEF).\n- **I** - an SGLT2 inhibitor, specifically dapagliflozin or empagliflozin, added to recommended therapy.\n- **C** - placebo added to recommended therapy.\n- **O (primary)** - composite cardiovascular death or hospitalisation for heart failure.\n- **O (harms)** - volume depletion or hypotension; diabetic ketoacidosis.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR) when arm counts are extractable, or published HR/RR with 95% CI when that is the source-reported poolable input.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / longest randomised follow-up reported for the composite endpoint.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - adult HFrEF / reduced-ejection-fraction heart-failure population, judged from title or registry conditions;\n- **I3** - dapagliflozin or empagliflozin versus placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or post-hoc analysis not indexed as an RCT);\n- **X2** - wrong population (e.g. HFpEF, mildly reduced/preserved EF, diabetes-only, CKD-only, post-MI, or other non-HFrEF population);\n- **X3** - wrong intervention/comparison (no eligible SGLT2-inhibitor-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled in the machine-readable record;\n- **X5** - off-topic: a primary trial of another topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports the composite\n> endpoint, or gives a 2x2 vs only an effect+CI, is recorded as *target-result status* at\n> extraction - never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/search.json; screening replays offline)\n- PubMed: UID-anchored queries for the DAPA-HF and EMPEROR-Reduced primary reports, plus the resolved open-access comparator.\n- ClinicalTrials.gov: condition \"HFrEF\", intervention \"SGLT2 inhibitor\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a study only if\nit has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nLi et al., *ESC Heart Failure* 2022, \"Sodium-glucose cotransporter 2 inhibitors in heart\nfailure with reduced or preserved ejection fraction: a meta-analysis\" (PMID 35112512,\nDOI 10.1002/ehf2.13805; Unpaywall is_oa=true; PMC8934917 available). The comparator's\nLVEF <=40% subgroup reports the assigned HFrEF composite endpoint.\n\n## Controls\n- **Positive** - the search must recover the canonical HFrEF SGLT2 inhibitor trials:\n  DAPA-HF and EMPEROR-Reduced.\n- **Negative** - EMPA-REG OUTCOME (empagliflozin, double-blind, placebo-controlled, but\n  type 2 diabetes rather than HFrEF) must be recovered and EXCLUDED.\n"
   },
@@ -272,7 +272,7 @@
       "estimand": "RR",
       "population": "intention-to-treat",
       "timepoint": "trial end",
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "trials": [
         {
           "label": "31535829",
@@ -394,7 +394,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "trials": [],
       "declared_absent_trials": [
         {
@@ -437,7 +437,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "trials": [],
       "declared_absent_trials": [
         {
@@ -770,7 +770,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "43f5f12e367109bebd37936a8177ef00c6dcf1f6",
-    "review_sha256": "5b8f296c0c934a06aa1890a9ce772318f31c85a54cd316a430e7416e4eb590d1",
+    "review_sha256": "e9293d3db7a07a56b70576b22962701226a11986cb6e6d09086d6b2412bbfa42",
     "from_cache": true,
     "preregistration": {
       "prospective": false,

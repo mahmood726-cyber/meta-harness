@@ -29,14 +29,21 @@ from scipy.stats import norm as _norm, t as _t
 # mean-difference outcome can never again be labelled with the log-ratio method (the melatonin /
 # esketamine / semaglutide-weight defect), and the gate can recompute the expected string
 # independently to catch a mislabel (a check that compares a constant to itself cannot fail).
+# NOTE on the validation claim (external audit, 2026-09-14): the repeated successful reconstructions
+# validated ONE CANONICAL STATISTICAL CODE PATH (this engine, synth.pool), not every pathway capable
+# of rendering pooled results. A pooled result produced outside it (the iv-iron strand builder's own
+# z-interval) was NOT covered by that claim; it was found and removed, and the interval-provenance gate
+# now refuses any rendered CI not stamped by this engine.
+_VALIDATION = ("Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is "
+               "gate-checked to originate here).")
 METHOD_RATIO = ("Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured "
                 "for the outcome); Paule-Mandel tau^2; "
                 "HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); "
-                "prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.")
+                "prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). " + _VALIDATION)
 METHOD_MD = ("Random-effects inverse-variance on the mean difference (raw/additive scale, no log "
              "transform); Paule-Mandel tau^2; "
              "HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); "
-             "prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (measure=MD).")
+             "prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). " + _VALIDATION + " (measure=MD).")
 
 
 def method_text(scale: str) -> str:

@@ -2,11 +2,11 @@
   "slug": "corticosteroids-cap-mortality",
   "title": "Systemic corticosteroids vs placebo or usual care for mortality in hospitalised community-acquired pneumonia",
   "question": "In adults hospitalised with community-acquired pneumonia, do systemic corticosteroids added to standard care reduce all-cause mortality versus placebo or standard care?",
-  "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+  "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
   "protocol": {
     "sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
     "committed_utc": "2026-09-11",
-    "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+    "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['community-acquired pneumonia', 'community acquired pneumonia', 'severe community-acquired pneumonia', 'severe community acquired pneumonia', 'pneumonia, community-acquired']; and none of ['covid', 'sars-cov-2', 'influenza', 'pediatric', 'paediatric', 'children', 'child', 'mycoplasma', 'pneumocystis', 'scrub typhus', 'acute respiratory distress syndrome', 'ards']; randomised intervention is one of ['corticosteroid', 'corticosteroids', 'steroid', 'steroids', 'glucocorticoid', 'glucocorticoids', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone', 'dexamethasone'] (named in title/conditions); a comparator among ['placebo', 'control', 'standard care', 'standard therapy', 'usual care', 'conventional therapy']. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator.",
     "text": "# Protocol - systemic corticosteroids for mortality in hospitalised community-acquired pneumonia\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs.\n\n## PICO\n- **P** - adults hospitalised with community-acquired pneumonia (CAP).\n- **I** - systemic corticosteroids added to standard antimicrobial/supportive care.\n- **C** - placebo, usual care, standard care, or conventional therapy.\n- **O (primary)** - all-cause mortality at 30 days or in hospital.\n- **O (harms)** - hyperglycaemia; gastrointestinal bleeding.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), systemic corticosteroid vs placebo/usual care.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - 30-day mortality preferred; in-hospital mortality accepted when\n  that is the trial's reported short-term mortality window.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **I1** - randomised controlled trial;\n- **I2** - adult hospitalised CAP or severe CAP population by title or registry conditions;\n- **I3** - systemic corticosteroid vs placebo/usual/standard care;\n- **design** - randomised comparison; double-blinding is not required because the\n  target comparator includes placebo or standard-care controls.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational study, protocol-only);\n- **X2** - wrong population (for example COVID-19/SARS-CoV-2 pneumonia, influenza,\n  paediatric CAP, Pneumocystis pneumonia, scrub typhus pneumonitis, or ARDS without\n  CAP as the title/condition population);\n- **X3** - wrong intervention/comparison (no systemic corticosteroid-vs-control contrast);\n- **X5** - off-topic: a primary trial of another topic/disease in this set\n  (negative control).\n\n> Eligibility is NOT on the outcome axis. Whether an included trial reports\n> 30-day or in-hospital all-cause mortality in an abstract-extractable form is\n> recorded as target-result status at extraction, never as an exclusion. A\n> published effect plus 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/corticosteroids-cap-mortality/records.json; screening replays offline)\n- PubMed: targeted corticosteroid x community-acquired pneumonia x randomised\n  placebo/control queries for hydrocortisone, methylprednisolone, prednisone, and\n  dexamethasone trial reports.\n- ClinicalTrials.gov: condition \"community-acquired pneumonia\", intervention\n  \"hydrocortisone\".\n- Comparator-reference seeding is disabled for this topic because the fixed NCT\n  deduplication rule can let later secondary/subgroup reports replace the original\n  trial report. Recall is instead checked with named positive controls.\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells\nof a study only if it has a zero cell. DerSimonian-Laird forbidden. Engine\nvalidated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nWu et al., *Journal of Critical Care* 2024, \"Efficacy and safety of corticosteroids\nfor the treatment of community-acquired pneumonia: A systematic review and\nmeta-analysis of randomized controlled trials\" (PMID 38128217, DOI\n10.1016/j.jcrc.2023.154507; Unpaywall is_oa=true; no direct PubMed Central full\ntext resolved). Its abstract reports 15 RCTs and all-cause mortality RR 0.69\n(95% CI 0.53-0.89).\n\n## Controls\n- **Positive** - the search must recover and include CAPE COD hydrocortisone\n  (PMID 36942789), Torres/JAMA methylprednisolone severe CAP (PMID 25688779),\n  and STEP prednisone CAP (PMID 25608756).\n- **Negative** - RECOVERY dexamethasone for COVID-19 (PMID 32678530) must be\n  recovered and excluded as the wrong population.\n"
   },
@@ -979,7 +979,7 @@
       "estimand": "RR",
       "population": "intention-to-treat",
       "timepoint": "30-day or in-hospital",
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "trials": [
         {
           "label": "36942789",
@@ -1131,7 +1131,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "trials": [
         {
           "label": "25688779",
@@ -1291,7 +1291,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "trials": [],
       "declared_absent_trials": [
         {
@@ -1696,7 +1696,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
-    "review_sha256": "e581f2720b4572c20142c5bf7fd26f84cc0e200f2f1fc2b27b50b86bdbd4298c",
+    "review_sha256": "d1890975335079262e67da8d7db649577cc23beef776af6ed8544e411bd45e17",
     "from_cache": true,
     "preregistration": {
       "prospective": false,

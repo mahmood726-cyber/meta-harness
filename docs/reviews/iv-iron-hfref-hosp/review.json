@@ -2,11 +2,11 @@
   "slug": "iv-iron-hfref-hosp",
   "title": "Intravenous iron vs placebo or standard care for heart-failure hospitalization in HFrEF with iron deficiency",
   "question": "In adults with heart failure with reduced ejection fraction and iron deficiency, does intravenous iron reduce heart-failure hospitalization versus placebo or standard care?",
-  "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+  "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
   "protocol": {
     "sha": "a56039f46158272c40c9565150903cf87db37c3c",
     "committed_utc": "2026-09-11",
-    "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+    "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['heart failure']; and none of ['preserved ejection fraction', 'HFpEF', 'chronic obstructive pulmonary disease', 'COPD', 'pulmonary hypertension', 'dialysis', 'haemodialysis', 'hemodialysis', 'postpartum', 'pregnancy', 'inflammatory bowel disease', 'restless legs']; randomised intervention is one of ['ferric carboxymaltose', 'ferric derisomaltose', 'iron sucrose'] (named in title/conditions); a comparator among ['placebo', 'usual care', 'standard care', 'standard of care', 'control', 'no treatment']. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator.",
     "text": "# Protocol - intravenous iron for heart-failure hospitalization in HFrEF with iron deficiency\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. The protocol is committed before the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure with reduced or mildly reduced ejection fraction and iron deficiency.\n- **I** - intravenous iron, including ferric carboxymaltose, ferric derisomaltose, or iron sucrose.\n- **C** - placebo, usual care, standard care, or no-treatment control.\n- **O (primary)** - heart-failure hospitalization at trial end / longest reported follow-up.\n- **O (harms)** - injection-site/administration-site reactions; hypersensitivity reactions.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), intravenous iron vs placebo/standard care.\n- **Population** - intention-to-treat as randomized.\n- **Timepoint** - trial end / longest reported follow-up.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomized controlled trial;\n- **I2** - population is heart failure with reduced or mildly reduced ejection fraction and iron deficiency;\n- **I3** - intravenous iron vs placebo, usual care, standard care, or no-treatment control;\n- **design** - placebo-controlled or standard-care-controlled RCT; double blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (for example HFpEF, COPD, pulmonary hypertension, dialysis, pregnancy/postpartum, inflammatory bowel disease, or restless legs);\n- **X3** - wrong intervention/comparison (no intravenous iron vs eligible control contrast);\n- **X5** - off-topic: a primary trial of another disease area in this set (negative control).\n\n> Eligibility is NOT on the outcome axis. Whether a trial reports heart-failure\n> hospitalization, or gives a 2x2 vs only an effect+CI, is recorded as target-result\n> status at extraction - never as an exclusion. A published effect + 95% CI is a\n> poolable input. Composite cardiovascular-death/heart-failure-hospitalization effects\n> are not treated as standalone heart-failure hospitalization for the primary outcome.\n\n## Search (fetch-once; raw results committed under cache/iv-iron-hfref-hosp/records.json; screening replays offline)\n- PubMed: targeted primary-report searches for FAIR-HF2, AFFIRM-AHF, and IRONMAN.\n- PubMed comparator-reference seeding: trials cited by the resolved comparator are fetched and screened by the same rules.\n- ClinicalTrials.gov: condition \"heart failure reduced ejection fraction iron deficiency\", intervention \"intravenous iron\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a\nstudy only if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs\nmetafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nParmananda et al., *Diseases* 2024, \"The Efficacy and Safety of Ferric\nCarboxymaltose in Heart Failure with Reduced Ejection Fraction and Iron Deficiency:\nAn Updated Systematic Review and Meta-Analysis of Randomized Controlled Trials\"\n(PMID 39727669, PMC11727542, DOI 10.3390/diseases12120339; Unpaywall is_oa=true).\nIt reports total HF hospitalizations OR 0.59 (95% CI 0.40 to 0.88) over six RCTs,\nplus serious adverse events and qualitative angioedema/hypersensitivity detail.\n\n## Controls\n- **Positive** - the search must recover FAIR-HF2 (PMID 40159390), AFFIRM-AHF\n  (PMID 33197395), and IRONMAN (PMID 36347265).\n- **Negative** - the COPD intravenous-iron RCT (PMID 32565444) must be recovered\n  and EXCLUDED as wrong population.\n"
   },
@@ -385,7 +385,7 @@
       "estimand": "RR",
       "population": "intention-to-treat",
       "timepoint": "trial end / longest reported follow-up",
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "trials": [
         {
           "label": "40159390",
@@ -511,7 +511,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "trials": [],
       "declared_absent_trials": [
         {
@@ -580,7 +580,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1.",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "trials": [],
       "declared_absent_trials": [
         {
@@ -922,7 +922,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "a56039f46158272c40c9565150903cf87db37c3c",
-    "review_sha256": "5f7d75f1dd82034655fe84ef422529697e24d6a897a30e128393fc7e0a2d56fd",
+    "review_sha256": "16385e3bca610504c7b5a3b2ba8a1dcf6fdf588e441124a63b9bd59221e59753",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
