@@ -135,14 +135,59 @@ def _recovery_section(docs_dir: str) -> str:
         + (f" &mdash; {_E(a.get('before'))} &rarr; {_E(a.get('after'))}" if a.get('before') else "")
         + (f" <span class='muted'>{_E(a.get('note'))}</span>" if a.get('note') else "") + "</li>"
         for a in (d.get("attempts") or []))
+    rd = d.get("recall_denominator") or {}
+    recall_line = (f"<p><strong>Baseline unaided search recall: {_E(rd.get('baseline_unaided_recall'))}</strong> "
+                   f"&mdash; against the {_E(rd.get('clean_eligible_denominator'))} source-verified-eligible "
+                   f"missing trials. Every one is a confirmed miss of the current search; this is the honest "
+                   f"zero from which search improvement is measured. Recall is computed ONLY against "
+                   f"source-verified-eligible entries &mdash; the test set itself contained "
+                   f"{_E((sb.get('test_set_errors_found') or 0))} errors, caught by source verification.</p>"
+                   if rd else "")
     return (f"<div class='banner'><h2>Recovery scoreboard &mdash; corrections are not systematically "
-            f"flattering</h2><p><strong>{sb.get('recovered')} recovered of {sb.get('attempted')} "
+            f"flattering</h2>{recall_line}<p><strong>{sb.get('recovered')} recovered of {sb.get('attempted')} "
             f"attempted</strong>: {sb.get('tightened')} tightened, {sb.get('cost_significance')} lost "
             f"significance, {sb.get('toward_null_stayed_nonsig')} moved toward the null; "
             f"{sb.get('refused_on_source')} refused on source, {sb.get('scope_pending')} held on scope. "
             f"Every recovery is source-verified (audit-relayed numbers are not sources); the vocabulary "
             f"blind spot is measured by where a recovery BREAKS, not by a forward scan that over-counts."
             f"<ul>{rows}</ul></p></div>")
+
+
+def _participant_flow_section(docs_dir: str) -> str:
+    """Render docs/participant_flow.json: per-arm participant-flow acquisition for the attrition (D3)
+    risk-of-bias domain. DATA ONLY -- no D3 judgement is assigned yet. The honest number is the
+    coverage cascade: not every pooled trial can even have registry flow, so the denominator is
+    enumerated by kind (no NCT / NCT but no posted results / usable flow), never assumed."""
+    p = os.path.join(docs_dir, "participant_flow.json")
+    if not os.path.exists(p):
+        return ""
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    c = d.get("coverage_cascade") or {}
+    tp = d.get("topic_d3_potential") or {}
+    pooled = c.get("pooled_trials_across_32_topics")
+    nonct = c.get("no_nct__registry_cannot_supply_flow")
+    nores = c.get("has_nct_but_no_ctgov_results_posted")
+    usable = c.get("has_nct_with_usable_participant_flow")
+    if not pooled:
+        return ""
+    return (f"<div class='banner'><h2>Participant-flow acquisition for the attrition domain (D3) "
+            f"&mdash; data landed, judgement pending</h2>"
+            f"<p><strong>Of {pooled} pooled trials across 32 topics: {usable} have usable per-arm "
+            f"participant flow</strong> on ClinicalTrials.gov (started / completed / not-completed with "
+            f"verbatim non-completion reasons). The rest are not a failure to fetch but a boundary of the "
+            f"source: <strong>{nonct} have no NCT at all</strong> (older or non-US trials the registry "
+            f"cannot describe) and <strong>{nores} have an NCT but posted no structured results</strong> "
+            f"to CT.gov. The non-completion REASON is carried verbatim; attrition is never derived from "
+            f"started-minus-completed (the AMPLITUDE-O rule).</p>"
+            f"<p><strong>{tp.get('topics_with_at_least_one_usable_flow_trial')} of "
+            f"{tp.get('topics_total')} topics could have a real D3 judgement</strong> once judgement runs "
+            f"(&ge;1 pooled trial with usable flow); "
+            f"<strong>{tp.get('topics_where_all_pooled_trials_have_usable_flow')}</strong> have usable flow "
+            f"for every pooled trial. No D3 judgement is assigned in this pass &mdash; the field is "
+            f"populated and rendered; the judgement is a separate, fresh pass.</p></div>")
 
 
 def _verification_section(docs_dir: str) -> str:
@@ -1010,6 +1055,7 @@ def build_index(docs_dir: str) -> str:
     _validate_prose_numbers(docs_dir, _thesis + _cont + _erate + _xfam + _defaudit + _extval + _spec + _screen + _prov + _stance)
     body = (_thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
             + _currency_section(docs_dir) + _recovery_section(docs_dir)
+            + _participant_flow_section(docs_dir)
             + _parity_section(docs_dir) + _error_coverage_section(docs_dir) + _stance
             + _fair_section(docs_dir) + body)
 
