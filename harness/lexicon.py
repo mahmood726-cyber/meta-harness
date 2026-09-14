@@ -47,6 +47,16 @@ _SPELLING = [
 
 _MID_DOTS = ("·", "‧", "∙")
 
+# Greek letters -> spelled words (unambiguous, general): a paper writes 'ω-3', 'β-blocker',
+# 'α-blocker', the registered keyword writes 'omega-3', 'beta-blocker'. Folding the letter to its
+# word lets them match. Only the letters that actually occur in this clinical corpus.
+_GREEK = [("ω", "omega"), ("Ω", "omega"),   # ω Ω
+          ("α", "alpha"), ("Α", "alpha"),   # α Α
+          ("β", "beta"), ("Β", "beta"),     # β Β
+          ("γ", "gamma"), ("Γ", "gamma"),   # γ Γ
+          ("κ", "kappa"), ("Κ", "kappa"),    # κ Κ
+          ("μ", "micro")]                          # µ (micro-)
+
 
 def fold(text: str) -> str:
     """Shared canonical fold for matching: normalise the mid-dot decimal separator, lowercase, apply
@@ -56,6 +66,9 @@ def fold(text: str) -> str:
     t = text or ""
     for d in _MID_DOTS:
         t = t.replace(d, ".")
+    for gl, word in _GREEK:
+        if gl in t:
+            t = t.replace(gl, word)
     t = t.lower()
     for brit, amer in _SPELLING:
         if brit in t:

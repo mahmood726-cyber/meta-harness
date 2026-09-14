@@ -36,6 +36,20 @@ def test_fold_normalises_mid_dot_and_case_and_space():
     assert L.fold("heart   failure") == "heart failure"
 
 
+def test_fold_greek_letters_to_words():
+    assert L.fold("ω-3 fatty acids") == "omega-3 fatty acids"
+    assert L.fold("β-blocker") == "beta-blocker"
+    assert L.fold("α-blocker") == "alpha-blocker"
+    assert L.fold("omega-3") == "omega-3"  # spelled form is a no-op
+
+
+def test_PLANT_greek_omega_matches_spelled_keyword():
+    # PLANT: pre-fold 'omega-3' is not a substring of a 'ω-3' sentence; the Greek fold makes it match.
+    sent = "patients were given ω-3 fatty acids daily"
+    assert "omega-3" not in sent.lower()
+    assert E._kw_in_sentence("omega-3 fatty acids", sent)
+
+
 def test_fold_does_not_expand_abbreviations():
     # abbreviation expansion is a SEPARATE, later change (ELIXA risk). fold must never do it.
     assert "cardiovascular" not in L.fold("cv death")
