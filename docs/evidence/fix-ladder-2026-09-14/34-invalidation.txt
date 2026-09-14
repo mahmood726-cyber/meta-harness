@@ -1,0 +1,27 @@
+ENTRY: 34
+CLASS: INVALIDATION_PROPAGATION — one per-topic STALE flag from committed signals poisons every dependent output; corpus reports n of 32 STALE
+CLAIM: Invalidation propagation renders one per-topic STALE flag and a corpus stale count.
+COMMAND: python docs/evidence/fix-ladder-2026-09-14/lane_j_tools.py run-case 34
+EXIT CODE: 0
+STDOUT:
+ENTRY: 34
+CLAIM: Invalidation propagation renders one per-topic STALE flag and a corpus stale count.
+EXPECTED_VERDICT: REPRODUCED
+EXPECTED_STATE: VERIFIED
+
+URL: https://mahmood726-cyber.github.io/meta-harness/
+bytes: 90983
+sha256: f2e0fc8c131e45f9
+REGEX '3 of 32.*?current.*?29 of 32.*?STALE': FOUND: p — this claim about every one of its numbers. Corpus currency (invalidation propagation) 3 of 32 topics current; 29 of 32 STALE. A topic is STALE when a committed signal invalidates a dependent output — a pooled trial
+URL: https://mahmood726-cyber.github.io/meta-harness/reviews/semaglutide-obesity-weight/
+bytes: 104030
+sha256: 70aa5763ae5b92ff
+TOKEN 'STALE': FOUND: Week 68? (Randomized double-blind trials; mean difference in percent body-weight change.) STALE — this topic's result is not current. One or more dependent outputs on this page are know
+TOKEN 'this topic': FOUND:  (Randomized double-blind trials; mean difference in percent body-weight change.) STALE — this topic's result is not current. One or more dependent outputs on this page are known to be incom
+
+PROBE_BOOLEAN: True
+STDERR:
+(empty)
+VERDICT: REPRODUCED
+PROPOSED_FIX_STATE: VERIFIED
+RATIONALE: The live index renders the object-derived current/STALE count and topic pages show STALE banners.

@@ -1,0 +1,25 @@
+ENTRY: 31
+CLASS: OUTCOME_KEYWORD_SYNONYM_GAP (mortality<->death) silently drops an eligible trial
+CLAIM: The mortality/death synonym gap no longer silently drops Torres from CAP mortality.
+COMMAND: python docs/evidence/fix-ladder-2026-09-14/lane_j_tools.py run-case 31
+EXIT CODE: 0
+STDOUT:
+ENTRY: 31
+CLAIM: The mortality/death synonym gap no longer silently drops Torres from CAP mortality.
+EXPECTED_VERDICT: REPRODUCED
+EXPECTED_STATE: VERIFIED
+
+URL: https://mahmood726-cyber.github.io/meta-harness/reviews/corticosteroids-cap-mortality/
+bytes: 97934
+sha256: a143cd0153818a36
+TOKEN '25688779': FOUND: e Outcome All-cause mortality Estimand RR Trials pooled (k) 2 — 36942789 (PMID 36942789); 25688779 (PMID 25688779) Screened-in → pooled 9 trials met P/I/C/design (screening); 2 reported th
+TOKEN 'Pooled effect 0.55 (RR)': FOUND: d-absent in Results (they were included but reported no poolable value for this outcome). Pooled effect 0.55 (RR), 95% CI 0.04–8.26 Common-effect CI (k=2 sensitivity) 0.55 (RR), 95% CI 0.36–0.83 Between-
+REGEX 'Trials pooled \\(k\\).*?2': FOUND: t breaks the reproduction census. Primary outcome Outcome All-cause mortality Estimand RR Trials pooled (k) 2 — 36942789 (PMID 36942789); 25688779 (PMID 25688779) Screened-in → pooled 9 trials met P/
+REGEX '95% CI 0\\.04.{0,4}8\\.26': FOUND:  were included but reported no poolable value for this outcome). Pooled effect 0.55 (RR), 95% CI 0.04–8.26 Common-effect CI (k=2 sensitivity) 0.55 (RR), 95% CI 0.36–0.83 Between-study τ2 0 Method 
+
+PROBE_BOOLEAN: True
+STDERR:
+(empty)
+VERDICT: REPRODUCED
+PROPOSED_FIX_STATE: VERIFIED
+RATIONALE: The live CAP page includes Torres PMID 25688779 and renders k=2 with the updated nonsignificant pooled RR.

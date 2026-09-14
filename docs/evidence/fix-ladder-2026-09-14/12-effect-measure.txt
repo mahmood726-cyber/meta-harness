@@ -1,0 +1,21 @@
+ENTRY: 12
+CLASS: effect-measure three-field type system
+CLAIM: Effect measures use a three-field type system with class-based compatibility.
+COMMAND: python docs/evidence/fix-ladder-2026-09-14/lane_j_tools.py run-case 12
+EXIT CODE: 0
+STDOUT:
+ENTRY: 12
+CLAIM: Effect measures use a three-field type system with class-based compatibility.
+EXPECTED_VERDICT: REPRODUCED
+EXPECTED_STATE: VERIFIED
+
+object: {"canonical_estimand": "RISK_RATIO", "reported_label": "RR", "statistical_model": "cox_proportional_hazards"}
+within_class: {"canonicals": ["HAZARD_RATIO_FIRST_EVENT", "RISK_RATIO"], "classes": ["FIRST_EVENT_RATIO"], "labels": ["HR", "RR"], "status": "compatible_labels"}
+across_class: {"canonicals": ["HAZARD_RATIO_FIRST_EVENT", "INCIDENCE_RATE_RATIO"], "classes": ["FIRST_EVENT_RATIO", "RATE"], "labels": ["HR", "IRR"], "status": "incompatible"}
+
+PROBE_BOOLEAN: True
+STDERR:
+(empty)
+VERDICT: REPRODUCED
+PROPOSED_FIX_STATE: VERIFIED
+RATIONALE: Runtime estmeasure probes show label/model/canonical fields, within-class compatibility, and across-class incompatibility.

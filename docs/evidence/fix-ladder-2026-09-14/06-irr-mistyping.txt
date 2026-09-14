@@ -1,0 +1,29 @@
+ENTRY: 06
+CLASS: IRR-mistyping (first-event/mortality rate ratio typed as person-time IRR)
+CLAIM: First-event/mortality rate ratios are typed as RR while recurrent/person-time rates remain IRR.
+COMMAND: python docs/evidence/fix-ladder-2026-09-14/lane_j_tools.py run-case 06
+EXIT CODE: 0
+STDOUT:
+ENTRY: 06
+CLAIM: First-event/mortality rate ratios are typed as RR while recurrent/person-time rates remain IRR.
+EXPECTED_VERDICT: REPRODUCED
+EXPECTED_STATE: VERIFIED
+
+{
+  "ASCEND first-event vascular": "RR",
+  "FAIR-HF2 recurrent": "IRR",
+  "RECOVERY first-event mortality": "RR",
+  "person-time": "IRR"
+}
+URL: https://mahmood726-cyber.github.io/meta-harness/reviews/omega3-cardiovascular-events/
+bytes: 136684
+sha256: b1d7d03fd5a85d5c
+TOKEN 'Estimand RR': FOUND: edit breaks the reproduction census. Primary outcome Outcome Major vascular events / MACE Estimand RR Trials pooled (k) 7 — 33190147 (PMID 33190147); 30415637 (PMID 30415637); 30415628 (PMID 
+TOKEN 'Pooled effect 0.94 (RR)': FOUND: d-absent in Results (they were included but reported no poolable value for this outcome). Pooled effect 0.94 (RR), 95% CI 0.85–1.05 Prediction interval 0.73–1.22 Between-study τ2 0.00925 Method Random-ef
+
+PROBE_BOOLEAN: True
+STDERR:
+(empty)
+VERDICT: REPRODUCED
+PROPOSED_FIX_STATE: VERIFIED
+RATIONALE: Runtime extraction classifies first-event rate ratios as RR and recurrent/person-time examples as IRR; live omega-3 now pools as RR.

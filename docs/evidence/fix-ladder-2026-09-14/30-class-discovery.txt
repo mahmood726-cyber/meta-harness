@@ -1,0 +1,24 @@
+ENTRY: 30
+CLASS: new-classes-per-audit trend artefact
+CLAIM: new-classes-per-audit trend artifact is committed.
+COMMAND: python docs/evidence/fix-ladder-2026-09-14/lane_j_tools.py run-case 30
+EXIT CODE: 0
+STDOUT:
+ENTRY: 30
+CLAIM: new-classes-per-audit trend artifact is committed.
+EXPECTED_VERDICT: REPRODUCED
+EXPECTED_STATE: VERIFIED
+
+metric: new_classes_per_audit
+trend: [(22, 3), (23, 3), (24, 2), (25, 1), (26, 2), (29, 0)]
+trend_note: new-classes-per-audit 22->29: 3,3,2,1,2,1,1,0. The 0 at audit 29 is the first: an independent re-audit found nothing new. The residual is trial identity, publication linkage, complete retrieval, outcome harmonisation — not statistics.
+$ git ls-files --error-unmatch docs/class_discovery.json
+docs/class_discovery.json
+exit_code: 0
+
+PROBE_BOOLEAN: True
+STDERR:
+(empty)
+VERDICT: REPRODUCED
+PROPOSED_FIX_STATE: VERIFIED
+RATIONALE: docs/class_discovery.json is committed and records the new_classes_per_audit trend through audit 29.

@@ -1,0 +1,24 @@
+ENTRY: 37
+CLASS: TRIAL<->REPORT ENTITY MODEL — collapse secondary/duplicate reports to parent before counting (records != trials)
+CLAIM: Trial/report entity model collapses secondary/duplicate reports before counting.
+COMMAND: python docs/evidence/fix-ladder-2026-09-14/lane_j_tools.py run-case 37
+EXIT CODE: 0
+STDOUT:
+ENTRY: 37
+CLAIM: Trial/report entity model collapses secondary/duplicate reports before counting.
+EXPECTED_VERDICT: REPRODUCED
+EXPECTED_STATE: VERIFIED
+
+URL: https://mahmood726-cyber.github.io/meta-harness/reviews/esketamine-trd-madrs/
+bytes: 99537
+sha256: c65d562de0996b84
+TOKEN 'X-DEDUP': FOUND: tted search) 136 Records screened (deduplicated) 136 Excluded at screening — by rule 130 (X-DEDUP 7 · X1 92 · X2 11 · X3 20) Met eligibility (P/I/C/design) 6 Pooled in the primary outcome
+study_families type: dict size: 3
+{"_doc": "TRIAL<->REPORT entity model: records that are SECONDARY / POOLED / DUPLICATE reports of an already-counted trial, so screening collapses them to their parent (X-DEDUP) BEFORE any count is promoted to a trial count. Screening operates at REPORT level while PRISMA and prose speak at TRIAL level; without this, secondary analyses and registry<->publication pairs inflate the eligible-trial count (esketamine, metformin-pcos). Audit-identified; each entry names the parent and the report kind. This CUTS BOTH WAYS -- it corrects counts that were inflated, not only understated.", "populated_utc": "2026-09-13", "topics": {"esketamine-trd-madrs": [{"pmid": "35749277", "parent": "TRANSFORM-1/TRANSFORM-2", "kind": "secondary factor-analysis of two already-counted RCTs"}, {"pmid": "33261932", "parent": "TRANSFORM-1/TRANSFORM-2", "kind": "secondary analysis of two already-counted RCTs"}, {"pmid": "34880615", "parent": "TRANSFORM trials", "kind": "pooled analysis of two already-counted studies"}, {"pmid": "32479321", "parent": "TRANSFORM/SUSTAIN trials", "kind": "post-hoc pooled analysis of four already-counted studies"}, {"pmid": "39514643", "parent": "phase-3 esketamine RCTs", "kind": "
+
+PROBE_BOOLEAN: True
+STDERR:
+(empty)
+VERDICT: REPRODUCED
+PROPOSED_FIX_STATE: VERIFIED
+RATIONALE: The live esketamine page renders X-DEDUP and committed study_families data exists.

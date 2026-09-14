@@ -1,76 +1,188 @@
-# What wrong page could this system still emit? — a gate-by-gate adversary map
+# What wrong page could this system still emit? - gate-by-gate adversary map
 
-The external auditor's design question, adopted: not *"is this page right?"* but *"could this system emit
-an indefensible scientific statement without a gate preventing or visibly qualifying it?"* For every gate
-we have, the indefensible output it would NOT stop is named below. That list IS the remaining defect map.
+Audit question: could this system emit an indefensible scientific statement without a gate
+preventing it or visibly qualifying it? Every item below names the file/function or evidence file
+that supports the claim.
 
-## Gates we have, and what each would NOT stop
-1. **Two-limb publication gate** (reproduce-all + census + leak-scan). Stops: non-reproducible / hand-edited
-   pages; stale index. **Would NOT stop:** a page that reproduces deterministically but is *systematically
-   wrong* — a stable wrong extraction reproduces perfectly. Reproducibility ≠ correctness.
-2. **Canonical claim object** (significance / null-crossing). Stops: cross-surface *significance*
-   contradiction. **Would NOT stop:** a CATEGORICAL contradiction ("pooled" here, "not pooled" there) or a
-   METHODOLOGICAL one ("byte-reproducible" asserted + retracted). → seventh gate, still unbuilt.
-3. **Invalidation / STALE.** Stops: a dependent output invalidated by a *committed* signal. **Would NOT
-   stop:** a topic that SHOULD be stale but whose invalidating fact was never committed (an eligible trial
-   nobody flagged) — absence of a signal reads as currency.
-4. **Compatibility key.** Stops: pooling across effect-measure *classes* (RR vs IRR). **Would NOT stop:**
-   incompatible ENDPOINTS within one class (HF-hosp-alone vs HF-hosp+CV-death — the iv-iron finding) unless
-   the endpoint dimension is actually populated and checked; a comparator declared "same question" with a
-   different outcome/estimand.
-5. **Interval-provenance gate** (new). Stops: a CI not produced by the canonical engine. **Would NOT stop:**
-   a wrong POINT ESTIMATE the engine faithfully pools from wrong per-arm inputs (garbage-in), or a wrong
-   scale chosen upstream.
-6. **Verify gate** (pooled digits present in source). Stops: a number absent from its cited source. **Would
-   NOT stop:** a number present in source but on the WRONG endpoint (right-number-wrong-endpoint); a refusal
-   whose REASON is factually false of the source; an aact_verified label on counts that are really a
-   percentage synthesis (partially closed by the percentage-provenance gate).
-7. **Leak scan** (no pooled stat for a suppressed topic). Stops: a derived stat attributed to a suppressed
-   slug in docs/*.json. **Would NOT stop:** the same stat under a different slug spelling, or on a surface
-   the scan does not read (only docs/*.json top-level is scanned).
-8. **Percentage-provenance gate** (new). Stops: `%×N` counts badged verified with the exact count absent
-   from source. **Would NOT stop:** a wrong outcome-specific denominator that happens to appear in the
-   source (plausible-but-wrong denom).
-9. **RoB coverage** (now 100/100). Stops: a pooled trial left unassessed. **Would NOT stop:** a WRONG RoB
-   verdict — an abstract mislabelled double-blind, or a "low" that a human would call "some concerns"
-   (judgement); the ASSESSMENT existing ≠ the assessment being right.
-10. **Prevention screening** (population ≠ prevented outcome). Stops: the population=outcome inversion.
-    **Would NOT stop:** a subtler population mismodelling on a non-prevention topic.
+## Prior map recheck
 
-## The indefensible outputs still emittable → the queue (each maps to one of the auditor's 5 root systems)
-- **(3 STATE):** categorical + methodological contradictions (seventh gate); `DECLARED_ABSENT` split four ways;
-  `NOT_ASSESSED` ≠ `NOT_DOWNGRADED` across every GRADE domain; `Claims checked: 0` as a failing state.
-- **(2 PROVENANCE):** refusal reasons factually false of source; extraction hierarchy (published effect
-  beats reconstruction); overrides that manufacture an unverified absence/reason (23 enumerated, 8 force
-  ABSENT — reasons unverified, and overrides not rendered AS overrides); `trial → source-documents` object.
-- **(1 IDENTITY):** the randomised-contrast check silently passing any trial it cannot identify;
-  trial-family / randomised-comparison uniqueness (publications counted as trials).
-- **(4 INFERENCE):** ITT-as-randomised mislabel (randomised N ≠ analysed N; CAPE COD); wrong point estimate
-  from wrong per-arm inputs.
-- **(5 SEARCH):** `union(displayed queries) == screened set`; comparator matcher rebuilt on one key
-  (outcome/estimand identity, granularity, evidence geometry, search date); systematic-search recall (weakest layer).
+| prior item | verdict | code/evidence checked | residual gap |
+|---|---|---|---|
+| 1. Two-limb publication gate | STILL TRUE | `harness/gate.py:check_limb1`, `harness/gate.py:check_limb2`, `harness/census.py:verify` | Reproducibility and an OA comparator do not prove scientific correctness. A stable wrong extraction can still replay byte-for-byte if the wrong object is committed. |
+| 2. Canonical claim object would not stop categorical or methodological contradictions | NO LONGER TRUE | changed by `c06b4716`; see `harness/proposition.py:contradictions`, `harness/census.py:build_review_dir`, `tests/test_proposition_gate.py` | The new proposition gate stops the five encoded contradiction families. It still will not stop a proposition family not represented in `harness/proposition.py`. |
+| 3. Invalidation / STALE misses facts never committed | STILL TRUE | `harness/invalidation.py:assess`, `harness/page.py` STALE rendering, `docs/fix_ledger.json` stale progression | A missing external fact cannot poison the object unless a committed signal represents it. |
+| 4. Compatibility key misses endpoint/comparator-scope problems not encoded upstream | STILL TRUE | `harness/compat.py:outcome_key`, `harness/compat.py:check`, `AUDIT_QUEUE.md` item 8 | `compat.check` hard-refuses effect-measure/event-process incompatibility, but comparator scope and some endpoint/timepoint/analysis-set mismatches still depend on upstream representation. |
+| 5. Interval provenance cannot detect garbage-in point estimates | STILL TRUE | `harness/census.py:_interval_provenance_check`, `harness/gate.py:check_pooled_verified`, `harness/gate.py:check_method_matches_scale` | A CI provenance token proves route, not that every source digit was the right endpoint, arm, denominator, or timepoint. Method-string/scale mismatches are now checked, but coherent wrong inputs remain possible. |
+| 6. Verify gate misses right-number-wrong-endpoint and false refusal reasons | STILL TRUE | `harness/gate.py:check_pooled_verified`, `harness/gate.py:check_access_claim_supported`, `tests/test_percentage_provenance.py`, `AUDIT_QUEUE.md` items 6-7 | Percentage-derived counts badged as verified were closed by `4de360ec`, and unsupported access claims are guarded by `check_access_claim_supported`; right digits on the wrong endpoint and false refusal reasons remain queued. |
+| 7. Leak scan is limited to served aggregate JSON attribution | STILL TRUE | `harness/leakscan.py:scan`, `scripts/verify_all.py:limb_leak_scan` | The scan reads `docs/*.json` and attributed sub-objects. It does not prove every possible surface, slug spelling, or unattributed derivative is clean. |
+| 8. Percentage-provenance can miss a plausible but wrong denominator | STILL TRUE | `tests/test_percentage_provenance.py`, `harness/gate.py:check_pooled_verified` | The exact percentage-to-count case is guarded, but a wrong outcome-specific denominator that appears in a source can still pass a digit-presence check. |
+| 9. RoB coverage does not prove RoB judgement correctness | STILL TRUE | `tests/test_rob_coverage.py`, `harness/grade.py:_rob_domain` | Coverage only proves every pooled trial has an assessment signal. It does not prove the human/judgement labels are correct. |
+| 10. Prevention screening does not cover every population modelling defect | STILL TRUE | `harness/gate.py:check_population_identity`, `a1193b9b`, `AUDIT_QUEUE.md` prevention note | A pooled record matching configured `population_none` is refused, but missing or under-specified population terms remain a modelling problem. |
 
-## Failure taxonomy (auditor's, adopted) — re-tag every defect as one of three
-- **VALUE failure** — the number is wrong. (e.g. a mis-extracted arm count.)
-- **PROCESS failure** — the number may be right but the route that produced it is invalid. (the z-interval:
-  right point estimate, wrong inference path — we had been mis-classing these as value failures that
-  happened to come out right, which is exactly why the z-interval surprised us.)
-- **STATE/CLAIM failure** — the evidence is fine but the interpretation is unjustified. (categorical/
-  methodological contradictions; NOT_ASSESSED rendered as NOT_DOWNGRADED; DECLARED_ABSENT hiding data.)
-Re-tag: strand-CI = PROCESS · percentage-counts = PROCESS(+VALUE) · RoB-unassessed = STATE · endpoint
-mix = STATE · false refusal reason = STATE · right-number-wrong-endpoint = VALUE-shaped STATE.
+## Prior queue recheck
 
-## Gate refusal history — a gate with no refusal is unvalidated (our own law, applied to ourselves)
-- FIRED ON REAL CORPUS DATA (caught a real defect, not just its plant): compatibility key (iv-iron
-  suppression) · interval-provenance (the strand z-interval) · percentage-provenance (EMPHASIS-HF) ·
-  prevention-screening (colchicine-postop population=outcome) · claim object (significance contradictions
-  during bring-up) · verify gate (pooled-number source checks) · reproduce/leak limbs (staleness).
-- HAS A PLANT, NOT YET FIRED ON REAL DATA (validated it CAN fire, but the corpus has never tripped it):
-  recovery-recheck hard-incompatible branch · nesting guard · RoB-coverage plant · the interval-provenance
-  wrong-token branch. These are validated by plant (they are gates), but have caught no real regression yet
-  — track them; if one never fires across many rebuilds, ask whether the condition can actually occur.
+| prior queue item | verdict | code/evidence checked | residual gap |
+|---|---|---|---|
+| Categorical + methodological contradictions as an unbuilt seventh gate | NO LONGER TRUE | changed by `c06b4716`; `harness/proposition.py:contradictions`; `tests/test_proposition_gate.py` | Closed for the encoded families only. |
+| `DECLARED_ABSENT` split four ways | NO LONGER TRUE | changed by `fb75635b`; `harness/absence.py:classify`; `harness/page.py:_absent_label`; `tests/test_absence_ontology.py` | Classifier accuracy still depends on retrieved source text and outcome keywords. |
+| `NOT_ASSESSED` not equal to `NOT_DOWNGRADED` across GRADE domains | NO LONGER TRUE | changed by `445a2ba6`; `harness/grade.py:grade`; `tests/test_grade_unassessed.py` | Wrong assessed-domain judgement remains possible. |
+| `Claims checked: 0` as a failing state | NO LONGER TRUE | changed by `f64ee43b` and protected by `5436fe93`; `harness/page.py` claim-check rendering; `harness/invalidation.py`; `tests/test_honest_states_renderable.py` | A page with no checkable pooled claim is visibly limited; the gate still cannot invent a source-backed result. |
+| False refusal reasons | STILL TRUE | `AUDIT_QUEUE.md` item 6; `harness/gate.py:check_access_claim_supported` | Unsupported access claims are guarded, but general refusal-reason source-truth remains queued. |
+| Extraction hierarchy: published effect beats reconstruction | STILL TRUE | `AUDIT_QUEUE.md` item 7; `harness/pipeline.py` verified-effect and verified-arm override paths | Flagged overrides exist, but the general hierarchy sweep is still queued. |
+| Overrides that manufacture an unverified absence/reason | STILL TRUE | `harness/pipeline.py` absent/verified override paths; `tests/test_verified_override.py`; `tests/test_stage_additions.py`; `AUDIT_QUEUE.md` item 6 | Flag-gating is tested; source-truth of override reasons is not generally proven. |
+| Trial-to-source-documents object | STILL TRUE | `AUDIT_QUEUE.md` item 2 | No shared source-document object yet spans outcome, funding, RoB, registry, and harms. |
+| Randomised-contrast check silently passing an unidentified pooled trial | NO LONGER TRUE | changed by `1b47f58e`; `harness/compat.py:outcome_key`; `docs/fix_ledger.json` architecture gate 5 entry | Unverified contrast is visible; unresolved identifiers can still limit verification. |
+| Trial-family / randomised-comparison uniqueness | STILL TRUE | `AUDIT_QUEUE.md` item 1; `harness/gate.py:check_duplicate_publication` | Same-NCT duplicates are refused, but missing/unresolved identifiers remain open. |
+| ITT-as-randomised / analysed-N-vs-randomised-N mislabel | STILL TRUE | `harness/extract.py` subgroup and population/analysis-set guards; `docs/definition_audit.json` | Per-protocol/completers effects are guarded, but analysed-vs-randomised denominator provenance is not a standalone gate. |
+| Wrong point estimate from wrong per-arm inputs | STILL TRUE | `harness/gate.py:check_pooled_verified`; `harness/census.py:_interval_provenance_check` | Digit presence and CI route do not prove arm/denominator/endpoint binding. |
+| `union(displayed queries) == screened set` | STILL TRUE | partially closed by `harness/acquisition.py` ledger and `docs/evidence/legacy-ledgers-2026-09-14/README.md`; see `AUDIT_QUEUE.md` item 3 | Future ledgered snapshots can prove `found_by`; legacy snapshots explicitly cannot recover historical query attribution. |
+| Comparator matcher rebuilt on one key | STILL TRUE | `AUDIT_QUEUE.md` item 8; `tests/test_external_agreement_estimand.py` | Estimand matching is tested, but the full comparator axis key remains queued. |
+| Systematic-search recall | STILL TRUE | `harness/heldout.py:measurement_current`; `docs/search_recall_regression_corpus.json`; `docs/evidence/search-acquisition-2026-09-14/README.md` | Regression-corpus recall is measured and held-out leakage is guarded; recall itself remains the weakest layer. |
 
-## Standing self-test (from the auditor): three deployment states, all three carried in the ledger
-`LANDED_IN_CODE` (committed) · `LANDED_IN_SERVED_BYTES` (live URL hash proves it) · `INDEPENDENTLY_VERIFIED`
-(an external party confirmed it). A fix is not done until all three, and "silence about a limitation counts
-as a regression even if the numbers improve."
+## Gates that exist today, and what each would not stop
+
+### Repository, deployment, and audit-state gates
+
+| gate | what it stops | what it would NOT stop | source |
+|---|---|---|---|
+| Deploy conditional on verify | A red `verify` SHA reaching Pages through the workflow deploy path. | A repository admin changing Pages back to branch builds, or a green build that is scientifically wrong. | `.github/workflows/verify.yml` deploy job `needs: verify`; `docs/evidence/gate-authority-2026-09-14/README.md`; `docs/evidence/gate-authority-2026-09-14/03-refusal-plant-failing-test-not-deployed.txt` |
+| Production-record chain | Deploying an artifact that differs from the manifest built by `verify`; serving bytes that do not match the verified per-file digests. | A verified digest of a wrong page; mutable external APIs changing before the next retrieval snapshot; an admin bypassing the whole GitHub Pages path. | `scripts/production_record.py:cmd_manifest`, `cmd_check_artifact`, `cmd_attest`; `tests/test_production_record.py`; `docs/evidence/artifact-identity-2026-09-14/04-postfix-first-chained-deploy.txt` |
+| Server-side ruleset | A non-admin push to `main` before required status check `verify` has passed on that SHA; force-push and branch deletion. | A repository admin editing or deleting the ruleset. | `docs/evidence/gate-authority-2026-09-14/05-ruleset-created.txt`; `docs/evidence/gate-authority-2026-09-14/06-refusal-server-rejects-direct-push.txt` |
+| One-standard verifier | Local hook and CI using different standards; early-exit hiding other failed limbs. | A hook/CI difference caused by partially staged changes; any defect outside the eight limbs. CI is the authority. | `scripts/verify_all.py:LIMBS`; `.github/workflows/verify.yml`; `docs/evidence/gate-authority-2026-09-14/09-new-standard-refuses-index-and-test-plants.txt`; `docs/evidence/gate-authority-2026-09-14/README.md` |
+| Held-out leak detector | A sealed held-out identifier landing in tracked text or first-parent commit messages after enforcement; an acquisition-engine edit landing without a current regression-corpus measurement. | Out-of-band disclosure; identifiers not sealed; anyone with the key/register knowing the names; recovery of low-entropy names by the key-holder. | `harness/heldout.py:check`, `scan_tree`, `scan_commit_messages`, `measurement_current`; `registry/heldout_sealed.json`; `docs/evidence/independent-verification-2026-09-14/07-heldout-leak-detector.txt` |
+| Fix-state ladder | Commits after enforcement without exactly one fix-state trailer; VERIFIED/GENERALIZED claims using evidence created in the same commit; non-fix claims on system-changing paths after the structural rule. | Truthfulness of the evidence content; commits before enforcement; admin history rewrites. | `harness/fixstate.py:check_message`, `scan_commits`, `check_ledgers`; `registry/fixstate.json`; `docs/evidence/independent-verification-2026-09-14/08-fix-state-ladder.txt` |
+| Honest-state ratchet | Removing already-served warning/state markers from `docs/index.html` or review pages. | A wrong warning that remains visible; adding noise; a new untracked surface outside the scanned pages. | `harness/honest_ratchet.py:MARKERS`, `compare`, `check`; `docs/evidence/independent-verification-2026-09-14/09-honest-state-ratchet.txt` |
+| Architecture identity | Treating changed code, workflow, hooks, topic/protocol/registry config, dependencies, retrieval adapters, model stages, or deploy path as the same architecture. | Making mutable dependencies or live APIs immutable; proving scientific correctness of an architecture. | `harness/architecture_identity.py:components`, `identity`, `mutable_dependencies`; `tests/test_architecture_identity.py`; `docs/evidence/independent-verification-2026-09-14/04-artifact-identity.txt` |
+
+### The eight `verify_all.py` limbs
+
+| limb | what it stops | what it would NOT stop | source |
+|---|---|---|---|
+| Unit tests | Known tested regressions in `tests/`. | Untested behavior and source-level scientific errors. | `scripts/verify_all.py:limb_unit_tests` |
+| Offline reproduction | Review pages that no longer replay from committed cache/protocol. | Deterministic wrong extraction. | `scripts/verify_all.py:limb_reproduction`; `scripts/reproduce_review.py` |
+| Publication gate on every live page | Any current review page failing `harness.gate.gate_page`. | Gaps outside the 20 page checks listed below. | `scripts/verify_all.py:limb_gate_every_page`; `harness/gate.py:gate_page` |
+| Index currency | Hand-edited or stale `docs/index.html`. | A generated index built from wrong underlying objects. | `scripts/verify_all.py:limb_index_currency`; `harness/index.py:build_index` |
+| Served-artefact leak scan | Suppressed/refused topic pooled statistics leaking into `docs/*.json`. | Unattributed leaks, slug spelling misses, or non-JSON surfaces. | `scripts/verify_all.py:limb_leak_scan`; `harness/leakscan.py:scan` |
+| Held-out detector | See held-out gate above. | See held-out gate above. | `scripts/verify_all.py:limb_heldout`; `harness/heldout.py:check` |
+| Fix-state discipline | See fix-state gate above. | See fix-state gate above. | `scripts/verify_all.py:limb_fixstate`; `harness/fixstate.py:check` |
+| Honest-state ratchet | See honest-state ratchet above. | See honest-state ratchet above. | `scripts/verify_all.py:limb_honest_ratchet`; `harness/honest_ratchet.py:check` |
+
+### Build-time object gates
+
+| gate | what it stops | what it would NOT stop | source |
+|---|---|---|---|
+| Reproduction census Level A | Non-deterministic render, review hash drift, hand-edited HTML, manifest/page hash mismatch. | Wrong but deterministic review objects. | `harness/census.py:build_review_dir`, `harness/census.py:verify` |
+| Reproduction census Level B | Pipeline replay from committed cache/config not matching the committed review core. | A committed cache that is complete-but-wrong, or source facts absent from the cache. | `harness/gate.py:check_reproduction`; `harness/pipeline.py:build_review_core` |
+| Canonical claim object | Significance/null-crossing wording contradicting the canonical result claim. | A wrong canonical result object; non-significance propositions not encoded elsewhere. | `harness/census.py:_claim_check`; `harness/claim.py` |
+| Proposition gate | Encoded membership/methodological contradictions: pooled-and-declared-absent, suppressed-and-pooled, eligible-and-excluded, current-while-invalidated, unsupported preregistration precedence. | Any proposition family not represented in `harness/proposition.py`. | `harness/proposition.py:contradictions`; `tests/test_proposition_gate.py` |
+| Compatibility key backstop | Pooled outcomes with incompatible effect-measure/event-process classes. | Comparator scope mismatch, and endpoint/timepoint/analysis-set mismatch if upstream objects do not encode and suppress it. | `harness/compat.py:outcome_key`, `harness/compat.py:check` |
+| Interval-provenance gate | A rendered CI without the canonical engine token or a valid k=1 source-reported token. | Wrong point estimate or CI produced by the engine from wrong source inputs. | `harness/census.py:_interval_provenance_check`; `harness/synth.py:CI_PROVENANCE` |
+| Retrieval ledger and run states | Folded adapter errors, silent top-N truncation, missing per-record `found_by`, and confusing an error/not-run state with zero hits. | A bad but successfully run query; legacy snapshots knowing which historical query found each record. | `harness/acquisition.py` module contract, `validate`, `refresh`; `tests/test_acquisition.py`; `docs/evidence/search-acquisition-2026-09-14/README.md` |
+| Retrieval-class state | The old hedge where the object did not state known-item vs title-seeded vs concept retrieval. | Completeness of known-item or title-seeded retrieval; it labels the state rather than making it systematic. | `harness/pipeline.py:classify_retrieval`; `harness/page.py:_retrieval_class_html`; `tests/test_retrieval_class.py`; `docs/evidence/search-states-2026-09-14/README.md` |
+| Absence-state ontology | Certifying "declared absent" when the source reports the outcome number, only the abstract was retrieved, or the number was found and refused. | A classifier miss when the relevant source text was never retrieved or the keywords miss the outcome sentence. | `harness/absence.py:classify`; `harness/page.py:_absent_label`; `tests/test_absence_ontology.py` |
+| GRADE unassessed-domain cap | Rendering unassessed domains as favorable/no-downgrade or allowing unassessed domains to support HIGH certainty. | Wrong assessed-domain judgement; domains that require human judgement still need a human. | `harness/grade.py:grade`; `tests/test_grade_unassessed.py` |
+
+### The 20 `harness/gate.py` page checks
+
+| check | what it stops | what it would NOT stop |
+|---|---|---|
+| `check_limb1` | Missing required manifest fields, declared/served method mismatch, hand-made marker, bad or missing reproduction census, live census failure. | A wrong review object that reproduces and carries valid hashes. |
+| `check_cache_tracked` | A page whose `cache/<slug>/records.json` is not git-tracked. | A tracked cache that is incomplete or scientifically wrong. |
+| `check_reproduction` | Offline replay that cannot execute or whose review core hash differs from the manifest. | Deterministic replay of wrong committed cache/config. |
+| `check_primary_result` | Publishing a page whose primary outcome has no pooled result. | A present primary result with the wrong trials or endpoint. |
+| `check_pooled_verified` | Pooling any trial whose digits are not verified/handchecked against the committed source span. | Digits present in source but bound to the wrong outcome, arm, denominator, timepoint, or estimand. |
+| `check_manuscript_numbers` | Generated manuscript prose containing risky numerals not carried by the review object. | Numerals that are object-derived but scientifically wrong. |
+| `check_fetch_complete` | Core source `RAN_ERROR` being treated as a complete search. | A `RAN_OK` query with poor recall, or auxiliary-source failure that still matters to a specific claim. |
+| `check_access_claim_supported` | A full-text access/paywall claim when the PMC full-text adapter did not run. | An access claim after an adapter ran but the interpretation of access was wrong. |
+| `check_parity_our_k` | Stored parity count out of sync with primary pooled k, or parity prose naming a pooled trial as excluded. | Comparator scope/estimand mismatch when the count happens to agree. |
+| `check_no_double_counted_trial` | Same trial id pooled more than once within one outcome. | Same trial represented by different identifiers not linked upstream. |
+| `check_pivotal_present` | Declared pivotal/landmark trials absent from committed cache. | Undeclared pivotal trials, or a bad `pivotal_trials` list. |
+| `check_controls` | Positive controls not screened in, negative controls screened in, or missing control declarations. | Screening errors outside the declared controls. |
+| `check_cross_source` | Abstract vs CT.gov direction flip on the same outcome family. | Same-direction magnitude, endpoint, or follow-up-window disagreement. |
+| `check_retraction` | A retracted trial listed in the committed integrity block. | A retraction not present in the integrity snapshot. |
+| `check_duplicate_publication` | Two pooled reports sharing one NCT in the same outcome. | Duplicate reports with missing/unresolved NCT links. |
+| `check_prespecification_in_protocol` | A dose-selection override not documented by the protocol or amendment. | Other unregistered choices not represented as `dose_selection`. |
+| `check_population_identity` | A pooled record matching the topic's configured `population_none`. | Missing or too-narrow exclusion terms; subtler population drift. |
+| `check_method_matches_scale` | Per-outcome or manifest method string inconsistent with the pooled scale. | A consistently encoded scale that is the wrong scientific estimand. |
+| `check_preregistration_not_build` | Prospective-registration claims citing a build commit. | False prospectivity if the evidence sits outside the tested git pattern. |
+| `check_limb2` | Missing OA comparator metadata, identifier, URL, overlap counts, or those values absent from the served page. | Scope-mismatched OA comparators and stale comparator estimates. |
+
+All 20 rows above are the checks called by `harness/gate.py:gate_page`.
+
+## Not a gate, an admin
+
+These are admin-only controls. A gate cannot prevent a repository admin from changing them; the defensible
+control is to read the settings and diff them against the evidence baseline.
+
+| admin action | API read that reveals it | expected baseline / source |
+|---|---|---|
+| Flip Pages source back to branch builds | `GET /repos/mahmood726-cyber/meta-harness/pages` | `build_type` must remain `workflow`; see `docs/evidence/artifact-identity-2026-09-14/02-second-path-search.txt`. |
+| Edit/delete ruleset or add bypass actors | `GET /repos/mahmood726-cyber/meta-harness/rulesets` | ruleset id `23314494`, `enforcement: active`, required check `verify`, `bypass_actors: []`; see `docs/evidence/gate-authority-2026-09-14/05-ruleset-created.txt`. |
+| Rotate or remove the held-out detector secret | `GET /repos/mahmood726-cyber/meta-harness/actions/secrets/HELDOUT_KEY` or `GET /repos/mahmood726-cyber/meta-harness/actions/secrets` | Metadata can reveal presence and `updated_at`; the value is not readable. Workflow use is in `.github/workflows/verify.yml`, and fail-closed behavior is in `harness/heldout.py:load_key`. |
+| Change `github-pages` environment policy | `GET /repos/mahmood726-cyber/meta-harness/environments/github-pages` and `GET /repos/mahmood726-cyber/meta-harness/environments/github-pages/deployment-branch-policies` | main-only branch policy after the `gh-pages` policy was removed; see `docs/evidence/artifact-identity-2026-09-14/02-second-path-search.txt` and `03-latent-paths-closed.txt`. |
+
+## Queue retagged by VALUE / PROCESS / STATE
+
+### VALUE failures
+
+| item | status | source |
+|---|---|---|
+| Wrong point estimate from wrong arm/count/denominator even when digits are present in a source. | OPEN | `harness/gate.py:check_pooled_verified`; prior item 5 above |
+| Right-number-wrong-endpoint. | OPEN | prior item 6 above; `AUDIT_QUEUE.md` items 7-8 |
+| Randomised-comparison/trial-family identity can change k and therefore values if reports are unlinked. | PARTLY CLOSED, still OPEN for unresolved identifiers | `harness/gate.py:check_duplicate_publication`; `AUDIT_QUEUE.md` item 1 |
+
+### PROCESS failures
+
+| item | status | source |
+|---|---|---|
+| Extraction hierarchy: source-reported effect+CI should beat reconstruction. | OPEN | `AUDIT_QUEUE.md` item 7 |
+| Search-set provenance closure: every screened record should join to retrieval source/query/timestamp. | PARTLY CLOSED; legacy snapshots remain `LEGACY_UNRECORDED` | `harness/acquisition.py` contract; `docs/evidence/legacy-ledgers-2026-09-14/README.md` |
+| Comparator matcher rebuilt against one population/intervention/comparator/endpoint/effect/design/evidence-geometry/search-date key. | OPEN | `AUDIT_QUEUE.md` item 8 |
+| Trial-to-available-source-documents object shared by outcome/funding/RoB/registry/harms. | OPEN | `AUDIT_QUEUE.md` item 2 |
+| Unit-of-analysis for cluster/crossover and unresolved multi-report identity. | PARTLY CLOSED by duplicate-id and same-NCT checks, still OPEN where identifiers are absent | `harness/gate.py:check_no_double_counted_trial`; `harness/gate.py:check_duplicate_publication`; `docs/fix_ledger.json` audit 26 entry |
+
+### STATE failures
+
+| item | status | source |
+|---|---|---|
+| Categorical/methodological contradictions beyond numerical claim wording. | CLOSED for encoded families by `c06b4716`; OPEN for unencoded proposition families | `harness/proposition.py:contradictions`; `tests/test_proposition_gate.py` |
+| `DECLARED_ABSENT` conflating no data, source not retrieved, extraction gap, and found-but-refused. | CLOSED for current ontology by `fb75635b` | `harness/absence.py:classify`; `tests/test_absence_ontology.py` |
+| `NOT_ASSESSED` rendered or counted as favorable/no-downgrade. | CLOSED by `445a2ba6` | `harness/grade.py:grade`; `tests/test_grade_unassessed.py` |
+| `Claims checked: 0` as neutral. | CLOSED as a visible failing state | `harness/page.py` claim-check rendering; `harness/invalidation.py` claims-checked-zero reason; `tests/test_honest_states_renderable.py` |
+| False refusal reason. | OPEN | `AUDIT_QUEUE.md` item 6 |
+| Retrieval class unstated or hedged. | CLOSED by `b8925e04`; legacy retrieval yield remains explicitly unknown where applicable | `harness/pipeline.py:classify_retrieval`; `docs/evidence/search-states-2026-09-14/README.md`; `docs/evidence/legacy-ledgers-2026-09-14/README.md` |
+| Inconsistency not automatically assessable when directions conflict or I2 is high. | OPEN | `AUDIT_QUEUE.md` item 9 |
+| Comparator "same question" claim when axes do not match. | OPEN | `AUDIT_QUEUE.md` item 8 |
+
+## Refusal history
+
+### Fired or re-demonstrated on today's gate work
+
+| gate | observed firing | source |
+|---|---|---|
+| Deploy conditional on verify | Plant `a74b5c42` had failing unit tests; `verify` failed, `deploy` skipped, served hash unchanged. | `docs/evidence/gate-authority-2026-09-14/03-refusal-plant-failing-test-not-deployed.txt` |
+| Ruleset | Hooks-free direct push to `main` was rejected with required status check `verify` expected. | `docs/evidence/gate-authority-2026-09-14/06-refusal-server-rejects-direct-push.txt` |
+| One-standard verify | Hand-edited `docs/index.html` refused by index currency; staged failing test refused by unit-test limb. | `docs/evidence/gate-authority-2026-09-14/09-new-standard-refuses-index-and-test-plants.txt`; `docs/evidence/gate-authority-2026-09-14/11-postfix-ci-refuses-hand-edited-index.txt` |
+| Production record | Synthetic manifest refused an unbound review page hash; synthetic artifact mismatch refused a one-byte page difference. The first real chained deploy then attested 238/238 files. | `tests/test_production_record.py`; `docs/evidence/artifact-identity-2026-09-14/04-postfix-first-chained-deploy.txt` |
+| Held-out detector | Temp clone with sealed canary in a tracked file was refused without revealing the plaintext. | `docs/evidence/independent-verification-2026-09-14/07-heldout-leak-detector.txt` |
+| Fix-state ladder | Temp clones were refused for missing fix-state trailer and same-commit evidence used for a verified claim. | `docs/evidence/independent-verification-2026-09-14/08-fix-state-ladder.txt` |
+| Honest-state ratchet | Temp working tree with one served STALE marker removed was refused. | `docs/evidence/independent-verification-2026-09-14/09-honest-state-ratchet.txt` |
+| Retrieval ledger states | Pre-fix Europe PMC exception folded into `RAN_OK`; HEAD acquisition tests pass and `RAN_ERROR` is representable. | `docs/evidence/independent-verification-2026-09-14/10-acquisition-prefix-defect.txt`; `tests/test_acquisition.py` |
+| Concept source as retrieval source | Pre-fix concept-query source plant failed; post-fix the concept source runs first as discovery-capable. | `docs/evidence/search-acquisition-2026-09-14/06-concept-source-plant-fires-prefix.txt`; `tests/test_acquisition.py:test_concept_query_is_a_source_on_every_fetch_and_enumeration_only_topics_discover` |
+| Retrieval-class state | Served pages show 11 known-item and 21 title-seeded retrieval states, and zero old hedge hits across 32 pages. | `docs/evidence/independent-verification-2026-09-14/11-retrieval-states-served.txt`; `docs/evidence/search-states-2026-09-14/03-ratchet-and-states-on-regenerated-pages.txt` |
+
+### Still plant-only or limitation-only
+
+| gate | current validation state | source |
+|---|---|---|
+| Proposition gate | Plant tests prove each encoded contradiction fires; current corpus is contradiction-free. | `tests/test_proposition_gate.py` |
+| Architecture identity | Tests prove deterministic identity and identity change on topic byte change; it is an identity digest, not a scientific correctness gate. | `tests/test_architecture_identity.py`; `harness/architecture_identity.py:mutable_dependencies` |
+| Legacy retrieval ledgers | The 32 legacy pages expose `LEGACY_UNRECORDED`; this is an honest state, not recovered historical query provenance. | `docs/evidence/legacy-ledgers-2026-09-14/README.md` |
+
+## Standing interpretation
+
+A fix is not treated as done merely because code landed. The current evidence directories use the four-state
+fix discipline enforced by `harness/fixstate.py`, and the deployment record binds code, artifact, and served
+bytes through `scripts/production_record.py`. The remaining defect map is therefore not "what might be wrong
+in memory"; it is the set of wrong outputs not yet structurally refused or visibly qualified by the files
+named above.
