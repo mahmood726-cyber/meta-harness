@@ -75,24 +75,32 @@ def build_query(cfg):
 
 
 def esearch_all(query, cap=4000):
-    """Return the FULL boolean result set (paginated), never a top-N relevance cut."""
-    ids, retstart, step = [], 0, 500
+    """Return the FULL boolean result set (paginated), never a top-N relevance cut. Resilient: on a
+    429/transient error, back off and retry a few times; if it still fails, return what we have so far
+    with total=-1 (a sentinel meaning 'incomplete') rather than crashing the caller."""
+    ids, retstart, step, total = [], 0, 500, -1
     while retstart < cap:
         params = urllib.parse.urlencode({"db": "pubmed", "term": query, "retmode": "json",
                                          "retstart": retstart, "retmax": step})
         url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?" + params
         req = urllib.request.Request(url, headers={"User-Agent": "meta-harness/1.0 (research; mahmood726@gmail.com)"})
-        try:
-            j = json.load(urllib.request.urlopen(req, timeout=45))
-        except Exception as e:
-            print("  esearch error:", e); break
+        j = None
+        for attempt in range(4):
+            try:
+                j = json.load(urllib.request.urlopen(req, timeout=45))
+                break
+            except Exception as e:
+                print(f"  esearch error (attempt {attempt+1}): {e}")
+                time.sleep(2.0 * (attempt + 1))  # backoff for 429/transient
+        if j is None:
+            break
         batch = j.get("esearchresult", {}).get("idlist", [])
         total = int(j.get("esearchresult", {}).get("count", 0))
         ids.extend(batch)
         if not batch or retstart + step >= total:
             break
         retstart += step
-        time.sleep(0.34)
+        time.sleep(0.5)
     return ids, total
 
 
