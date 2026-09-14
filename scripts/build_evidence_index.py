@@ -31,12 +31,22 @@ STYLE = ("body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem
          ".note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}")
 
 
+def _served_bytes(p: str) -> bytes:
+    """The bytes that will be COMMITTED and therefore SERVED: .gitattributes sets `* text=auto eol=lf`, so a text
+    file's CRLF in a Windows working tree becomes LF in the blob. Hashing the raw working-tree bytes produced digests
+    that differed from CI's (the first CI run of this generator refused the index for exactly that reason)."""
+    data = open(p, "rb").read()
+    if b"\0" in data[:8192]:
+        return data  # binary: stored as-is
+    return data.replace(b"\r\n", b"\n")
+
+
 def _sha(p: str) -> str:
-    h = hashlib.sha256()
-    with open(p, "rb") as f:
-        for chunk in iter(lambda: f.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
+    return hashlib.sha256(_served_bytes(p)).hexdigest()
+
+
+def _size(p: str) -> int:
+    return len(_served_bytes(p))
 
 
 def _captures(d: str) -> list[str]:
@@ -51,7 +61,7 @@ def render_dir(d: str, cap: dict) -> str:
         p = os.path.join(EV, d, f)
         url = f"{SITE}{d}/{f}"
         rows.append(f"<tr><td><a href=\"{html.escape(f)}\">{html.escape(f)}</a><br><code>{html.escape(url)}</code></td>"
-                    f"<td>{html.escape(cap[f])}</td><td class='sha'>{os.path.getsize(p):,} B<br><code>{_sha(p)}</code></td></tr>")
+                    f"<td>{html.escape(cap[f])}</td><td class='sha'>{_size(p):,} B<br><code>{_sha(p)}</code></td></tr>")
     return (f"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
             f"<title>{html.escape(title)}</title><style>{STYLE}</style></head><body>"
             f"<h1>{html.escape(title)}</h1><p class=\"note\"><strong>Raw captures, served as committed.</strong> Every file below is served "
