@@ -1,6 +1,6 @@
 # Search v2 measurement (2026-09-15)
 
-**Fix state (orthogonal fields rule): LANDED / NONE / CORPUS / STALE** - generated from MEASURE-search-v2-recall-2026-09-15; stale dependencies: docs/evidence/CAPTIONS.json, harness/search_v2.py
+**Fix state (orthogonal fields rule): LANDED / NONE / CORPUS / STALE** - generated from MEASURE-search-v2-recall-2026-09-15; stale dependencies: docs/evidence/CAPTIONS.json, docs/search_recall_regression_corpus.json, harness/acquisition.py, +2 more
 
 MEASUREMENT topics (21, sealed before the engine existed): audit-found positives found 1 of 12 (named); pooled-or-declared positives found 120 of 135; 5 of 21 topics RAN_ERROR (the engine refused its own query; contribute 0 found, counted in N); sealed regression register 18 of 20 -- measured with the LEGACY concept-query engine (harness/acquisition.py, re-run because that file changed), NOT with search_v2, which has not been run against the sealed register; development topics excluded
 

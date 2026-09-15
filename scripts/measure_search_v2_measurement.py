@@ -81,6 +81,8 @@ ROUTE_LABELS = {
     "EPMC_BACKWARD_CITATION": "backward citation",
     "EPMC_FORWARD_CITATION": "forward citation",
     "COMPARATOR_REFERENCE_LIST": "comparator reference list",
+    "PUBMED_ELINK_BACKWARD_CITATION": "backward citation (PubMed elink)",
+    "COMPARATOR_REFERENCE_LIST_PUBMED": "comparator reference list (PubMed elink)",
 }
 
 PMID_RE = re.compile(r"^(?:PMID[:\s]*)?(\d{1,9})$", re.I)
@@ -849,11 +851,13 @@ def _heldout_summary() -> dict[str, Any]:
 
 def _corpus_line(score: dict[str, Any], heldout: dict[str, Any]) -> str:
     totals = score["totals"]
+    states = (score.get("candidate_payload") or {}).get("topics") or {}
+    n_err = sum(1 for slug in MEASUREMENT_TOPICS if (states.get(slug) or {}).get("state") == "RAN_ERROR")
     return (
         "MEASUREMENT topics (21, sealed before the engine existed): "
         f"audit-found positives found {totals['audit']['found']} of {totals['audit']['N']} (named); "
         f"pooled-or-declared positives found {totals['pooled']['found']} of {totals['pooled']['N']}; "
-        f"5 of 21 topics RAN_ERROR (the engine refused its own query; contribute 0 found, counted in N); "
+        f"{n_err} of {len(MEASUREMENT_TOPICS)} topics RAN_ERROR (the engine refused its own query; contribute 0 found, counted in N); "
         f"sealed regression register {heldout.get('recall_text')} -- measured with the LEGACY concept-query engine "
         f"(harness/acquisition.py, re-run because that file changed), NOT with search_v2, which has not been run against "
         f"the sealed register; development topics excluded"

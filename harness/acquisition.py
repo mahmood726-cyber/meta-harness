@@ -113,6 +113,8 @@ SOURCE_KINDS = (
     "EPMC_BACKWARD_CITATION",
     "EPMC_FORWARD_CITATION",
     "COMPARATOR_REFERENCE_LIST",
+    "PUBMED_ELINK_BACKWARD_CITATION",   # PubMed elink pubmed_pubmed_refs of an included seed (second adapter, 2026-09-15)
+    "COMPARATOR_REFERENCE_LIST_PUBMED", # PubMed elink pubmed_pubmed_refs of the comparator review (second adapter)
     "PUBMED_LEGACY_QUERY",       # a committed pubmed_queries string that is a real query (not an enumeration)
     "PUBMED_PMID_ENUMERATION",   # a <uid>[uid] list: retrieves only what it was told; discovery_capable=false
     "EUROPEPMC_QUERY",

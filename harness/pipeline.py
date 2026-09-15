@@ -1138,6 +1138,8 @@ _LEDGER_SOURCE_GROUPS = {
     "REGISTRY_FIRST": "Registry-first (AACT)",
     "COMPARATOR_REFERENCES": "Citation chase",
     "COMPARATOR_REFERENCE_LIST": "Citation chase",
+    "COMPARATOR_REFERENCE_LIST_PUBMED": "Citation chase",
+    "PUBMED_ELINK_BACKWARD_CITATION": "Citation chase",
     "CITATION_CHASE": "Citation chase",
     "EPMC_BACKWARD_CITATION": "Citation chase",
     "EPMC_FORWARD_CITATION": "Citation chase",

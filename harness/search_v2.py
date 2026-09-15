@@ -762,6 +762,36 @@ def _epmc_linked_records(seed: str, kind: str) -> tuple[list[dict], dict]:
     }
 
 
+def _pubmed_elink_refs_records(seed: str) -> tuple[list[dict], dict]:
+    """Reference list of `seed` via PubMed elink pubmed_pubmed_refs -- a SECOND adapter for the backward-citation and
+    comparator-reference-list routes. Added 2026-09-15 because the Europe PMC /references endpoint answered every call
+    of run 1 with '503 This API is temporarily unavailable due to maintenance' (238 EPMC_BACKWARD_CITATION + 27
+    COMPARATOR_REFERENCE_LIST sources RAN_ERROR), so that route was not measured. Both adapters run; each has its
+    own source kind and state in the ledger, so a reader can see which one delivered."""
+    payload = http.get_json(
+        f"{EUTILS}/elink.fcgi",
+        {"dbfrom": "pubmed", "db": "pubmed", "linkname": "pubmed_pubmed_refs", "id": seed, "retmode": "json",
+         "tool": "meta-harness", "email": "meta-harness@example.org"},
+    )
+    time.sleep(0.34)
+    linksets = payload.get("linksets") if isinstance(payload, dict) else None
+    if not isinstance(linksets, list):
+        raise ValueError("PubMed elink payload had no linksets list")
+    pmids: list[str] = []
+    for ls in (linksets[0] if linksets else {}).get("linksetdbs") or []:
+        if ls.get("linkname") == "pubmed_pubmed_refs":
+            pmids = [str(x) for x in (ls.get("links") or []) if str(x).isdigit()]
+    records = _pubmed_efetch(pmids) if pmids else []
+    records = list(_dedupe_records(records).values())
+    fetched = len(records)
+    return records, {
+        "hits": len(pmids),
+        "state": "RAN_OK" if fetched else "RAN_ZERO",
+        "error": None,
+        "funnel": {"hits": len(pmids), "fetched": fetched, "retained": fetched, "cap": {"kind": "none", "n": None, "remainder": None}},
+    }
+
+
 def _source_run(
     ledger: dict,
     kind: str,
@@ -891,12 +921,26 @@ def _screen_summary(records: list[dict], decisions: dict, ledger: dict) -> dict:
     }
 
 
-def _snapshot_dir(slug: str, run_date: str) -> str:
-    return os.path.join(ROOT, "cache", slug, "snapshots", f"{run_date}-{SNAPSHOT_SUFFIX}")
+def split_of(slug: str) -> str:
+    """DEVELOPMENT / MEASUREMENT from the sealed split registry (which names sets, not targets); UNSPLIT if the slug
+    is not in it. Lane S3 hard-coded DEVELOPMENT into every snapshot, measurement ones included."""
+    path = os.path.join(ROOT, "registry", "search_benchmark_split.json")
+    if not os.path.exists(path):
+        return "UNSPLIT"
+    with open(path, encoding="utf-8") as f:
+        row = ((json.load(f).get("assignments") or {}).get(slug)) or {}
+    return str(row.get("set") or "UNSPLIT")
 
 
-def _write_snapshot(slug: str, records_dict: dict, ledger: dict, recorder: acq.RawRecorder, run_date: str) -> str:
-    snapshot_dir = _snapshot_dir(slug, run_date)
+def _snapshot_dir(slug: str, run_date: str, snapshot_name: str | None = None) -> str:
+    """A snapshot generation is named `<run_date><label>-search_v2`; a labelled re-run (e.g. 2026-09-15r2) sits
+    BESIDE the first generation, never over it. `_latest_snapshot` sorts lexically, so 'r2' > '-'."""
+    return os.path.join(ROOT, "cache", slug, "snapshots", snapshot_name or f"{run_date}-{SNAPSHOT_SUFFIX}")
+
+
+def _write_snapshot(slug: str, records_dict: dict, ledger: dict, recorder: acq.RawRecorder, run_date: str,
+                    snapshot_name: str | None = None) -> str:
+    snapshot_dir = _snapshot_dir(slug, run_date, snapshot_name)
     os.makedirs(snapshot_dir, exist_ok=True)
     raw_calls, raw_index_sha = recorder.write_snapshot(snapshot_dir)
     ledger.setdefault("snapshot", {})["raw_calls"] = raw_calls
@@ -951,14 +995,18 @@ def pin(slug: str, snapshot_dir: str) -> None:
     shutil.copyfile(os.path.join(snapshot_dir, acq.LEDGER_FILENAME), os.path.join(dst, acq.LEDGER_FILENAME))
 
 
-def refresh_topic(slug: str, run_date: str | None = None) -> dict:
+def refresh_topic(slug: str, run_date: str | None = None, snapshot_name: str | None = None) -> dict:
     run_date = run_date or _today_utc()
+    snapshot_name = snapshot_name or f"{run_date}-{SNAPSHOT_SUFFIX}"
+    if not snapshot_name.endswith("-" + SNAPSHOT_SUFFIX):
+        raise ValueError(f"snapshot_name must end with -{SNAPSHOT_SUFFIX}: {snapshot_name}")
     run_utc = _utc_now_seconds()
     print(f"[search_v2] topic {slug}: refresh start", flush=True)
     config = _load_json(os.path.join("topics", slug + ".json"))
     protocol_text = _read_text(os.path.join("protocols", slug + ".md"))
+    split = split_of(slug)
     ledger = acq.new_ledger(slug)
-    ledger["search_v2"] = {"version": SEARCH_V2_VERSION, "split": "DEVELOPMENT"}
+    ledger["search_v2"] = {"version": SEARCH_V2_VERSION, "split": split}
     recorder = acq.RawRecorder()
     previous_recorder = http.RECORDER
     http.RECORDER = recorder
@@ -1051,7 +1099,8 @@ def refresh_topic(slug: str, run_date: str | None = None) -> dict:
             )
             _attach(ledger, records_by_id, sid, records)
 
-        # Candidate citation routes from our own included records.
+        # Candidate citation routes from our own included records. Backward citation runs through BOTH adapters
+        # (Europe PMC /references and PubMed elink pubmed_pubmed_refs), each with its own source kind and state.
         for seed in _included_seed_pmids(slug, config):
             for endpoint, kind in (("references", "EPMC_BACKWARD_CITATION"), ("citations", "EPMC_FORWARD_CITATION")):
                 sid, records = _source_run(
@@ -1065,6 +1114,17 @@ def refresh_topic(slug: str, run_date: str | None = None) -> dict:
                     extra={"seed": seed, "structural_kind": "CANDIDATE_ROUTE"},
                 )
                 _attach(ledger, records_by_id, sid, records)
+            sid, records = _source_run(
+                ledger,
+                "PUBMED_ELINK_BACKWARD_CITATION",
+                f"{seed} pubmed_pubmed_refs",
+                run_date,
+                True,
+                lambda seed=seed: _pubmed_elink_refs_records(seed),
+                adapter="harness.search_v2._pubmed_elink_refs_records",
+                extra={"seed": seed, "structural_kind": "CANDIDATE_ROUTE"},
+            )
+            _attach(ledger, records_by_id, sid, records)
 
         comparator = str(config.get("comparator_pmid") or "").strip()
         if comparator:
@@ -1076,6 +1136,17 @@ def refresh_topic(slug: str, run_date: str | None = None) -> dict:
                 True,
                 lambda comparator=comparator: _epmc_linked_records(comparator, "references"),
                 adapter="harness.search_v2._epmc_linked_records",
+                extra={"seed": comparator, "structural_kind": "CANDIDATE_ROUTE"},
+            )
+            _attach(ledger, records_by_id, sid, records)
+            sid, records = _source_run(
+                ledger,
+                "COMPARATOR_REFERENCE_LIST_PUBMED",
+                f"{comparator} pubmed_pubmed_refs",
+                run_date,
+                True,
+                lambda comparator=comparator: _pubmed_elink_refs_records(comparator),
+                adapter="harness.search_v2._pubmed_elink_refs_records",
                 extra={"seed": comparator, "structural_kind": "CANDIDATE_ROUTE"},
             )
             _attach(ledger, records_by_id, sid, records)
@@ -1092,7 +1163,8 @@ def refresh_topic(slug: str, run_date: str | None = None) -> dict:
             "version": SEARCH_V2_VERSION,
             "mode": "REFRESH",
             "snapshot_date": run_date,
-            "split": "DEVELOPMENT",
+            "snapshot_name": snapshot_name,
+            "split": split,
             "engine_sha": _engine_sha(),
             "base_commit": _base_commit(),
             "queries": queries,
@@ -1105,7 +1177,8 @@ def refresh_topic(slug: str, run_date: str | None = None) -> dict:
     ledger["snapshot"]["engine_sha"] = _engine_sha()
     ledger["snapshot"]["search_v2_version"] = SEARCH_V2_VERSION
     ledger["snapshot"]["mode_detail"] = "REFRESH"
-    snapshot_dir = _write_snapshot(slug, records_dict, ledger, recorder, run_date)
+    ledger["snapshot"]["snapshot_name"] = snapshot_name
+    snapshot_dir = _write_snapshot(slug, records_dict, ledger, recorder, run_date, snapshot_name)
     records_dict["search_v2"]["snapshot_dir"] = os.path.relpath(snapshot_dir, ROOT).replace("\\", "/")
     print(f"[search_v2] topic {slug}: wrote {snapshot_dir}", flush=True)
     return {"records": records_dict, "ledger": ledger, "snapshot_dir": snapshot_dir}
