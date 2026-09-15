@@ -1,6 +1,6 @@
 # Acquisition layer - retrieval ledger, four run states, pagination, concept source, regression-corpus recall (2026-09-14)
 
-**Fix state (orthogonal fields rule): LANDED / INTERNAL / INSTANCE / CURRENT** - generated from TRANCHE-acquisition-layer; verified by Codex lane G (internal_agent); evidence: docs/evidence/independent-verification-2026-09-14/10-acquisition-prefix-defect.txt
+**Fix state (orthogonal fields rule): LANDED / INTERNAL / INSTANCE / STALE** - generated from TRANCHE-acquisition-layer; verified by Codex lane G (internal_agent); evidence: docs/evidence/independent-verification-2026-09-14/10-acquisition-prefix-defect.txt; stale dependencies: harness/acquisition.py
 
 | file | what it is |
 |---|---|

@@ -51,6 +51,12 @@ FILE LAYOUT
   cache/<slug>/snapshots/<retrieved_utc>-<sha8>/  refresh outputs: records.json + retrieval_ledger.json
   cache/<slug>/snapshots/<retrieved_utc>-<sha8>/raw/<source_id>/<NNN>.json
                                                     raw retrieval responses for that dated refresh
+  RAW BODIES OFF-TREE (search_v2 runs, 2026-09-15): a full-pagination run of one topic writes 200-600 MB of raw
+  bodies, so for those snapshots the bodies are archived outside the repository by scripts/archive_raw_bodies.py and
+  only raw/INDEX.json (one row per HTTP call with url, params, status, fetched_utc, adapter blob sha, body_sha256,
+  file_sha256) and ARCHIVE.json (archive root, custody, index sha) stay in-tree. `archive_raw_bodies.py check`
+  re-hashes every archived body against INDEX.json; a body the archive cannot produce reads NOT PRESERVED. Custody:
+  the session author's machine; digests in-tree are the authority.
 
 LEDGER SCHEMA (version 1)
   {
@@ -99,6 +105,14 @@ STATES = ("RAN_OK", "RAN_ZERO", "RAN_ERROR", "NOT_RUN",
 SNAPSHOT_MODES = ("REFRESH", "LEGACY_UNRECORDED")
 SOURCE_KINDS = (
     "PUBMED_CONCEPT_QUERY",      # built from the registered P/I/C/design; paginated full boolean set
+    "EUROPEPMC_CONCEPT_QUERY",
+    "CTGOV_CONDITION_INTERVENTION",
+    "PUBMED_NCT_LINK",
+    "EPMC_NCT_LINK",
+    "CTGOV_NCT_LINK",
+    "EPMC_BACKWARD_CITATION",
+    "EPMC_FORWARD_CITATION",
+    "COMPARATOR_REFERENCE_LIST",
     "PUBMED_LEGACY_QUERY",       # a committed pubmed_queries string that is a real query (not an enumeration)
     "PUBMED_PMID_ENUMERATION",   # a <uid>[uid] list: retrieves only what it was told; discovery_capable=false
     "EUROPEPMC_QUERY",

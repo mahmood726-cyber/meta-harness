@@ -87,7 +87,12 @@ _NON_TRIAL_ACRONYMS = {
     "ACS",
     "AF",
     "ARDS",
+    "BAY",
+    "BIBR",
     "BIO-K",
+    "BIBR1048",
+    "BMES",
+    "BMS-562247",
     "CAP",
     "CKD",
     "CL1285",
@@ -95,19 +100,47 @@ _NON_TRIAL_ACRONYMS = {
     "COVID",
     "COVID-19",
     "CV",
+    "DOAC",
+    "DOACS",
+    "DPP-4",
+    "DPP4",
+    "DU-176B",
+    "DVT",
     "GG",
+    "GLP-1",
+    "GLP-1RA",
+    "GLP-1 RA",
     "HFPEF",
     "HFREF",
     "IL-6",
+    "ICU",
     "JAMA",
+    "LCS",
+    "LGG",
     "MACE",
     "MADRS",
+    "NOAC",
+    "NOACS",
     "OR",
+    "PCOS",
+    "PE",
     "PIC",
+    "PLASMA-LYTE",
     "PPH",
+    "PUB",
     "RCT",
     "RR",
+    "SGLT2",
+    "SGLT-2",
     "T2D",
+    "T2DM",
+    "ABS",
+    "TITLE",
+    "TITLE_ABS",
+    "TYPE",
+    "PUB_TYPE",
+    "VKA",
+    "VTE",
 }
 _BOOLEAN_TOKENS = {"AND", "OR", "NOT"}
 
@@ -138,6 +171,8 @@ def _query_classification(query):
 
     if "[uid]" in lower:
         features.append("uid_field:[uid]")
+    for nct in re.findall(r"\bNCT\d{8}\b", text, flags=re.IGNORECASE):
+        features.append(f"nct_literal:{nct.upper()}")
     for doi in _DOI_RE.findall(text):
         features.append(f"doi_literal:{doi}")
     for pmid in _PMID_LITERAL_RE.findall(text):
@@ -150,7 +185,7 @@ def _query_classification(query):
 
     if any(f.startswith("uid_field:") for f in features):
         kind = "PMID_ENUMERATION"
-    elif any(f.startswith(("doi_literal:", "pmid_literal:")) for f in features):
+    elif any(f.startswith(("doi_literal:", "pmid_literal:", "nct_literal:")) for f in features):
         kind = "IDENTIFIER_SEEDED"
     elif any(f.startswith("title_field_tag:") for f in features):
         kind = "TITLE_ANCHORED"
@@ -193,9 +228,13 @@ def classify_retrieval(config, ledger=None, registry_first_status=None):
     concept_ran_ok = False
     if ledger:
         for src in ledger.get("sources") or []:
-            if src.get("kind") == "PUBMED_CONCEPT_QUERY" and src.get("state") == "RAN_OK":
+            if src.get("kind") in (
+                "PUBMED_CONCEPT_QUERY",
+                "EUROPEPMC_CONCEPT_QUERY",
+                "CTGOV_CONDITION_INTERVENTION",
+            ) and src.get("state") == "RAN_OK":
                 kind = "CONCEPT"
-                features = ["concept_source_ran_ok:PUBMED_CONCEPT_QUERY"]
+                features = [f"concept_source_ran_ok:{src.get('kind')}"]
                 concept_ran_ok = True
             else:
                 detail = _query_classification(src.get("query"))
@@ -1076,15 +1115,23 @@ def _outcome_specs(config):
 
 _LEDGER_SOURCE_GROUPS = {
     "PUBMED_CONCEPT_QUERY": "PubMed",
+    "PUBMED_NCT_LINK": "PubMed",
     "PUBMED_LEGACY_QUERY": "PubMed",
     "PUBMED_PMID_ENUMERATION": "PubMed",
     "EXTRA_PMIDS": "PubMed",
     "CONTROL_PMIDS": "PubMed",
     "EUROPEPMC_QUERY": "Europe PMC (OA + metadata)",
+    "EUROPEPMC_CONCEPT_QUERY": "Europe PMC (OA + metadata)",
+    "EPMC_NCT_LINK": "Europe PMC (OA + metadata)",
     "CTGOV_SEARCH": "ClinicalTrials.gov",
+    "CTGOV_CONDITION_INTERVENTION": "ClinicalTrials.gov",
+    "CTGOV_NCT_LINK": "ClinicalTrials.gov",
     "REGISTRY_FIRST": "Registry-first (AACT)",
     "COMPARATOR_REFERENCES": "Citation chase",
+    "COMPARATOR_REFERENCE_LIST": "Citation chase",
     "CITATION_CHASE": "Citation chase",
+    "EPMC_BACKWARD_CITATION": "Citation chase",
+    "EPMC_FORWARD_CITATION": "Citation chase",
     "MODEL_CALL": "Model call",
     "LEGACY_UNRECORDED": "Legacy unrecorded retrieval",
 }
