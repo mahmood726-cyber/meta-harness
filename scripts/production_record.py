@@ -106,12 +106,35 @@ def _load_manifest_for_target(path: str, label: str) -> tuple[dict | None, str |
         return None, target_refusal(label, f"manifest unreadable: {exc}")
 
 
+def _is_git_worktree(root: Path) -> bool:
+    proc = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], cwd=root, capture_output=True, text=True)
+    return proc.returncode == 0 and proc.stdout.strip() == "true"
+
+
+def _describe_from_manifest(manifest: str, man: dict, paths: list[str], label: str) -> str:
+    """The deploy job has NO checkout by design (verify.yml: it downloads the artifact verify produced and nothing
+    else), so a TARGET line for it cannot come from git. It names what the job actually reads: the manifest's
+    commit_sha as head and the manifest file's own digest as the tree. 2026-09-15: every deploy since d15867aa
+    (14 runs) died on `ModuleNotFoundError: harness` before this line could even be attempted -- verify green,
+    site stale at 34747bd6 -- and with harness shipped it would have died here on `ref not resolvable: HEAD`."""
+    if not paths:
+        return target_refusal(label, "file set is empty")
+    head = str(man.get("commit_sha") or "").strip()
+    if not head:
+        return target_refusal(label, "manifest carries no commit_sha")
+    tree = f"artifact:manifest-sha256={_sha256_file(manifest)[:16]}"
+    shown = " ".join(str(x).replace("\\", "/") for x in paths[:3]) + (" ..." if len(paths) > 3 else "")
+    return f"TARGET {label}: head={head} base=none tree={tree} files={len(paths)} {shown}".rstrip()
+
+
 def _artifact_target(manifest: str, tar_path: str) -> str:
     repo_root = _script_root()
     man, err = _load_manifest_for_target(manifest, "production_record.check_artifact")
     if err:
         return err
     paths = [manifest, tar_path, *list((man.get("files") or {}).keys())]
+    if not _is_git_worktree(repo_root):
+        return _describe_from_manifest(manifest, man, paths, "production_record.check_artifact")
     refs = (man.get("commit_sha"),) if man.get("commit_sha") else ()
     try:
         return describe_target(repo_root, refs=refs, paths=paths, label="production_record.check_artifact")
@@ -126,6 +149,8 @@ def _attest_target(manifest: str, base_url: str) -> str:
         return err
     base = base_url.rstrip("/") + "/"
     urls = [base + rel for rel in (man.get("files") or {})]
+    if not _is_git_worktree(repo_root):
+        return _describe_from_manifest(manifest, man, urls, "production_record.attest")
     refs = (man.get("commit_sha"),) if man.get("commit_sha") else ()
     try:
         return describe_target(repo_root, refs=refs, paths=urls, label="production_record.attest")

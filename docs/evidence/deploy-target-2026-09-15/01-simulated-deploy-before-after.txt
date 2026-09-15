@@ -1,0 +1,21 @@
+SIMULATED DEPLOY JOB (no checkout: pr/ holds only the production-record artifact files; pages/artifact.tar is the docs tree of 26d0476b)
+
+## pre-fix script (HEAD 26d0476b), harness/ NOT in the artifact -- what CI has done on every main push since d15867aa (14 runs):
+  File "C:\claude-tmp\deploy-sim\pr\scripts\production_record_old.py", line 47, in <module>
+    from harness.target import TargetUnresolvable, describe_target, refusal as target_refusal
+ModuleNotFoundError: No module named 'harness'
+exit 1
+
+## pre-fix script, harness/ shipped in the artifact (the second failure, never reached by CI):
+TARGET production_record.check_artifact: COULD-NOT-EXECUTE ref not resolvable: HEAD: fatal: not a git repository (or any of the parent directories): .git
+exit 1
+
+## post-fix script, intact artifact:
+TARGET production_record.check_artifact: head=26d0476b5d8a03b8777a44a4214b6a16a8f49f6f base=none tree=artifact:manifest-sha256=114dab78d9274bae files=806 pr/docs/_production/manifest.json pages/artifact.tar LIMITATIONS_AS_OBJECTS_DESIGN.md ...
+artifact == manifest: 804 files, all digests equal (commit 26d0476b5d8a)
+exit 0
+
+## post-fix script, TAMPERED artifact (index.html + one comment) -- the detector must still fire:
+TARGET production_record.check_artifact: head=26d0476b5d8a03b8777a44a4214b6a16a8f49f6f base=none tree=artifact:manifest-sha256=114dab78d9274bae files=806 pr/docs/_production/manifest.json pages/tampered.tar LIMITATIONS_AS_OBJECTS_DESIGN.md ...
+ARTIFACT REFUSED: missing=[] extra=[] differ=['index.html'] (counts 0/0/1)
+exit 1
