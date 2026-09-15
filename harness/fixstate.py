@@ -41,7 +41,7 @@ VERIFICATIONS = ("NONE", "INTERNAL", "INDEPENDENT")
 SCOPES = ("INSTANCE", "REGRESSION_SET", "CORPUS", "HELD_OUT")
 FRESHNESS = ("CURRENT", "STALE")
 VERIFIER_KINDS = ("author", "internal_agent", "external_auditor")
-KINDS = ("fix", "control", "result")
+KINDS = ("fix", "control", "result", "finding")
 
 OLD_REFUSED_VALUES = {
     "INTERNALLY_VERIFIED",
