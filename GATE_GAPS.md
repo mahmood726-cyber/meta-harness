@@ -39,6 +39,12 @@ that supports the claim.
 | Comparator matcher rebuilt on one key | STILL TRUE | `AUDIT_QUEUE.md` item 8; `tests/test_external_agreement_estimand.py` | Estimand matching is tested, but the full comparator axis key remains queued. |
 | Systematic-search recall | STILL TRUE | `harness/heldout.py:measurement_current`; `docs/search_recall_regression_corpus.json`; `docs/evidence/search-acquisition-2026-09-14/README.md` | Regression-corpus recall is measured and held-out leakage is guarded; recall itself remains the weakest layer. |
 
+## Hazard consumer residual gaps
+
+| gate | what it now stops | what it would NOT stop | evidence |
+|---|---|---|---|
+| Limitation consumer gate | A validity-threatening or `BLOCKS_CLAIM` limitation object publishing with `consumer: null` and no signed acknowledgement; retrieval-class, search-provenance, and enumeration-only hazards no longer stop at disclosure and now feed `invalidation.assess`. | A real hazard that is never emitted as a limitation object; a consumer mapping whose named gate reads the right field but returns a semantically wrong verdict; a signed acknowledgement whose prose is wrong. | `harness/hazard_consumers.py`; `harness/limitations.py:check_consumers`; `docs/hazard_acknowledgements.json`; `docs/evidence/hazard-consumers-2026-09-14/` |
+
 ## Gates that exist today, and what each would not stop
 
 <!-- gate-gaps:generated:start -->
@@ -61,6 +67,7 @@ The rows below are generated from `registry/gate_gaps.json`; freshness is comput
 | Gate scorecard | Missing registry entries for enumerated gates, stale served `docs/gate_scorecard.json`, missing evidence paths, placeholder dates, and false precision counts. | A gate omitted from the enumerator/static list; truthfulness of cited evidence content; a production control that is green in tests but never adjudicated on a real refusal. Implementation reviewers can check enumerator coverage, and auditors can sample the cited evidence. | STALE: `docs/gate_scorecard.json`, `harness/gate_scorecard.py`, `registry/gate_scorecard.json`, +1 more | `harness/gate_scorecard.py`; `registry/gate_scorecard.json`; `docs/gate_scorecard.json`; `tests/test_gate_scorecard.py`; `docs/evidence/independent-verification-2-2026-09-14/02-gate-scorecard.txt` |
 | Architecture identity | Treating changed code, workflow, hooks, topic/protocol/registry config, dependencies, retrieval adapters, model stages, or deploy path as the same architecture. | Making mutable dependencies or live APIs immutable; proving scientific correctness of an architecture. | STALE: `harness/architecture_identity.py` | `harness/architecture_identity.py:components`, `identity`, `mutable_dependencies`; `tests/test_architecture_identity.py`; `docs/evidence/independent-verification-2026-09-14/04-artifact-identity.txt` |
 | Target assertion | A check running without printing the HEAD/base/tree/file-or-URL set it inspected, or silently falling back when a named ref/file set cannot be resolved. | A check pointed at the right commit but reading a stale derived file; a target line that is printed but not compared against what the caller intended. The line makes the target auditable, not automatically correct. | STALE: `harness/honest_ratchet.py`, `scripts/verify_all.py` | harness/target.py; scripts/verify_all.py; harness/honest_ratchet.py; docs/evidence/target-assertion-2026-09-14/README.md |
+| Limitation consumer gate | A validity-threatening or BLOCKS_CLAIM limitation object publishing with consumer null and no signed acknowledgement; retrieval-class, search-provenance and enumeration hazards now feed invalidation.assess. | A hazard never emitted as an object at all; a consumer that reads the state and returns the wrong verdict; an acknowledgement that lets a pair stay unwired -- DEFINITION_AUDIT and ROB_SENSITIVITY are acknowledged as OWED a consumer, not as informational. | CURRENT | harness/hazard_consumers.py; harness/limitations.py:check_consumers; docs/hazard_acknowledgements.json; docs/evidence/hazard-consumers-2026-09-14/README.md |
 
 ### The eight `verify_all.py` limbs
 

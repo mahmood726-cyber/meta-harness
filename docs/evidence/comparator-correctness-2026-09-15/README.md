@@ -1,6 +1,6 @@
 # Comparator correctness sweep (2026-09-15)
 
-**Fix state (orthogonal fields rule): LANDED / NONE / INSTANCE / CURRENT** - generated from EXT-COMP-AE-01-BALANCED_CRYSTALLOIDS_VS_SALINE_MORTALITY
+**Fix state (orthogonal fields rule): LANDED / NONE / INSTANCE / STALE** - generated from EXT-COMP-AE-01-BALANCED_CRYSTALLOIDS_VS_SALINE_MORTALITY; stale dependencies: docs/reviews/balanced-crystalloids-vs-saline-mortality/review.json
 per-trial effect inputs are machine-readable on 0 of 21 comparators (figures); characteristics tables were parsed on 11 of 21 (balanced-crystalloids-vs-saline-mortality, colchicine-secondary-cv-prevention, finerenone-ckd-t2d-renal, glp1-ra-mace-t2d, noac-vs-warfarin-af-stroke, omega3-cardiovascular-events, pcsk9-mace, probiotics-aad-prevention, spironolactone-hfref-mortality, statins-primary-prevention-elderly, ticagrelor-vs-clopidogrel-acs); THEIRS design/population/compatibility checks were assessable on those 11.
 
 each THEIRS finding is an external claim with verification NONE; none has been confirmed by an outside party

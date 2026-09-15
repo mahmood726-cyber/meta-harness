@@ -147,7 +147,7 @@ def check_limitation_decision_links(review_dir):
         return [f"L1: cannot read review.json for limitation decision links: {exc}"]
     bad = publication_gate_refusals(rev.get("limitations") or [])
     return [
-        "L1: validity-threatening limitation lacks a linked analytic decision -- "
+        "L1: validity-threatening limitation lacks a linked analytic decision or executable consumer -- "
         + "; ".join(bad[:6])
     ] if bad else []
 

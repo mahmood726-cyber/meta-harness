@@ -79,6 +79,39 @@ def test_search_not_executed_signal_is_stale():
     assert v["stale"] and any(r["code"] == "search_not_executed" for r in v["reasons"])
 
 
+def test_retrieval_class_not_auditable_is_stale_without_side_signal():
+    core = {"outcomes": [{"primary": True, "result": {"k": 2, "estimate": 0.8}}],
+            "search": {"retrieval_class": {
+                "class": "TITLE_SEEDED_RETRIEVAL",
+                "retrieval_auditable": False,
+                "distinction": "title seeded",
+            }}}
+    v = INV.assess(core)
+    assert v["stale"]
+    assert any(r["code"] == "search_not_executed" for r in v["reasons"])
+
+
+def test_retrieval_enumeration_only_is_stale_without_side_signal():
+    core = {"outcomes": [{"primary": True, "result": {"k": 2, "estimate": 0.8}}],
+            "search": {"retrieval": {"enumeration_only": True}}}
+    v = INV.assess(core)
+    assert v["stale"]
+    assert any(r["code"] == "search_not_executed" for r in v["reasons"])
+
+
+def test_explicit_search_not_executed_signal_takes_precedence_over_core_derivation():
+    core = {"outcomes": [{"primary": True, "result": {"k": 2, "estimate": 0.8}}],
+            "search": {"retrieval_class": {
+                "class": "TITLE_SEEDED_RETRIEVAL",
+                "retrieval_auditable": False,
+                "distinction": "core detail",
+            }}}
+    v = INV.assess(core, {"search_not_executed": {"class": "PMID_ENUMERATION_explicit", "detail": "signal detail"}})
+    detail = next(r["detail"] for r in v["reasons"] if r["code"] == "search_not_executed")
+    assert "PMID_ENUMERATION_explicit" in detail
+    assert "signal detail" in detail
+
+
 def test_identifier_scope_detects_agent_identifier_over_class_pool():
     cfg = {
         "protocol_i_line": "- **I** - specifically spironolactone or eplerenone.",

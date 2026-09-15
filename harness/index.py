@@ -276,7 +276,7 @@ def _external_findings_section(docs_dir: str) -> str:
     n_none = sum(1 for r in rows if r.get("verification") == "NONE")
     items = "".join(
         f"<li><code>{_E(r.get('fix_id'))}</code> — {_E(r.get('title'))} "
-        f"[{_E(r.get('fix_state') or r.get('state'))}]</li>" for r in rows)
+        f"[verification {_E(r.get('verification'))}]</li>" for r in rows)
     return (f"<div class='absent'><h2>{_E(heading)}</h2>"
             f"<p><strong>{len(rows)}</strong> findings recorded, <strong>{n_none}</strong> with verification NONE and "
             f"<strong>{len(rows) - n_none}</strong> confirmed by an outside party. Applying the same instrument to a comparator "

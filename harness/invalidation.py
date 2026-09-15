@@ -243,6 +243,28 @@ def _eligible_not_pooled(core, id_nct=None):
     return [x for x in out if not (x in seen or seen.add(x))]
 
 
+def _search_not_executed_from_core(core):
+    search = core.get("search") or {}
+    retrieval = search.get("retrieval") or {}
+    if retrieval.get("enumeration_only"):
+        return {
+            "class": "PMID_ENUMERATION_explicit",
+            "detail": "search.retrieval.enumeration_only=true; no discovery-capable concept source ran",
+        }
+    rc = search.get("retrieval_class") or {}
+    if rc.get("retrieval_auditable") is False:
+        return {
+            "class": rc.get("class") or "UNAUDITABLE_RETRIEVAL",
+            "detail": (
+                rc.get("retraction")
+                or rc.get("distinction")
+                or rc.get("label")
+                or "retrieval_class says retrieval_auditable=false"
+            ),
+        }
+    return None
+
+
 def assess(core, signals=None):
     """signals (optional): externally-computed, committed, per-topic signals the core does not carry
     on its own -- {'search_not_executed': {'class':..., 'detail':...} | None,
@@ -252,7 +274,7 @@ def assess(core, signals=None):
     reasons = []
     # 0. Search provenance: a topic whose "search" was a RAN_ERROR-rendered-as-run or explicit
     #    PMID-enumeration has NO genuine executed concept search -- its completeness claim is void.
-    sne = signals.get("search_not_executed")
+    sne = signals.get("search_not_executed") or _search_not_executed_from_core(core)
     if sne:
         reasons.append({"code": "search_not_executed",
                         "detail": "no genuine executed concept search (" + str(sne.get("class"))

@@ -1,0 +1,21 @@
+Hazard consumer executable plants
+
+kind | evidence_state | gate_id | gate_function | gate_input_path | baseline | planted | changed
+CLAIM_CHECK_ZERO | NOT_RUN | invalidation.assess | harness.invalidation.assess | /outcomes/*/result/claim | CURRENT | STALE: no_checkable_claim | True
+IDENTIFIER_SCOPE | REFUSED_ON_EVIDENCE | invalidation.assess | harness.invalidation.assess | /identifier_scope | CURRENT | STALE: identifier_single_agent_class_pool | True
+RANDOMISED_CONTRAST | PARTIAL | compat.outcome_key | harness.compat.outcome_key | /arm_contrast/trials | verified 1/1 | verified 0/1 | True
+RANDOMISED_CONTRAST | RECORDED | compat.outcome_key | harness.compat.outcome_key | /arm_contrast/trials | verified 0/1 | verified 1/1 | True
+RETRACTED_TRIAL_POOLED | RETRACTED | invalidation.assess | harness.invalidation.assess | /integrity/retracted | CURRENT | STALE: retracted_pooled_trial | True
+RETRIEVAL_CLASS | NOT_RUN | invalidation.assess | harness.invalidation.assess | /search/retrieval_class/retrieval_auditable | CURRENT | STALE: search_not_executed | True
+RETRIEVAL_CLASS | UNRECORDED | invalidation.assess | harness.invalidation.assess | /search/retrieval_class/retrieval_auditable | CURRENT | STALE: search_not_executed | True
+SEARCH_ENUMERATION_ONLY | NOT_RUN | invalidation.assess | harness.invalidation.assess | /search/retrieval/enumeration_only | CURRENT | STALE: search_not_executed | True
+SEARCH_PROVENANCE | RETRACTED | invalidation.assess | harness.invalidation.assess | /search/retrieval_class/search_provenance | CURRENT | STALE: search_not_executed | True
+STALE_TOPIC | STALE | invalidation.assess | harness.invalidation.assess | /invalidation/stale | CURRENT | STALE: retracted_pooled_trial | True
+SUPPRESSED_POOL | SUPPRESSED | estmeasure.pool_compatibility | harness.estmeasure.pool_compatibility | /outcomes/*/result/estmeasure/status | compatible_labels | incompatible | True
+UNIT_OF_ANALYSIS | NOT_ASSESSED | design_key.decision_for_trial | harness.design_key.decision_for_trial | /unit_of_analysis | ALLOW: design-key:parallel - no detected validity-critical design hazard | ALLOW_WITH_LABEL: design-key:factorial-marginal - factorial marginal contrast labelled, not refused | True
+UNIT_OF_ANALYSIS | REFUSED_ON_EVIDENCE | design_key.decision_for_trial | harness.design_key.decision_for_trial | /outcomes/*/result/design_refusal | ALLOW: design-key:parallel - no detected validity-critical design hazard | REFUSE: design-key:cluster-unadjusted-se - refused before PM/HKSJ | True
+
+consumer-null refusal plant:
+without_ack: declared hazard with no consumer: topic:plant:riskofbias:unit-of-analysis
+with_ack: PASS
+ack_rendered_from_object: True

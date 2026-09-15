@@ -83,7 +83,10 @@ def test_validity_threatening_limitation_without_linked_decision_refuses_publica
 
     reasons = publication_gate_refusals([obj])
 
-    assert reasons == ["topic:x:test: VALIDITY_THREATENING limitation has no linked_decision"]
+    assert reasons == [
+        "topic:x:test: VALIDITY_THREATENING limitation has no linked_decision",
+        "declared hazard with no consumer: topic:x:test",
+    ]
 
 
 def test_validity_threatening_limitation_without_linked_decision_refuses_page_gate(tmp_path):
@@ -101,8 +104,9 @@ def test_validity_threatening_limitation_without_linked_decision_refuses_page_ga
     reasons = check_limitation_decision_links(review_dir)
 
     assert reasons == [
-        "L1: validity-threatening limitation lacks a linked analytic decision -- "
-        "topic:x:test: VALIDITY_THREATENING limitation has no linked_decision"
+        "L1: validity-threatening limitation lacks a linked analytic decision or executable consumer -- "
+        "topic:x:test: VALIDITY_THREATENING limitation has no linked_decision; "
+        "declared hazard with no consumer: topic:x:test"
     ]
 
 

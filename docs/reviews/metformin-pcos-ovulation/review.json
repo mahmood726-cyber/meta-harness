@@ -2708,6 +2708,10 @@
     "stale": true,
     "reasons": [
       {
+        "code": "search_not_executed",
+        "detail": "no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic."
+      },
+      {
         "code": "eligible_declared_absent",
         "detail": "screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: 22419702, 20925997, 19692630, 16827766, 11994052, 11473953; the completeness claim cannot be current"
       }
@@ -2814,12 +2818,17 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE &mdash; this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: 22419702, 20925997, 19692630, 16827766, 11994052, 11473953; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "b7764c849ca71743a730620480a50d89dae517481a76188616b58afdf849db39",
+      "rendered_text": "<div class='absent'><strong>STALE &mdash; this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: 22419702, 20925997, 19692630, 16827766, 11994052, 11473953; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "09c6b81159d9555397f8de81acd54eb795169b02cee29beb75771d4a3b9fdfdc",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
         "decision_state": "STALE_TOPIC blocks the affected analytic claim"
+      },
+      "consumer": {
+        "gate_id": "invalidation.assess",
+        "gate_input_path": "/invalidation/stale",
+        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
       }
     },
     {
@@ -2839,6 +2848,11 @@
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:retrieval-class",
         "decision_state": "page may publish only with the retrieval-class label; systematic-search claim refused"
+      },
+      "consumer": {
+        "gate_id": "invalidation.assess",
+        "gate_input_path": "/search/retrieval_class/retrieval_auditable",
+        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
       }
     },
     {
@@ -2852,7 +2866,22 @@
         "/slug"
       ],
       "rendered_text": "<div class='banner'>This page offers <strong>greater auditability, not stronger evidence</strong>: every number traces to a committed source, every absence is declared, and any hand-edit breaks the reproduction census.</div>",
-      "text_sha256": "a07ca0c493b33290cb4bf483104524d29fd45fca54650542b13d1ae140489415"
+      "text_sha256": "a07ca0c493b33290cb4bf483104524d29fd45fca54650542b13d1ae140489415",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "auditability disclosure only; no analytic gate changes on this state",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "Auditability scope is a page-level provenance disclosure; no analytic gate changes its verdict when this recorded note is present.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-AUDITABILITY_SCOPE-RECORDED"
+      }
     },
     {
       "limitation_id": "topic:metformin-pcos-ovulation:search:retrieval-snapshot",
@@ -2866,7 +2895,22 @@
         "/search/retrieval/sources"
       ],
       "rendered_text": "<div class='banner'><p><strong>Snapshot:</strong> records_sha256 <code>1fdb53f8</code>; retrieved_utc 2026-09-11; mode LEGACY_UNRECORDED: a pre-ledger fetch; which query retrieved which record was not recorded; every record's found_by names this single source.</p><p>This page is a REPLAY of that snapshot: re-running from the protocol SHA regenerates it byte-for-byte. A live re-search is a separate, dated event (see Re-search below if present).</p></div>",
-      "text_sha256": "cc78332add2729396a6dc908258b4d44764c01e34ec1e688ee861d632c53f234"
+      "text_sha256": "cc78332add2729396a6dc908258b4d44764c01e34ec1e688ee861d632c53f234",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "retrieval snapshot is replay provenance; it does not constrain an analytic claim by itself",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "The retrieval snapshot records replay provenance; by itself it does not constrain the pooled analytic claim.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-RETRIEVAL_SNAPSHOT-RECORDED"
+      }
     },
     {
       "limitation_id": "topic:metformin-pcos-ovulation:search:retrieval-class",
@@ -2885,6 +2929,11 @@
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:retrieval-class",
         "decision_state": "page may publish only with the retrieval-class label; systematic-search claim refused"
+      },
+      "consumer": {
+        "gate_id": "invalidation.assess",
+        "gate_input_path": "/search/retrieval_class/retrieval_auditable",
+        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
       }
     },
     {
@@ -2903,6 +2952,11 @@
         "action": "REFUSE",
         "gate_id": "limitation:search-provenance",
         "decision_state": "unqualified registry-first/systematic-search claim refused"
+      },
+      "consumer": {
+        "gate_id": "invalidation.assess",
+        "gate_input_path": "/search/retrieval_class/search_provenance",
+        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
       }
     },
     {
@@ -2917,7 +2971,22 @@
         "/outcomes/*/result/reason"
       ],
       "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> REPORTED but not extractable as a pooled value: 16769748 mention this outcome in the committed abstract, but without arm counts or an effect+CI in an extractable form (e.g. a bare percentage with no denominator). This outcome is NOT absent — it is reported-but-not-poolable from the committed source; full-text acquisition would recover the countable form.</div>",
-      "text_sha256": "8f0cfb50ac62d26f40f5fa2aaf66363aec7c0446e75e277034cd94c24b81d970"
+      "text_sha256": "8f0cfb50ac62d26f40f5fa2aaf66363aec7c0446e75e277034cd94c24b81d970",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "section/outcome absence is visible scoping evidence; no single analytic gate consumes all such sections",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "Declared section or outcome absence is already the visible scoped result; no single analytic gate consumes every such absence object.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-DECLARED_ABSENT_SECTION-DECLARED_ABSENT"
+      }
     },
     {
       "limitation_id": "topic:metformin-pcos-ovulation:harms:1:treatment-discontinuation-due-to-adverse-events:result-absent",
@@ -2931,7 +3000,22 @@
         "/outcomes/*/result/reason"
       ],
       "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> REPORTED but not extractable as a pooled value: 16769748 mention this outcome in the committed abstract, but without arm counts or an effect+CI in an extractable form (e.g. a bare percentage with no denominator). This outcome is NOT absent — it is reported-but-not-poolable from the committed source; full-text acquisition would recover the countable form.</div>",
-      "text_sha256": "8f0cfb50ac62d26f40f5fa2aaf66363aec7c0446e75e277034cd94c24b81d970"
+      "text_sha256": "8f0cfb50ac62d26f40f5fa2aaf66363aec7c0446e75e277034cd94c24b81d970",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "section/outcome absence is visible scoping evidence; no single analytic gate consumes all such sections",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "Declared section or outcome absence is already the visible scoped result; no single analytic gate consumes every such absence object.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-DECLARED_ABSENT_SECTION-DECLARED_ABSENT"
+      }
     },
     {
       "limitation_id": "topic:metformin-pcos-ovulation:riskofbias:rob-spancheck",
@@ -2946,7 +3030,22 @@
         "/rob_spancheck/not_supported"
       ],
       "rendered_text": "<div class='banner'><strong>RoB spans span-checked (cross-family): 97% agreement</strong> (32 of 33 scoreable), from a seeded sample of 45 model/registry-derived domain ratings independently checked by a different model family (Fable) against each trial abstract; 12 were unscoreable (no claim, or a conservative not-stated rating). This check itself found and fixed a real error &mdash; one trial (EMPHASIS-HF) was mislabelled NON_RANDOMIZED by the registry, contradicted by its abstract; the RoB block was also visibly broken until a human review caught it. The number is here because a RoB block a reader cannot trust is worthless (<code>docs/rob_spancheck.json</code>).</div>",
-      "text_sha256": "629e4c9b1f5f95097e98ee252bb1ca28f249d0d2e392236b96d03851d4e7e1c7"
+      "text_sha256": "629e4c9b1f5f95097e98ee252bb1ca28f249d0d2e392236b96d03851d4e7e1c7",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "span reliability is a disclosure metric; no analytic gate changes on this recorded state",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "RoB span-check is a reliability disclosure; no executable analytic gate changes on the recorded state.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-ROB_SPANCHECK-RECORDED"
+      }
     },
     {
       "limitation_id": "topic:metformin-pcos-ovulation:riskofbias:randomised-contrast",
@@ -2959,7 +3058,17 @@
         "/arm_contrast/trials"
       ],
       "rendered_text": "<div class='absent'><strong>Randomised-contrast disclosure (per pooled trial, from the registry arm structure &mdash; disclosed, not an adjustment).</strong> Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>0 of 3</strong> pooled trials have a registry-confirmed contrast (the intervention of interest differs across arms). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>11172832</td><td>unverified_no_registry_match</td><td title='no NCT/registry match for this pooled trial; the randomised contrast of the intervention of interest cannot be registry-confirmed.'>&amp;mdash;</td></tr><tr><td>16769748</td><td>unverified_no_registry_match</td><td title='no NCT/registry match for this pooled trial; the randomised contrast of the intervention of interest cannot be registry-confirmed.'>&amp;mdash;</td></tr><tr><td>19522426</td><td>unverified_no_registry_match</td><td title='no NCT/registry match for this pooled trial; the randomised contrast of the intervention of interest cannot be registry-confirmed.'>&amp;mdash;</td></tr></table></div>",
-      "text_sha256": "578c3d94e08248925cc4b592072b1086774e4a3f5f1a5135bc87588f66904022"
+      "text_sha256": "578c3d94e08248925cc4b592072b1086774e4a3f5f1a5135bc87588f66904022",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": {
+        "gate_id": "compat.outcome_key",
+        "gate_input_path": "/arm_contrast/trials",
+        "gate_verdict_at_build": "Ovulation rate: verified 0/3"
+      }
     },
     {
       "limitation_id": "topic:metformin-pcos-ovulation:riskofbias:funding-coi",
@@ -2972,7 +3081,22 @@
         "/funding"
       ],
       "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from a verbatim statement in the committed source (full text preferred, abstract fallback), including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>0 of 0 known</strong> (3 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 3 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Scanned</th><th>Verbatim statement</th></tr><tr><td>PMID 19522426</td><td>not stated (abstract only — full text not retrieved)</td><td>abstract only</td><td></td></tr><tr><td>PMID 16769748</td><td>not stated (abstract only — full text not retrieved)</td><td>abstract only</td><td></td></tr><tr><td>PMID 11172832</td><td>not stated (abstract only — full text not retrieved)</td><td>abstract only</td><td></td></tr></table></div>",
-      "text_sha256": "d06680cac9d2438837b80e23b261b13a6177ea3b22a3932be6396a63e24c684f"
+      "text_sha256": "d06680cac9d2438837b80e23b261b13a6177ea3b22a3932be6396a63e24c684f",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "funding and conflict-of-interest are disclosed but not adjusted by an analytic gate",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "Funding and conflict-of-interest are disclosed for interpretation; the harness does not estimate a per-trial funding adjustment and no analytic gate consumes the partial state.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-FUNDING_COI-PARTIAL"
+      }
     },
     {
       "limitation_id": "topic:metformin-pcos-ovulation:riskofbias:rob-sensitivity",
@@ -2987,7 +3111,22 @@
         "/rob_sensitivity/low_only"
       ],
       "rendered_text": "<div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> The primary outcome is re-pooled by risk-of-bias stratum with the identical estimator. <strong>3 of 3</strong> pooled trials have a risk-of-bias rating; no pooled trial is rated <em>high</em> risk (the registry-derived assessment does not reach 'high'), so the standard drop-high sensitivity is inert and the informative stratum is <em>low-only</em>. An unrated trial cannot be placed in a stratum, so a low-only pool with fewer trials than the full pool reflects both risk of bias and assessment coverage &mdash; read the widened interval with that caveat, not as instability of the effect.<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr><tr><td>Full pool (all pooled trials)</td><td>k=3, OR 2.0733 [0.0922, 46.6008]</td></tr><tr><td>Low risk of bias only</td><td>k=2, OR 4.3142 [0.0033, 5557.8501]</td></tr></table></div>",
-      "text_sha256": "4491ed64a3461a5550b435695b58f2a36e5caf460cd02dcbcd1cd7306383fdea"
+      "text_sha256": "4491ed64a3461a5550b435695b58f2a36e5caf460cd02dcbcd1cd7306383fdea",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "risk-of-bias sensitivity is disclosed as an interpretation aid; no gate consumes the partial state",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "Risk-of-bias sensitivity is rendered as an interpretive disclosure; no executable analytic gate changes on the partial state. Integrator note: a sensitivity re-pool that moves the estimate across the null is a validity signal, not only an interpretive disclosure; a consumer is owed (GATE_GAPS).",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-ROB_SENSITIVITY-PARTIAL"
+      }
     },
     {
       "limitation_id": "topic:metformin-pcos-ovulation:riskofbias:grade-certainty",
@@ -3001,7 +3140,22 @@
         "/grade/domains"
       ],
       "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): low</strong> (starting from <em>high</em> for randomized trials, 2 downgrade(s)).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses machine-derived signals (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 3 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td>&minus;1</td><td>tau^2=1.15872; prediction interval [0.0078, 549.6907] is &gt;=2x the CI width -&gt; real heterogeneity</td></tr><tr><td>Imprecision</td><td>&minus;1</td><td>95% CI [0.0922, 46.6008]; crosses the null AND is compatible with an appreciable benefit (&lt;=0.75) and an appreciable harm (&gt;=1.25) -&gt; imprecise (the estimate is consistent with both no effect and an appreciable effect)</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>no registry ghost census available for this topic</td></tr></table></div>",
-      "text_sha256": "09d36c1ce89860b377b872463a626574a1fdd46e41573663d050eeb7948ac200"
+      "text_sha256": "09d36c1ce89860b377b872463a626574a1fdd46e41573663d050eeb7948ac200",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "GRADE certainty is a downstream label; no publication gate consumes it",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "GRADE certainty is a downstream label rather than a publication gate; no executable analytic gate changes on the provisional certainty state.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-GRADE_CERTAINTY-PROVISIONAL"
+      }
     },
     {
       "limitation_id": "topic:metformin-pcos-ovulation:manuscript:generated-object-banner",
@@ -3016,7 +3170,22 @@
         "/reproduction"
       ],
       "rendered_text": "<div class='banner'>This manuscript is <strong>generated from the review object</strong> &mdash; every number is interpolated from a committed field, and a gate limb refuses any manuscript numeral that is not object-derived. It is a machine artefact, not a hand-written paper.</div>",
-      "text_sha256": "20bae84e601c1e5d8e39e4e432b264de59452f9b097a2717bfe6e0a6eb27a75a"
+      "text_sha256": "20bae84e601c1e5d8e39e4e432b264de59452f9b097a2717bfe6e0a6eb27a75a",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "auditability disclosure only; no analytic gate changes on this state",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "Auditability scope is a page-level provenance disclosure; no analytic gate changes its verdict when this recorded note is present.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-AUDITABILITY_SCOPE-RECORDED"
+      }
     },
     {
       "limitation_id": "topic:metformin-pcos-ovulation:reproduction:round-2-retraction",
@@ -3035,13 +3204,23 @@
         "action": "REFUSE",
         "gate_id": "limitation:evidence-state",
         "decision_state": "RETRACTED blocks the affected claim unless specifically resolved"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "the old byte-for-byte reproduction claim is withdrawn visibly; no current analytic gate consumes the withdrawn claim",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "The old byte-for-byte reproduction claim is visibly withdrawn; no current analytic gate consumes the withdrawn historical claim.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-REPRODUCTION_RETRACTION-RETRACTED"
       }
     }
   ],
   "reproduction": {
     "failures": 0,
     "protocol_sha": "4091958ce4af7f1ca9ed4c30e1021672b0c21223",
-    "review_sha256": "351b026d34af260b9da967961d5d77e25d303d764da6607ae212596b7b5ebd2c",
+    "review_sha256": "16523e6129d2e165222f7ca86ee68c7addfa87f932f2b1129ebdee637a3bf1e9",
     "from_cache": true,
     "preregistration": {
       "prospective": false,

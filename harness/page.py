@@ -361,6 +361,48 @@ def _identifier_scope_block(r):
             f"{_e(detail)} <span class='muted'>Verdict: <code>{_e(verdict)}</code>.</span></div>")
 
 
+def _hazard_acknowledgements_block(r):
+    rows = []
+    seen = set()
+    for obj in r.get("limitations") or []:
+        if not isinstance(obj, dict):
+            continue
+        ack = obj.get("unwired_acknowledged")
+        if not isinstance(ack, dict):
+            continue
+        key = (
+            obj.get("limitation_id"),
+            ack.get("signed_by"),
+            ack.get("date"),
+            ack.get("reason"),
+            ack.get("tranche"),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append(
+            "<tr>"
+            f"<td><code>{_e(obj.get('limitation_id'))}</code></td>"
+            f"<td>{_e(obj.get('kind'))}<br><code>{_e(obj.get('evidence_state'))}</code></td>"
+            f"<td>{_e(obj.get('severity'))}</td>"
+            f"<td>{_e(ack.get('reason'))}</td>"
+            f"<td>{_e(ack.get('signed_by'))}<br>{_e(ack.get('date'))}<br><code>{_e(ack.get('tranche'))}</code></td>"
+            "</tr>"
+        )
+    if not rows:
+        return ""
+    return (
+        "<div class='hazard-acks'><h3>Hazard acknowledgements</h3>"
+        "<p class='note'>These limitation objects are deliberately UNWIRED: no executable gate changes on "
+        "the named state, so publication is allowed only because the reviewed acknowledgement is carried "
+        "on the object.</p>"
+        "<table class='arms'><tr><th>limitation</th><th>kind/state</th><th>severity</th>"
+        "<th>acknowledgement</th><th>signed</th></tr>"
+        + "".join(rows)
+        + "</table></div>"
+    )
+
+
 def _overview(r, neutral):
     parts = [f"<h2>{_e(r.get('title'))}</h2>", f"<p class='q'>{_e(r.get('question'))}</p>"]
     # INVALIDATION PROPAGATION: a single STALE verdict poisons the headline. If any dependent output
@@ -382,6 +424,7 @@ def _overview(r, neutral):
             "<div class='banner'>This page offers <strong>greater auditability, not "
             "stronger evidence</strong>: every number traces to a committed source, every "
             "absence is declared, and any hand-edit breaks the reproduction census.</div>")
+        parts.append(_hazard_acknowledgements_block(r))
     prim = _primary(r)
     if prim and _absent(prim) is None:
         res = prim.get("result") or {}
@@ -1699,6 +1742,7 @@ table.recs th,table.recs td,table.arms th,table.arms td{border:1px solid #dbe3e8
 .absent{background:#fff4e5;border:1px solid #f0c27b;padding:10px 14px;border-radius:6px;color:#7a4b00}
 .absent-cell{color:#7a4b00}
 .banner{background:#eaf4fb;border-left:4px solid #4ea1d3;padding:10px 14px;margin:12px 0;font-size:13.5px}
+.hazard-acks{border-left:4px solid #7c6f64;background:#f5f4f2;padding:10px 14px;margin:12px 0;font-size:13px}
 .note{color:#4a5b66;font-size:12.5px;margin:6px 0;font-style:italic}
 .q{font-size:16px;color:#2a4b5c}pre{background:#0f1c24;color:#d6e6f2;padding:10px;overflow:auto;border-radius:6px;font-size:12px;white-space:pre-wrap}
 h2{margin-top:0}h4{margin:16px 0 4px}

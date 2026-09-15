@@ -19,6 +19,7 @@ import re
 from enum import Enum
 from typing import Any
 
+from . import hazard_consumers as _hazard_consumers
 from . import page as _page
 
 
@@ -223,8 +224,7 @@ def _object(
         "rendered_text": rendered,
         "text_sha256": _sha256(rendered),
     }
-    if class_value == LimitationClass.VALIDITY_THREATENING.value:
-        obj["linked_decision"] = _linked_decision(kind, state_value)
+    obj["linked_decision"] = _linked_decision(kind, state_value)
     return obj
 
 
@@ -652,6 +652,7 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
     """Build one structured object per legacy page-level absent/banner block."""
 
     out: list[dict[str, Any]] = []
+    acknowledgements = _hazard_consumers.load_acknowledgements()
 
     def add(
         suffix: str,
@@ -662,7 +663,8 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
         fields: list[str],
         html: str,
     ) -> None:
-        out.append(_object(review, suffix, kind, severity, claim, state, fields, html))
+        obj = _object(review, suffix, kind, severity, claim, state, fields, html)
+        out.append(_hazard_consumers.annotate_object(review, obj, acknowledgements))
 
     inv = review.get("invalidation") or {}
     if inv.get("stale"):
@@ -1189,4 +1191,11 @@ def publication_gate_refusals(limitations: list[dict[str, Any]]) -> list[str]:
             reasons.append(
                 f"{obj.get('limitation_id')}: linked_decision missing {', '.join(missing)}"
             )
+    reasons.extend(_hazard_consumers.check_consumers({"limitations": limitations or []}))
     return reasons
+
+
+def check_consumers(review: dict[str, Any], acknowledgements: Any = None) -> list[str]:
+    """Return publication-gate refusal reasons for declared hazards with no consumer."""
+
+    return _hazard_consumers.check_consumers(review, acknowledgements)

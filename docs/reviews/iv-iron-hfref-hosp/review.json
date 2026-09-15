@@ -1341,6 +1341,10 @@
     "stale": true,
     "reasons": [
       {
+        "code": "search_not_executed",
+        "detail": "no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic."
+      },
+      {
         "code": "known_eligible_missing",
         "detail": "a trial identified as eligible under the registered PICO is not pooled (Toblli 2007, IRON-HF) — the pooled result and completeness claim cannot be current"
       },
@@ -1568,12 +1572,17 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE &mdash; this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>a trial identified as eligible under the registered PICO is not pooled (Toblli 2007, IRON-HF) — the pooled result and completeness claim cannot be current</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: 33197395, 36347265, 37632463, 34080008, 28701470, 19920054, and 1 more; the completeness claim cannot be current</li><li>no outcome produced a pooled claim (Claims checked: 0) — the canonical-claim gate cannot fire here, so a page with the weakest evidence would otherwise show the cleanest gate output; treated as a limitation, not a pass</li></ul></div>",
-      "text_sha256": "081dd9367e884de513b5432e3f7e94f440df13a9abca0785877f1247556492d2",
+      "rendered_text": "<div class='absent'><strong>STALE &mdash; this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>a trial identified as eligible under the registered PICO is not pooled (Toblli 2007, IRON-HF) — the pooled result and completeness claim cannot be current</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: 33197395, 36347265, 37632463, 34080008, 28701470, 19920054, and 1 more; the completeness claim cannot be current</li><li>no outcome produced a pooled claim (Claims checked: 0) — the canonical-claim gate cannot fire here, so a page with the weakest evidence would otherwise show the cleanest gate output; treated as a limitation, not a pass</li></ul></div>",
+      "text_sha256": "bdc6cf4591ed59624e4517661afa0512fcd880b73795ef41fd942de727bba150",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
         "decision_state": "STALE_TOPIC blocks the affected analytic claim"
+      },
+      "consumer": {
+        "gate_id": "invalidation.assess",
+        "gate_input_path": "/invalidation/stale",
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent, no_checkable_claim"
       }
     },
     {
@@ -1593,6 +1602,11 @@
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:retrieval-class",
         "decision_state": "page may publish only with the retrieval-class label; systematic-search claim refused"
+      },
+      "consumer": {
+        "gate_id": "invalidation.assess",
+        "gate_input_path": "/search/retrieval_class/retrieval_auditable",
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent, no_checkable_claim"
       }
     },
     {
@@ -1606,7 +1620,22 @@
         "/slug"
       ],
       "rendered_text": "<div class='banner'>This page offers <strong>greater auditability, not stronger evidence</strong>: every number traces to a committed source, every absence is declared, and any hand-edit breaks the reproduction census.</div>",
-      "text_sha256": "a07ca0c493b33290cb4bf483104524d29fd45fca54650542b13d1ae140489415"
+      "text_sha256": "a07ca0c493b33290cb4bf483104524d29fd45fca54650542b13d1ae140489415",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "auditability disclosure only; no analytic gate changes on this state",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "Auditability scope is a page-level provenance disclosure; no analytic gate changes its verdict when this recorded note is present.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-AUDITABILITY_SCOPE-RECORDED"
+      }
     },
     {
       "limitation_id": "topic:iv-iron-hfref-hosp:overview:suppressed-pool:primary",
@@ -1625,6 +1654,11 @@
         "action": "REFUSE",
         "gate_id": "limitation:suppressed_pool",
         "decision_state": "SUPPRESSED_POOL blocks the affected analytic claim"
+      },
+      "consumer": {
+        "gate_id": "estmeasure.pool_compatibility",
+        "gate_input_path": "/outcomes/*/result/estmeasure/status",
+        "gate_verdict_at_build": "SUPPRESSED: Heart-failure hospitalization: incompatible"
       }
     },
     {
@@ -1645,6 +1679,16 @@
         "action": "REFUSE",
         "gate_id": "limitation:evidence-state",
         "decision_state": "REFUSED_ON_EVIDENCE blocks the affected claim unless specifically resolved"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "the suppressed-pool object carries the consuming estimand gate; strand disclosure is a decomposition label",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "The consuming gate is on the paired SUPPRESSED_POOL object; the strands object is the visible endpoint-clean decomposition after that refusal.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-DECLARED_STRANDS-REFUSED_ON_EVIDENCE"
       }
     },
     {
@@ -1659,7 +1703,22 @@
         "/search/retrieval/sources"
       ],
       "rendered_text": "<div class='banner'><p><strong>Snapshot:</strong> records_sha256 <code>242ba998</code>; retrieved_utc 2026-09-11; mode LEGACY_UNRECORDED: a pre-ledger fetch; which query retrieved which record was not recorded; every record's found_by names this single source.</p><p>This page is a REPLAY of that snapshot: re-running from the protocol SHA regenerates it byte-for-byte. A live re-search is a separate, dated event (see Re-search below if present).</p></div>",
-      "text_sha256": "88951b1e11a7fe9dbe24c03dac7a98560a4f575410013338410cd12daadf3049"
+      "text_sha256": "88951b1e11a7fe9dbe24c03dac7a98560a4f575410013338410cd12daadf3049",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "legacy retrieval snapshot is replay provenance; it does not constrain an analytic claim by itself",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "The legacy retrieval snapshot records a replay boundary; by itself it does not constrain the pooled analytic claim.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-RETRIEVAL_SNAPSHOT-UNRECORDED"
+      }
     },
     {
       "limitation_id": "topic:iv-iron-hfref-hosp:search:retrieval-class",
@@ -1678,6 +1737,11 @@
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:retrieval-class",
         "decision_state": "page may publish only with the retrieval-class label; systematic-search claim refused"
+      },
+      "consumer": {
+        "gate_id": "invalidation.assess",
+        "gate_input_path": "/search/retrieval_class/retrieval_auditable",
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent, no_checkable_claim"
       }
     },
     {
@@ -1696,6 +1760,11 @@
         "action": "REFUSE",
         "gate_id": "limitation:search-provenance",
         "decision_state": "unqualified registry-first/systematic-search claim refused"
+      },
+      "consumer": {
+        "gate_id": "invalidation.assess",
+        "gate_input_path": "/search/retrieval_class/search_provenance",
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent, no_checkable_claim"
       }
     },
     {
@@ -1709,7 +1778,22 @@
         "/definition_audit"
       ],
       "rendered_text": "<div class='absent'><strong>Cross-family definition audit.</strong> Two independent model families (Gemini via AGY, and Fable) re-read every pooled row and checked whether the extracted result matches the outcome LABEL's definition &mdash; composite component set, timepoint, population, analysis set &mdash; not just the number. Rows flagged for this topic, with how each was resolved (refuse the trial / disclose the heterogeneity / relabel the timepoint / already disclosed). This is the endpoint-<strong>IDENTITY</strong> check &mdash; distinct from the per-number <strong>MAGNITUDE</strong> check (every pooled number located in its committed source span, gate-enforced). A number can pass magnitude and fail identity, which is exactly the class this audit catches; &lsquo;verified&rsquo; on this harness now means both:<table class='arms'><tr><th>Trial</th><th>Outcome</th><th>Finding</th><th>Resolution</th></tr><tr><td>40159390</td><td>Heart-failure hospitalization</td><td>Total (recurrent) HF hospitalizations = rate ratio.</td><td><strong>ALREADY DISCLOSED (labelled IRR / mixed scale)</strong></td></tr></table></div>",
-      "text_sha256": "d499e5e0c0acf42795a9c1f84a470b69f175eb6efebd2bd342bd5558ef122b93"
+      "text_sha256": "d499e5e0c0acf42795a9c1f84a470b69f175eb6efebd2bd342bd5558ef122b93",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "definition heterogeneity is disclosed as an audit table; no refusal gate consumes it yet",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "Definition heterogeneity is disclosed in the audit table, but this tranche found no executable analytic gate that changes on the partial audit state. Integrator note: this one is OWED a consumer -- a cross-family definition-audit finding that outcome definitions differ across pooled trials belongs in the compatibility key's endpoint dimension; until wired it is acknowledged as UNWIRED, not as informational (GATE_GAPS).",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-DEFINITION_AUDIT-PARTIAL"
+      }
     },
     {
       "limitation_id": "topic:iv-iron-hfref-hosp:outcomes:0:heart-failure-hospitalization:suppressed-pool",
@@ -1728,6 +1812,11 @@
         "action": "REFUSE",
         "gate_id": "limitation:suppressed_pool",
         "decision_state": "SUPPRESSED_POOL blocks the affected analytic claim"
+      },
+      "consumer": {
+        "gate_id": "estmeasure.pool_compatibility",
+        "gate_input_path": "/outcomes/*/result/estmeasure/status",
+        "gate_verdict_at_build": "SUPPRESSED: Heart-failure hospitalization: incompatible"
       }
     },
     {
@@ -1742,7 +1831,22 @@
         "/outcomes/*/result/reason"
       ],
       "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract</div>",
-      "text_sha256": "ac306896832cb32dd0d825cb48fa137d0d85bc1ce16ef161385de9a4c51d768e"
+      "text_sha256": "ac306896832cb32dd0d825cb48fa137d0d85bc1ce16ef161385de9a4c51d768e",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "section/outcome absence is visible scoping evidence; no single analytic gate consumes all such sections",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "Declared section or outcome absence is already the visible scoped result; no single analytic gate consumes every such absence object.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-DECLARED_ABSENT_SECTION-DECLARED_ABSENT"
+      }
     },
     {
       "limitation_id": "topic:iv-iron-hfref-hosp:harms:1:hypersensitivity-reactions:result-absent",
@@ -1756,7 +1860,22 @@
         "/outcomes/*/result/reason"
       ],
       "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> no included trial reported this outcome with a percentage-corroborated count or an effect+CI in its abstract</div>",
-      "text_sha256": "ac306896832cb32dd0d825cb48fa137d0d85bc1ce16ef161385de9a4c51d768e"
+      "text_sha256": "ac306896832cb32dd0d825cb48fa137d0d85bc1ce16ef161385de9a4c51d768e",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "section/outcome absence is visible scoping evidence; no single analytic gate consumes all such sections",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "Declared section or outcome absence is already the visible scoped result; no single analytic gate consumes every such absence object.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-DECLARED_ABSENT_SECTION-DECLARED_ABSENT"
+      }
     },
     {
       "limitation_id": "topic:iv-iron-hfref-hosp:riskofbias:rob-spancheck",
@@ -1771,7 +1890,22 @@
         "/rob_spancheck/not_supported"
       ],
       "rendered_text": "<div class='banner'><strong>RoB spans span-checked (cross-family): 97% agreement</strong> (32 of 33 scoreable), from a seeded sample of 45 model/registry-derived domain ratings independently checked by a different model family (Fable) against each trial abstract; 12 were unscoreable (no claim, or a conservative not-stated rating). This check itself found and fixed a real error &mdash; one trial (EMPHASIS-HF) was mislabelled NON_RANDOMIZED by the registry, contradicted by its abstract; the RoB block was also visibly broken until a human review caught it. The number is here because a RoB block a reader cannot trust is worthless (<code>docs/rob_spancheck.json</code>).</div>",
-      "text_sha256": "629e4c9b1f5f95097e98ee252bb1ca28f249d0d2e392236b96d03851d4e7e1c7"
+      "text_sha256": "629e4c9b1f5f95097e98ee252bb1ca28f249d0d2e392236b96d03851d4e7e1c7",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "span reliability is a disclosure metric; no analytic gate changes on this recorded state",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "RoB span-check is a reliability disclosure; no executable analytic gate changes on the recorded state.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-ROB_SPANCHECK-RECORDED"
+      }
     },
     {
       "limitation_id": "topic:iv-iron-hfref-hosp:riskofbias:randomised-contrast",
@@ -1784,7 +1918,17 @@
         "/arm_contrast/trials"
       ],
       "rendered_text": "<div class='absent'><strong>Randomised-contrast disclosure (per pooled trial, from the registry arm structure &mdash; disclosed, not an adjustment).</strong> Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>2 of 2</strong> pooled trials have a registry-confirmed contrast (the intervention of interest differs across arms). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>25176939</td><td>randomised contrast verified</td><td title='the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)'>ferinject (ferric carboxymaltose)</td></tr><tr><td>40159390</td><td>randomised contrast verified</td><td title='the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)'>iron; saline</td></tr></table></div>",
-      "text_sha256": "4c6c01ea7e0662b5e85caa0566fd16297ccfb5ae68d5fd23260d33a5f9fc65c7"
+      "text_sha256": "4c6c01ea7e0662b5e85caa0566fd16297ccfb5ae68d5fd23260d33a5f9fc65c7",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": {
+        "gate_id": "compat.outcome_key",
+        "gate_input_path": "/arm_contrast/trials",
+        "gate_verdict_at_build": "NO_POOLED_COMPAT_KEY"
+      }
     },
     {
       "limitation_id": "topic:iv-iron-hfref-hosp:riskofbias:funding-coi",
@@ -1797,7 +1941,22 @@
         "/funding"
       ],
       "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from a verbatim statement in the committed source (full text preferred, abstract fallback), including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>0 of 0 known</strong> (2 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 2 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Scanned</th><th>Verbatim statement</th></tr><tr><td>PMID 40159390</td><td>not stated (abstract only — full text not retrieved)</td><td>abstract only</td><td></td></tr><tr><td>PMID 25176939</td><td>not stated (abstract only — full text not retrieved)</td><td>abstract only</td><td></td></tr></table></div>",
-      "text_sha256": "bd4a2df8c9af6e90a57e6ff8b8d189b2e998464e19efc9a9a72d3ddc3aa64cd2"
+      "text_sha256": "bd4a2df8c9af6e90a57e6ff8b8d189b2e998464e19efc9a9a72d3ddc3aa64cd2",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "funding and conflict-of-interest are disclosed but not adjusted by an analytic gate",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "Funding and conflict-of-interest are disclosed for interpretation; the harness does not estimate a per-trial funding adjustment and no analytic gate consumes the partial state.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-FUNDING_COI-PARTIAL"
+      }
     },
     {
       "limitation_id": "topic:iv-iron-hfref-hosp:riskofbias:grade-certainty",
@@ -1811,7 +1970,22 @@
         "/grade/domains"
       ],
       "rendered_text": "<div class='absent'><strong>Overall certainty: not rateable.</strong> the primary pool mixes INCOMPATIBLE estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO); an overall certainty cannot be produced from an incoherent effect object — the domain signals are shown, the overall is suppressed until the estimand is made coherent (harmonise the measure or split the outcome). The individual domain signals are shown below, but no overall certainty category is emitted &mdash; a partial or incoherent evidence object cannot produce one, and &lsquo;provisional&rsquo; would soften the language without repairing the logic.<table class='arms'><tr><th>Domain</th><th>Signal</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>&minus;1</td><td>1 of 2 assessed trial(s) at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td>not downgraded</td><td>tau^2=None</td></tr><tr><td>Imprecision</td><td><strong>NOT ASSESSED</strong></td><td>no confidence interval available</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>not auto-rated (human judgement)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>no registry ghost census available for this topic</td></tr></table></div>",
-      "text_sha256": "99361f6b2a2553ba538bf429849914c9c43c4c3cdf82a77d89f06da12ac6167e"
+      "text_sha256": "99361f6b2a2553ba538bf429849914c9c43c4c3cdf82a77d89f06da12ac6167e",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "GRADE certainty is a downstream label; no publication gate consumes it",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "GRADE certainty is a downstream label rather than a publication gate; no executable analytic gate changes on the not-assessed certainty state.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-GRADE_CERTAINTY-NOT_ASSESSED"
+      }
     },
     {
       "limitation_id": "topic:iv-iron-hfref-hosp:manuscript:generated-object-banner",
@@ -1826,7 +2000,22 @@
         "/reproduction"
       ],
       "rendered_text": "<div class='banner'>This manuscript is <strong>generated from the review object</strong> &mdash; every number is interpolated from a committed field, and a gate limb refuses any manuscript numeral that is not object-derived. It is a machine artefact, not a hand-written paper.</div>",
-      "text_sha256": "20bae84e601c1e5d8e39e4e432b264de59452f9b097a2717bfe6e0a6eb27a75a"
+      "text_sha256": "20bae84e601c1e5d8e39e4e432b264de59452f9b097a2717bfe6e0a6eb27a75a",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "auditability disclosure only; no analytic gate changes on this state",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "Auditability scope is a page-level provenance disclosure; no analytic gate changes its verdict when this recorded note is present.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-AUDITABILITY_SCOPE-RECORDED"
+      }
     },
     {
       "limitation_id": "topic:iv-iron-hfref-hosp:reproduction:claim-check-zero",
@@ -1845,6 +2034,11 @@
         "action": "REFUSE",
         "gate_id": "limitation:claim_check_zero",
         "decision_state": "CLAIM_CHECK_ZERO blocks the affected analytic claim"
+      },
+      "consumer": {
+        "gate_id": "invalidation.assess",
+        "gate_input_path": "/outcomes/*/result/claim",
+        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent, no_checkable_claim"
       }
     },
     {
@@ -1864,13 +2058,23 @@
         "action": "REFUSE",
         "gate_id": "limitation:evidence-state",
         "decision_state": "RETRACTED blocks the affected claim unless specifically resolved"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "the old byte-for-byte reproduction claim is withdrawn visibly; no current analytic gate consumes the withdrawn claim",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "The old byte-for-byte reproduction claim is visibly withdrawn; no current analytic gate consumes the withdrawn historical claim.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-REPRODUCTION_RETRACTION-RETRACTED"
       }
     }
   ],
   "reproduction": {
     "failures": 0,
     "protocol_sha": "a56039f46158272c40c9565150903cf87db37c3c",
-    "review_sha256": "3fc6a2f29bc7bcaa6e3128565180f170684c21a802b3444025d2f251940da40a",
+    "review_sha256": "b7f9ff4e7a5babc3cee14b435789f8f6c37f4f348954312c30f9cc81176c616d",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
