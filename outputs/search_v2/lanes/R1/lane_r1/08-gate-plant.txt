@@ -1,0 +1,8 @@
+MEASURED command: apply_patch appended one trailing comment line to harness/search_v2.py: "# lane R1 search completeness gate plant"
+MEASURED command: python -c "from harness import search_completeness as s; print(s.check('.'))"
+MEASURED output: (False, 'search completeness REFUSED: engine changed since the published search_v2 measurement (9cf898d02afb -> aaee5d04b62a); re-run scripts/search_v2_run.py and re-publish before landing || states: RAN_OK 0 of 21; RAN_OK_WITH_SOURCE_ERRORS 21 of 21; RAN_ZERO 0 of 21; RAN_ERROR 0 of 21; NOT_RUN 0 of 21')
+MEASURED exit_code: 0
+MEASURED command: git checkout -- harness/search_v2.py
+MEASURED output: fatal: Unable to create 'C:/mh-r-R1/.git/index.lock': Permission denied
+MEASURED command: apply_patch removed exactly the planted trailing comment line from harness/search_v2.py
+MEASURED: git diff -- harness/search_v2.py produced no output after restore; git hash-object harness/search_v2.py returned 9cf898d02afbde097aca72405f1baffe3124c13b.
