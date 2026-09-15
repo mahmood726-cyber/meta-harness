@@ -5499,6 +5499,96 @@
     }
    },
    "note": "PMID 39461793; comparator span: input-set search did not find machine-readable per-trial outcome rows"
+  },
+  {
+   "finding_id": "TRANCHE-search-benchmark",
+   "fix_id": "TRANCHE-search-benchmark",
+   "kind": "fix",
+   "class": "labelled search benchmark with sealed development/measurement split and offline recall scorer",
+   "implementation": "LANDED",
+   "verification": "NONE",
+   "scope": "CORPUS",
+   "freshness": "STALE",
+   "stale_dependencies": [
+    "docs/evidence/CAPTIONS.json"
+   ],
+   "fix_state": "LANDED / NONE / CORPUS / STALE",
+   "state": "LANDED / NONE / CORPUS / STALE",
+   "where": "41a466fb35bdc470d73c479e878bbbc9f0979f9a",
+   "evidence_dir": "docs/evidence/search-benchmark-2026-09-15",
+   "evidence": [
+    "docs/evidence/search-benchmark-2026-09-15/README.md",
+    "docs/evidence/search-benchmark-2026-09-15/01-benchmark-32.txt",
+    "docs/evidence/search-benchmark-2026-09-15/02-split.txt",
+    "docs/evidence/search-benchmark-2026-09-15/03-measurement-harness-plant.txt"
+   ],
+   "verified_by": {
+    "identity": null,
+    "kind": null
+   },
+   "verifications": [],
+   "executable_evidence": {
+    "command": "python scripts/measure_search_recall.py <candidate-set.json>",
+    "expected_substring": "MEASUREMENT TOPICS",
+    "scope_basis": "32 of 32 named topics in registry/search_benchmark_split.json",
+    "topic_list": [
+     "balanced-crystalloids-vs-saline-mortality",
+     "colchicine-postop-af",
+     "colchicine-recurrent-pericarditis",
+     "colchicine-secondary-cv-prevention",
+     "corticosteroids-cap-mortality",
+     "corticosteroids-covid19-mortality",
+     "dapagliflozin-hfpef-hosp",
+     "denosumab-vertebral-fracture",
+     "doac-vte-recurrence",
+     "dpp4-mace-t2d",
+     "empagliflozin-hfpef-hosp",
+     "esketamine-trd-madrs",
+     "finerenone-ckd-t2d-renal",
+     "glp1-ra-mace-t2d",
+     "iv-iron-hfref-hosp",
+     "melatonin-primary-insomnia-sol",
+     "metformin-pcos-ovulation",
+     "noac-vs-warfarin-af-stroke",
+     "omega3-cardiovascular-events",
+     "pcsk9-mace",
+     "probiotics-aad-prevention",
+     "sacubitril-valsartan-hfref",
+     "semaglutide-obesity-mace",
+     "semaglutide-obesity-weight",
+     "sglt2-ckd-progression",
+     "sglt2-hfref-hosp-cvdeath",
+     "sglt2-primary-prevention-hf",
+     "spironolactone-hfref-mortality",
+     "statins-primary-prevention-elderly",
+     "ticagrelor-vs-clopidogrel-acs",
+     "tocilizumab-covid19-mortality",
+     "tranexamic-acid-pph"
+    ]
+   },
+   "seal": {
+    "sealed_utc": "2026-09-15T00:00:00Z",
+    "commit": "41a466fb35bdc470d73c479e878bbbc9f0979f9a",
+    "dependencies": {
+     "registry/search_benchmark.json": "a52033d6ed3ede4d90b176de382a353f63036fb7",
+     "registry/search_benchmark_split.json": "4ef384a63aba9193a8e79321c63046ea552a3f46",
+     "scripts/measure_search_recall.py": "f439b3efa6ea8c0faceb31e711fc413d2cab8ab0",
+     "tests/test_search_benchmark_isolation.py": "3d3f9ef828846fcc8659a366a4f3a58432dc8bb3",
+     "docs/evidence/search-benchmark-2026-09-15/01-benchmark-32.txt": "462bf2858c357e7f12e7e6c32f7b5b7693b04bcf",
+     "docs/evidence/search-benchmark-2026-09-15/02-split.txt": "200475ee5919b14548b2399b964745cf14aad7d7",
+     "docs/evidence/search-benchmark-2026-09-15/README.md": "8acc37b36292c353dd8460cc653d6eb1fc43734e",
+     "docs/evidence/CAPTIONS.json": "4e54e976742b44ed9d0f3a70271a1c8c5ced5351",
+     "docs/evidence/search-benchmark-2026-09-15/03-measurement-harness-plant.txt": "2e000a57b56b28e0da0f7eeac4724e5916708016"
+    },
+    "configuration": {
+     "schema": "fixes-v3",
+     "split_rule": "DEVELOPMENT iff int(sha256('meta-harness-search-split-2026-09-15|' + slug).hexdigest()[:2], 16) < 0x30; forced DEVELOPMENT for probiotics-aad-prevention and balanced-crystalloids-vs-saline-mortality.",
+     "forced_development": [
+      "balanced-crystalloids-vs-saline-mortality",
+      "probiotics-aad-prevention"
+     ]
+    }
+   }
   }
  ],
  "external_findings_heading": "Findings about published comparators — NOT adjudicated by us; verification NONE until an outside party confirms; we do not adjudicate our own findings about someone else's paper",
@@ -6411,28 +6501,28 @@
   "by_implementation": {
    "SPECIFIED": 7,
    "REPORTED": 13,
-   "LANDED": 68
+   "LANDED": 69
   },
   "by_verification": {
-   "NONE": 49,
+   "NONE": 50,
    "INTERNAL": 38,
    "INDEPENDENT": 1
   },
   "by_scope": {
    "INSTANCE": 86,
    "REGRESSION_SET": 0,
-   "CORPUS": 2,
+   "CORPUS": 3,
    "HELD_OUT": 0
   },
   "by_freshness": {
    "CURRENT": 50,
-   "STALE": 38
+   "STALE": 39
   },
   "by_kind": {
    "control": 7,
    "external_finding": 21,
    "finding": 1,
-   "fix": 57,
+   "fix": 58,
    "result": 2
   }
  }
