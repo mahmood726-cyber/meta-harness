@@ -1117,6 +1117,30 @@
      "schema": "gate-gaps-v1"
     }
    }
+  },
+  {
+   "gap_id": "GAP-054",
+   "kind": "gap",
+   "implementation": "n/a",
+   "group": "Repository, deployment, and audit-state gates",
+   "gate": "Search completeness gate",
+   "stops": "A search stage reporting 'ran' on an adapter exit code: the engine blob changing without a re-run and re-publish; a MEASUREMENT topic with no state; a source claiming RAN_OK with no records; source errors folded into a topic RAN_OK; RAN_ERROR without its error; a register or README that names another engine.",
+   "would_not_stop": "A query that ran, returned records, and was simply bad (recall is measured, not gated); a development-topic run (the gate holds MEASUREMENT topics only); a benchmark positive missing from registry/search_benchmark.json; the Europe PMC /references maintenance outage itself -- the gate names RAN_OK_WITH_SOURCE_ERRORS, it cannot make the route run.",
+   "source": "harness/search_completeness.py; registry/search_completeness.json; scripts/verify_all.py:limb_search_completeness; tests/test_search_completeness.py",
+   "seal": {
+    "sealed_utc": "2026-09-15T12:44:53Z",
+    "commit": "66b3486a13a8ac29e389a310d3936d8e76f3b962",
+    "dependencies": {
+     "harness/search_completeness.py": "eaa1735dd5b40bb94b1523b1a1ccae994985e7eb",
+     "registry/search_completeness.json": "6fb9e88fc7575cfc7c8a121e437d9587a93b575b",
+     "scripts/verify_all.py": "dc734371fe8f4b3c76b39d765278af4a6c19c0b9",
+     "scripts/search_v2_run.py": "4961b4ddc6faac7bf12b566d8e8543981bba9de3",
+     "tests/test_search_completeness.py": "5af385c0829d994c5f4e0392872a864bd31d18b1"
+    },
+    "configuration": {
+     "schema": "gate-gaps-v1"
+    }
+   }
   }
  ]
 }

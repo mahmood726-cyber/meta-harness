@@ -186,12 +186,15 @@ def render_routes(score: dict, label: str) -> str:
         lines.append(f"- {r}: {n} of {total_found}")
     lines += ["", "## UNIQUE contribution: positives reached by ONE route only (what that route adds; the measurement of",
               "## reference-list seeding / citation chasing is the comparator-reference-list and citation rows here)"]
-    for r in ("comparator reference list", "backward citation", "forward citation", "CT.gov cross-link",
-              "concept query PubMed", "concept query Europe PMC", "concept query CT.gov"):
+    for r, _ in by_route.most_common():
         n = unique.get(r, 0)
         lines.append(f"- {r}: {n} of {total_found} found only by this route")
         for name in unique_names.get(r, []):
             lines.append(f"    - {name}")
+    lines += ["", "Reading: a route with 0 unique positives added no benchmark recall in this run beyond what the concept queries",
+              "reached; it may still add candidates outside the benchmark (10-reverse-direction). The Europe PMC /references",
+              "adapter was down for maintenance throughout run r2, so the backward-citation and comparator-reference-list rows",
+              "are the PubMed elink adapter's alone."]
     return "\n".join(lines)
 
 
@@ -239,13 +242,18 @@ def _legacy_cache_row(slug: str) -> dict:
     if not path.exists():
         return {"records": None, "includes": None, "positives_present": None}
     data = _load(path)
-    records = data.get("records") if isinstance(data, dict) else data
-    merged = _dedup(records, cfg.get("pivotal_trials"))
+    if not isinstance(data, dict):
+        data = {"records": data}
+    merged = _dedup(data, cfg.get("pivotal_trials"))
     decisions = screen.run(merged, cfg).get("decisions") or []
     includes = sum(1 for d in decisions if d.get("decision") == "include")
     items = [{"id": r.get("id"), "pmid": r.get("pmid"), "nct": r.get("nct"), "doi": r.get("doi"), "title": r.get("title"), "route": "legacy pinned cache"} for r in merged]
-    sc = _score_topic(slug, BENCH.get(slug, {}).get("positives") or [], items)
-    return {"records": len(merged), "includes": includes, "positives_present": len(sc["found"]), "N": sc["N"]}
+    positives = BENCH.get(slug, {}).get("positives") or []
+    sc = _score_topic(slug, positives, items)
+    audit = [p for p in positives if m1._origins(p) & m1.AUDIT_ORIGINS]
+    sc_a = _score_topic(slug, audit, items)
+    return {"records": len(merged), "includes": includes, "positives_present": len(sc["found"]), "N": sc["N"],
+            "audit_present": len(sc_a["found"]), "audit_N": len(audit)}
 
 
 def render_before_after(payload: dict, label: str) -> str:
@@ -260,26 +268,38 @@ def render_before_after(payload: dict, label: str) -> str:
             m = payload["topics"].get(slug) or {}
             state = m.get("state", "NOT_RUN")
             cands = payload["candidates"].get(slug) or []
-            sc = _score_topic(slug, BENCH.get(slug, {}).get("positives") or [], cands) if cands else None
+            positives = BENCH.get(slug, {}).get("positives") or []
+            audit = [p for p in positives if m1._origins(p) & m1.AUDIT_ORIGINS]
+            sc = _score_topic(slug, positives, cands) if cands else None
+            sc_a = _score_topic(slug, audit, cands) if cands else None
             ss = m.get("screen_summary") or {}
             inc_after = sum(v.get("include", 0) for v in (ss.get("by_rule") or {}).values()) if ss else None
             after_found = len(sc["found"]) if sc else 0
-            n = before.get("N") or (sc["N"] if sc else len(BENCH.get(slug, {}).get("positives") or []))
-            lines.append(f"- {slug}: BEFORE records {before['records']} | includes {before['includes']} | positives {before['positives_present']} of {n}"
-                         f"   AFTER [{state}] candidates {m.get('candidate_count', 0)} | includes {inc_after} | positives {after_found} of {n}")
+            after_audit = len(sc_a["found"]) if sc_a else 0
+            n = before.get("N") or (sc["N"] if sc else len(positives))
+            lines.append(f"- {slug}: BEFORE records {before['records']} | includes {before['includes']} | positives {before['positives_present']} of {n} (audit-found {before['audit_present']} of {before['audit_N']})"
+                         f"   AFTER [{state}] candidates {m.get('candidate_count', 0)} | includes {inc_after} | positives {after_found} of {n} (audit-found {after_audit} of {len(audit)})")
             if state in ("RAN_OK", "RAN_OK_WITH_SOURCE_ERRORS", "RAN_ZERO"):
                 tot[split]["topics_ran"] += 1
                 tot[split]["before_pos"] += before["positives_present"] or 0
                 tot[split]["after_pos"] += after_found
                 tot[split]["N"] += n
+                tot[split]["before_audit"] += before["audit_present"] or 0
+                tot[split]["after_audit"] += after_audit
+                tot[split]["audit_N"] += len(audit)
                 tot[split]["before_rec"] += before["records"] or 0
                 tot[split]["after_rec"] += m.get("candidate_count", 0)
                 tot[split]["before_inc"] += before["includes"] or 0
                 tot[split]["after_inc"] += inc_after or 0
         t = tot[split]
         lines.append(f"  {split} totals over {t['topics_ran']} topics that ran: positives present BEFORE {t['before_pos']} of {t['N']} -> AFTER {t['after_pos']} of {t['N']}; "
+                     f"audit-found BEFORE {t['before_audit']} of {t['audit_N']} -> AFTER {t['after_audit']} of {t['audit_N']}; "
                      f"records {t['before_rec']} -> {t['after_rec']}; screen includes {t['before_inc']} -> {t['after_inc']}")
         lines.append("")
+    lines.append("CIRCULARITY, stated: the pooled-or-declared positives were derived FROM the served reviews, so the pinned legacy cache")
+    lines.append("contains them by construction and 'positives present BEFORE' is not a recall of the legacy search. Only the audit-found")
+    lines.append("positives (found by external audits, never in the served corpus) can discriminate BEFORE from AFTER, and most are")
+    lines.append("NAME_ONLY (author surname or acronym, no identifier), which the title scorer cannot match for any engine.")
     lines.append("Screen includes AFTER are automated screening decisions on candidates; none has been source-verified and none is pooled.")
     lines.append("Moving a served pool onto this corpus is the delicate step the handover names and is NOT done here.")
     return "\n".join(lines)
@@ -353,9 +373,10 @@ def update_fixes(label: str, payload: dict, line2: str, register: dict | None) -
     if register:
         s = register["summary"]
         reg_text = {"within_kind": s["within_kind_pubmed_concept_query"]["recall_text"], "whole_engine": s["whole_engine_any_route"]["recall_text"]}
-    entry["events"] = [e for e in entry.get("events", []) if e.get("run_label") != label] + [{
+    tag = f"Run {label}:"
+    entry["events"] = [e for e in entry.get("events", []) if not str(e.get("reason", "")).startswith(tag)] + [{
         "implementation": "LANDED", "verification": "NONE", "scope": "CORPUS", "when_utc": _utc(),
-        "by": "Claude Opus 5 (integrator)", "commit": head, "run_label": label, "evidence": files + [cand],
+        "by": "Claude Opus 5 (integrator)", "commit": head, "evidence": files + [cand],
         "reason": (f"Run {label}: the engine re-run on all 32 topics after the guard protocol (snapshot {payload['snapshot_name']}, "
                    f"engine {payload['engine_sha'][:12]}), the 21 sealed MEASUREMENT topics scored beside run 1 with the same scorer, "
                    "the sealed register measured ON search_v2 within kind, and the pinned legacy cache compared with the new snapshots. "

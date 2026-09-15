@@ -4500,10 +4500,12 @@
    "implementation": "LANDED",
    "verification": "INTERNAL",
    "scope": "CORPUS",
-   "freshness": "CURRENT",
-   "stale_dependencies": [],
-   "fix_state": "LANDED / INTERNAL / CORPUS / CURRENT",
-   "state": "LANDED / INTERNAL / CORPUS / CURRENT",
+   "freshness": "STALE",
+   "stale_dependencies": [
+    "scripts/verify_all.py"
+   ],
+   "fix_state": "LANDED / INTERNAL / CORPUS / STALE",
+   "state": "LANDED / INTERNAL / CORPUS / STALE",
    "where": "a177740544be8044231e1c1b1e5ad1460d69f70e",
    "evidence_dir": "docs/evidence/gate-authority-2026-09-14",
    "evidence": [
@@ -5990,21 +5992,18 @@
    "finding_id": "MEASURE-search-v2-recall-2026-09-15",
    "fix_id": "MEASURE-search-v2-recall-2026-09-15",
    "kind": "finding",
-   "class": "search_v2 recall measurement on the sealed 21-topic measurement split",
+   "class": "search_v2 recall measurement on the sealed 21-topic measurement split (run 1 + run r2)",
    "implementation": "LANDED",
    "verification": "NONE",
    "scope": "CORPUS",
    "freshness": "STALE",
    "stale_dependencies": [
     "docs/evidence/CAPTIONS.json",
-    "docs/search_recall_regression_corpus.json",
-    "harness/acquisition.py",
-    "harness/search_v2.py",
-    "scripts/measure_search_v2_measurement.py"
+    "scripts/search_v2_run_evidence.py"
    ],
    "fix_state": "LANDED / NONE / CORPUS / STALE",
    "state": "LANDED / NONE / CORPUS / STALE",
-   "where": "9f541ddebbea9deca21d851222f24cc8f96a1e8b",
+   "where": "66b3486a13a8ac29e389a310d3936d8e76f3b962",
    "evidence_dir": "docs/evidence/search-v2-measurement-2026-09-15",
    "evidence": [
     "docs/evidence/search-v2-measurement-2026-09-15/README.md",
@@ -6014,7 +6013,14 @@
     "docs/evidence/search-v2-measurement-2026-09-15/04-heldout-register.txt",
     "docs/evidence/search-v2-measurement-2026-09-15/05-reverse-direction.txt",
     "outputs/search_v2/candidates-2026-09-15-measurement.json",
-    "docs/search_recall_regression_corpus.json"
+    "docs/search_recall_regression_corpus.json",
+    "docs/evidence/search-v2-measurement-2026-09-15/06-run-r2-states.txt",
+    "docs/evidence/search-v2-measurement-2026-09-15/07-recall-21-r2.txt",
+    "docs/evidence/search-v2-measurement-2026-09-15/08-routes-r2.txt",
+    "docs/evidence/search-v2-measurement-2026-09-15/09-register-search-v2-r2.txt",
+    "docs/evidence/search-v2-measurement-2026-09-15/10-reverse-direction-r2.txt",
+    "docs/evidence/search-v2-measurement-2026-09-15/11-before-after-32-r2.txt",
+    "outputs/search_v2/candidates-2026-09-15r2-all.json"
    ],
    "verified_by": {
     "identity": null,
@@ -6048,28 +6054,46 @@
      "tocilizumab-covid19-mortality",
      "tranexamic-acid-pph"
     ],
-    "heldout_register": "18 of 20"
+    "heldout_register": "18 of 20",
+    "command_run_r2": "python scripts/measure_search_recall.py outputs/search_v2/candidates-2026-09-15r2-all.json --include-development",
+    "register_on_search_v2_run_r2": {
+     "within_kind": "19 of 20",
+     "whole_engine": "20 of 20"
+    }
    },
    "seal": {
-    "sealed_utc": "2026-09-15T05:40:28Z",
-    "commit": "2304824034b4ba8677da2d2d2453352711ed2a9b",
+    "sealed_utc": "2026-09-15T12:44:40Z",
+    "commit": "66b3486a13a8ac29e389a310d3936d8e76f3b962",
     "dependencies": {
-     "docs/evidence/search-v2-measurement-2026-09-15/README.md": "2ef3a85dac883a8095534a90118b3263fa91a527",
+     "docs/evidence/search-v2-measurement-2026-09-15/README.md": "c830e5acc28c96e38c88198ace35088fcfc4f5ea",
      "docs/evidence/search-v2-measurement-2026-09-15/01-recall-21.txt": "4db03817f628a98363fc607279d54ab9738d14be",
      "docs/evidence/search-v2-measurement-2026-09-15/02-routes.txt": "f929c138dfd070f4e1de2e67a3606a5263598653",
      "docs/evidence/search-v2-measurement-2026-09-15/03-misses-diagnosed.txt": "0d63e6ef48de7f1e5188b5e434f6bb69881906ea",
      "docs/evidence/search-v2-measurement-2026-09-15/04-heldout-register.txt": "f5da24e72b37021792438ee09d3a44bd5bdfb3fc",
      "docs/evidence/search-v2-measurement-2026-09-15/05-reverse-direction.txt": "fd043c09cd6e226fc8a4ad449c023d46e3e46930",
      "outputs/search_v2/candidates-2026-09-15-measurement.json": "fe10cdfa9a651bdfc7b1cfe2498a6fce525bafc0",
-     "docs/search_recall_regression_corpus.json": "f14825a42f61d59345caa77913875c33806e7c57",
+     "docs/search_recall_regression_corpus.json": "73a2de5c6a8389c87cc746adf1f91af12a908911",
      "registry/search_benchmark.json": "a52033d6ed3ede4d90b176de382a353f63036fb7",
      "registry/search_benchmark_split.json": "4ef384a63aba9193a8e79321c63046ea552a3f46",
      "scripts/measure_search_recall.py": "f439b3efa6ea8c0faceb31e711fc413d2cab8ab0",
      "scripts/measure_regression_corpus_recall.py": "acddd12b20add8d426421d63a954bffb424d9bf1",
-     "scripts/measure_search_v2_measurement.py": "658379aca84b72274967fd8f94306b220f8b0533",
-     "harness/search_v2.py": "3652170341b73593bab949f815d15e2d58f9f4ec",
-     "harness/acquisition.py": "a34afe33089d76efdfa000169f91815783c6e21d",
-     "docs/evidence/CAPTIONS.json": "657516086271afd3409544af615080d135e44031"
+     "scripts/measure_search_v2_measurement.py": "fe0cc24f04302493877d16ebdcc28c2e5b95e0e6",
+     "harness/search_v2.py": "9cf898d02afbde097aca72405f1baffe3124c13b",
+     "harness/acquisition.py": "892f513e83d4c6226e68891613ea3dcd2e351451",
+     "docs/evidence/CAPTIONS.json": "f91a18efc38413ea31b1f3e72084ec2516f9edd0",
+     "docs/evidence/search-v2-measurement-2026-09-15/06-run-r2-states.txt": "da2ac35e9a2408b3fd5833587c27462e713a3e48",
+     "docs/evidence/search-v2-measurement-2026-09-15/07-recall-21-r2.txt": "5f3a33ca57768d3c0687b4ea16221f0fc2926996",
+     "docs/evidence/search-v2-measurement-2026-09-15/08-routes-r2.txt": "cf8b30918342095073190660976702be56a350ae",
+     "docs/evidence/search-v2-measurement-2026-09-15/09-register-search-v2-r2.txt": "82bd3d7077fea334729bb9a19c4d118214117bd9",
+     "docs/evidence/search-v2-measurement-2026-09-15/10-reverse-direction-r2.txt": "32b5c455fe3817d86092fb7809a3363519d08cac",
+     "docs/evidence/search-v2-measurement-2026-09-15/11-before-after-32-r2.txt": "c6a5ee31f6bcbdab8287005459d70282c0273b2f",
+     "outputs/search_v2/candidates-2026-09-15r2-all.json": "aff1dd2dcad270036bdcc6ac68604312ebe3bf4d",
+     "docs/search_recall_regression_corpus_search_v2.json": "195f8e8811d6fde3f2e146e2552347c586105e22",
+     "registry/search_vocabulary_seal.json": "f1bea8082ee5fd38bb30d71e637e8b9ac0df5e0a",
+     "scripts/measure_regression_corpus_recall_search_v2.py": "48043bc3fa8283a2fb417eee299bf8b1d53dce65",
+     "scripts/search_v2_run.py": "4961b4ddc6faac7bf12b566d8e8543981bba9de3",
+     "scripts/search_v2_run_evidence.py": "79ed75316b5b2719d3621352b0850422d8a86f78",
+     "harness/pipeline.py": "c8fe5cfa27bfa565ea6fea1bbab95474e400267c"
     },
     "configuration": {
      "schema": "fixes-v3",
@@ -6078,10 +6102,14 @@
      "snapshot_date": "2026-09-15",
      "topics": "21 named",
      "engine_sha": "3652170341b73593bab949f815d15e2d58f9f4ec",
-     "corpus_line": "MEASUREMENT topics (21, sealed before the engine existed): audit-found positives found 1 of 12 (named); pooled-or-declared positives found 120 of 135; 5 of 21 topics RAN_ERROR (the engine refused its own query; contribute 0 found, counted in N); sealed regression register 18 of 20 -- measured with the LEGACY concept-query engine (harness/acquisition.py, re-run because that file changed), NOT with search_v2, which has not been run against the sealed register; development topics excluded"
+     "corpus_line": "MEASUREMENT topics (21, sealed before the engine existed): audit-found positives found 1 of 12 (named); pooled-or-declared positives found 120 of 135; 5 of 21 topics RAN_ERROR (the engine refused its own query; contribute 0 found, counted in N); sealed regression register 18 of 20 -- measured with the LEGACY concept-query engine (harness/acquisition.py, re-run because that file changed), NOT with search_v2, which has not been run against the sealed register; development topics excluded",
+     "run_r2": {
+      "snapshot_name": "2026-09-15r2-search_v2",
+      "engine_sha": "9cf898d02afbde097aca72405f1baffe3124c13b",
+      "corpus_line": "MEASUREMENT topics (21, sealed before the engine existed), run r2 (engine 9cf898d02afb, snapshot 2026-09-15r2-search_v2, guard protocol registered at 8d7cf8fc66ef): audit-found positives found 1 of 12 (named); pooled-or-declared positives found 135 of 135; topic states: RAN_OK 0 of 21; RAN_OK_WITH_SOURCE_ERRORS 21 of 21; RAN_ZERO 0 of 21; RAN_ERROR 0 of 21; NOT_RUN 0 of 21; source-level RAN_ERROR 163 of 837 sources across the 21; sealed regression register ON search_v2: within kind (PubMed concept query alone) 19 of 20 over 5 of 5 topics, whole engine 20 of 20 over 5 of 5 topics; development topics excluded"
+     }
     }
-   },
-   "note": "Local lane entry only; no commit was made per user instruction."
+   }
   }
  ],
  "external_findings_heading": "Findings about published comparators — NOT adjudicated by us; verification NONE until an outside party confirms; we do not adjudicate our own findings about someone else's paper",
@@ -7051,8 +7079,8 @@
    "HELD_OUT": 0
   },
   "by_freshness": {
-   "CURRENT": 27,
-   "STALE": 67
+   "CURRENT": 26,
+   "STALE": 68
   },
   "by_kind": {
    "control": 7,

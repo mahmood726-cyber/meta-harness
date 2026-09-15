@@ -3017,6 +3017,38 @@
    "gate_id": "gate.check_limitation_decision_links",
    "what_it_refuses": "Review pages where a VALIDITY_THREATENING limitation object lacks a linked typed analytic decision (diagnostic-decision decoupling / disclosure-as-control).",
    "where": "harness/gate.py:check_limitation_decision_links"
+  },
+  {
+   "gate_id": "verify_all.limb_search_completeness",
+   "where": "scripts/verify_all.py:limb_search_completeness",
+   "what_it_refuses": "search completeness (search_v2 measurement current; every state explicit; no zero from an exit code)",
+   "events": [
+    {
+     "event_id": "verify-all-limb-search-completeness-plants-2026-09-15",
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "commit": null,
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_search_completeness",
+     "what_refused": "engine blob changed without re-publish; RAN_OK source with 0 records; topic RAN_OK with zero candidates; source errors folded into RAN_OK; RAN_ERROR without error text; register measured on another engine; unpublished number -- 9 plants in tests/test_search_completeness.py, the intact fixture passes with every state counted",
+     "evidence": [
+      "tests/test_search_completeness.py",
+      "harness/search_completeness.py"
+     ],
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "Claude Opus 5 (integrator), same author as the gate",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "9eaa40a7c6be6c60bde00f76a14b99a0161218ea04a1f27ad9557273f5d2c696",
+      "evidence": [
+       "tests/test_search_completeness.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     }
+    }
+   ]
   }
  ],
  "generated_utc": null,

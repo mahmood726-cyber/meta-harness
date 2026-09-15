@@ -182,6 +182,21 @@ def limb_heldout():
     return PASS, _append_target(target_line, detail)
 
 
+def limb_search_completeness():
+    """Search completeness as its own gated stage (SEARCH_REBUILD_HANDOVER item 4, 2026-09-15): the published
+    search_v2 measurement must be current for the engine blob, every measurement topic and every source must carry
+    an explicit state, and a zero may never come from an exit code. Reads artefacts only; never runs a search."""
+    paths = ["registry/search_completeness.json", "harness/search_v2.py", "harness/search_completeness.py"]
+    target_line, err = _target("verify_all.limb_search_completeness", paths)
+    if err:
+        return NOEXEC, target_line
+    from harness import search_completeness
+    ok, detail = search_completeness.check(ROOT)
+    if not ok:
+        return (NOEXEC if detail.startswith("COULD-NOT-EXECUTE") else REFUSED), _append_target(target_line, detail)
+    return PASS, _append_target(target_line, detail)
+
+
 def limb_fixstate():
     paths = ["registry/fixes.json", "docs/fix_ledger.json", "scripts/render_fix_ledger.py"]
     target_line, err = _target("verify_all.limb_fixstate", paths)
@@ -267,6 +282,7 @@ LIMBS = [
     ("index currency (generated == committed docs/index.html)", limb_index_currency),
     ("served-artefact leak scan (docs/*.json)", limb_leak_scan),
     ("held-out leak detector (registry/heldout_sealed.json)", limb_heldout),
+    ("search completeness (search_v2 measurement current; every state explicit; no zero from an exit code)", limb_search_completeness),
     ("fix-state discipline (registry/fixes.json)", limb_fixstate),
     ("honest-state ratchet (no page may get quieter)", limb_honest_ratchet),
     ("gate scorecard (every gate accounted for)", limb_gate_scorecard),

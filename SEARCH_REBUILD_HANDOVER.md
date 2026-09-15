@@ -1,6 +1,47 @@
 # Search-rebuild handover — open this cold, build nothing until you've read it
 
-## STATUS (updated 2026-09-14) — engine built + measured, pipeline integration NOT yet done
+## STATUS (updated 2026-09-15, run r2 landed) -- the four owed items, each with its state and its number
+
+Everything below is MEASURED unless marked; the numbers live in `docs/evidence/search-v2-measurement-2026-09-15`
+(run 1 = lane S3, captures 01-05; run r2 = captures 06-12) and `docs/evidence/search-v2-guard-2026-09-15`.
+
+- **(1) Concept query wired into FETCH -- DONE as a shadow corpus, NOT as the served pool.** `harness/search_v2.py`
+  builds P/I/C concept queries (PubMed, Europe PMC, CT.gov; Cochrane RCT filter; full pagination), cross-links
+  NCT<->PMID, chases citations, and writes dated snapshot generations beside the pinned caches
+  (`cache/<slug>/snapshots/2026-09-15r2-search_v2`, all 32 topics, one engine blob 9cf898d0, raw bodies on GitHub
+  release `raw-archive-2026-09-15r2-search_v2` with the tar sha256 in each ARCHIVE.json). `search_v2.pin()` is the
+  one call that would move a served pool onto it and it has NOT been called: the 32-topic before/after
+  (`11-before-after-32-r2.txt`) reads records 1873 -> 116484 and automated screen includes 189 -> 2140 on the 21
+  MEASUREMENT topics (1270 -> 53389 and 129 -> 1273 on the 11 DEVELOPMENT topics); every one of those ~2000 extra
+  includes would need source verification before it pools. That decision is Mahmood's, with the numbers in front of him.
+  On the sealed benchmark: run 1 pooled-or-declared 120 of 135 with 5 of 21 topics RAN_ERROR; run r2 135 of 135 with
+  21 of 21 topics run (all RAN_OK_WITH_SOURCE_ERRORS, see (2)); audit-found 1 of 12 in both runs -- 11 of the 12 are
+  NAME_ONLY (author surname / acronym, no identifier) which the title scorer cannot match for any engine, a limit of
+  the benchmark, stated in `07-recall-21-r2.txt`.
+  The 5 RAN_ERROR topics were the engine's own name-seeding guard refusing registered vocabulary (CABG, BAY94-8862,
+  PCSK9, LCZ696, NSTE-ACS); fixed by a RETROSPECTIVE protocol (sealed-vocabulary exemption by provenance, 8 of 8
+  plants fired pre-fix and still fire), not by growing the allowlist.
+- **(2) Reference-list seeding -- RE-ENABLED and MEASURED: 0 of 136 unique.** Both backward-citation adapters ran on
+  every topic. Europe PMC `/references` answered 503 "temporarily unavailable due to maintenance" on every call of
+  both runs (265 of 299 run-1 source errors; 163 of 837 run-r2 sources), so a PubMed elink `pubmed_pubmed_refs`
+  adapter was added beside it (`PUBMED_ELINK_BACKWARD_CITATION`, `COMPARATOR_REFERENCE_LIST_PUBMED`). Its added recall
+  on the sealed benchmark is 0 of 136 positives found only by that route (`08-routes-r2.txt`): every positive it
+  reached, the concept queries also reached. It adds candidates outside the benchmark (`10-reverse-direction-r2.txt`).
+- **(3) WHO ICTRP + international registries -- NOT DONE.** Probed 2026-09-15 (`12-international-registries-probe.txt`):
+  ISRCTN has a structured XML query API (adaptable); WHO ICTRP is HTML only (no API); EU CTR is a text download; CTIS
+  refuses anonymous calls. An adapter changes the engine blob, and run r2 is one blob on all 32 topics, so this is the
+  next engine version with its own 32-topic before/after, not a mid-run patch.
+- **(4) Search completeness as its own gated stage -- DONE.** `harness/search_completeness.py` +
+  `scripts/verify_all.py:limb_search_completeness` (GAP-054, scorecard entry): refuses unless the registered
+  search_v2 measurement (`registry/search_completeness.json`) is current for the engine blob, every MEASUREMENT topic
+  and every source carries an explicit state (RAN_OK / RAN_OK_WITH_SOURCE_ERRORS / RAN_ZERO / RAN_ERROR / NOT_RUN,
+  counted separately), a RAN_OK source has records, and the register and README name the same engine. It cannot go
+  green on an exit code: 9 plants in `tests/test_search_completeness.py`.
+- **Sealed register, compared within kind:** LEGACY engine 18 of 20; search_v2 PubMed concept-query source alone
+  19 of 20; search_v2 whole engine 20 of 20 (`09-register-search-v2-r2.txt`, `docs/search_recall_regression_corpus_search_v2.json`).
+- **Vocabulary layer** as before (DONE; abbreviations still held out of extraction).
+
+## STATUS (2026-09-14, superseded above)
 - **Vocabulary layer DONE** (`harness/lexicon.py`, the one shared fold for all consumers): British↔American
   spelling fold, Greek-letter fold (ω-3→omega-3), mortality↔death, a match-time NESTING GUARD
   (bare 'mortality'/'death'/'stroke' won't bind a qualified subtype), and PREVENTION_TRIAL_TITLE_OMITS_OUTCOME

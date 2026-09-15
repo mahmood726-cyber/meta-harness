@@ -3824,6 +3824,59 @@
     "adjudicated_precision": null,
     "adjudicated_production_refusals": 0,
     "adjudication_coverage": null,
+    "adjudications": 1,
+    "adjudicator_independence": 0.0,
+    "external_auditor_adjudications": 0,
+    "false_positive_production_refusals": 0,
+    "miss_events": 0,
+    "plant_events": 1,
+    "plant_validations": 1,
+    "production_refusals": 0,
+    "production_status": "UNVALIDATED",
+    "status_gap_events": 0,
+    "true_misses": 0,
+    "true_positive_production_refusals": 0,
+    "unresolved": 0,
+    "unvalidated": true,
+    "validation": "UNVALIDATED"
+   },
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "Claude Opus 5 (integrator), same author as the gate",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "9eaa40a7c6be6c60bde00f76a14b99a0161218ea04a1f27ad9557273f5d2c696",
+      "evidence": [
+       "tests/test_search_completeness.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-search-completeness-plants-2026-09-15",
+     "evidence": [
+      "tests/test_search_completeness.py",
+      "harness/search_completeness.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "engine blob changed without re-publish; RAN_OK source with 0 records; topic RAN_OK with zero candidates; source errors folded into RAN_OK; RAN_ERROR without error text; register measured on another engine; unpublished number -- 9 plants in tests/test_search_completeness.py, the intact fixture passes with every state counted",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_search_completeness"
+    }
+   ],
+   "gate_id": "verify_all.limb_search_completeness",
+   "scorecard_line": "adjudicated precision TP/(TP+FP) = no adjudicated production refusal - UNVALIDATED, not green (0 adjudicated of 0 production refusals = coverage no production refusals); plants: 1; UNRESOLVED: 0",
+   "what_it_refuses": "search completeness (search_v2 measurement current; every state explicit; no zero from an exit code)",
+   "where": "scripts/verify_all.py:limb_search_completeness"
+  },
+  {
+   "computed": {
+    "adjudicated_precision": null,
+    "adjudicated_production_refusals": 0,
+    "adjudication_coverage": null,
     "adjudications": 2,
     "adjudicator_independence": 0.0,
     "external_auditor_adjudications": 0,
@@ -3948,17 +4001,17 @@
  "schema_version": 2,
  "source": "registry/gate_scorecard.json",
  "summary": {
-  "adjudications": 49,
+  "adjudications": 50,
   "adjudicator_independence": 0.0,
   "adjudicator_independence_sentence": "adjudicator_independence is the share of adjudications made by an external_auditor; today it is expected to be 0 because no external-auditor adjudication is recorded",
   "auditor_sentence": "If the same environment labels its own gate outputs true or false, that is: system produces output -> system labels its own output correct -> agreement read as validation (the 6/6 recall shape). So every refusal is an EVENT with an ADJUDICATION OBJECT, and a gate's numbers are computed only from those objects.",
-  "event_count": 113,
+  "event_count": 114,
   "external_auditor_adjudications": 0,
   "false_refusal_gate_count": 1,
   "false_refusal_gates": [
    "verify_all.limb_fixstate"
   ],
-  "gate_count": 44,
+  "gate_count": 45,
   "gate_lines": [
    {
     "computed": {
@@ -4997,6 +5050,30 @@
      "adjudicated_precision": null,
      "adjudicated_production_refusals": 0,
      "adjudication_coverage": null,
+     "adjudications": 1,
+     "adjudicator_independence": 0.0,
+     "external_auditor_adjudications": 0,
+     "false_positive_production_refusals": 0,
+     "miss_events": 0,
+     "plant_events": 1,
+     "plant_validations": 1,
+     "production_refusals": 0,
+     "production_status": "UNVALIDATED",
+     "status_gap_events": 0,
+     "true_misses": 0,
+     "true_positive_production_refusals": 0,
+     "unresolved": 0,
+     "unvalidated": true,
+     "validation": "UNVALIDATED"
+    },
+    "gate_id": "verify_all.limb_search_completeness",
+    "line": "adjudicated precision TP/(TP+FP) = no adjudicated production refusal - UNVALIDATED, not green (0 adjudicated of 0 production refusals = coverage no production refusals); plants: 1; UNRESOLVED: 0"
+   },
+   {
+    "computed": {
+     "adjudicated_precision": null,
+     "adjudicated_production_refusals": 0,
+     "adjudication_coverage": null,
      "adjudications": 2,
      "adjudicator_independence": 0.0,
      "external_auditor_adjudications": 0,
@@ -5018,9 +5095,9 @@
    }
   ],
   "overall_adjudication": {
-   "adjudicated": 49,
-   "adjudication_coverage": 0.4336283185840708,
-   "events": 113,
+   "adjudicated": 50,
+   "adjudication_coverage": 0.43859649122807015,
+   "events": 114,
    "independent_adjudication_coverage": 0.0,
    "independently_adjudicated": 0,
    "production_adjudicated": 1,
@@ -5066,10 +5143,11 @@
    "verify_all.limb_honest_ratchet",
    "verify_all.limb_leak_scan",
    "verify_all.limb_reproduction",
+   "verify_all.limb_search_completeness",
    "verify_all.limb_unit_tests"
   ],
-  "plant_only_count": 37,
-  "plant_validation_count": 48,
+  "plant_only_count": 38,
+  "plant_validation_count": 49,
   "precision_coverage_sentence": "precision is reported only beside its adjudication coverage; an UNRESOLVED refusal is neither",
   "production_refusal_gate_count": 3,
   "production_refusal_gates": [
@@ -5124,9 +5202,10 @@
    "verify_all.limb_index_currency",
    "verify_all.limb_leak_scan",
    "verify_all.limb_reproduction",
+   "verify_all.limb_search_completeness",
    "verify_all.limb_unit_tests"
   ],
-  "unvalidated_count": 44,
+  "unvalidated_count": 45,
   "unvalidated_sentence": "a gate with no adjudicated true refusal in production is UNVALIDATED, not green"
  },
  "unvalidated_sentence": "a gate with no adjudicated true refusal in production is UNVALIDATED, not green"
