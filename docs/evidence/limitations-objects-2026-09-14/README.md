@@ -1,6 +1,6 @@
 # Limitations as structured objects (2026-09-14)
 
-**Fix state (orthogonal fields rule): LANDED / NONE / INSTANCE / CURRENT** - generated from TRANCHE-limitations-as-objects
+**Fix state (orthogonal fields rule): LANDED / NONE / INSTANCE / STALE** - generated from TRANCHE-limitations-as-objects; stale dependencies: docs/evidence/limitations-objects-2026-09-14/01-object-counts-32.txt, docs/evidence/limitations-objects-2026-09-14/02-legacy-compare-32.txt
 
 Stage reached: object layer plus legacy byte/text comparison. The served review-page blocks remain rendered by page.py; review.json now carries structured limitations.
 

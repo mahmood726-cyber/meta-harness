@@ -341,6 +341,26 @@ def render_strands_section(d: dict) -> str:
             f"compatibility key keeps strands apart; a cross-strand pool is refused, not computed.</p></div>")
 
 
+def _identifier_scope_block(r):
+    scope = r.get("identifier_scope") or {}
+    verdict = scope.get("verdict")
+    if not verdict:
+        return ""
+    if verdict in ("MATCH", "NOT_APPLICABLE"):
+        return ("<p class='muted'><strong>Identifier scope:</strong> "
+                f"{_e(scope.get('detail'))}. Verdict: <code>{_e(verdict)}</code>.</p>")
+    if verdict == "UNRESOLVED":
+        unresolved = "; ".join(
+            f"{x.get('trial')}={x.get('matched_intervention')}" for x in scope.get("unresolved", []) or []
+        )
+        detail = (f"{scope.get('detail')}: {unresolved}. This page must not be read as resolved until "
+                  "the intervention declaration maps every included record.")
+    else:
+        detail = scope.get("detail")
+    return ("<div class='absent'><strong>Identifier scope failure.</strong> "
+            f"{_e(detail)} <span class='muted'>Verdict: <code>{_e(verdict)}</code>.</span></div>")
+
+
 def _overview(r, neutral):
     parts = [f"<h2>{_e(r.get('title'))}</h2>", f"<p class='q'>{_e(r.get('question'))}</p>"]
     # INVALIDATION PROPAGATION: a single STALE verdict poisons the headline. If any dependent output
@@ -353,6 +373,7 @@ def _overview(r, neutral):
             "<div class='absent'><strong>STALE — this topic's result is not current.</strong> "
             "One or more dependent outputs on this page are known to be incomplete, superseded, or "
             f"unproven, so the result must not be read as a settled current estimate:<ul>{_rz}</ul></div>")
+    parts.append(_identifier_scope_block(r))
     rc = (r.get("search") or {}).get("retrieval_class") or {}
     if rc.get("class") in ("KNOWN_ITEM_RETRIEVAL", "TITLE_SEEDED_RETRIEVAL", "HAND_WRITTEN_KEYWORD_SEARCH"):
         parts.append(_retrieval_class_overview(rc))
@@ -562,8 +583,9 @@ def _search(r, neutral):
                  + " <strong>This is not systematic-review recall.</strong> It measures whether the "
                  "committed registry query re-finds the trials ALREADY KNOWN to the build; a trial that "
                  "was never in the known set is not in the denominator, so a high value does <strong>not</strong> "
-                 "mean the search is complete — external audits found eligible trials (J-EMPHASIS-HF for "
-                 "spironolactone, PHILO for ticagrelor) entirely absent precisely because they were never in "
+                 "mean the search is complete ? external audits found eligible trials (J-EMPHASIS-HF, an "
+                 "eplerenone trial, for the MRA topic published under the identifier "
+                 "spironolactone-hfref-mortality, PHILO for ticagrelor) entirely absent precisely because they were never in "
                  "a known set. True recall needs an INDEPENDENTLY-GENERATED reference universe (concept query "
                  "+ registry enumeration, not the seed list); that rebuild is in progress. Recovery is also "
                  "search REACH, not inclusion — whether a recovered trial is eligible/poolable is the screen's "
@@ -670,7 +692,7 @@ def _screening(r, neutral):
                      f"adjudicated {_e(ma.get('n'))} content-bearing disagreements; it agrees with the served "
                      f"rule screener on <strong>{_e(ma.get('agree_with_served'))}/{_e(ma.get('n'))}</strong>. "
                      f"{_e(ma.get('note'))} Flags: {_e(flag_txt)}</p>")
-    body = (flow + integ_html + f"<p>{len(recs)} records screened; <strong>{n_inc} included</strong>. "
+    body = (_identifier_scope_block(r) + flow + integ_html + f"<p>{len(recs)} records screened; <strong>{n_inc} included</strong>. "
             "Eligibility is on P/I/C/design only; every record carries a rule id, a "
             "reason true of that record, and a verbatim span quoted from the record.</p>"
             f"<table class='recs'>{head}{rows}</table>")

@@ -29,6 +29,7 @@ class LimitationKind(str, Enum):
     DEFINITION_AUDIT = "DEFINITION_AUDIT"
     CLAIM_CHECK_ZERO = "CLAIM_CHECK_ZERO"
     REPRODUCTION_RETRACTION = "REPRODUCTION_RETRACTION"
+    IDENTIFIER_SCOPE = "IDENTIFIER_SCOPE"
     UNIT_OF_ANALYSIS = "UNIT_OF_ANALYSIS"
     FUNDING_COI = "FUNDING_COI"
     RANDOMISED_CONTRAST = "RANDOMISED_CONTRAST"
@@ -558,6 +559,20 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
             "One or more dependent outputs on this page are known to be incomplete, superseded, or "
             f"unproven, so the result must not be read as a settled current estimate:<ul>{reasons}</ul></div>",
         )
+
+    identifier_html = _page._identifier_scope_block(review)
+    identifier_scope = review.get("identifier_scope") or {}
+    if identifier_scope.get("verdict") not in (None, "MATCH", "NOT_APPLICABLE") and identifier_html:
+        for suffix in ("overview:identifier-scope", "screening:identifier-scope"):
+            add(
+                suffix,
+                LimitationKind.IDENTIFIER_SCOPE,
+                Severity.BLOCKS_CLAIM,
+                "claim about the identifier-named intervention alone",
+                EvidenceState.REFUSED_ON_EVIDENCE,
+                ["/identifier_scope"],
+                identifier_html,
+            )
 
     rc = (review.get("search") or {}).get("retrieval_class") or {}
     if rc.get("class") in ("KNOWN_ITEM_RETRIEVAL", "TITLE_SEEDED_RETRIEVAL", "HAND_WRITTEN_KEYWORD_SEARCH"):

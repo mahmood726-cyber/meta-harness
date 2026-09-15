@@ -66,6 +66,14 @@ def test_run_attaches_span_to_every_decision():
     assert all(isinstance(d["span"], str) for d in out["decisions"])
 
 
+def test_run_attaches_structured_matched_intervention_to_includes():
+    recs = [_rct(title="Fish oil vs placebo for cardiovascular events",
+                 abstract="double-blind")]
+    out = run(recs, {"include": INC})["decisions"][0]
+    assert out["decision"] == "include"
+    assert out["matched_intervention"] == "fish oil"
+
+
 # --- eligibility generated from the include object (no drift) ---------------------
 from harness.screen import describe_eligibility  # noqa: E402
 

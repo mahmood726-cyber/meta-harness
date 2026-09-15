@@ -19,6 +19,7 @@ Conditions (each NAMED on the page so a reader sees WHY, and evidenced from comm
   search_source_errored         : a search source returned RAN_ERROR (retrieval completeness for
                                   this topic is unproven, not merely zero)
 """
+import re
 
 
 def _primary(core):
@@ -39,6 +40,147 @@ def _norm_id(x):
 def _present(res):
     return bool(isinstance(res, dict) and not res.get("suppressed_incompatible")
                and res.get("present") is not False and res.get("estimate") is not None)
+
+
+def _norm_term(value):
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def _fold_term(value):
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+
+def _slug_form(value):
+    return re.sub(r"[^a-z0-9]+", "-", str(value or "").lower()).strip("-")
+
+
+def _compact(value):
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+
+def _term_keys(value):
+    keys = {_norm_term(value), _fold_term(value)}
+    return {k for k in keys if k}
+
+
+def _slug_starts_with(slug, term):
+    slug_f = _slug_form(slug)
+    sf = _slug_form(term)
+    if sf and (slug_f == sf or slug_f.startswith(sf + "-")):
+        return True
+    cf = _compact(term)
+    if not cf:
+        return False
+    slug_parts = [p for p in slug_f.split("-") if p]
+    for idx in range(1, len(slug_parts) + 1):
+        if _compact("-".join(slug_parts[:idx])) == cf:
+            return True
+    return False
+
+
+def _agent_and_class_maps(config):
+    agents = config.get("intervention_agents") or {}
+    class_terms = config.get("intervention_class_terms") or []
+    term_to_agent = {}
+    for agent, terms in agents.items():
+        for term in [agent, *(terms or [])]:
+            for key in _term_keys(term):
+                term_to_agent.setdefault(key, agent)
+    class_keys = set()
+    for term in class_terms:
+        class_keys.update(_term_keys(term))
+    return term_to_agent, class_keys
+
+
+def _identifier_level(slug, config):
+    """Classify the slug's leading intervention token from declared agents/class terms."""
+    slug_l = str(slug or "").lower()
+    candidates = []
+    for agent, terms in (config.get("intervention_agents") or {}).items():
+        for term in [agent, *(terms or [])]:
+            if _slug_starts_with(slug_l, term):
+                candidates.append(("AGENT", agent, term, len(_compact(term))))
+    for term in config.get("intervention_class_terms") or []:
+        if _slug_starts_with(slug_l, term):
+            candidates.append(("CLASS", None, term, len(_compact(term))))
+    if not candidates:
+        return "CLASS", None, "identifier leading token is not a declared single agent"
+    candidates.sort(key=lambda x: x[3], reverse=True)
+    level, agent, term, _ = candidates[0]
+    if level == "CLASS":
+        return "CLASS", None, f"identifier leading token matches class term {term}"
+    return "AGENT", agent, f"identifier leading token matches agent term {term}"
+
+
+def _record_label(rec):
+    raw = str(rec.get("id") or "").strip()
+    rid = _norm_id(raw)
+    label = str(rec.get("label") or rec.get("trial") or rec.get("acronym") or "").strip()
+    if not label and "Â·" in raw:
+        label = raw.split("Â·", 1)[0].strip()
+    if label and rid and rid not in label:
+        return f"{label} {rid}"
+    return raw or rid or "unknown"
+
+
+def identifier_scope(slug, config, screening_records):
+    """Detect an agent-named identifier over a class-level included pool.
+
+    Pure function: the slug, config declaration, and screening records are its only inputs.
+    """
+    level, identifier_agent, note = _identifier_level(slug, config or {})
+    term_to_agent, class_keys = _agent_and_class_maps(config or {})
+    pooled_agents = {}
+    unresolved = []
+    for rec in screening_records or []:
+        if rec.get("decision") != "include":
+            continue
+        trial = _record_label(rec)
+        matched = rec.get("matched_intervention")
+        keys = _term_keys(matched)
+        agent = next((term_to_agent[k] for k in keys if k in term_to_agent), None)
+        if agent:
+            pooled_agents[trial] = agent
+            continue
+        if any(k in class_keys for k in keys):
+            pooled_agents[trial] = f"CLASS:{matched}"
+            continue
+        unresolved.append({"trial": trial, "matched_intervention": matched})
+
+    verdict = "NOT_APPLICABLE"
+    detail = note
+    reason = None
+    if unresolved:
+        verdict = "UNRESOLVED"
+        detail = "included screening records have matched_intervention terms absent from the intervention declaration"
+    elif level == "AGENT":
+        off_agent = {trial: agent for trial, agent in pooled_agents.items() if agent != identifier_agent}
+        if off_agent:
+            verdict = "SINGLE_AGENT_OVER_CLASS_POOL"
+            assignments = ", ".join(f"{trial}={agent}" for trial, agent in pooled_agents.items())
+            k = len(pooled_agents)
+            n = len(off_agent)
+            iline = config.get("protocol_i_line") or config.get("_protocol_i_line") or "PICO intervention line not found"
+            detail = (
+                f"the identifier names {identifier_agent} but the pool is class-level ({assignments}): "
+                f"under the identifier {n} of {k} pooled trials are ineligible; under the registered "
+                f"protocol ({iline}) the identifier is wrong — this page must not be read as evidence "
+                f"about {identifier_agent} alone"
+            )
+            reason = {"code": "identifier_single_agent_class_pool", "detail": detail}
+        else:
+            verdict = "MATCH"
+            detail = f"identifier names {identifier_agent}; all included records map to that agent"
+
+    return {
+        "level": level,
+        "identifier_agent": identifier_agent,
+        "pooled_agents": pooled_agents,
+        "unresolved": unresolved,
+        "verdict": verdict,
+        "detail": detail,
+        **({"reason": reason} if reason else {}),
+    }
 
 
 def _eligible_not_pooled(core, id_nct=None):
@@ -103,6 +245,23 @@ def assess(core, signals=None):
                         "detail": "an in-scope trial was NEVER retrieved (absent from every identifier space): "
                                   + names + " — invisible to screening/PRISMA/declared-absent; the search is "
                                   "demonstrably incomplete"})
+    # 0d. IDENTIFIER SCOPE: an agent-named slug over a class-level included pool is an eligibility
+    #     failure upstream of every downstream gate. The page cannot be renamed, so the object carries
+    #     the failure and every surface renders it.
+    ids = core.get("identifier_scope") or signals.get("identifier_scope") or {}
+    if ids.get("verdict") == "SINGLE_AGENT_OVER_CLASS_POOL":
+        reasons.append(ids.get("reason") or {
+            "code": "identifier_single_agent_class_pool",
+            "detail": ids.get("detail", "identifier names a single agent but the included pool is class-level"),
+        })
+    elif ids.get("verdict") == "UNRESOLVED":
+        unr = ids.get("unresolved") or []
+        bits = ", ".join(
+            f"{x.get('trial')}={x.get('matched_intervention')}" for x in unr[:6]
+        )
+        reasons.append({"code": "identifier_scope_unresolved",
+                        "detail": "included screening records have unmatched intervention terms in the "
+                                  "identifier-scope declaration: " + bits})
     # 1. Retraction / expression of concern among the POOLED trials.
     integ = core.get("integrity") or {}
     retr = list(integ.get("retracted") or [])

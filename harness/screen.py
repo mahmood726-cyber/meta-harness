@@ -101,6 +101,19 @@ def _has_intervention(text: str, terms) -> str | None:
     return None
 
 
+def matched_intervention(rec, inc) -> str | None:
+    """Return the intervention term matched by the eligibility screener, independent of prose.
+
+    The include reason still names this term for human readability, but downstream structural checks
+    read this field from the screening object instead of reparsing that sentence.
+    """
+    if not inc.get("intervention_any"):
+        return None
+    anchor = inc.get("intervention_in_title") and rec["id_type"] == "pmid"
+    itext = _poptext(rec) if anchor else _text(rec)
+    return _has_intervention(itext, inc["intervention_any"])
+
+
 import re as _re2
 # Review/meta-analysis markers in the TITLE: PubMed often tags a meta-analysis only "Journal Article"
 # (colchicine-postop 29766857 "...: A Meta-Analysis" and 36531704 "Meta-analysis of randomized..." were
@@ -347,7 +360,7 @@ def screen_record(rec, inc, neg_pmids):
     anchor = inc.get("intervention_in_title") and rec["id_type"] == "pmid"
     itext = _poptext(rec) if anchor else text
     itext_raw = raw_pop if anchor else raw_all
-    matched_int = _has_intervention(itext, inc["intervention_any"]) if inc.get("intervention_any") else None
+    matched_int = matched_intervention(rec, inc)
     if inc.get("intervention_any") and not matched_int:
         return ("exclude", "X3",
                 f"the randomised intervention is not {inc['intervention_any']} "
@@ -506,9 +519,14 @@ def run(all_recs: list, config: dict) -> dict:
                               "span": (rec.get("title") or "")[:120]})
             continue
         decision, rule, reason, span = screen_record(rec, inc, neg)
-        decisions.append({"id": rec["id"], "id_type": rec["id_type"],
-                          "label": rec.get("acronym") or "", "decision": decision,
-                          "rule_id": rule, "reason": reason, "span": span})
+        row = {"id": rec["id"], "id_type": rec["id_type"],
+               "label": rec.get("acronym") or "", "decision": decision,
+               "rule_id": rule, "reason": reason, "span": span}
+        if decision == "include":
+            mi = matched_intervention(rec, inc)
+            if mi:
+                row["matched_intervention"] = mi
+        decisions.append(row)
     by_id = {d["id"]: d for d in decisions}
     pos = config.get("positive_control_pmids", [])
     pos_ok = [p for p in pos if by_id.get(p, {}).get("decision") == "include"]

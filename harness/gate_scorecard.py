@@ -289,6 +289,14 @@ def _static_gates() -> list[dict[str, str]]:
                 "title-seeded, hand-written keyword, or concept search."
             ),
         },
+        {
+            "gate_id": "invalidation.identifier_scope",
+            "where": "harness/invalidation.py:identifier_scope/assess",
+            "what_it_refuses": (
+                "An agent-named page identifier whose included intervention pool maps to a broader "
+                "class, another declared agent, or an unresolved intervention declaration."
+            ),
+        },
     ]
 
 

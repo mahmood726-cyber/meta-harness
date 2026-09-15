@@ -1216,12 +1216,15 @@ def build_review_core(slug, config, records, protocol_sha):
                 "id_type": d["id_type"], "decision": d["decision"],
                 "rule_id": d["rule_id"], "reason": d["reason"],
                 "span": d.get("span", ""), "found_by": found_by,
+                **({"matched_intervention": d.get("matched_intervention")} if d.get("matched_intervention") else {}),
             })
     else:
         screening_records = [{"id": (f"{rec_by_id.get(d['id'],{}).get('acronym')} · " if rec_by_id.get(d['id'],{}).get('acronym') else "") + str(d["id"]),
                               "id_type": d["id_type"], "decision": d["decision"],
                               "rule_id": d["rule_id"], "reason": d["reason"],
-                              "span": d.get("span", "")} for d in scr["decisions"]]
+                              "span": d.get("span", ""),
+                              **({"matched_intervention": d.get("matched_intervention")} if d.get("matched_intervention") else {})}
+                             for d in scr["decisions"]]
 
     source_status = _source_status(slug, config, records, merged, retrieval_ledger)
     retrieval_class = classify_retrieval(
@@ -1287,6 +1290,24 @@ def build_review_core(slug, config, records, protocol_sha):
         for _r in _cmp.get("reported", []):
             if isinstance(_r, dict):
                 _r["claim"] = claim_mod.derive(_r)
+    # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
+    # config before invalidation, because identifier-scope needs the PICO I-line quote for its reason.
+    _protocol_i_line = ""
+    try:
+        _md = open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8").read()
+        _protocol_i_line = protocol_compiler_mod.intervention_line(_md)
+        _div = protocol_compiler_mod.compare(slug, _md, config)
+        review["protocol_config"] = {"divergences": _div, "intervention_i_line": _protocol_i_line}
+    except OSError:
+        pass
+    # IDENTIFIER SCOPE: detect a single-agent slug over a class-level included pool structurally
+    # from the configured declaration and screening object, before any downstream gate can reassure it.
+    _scope_config = dict(config)
+    if _protocol_i_line:
+        _scope_config["protocol_i_line"] = _protocol_i_line
+    review["identifier_scope"] = invalidation_mod.identifier_scope(
+        slug, _scope_config, (review.get("screening") or {}).get("records") or []
+    )
     # INVALIDATION PROPAGATION: one per-topic STALE verdict from committed signals (retraction of a
     # pooled trial, primary reported-but-not-extracted, an ELIGIBLE trial declared absent, a search
     # source that errored). Poisons the dependent outputs -- the page renders a STALE banner and the
@@ -1373,12 +1394,14 @@ def build_review_core(slug, config, records, protocol_sha):
     # prose and the machine rules cannot pass -- the tocilizumab self-certification defect (a check
     # that reads only the artefact it certifies). Divergences are rendered + counted; each is a defect
     # to resolve or a dated amendment to declare, never a silent widening.
-    try:
-        _md = open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8").read()
-        _div = protocol_compiler_mod.compare(slug, _md, config)
-        review["protocol_config"] = {"divergences": _div}
-    except OSError:
-        pass
+    if "protocol_config" not in review:
+        try:
+            _md = open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8").read()
+            _div = protocol_compiler_mod.compare(slug, _md, config)
+            review["protocol_config"] = {"divergences": _div,
+                                         "intervention_i_line": protocol_compiler_mod.intervention_line(_md)}
+        except OSError:
+            pass
     # DECLARED STRANDS on the TOPIC PAGE: where a topic's single pool is suppressed (incompatible
     # estimands) and a committed strands artefact (docs/<*>_strands.json, slug-matched) decomposes it
     # into compatible strands, attach it so the TOPIC page renders the same strands the index shows.

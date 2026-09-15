@@ -615,6 +615,30 @@
      "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
      "when_utc": null,
      "where": "harness/gate.py:check_controls"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check_controls-identifier-scope-miss-1",
+     "evidence": [
+      "docs/evidence/identifier-scope-2026-09-14/README.md"
+     ],
+     "kind": "PRODUCTION",
+     "miss": true,
+     "source_list": "known_misses",
+     "what_got_through": "Spironolactone-hfref-mortality served under an agent-named identifier while pooling eplerenone MRA trials; recorded pessimistically as a production miss, not a refusal. The screening-control gate exercised declared controls but did not compare the page identifier agent to the included intervention pool.",
+     "what_refused": null,
+     "when_utc": "2026-09-14T23:30:00Z",
+     "where": "harness/gate.py:check_controls"
     }
    ],
    "gate_id": "gate.check_controls",
@@ -908,6 +932,30 @@
      "status_gap": true,
      "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
      "when_utc": null,
+     "where": "harness/gate.py:check_limb2"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check_limb2-identifier-scope-miss-1",
+     "evidence": [
+      "docs/evidence/identifier-scope-2026-09-14/README.md"
+     ],
+     "kind": "PRODUCTION",
+     "miss": true,
+     "source_list": "known_misses",
+     "what_got_through": "Spironolactone-hfref-mortality served under an agent-named identifier while pooling eplerenone MRA trials; recorded pessimistically as a production miss, not a refusal. The comparator metadata/scope gate checked comparator presence and overlap counts but did not refuse a single-agent identifier over a class-level pool.",
+     "what_refused": null,
+     "when_utc": "2026-09-14T23:30:00Z",
      "where": "harness/gate.py:check_limb2"
     }
    ],
@@ -2783,6 +2831,86 @@
    "gate_id": "verify_all.limb_unit_tests",
    "what_it_refuses": "unit tests (pytest tests/)",
    "where": "scripts/verify_all.py:limb_unit_tests"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "Codex lane Y (internal agent)",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": null,
+      "evidence": [
+       "tests/test_invalidation.py",
+       "docs/evidence/identifier-scope-2026-09-14/README.md"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": "2026-09-14T23:30:00Z"
+     },
+     "commit": null,
+     "event_id": "invalidation-identifier-scope-plant-1",
+     "evidence": [
+      "tests/test_invalidation.py",
+      "docs/evidence/identifier-scope-2026-09-14/README.md"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "identifier-scope single-agent-over-class and unresolved plants",
+     "when_utc": "2026-09-14T23:30:00Z",
+     "where": "harness/invalidation.py:identifier_scope/assess"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "invalidation-identifier_scope-identifier-scope-miss-1",
+     "evidence": [
+      "docs/evidence/identifier-scope-2026-09-14/README.md"
+     ],
+     "kind": "PRODUCTION",
+     "miss": true,
+     "source_list": "known_misses",
+     "what_got_through": "Spironolactone-hfref-mortality served under an agent-named identifier while pooling eplerenone MRA trials; recorded pessimistically as a production miss, not a refusal. Before this lane the invalidation object reported search-not-executed only and carried no identifier_scope reason.",
+     "what_refused": null,
+     "when_utc": "2026-09-14T23:30:00Z",
+     "where": "harness/invalidation.py:identifier_scope/assess"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "invalidation-identifier-scope-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "No dated production true refusal has been observed yet; the prefix false negative is recorded as a known miss.",
+     "when_utc": null,
+     "where": "harness/invalidation.py:identifier_scope/assess"
+    }
+   ],
+   "gate_id": "invalidation.identifier_scope",
+   "what_it_refuses": "An agent-named page identifier whose included intervention pool maps to a broader class, another declared agent, or an unresolved intervention declaration.",
+   "where": "harness/invalidation.py:identifier_scope/assess"
   }
  ],
  "generated_utc": null,

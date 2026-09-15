@@ -79,6 +79,71 @@ def test_search_not_executed_signal_is_stale():
     assert v["stale"] and any(r["code"] == "search_not_executed" for r in v["reasons"])
 
 
+def test_identifier_scope_detects_agent_identifier_over_class_pool():
+    cfg = {
+        "protocol_i_line": "- **I** - specifically spironolactone or eplerenone.",
+        "intervention_agents": {
+            "spironolactone": ["spironolactone"],
+            "eplerenone": ["eplerenone"],
+        },
+        "intervention_class_terms": ["mineralocorticoid receptor antagonist", "MRA"],
+    }
+    records = [
+        {"id": "RALES · 10471456", "decision": "include", "matched_intervention": "spironolactone"},
+        {"id": "EMPHASIS-HF · 21073363", "decision": "include", "matched_intervention": "eplerenone"},
+    ]
+    scope = INV.identifier_scope("spironolactone-hfref-mortality", cfg, records)
+    assert scope["verdict"] == "SINGLE_AGENT_OVER_CLASS_POOL"
+    assert scope["identifier_agent"] == "spironolactone"
+    assert "identifier names spironolactone" in scope["detail"]
+    assert "class-level" in scope["detail"]
+    core = {"identifier_scope": scope,
+            "outcomes": [{"primary": True, "result": {"k": 2, "estimate": 0.8}}]}
+    v = INV.assess(core)
+    assert any(r["code"] == "identifier_single_agent_class_pool" for r in v["reasons"])
+
+
+def test_identifier_scope_class_slug_is_not_applicable():
+    cfg = {"intervention_agents": {"dapagliflozin": ["dapagliflozin"]},
+           "intervention_class_terms": ["SGLT2", "SGLT-2"]}
+    scope = INV.identifier_scope(
+        "sglt2-hfref-hosp-cvdeath",
+        cfg,
+        [{"id": "1", "decision": "include", "matched_intervention": "dapagliflozin"}],
+    )
+    assert scope["level"] == "CLASS"
+    assert scope["verdict"] == "NOT_APPLICABLE"
+
+
+def test_identifier_scope_compact_prefix_does_not_turn_class_slug_into_agent():
+    cfg = {
+        "intervention_agents": {
+            "omega-3 carboxylic acids": ["omega-3 CA", "omega-3 carboxylic acids"],
+            "icosapent ethyl": ["icosapent"],
+        },
+        "intervention_class_terms": ["omega-3", "omega 3"],
+    }
+    scope = INV.identifier_scope(
+        "omega3-cardiovascular-events",
+        cfg,
+        [{"id": "1", "decision": "include", "matched_intervention": "omega-3"}],
+    )
+    assert scope["level"] == "CLASS"
+    assert scope["verdict"] == "NOT_APPLICABLE"
+
+
+def test_identifier_scope_unmapped_included_term_is_unresolved():
+    cfg = {"intervention_agents": {"melatonin": ["melatonin"]}, "intervention_class_terms": []}
+    scope = INV.identifier_scope(
+        "melatonin-primary-insomnia-sol",
+        cfg,
+        [{"id": "1", "decision": "include", "matched_intervention": "ramelteon"}],
+    )
+    assert scope["verdict"] == "UNRESOLVED"
+    v = INV.assess({"identifier_scope": scope, "outcomes": [{"primary": True, "result": {"k": 1, "estimate": 1}}]})
+    assert any(r["code"] == "identifier_scope_unresolved" for r in v["reasons"])
+
+
 def test_known_eligible_missing_signal_is_stale():
     core = {"outcomes": [{"primary": True, "result": {"k": 1, "estimate": 0.9}}]}
     v = INV.assess(core, {"known_eligible_missing": [{"trial": "PHILO", "mechanism": "concept-query"}]})

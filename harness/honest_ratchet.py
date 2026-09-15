@@ -32,6 +32,7 @@ MARKERS = {
         "an auditable screening ledger attached to an unauditable retrieval process",
     ],
     "search_provenance": ["Search provenance", "not a completed systematic search"],
+    "identifier_scope": ["identifier names", "class-level pool"],
     "suppressed_pool": ["Pooled result SUPPRESSED"],
     "retraction": ["retract", "retraction", "we retract", "retracted", "withdrawn", "superseded"],
     "declared_absent": ["declared absent", "DECLARED_ABSENT"],

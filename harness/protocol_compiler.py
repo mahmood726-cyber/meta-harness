@@ -51,6 +51,87 @@ def parse_prose(md_text):
     return out
 
 
+def _norm_text(value):
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def _fold_for_prose(value):
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+
+def intervention_line(md_text):
+    """Return the protocol PICO intervention line, including wrapped continuation lines."""
+    lines = (md_text or "").splitlines()
+    out = []
+    collecting = False
+    start_re = re.compile(r"^\s*-\s*\*\*(?:I|Intervention)\b[^*]*\*\*\s*(?:[-:–—])?\s*(.*)$", re.I)
+    bullet_re = re.compile(r"^\s*-\s*\*\*")
+    for line in lines:
+        m = start_re.match(line)
+        if m:
+            out = [m.group(1).strip()]
+            collecting = True
+            continue
+        if collecting:
+            if bullet_re.match(line):
+                break
+            if line.startswith((" ", "\t")) and line.strip():
+                out.append(line.strip())
+                continue
+            if not line.strip():
+                break
+            break
+    return _norm_text(" ".join(out))
+
+
+def _intervention_declaration_divergences(md_text, config):
+    agents = config.get("intervention_agents")
+    class_terms = config.get("intervention_class_terms")
+    if agents is None and class_terms is None:
+        return []
+    div = []
+    if not isinstance(agents, dict):
+        div.append({"code": "INTERVENTION_DECLARATION_MALFORMED", "dimension": "intervention_agents",
+                    "prose": "protocol", "config": "intervention_agents must be an object"})
+        agents = {}
+    if not isinstance(class_terms, list):
+        div.append({"code": "INTERVENTION_DECLARATION_MALFORMED", "dimension": "intervention_class_terms",
+                    "prose": "protocol", "config": "intervention_class_terms must be a list"})
+        class_terms = []
+
+    declared: dict[str, list[str]] = {}
+    for agent, terms in sorted((agents or {}).items()):
+        if not isinstance(terms, list):
+            div.append({"code": "INTERVENTION_DECLARATION_MALFORMED", "dimension": "intervention_agents",
+                        "prose": str(agent), "config": "agent terms must be a list"})
+            continue
+        for term in terms:
+            declared.setdefault(_norm_text(term), []).append(f"agent:{agent}")
+    for term in class_terms or []:
+        declared.setdefault(_norm_text(term), []).append("class")
+
+    for term in config.get("intervention_terms") or []:
+        key = _norm_text(term)
+        owners = declared.get(key, [])
+        if not owners:
+            div.append({"code": "INTERVENTION_TERM_UNDECLARED", "dimension": "intervention_declaration",
+                        "prose": "intervention_terms", "config": str(term)})
+        elif len(owners) > 1:
+            owners = sorted(set(owners))
+        if len(owners) > 1:
+            div.append({"code": "INTERVENTION_TERM_AMBIGUOUS", "dimension": "intervention_declaration",
+                        "prose": str(term), "config": ", ".join(owners)})
+
+    iline = intervention_line(md_text)
+    folded_line = _fold_for_prose(iline)
+    for agent in sorted((agents or {}).keys()):
+        folded_agent = _fold_for_prose(agent)
+        if folded_agent and folded_agent not in folded_line:
+            div.append({"code": "INTERVENTION_AGENT_PROSE_DIVERGENCE", "dimension": "intervention_i_line",
+                        "prose": iline or "(missing PICO intervention line)", "config": str(agent)})
+    return div
+
+
 def _config_estimand(config):
     e = ((config.get("primary_outcome") or {}).get("estimand") or "").upper()
     return _ESTIMAND_CANON.get(e.lower(), e or None)
@@ -80,4 +161,5 @@ def compare(slug, md_text, config):
         div.append({"code": "DESIGN_MASKING_ANDOR", "dimension": "design",
                     "prose": "double-blind OR placebo-controlled",
                     "config": "double-blind AND placebo-controlled"})
+    div.extend(_intervention_declaration_divergences(md_text, config))
     return div

@@ -35,3 +35,33 @@ def test_missing_prose_field_is_not_a_false_match():
     md = "# Protocol with no estimand or population line"
     cfg = {"primary_outcome": {"estimand": "HR", "population": "intention-to-treat"}}
     assert PC.compare("x", md, cfg) == []
+
+
+def test_intervention_declaration_requires_every_existing_term_once():
+    md = "## PICO\n- **I** - spironolactone or eplerenone."
+    cfg = {
+        "intervention_terms": ["spironolactone", "eplerenone", "MRA"],
+        "intervention_agents": {
+            "spironolactone": ["spironolactone"],
+            "eplerenone": ["eplerenone"],
+        },
+        "intervention_class_terms": [],
+    }
+    div = PC.compare("x", md, cfg)
+    assert any(d["code"] == "INTERVENTION_TERM_UNDECLARED" and d["config"] == "MRA" for d in div)
+
+
+def test_intervention_agent_must_appear_in_protocol_i_line():
+    md = "## PICO\n- **I** - mineralocorticoid receptor antagonist therapy."
+    cfg = {
+        "intervention_terms": ["spironolactone"],
+        "intervention_agents": {"spironolactone": ["spironolactone"]},
+        "intervention_class_terms": [],
+    }
+    div = PC.compare("x", md, cfg)
+    assert any(d["code"] == "INTERVENTION_AGENT_PROSE_DIVERGENCE" for d in div)
+
+
+def test_intervention_line_collects_wrapped_i_line():
+    md = "## PICO\n- **I** - SGLT2 inhibitors, including empagliflozin,\n  canagliflozin, or dapagliflozin.\n- **C** - placebo."
+    assert PC.intervention_line(md) == "sglt2 inhibitors, including empagliflozin, canagliflozin, or dapagliflozin."
