@@ -33,6 +33,7 @@ EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 EPMC_SEARCH = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
 EPMC_ARTICLE = "https://www.ebi.ac.uk/europepmc/webservices/rest/MED/{pmid}/{kind}"
 CTGOV = "https://clinicaltrials.gov/api/v2/studies"
+ISRCTN = "https://www.isrctn.com/api/query/format/default"
 
 SEARCH_V2_VERSION = 1
 SNAPSHOT_SUFFIX = "search_v2"
@@ -63,6 +64,7 @@ DEVELOPMENT_TOPICS = [
 ]
 
 _NCT_RE = re.compile(r"\bNCT\d{8}\b", re.IGNORECASE)
+_ISRCTN_RE = re.compile(r"^ISRCTN\d{8}$", re.IGNORECASE)
 _PMID_RE = re.compile(r"^\d+$")
 _DOI_RE = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", re.IGNORECASE)
 
@@ -320,6 +322,27 @@ def _ctgov_join(terms: list[str]) -> str:
     return " OR ".join(str(t).strip() for t in terms if str(t).strip())
 
 
+def _quote_isrctn(term: str) -> str:
+    text = str(term).strip().replace('"', " ")
+    if not text:
+        return ""
+    if " " in text or "-" in text or "*" in text or "." in text or "/" in text:
+        return f'"{text}"'
+    return text
+
+
+def _isrctn_block(terms: list[str]) -> str:
+    pieces = [_quote_isrctn(t) for t in terms]
+    pieces = [p for p in pieces if p]
+    return "(" + " OR ".join(pieces) + ")" if pieces else ""
+
+
+def _isrctn_query(intervention_terms: list[str], population_terms: list[str]) -> str:
+    return " AND ".join(
+        block for block in (_isrctn_block(intervention_terms), _isrctn_block(population_terms)) if block
+    )
+
+
 def build_queries(config: dict, protocol_text: str, *, lookup_mesh: bool = True, slug: str | None = None) -> dict:
     intervention_terms = _dedupe(acq.expand_intervention(_flatten_agents(config)))
     population_terms = _population_terms(config)
@@ -355,6 +378,7 @@ def build_queries(config: dict, protocol_text: str, *, lookup_mesh: bool = True,
         "query.cond": _ctgov_join(population_terms),
         "query.intr": _ctgov_join(_flatten_agents(config)),
     }
+    isrctn_query = _isrctn_query(_flatten_agents(config), population_terms)
 
     pubmed_kind = assert_discovery_query_allowed(pubmed_query, "PUBMED_CONCEPT_QUERY", exempt)
     epmc_kind = assert_discovery_query_allowed(epmc_query, "EUROPEPMC_CONCEPT_QUERY", exempt)
@@ -363,8 +387,9 @@ def build_queries(config: dict, protocol_text: str, *, lookup_mesh: bool = True,
         "CTGOV_CONDITION_INTERVENTION",
         exempt,
     )
+    isrctn_kind = assert_discovery_query_allowed(isrctn_query, "ISRCTN_CONDITION_INTERVENTION", exempt)
     used: list[str] = []
-    for q in (pubmed_query, epmc_query, ctgov_query["query.cond"] + " " + ctgov_query["query.intr"]):
+    for q in (pubmed_query, epmc_query, ctgov_query["query.cond"] + " " + ctgov_query["query.intr"], isrctn_query):
         for feature in _query_classification(q, exempt).get("features") or []:
             if feature.startswith("vocabulary_token:"):
                 used.append(_feature_token(feature))
@@ -372,10 +397,12 @@ def build_queries(config: dict, protocol_text: str, *, lookup_mesh: bool = True,
         "pubmed": pubmed_query,
         "europepmc": epmc_query,
         "ctgov": ctgov_query,
+        "isrctn": isrctn_query,
         "structural_kinds": {
             "pubmed": pubmed_kind,
             "europepmc": epmc_kind,
             "ctgov": ctgov_kind,
+            "isrctn": isrctn_kind,
         },
         "vocabulary_exemption": {
             "protocol": "docs/evidence/search-v2-guard-2026-09-15/PROTOCOL.md",
@@ -412,6 +439,13 @@ def _normalise_pmid(value: object) -> str | None:
 def _normalise_nct(value: object) -> str | None:
     text = str(value or "").strip().upper()
     return text if _NCT_RE.fullmatch(text) else None
+
+
+def _normalise_isrctn(value: object) -> str | None:
+    text = str(value or "").strip().upper()
+    if text.isdigit() and len(text) == 8:
+        text = "ISRCTN" + text
+    return text if _ISRCTN_RE.fullmatch(text) else None
 
 
 def _select_nct(abstract: str, databank_ncts: list[str]) -> str:
@@ -723,6 +757,144 @@ def _ctgov_nct_batch_records(ncts: list[str]) -> tuple[list[dict], dict]:
     return _ctgov_search_records({"query.id": " OR ".join(ncts)})
 
 
+def _local_tag(el: ET.Element) -> str:
+    return el.tag.rsplit("}", 1)[-1]
+
+
+def _child(parent: ET.Element | None, name: str) -> ET.Element | None:
+    if parent is None:
+        return None
+    for child in list(parent):
+        if _local_tag(child) == name:
+            return child
+    return None
+
+
+def _child_text(parent: ET.Element | None, name: str) -> str:
+    return _clean_xml_text(_child(parent, name))
+
+
+def _clean_xml_text(el: ET.Element | None) -> str:
+    return re.sub(r"\s+", " ", "".join(el.itertext())).strip() if el is not None else ""
+
+
+def _children_texts(parent: ET.Element | None, name: str) -> list[str]:
+    if parent is None:
+        return []
+    return [text for child in list(parent) if _local_tag(child) == name for text in [_clean_xml_text(child)] if text]
+
+
+def _first_year(*values: str) -> str:
+    for value in values:
+        match = re.search(r"\b(19|20)\d{2}\b", str(value or ""))
+        if match:
+            return match.group(0)
+    return ""
+
+
+def _isrctn_trial_record(full_trial: ET.Element) -> dict:
+    trial = _child(full_trial, "trial") if _local_tag(full_trial) == "fullTrial" else full_trial
+    if trial is None or _local_tag(trial) != "trial":
+        raise ValueError("ISRCTN fullTrial did not contain a trial element")
+    isrctn = _normalise_isrctn(trial.get("publicIdentifierCanonical")) or _normalise_isrctn(_child_text(trial, "isrctn"))
+    if not isrctn:
+        raise ValueError("ISRCTN trial lacked a canonical ISRCTN id")
+    desc = _child(trial, "trialDescription")
+    design = _child(trial, "trialDesign")
+    participants = _child(trial, "participants")
+    external = _child(trial, "externalRefs")
+    abstract = _child_text(desc, "plainEnglishSummary")
+    external_text = _clean_xml_text(external)
+    trial_text = _clean_xml_text(trial)
+    nct = _normalise_nct(_child_text(external, "clinicalTrialsGovNumber"))
+    if not nct:
+        matches = [_normalise_nct(m) for m in _NCT_RE.findall(external_text or trial_text)]
+        nct = next((m for m in matches if m), "")
+    year = _first_year(
+        _child_text(participants, "recruitmentStart"),
+        trial.get("publicIdentifierDateAssigned") or "",
+        _child_text(trial, "isrctn"),
+        trial.get("lastUpdated") or "",
+    )
+    return {
+        "id": isrctn,
+        "id_type": "isrctn",
+        "pmid": "",
+        "pmcid": "",
+        "doi": _child_text(external, "doi"),
+        "nct": nct or "",
+        "isrctn": isrctn,
+        "title": _child_text(desc, "title") or _child_text(desc, "scientificTitle"),
+        "abstract": abstract,
+        "acronym": _child_text(desc, "acronym"),
+        "study_type": _child_text(design, "primaryStudyDesign"),
+        "allocation": _child_text(design, "secondaryStudyDesign"),
+        "masking": _child_text(design, "interventionalTrialDesign"),
+        "conditions": _children_texts(_child(trial, "conditions"), "condition"),
+        "interventions": _children_texts(_child(trial, "interventions"), "intervention"),
+        "has_results": bool(_child_text(_child(trial, "results"), "basicReporting")),
+        "year": year,
+        "pubtypes": [],
+        "source": "isrctn",
+    }
+
+
+def _parse_isrctn_records(xml_text: str) -> tuple[list[dict], int]:
+    try:
+        root = ET.fromstring(xml_text or "")
+    except ET.ParseError as exc:
+        raise ValueError("ISRCTN payload was not parseable XML") from exc
+    if _local_tag(root) != "allTrials":
+        raise ValueError(f"ISRCTN payload root was not allTrials: {_local_tag(root)}")
+    try:
+        total = int(root.get("totalCount"))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("ISRCTN payload missing integer totalCount") from exc
+    records = [_isrctn_trial_record(el) for el in list(root) if _local_tag(el) == "fullTrial"]
+    if total > 0 and not records:
+        raise ValueError("ISRCTN payload reported hits but contained no fullTrial records")
+    return records, total
+
+
+def _isrctn_search_records(query: str) -> tuple[list[dict], dict]:
+    text = str(query or "").strip()
+    if not text:
+        raise ValueError("ISRCTN query is empty")
+    records: list[dict] = []
+    seen: set[str] = set()
+    page_size = 1000
+    offset = 0
+    total: int | None = None
+    while True:
+        xml = http.get_text(ISRCTN, {"q": text, "limit": page_size, "offset": offset})
+        page_records, page_total = _parse_isrctn_records(xml)
+        if total is None:
+            total = page_total
+        for rec in page_records:
+            rid = _record_id(rec)
+            if rid and rid not in seen:
+                seen.add(rid)
+                records.append(rec)
+        offset += page_size
+        if offset >= (total or 0) or not page_records:
+            break
+        time.sleep(0.5)
+    fetched = len(records)
+    hits = total if total is not None else fetched
+    return records, {
+        "hits": hits,
+        "state": "RAN_OK" if fetched else "RAN_ZERO",
+        "error": None,
+        "funnel": {
+            "hits": hits,
+            "fetched": fetched,
+            "retained": fetched,
+            "cap": {"kind": "none", "n": None, "remainder": None},
+            "page_size": page_size,
+        },
+    }
+
+
 def _epmc_linked_records(seed: str, kind: str) -> tuple[list[dict], dict]:
     block = "referenceList" if kind == "references" else "citationList"
     item_key = "reference" if kind == "references" else "citation"
@@ -995,7 +1167,31 @@ def pin(slug: str, snapshot_dir: str) -> None:
     shutil.copyfile(os.path.join(snapshot_dir, acq.LEDGER_FILENAME), os.path.join(dst, acq.LEDGER_FILENAME))
 
 
-def refresh_topic(slug: str, run_date: str | None = None, snapshot_name: str | None = None) -> dict:
+def _registry_set(registries) -> set[str]:
+    items = (registries,) if isinstance(registries, str) else tuple(registries or ())
+    out = {str(item).strip().lower() for item in items if str(item).strip()}
+    unknown = out - {"ctgov", "isrctn"}
+    if unknown:
+        raise ValueError(f"unknown search_v2 registry: {sorted(unknown)}")
+    return out
+
+
+def _recorded_queries(queries: dict, registries: set[str]) -> dict:
+    out = copy.deepcopy(queries)
+    if "isrctn" not in registries:
+        out.pop("isrctn", None)
+        (out.get("structural_kinds") or {}).pop("isrctn", None)
+    return out
+
+
+def refresh_topic(
+    slug: str,
+    run_date: str | None = None,
+    snapshot_name: str | None = None,
+    *,
+    registries=("ctgov",),
+) -> dict:
+    active_registries = _registry_set(registries)
     run_date = run_date or _today_utc()
     snapshot_name = snapshot_name or f"{run_date}-{SNAPSHOT_SUFFIX}"
     if not snapshot_name.endswith("-" + SNAPSHOT_SUFFIX):
@@ -1042,17 +1238,31 @@ def refresh_topic(slug: str, run_date: str | None = None, snapshot_name: str | N
         )
         _attach(ledger, records_by_id, sid, records)
 
-        sid, records = _source_run(
-            ledger,
-            "CTGOV_CONDITION_INTERVENTION",
-            json.dumps(queries["ctgov"], sort_keys=True),
-            run_date,
-            True,
-            lambda: _ctgov_search_records(queries["ctgov"]),
-            adapter="harness.search_v2._ctgov_search_records",
-            extra={"structural_kind": "CONCEPT"},
-        )
-        _attach(ledger, records_by_id, sid, records)
+        if "ctgov" in active_registries:
+            sid, records = _source_run(
+                ledger,
+                "CTGOV_CONDITION_INTERVENTION",
+                json.dumps(queries["ctgov"], sort_keys=True),
+                run_date,
+                True,
+                lambda: _ctgov_search_records(queries["ctgov"]),
+                adapter="harness.search_v2._ctgov_search_records",
+                extra={"structural_kind": "CONCEPT"},
+            )
+            _attach(ledger, records_by_id, sid, records)
+
+        if "isrctn" in active_registries:
+            sid, records = _source_run(
+                ledger,
+                "ISRCTN_CONDITION_INTERVENTION",
+                queries["isrctn"],
+                run_date,
+                True,
+                lambda: _isrctn_search_records(queries["isrctn"]),
+                adapter="harness.search_v2._isrctn_search_records",
+                extra={"structural_kind": "CONCEPT"},
+            )
+            _attach(ledger, records_by_id, sid, records)
 
         # CT.gov -> literature identity links.
         ctgov_ncts = sorted({r.get("nct") for r in records_by_id.values() if r.get("id_type") == "nct" and r.get("nct")})
@@ -1167,7 +1377,7 @@ def refresh_topic(slug: str, run_date: str | None = None, snapshot_name: str | N
             "split": split,
             "engine_sha": _engine_sha(),
             "base_commit": _base_commit(),
-            "queries": queries,
+            "queries": _recorded_queries(queries, active_registries),
             "screen_summary": screen_summary,
         },
         "records": records,

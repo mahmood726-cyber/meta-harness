@@ -107,6 +107,7 @@ SOURCE_KINDS = (
     "PUBMED_CONCEPT_QUERY",      # built from the registered P/I/C/design; paginated full boolean set
     "EUROPEPMC_CONCEPT_QUERY",
     "CTGOV_CONDITION_INTERVENTION",
+    "ISRCTN_CONDITION_INTERVENTION",
     "PUBMED_NCT_LINK",
     "EPMC_NCT_LINK",
     "CTGOV_NCT_LINK",

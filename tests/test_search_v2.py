@@ -44,8 +44,10 @@ def test_search_v2_builder_allows_development_drug_codes_without_seeded_trial_na
         "pubmed": "FREE_TEXT_KEYWORD",
         "europepmc": "FREE_TEXT_KEYWORD",
         "ctgov": "FREE_TEXT_KEYWORD",
+        "isrctn": "FREE_TEXT_KEYWORD",
     }
     assert "bibr 1048" in queries["pubmed"]
+    assert "BIBR 1048" in queries["isrctn"]
     assert queries["rct_filter"] == search_v2.COCHRANE_RCT_FILTER_NAME
 
 

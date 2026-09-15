@@ -107,8 +107,13 @@ def _load_manifest_for_target(path: str, label: str) -> tuple[dict | None, str |
 
 
 def _is_git_worktree(root: Path) -> bool:
-    proc = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], cwd=root, capture_output=True, text=True)
-    return proc.returncode == 0 and proc.stdout.strip() == "true"
+    proc = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=root, capture_output=True, text=True)
+    if proc.returncode != 0:
+        return False
+    try:
+        return Path(proc.stdout.strip()).resolve() == root.resolve()
+    except OSError:
+        return False
 
 
 def _describe_from_manifest(manifest: str, man: dict, paths: list[str], label: str) -> str:

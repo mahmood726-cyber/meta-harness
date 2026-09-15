@@ -1135,6 +1135,7 @@ _LEDGER_SOURCE_GROUPS = {
     "CTGOV_SEARCH": "ClinicalTrials.gov",
     "CTGOV_CONDITION_INTERVENTION": "ClinicalTrials.gov",
     "CTGOV_NCT_LINK": "ClinicalTrials.gov",
+    "ISRCTN_CONDITION_INTERVENTION": "ISRCTN",
     "REGISTRY_FIRST": "Registry-first (AACT)",
     "COMPARATOR_REFERENCES": "Citation chase",
     "COMPARATOR_REFERENCE_LIST": "Citation chase",

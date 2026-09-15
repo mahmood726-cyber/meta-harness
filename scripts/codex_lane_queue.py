@@ -78,14 +78,16 @@ def _state(lane):
     clone = LANE_ROOT + lane
     log = os.path.join(clone, "lane.log")
     report = os.path.join(clone, f"LANE-{lane}-REPORT.md")
-    if os.path.exists(report):
-        return "REPORT"
-    if not os.path.exists(log):
-        return "NO-LOG"
-    text = open(log, encoding="utf-8", errors="replace").read()
     wp = os.path.join(clone, "lane.winpid")
     pid = open(wp).read().strip() if os.path.exists(wp) else ""
     alive = _alive(pid) if pid else None
+    if os.path.exists(report):
+        # the artefact exists but the codex process may still be writing its closing summary: it keeps its slot
+        # until it has actually exited (harvesting early launched a fourth lane for a minute on 2026-09-15)
+        return "FINISHING" if alive else "REPORT"
+    if not os.path.exists(log):
+        return "NO-LOG"
+    text = open(log, encoding="utf-8", errors="replace").read()
     if "tokens used" in text and alive is False:
         return "ENDED-NO-REPORT"
     if alive is False:
@@ -160,7 +162,7 @@ def main(argv=None):
         for name in os.listdir("C:/"):
             if name.startswith("mh-r-") and name[5:] not in running:
                 lane = name[5:]
-                if os.path.exists(os.path.join(LANE_ROOT + lane, "lane.pid")) and _state(lane) in ("RUNNING", "STALE"):
+                if os.path.exists(os.path.join(LANE_ROOT + lane, "lane.pid")) and _state(lane) in ("RUNNING", "STALE", "FINISHING"):
                     others += 1
         while queue and len(running) + others < args.max:
             # never two lanes on one worktree: the launcher refuses an existing clone

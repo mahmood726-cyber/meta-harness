@@ -75,6 +75,7 @@ ROUTE_LABELS = {
     "PUBMED_CONCEPT_QUERY": "concept query PubMed",
     "EUROPEPMC_CONCEPT_QUERY": "concept query Europe PMC",
     "CTGOV_CONDITION_INTERVENTION": "concept query CT.gov",
+    "ISRCTN_CONDITION_INTERVENTION": "concept query ISRCTN",
     "PUBMED_NCT_LINK": "CT.gov cross-link",
     "EPMC_NCT_LINK": "CT.gov cross-link",
     "CTGOV_NCT_LINK": "CT.gov cross-link",

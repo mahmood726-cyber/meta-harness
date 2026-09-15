@@ -27,10 +27,15 @@ Everything below is MEASURED unless marked; the numbers live in `docs/evidence/s
   adapter was added beside it (`PUBMED_ELINK_BACKWARD_CITATION`, `COMPARATOR_REFERENCE_LIST_PUBMED`). Its added recall
   on the sealed benchmark is 0 of 136 positives found only by that route (`08-routes-r2.txt`): every positive it
   reached, the concept queries also reached. It adds candidates outside the benchmark (`10-reverse-direction-r2.txt`).
-- **(3) WHO ICTRP + international registries -- NOT DONE.** Probed 2026-09-15 (`12-international-registries-probe.txt`):
-  ISRCTN has a structured XML query API (adaptable); WHO ICTRP is HTML only (no API); EU CTR is a text download; CTIS
-  refuses anonymous calls. An adapter changes the engine blob, and run r2 is one blob on all 32 topics, so this is the
-  next engine version with its own 32-topic before/after, not a mid-run patch.
+- **(3) International registries -- ISRCTN DONE and MEASURED (Codex lanes R2 + R4); WHO ICTRP still NOT DONE.**
+  `harness/search_v2.py` gained an ISRCTN adapter (`ISRCTN_CONDITION_INTERVENTION`, XML query API, grammar verified
+  against the API, behind `refresh_topic(registries=...)`); engine v3 = r2 + ISRCTN was run on all 32 topics as run r3
+  (`cache/<slug>/snapshots/2026-09-15r3-search_v2`, engine blob a57dc45d, raw bodies on release
+  `raw-archive-2026-09-15r3-search_v2`, 32 of 32 verified by size and re-hash). ISRCTN source RAN_OK on 25 of 32
+  topics, RAN_ZERO on 7, 900 registry records in total, benchmark positives unchanged 136 of 147 (r2 136 of 147): a
+  registry adds registrations, not the publications the benchmark is made of. Register on search_v2 (r3): whole engine
+  20 of 20; within kind 15 of 16 over 4 of 5 topics -- the statins PubMed concept source was RAN_ERROR in r3 (truncated
+  efetch XML) and stays RAN_ERROR, not scored. WHO ICTRP has no API (`12-international-registries-probe.txt`); not done.
 - **(4) Search completeness as its own gated stage -- DONE.** `harness/search_completeness.py` +
   `scripts/verify_all.py:limb_search_completeness` (GAP-054, scorecard entry): refuses unless the registered
   search_v2 measurement (`registry/search_completeness.json`) is current for the engine blob, every MEASUREMENT topic

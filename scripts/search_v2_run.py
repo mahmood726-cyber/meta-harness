@@ -14,7 +14,8 @@ NOT_RUN (not attempted in this run).
 
 Usage:
   python scripts/search_v2_run.py refresh --label r2 --topics all|measurement|development|<slug,...>
-        [--release raw-archive-2026-09-15r2-search_v2] [--archive-root C:/claude-tmp/arch] [--no-upload]
+        [--registries ctgov,isrctn] [--release raw-archive-2026-09-15r2-search_v2]
+        [--archive-root C:/claude-tmp/arch] [--no-upload] [--tar-only]
   python scripts/search_v2_run.py status --label r2
 Resumable: a topic whose snapshot already has records.json + retrieval_ledger.json is reused, not re-fetched.
 """
@@ -63,6 +64,31 @@ def _sha256_file(path: str) -> str:
     return h.hexdigest()
 
 
+def _archive_paths(slug: str, snapshot_dir: str, archive_root: str) -> tuple[str, str, str, str]:
+    rel = os.path.relpath(snapshot_dir, ROOT).replace("\\", "/")
+    body_root = os.path.join(archive_root, rel)
+    asset = f"raw-{slug}-{os.path.basename(snapshot_dir)}.tar.gz"
+    tar_path = os.path.join(archive_root, asset)
+    return rel, body_root, asset, tar_path
+
+
+def _tar_body_root(body_root: str, rel: str, tar_path: str) -> tuple[int, str]:
+    os.makedirs(os.path.dirname(tar_path), exist_ok=True)
+    with tarfile.open(tar_path, "w:gz") as tf:
+        tf.add(body_root, arcname=rel)
+    return os.path.getsize(tar_path), _sha256_file(tar_path)
+
+
+def _delete_moved_bodies(body_root: str, archive_root: str) -> None:
+    body_root_abs = os.path.abspath(body_root)
+    archive_root_abs = os.path.abspath(archive_root)
+    if os.path.commonpath([body_root_abs, archive_root_abs]) != archive_root_abs:
+        raise SystemExit(f"REFUSED: moved-body path escapes archive root: {body_root}")
+    if os.path.isfile(body_root_abs):
+        raise SystemExit(f"REFUSED: moved-body path is not a directory: {body_root}")
+    shutil.rmtree(body_root_abs)
+
+
 def _split() -> dict[str, str]:
     data = json.load(open(SPLIT_PATH, encoding="utf-8"))
     return {slug: row["set"] for slug, row in (data.get("assignments") or {}).items()}
@@ -81,6 +107,14 @@ def _topics_arg(value: str) -> list[str]:
     if unknown:
         raise SystemExit(f"unknown slugs (not in the sealed split): {unknown}")
     return slugs
+
+
+def _registries_arg(value: str) -> tuple[str, ...]:
+    registries = tuple(s.strip().lower() for s in value.split(",") if s.strip())
+    if not registries:
+        raise SystemExit("REFUSED: --registries must name at least one registry")
+    search_v2._registry_set(registries)
+    return registries
 
 
 def _snapshot_name(label: str) -> str:
@@ -161,25 +195,38 @@ def _count_by(items) -> dict[str, int]:
     return dict(sorted(out.items()))
 
 
-def _archive_and_upload(slug: str, snapshot_dir: str, archive_root: str, release: str | None, log) -> dict:
+def _archive_and_upload(
+    slug: str,
+    snapshot_dir: str,
+    archive_root: str,
+    release: str | None,
+    log,
+    *,
+    tar_only: bool = False,
+) -> dict:
     """Move raw bodies off-tree, tar them, upload to the release, verify the remote asset by size, then free the
     local copies. Returns the public_archive block for ARCHIVE.json; on any failure returns a NOT-PRESERVED record
     rather than raising (the snapshot itself is already written and valid)."""
-    rel = os.path.relpath(snapshot_dir, ROOT).replace("\\", "/")
+    rel, body_root, asset, tar_path = _archive_paths(slug, snapshot_dir, archive_root)
     try:
         moved = archive_raw_bodies.move(snapshot_dir, archive_root)
     except SystemExit as exc:
         return {"status": "ARCHIVE-MOVE-REFUSED", "detail": str(exc)}
     log(f"archived {moved} raw bodies from {rel}")
+    if tar_only:
+        size, sha = _tar_body_root(body_root, rel, tar_path)
+        _delete_moved_bodies(body_root, archive_root)
+        return {
+            "status": "TAR-ONLY-UPLOAD-PENDING",
+            "asset": asset,
+            "tar_sha256": sha,
+            "tar_bytes": size,
+            "local_tar": tar_path,
+            "github_release": release or f"raw-archive-{os.path.basename(snapshot_dir)}",
+        }
     if not release:
         return {"status": "LOCAL-ONLY", "archive_root": archive_root}
-    body_root = os.path.join(archive_root, rel)
-    asset = f"raw-{slug}-{os.path.basename(snapshot_dir)}.tar.gz"
-    tar_path = os.path.join(archive_root, asset)
-    with tarfile.open(tar_path, "w:gz") as tf:
-        tf.add(body_root, arcname=rel)
-    size = os.path.getsize(tar_path)
-    sha = _sha256_file(tar_path)
+    size, sha = _tar_body_root(body_root, rel, tar_path)
     try:
         subprocess.run(["gh", "release", "upload", release, tar_path, "--clobber"], check=True, capture_output=True, text=True)
         view = subprocess.check_output(["gh", "release", "view", release, "--json", "assets"], text=True)
@@ -207,6 +254,8 @@ def _write_archive_pointer(snapshot_dir: str, public: dict) -> None:
         pointer["custody"] = ("raw bodies published as a GitHub release asset (tar_sha256 recorded here; verify the fetched "
                               "bytes against it); NO local mirror retained; raw/INDEX.json digests in-tree are the authority; "
                               "a body the release cannot produce reads NOT PRESERVED")
+    elif public.get("status") == "TAR-ONLY-UPLOAD-PENDING":
+        pointer["custody"] = "tarball held locally pending upload; digests in-tree are the authority"
     else:
         pointer["custody"] = f"raw bodies NOT PRESERVED publicly ({public.get('status')}); see public_archive.detail"
     with open(path, "w", encoding="utf-8", newline="\n") as f:
@@ -214,7 +263,16 @@ def _write_archive_pointer(snapshot_dir: str, public: dict) -> None:
         f.write("\n")
 
 
-def refresh(label: str, topics: list[str], scope: str, archive_root: str, release: str | None) -> int:
+def refresh(
+    label: str,
+    topics: list[str],
+    scope: str,
+    archive_root: str,
+    release: str | None,
+    registries: tuple[str, ...],
+    *,
+    tar_only: bool = False,
+) -> int:
     split = _split()
     snapshot_name = _snapshot_name(label)
     out_path = _candidate_path(label, scope)
@@ -223,10 +281,13 @@ def refresh(label: str, topics: list[str], scope: str, archive_root: str, releas
         "_doc": ("search_v2 labelled run. One engine blob for every topic in the run; each topic's previous-run row is "
                  "carried in topics[slug].previous_run; RAN_ERROR is recorded with its traceback and never re-run patched."),
         "run_label": label, "snapshot_name": snapshot_name, "snapshot_date": RUN_DATE, "scope": scope,
+        "registries": registries,
         "engine_sha": _git("hash-object", "--", "harness/search_v2.py"), "base_commit": _git("rev-parse", "HEAD"),
         "guard_protocol": "docs/evidence/search-v2-guard-2026-09-15/PROTOCOL.md",
         "started_utc": _utc(), "topics_requested": topics, "candidates": {}, "topics": {},
     }
+    if tuple(payload.get("registries") or ()) != registries:
+        raise SystemExit(f"REFUSED: candidate file registries {payload.get('registries')} do not match {list(registries)}")
     engine_now = _git("hash-object", "--", "harness/search_v2.py")
     if payload["engine_sha"] != engine_now:
         raise SystemExit(f"REFUSED: engine blob changed mid-run ({payload['engine_sha'][:12]} -> {engine_now[:12]}); "
@@ -248,7 +309,7 @@ def refresh(label: str, topics: list[str], scope: str, archive_root: str, releas
         existing = search_v2.load_snapshot(slug, RUN_DATE + label)
         log(f"refresh {slug} ({split[slug]}) -> {snapshot_name}" + (" [reusing existing snapshot]" if existing else ""))
         try:
-            row = existing or search_v2.refresh_topic(slug, RUN_DATE, snapshot_name=snapshot_name)
+            row = existing or search_v2.refresh_topic(slug, RUN_DATE, snapshot_name=snapshot_name, registries=registries)
             candidates, meta = _topic_row(slug, split[slug], row, snapshot_dir)
         except Exception as exc:  # noqa: BLE001 - lane rule: record the row, never patch and rerun.
             candidates, meta = [], {"split": split[slug], "state": "RAN_ERROR", "error": str(exc),
@@ -256,7 +317,7 @@ def refresh(label: str, topics: list[str], scope: str, archive_root: str, releas
             log(f"RAN_ERROR {slug}: {exc}")
         else:
             if not existing and os.path.isdir(os.path.join(snapshot_dir, "raw")):
-                public = _archive_and_upload(slug, snapshot_dir, archive_root, release, log)
+                public = _archive_and_upload(slug, snapshot_dir, archive_root, release, log, tar_only=tar_only)
                 _write_archive_pointer(snapshot_dir, public)
                 meta["raw_archive"] = public
             elif existing:
@@ -299,16 +360,26 @@ def main(argv=None) -> int:
     r.add_argument("--label", required=True)
     r.add_argument("--topics", required=True)
     r.add_argument("--scope", default=None, help="name for the candidate file (default: the --topics word)")
+    r.add_argument("--registries", default="ctgov", help="comma-separated registry adapters to run: ctgov,isrctn")
     r.add_argument("--archive-root", default=os.environ.get("META_HARNESS_RAW_ARCHIVE", "C:/claude-tmp/arch"))
     r.add_argument("--release", default=None)
     r.add_argument("--no-upload", action="store_true")
+    r.add_argument("--tar-only", action="store_true", help="create local tar assets and record upload-pending custody")
     s = sub.add_parser("status")
     s.add_argument("--label", required=True)
     s.add_argument("--scope", required=True)
     args = ap.parse_args(argv)
     if args.cmd == "refresh":
         scope = args.scope or (args.topics if args.topics in ("all", "measurement", "development") else "subset")
-        return refresh(args.label, _topics_arg(args.topics), scope, args.archive_root, None if args.no_upload else args.release)
+        return refresh(
+            args.label,
+            _topics_arg(args.topics),
+            scope,
+            args.archive_root,
+            None if args.no_upload else args.release,
+            _registries_arg(args.registries),
+            tar_only=args.tar_only,
+        )
     if args.cmd == "status":
         return status(args.label, args.scope)
     raise AssertionError(args.cmd)

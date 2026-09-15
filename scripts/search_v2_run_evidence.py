@@ -198,15 +198,14 @@ def render_routes(score: dict, label: str) -> str:
     return "\n".join(lines)
 
 
-def render_register(label: str) -> str:
+def render_register(label: str, v2: dict | None = None) -> str:
     lines = [f"SEALED REGRESSION REGISTER -- measured ON search_v2 (run {label}) beside the LEGACY engine number",
              "No plaintext register rows are copied into this capture.", ""]
     if REGISTER_LEGACY.exists():
         leg = _load(REGISTER_LEGACY)
         s = leg.get("summary") or {}
         lines.append(f"LEGACY engine (acquisition.concept_query, PubMed esearch full pagination): {s.get('recall_text')} over {s.get('topics_scored')} of {s.get('topics')} topics; engine blob {leg.get('engine_sha')}; measured {leg.get('measured_utc')}")
-    if REGISTER_V2.exists():
-        v2 = _load(REGISTER_V2)
+    if v2 is not None:
         s = v2["summary"]
         wk, we = s["within_kind_pubmed_concept_query"], s["whole_engine_any_route"]
         lines.append(f"search_v2 WITHIN KIND (PubMed concept-query source alone): {wk['recall_text']} over {wk['topics_scored']} of {wk['topics']} topics; not scored: {wk['topics_not_scored']}")
@@ -305,24 +304,25 @@ def render_before_after(payload: dict, label: str) -> str:
     return "\n".join(lines)
 
 
-def render_readme(line1: str, line2: str, label: str, payload: dict) -> str:
-    return "\n".join([
+def render_readme(line1: str, runs: list[tuple[str, dict, str]]) -> str:
+    """runs = [(label, payload, corpus_line), ...] in order; every run is rendered, none replaces another."""
+    out = [
         "# Search v2 measurement (2026-09-15)",
         "",
         "**Fix state (orthogonal fields rule): LANDED / NONE / CORPUS / CURRENT** - generated from MEASURE-search-v2-recall-2026-09-15",
         "",
-        "Two runs of the frozen engine on the same sealed benchmark. Run 1 (lane S3) is kept exactly as sealed;",
-        f"run {label} follows the guard protocol (docs/evidence/search-v2-guard-2026-09-15/PROTOCOL.md, RETROSPECTIVE) and",
-        "is written beside it. Neither replaces the other.",
+        f"{1 + len(runs)} runs of the engine on the same sealed benchmark, scored by the same scorer. Run 1 (lane S3) is kept",
+        "exactly as sealed; every later run follows the guard protocol (docs/evidence/search-v2-guard-2026-09-15/PROTOCOL.md,",
+        "RETROSPECTIVE) and is written beside the earlier ones. No run replaces another.",
         "",
         "## Run 1 (engine blob 3652170, snapshot 2026-09-15-search_v2)",
         "",
         line1,
         "",
-        f"## Run {label} (engine blob {payload['engine_sha']}, snapshot {payload['snapshot_name']})",
-        "",
-        line2,
-        "",
+    ]
+    for label, payload, line in runs:
+        out += [f"## Run {label} (engine blob {payload['engine_sha']}, snapshot {payload['snapshot_name']}, registries {payload.get('registries') or ['ctgov']})", "", line, ""]
+    out += [
         "Snapshots are unpinned and written beside the pinned caches; served review pages and pools were not moved.",
         "",
         "Captures (run 1):",
@@ -331,15 +331,16 @@ def render_readme(line1: str, line2: str, label: str, payload: dict) -> str:
         "- `03-misses-diagnosed.txt`: source-presence and emitted-query diagnostics for every missed positive.",
         "- `04-heldout-register.txt`: sealed/register measurement summary without plaintext rows (LEGACY engine).",
         "- `05-reverse-direction.txt`: candidate counts not in the benchmark by topic and route.",
-        "",
-        f"Captures (run {label}):",
-        f"- `06-run-{label}-states.txt`: the five topic states on all 32 topics, source errors by kind, raw-archive custody.",
-        f"- `07-recall-21-{label}.txt`: per-positive FOUND/MISSED beside run 1.",
-        f"- `08-routes-{label}.txt`: route attribution and unique-route contribution (citation chasing measured).",
-        f"- `09-register-search-v2-{label}.txt`: the sealed register ON search_v2, within kind and whole engine, beside legacy.",
-        f"- `10-reverse-direction-{label}.txt`: candidates not in the benchmark.",
-        f"- `11-before-after-32-{label}.txt`: pinned legacy cache vs run {label} on all 32 topics.",
-    ])
+    ]
+    for label, payload, line in runs:
+        out += ["", f"Captures (run {label}):",
+                f"- `06-run-{label}-states.txt`: the five topic states on all 32 topics, source errors by kind, raw-archive custody.",
+                f"- `07-recall-21-{label}.txt`: per-positive FOUND/MISSED beside run 1.",
+                f"- `08-routes-{label}.txt`: route attribution and unique-route contribution.",
+                f"- `09-register-search-v2-{label}.txt`: the sealed register ON search_v2, within kind and whole engine, beside legacy.",
+                f"- `10-reverse-direction-{label}.txt`: candidates not in the benchmark.",
+                f"- `11-before-after-32-{label}.txt`: pinned legacy cache vs run {label} on all 32 topics."]
+    return chr(10).join(out)
 
 
 def update_captions(label: str) -> None:
@@ -347,9 +348,10 @@ def update_captions(label: str) -> None:
     d = caps["search-v2-measurement-2026-09-15"]
     d["_title"] = "search_v2 measurement (2026-09-15): sealed 21-topic recall, two runs beside each other, routes, misses, register on search_v2, 32-topic before/after"
     d["_intro"] = ("Run 1 (lane S3): the frozen engine on the sealed MEASUREMENT topics, 5 of 21 RAN_ERROR (guard refused vocabulary). "
-                   f"Run {label}: the same benchmark after the guard protocol, one engine blob on all 32 topics, states counted separately, "
-                   "the sealed register measured on search_v2 within kind, and the pinned legacy cache compared with the new snapshots. "
-                   "Neither run replaces the other; served pages were not moved.")
+                   "Run r2: the same benchmark after the guard protocol, one engine blob on all 32 topics, states counted separately, the "
+                   "sealed register measured on search_v2 within kind, the pinned legacy cache compared with the new snapshots. Run r3 "
+                   "(Codex lane R4): engine v3 = r2 + the ISRCTN registry adapter, again all 32 topics. No run replaces another; served "
+                   "pages were not moved.")
     d[f"06-run-{label}-states.txt"] = f"Run {label} topic states on all 32 topics (RAN_OK / RAN_OK_WITH_SOURCE_ERRORS / RAN_ZERO / RAN_ERROR / NOT_RUN, never folded), run-1 state beside each, source-level RAN_ERROR by kind, candidate counts, and raw-body custody (release asset + tar sha256, or NOT PRESERVED)."
     d[f"07-recall-21-{label}.txt"] = f"Run {label} per-positive FOUND/MISSED on the 21 MEASUREMENT topics with route labels, each line saying whether run 1 also found it, newly found it, or lost it."
     d[f"08-routes-{label}.txt"] = f"Run {label} route attribution and the UNIQUE contribution of each route (positives reached by that route only): the measurement of reference-list seeding and citation chasing."
@@ -403,28 +405,37 @@ def update_fixes(label: str, payload: dict, line2: str, register: dict | None) -
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--label", required=True)
+    ap.add_argument("--labels", required=True, help="comma-separated run labels in order, e.g. r2,r3")
     args = ap.parse_args(argv)
-    label = args.label
-    cand_path = ROOT / "outputs" / "search_v2" / f"candidates-{RUN_DATE}{label}-all.json"
-    payload = _load(cand_path)
-    score2 = m1.score_candidate_file(cand_path)
+    labels = [x.strip() for x in args.labels.split(",") if x.strip()]
     score1 = m1.score_candidate_file(FIRST_MEASUREMENT)
-    register = _load(REGISTER_V2) if REGISTER_V2.exists() else None
     line1 = (m1._load_json(m1.FIXES_PATH))
     line1 = next((e["seal"]["configuration"]["corpus_line"] for e in line1["entries"] if e.get("fix_id") == m1.FIX_ID), "run 1 corpus line not found in registry/fixes.json")
-    line2 = corpus_line(score2, payload, label, register)
-    _write(EVD / f"06-run-{label}-states.txt", render_states(payload, label))
-    _write(EVD / f"07-recall-21-{label}.txt", render_recall(score2, score1, label))
-    _write(EVD / f"08-routes-{label}.txt", render_routes(score2, label))
-    _write(EVD / f"09-register-search-v2-{label}.txt", render_register(label))
-    _write(EVD / f"10-reverse-direction-{label}.txt", render_reverse(score2, label))
-    _write(EVD / f"11-before-after-32-{label}.txt", render_before_after(payload, label))
-    _write(EVD / "README.md", render_readme(line1, line2, label, payload))
-    update_captions(label)
-    update_fixes(label, payload, line2, register)
-    print(line2)
-    print(f"wrote run-{label} captures into {EVD.relative_to(ROOT)}")
+    runs = []
+    for label in labels:
+        cand_path = ROOT / "outputs" / "search_v2" / f"candidates-{RUN_DATE}{label}-all.json"
+        payload = _load(cand_path)
+        score2 = m1.score_candidate_file(cand_path)
+        # one register artefact per run label, kept beside each other
+        reg_path = ROOT / "docs" / f"search_recall_regression_corpus_search_v2_{label}.json"
+        register = _load(reg_path) if reg_path.exists() else None
+        if register is None and REGISTER_V2.exists():
+            cur = _load(REGISTER_V2)
+            if str(cur.get("summary", {}).get("snapshot", "")).startswith(f"{RUN_DATE}{label}-"):
+                register = cur
+        line = corpus_line(score2, payload, label, register)
+        _write(EVD / f"06-run-{label}-states.txt", render_states(payload, label))
+        _write(EVD / f"07-recall-21-{label}.txt", render_recall(score2, score1, label))
+        _write(EVD / f"08-routes-{label}.txt", render_routes(score2, label))
+        _write(EVD / f"09-register-search-v2-{label}.txt", render_register(label, register))
+        _write(EVD / f"10-reverse-direction-{label}.txt", render_reverse(score2, label))
+        _write(EVD / f"11-before-after-32-{label}.txt", render_before_after(payload, label))
+        update_captions(label)
+        update_fixes(label, payload, line, register)
+        runs.append((label, payload, line))
+        print(line)
+    _write(EVD / "README.md", render_readme(line1, runs))
+    print(f"wrote captures for runs {labels} into {EVD.relative_to(ROOT)}")
     return 0
 
 

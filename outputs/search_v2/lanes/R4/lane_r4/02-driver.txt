@@ -1,0 +1,49 @@
+﻿COMMAND: git diff --stat
+ docs/evidence/search-v2-2026-09-15/README.md       |   2 +-
+ .../search-v2-measurement-2026-09-15/README.md     |   2 +-
+ docs/fix_ledger.json                               |   7 +-
+ harness/acquisition.py                             |   1 +
+ harness/pipeline.py                                |   1 +
+ harness/search_v2.py                               | 238 ++++++++++-
+ scripts/measure_search_v2_measurement.py           |   1 +
+ scripts/production_record.py                       |   9 +-
+ scripts/search_v2_run.py                           |  99 ++++-
+ tests/fixtures/isrctn_sample.xml                   | 441 ---------------------
+ tests/test_search_v2.py                            |   2 +
+ tests/test_search_v2_guard.py                      |   7 +-
+ 12 files changed, 335 insertions(+), 475 deletions(-)
+EXIT: 0
+
+COMMAND: python -m pytest tests/test_search_v2_run_tar_only.py -q
+..                                                                       [100%]
+2 passed in 2.61s
+EXIT: 0
+
+COMMAND: git status --short
+ M docs/evidence/search-v2-2026-09-15/README.md
+ M docs/evidence/search-v2-measurement-2026-09-15/README.md
+ M docs/fix_ledger.json
+ M harness/acquisition.py
+ M harness/pipeline.py
+ M harness/search_v2.py
+ M scripts/measure_search_v2_measurement.py
+ M scripts/production_record.py
+ M scripts/search_v2_run.py
+ M tests/fixtures/isrctn_sample.xml
+ M tests/test_search_v2.py
+ M tests/test_search_v2_guard.py
+?? LANE_PROMPT.md
+?? lane.log
+?? lane.pid
+?? lane.winpid
+?? lane_r4/
+?? tests/test_search_v2_isrctn.py
+?? tests/test_search_v2_run_tar_only.py
+EXIT: 0
+
+COMMAND: python -m py_compile scripts/search_v2_run.py
+EXIT: 0
+
+COMMAND: python -c "import shutil; u=shutil.disk_usage('C:/'); print(u.free)"
+1871151104
+EXIT: 0

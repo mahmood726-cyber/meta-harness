@@ -101,7 +101,12 @@ def test_p4_both_answers_guard_alone_refuses_sealed_exemption_allows(slug):
     assert f"{label} refused NAME_SEEDED: {token}" in str(exc.value)
     # the intended change: with the committed seal, the same config builds
     queries = search_v2.build_queries(cfg, protocol, lookup_mesh=False, slug=slug)
-    assert queries["structural_kinds"] == {"pubmed": "FREE_TEXT_KEYWORD", "europepmc": "FREE_TEXT_KEYWORD", "ctgov": "FREE_TEXT_KEYWORD"}
+    assert queries["structural_kinds"] == {
+        "pubmed": "FREE_TEXT_KEYWORD",
+        "europepmc": "FREE_TEXT_KEYWORD",
+        "ctgov": "FREE_TEXT_KEYWORD",
+        "isrctn": "FREE_TEXT_KEYWORD",
+    }
     ex = queries["vocabulary_exemption"]
     assert ex["sealed"] is True
     assert token.lower() in [t.lower() for t in ex["exempted_tokens_in_queries"]]
