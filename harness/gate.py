@@ -31,6 +31,7 @@ from . import manuscript as _manuscript_mod
 from .registration import protocol_sha as _registration_sha
 from . import registration as _registration
 from .synth import method_text as _method_text
+from .limitations import publication_gate_refusals
 
 REQUIRED_MANIFEST = ("slug", "declared_method", "served_method", "protocol_sha",
                      "generator", "review_sha256", "html_sha256")
@@ -133,6 +134,22 @@ def check_primary_result(review_dir):
         return [f"L1: primary outcome {prim.get('name')!r} has no pooled result "
                 f"(k={res.get('k')}) — a page whose primary claim is absent must not publish"]
     return []
+
+
+def check_limitation_decision_links(review_dir):
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1: no review.json to check limitation decision links"]
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for limitation decision links: {exc}"]
+    bad = publication_gate_refusals(rev.get("limitations") or [])
+    return [
+        "L1: validity-threatening limitation lacks a linked analytic decision -- "
+        + "; ".join(bad[:6])
+    ] if bad else []
 
 
 def check_manuscript_numbers(review_dir):
@@ -714,6 +731,7 @@ def gate_page(review_dir):
                + check_cache_tracked(manifest)
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
+               + check_limitation_decision_links(review_dir)
                + check_pooled_verified(review_dir)
                + check_manuscript_numbers(review_dir)
                + check_fetch_complete(review_dir)

@@ -1,5 +1,11 @@
 """Structured limitation objects for the legacy absent/banner surface.
 
+Auditor defect class recorded verbatim: DIAGNOSTIC–DECISION DECOUPLING — a
+validity hazard is correctly detected and represented, but its state is not
+causally connected to the analytic decision it should constrain. Plain alias:
+disclosure-as-control. Class PROCESS, direction optimistic, severity
+major-to-critical.
+
 This module is intentionally additive: page.py still renders the served page.
 The builder mirrors that legacy surface from the review object so tests can
 prove every visible absent/banner block has a structured object before a later
@@ -63,6 +69,11 @@ class EvidenceState(str, Enum):
     RECORDED = "RECORDED"
 
 
+class LimitationClass(str, Enum):
+    INFORMATIONAL = "INFORMATIONAL"
+    VALIDITY_THREATENING = "VALIDITY_THREATENING"
+
+
 SEVERITY_ORDER = (
     Severity.BLOCKS_CLAIM.value,
     Severity.QUALIFIES_CLAIM.value,
@@ -95,6 +106,23 @@ _SOURCE_ABSENCE_STATES = {
     "SOURCE_NOT_RETRIEVED": EvidenceState.SOURCE_NOT_RETRIEVED.value,
     "REFUSED_ON_EVIDENCE": EvidenceState.REFUSED_ON_EVIDENCE.value,
 }
+_VALIDITY_THREATENING_KINDS = {
+    LimitationKind.UNIT_OF_ANALYSIS.value,
+    LimitationKind.SUPPRESSED_POOL.value,
+    LimitationKind.RETRACTED_TRIAL_POOLED.value,
+    LimitationKind.STALE_TOPIC.value,
+    LimitationKind.SEARCH_PROVENANCE.value,
+    LimitationKind.RETRIEVAL_CLASS.value,
+    LimitationKind.CLAIM_CHECK_ZERO.value,
+}
+_VALIDITY_THREATENING_STATES = {
+    EvidenceState.STALE.value,
+    EvidenceState.SUPPRESSED.value,
+    EvidenceState.RETRACTED.value,
+    EvidenceState.RAN_ERROR.value,
+    EvidenceState.NOT_RUN.value,
+    EvidenceState.REFUSED_ON_EVIDENCE.value,
+}
 
 
 def _e(value: Any) -> str:
@@ -118,6 +146,59 @@ def _enum_value(value: str | Enum) -> str:
     return value.value if isinstance(value, Enum) else str(value)
 
 
+def classify_limitation(kind: LimitationKind | str, evidence_state: EvidenceState | str) -> str:
+    kind_value = _enum_value(kind)
+    state_value = _enum_value(evidence_state)
+    if kind_value in _VALIDITY_THREATENING_KINDS or state_value in _VALIDITY_THREATENING_STATES:
+        return LimitationClass.VALIDITY_THREATENING.value
+    return LimitationClass.INFORMATIONAL.value
+
+
+def _linked_decision(kind: LimitationKind | str, evidence_state: EvidenceState | str) -> dict[str, str]:
+    kind_value = _enum_value(kind)
+    state_value = _enum_value(evidence_state)
+    if kind_value == LimitationKind.RETRIEVAL_CLASS.value:
+        return {
+            "action": "ALLOW_WITH_LABEL",
+            "gate_id": "limitation:retrieval-class",
+            "decision_state": "page may publish only with the retrieval-class label; systematic-search claim refused",
+        }
+    if kind_value == LimitationKind.UNIT_OF_ANALYSIS.value:
+        return {
+            "action": "ALLOW_WITH_LABEL",
+            "gate_id": "limitation:unit-of-analysis",
+            "decision_state": "design state is labelled and delegated to the typed design action",
+        }
+    if kind_value == LimitationKind.SEARCH_PROVENANCE.value:
+        return {
+            "action": "REFUSE",
+            "gate_id": "limitation:search-provenance",
+            "decision_state": "unqualified registry-first/systematic-search claim refused",
+        }
+    if kind_value in {
+        LimitationKind.STALE_TOPIC.value,
+        LimitationKind.SUPPRESSED_POOL.value,
+        LimitationKind.RETRACTED_TRIAL_POOLED.value,
+        LimitationKind.CLAIM_CHECK_ZERO.value,
+    }:
+        return {
+            "action": "REFUSE",
+            "gate_id": f"limitation:{kind_value.lower()}",
+            "decision_state": f"{kind_value} blocks the affected analytic claim",
+        }
+    if state_value in _VALIDITY_THREATENING_STATES:
+        return {
+            "action": "REFUSE",
+            "gate_id": "limitation:evidence-state",
+            "decision_state": f"{state_value} blocks the affected claim unless specifically resolved",
+        }
+    return {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim",
+    }
+
+
 def _object(
     review: dict[str, Any],
     suffix: str,
@@ -129,16 +210,22 @@ def _object(
     rendered_html: str,
 ) -> dict[str, Any]:
     rendered = str(rendered_html)
-    return {
+    state_value = _enum_value(evidence_state)
+    class_value = classify_limitation(kind, state_value)
+    obj = {
         "limitation_id": f"topic:{review.get('slug', 'unknown')}:{suffix}",
         "kind": kind.value,
+        "limitation_class": class_value,
         "severity": severity.value,
         "claim_affected": claim_affected,
-        "evidence_state": _enum_value(evidence_state),
+        "evidence_state": state_value,
         "source_fields": list(source_fields),
         "rendered_text": rendered,
         "text_sha256": _sha256(rendered),
     }
+    if class_value == LimitationClass.VALIDITY_THREATENING.value:
+        obj["linked_decision"] = _linked_decision(kind, state_value)
+    return obj
 
 
 def render_limitation(obj: dict[str, Any]) -> str:
@@ -252,6 +339,18 @@ def _suppressed_outcome_block(res: dict[str, Any]) -> str:
     )
 
 
+def _design_refusal_block(res: dict[str, Any]) -> str:
+    dr = res.get("design_refusal") or {}
+    refused = "; ".join(
+        f"{_e(x.get('trial'))} ({_e(x.get('design'))})" for x in (dr.get("refused") or [])
+    )
+    return (
+        "<div class='absent'><strong>Pool changed because a design refusal was added.</strong> "
+        f"{_e(dr.get('statement'))} Refused trial(s): {refused}. Any published estimates for "
+        "refused trials are disclosed in the trial table below and are not pooled.</div>"
+    )
+
+
 def _integrity_block(integrity: dict[str, Any]) -> str:
     retracted = integrity.get("retracted", [])
     return (
@@ -261,8 +360,16 @@ def _integrity_block(integrity: dict[str, Any]) -> str:
 
 
 def _uoa_block(review: dict[str, Any], uoa: list[dict[str, Any]]) -> str:
-    items = "; ".join(f"{_e(u.get('id'))} ({_e(u.get('design'))})" for u in uoa)
-    sensitivity = _page._uoa_sensitivity(review, [u.get("id") for u in uoa])
+    variance_designs = {
+        "cluster-randomized",
+        "cluster-randomized crossover",
+        "crossover",
+        "stepped-wedge",
+    }
+    variance_uoa = [u for u in uoa if (u.get("design") or "").lower() in variance_designs]
+    factorial_uoa = [u for u in uoa if (u.get("design") or "").lower() == "factorial"]
+    other_uoa = [u for u in uoa if u not in variance_uoa and u not in factorial_uoa]
+    sensitivity = _page._uoa_sensitivity(review, [u.get("id") for u in variance_uoa]) if variance_uoa else None
     sens_txt = ""
     if sensitivity and len(sensitivity["points"]) > 1:
         base = sensitivity["points"][0][1]
@@ -273,20 +380,32 @@ def _uoa_block(review: dict[str, Any], uoa: list[dict[str, Any]]) -> str:
             f"{sensitivity['points'][-1][1]} ({rng}) &mdash; because changing a study's variance changes its "
             "inverse-variance weight, so both the estimate and its interval move."
         )
+    parts = []
+    if variance_uoa:
+        items = "; ".join(f"{_e(u.get('id'))} ({_e(u.get('design'))})" for u in variance_uoa)
+        parts.append(
+            f"{len(variance_uoa)} pooled trial(s) use a clustered, stepped-wedge, or crossover design: "
+            f"{items}. If they are reconstructed from patient-level counts, they require an explicit "
+            "<strong>design-correlation adjustment</strong> (ICC, cluster-period correlation, or paired "
+            "analysis); otherwise their variance is not a simple parallel-arm variance."
+            + sens_txt
+        )
+    if factorial_uoa:
+        items = "; ".join(f"{_e(u.get('id'))} ({_e(u.get('design'))})" for u in factorial_uoa)
+        parts.append(
+            f"{len(factorial_uoa)} pooled trial(s) are individual-randomized factorial designs: {items}. "
+            "These are disclosed as marginal factorial contrasts; when a source-reported adjusted "
+            "marginal estimate with acceptable interaction evidence is available, the design key records "
+            "that estimator and labels it rather than using a raw reconstruction silently."
+        )
+    if other_uoa:
+        items = "; ".join(f"{_e(u.get('id'))} ({_e(u.get('design'))})" for u in other_uoa)
+        parts.append(f"{len(other_uoa)} pooled trial(s) have non-simple design text: {items}.")
     return (
-        "<div class='absent'><strong>Unit-of-analysis caveat (disclosed, not adjusted).</strong> "
-        f"{len(uoa)} pooled trial(s) use a cluster-randomized or cluster-period (policy) crossover "
-        f"design: {items}. They are pooled from patient-level counts <strong>without applying a "
-        "design effect</strong> (cluster ICC / cluster-period correlation), because that variance "
-        "component is not reported in the source &mdash; these are CLUSTER-PERIOD policy crossovers, not "
-        "within-person crossovers. <strong>Consequence:</strong> the true variance of these trials is "
-        "larger than the patient-level calculation assumes, so their inverse-variance <strong>weight "
-        "in the pool is OVERSTATED</strong> and the pooled confidence interval is <strong>too narrow"
-        "</strong> (over-precise)."
-        + sens_txt
-        + " This is a stated limitation (a documented "
-        "meta-analysis error class the harness flags but cannot correct without the missing variance "
-        "component), not a silent simple-parallel pooling.</div>"
+        "<div class='absent'><strong>Unit-of-analysis/design caveat (disclosed, not silently adjusted)."
+        "</strong> "
+        + " ".join(parts)
+        + " This is a stated limitation and design-key disclosure, not silent simple-parallel pooling.</div>"
     )
 
 
@@ -839,6 +958,16 @@ def _add_outcome_limitations(add: Any, outcome: dict[str, Any], prefix: str) -> 
             ["/outcomes/*/result/suppressed_incompatible", "/outcomes/*/result/suppressed_reason"],
             _suppressed_outcome_block(result),
         )
+    elif result.get("design_refusal"):
+        add(
+            f"{prefix}:design-refusal",
+            LimitationKind.UNIT_OF_ANALYSIS,
+            Severity.QUALIFIES_CLAIM,
+            f"pooled estimate: {outcome.get('name')}",
+            EvidenceState.REFUSED_ON_EVIDENCE,
+            ["/outcomes/*/result/design_refusal", "/outcomes/*/design_refusals"],
+            _design_refusal_block(result),
+        )
 
 
 def _add_risk_of_bias_limitations(add: Any, review: dict[str, Any]) -> None:
@@ -1036,9 +1165,28 @@ def compare_limitation_sets(
 def pretty_counts(limitations: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
     """Small helper for evidence/report generation."""
 
-    out: dict[str, dict[str, int]] = {"kind": {}, "severity": {}, "evidence_state": {}}
+    out: dict[str, dict[str, int]] = {"kind": {}, "severity": {}, "evidence_state": {}, "limitation_class": {}}
     for obj in limitations:
         for field in out:
             key = str(obj.get(field))
             out[field][key] = out[field].get(key, 0) + 1
     return out
+
+
+def publication_gate_refusals(limitations: list[dict[str, Any]]) -> list[str]:
+    """Return page-gate refusal reasons for malformed validity-threatening limitations."""
+
+    reasons: list[str] = []
+    for obj in limitations or []:
+        if obj.get("limitation_class") != LimitationClass.VALIDITY_THREATENING.value:
+            continue
+        linked = obj.get("linked_decision")
+        if not isinstance(linked, dict):
+            reasons.append(f"{obj.get('limitation_id')}: VALIDITY_THREATENING limitation has no linked_decision")
+            continue
+        missing = [key for key in ("action", "gate_id", "decision_state") if not linked.get(key)]
+        if missing:
+            reasons.append(
+                f"{obj.get('limitation_id')}: linked_decision missing {', '.join(missing)}"
+            )
+    return reasons

@@ -11,6 +11,7 @@ of the bytes on disk.
 from __future__ import annotations
 
 import os
+import hashlib
 import subprocess
 from pathlib import Path
 

@@ -1,6 +1,9 @@
-"""Unit-of-analysis caveat (audit 26): the page must NOT claim the pooled point estimate is invariant to the
-missing design correction (false in inverse-variance pooling), and must show the DERIVED sensitivity range;
-the design must be described as cluster-period (policy) crossover, not within-person crossover."""
+"""Unit-of-analysis/design caveat rendering.
+
+Before the design-key refusal, balanced crystalloids had pooled cluster-period crossover trials and
+needed a variance-inflation sensitivity. After the refusal, those trials are named exclusions and the
+only remaining design caveat is BaSICS as an individual-randomized factorial marginal contrast.
+"""
 import json
 import os
 import re
@@ -14,16 +17,13 @@ def _load(slug):
     return json.load(open(os.path.join(DOCS, slug, "review.json"), encoding="utf-8"))
 
 
-def test_crystalloids_uoa_estimate_moves_and_range_rendered():
+def test_crystalloids_uoa_caveat_matches_post_refusal_factorial_state():
     r = _load("balanced-crystalloids-vs-saline-mortality")
     uoa = r.get("unit_of_analysis") or []
-    assert uoa, "expected cluster/crossover trials flagged for crystalloids"
-    s = page._uoa_sensitivity(r, [u.get("id") for u in uoa])
-    base = s["points"][0][1]
-    top = s["points"][-1][1]
-    assert top != base, "inflating cluster-trial variances must move the pooled estimate (it is NOT invariant)"
+    assert [u.get("design") for u in uoa] == ["factorial"]
     html = page._riskofbias(r, False)
     assert "point estimate is unaffected" not in html, "the false invariance claim must be gone"
-    assert "within-subject" not in html, "must not mis-describe cluster-period as within-person crossover"
-    assert "cluster-period" in html.lower()
-    assert re.search(r"re-pools \(illustrative DL\) from [0-9.]+ to [0-9.]+", re.sub(r"<[^>]+>", " ", html))
+    assert "within-subject" not in html
+    assert "individual-randomized factorial designs" in html
+    assert "source-reported adjusted marginal estimate" in html
+    assert not re.search(r"re-pools \(illustrative DL\) from [0-9.]+ to [0-9.]+", re.sub(r"<[^>]+>", " ", html))

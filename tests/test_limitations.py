@@ -1,6 +1,12 @@
 import hashlib
+import json
 
-from harness.limitations import compare_limitation_sets
+from harness.gate import check_limitation_decision_links
+from harness.limitations import (
+    classify_limitation,
+    compare_limitation_sets,
+    publication_gate_refusals,
+)
 
 
 def _obj(limitation_id="topic:x:test", severity="BLOCKS_CLAIM", state="SUPPRESSED", text="blocked"):
@@ -68,3 +74,44 @@ def test_compare_limitation_sets_refuses_text_change_without_state_change():
     assert reasons == [
         "topic:x:test: rendered_text changed without state change or renderer acknowledgement"
     ]
+
+
+def test_validity_threatening_limitation_without_linked_decision_refuses_publication_gate():
+    obj = _obj()
+    obj["limitation_class"] = "VALIDITY_THREATENING"
+    obj.pop("linked_decision", None)
+
+    reasons = publication_gate_refusals([obj])
+
+    assert reasons == ["topic:x:test: VALIDITY_THREATENING limitation has no linked_decision"]
+
+
+def test_validity_threatening_limitation_without_linked_decision_refuses_page_gate(tmp_path):
+    obj = _obj()
+    obj["limitation_class"] = "VALIDITY_THREATENING"
+    obj.pop("linked_decision", None)
+    review_dir = tmp_path / "review"
+    review_dir.mkdir()
+    (review_dir / "review.json").write_text(
+        json.dumps({"limitations": [obj]}) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    reasons = check_limitation_decision_links(review_dir)
+
+    assert reasons == [
+        "L1: validity-threatening limitation lacks a linked analytic decision -- "
+        "topic:x:test: VALIDITY_THREATENING limitation has no linked_decision"
+    ]
+
+
+def test_named_limitation_kind_classification():
+    assert classify_limitation("UNIT_OF_ANALYSIS", "NOT_ASSESSED") == "VALIDITY_THREATENING"
+    assert classify_limitation("SUPPRESSED_POOL", "SUPPRESSED") == "VALIDITY_THREATENING"
+    assert classify_limitation("RETRACTED_TRIAL_POOLED", "RETRACTED") == "VALIDITY_THREATENING"
+    assert classify_limitation("STALE_TOPIC", "STALE") == "VALIDITY_THREATENING"
+    assert classify_limitation("SEARCH_PROVENANCE", "RETRACTED") == "VALIDITY_THREATENING"
+    assert classify_limitation("RETRIEVAL_CLASS", "NOT_RUN") == "VALIDITY_THREATENING"
+    assert classify_limitation("CLAIM_CHECK_ZERO", "NOT_RUN") == "VALIDITY_THREATENING"
+    assert classify_limitation("AUDITABILITY_SCOPE", "RECORDED") == "INFORMATIONAL"

@@ -765,11 +765,33 @@ def _trial_inputs(o):
             inp += " <span class='muted' title='effect computed by the harness from arm-level data, not the trial-reported effect'>· harness-reconstructed</span>"
         elif _der == "reported":
             inp += " <span class='muted' title='the effect+CI reported by the source'>· source-reported</span>"
+        dk = t.get("design") or {}
+        if dk:
+            basis = "; ".join(b.get("span", "") for b in (dk.get("basis") or []) if b.get("span"))
+            corr = dk.get("correlation_handling") or {}
+            decision = dk.get("design_action") or {}
+            src += ("<div class='ident'><em>design key:</em> "
+                    f"{_e(dk.get('design'))} / unit {_e(dk.get('unit_of_randomisation'))}; "
+                    f"estimator {_e(dk.get('estimator_source'))}; "
+                    f"correlation handling {_e(corr.get('method'))}; "
+                    f"action {_e(decision.get('action'))}"
+                    + (f" <span class='muted'>{_e(basis)}</span>" if basis else "")
+                    + "</div>")
         rows.append(f"<tr><td>{_e(t.get('label'))}</td><td>{_e(t.get('id'))}</td>"
                     f"<td>{inp}</td><td>{src}</td></tr>")
-    absent = "".join(f"<tr><td>{_e(t.get('label'))}</td><td>{_e(t.get('id'))}</td>"
-                     f"<td class='absent-cell'>{_e(_absent_label(t.get('reason'), t.get('state')))}</td><td>{_e(t.get('reason'))}</td></tr>"
-                     for t in o.get("declared_absent_trials", []) or [])
+    absent_rows = []
+    for t in o.get("declared_absent_trials", []) or []:
+        alt = t.get("published_alternative") or ((t.get("design") or {}).get("published_alternative"))
+        alt_txt = ""
+        if alt:
+            alt_txt = (f"<br><em>Published alternative disclosed, not pooled:</em> "
+                       f"{_num(alt.get('effect'))} ({_e(alt.get('scale'))}), 95% CI "
+                       f"{_num(alt.get('ci_low'))}â€“{_num(alt.get('ci_high'))}"
+                       + ("; adjusted" if alt.get("adjusted") else "; not labelled adjusted") + ".")
+        absent_rows.append(f"<tr><td>{_e(t.get('label'))}</td><td>{_e(t.get('id'))}</td>"
+                           f"<td class='absent-cell'>{_e(_absent_label(t.get('reason'), t.get('state')))}</td>"
+                           f"<td>{_e(t.get('reason'))}{alt_txt}</td></tr>")
+    absent = "".join(absent_rows)
     return ("<table class='arms'><tr><th>Trial</th><th>Id</th><th>Input</th><th>Source</th></tr>"
             + rows_join(rows) + absent + "</table>")
 
@@ -815,6 +837,14 @@ def _outcome_block(o, show_inputs=True):
                  f"{_e(' + '.join((res.get('estmeasure') or {}).get('canonicals', [])))}; k = "
                  f"{_e(res.get('k'))} trials, shown individually below, not pooled.</em>" + _cf_line + "</div>")
     else:
+        _dr = res.get("design_refusal") or {}
+        if _dr:
+            refused = "; ".join(
+                f"{_e(x.get('trial'))} ({_e(x.get('design'))})" for x in (_dr.get("refused") or [])
+            )
+            body += ("<div class='absent'><strong>Pool changed because a design refusal was added.</strong> "
+                     f"{_e(_dr.get('statement'))} Refused trial(s): {refused}. Any published estimates for "
+                     "refused trials are disclosed in the trial table below and are not pooled.</div>")
         body += _kv([(k, v) for k, v in [
             # Show the scale of the number ACTUALLY pooled (res["scale"]: RR / HR / IRR / MD /
             # "mixed (…)"), not the topic's target estimand — the target is stated in the Analysis
@@ -1384,8 +1414,16 @@ def _riskofbias(r, neutral):
     uoa = r.get("unit_of_analysis") or []
     uoa_html = ""
     if uoa:
-        items = "; ".join(f"{_e(u.get('id'))} ({_e(u.get('design'))})" for u in uoa)
-        _sens = _uoa_sensitivity(r, [u.get("id") for u in uoa])
+        variance_designs = {
+            "cluster-randomized",
+            "cluster-randomized crossover",
+            "crossover",
+            "stepped-wedge",
+        }
+        variance_uoa = [u for u in uoa if (u.get("design") or "").lower() in variance_designs]
+        factorial_uoa = [u for u in uoa if (u.get("design") or "").lower() == "factorial"]
+        other_uoa = [u for u in uoa if u not in variance_uoa and u not in factorial_uoa]
+        _sens = _uoa_sensitivity(r, [u.get("id") for u in variance_uoa]) if variance_uoa else None
         _sens_txt = ""
         if _sens and len(_sens["points"]) > 1:
             base = _sens["points"][0][1]
@@ -1394,17 +1432,33 @@ def _riskofbias(r, neutral):
                          f"these trials' variances re-pools (illustrative DL) from {base} to "
                          f"{_sens['points'][-1][1]} ({rng}) — because changing a study's variance changes its "
                          "inverse-variance weight, so both the estimate and its interval move.")
-        uoa_html = ("<div class='absent'><strong>Unit-of-analysis caveat (disclosed, not adjusted).</strong> "
-                    f"{len(uoa)} pooled trial(s) use a cluster-randomized or cluster-period (policy) crossover "
-                    f"design: {items}. They are pooled from patient-level counts <strong>without applying a "
-                    "design effect</strong> (cluster ICC / cluster-period correlation), because that variance "
-                    "component is not reported in the source — these are CLUSTER-PERIOD policy crossovers, not "
-                    "within-person crossovers. <strong>Consequence:</strong> the true variance of these trials is "
-                    "larger than the patient-level calculation assumes, so their inverse-variance <strong>weight "
-                    "in the pool is OVERSTATED</strong> and the pooled confidence interval is <strong>too narrow"
-                    "</strong> (over-precise)." + _sens_txt + " This is a stated limitation (a documented "
-                    "meta-analysis error class the harness flags but cannot correct without the missing variance "
-                    "component), not a silent simple-parallel pooling.</div>")
+        parts = []
+        if variance_uoa:
+            items = "; ".join(f"{_e(u.get('id'))} ({_e(u.get('design'))})" for u in variance_uoa)
+            parts.append(
+                f"{len(variance_uoa)} pooled trial(s) use a clustered, stepped-wedge, or crossover design: "
+                f"{items}. If they are reconstructed from patient-level counts, they require an explicit "
+                "<strong>design-correlation adjustment</strong> (ICC, cluster-period correlation, or paired "
+                "analysis); otherwise their variance is not a simple parallel-arm variance."
+                + _sens_txt
+            )
+        if factorial_uoa:
+            items = "; ".join(f"{_e(u.get('id'))} ({_e(u.get('design'))})" for u in factorial_uoa)
+            parts.append(
+                f"{len(factorial_uoa)} pooled trial(s) are individual-randomized factorial designs: {items}. "
+                "These are disclosed as marginal factorial contrasts; when a source-reported adjusted "
+                "marginal estimate with acceptable interaction evidence is available, the design key records "
+                "that estimator and labels it rather than using a raw reconstruction silently."
+            )
+        if other_uoa:
+            items = "; ".join(f"{_e(u.get('id'))} ({_e(u.get('design'))})" for u in other_uoa)
+            parts.append(f"{len(other_uoa)} pooled trial(s) have non-simple design text: {items}.")
+        uoa_html = (
+            "<div class='absent'><strong>Unit-of-analysis/design caveat (disclosed, not silently adjusted)."
+            "</strong> "
+            + " ".join(parts)
+            + " This is a stated limitation and design-key disclosure, not silent simple-parallel pooling.</div>"
+        )
     fund = r.get("funding") or []
     fund_html = ""
     if fund:

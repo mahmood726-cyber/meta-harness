@@ -103,3 +103,32 @@ def test_md_pooling_matches_metafor_point_and_tau2():
     assert r.tau2 == 0.0 and r.k == 2
     # additive scale: estimate is NOT exp-transformed (would be ~0.17 if it were)
     assert r.estimate < 0
+
+
+def test_reconstructed_cluster_crossover_refuses_without_design_adjustment():
+    from harness.synth import Study
+    s = Study(
+        "SMART-like",
+        ai=10,
+        n1i=100,
+        ci=20,
+        n2i=100,
+        derivation="reconstructed",
+        design={"design": "CLUSTER_CROSSOVER"},
+    )
+    try:
+        s.yi_vi()
+    except ValueError as exc:
+        assert "evidence-backed correlation handling" in str(exc)
+    else:
+        raise AssertionError("cluster-crossover reconstruction emitted an SE without a design adjustment")
+
+
+def test_strict_pool_refuses_missing_study_effect_object():
+    from harness.synth import Study, pool
+    try:
+        pool([Study("missing-object", 10, 100, 20, 100)], require_study_effect=True)
+    except ValueError as exc:
+        assert "study_effect object" in str(exc)
+    else:
+        raise AssertionError("strict pool accepted a study without the study-effect object")

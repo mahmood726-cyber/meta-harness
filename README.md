@@ -61,6 +61,14 @@ python tests/test_gate.py
 The gate is fail-closed: if it cannot execute, it refuses. **Never** `--no-verify`,
 never edit a gate that is refusing you — fix the harness that produced the page.
 
+## Design-decision contract
+Detected design hazards are not warnings. Each pooled study now carries a typed
+design action (`ALLOW`, `ALLOW_WITH_LABEL`, `ADJUST`, `MANUAL_REVIEW`, or
+`REFUSE`) plus evidence-backed `correlation_handling`; a validity-critical
+hazard cannot proceed to PM/HKSJ as prose only. The current non-parallel-design
+state is **PREVALENCE UNKNOWN** until an ontology-backed registry sweep is
+complete.
+
 ## How a commit lands (gate authority, 2026-09-14)
 The gates above are enforced **server-side**, so they survive `git clone` and do not depend
 on anyone having installed a hook:

@@ -1,0 +1,28 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>05-typed-actions.txt (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>05-typed-actions.txt</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/design-key-2026-09-14/05-typed-actions.txt</code>; its SHA-256 is <code>705ff4fe37b3e23bc96cef84b6db794d41262f8992d87bc27da8d02db991f123</code> (1,792 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> Typed action mapping table and the BaSICS raw-reconstruction plant.</p><pre># Typed design actions and BaSICS plant
+
+Defect class recorded in code and GATE_GAPS.md:
+DIAGNOSTIC–DECISION DECOUPLING — a validity hazard is correctly detected and represented, but its state is not causally connected to the analytic decision it should constrain. Plain alias: disclosure-as-control. Class PROCESS, direction optimistic, severity major-to-critical.
+
+Typed actions are exactly:
+ALLOW
+ALLOW_WITH_LABEL
+ADJUST
+MANUAL_REVIEW
+REFUSE
+
+Worked mapping implemented literally:
+cluster design + SE not design-adjusted -&gt; REFUSE
+crossover + within-person correlation unknown -&gt; REFUSE
+stepped-wedge + no design model -&gt; REFUSE
+factorial + valid marginal effect + acceptable interaction -&gt; ALLOW_WITH_LABEL
+published adjusted estimate available + raw reconstruction selected -&gt; REFUSE when the estimand matches, or MANUAL_REVIEW when the published estimand differs from the declared one.
+
+BaSICS plant:
+Input object: factorial randomized trial, raw reconstructed mortality RR from 1381/5230 vs 1439/5290, source span carrying adjusted HR 0.97 [0.90-1.05], and committed abstract span &quot;no significant interaction between the 2 interventions (fluid type and infusion speed; P = .98)&quot;.
+Prefix action: MANUAL_REVIEW, because the harness selected a raw reconstructed RR while a published adjusted HR was available.
+Post-action integration: the pipeline substitutes the source-reported adjusted HR, records `selected_estimator=published_adjusted`, carries `correlation_handling.method=published_model` with evidence spans, and maps the resulting factorial marginal effect to ALLOW_WITH_LABEL.
+
+Plant tests:
+tests/test_design_key.py::test_factorial_rr_keeps_reconstructed_estimand_and_records_adjusted_alternative
+tests/test_design_key.py::test_reconstructed_cluster_crossover_needs_refusal
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

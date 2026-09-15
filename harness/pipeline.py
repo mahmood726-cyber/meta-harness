@@ -1,13 +1,19 @@
 """Deterministic offline pipeline: committed cache + topic config -> screen -> extract
 (primary + secondary + harms) -> synth -> review core. No network, no hand-typed numbers;
 a fresh clone reproduces byte-for-byte.
+
+Auditor defect class recorded verbatim: DIAGNOSTIC–DECISION DECOUPLING — a
+validity hazard is correctly detected and represented, but its state is not
+causally connected to the analytic decision it should constrain. Plain alias:
+disclosure-as-control. Class PROCESS, direction optimistic, severity
+major-to-critical.
 """
 from __future__ import annotations
 import json
 import os
 import re
 
-from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure
+from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
 from . import grade as grade_mod
 from . import rob_sensitivity as rob_sens_mod
 from . import claim as claim_mod
@@ -352,8 +358,8 @@ def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
     return out
 
 
-def _pool_result(studies, scale="RR"):
-    r = pool(studies, scale=scale)
+def _pool_result(studies, scale="RR", *, require_study_effect=False):
+    r = pool(studies, scale=scale, require_study_effect=require_study_effect)
     res = {"k": r.k, "estimate": round(r.estimate, 4), "scale": r.scale,
            "ci_low": round(r.ci_low, 4), "ci_high": round(r.ci_high, 4), "tau2": round(r.tau2, 5),
            "ci_provenance": r.ci_provenance}  # engine token; the interval-provenance gate checks it
@@ -626,7 +632,8 @@ def _with_model_adjudication(slug, dual, decisions):
 
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
-                   locate_judgments=None, verified_effects=None, dose_selection=None):
+                   locate_judgments=None, verified_effects=None, dose_selection=None,
+                   registry_designs=None):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     dose_selection = dose_selection or {}
@@ -841,11 +848,40 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         pid = str(t.get("id", "")).replace("PMID ", "")
         ab = (rec_by_id.get(pid) or {}).get("abstract", "")
         t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
+        if t.get("ai") is not None or t.get("mean1") is not None or t.get("e1i") is not None:
+            t["derivation"] = "reconstructed"
+        elif t.get("effect") is not None:
+            t["derivation"] = "reported"
+        design_key.stamp_trial(t, rec_by_id, registry_designs or {}, spec.get("estimand"))
+        if design_key.maybe_use_published_adjusted(t, spec.get("estimand")):
+            t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
+    trials, design_refusals = design_key.split_design_refusals(trials)
+    for t in design_refusals:
+        absent.append(design_key.refusal_absence(t))
     out = {"name": spec["name"], "kind": kind, "primary": bool(spec.get("primary")),
            "estimand": spec.get("estimand", "RR"), "population": spec.get("population"),
            "timepoint": spec.get("timepoint"), "method": METHOD,
            "trials": trials, "declared_absent_trials": absent}
-    if trials:
+    if design_refusals:
+        out["design_refusals"] = [{
+            "trial": design_key.display_name(t),
+            "id": t.get("id"),
+            "design": (t.get("design") or {}).get("design"),
+            "reason": design_key.refusal_reason(t),
+            **({"published_alternative": (t.get("design") or {}).get("published_alternative")}
+               if (t.get("design") or {}).get("published_alternative") else {}),
+        } for t in design_refusals]
+    if design_refusals and len(trials) < 2:
+        out["result"] = {
+            "present": False,
+            "reason": ("DESIGN REFUSAL: after refusing reconstructed non-parallel designs without an "
+                       f"explicit design adjustment, only k={len(trials)} trial(s) remain; no pooled "
+                       "number is rendered. Remaining and refused trials are named below."),
+            "design_refusal": True,
+            "k_after_design_refusal": len(trials),
+            "refused": out["design_refusals"],
+        }
+    elif trials:
         meas = (spec.get("estimand") or "RR").upper()
         meas = meas if meas in ("RR", "OR") else "RR"  # 2x2 pools as RR/OR; HR only via effect+CI
         def _meas(t):
@@ -854,13 +890,6 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             if t.get("mean1") is not None:
                 return "MD"
             return meas
-        studies = [Study(label=t["label"], ai=t.get("ai"), n1i=t.get("n1i"), ci=t.get("ci"),
-                         n2i=t.get("n2i"), effect=t.get("effect"), ci_low=t.get("ci_low"),
-                         ci_high=t.get("ci_high"),
-                         e1i=t.get("e1i"), t1i=t.get("t1i"), e2i=t.get("e2i"), t2i=t.get("t2i"),
-                         mean1=t.get("mean1"), sd1=t.get("sd1"), nc1=t.get("nc1"),
-                         mean2=t.get("mean2"), sd2=t.get("sd2"), nc2=t.get("nc2"),
-                         source=t.get("source", ""), measure=_meas(t)) for t in trials]
         # The pooled scale reflects the data actually pooled: IRR if all rate-based, MD if all
         # continuous, else the topic's ratio estimand.
         if all(t.get("e1i") is not None for t in trials):
@@ -876,7 +905,35 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             pooled_scale = trials[0]["scale"]
         else:
             pooled_scale = spec.get("estimand", "RR")
-        out["result"] = _pool_result(studies, scale=pooled_scale)
+        studies = [Study(label=t["label"], ai=t.get("ai"), n1i=t.get("n1i"), ci=t.get("ci"),
+                         n2i=t.get("n2i"), effect=t.get("effect"), ci_low=t.get("ci_low"),
+                         ci_high=t.get("ci_high"),
+                         e1i=t.get("e1i"), t1i=t.get("t1i"), e2i=t.get("e2i"), t2i=t.get("t2i"),
+                         mean1=t.get("mean1"), sd1=t.get("sd1"), nc1=t.get("nc1"),
+                         mean2=t.get("mean2"), sd2=t.get("sd2"), nc2=t.get("nc2"),
+                         source=t.get("source", ""), measure=_meas(t),
+                         derivation=t.get("derivation", ""), design=t.get("design"),
+                         design_adjustment=t.get("design_adjustment")) for t in trials]
+        for study, trial in zip(studies, trials):
+            yi, vi = study.yi_vi()
+            trial["study_effect"] = design_key.study_effect_object(
+                trial,
+                yi=yi,
+                vi=vi,
+                estimand=spec.get("estimand"),
+                analysis_population=spec.get("population"),
+                scale=pooled_scale,
+            )
+            study.study_effect = trial["study_effect"]
+        out["result"] = _pool_result(studies, scale=pooled_scale, require_study_effect=True)
+        if design_refusals:
+            out["result"]["design_refusal"] = {
+                "pool_changed": True,
+                "refused": out["design_refusals"],
+                "statement": ("Pool changed because a design refusal was added: reconstructed cluster, "
+                              "crossover, cluster-crossover, and stepped-wedge trials require an explicit "
+                              "design adjustment before contributing a parallel-group SE."),
+            }
         # HONEST MIXED-SCALE LABEL (estimand homogeneity): if the pooled trials do NOT share one
         # ratio estimand, the label must SAY so — never present a heterogeneous pool as a single
         # clean scale ("calling it an HR" when it mixed a count-RR and a Cox HR is the shipped defect
@@ -1148,9 +1205,11 @@ def build_review_core(slug, config, records, protocol_sha):
     veffs = _load_verified_effects(slug)
     dsel = _load_dose_selection(slug)
     ljudg = locate.load(slug) if config.get("locate_gate") else None
+    registry_designs = design_key.registry_designs(records)
     outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp,
                                outcome_judgments=ojudg, verified_arms=varms, locate_judgments=ljudg,
-                               verified_effects=veffs, dose_selection=dsel)
+                               verified_effects=veffs, dose_selection=dsel,
+                               registry_designs=registry_designs)
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 
@@ -1202,6 +1261,18 @@ def build_review_core(slug, config, records, protocol_sha):
                     "note": (f"Trials newer than the comparator ({comp_year}) cannot be in it (only-ours, "
                              f"verifiable by date). Exact shared count not asserted.")},
     }
+    comparator_scope_note = config.get("comparator_scope_note")
+    if (primary.get("result") or {}).get("design_refusal"):
+        refused_names = ", ".join(
+            str(x.get("trial") or x.get("id")) for x in (primary.get("design_refusals") or [])
+        )
+        comparator_scope_note = (
+            f"Design-key update: our primary pool is now k={ours_k} after refusing reconstructed "
+            f"non-parallel designs without an explicit design adjustment"
+            + (f" ({refused_names})." if refused_names else ".")
+            + " Any earlier same-scope k/parity note is superseded for this build; refused trials remain "
+              "screened-in eligible records but are named exclusions, not pooled counts."
+        )
 
     # DECLARED method = the method for the primary outcome's DECLARED estimand (from the config/protocol).
     # The SERVED method (set on the manifest by build_topic from the primary's ACTUAL result scale) is
@@ -1257,7 +1328,7 @@ def build_review_core(slug, config, records, protocol_sha):
         "outcomes": outcomes,
         "comparator": comparator,
         "estimand_exclusions": config.get("estimand_exclusions", []),
-        **({"comparator_scope_note": config["comparator_scope_note"]} if config.get("comparator_scope_note") else {}),
+        **({"comparator_scope_note": comparator_scope_note} if comparator_scope_note else {}),
         **({"evidence_base_caveat": config["evidence_base_caveat"]} if config.get("evidence_base_caveat") else {}),
         **({"rob2": _rb} if (_rb := _load_rob2(slug)) else {}),
         # Arm-contrast disclosure (TIER-1 structural fix): per pooled trial, whether the intervention of
@@ -1422,7 +1493,9 @@ def build_review_core(slug, config, records, protocol_sha):
     # RoB-stratified sensitivity is a RE-POOL, so it must also fail closed on an INCOMPATIBLE primary
     # pool (audit 23): re-pooling incompatible estimands is as invalid as the primary pool itself.
     _prim_res = next((o.get("result") or {} for o in review.get("outcomes", []) if o.get("primary")), {})
-    if not _prim_res.get("suppressed_incompatible") and (_sens := rob_sens_mod.sensitivity(review)):
+    if (_prim_res.get("present") is not False
+            and not _prim_res.get("suppressed_incompatible")
+            and (_sens := rob_sens_mod.sensitivity(review))):
         review["rob_sensitivity"] = _sens
     # Partial, object-derived GRADE certainty (risk-of-bias, inconsistency, imprecision, registry-based
     # publication bias computed from committed fields; indirectness left to human judgement).

@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>08-validity-threatening-classification.txt (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>08-validity-threatening-classification.txt</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/design-key-2026-09-14/08-validity-threatening-classification.txt</code>; its SHA-256 is <code>58ae07031b4132596d545562c6cb8bc68f6fe43ab1e2d5463def522b1add942d</code> (1,940 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> VALIDITY_THREATENING vs INFORMATIONAL limitation classification and linked-decision gate plant.</p><pre># Validity-threatening limitation classification
+
+Limitation objects now carry:
+`limitation_class: INFORMATIONAL | VALIDITY_THREATENING`
+
+For `VALIDITY_THREATENING`, each object must also carry:
+`linked_decision: {action, gate_id, decision_state}`
+
+Publication-gate plant:
+A `VALIDITY_THREATENING` object with no linked decision is refused by `harness.limitations.publication_gate_refusals` and by the page gate.
+Test: tests/test_limitations.py::test_validity_threatening_limitation_without_linked_decision_refuses_publication_gate
+
+Classification list:
+UNIT_OF_ANALYSIS -&gt; VALIDITY_THREATENING. Reason: unit/design semantics can invalidate variance or require an explicit typed design action.
+SUPPRESSED_POOL -&gt; VALIDITY_THREATENING. Reason: the pooled estimate is invalid for the declared estimand and must not render as a usable result.
+RETRACTED_TRIAL_POOLED -&gt; VALIDITY_THREATENING. Reason: a pooled result resting on retracted data is not publishable as current evidence.
+STALE_TOPIC -&gt; VALIDITY_THREATENING. Reason: a known invalidating signal poisons the dependent topic result.
+SEARCH_PROVENANCE -&gt; VALIDITY_THREATENING. Reason: a systematic-search or registry-first claim is refused when provenance contradicts it.
+RETRIEVAL_CLASS -&gt; VALIDITY_THREATENING. Reason: retrieval class constrains the search-completeness claim and must remain visibly labelled.
+CLAIM_CHECK_ZERO -&gt; VALIDITY_THREATENING. Reason: no checkable pooled claim means the contradiction gate has nothing to test.
+
+Default rule:
+The rest are INFORMATIONAL unless their evidence state is itself validity-threatening, such as STALE, SUPPRESSED, RETRACTED, RAN_ERROR, NOT_RUN, or REFUSED_ON_EVIDENCE.
+
+Plant test:
+tests/test_limitations.py::test_named_limitation_kind_classification
+
+Plant run (integrator, on the merged base 9218f8b5): tests/test_limitations.py::test_validity_threatening_limitation_without_linked_decision_refuses_page_gate, 2026-09-15T01:44:00Z.
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

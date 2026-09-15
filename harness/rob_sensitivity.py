@@ -41,7 +41,10 @@ def _studies_and_scale(trials, declared_estimand):
                      ci_high=t.get("ci_high"), e1i=t.get("e1i"), t1i=t.get("t1i"),
                      e2i=t.get("e2i"), t2i=t.get("t2i"), mean1=t.get("mean1"), sd1=t.get("sd1"),
                      nc1=t.get("nc1"), mean2=t.get("mean2"), sd2=t.get("sd2"), nc2=t.get("nc2"),
-                     source=t.get("source", ""), measure=_meas(t)) for t in trials]
+                     source=t.get("source", ""), measure=_meas(t),
+                     derivation=t.get("derivation", ""), design=t.get("design"),
+                     design_adjustment=t.get("design_adjustment"),
+                     study_effect=t.get("study_effect")) for t in trials]
     if trials and all(t.get("e1i") is not None for t in trials):
         scale = "IRR"
     elif trials and all(t.get("mean1") is not None for t in trials):
@@ -57,7 +60,7 @@ def _pool(trials, declared_estimand):
     if not trials:
         return None
     studies, scale = _studies_and_scale(trials, declared_estimand)
-    r = pool(studies, scale=scale)
+    r = pool(studies, scale=scale, require_study_effect=all(t.get("study_effect") for t in trials))
     return {"k": r.k, "estimate": round(r.estimate, 4), "scale": r.scale,
             "ci_low": round(r.ci_low, 4), "ci_high": round(r.ci_high, 4), "tau2": round(r.tau2, 5)}
 

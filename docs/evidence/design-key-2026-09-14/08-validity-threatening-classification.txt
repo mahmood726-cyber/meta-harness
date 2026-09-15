@@ -1,0 +1,28 @@
+# Validity-threatening limitation classification
+
+Limitation objects now carry:
+`limitation_class: INFORMATIONAL | VALIDITY_THREATENING`
+
+For `VALIDITY_THREATENING`, each object must also carry:
+`linked_decision: {action, gate_id, decision_state}`
+
+Publication-gate plant:
+A `VALIDITY_THREATENING` object with no linked decision is refused by `harness.limitations.publication_gate_refusals` and by the page gate.
+Test: tests/test_limitations.py::test_validity_threatening_limitation_without_linked_decision_refuses_publication_gate
+
+Classification list:
+UNIT_OF_ANALYSIS -> VALIDITY_THREATENING. Reason: unit/design semantics can invalidate variance or require an explicit typed design action.
+SUPPRESSED_POOL -> VALIDITY_THREATENING. Reason: the pooled estimate is invalid for the declared estimand and must not render as a usable result.
+RETRACTED_TRIAL_POOLED -> VALIDITY_THREATENING. Reason: a pooled result resting on retracted data is not publishable as current evidence.
+STALE_TOPIC -> VALIDITY_THREATENING. Reason: a known invalidating signal poisons the dependent topic result.
+SEARCH_PROVENANCE -> VALIDITY_THREATENING. Reason: a systematic-search or registry-first claim is refused when provenance contradicts it.
+RETRIEVAL_CLASS -> VALIDITY_THREATENING. Reason: retrieval class constrains the search-completeness claim and must remain visibly labelled.
+CLAIM_CHECK_ZERO -> VALIDITY_THREATENING. Reason: no checkable pooled claim means the contradiction gate has nothing to test.
+
+Default rule:
+The rest are INFORMATIONAL unless their evidence state is itself validity-threatening, such as STALE, SUPPRESSED, RETRACTED, RAN_ERROR, NOT_RUN, or REFUSED_ON_EVIDENCE.
+
+Plant test:
+tests/test_limitations.py::test_named_limitation_kind_classification
+
+Plant run (integrator, on the merged base 9218f8b5): tests/test_limitations.py::test_validity_threatening_limitation_without_linked_decision_refuses_page_gate, 2026-09-15T01:44:00Z.

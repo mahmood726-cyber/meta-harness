@@ -12,12 +12,15 @@ def test_cluster_crossover_detected():
     assert U.detect("Double-blind, cluster randomized, double-crossover trial in 4 ICUs") == "cluster-randomized crossover"
     assert U.detect("we conducted a cluster-randomised trial across 20 hospitals") == "cluster-randomized"
     assert U.detect("a two-period crossover trial of the drug") == "crossover"
+    assert U.detect("Double-blind, factorial, randomized clinical trial conducted at 75 ICUs") == "factorial"
+    assert U.detect("a stepped-wedge cluster-randomized trial in district hospitals") == "stepped-wedge"
 
 
 def test_ordinary_parallel_trial_not_flagged():
     # a plain multicentre parallel RCT must NOT trip the detector (else false disclosures everywhere)
     assert U.detect("a multicenter, double-blind, randomized, placebo-controlled trial at 40 centers") is None
     assert U.detect("patients were randomized 1:1 to drug or placebo and followed for 12 months") is None
+    assert U.detect("crossover in use of non-study therapies was recorded as a protocol deviation") is None
     assert U.detect("") is None
 
 

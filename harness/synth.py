@@ -1,5 +1,11 @@
 """Synthesis engine (declared method).
 
+Auditor defect class recorded verbatim: DIAGNOSTIC–DECISION DECOUPLING — a
+validity hazard is correctly detected and represented, but its state is not
+causally connected to the analytic decision it should constrain. Plain alias:
+disclosure-as-control. Class PROCESS, direction optimistic, severity
+major-to-critical.
+
 Binary outcomes pooled on log(RR) by inverse-variance random effects:
   * A study contributes a per-study effect (yi = log RR) and variance (vi) built
     EITHER from a 2x2 table OR from a published effect + 95% CI. A trial that
@@ -82,8 +88,32 @@ class Study:
     nc2: Optional[float] = None
     source: str = ""
     measure: str = "RR"
+    derivation: str = ""
+    design: Optional[dict] = None
+    design_adjustment: Optional[dict] = None
+    study_effect: Optional[dict] = None
 
     def yi_vi(self) -> tuple[float, float]:
+        d = self.design or {}
+        action = (d.get("design_action") or {}).get("action")
+        if action in {"REFUSE", "MANUAL_REVIEW"}:
+            raise ValueError(
+                f"study {self.label!r} design action {action} ({(d.get('design_action') or {}).get('reason')}) "
+                "refuses emission of an SE before PM/HKSJ"
+            )
+        corr = d.get("correlation_handling") or {}
+        corr_method = corr.get("method", "none")
+        corr_ev = corr.get("evidence") or []
+        if corr_method != "none" and not any(isinstance(e, dict) and e.get("span") for e in corr_ev):
+            corr_method = "none"
+        if (self.derivation == "reconstructed"
+                and d.get("design") in {"CLUSTER", "CROSSOVER", "CLUSTER_CROSSOVER", "STEPPED_WEDGE"}
+                and corr_method == "none"
+                and not self.design_adjustment):
+            raise ValueError(
+                f"study {self.label!r} design {d.get('design')} has no evidence-backed correlation handling "
+                "before a parallel-group reconstructed SE can be emitted"
+            )
         # Mean difference from means/SDs/n per arm: yi = mean1 - mean2, vi = sd1^2/n1 + sd2^2/n2
         # (raw scale; pool() back-transforms with identity for scale MD). Standard continuous
         # meta-analysis (matches metafor measure='MD').
@@ -189,8 +219,45 @@ def _paule_mandel_tau2(yi, vi, tol=1e-10, max_iter=200):
     return 0.5 * (lo + hi)
 
 
-def pool(studies: Sequence[Study], scale: str = "RR", alpha: float = 0.05) -> PoolResult:
+_REQUIRED_STUDY_EFFECT_FIELDS = {
+    "effect_estimate",
+    "standard_error",
+    "estimand",
+    "analysis_population",
+    "randomisation_unit",
+    "study_design",
+    "estimator_method",
+    "correlation_handling",
+    "source_provenance",
+}
+
+
+def _validate_study_effect(label: str, obj: Optional[dict]) -> None:
+    if not isinstance(obj, dict):
+        raise ValueError(f"study {label!r} missing study_effect object before PM/HKSJ")
+    missing = sorted(_REQUIRED_STUDY_EFFECT_FIELDS - set(obj))
+    if missing:
+        raise ValueError(f"study {label!r} study_effect missing fields: {', '.join(missing)}")
+    corr = obj.get("correlation_handling")
+    if not isinstance(corr, dict) or "method" not in corr or "evidence" not in corr:
+        raise ValueError(f"study {label!r} study_effect.correlation_handling must carry method and evidence")
+    if corr.get("method") != "none" and not any(
+        isinstance(e, dict) and e.get("span") for e in (corr.get("evidence") or [])
+    ):
+        raise ValueError(
+            f"study {label!r} study_effect.correlation_handling method {corr.get('method')!r} has no evidence span"
+        )
+    prov = obj.get("source_provenance")
+    if not isinstance(prov, dict) or "source" not in prov or "span" not in prov:
+        raise ValueError(f"study {label!r} study_effect.source_provenance must carry source and span")
+
+
+def pool(studies: Sequence[Study], scale: str = "RR", alpha: float = 0.05,
+         require_study_effect: bool = False) -> PoolResult:
     yv = [s.yi_vi() for s in studies]
+    if require_study_effect:
+        for s in studies:
+            _validate_study_effect(s.label, s.study_effect)
     yi = [y for y, _ in yv]
     vi = [v for _, v in yv]
     k = len(yi)

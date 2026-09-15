@@ -1,5 +1,11 @@
 """Invalidation propagation.
 
+Auditor defect class recorded verbatim: DIAGNOSTIC–DECISION DECOUPLING — a
+validity hazard is correctly detected and represented, but its state is not
+causally connected to the analytic decision it should constrain. Plain alias:
+disclosure-as-control. Class PROCESS, direction optimistic, severity
+major-to-critical.
+
 A single per-topic verdict computed from committed signals already in the review core. When any
 invalidating condition holds, the topic is STALE: a dependent output (the pooled estimate, its
 completeness, or the trials behind it) is known to be incomplete, superseded, or unproven, and
@@ -18,8 +24,11 @@ Conditions (each NAMED on the page so a reader sees WHY, and evidenced from comm
                                   (a known eligible trial missing from the pool)
   search_source_errored         : a search source returned RAN_ERROR (retrieval completeness for
                                   this topic is unproven, not merely zero)
+  pooled_variance_unsupported   : a reconstructed non-parallel design is still pooled without an
+                                  explicit design adjustment
 """
 import re
+from . import design_key
 
 
 def _primary(core):
@@ -181,6 +190,29 @@ def identifier_scope(slug, config, screening_records):
         "detail": detail,
         **({"reason": reason} if reason else {}),
     }
+def _trial_name(t):
+    pid = str(t.get("id") or t.get("label") or "").replace("PMID ", "").strip()
+    known = {"29485925": "SMART", "27749094": "SALT", "26444692": "SPLIT", "34375394": "BaSICS"}
+    return known.get(pid) or str(t.get("label") or t.get("id") or pid)
+
+
+def _unsupported_variance_trials(core):
+    out = []
+    for o in core.get("outcomes") or []:
+        if not _present(o.get("result")):
+            continue
+        for t in o.get("trials") or []:
+            d = t.get("design") or {}
+            decision = d.get("design_action") or design_key.decision_for_trial(t)
+            if decision.get("action") in design_key.BLOCKING_ACTIONS:
+                out.append({"trial": _trial_name(t), "design": d.get("design"), "decision": decision})
+    seen, uniq = set(), []
+    for item in out:
+        key = (item["trial"], item["design"])
+        if key not in seen:
+            seen.add(key)
+            uniq.append(item)
+    return uniq
 
 
 def _eligible_not_pooled(core, id_nct=None):
@@ -262,6 +294,19 @@ def assess(core, signals=None):
         reasons.append({"code": "identifier_scope_unresolved",
                         "detail": "included screening records have unmatched intervention terms in the "
                                   "identifier-scope declaration: " + bits})
+    # 0e. A pooled reconstructed non-parallel design has no explicit design adjustment. During the
+    # marking-only step this keeps the old number visible but stale, labelled as variance-unsupported.
+    unsupported = _unsupported_variance_trials(core)
+    if unsupported:
+        cc = [x["trial"] for x in unsupported if x["design"] == "CLUSTER_CROSSOVER"]
+        if cc:
+            detail = (", ".join(cc) + ": cluster-crossover pooled through the parallel-group path; "
+                      "precision overstated")
+        else:
+            detail = (", ".join(x["trial"] for x in unsupported)
+                      + ": typed design action still blocks the pooled analysis")
+        reasons.append({"code": "pooled_variance_unsupported",
+                        "detail": detail + " -- the result rests on a variance that ignores the randomisation unit"})
     # 1. Retraction / expression of concern among the POOLED trials.
     integ = core.get("integrity") or {}
     retr = list(integ.get("retracted") or [])

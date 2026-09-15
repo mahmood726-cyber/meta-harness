@@ -1,0 +1,31 @@
+# Step 2 diff summary: refusal, adjusted BaSICS input, and re-pool
+
+This file supersedes the AC draft diff capture so the evidence no longer carries the retired trusted boolean field. The separable step-2 landing is preserved:
+
+1. SMART, SALT and SPLIT remain screened-in eligible records but are removed from the pooled population by typed action REFUSE.
+2. BaSICS is not refused for being factorial. The raw count reconstruction plants MANUAL_REVIEW because an adjusted published estimate is available; production selects the adjusted HR 0.97 [0.90, 1.05] with no significant fluid-by-speed interaction evidence and labels the factorial marginal contrast ALLOW_WITH_LABEL.
+3. The balanced-crystalloids primary pool re-renders with k=2: PLUS plus BaSICS.
+4. Every production pooled study carries a strict study-effect object before PM/HKSJ: effect estimate, SE, estimand, analysis population, randomisation unit, study design, estimator method, correlation handling and source provenance.
+
+Representative object fields after step 2:
+
+BaSICS:
+design=FACTORIAL
+unit_of_randomisation=INDIVIDUAL
+estimator_source=PUBLISHED_ADJUSTED
+correlation_handling.method=published_model
+correlation_handling.evidence includes adjusted HR span and no-significant-interaction span
+design_action.action=ALLOW_WITH_LABEL
+selected_estimator=published_adjusted
+
+SMART/SALT/SPLIT:
+design=CLUSTER_CROSSOVER
+unit_of_randomisation=CLUSTER
+estimator_source=RECONSTRUCTED
+correlation_handling.method=none
+design_action.action=REFUSE
+declared_absent state=REFUSED_ON_EVIDENCE
+
+Verification:
+`python scripts/build_topic.py balanced-crystalloids-vs-saline-mortality --now 2026-09-14`
+`python scripts/reproduce_review.py`

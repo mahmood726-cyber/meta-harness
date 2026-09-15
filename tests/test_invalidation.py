@@ -151,6 +151,17 @@ def test_known_eligible_missing_signal_is_stale():
     assert "PHILO" in v["reasons"][0]["detail"]
 
 
+def test_pooled_variance_unsupported_is_stale():
+    core = {"outcomes": [{"primary": True,
+                          "result": {"k": 1, "estimate": 0.9},
+                          "trials": [{"id": "PMID 29485925",
+                                      "derivation": "reconstructed",
+                                      "design": {"design": "CLUSTER_CROSSOVER"}}]}]}
+    v = INV.assess(core)
+    assert v["stale"] and any(r["code"] == "pooled_variance_unsupported" for r in v["reasons"])
+    assert "SMART" in " ".join(r["detail"] for r in v["reasons"])
+
+
 def test_ran_error_reason_suppressed_when_search_not_executed_fires():
     # The same fact must be stated once: RAN_ERROR is subsumed by search_not_executed.
     core = {"outcomes": [{"primary": True, "result": {"k": 2, "estimate": 0.8}}],

@@ -1,0 +1,27 @@
+# Typed design actions and BaSICS plant
+
+Defect class recorded in code and GATE_GAPS.md:
+DIAGNOSTIC–DECISION DECOUPLING — a validity hazard is correctly detected and represented, but its state is not causally connected to the analytic decision it should constrain. Plain alias: disclosure-as-control. Class PROCESS, direction optimistic, severity major-to-critical.
+
+Typed actions are exactly:
+ALLOW
+ALLOW_WITH_LABEL
+ADJUST
+MANUAL_REVIEW
+REFUSE
+
+Worked mapping implemented literally:
+cluster design + SE not design-adjusted -> REFUSE
+crossover + within-person correlation unknown -> REFUSE
+stepped-wedge + no design model -> REFUSE
+factorial + valid marginal effect + acceptable interaction -> ALLOW_WITH_LABEL
+published adjusted estimate available + raw reconstruction selected -> REFUSE when the estimand matches, or MANUAL_REVIEW when the published estimand differs from the declared one.
+
+BaSICS plant:
+Input object: factorial randomized trial, raw reconstructed mortality RR from 1381/5230 vs 1439/5290, source span carrying adjusted HR 0.97 [0.90-1.05], and committed abstract span "no significant interaction between the 2 interventions (fluid type and infusion speed; P = .98)".
+Prefix action: MANUAL_REVIEW, because the harness selected a raw reconstructed RR while a published adjusted HR was available.
+Post-action integration: the pipeline substitutes the source-reported adjusted HR, records `selected_estimator=published_adjusted`, carries `correlation_handling.method=published_model` with evidence spans, and maps the resulting factorial marginal effect to ALLOW_WITH_LABEL.
+
+Plant tests:
+tests/test_design_key.py::test_factorial_rr_keeps_reconstructed_estimand_and_records_adjusted_alternative
+tests/test_design_key.py::test_reconstructed_cluster_crossover_needs_refusal
