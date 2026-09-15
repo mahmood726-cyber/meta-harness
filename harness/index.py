@@ -279,7 +279,23 @@ def _gate_scorecard_section(docs_dir: str) -> str:
         )
     independence = s.get("adjudicator_independence")
     independence_text = "no adjudications" if independence is None else f"{float(independence):.3f}"
+    ov = s.get("overall_adjudication") or {}
+    def _pct(v):
+        return "not observed" if v is None else f"{100.0 * float(v):.0f}%"
+    coverage_line = (
+        "<p><strong>Adjudication coverage first, so the unresolved cannot disappear:</strong> "
+        f"<strong>{_E(ov.get('adjudicated'))} of {_E(ov.get('events'))}</strong> refusal events are adjudicated "
+        f"(<strong>{_E(_pct(ov.get('adjudication_coverage')))}</strong>); "
+        f"<strong>{_E(ov.get('independently_adjudicated'))} of {_E(ov.get('events'))}</strong> are independently adjudicated "
+        f"(<strong>{_E(_pct(ov.get('independent_adjudication_coverage')))}</strong>); over PRODUCTION refusals alone, "
+        f"<strong>{_E(ov.get('production_adjudicated'))} of {_E(ov.get('production_events'))}</strong> adjudicated "
+        f"({_E(_pct(ov.get('production_adjudication_coverage')))}) and "
+        f"<strong>{_E(ov.get('production_independently_adjudicated'))} of {_E(ov.get('production_events'))}</strong> independently "
+        f"({_E(_pct(ov.get('production_independent_adjudication_coverage')))}). No precision below is to be read as if the "
+        "unresolved remainder were not there; an UNRESOLVED event is neither a true nor a false refusal.</p>"
+    )
     return (f"<div class='banner'><h2>Gate scorecard: plant validations and production refusals</h2>"
+            + coverage_line +
             f"<p><strong>{_E(s.get('gate_count'))} production gates accounted for</strong>; "
             f"<strong>{_E(s.get('event_count'))}</strong> events; "
             f"<strong>{_E(s.get('plant_validation_count'))}</strong> adjudicated plant validations; "

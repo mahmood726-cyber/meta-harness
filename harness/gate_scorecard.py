@@ -1032,7 +1032,29 @@ def summary(root) -> dict[str, Any]:
         }
         for gid in sorted(entries)
     ]
+    # Overall adjudication coverage, rendered FIRST on every surface (auditor, 2026-09-15): the dashboard must
+    # not hide the unresolved. Coverage over all events, over PRODUCTION refusal events, and the independent
+    # (external-auditor) share -- a precision shown without these reads as if the unresolved had disappeared.
+    all_events = [e for entry in entries.values() for e in (entry.get("events") or []) if isinstance(e, dict)]
+    def _adjudicated(e):
+        return ((e.get("adjudication") or {}).get("verdict") or "UNRESOLVED") != "UNRESOLVED"
+    def _external(e):
+        return ((e.get("adjudication") or {}).get("adjudicated_by") or {}).get("kind") == "external_auditor"
+    production_events = [e for e in all_events if e.get("kind") == "PRODUCTION" and not e.get("status_gap")]
+    overall = {
+        "events": len(all_events),
+        "adjudicated": sum(1 for e in all_events if _adjudicated(e)),
+        "independently_adjudicated": sum(1 for e in all_events if _adjudicated(e) and _external(e)),
+        "production_events": len(production_events),
+        "production_adjudicated": sum(1 for e in production_events if _adjudicated(e)),
+        "production_independently_adjudicated": sum(1 for e in production_events if _adjudicated(e) and _external(e)),
+    }
+    overall["adjudication_coverage"] = None if not all_events else overall["adjudicated"] / len(all_events)
+    overall["independent_adjudication_coverage"] = None if not all_events else overall["independently_adjudicated"] / len(all_events)
+    overall["production_adjudication_coverage"] = None if not production_events else overall["production_adjudicated"] / len(production_events)
+    overall["production_independent_adjudication_coverage"] = None if not production_events else overall["production_independently_adjudicated"] / len(production_events)
     return {
+        "overall_adjudication": overall,
         "gate_count": len(entries),
         "plant_only_count": len(plant_only),
         "plant_only": plant_only,

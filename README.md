@@ -17,6 +17,25 @@ class and retracts any systematic-search claim. The 32 legacy topics are therefo
 the adversarial regression corpus, not a validation set; prospective validation is
 specified, not landed (`docs/PROSPECTIVE_VALIDATION_SPEC.md`).
 
+**Standing description (external auditor, 2026-09-15, adopted verbatim rather than
+softened).** A strong and repeatedly reconstructed statistical core; a rapidly improving
+assurance architecture; a legacy corpus providing essentially no valid evidence of
+autonomous search capability; and no production gate with independently adjudicated
+real-world effectiveness. The important change is not a new gate: it is that negative
+measurements are now allowed to stay negative — 0 of 32 autonomous search recovery,
+0 independently validated gate catches, 0 independently verified historical assurance
+claims, prospective validation reset. Those zeros are worth more than the 6/6 ever was.
+
+**Recomputability, stated as two claims (the auditor's permitted wording, not a
+paraphrase).** In internal corpus-wide checks all 32 pooled estimates are
+deterministically re-derivable from committed analysis inputs; this establishes
+conditional computational recomputability of the pooled calculations, not correctness or
+completeness of the evidence set; independent corpus-wide verification has not been
+performed (fix state LANDED / INTERNAL / CORPUS). Whether any published comparator offers
+equivalent recomputability is an external comparative claim with verification NONE — some
+published reviews release extraction data, code and supplements — and is being checked per
+comparator, not asserted.
+
 **What this is not.** It is **not** a claim of stronger evidence than the published
 comparators. The offer is **greater auditability**: every number traces to a
 committed source, every absence is *declared* rather than left blank, and any
