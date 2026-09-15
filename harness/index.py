@@ -262,6 +262,27 @@ def _search_recall_section(docs_dir: str) -> str:
     return out
 
 
+def _decoupling_universal_section(docs_dir: str) -> str:
+    """The headline finding of 2026-09-15, read from the generated capture so the count cannot be typed."""
+    path = os.path.join(docs_dir, "evidence", "decoupling-universal-2026-09-15", "01-per-topic-before.txt")
+    try:
+        text = open(path, encoding="utf-8").read()
+    except OSError:
+        return ""
+    m = re.search(r"RESULT: (\d+) of (\d+) topics", text)
+    if not m:
+        return ""
+    return (f"<div class='absent'><h2>Diagnostic-decision decoupling was universal, not an unlucky page</h2>"
+            f"<p><strong>{_E(m.group(1))} of {_E(m.group(2))} topics</strong> carried at least one detected, rendered hazard that "
+            "was routed to the reader and to no analytic decision, before any consumer was wired (the auditor's mechanism, "
+            "disclosure-as-control: a validity hazard correctly detected and represented, but not causally connected to the "
+            "decision it should constrain). Crystalloids was the instance; the corpus state was the rule. Since then the "
+            "retrieval-class, search-provenance and enumeration hazards feed <code>invalidation.assess</code>; ROB_SENSITIVITY and "
+            "DEFINITION_AUDIT are acknowledged as <strong>owed a consumer</strong>, not as informational; the rest are acknowledged "
+            "as informational after reading. A signed acknowledgement is not a wiring. Per-topic names: "
+            "<a href='evidence/decoupling-universal-2026-09-15/'>decoupling-universal-2026-09-15</a>.</p></div>")
+
+
 def _external_findings_section(docs_dir: str) -> str:
     """Findings about published comparators, rendered from the fix ledger under the auditor's heading. Every
     one is a hypothesis with verification NONE; the count is never a comparison with our own column."""
@@ -1233,7 +1254,7 @@ def build_index(docs_dir: str) -> str:
                  "The orthogonal fix ledger for every claim is in <a href='fix_ledger.json'>fix_ledger.json</a>; the gate scorecard in "
                  "<a href='gate_scorecard.json'>gate_scorecard.json</a>; the per-file digests of this deployment in "
                  "<a href='_production/manifest.json'>_production/manifest.json</a>.</p></div>")
-    body = (_evidence + _external_findings_section(docs_dir) + _thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
+    body = (_evidence + _decoupling_universal_section(docs_dir) + _external_findings_section(docs_dir) + _thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
             + _currency_section(docs_dir) + _recovery_section(docs_dir)
             + _participant_flow_section(docs_dir) + _iv_iron_strands_section(docs_dir)
             + _search_recall_section(docs_dir)

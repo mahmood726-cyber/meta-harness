@@ -1,6 +1,6 @@
 # LANE AE Report
 
-Base commit: `41a466fb35bdc470d73c479e878bbbc9f0979f9a`
+Base commit: `9f541ddebbea9deca21d851222f24cc8f96a1e8b`
 
 | Topic | Comparator PMID | THEIRS defects | OURS defects | Full text obtained / effect rows parsed | characteristics table parsed (rows) | THEIRS checks assessable | Comparator effect inputs exposed |
 | --- | ---: | ---: | ---: | --- | ---: | --- | --- |

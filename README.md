@@ -26,6 +26,11 @@ measurements are now allowed to stay negative — 0 of 32 autonomous search reco
 0 independently validated gate catches, 0 independently verified historical assurance
 claims, prospective validation reset. Those zeros are worth more than the 6/6 ever was.
 
+**Headline finding (2026-09-15).** Diagnostic-decision decoupling was universal: 32 of 32
+topics carried at least one detected, rendered hazard routed to the reader and to no analytic
+decision before any consumer was wired (`docs/evidence/decoupling-universal-2026-09-15/`).
+Crystalloids was the instance; the corpus state was the rule.
+
 **Recomputability, stated as two claims (the auditor's permitted wording, not a
 paraphrase).** In internal corpus-wide checks all 32 pooled estimates are
 deterministically re-derivable from committed analysis inputs; this establishes
