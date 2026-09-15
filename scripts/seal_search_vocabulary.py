@@ -13,11 +13,12 @@ refuses the suite. Re-sealing is therefore an explicit, named commit.
 BENCHMARK-ACRONYM COLLISION CHECK lives HERE, not in the engine: harness/ query builders must never open the
 benchmark (tests/test_search_benchmark_isolation.py). At seal time every vocabulary term is compared (lower-cased,
 whole term) with the registered acronym of every benchmark positive that can be resolved -- the CT.gov `acronym`
-field of a cached record sharing the positive's NCT or PMID, or an acronym-shaped `trial` name. A collision is
+field of a cached record sharing the positive's NCT, a PMID linked to that NCT by cached PubMed records, or an
+acronym-shaped `trial` name. A collision is
 recorded in the seal row and harness/search_v2 then grants that slug NO exemption. Coverage is reported n of N;
 positives with no resolvable acronym are NOT covered by this check and the seal says so.
 
-Usage: python scripts/seal_search_vocabulary.py --at <commit> [--out registry/search_vocabulary_seal.json]
+Usage: python scripts/seal_search_vocabulary.py --at <commit> [--out registry/search_vocabulary_seal.json] [--records-root <root>]
        python scripts/seal_search_vocabulary.py --check      (working tree vs seal; exit 1 on any drift)
 """
 from __future__ import annotations
@@ -51,9 +52,20 @@ def _acronym_shaped(name) -> bool:
     return 0 < len(text) <= 20 and text.upper() == text and " " not in text and not any(c.isdigit() for c in text)
 
 
-def _cached_records() -> list[str]:
+def _normalise_nct(value) -> str:
+    text = str(value or "").strip().upper()
+    return text if text.startswith("NCT") and len(text) == 11 and text[3:].isdigit() else ""
+
+
+def _normalise_pmid(value) -> str:
+    text = str(value or "").strip()
+    return text if text.isdigit() else ""
+
+
+def _cached_records(records_root: str | None = None) -> list[str]:
     paths = []
-    cache_root = os.path.join(ROOT, "cache")
+    base = os.path.abspath(records_root) if records_root else ROOT
+    cache_root = os.path.join(base, "cache")
     if not os.path.isdir(cache_root):
         return paths
     for slug in sorted(os.listdir(cache_root)):
@@ -69,24 +81,31 @@ def _cached_records() -> list[str]:
     return paths
 
 
-def benchmark_acronyms(benchmark_path: str = BENCHMARK, record_paths: list[str] | None = None) -> dict:
+def benchmark_acronyms(
+    benchmark_path: str = BENCHMARK,
+    record_paths: list[str] | None = None,
+    records_root: str | None = None,
+) -> dict:
     """Registered acronyms of benchmark positives -> {acronym_lower: [slug:trial, ...]}, with coverage n of N."""
     by_nct: dict[str, str] = {}
     by_pmid: dict[str, str] = {}
-    for path in (record_paths if record_paths is not None else _cached_records()):
+    pmid_to_nct: dict[str, str] = {}
+    for path in (record_paths if record_paths is not None else _cached_records(records_root)):
         try:
             payload = json.load(open(path, encoding="utf-8"))
         except (OSError, ValueError):
             continue
         for rec in (payload.get("records") if isinstance(payload, dict) else payload) or []:
+            nct = _normalise_nct(rec.get("nct"))
+            pmid = _normalise_pmid(rec.get("pmid") or rec.get("id"))
+            if pmid and nct:
+                pmid_to_nct.setdefault(pmid, nct)
             acronym = str(rec.get("acronym") or "").strip()
             if not acronym:
                 continue
-            nct = str(rec.get("nct") or "").strip().upper()
             if nct:
                 by_nct.setdefault(nct, acronym)
-            pmid = str(rec.get("pmid") or rec.get("id") or "").strip()
-            if pmid.isdigit():
+            if pmid:
                 by_pmid.setdefault(pmid, acronym)
     topics = (json.load(open(benchmark_path, encoding="utf-8")).get("topics") or {}) if os.path.exists(benchmark_path) else {}
     resolved: dict[str, list[str]] = {}
@@ -99,7 +118,9 @@ def benchmark_acronyms(benchmark_path: str = BENCHMARK, record_paths: list[str] 
             if nct:
                 acronym = by_nct.get(nct)
             if not acronym and pos.get("pmid"):
-                acronym = by_pmid.get(str(pos["pmid"]))
+                pmid = _normalise_pmid(pos.get("pmid"))
+                linked_nct = pmid_to_nct.get(pmid)
+                acronym = by_pmid.get(pmid) or (by_nct.get(linked_nct) if linked_nct else None)
             if not acronym and _acronym_shaped(pos.get("trial")):
                 acronym = str(pos["trial"]).strip()
             if acronym:
@@ -120,10 +141,10 @@ def collision_row(cfg: dict, bench: dict) -> dict:
             "collisions": hits}
 
 
-def seal(commit: str, out: str) -> dict:
+def seal(commit: str, out: str, records_root: str | None = None) -> dict:
     split = json.load(open(SPLIT, encoding="utf-8"))
     full = subprocess.check_output(["git", "-C", ROOT, "rev-parse", commit], text=True).strip()
-    bench = benchmark_acronyms()
+    bench = benchmark_acronyms(records_root=records_root)
     rows = {}
     for slug, assignment in sorted((split.get("assignments") or {}).items()):
         rel = f"topics/{slug}.json"
@@ -185,13 +206,14 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--at", help="commit to seal from")
     ap.add_argument("--out", default=OUT)
+    ap.add_argument("--records-root", help="root containing cache/*/records.json and cache/*/snapshots/*-search_v2/records.json")
     ap.add_argument("--check", action="store_true")
     args = ap.parse_args(argv)
     if args.check:
         return check()
     if not args.at:
         ap.error("--at <commit> or --check")
-    payload = seal(args.at, args.out)
+    payload = seal(args.at, args.out, records_root=args.records_root)
     print(f"sealed {len(payload['slugs'])} slugs from {payload['sealed_from_commit']} -> {args.out}; "
           f"{payload['benchmark_acronym_registry']['coverage_text']}")
     return 0

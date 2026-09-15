@@ -91,7 +91,9 @@ def test_missing_measurement_topic_is_counted_not_run_and_named(tmp_path):
     def mutate(c):
         del c["topics"]["b"]
     ok, detail = sc.check(_fixture(tmp_path, mutate=mutate))
-    assert ok and "NOT_RUN 1 of 2 (b)" in detail
+    assert not ok
+    assert "MEASUREMENT topics NOT_RUN: b" in detail
+    assert "NOT_RUN 1 of 2 (b)" in detail
 
 
 def test_register_measured_on_another_engine_refuses(tmp_path):

@@ -72,6 +72,46 @@ def test_p2_benchmark_acronym_in_vocabulary_is_caught_at_seal_time_and_gets_no_e
     assert "NAME_SEEDED" in str(exc.value) and "FISSH" in str(exc.value)
 
 
+def test_benchmark_acronym_resolves_pmid_through_cached_pubmed_nct(tmp_path):
+    bench_path = tmp_path / "search_benchmark.json"
+    bench_path.write_text(
+        json.dumps({"topics": {"plant": {"positives": [{"trial": "positive", "pmid": "12345", "nct": None}]}}}),
+        encoding="utf-8",
+    )
+    records_path = tmp_path / "records.json"
+    records_path.write_text(
+        json.dumps({"records": [
+            {"id": "12345", "id_type": "pmid", "pmid": "12345", "nct": "NCT00000001"},
+            {"id": "NCT00000001", "id_type": "nct", "nct": "NCT00000001", "acronym": "FOURIER"},
+        ]}),
+        encoding="utf-8",
+    )
+
+    bench = sealer.benchmark_acronyms(str(bench_path), record_paths=[str(records_path)])
+
+    assert bench["coverage_text"] == "1 of 1 benchmark positives have a resolvable registered acronym"
+    assert bench["acronyms"]["fourier"] == ["plant:positive"]
+
+
+def test_benchmark_acronyms_can_discover_records_from_root_override(tmp_path):
+    bench_path = tmp_path / "search_benchmark.json"
+    bench_path.write_text(
+        json.dumps({"topics": {"plant": {"positives": [{"trial": "positive", "pmid": None, "nct": "NCT00000002"}]}}}),
+        encoding="utf-8",
+    )
+    records_dir = tmp_path / "cache" / "plant" / "snapshots" / "2026-09-15r2-search_v2"
+    records_dir.mkdir(parents=True)
+    (records_dir / "records.json").write_text(
+        json.dumps({"records": [{"id": "NCT00000002", "id_type": "nct", "nct": "NCT00000002", "acronym": "ROOTMAP"}]}),
+        encoding="utf-8",
+    )
+
+    bench = sealer.benchmark_acronyms(str(bench_path), records_root=str(tmp_path))
+
+    assert bench["coverage_text"] == "1 of 1 benchmark positives have a resolvable registered acronym"
+    assert bench["acronyms"]["rootmap"] == ["plant:positive"]
+
+
 def test_p3_unsealed_vocabulary_gets_no_exemption(monkeypatch):
     cfg = {
         "intervention_agents": {"drug": ["drug", "QZXV-77"]},

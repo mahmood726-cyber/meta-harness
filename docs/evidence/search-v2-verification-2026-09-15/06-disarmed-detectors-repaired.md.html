@@ -1,0 +1,170 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>06-disarmed-detectors-repaired.md (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>06-disarmed-detectors-repaired.md</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/search-v2-verification-2026-09-15/06-disarmed-detectors-repaired.md</code>; its SHA-256 is <code>2fbbdc13aa33f41bcb780084896b580ab5cbeceb4f39cbf528cb1eb3a1056071</code> (7,132 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> Lane Q: NOT_RUN in a published measurement now refuses; the sealer resolves acronyms PMID-&gt;NCT-&gt;acronym (99 of 278, was 11); both of lane P&#x27;s non-firing plants fire post-fix; 0 of 32 collisions after re-seal.</p><pre>Q VERDICT: D3i post-fix FIRED; real gate PASS; acronym coverage 99 of 278 (was 11); D1c post-fix FIRED; collisions 0 of 32
+
+Diff stat:
+
+```text
+harness/search_completeness.py       |   2 +
+registry/search_vocabulary_seal.json | 222 ++++++++++++++++++++++++-----------
+scripts/seal_search_vocabulary.py    |  48 ++++++--
+tests/test_search_completeness.py    |   4 +-
+tests/test_search_v2_guard.py        |  40 +++++++
+5 files changed, 234 insertions(+), 82 deletions(-)
+```
+
+Post-fix artefacts:
+
+- `lane_q/01-d3i-postfix.txt`: D3i post-fix FIRED; deleting one MEASUREMENT topic now refuses and names `colchicine-postop-af` as NOT_RUN.
+- `lane_q/02-real-gate.txt`: real registry PASS; all 21 MEASUREMENT topics are present with NOT_RUN 0 of 21.
+- `lane_q/03-d1c-postfix.txt`: D1c post-fix FIRED; `FOURIER` resolves to a benchmark acronym collision and the query is refused as NAME_SEEDED.
+
+Acronym coverage:
+
+- Committed seal via `--records-root C:/meta-harness`: 99 of 278 benchmark positives have a resolvable registered acronym.
+- Explicit r2 snapshot check via `record_paths=`: 97 of 278 benchmark positives have a resolvable registered acronym.
+- Sealer check: `SEAL OK: 32 of 32 sealed vocabularies match the working tree, 0 of 32 collide`.
+
+Newly resolved unique acronyms in the committed seal (86):
+
+```text
+affirm-ahf
+amplitude-o
+aristotle
+arts-dn
+ascend
+basics
+canvas
+cape_cod
+cocs
+codex
+colchicine-pci
+colcot
+coloct
+confirm-hf
+copps-2
+corimuno-toc
+corp
+corp 2
+covacta
+covert-mi
+covid steroid
+credence
+dapa-ckd
+dapa-hf
+declare-timi58
+deliver
+do-health
+effect-hf
+ekstrom
+elixa
+empa-heart
+empacta
+emphasis-hf
+empire hf
+end-afld
+engageaftimi48
+escape
+examine
+fair-hf
+fair-hf2
+fidelio-dkd
+figaro-dkd
+fourier
+heart-fid
+ironman
+leader\u00ae
+metcovid
+omega
+origin
+ovidius
+paradigm-hf
+pearl
+pioneer 6
+plato
+plus
+preserved-hf
+re-cover i
+re-cover ii
+recovery
+reduce-it
+remap-cap
+rewind
+sacbo
+salt
+savor- timi 53
+select
+semalco
+simple
+smart-med
+spaada
+staree
+step
+step 1
+step 3
+step 6
+step hfpef dm
+step12
+step7
+strength
+sustain\u2122 6
+tecos
+tocibras
+traces
+transform-2
+vital
+woman
+```
+
+Finish-condition tests:
+
+```text
+python -m pytest tests/test_search_completeness.py tests/test_search_v2_guard.py tests/test_search_benchmark_isolation.py -q
+27 passed in 5.74s
+```
+
+Commands run:
+
+```text
+Get-Content -Raw -LiteralPath .\LANE_PROMPT.md
+Get-Content -Raw -LiteralPath F:\ProjectIndex\INDEX.md
+Get-Content -Raw -LiteralPath F:\E156\rewrite-workbook.txt
+git status --short
+Get-Content -Raw -LiteralPath .\harness\search_completeness.py
+Get-Content -Raw -LiteralPath .\scripts\seal_search_vocabulary.py
+Get-Content -Raw -LiteralPath .\tests\test_search_completeness.py
+Get-Content -Raw -LiteralPath .\tests\test_search_v2_guard.py
+Get-Content -Raw -LiteralPath .\tests\test_search_benchmark_isolation.py
+Get-Content -Raw -LiteralPath C:\meta-harness\outputs\search_v2\lanes\P\lane_p\plants.txt
+Get-Content -Raw -LiteralPath .\registry\search_completeness.json
+Get-Content -Raw -LiteralPath .\registry\search_benchmark_split.json
+Get-Content -Raw -LiteralPath .\harness\search_v2.py
+Get-Content -Raw -LiteralPath .\registry\search_vocabulary_seal.json
+rg --files C:\meta-harness\cache -g records.json
+Get-Content -Raw -LiteralPath .\registry\search_benchmark.json
+rg &quot;benchmark_acronyms|records-root|search_vocabulary&quot; -n .
+rg &quot;def _normalise_nct|def _normalise_pmid|acronym&quot; -n harness scripts tests
+Get-ChildItem -Path C:\meta-harness\cache -Directory | ForEach-Object { $p = Join-Path $_.FullName &#x27;snapshots\2026-09-15r2-search_v2\records.json&#x27;; if (Test-Path -LiteralPath $p) { $p } }
+python -m pytest tests/test_search_completeness.py tests/test_search_v2_guard.py tests/test_search_benchmark_isolation.py -q
+python -c &quot;from scripts import seal_search_vocabulary as s; import glob; paths=glob.glob(r&#x27;C:/meta-harness/cache/*/snapshots/2026-09-15r2-search_v2/records.json&#x27;); b=s.benchmark_acronyms(record_paths=paths); print(b[&#x27;coverage_text&#x27;]); print(&#x27;\n&#x27;.join(sorted(b[&#x27;acronyms&#x27;])))&quot;
+python scripts/seal_search_vocabulary.py --at 41a466fb --records-root C:/meta-harness
+python scripts/seal_search_vocabulary.py --check
+python -c &quot;import json; p=json.load(open(&#x27;outputs/search_v2/candidates-2026-09-15r3-all.json&#x27;, encoding=&#x27;utf-8&#x27;)); print(type(p[&#x27;topics&#x27;]).__name__, len(p[&#x27;topics&#x27;])); print(list(p[&#x27;topics&#x27;])[:5]); print(p[&#x27;topics&#x27;][list(p[&#x27;topics&#x27;])[0]].keys())&quot;
+python -c &quot;from harness import search_completeness as s; print(s.check(&#x27;.&#x27;))&quot;
+python -c &quot;import json; cfg=json.load(open(&#x27;topics/pcsk9-mace.json&#x27;, encoding=&#x27;utf-8&#x27;)); print(cfg)&quot;
+Get-Content -Path .\harness\pipeline.py -TotalCount 230
+python -c &quot;import json, glob; from scripts import seal_search_vocabulary as s; old=json.load(open(&#x27;registry/search_vocabulary_seal.json&#x27;, encoding=&#x27;utf-8&#x27;)); print(old[&#x27;benchmark_acronym_registry&#x27;][&#x27;coverage_text&#x27;]); print(&#x27;\n&#x27;.join(old[&#x27;benchmark_acronym_registry&#x27;][&#x27;acronyms&#x27;]))&quot;
+git diff -- harness/search_completeness.py tests/test_search_completeness.py scripts/seal_search_vocabulary.py tests/test_search_v2_guard.py registry/search_vocabulary_seal.json
+python -c &quot;import json, subprocess; old=json.loads(subprocess.check_output([&#x27;git&#x27;,&#x27;show&#x27;,&#x27;HEAD:registry/search_vocabulary_seal.json&#x27;], text=True, encoding=&#x27;utf-8&#x27;)); new=json.load(open(&#x27;registry/search_vocabulary_seal.json&#x27;, encoding=&#x27;utf-8&#x27;)); added=sorted(set(new[&#x27;benchmark_acronym_registry&#x27;][&#x27;acronyms&#x27;])-set(old[&#x27;benchmark_acronym_registry&#x27;][&#x27;acronyms&#x27;])); print(len(added)); print(json.dumps(added, ensure_ascii=True, indent=2))&quot;
+python -c &quot;import glob, json; from scripts import seal_search_vocabulary as s; old=json.loads(__import__(&#x27;subprocess&#x27;).check_output([&#x27;git&#x27;,&#x27;show&#x27;,&#x27;HEAD:registry/search_vocabulary_seal.json&#x27;], text=True, encoding=&#x27;utf-8&#x27;)); paths=glob.glob(r&#x27;C:/meta-harness/cache/*/snapshots/2026-09-15r2-search_v2/records.json&#x27;); b=s.benchmark_acronyms(record_paths=paths); added=sorted(set(b[&#x27;acronyms&#x27;])-set(old[&#x27;benchmark_acronym_registry&#x27;][&#x27;acronyms&#x27;])); print(b[&#x27;coverage_text&#x27;]); print(len(added)); print(json.dumps(added, ensure_ascii=True, indent=2))&quot;
+git diff --stat
+New-Item -ItemType Directory -Force -Path .\lane_q | Out-Null; attempted python -c D3i capture script (failed before execution because PowerShell stripped Python quotes)
+New-Item -ItemType Directory -Force -Path .\lane_q | Out-Null; $code | python -; wrote lane_q\01-d3i-postfix.txt
+New-Item -ItemType Directory -Force -Path .\lane_q | Out-Null; python -c &quot;from harness import search_completeness as s; print(s.check(&#x27;.&#x27;))&quot;; wrote lane_q\02-real-gate.txt
+New-Item -ItemType Directory -Force -Path .\lane_q | Out-Null; $code | python -; wrote lane_q\03-d1c-postfix.txt
+python -m pytest tests/test_search_completeness.py tests/test_search_v2_guard.py tests/test_search_benchmark_isolation.py -q
+Get-Content -Raw -LiteralPath .\lane_q\01-d3i-postfix.txt
+Get-Content -Raw -LiteralPath .\lane_q\02-real-gate.txt
+Get-Content -Raw -LiteralPath .\lane_q\03-d1c-postfix.txt
+git status --short
+git diff --check -- harness/search_completeness.py scripts/seal_search_vocabulary.py tests/test_search_completeness.py tests/test_search_v2_guard.py registry/search_vocabulary_seal.json
+```
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

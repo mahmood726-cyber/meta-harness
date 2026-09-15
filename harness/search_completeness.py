@@ -111,6 +111,8 @@ def check(root: str | os.PathLike[str]) -> tuple[bool, str]:
             problems.append(f"{slug}: {n_err} sources RAN_ERROR but topic state RAN_OK (source errors folded)")
         if not n_err and state == "RAN_OK_WITH_SOURCE_ERRORS":
             problems.append(f"{slug}: topic state RAN_OK_WITH_SOURCE_ERRORS but no source RAN_ERROR")
+    if counts["NOT_RUN"]:
+        problems.append(f"MEASUREMENT topics NOT_RUN: {', '.join(named['NOT_RUN'])}")
     # 4. published
     if register_rel:
         rp = root / register_rel

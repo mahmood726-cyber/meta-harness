@@ -1,0 +1,166 @@
+N VERDICT: 49 rows; omitted_because REGISTRY_ONLY_DROPPED 1, NCT_SHARED_WITH_ACCOUNTED 48, DOI_ONLY 0, LANE_MISS 0, OTHER 0; verdicts ELIGIBLE_RCT 0, ELIGIBLE_RCT_NO_PRIMARY 0, NOT_RCT 0, WRONG_* 0, DUPLICATE_OF_ACCOUNTED 0, UNDECIDABLE 0, REGISTRY_ONLY 49
+
+## Measured Population
+- omitted_rows.json rows measured: 49.
+- id_type counts: nct 49; blank PMID 49; blank DOI 49.
+- The source file stated 49 rows and the measured count was 49.
+
+## Per Topic
+- balanced-crystalloids-vs-saline-mortality: rows 1; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 1; verdict REGISTRY_ONLY 1, UNDECIDABLE 0.
+  - NCT07189091: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=RECRUITING; conditions=Critical Care, Intensive Care, Fluid Accumulation, Fluid and Electrolyte Imbalance, Critical Illness, +1 more; interventions=Glucose 5% for fluid creep, NaCl 0.9% (normal saline) for fluid creep, PlasmaLyte as maintenance fluid, NaCl 0.3% in glucose 3.3%..."; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as CRUSADERS (Mortality). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- colchicine-postop-af: rows 2; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 2; verdict REGISTRY_ONLY 2, UNDECIDABLE 0.
+  - NCT07287345: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=RECRUITING; conditions=Colchicine, Inflammation in Cardiac Surgery, Post Operative Atrial Fibrillation, Inflammatory Markers, +1 more; interventions=Colchicine (Colcrys®), Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT07287345 (Postoperative atrial fibrillation). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT07611019: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=ENROLLING_BY_INVITATION; conditions=Post-Operative Atrial Fibrillation After Coronary Artery Bypass Grafting (CABG); interventions=Colchicine 0.5 MG oral tablet twice daily, Placebo Oral Tablet"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT07611019 (Postoperative atrial fibrillation). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- colchicine-secondary-cv-prevention: rows 9; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 9; verdict REGISTRY_ONLY 9, UNDECIDABLE 0.
+  - NCT00754819: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Acute Coronary Syndrome; interventions=Colchicine, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as COOL (Major adverse cardiovascular events). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT01709981: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Coronary Artery Disease; interventions=Colchicine, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT01709981 (Major adverse cardiovascular events). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT03376698: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Colchicine, Diabetes Mellitus, Type 2, Coronary Artery Disease, White Blood Cell, +2 more; interventions=Colchicine 0.5 mg, Colchicine 0.25 mg, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as DRC-04 (Major adverse cardiovascular events). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT04139655: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=WITHDRAWN; conditions=Myocardial Infarction, Myocardial Injury, Major Adverse Cardiac Events, Infectious Complications; interventions=Colchicine 0.6 mg, Placebo oral tablet"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as COPMAN (Major adverse cardiovascular events). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT05739929: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=UNKNOWN; conditions=Coronary Artery Disease; interventions=Colchicine 0.5 MG Oral Tablet, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT05739929 (Major adverse cardiovascular events). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT05850091: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=ACTIVE_NOT_RECRUITING; conditions=Coronary Artery Disease; interventions=Rosuvastatin, Colchicine, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as PROACT 2 (Major adverse cardiovascular events). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT06215989: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=RECRUITING; conditions=Acute Coronary Syndrome, Unstable Angina, ST Elevation Myocardial Infarction, Non ST Segment Elevation Myocardial Infarction, +1 more; interventions=Colchicine Pill, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT06215989 (Major adverse cardiovascular events). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT07143136: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=RECRUITING; conditions=Non ST-Segment Elevation Myocardial Infarction; interventions=Colchicine, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT07143136 (Major adverse cardiovascular events). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT07704164: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=RECRUITING; conditions=HIV Infection, Cardiovascular Diseases (CVD); interventions=Colchicine 0.5 mg, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as COLCOHIV (Major adverse cardiovascular events). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- corticosteroids-covid19-mortality: rows 1; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 1; verdict REGISTRY_ONLY 1, UNDECIDABLE 0.
+  - NCT04561180: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=WITHDRAWN; conditions=COVID-19 Pneumonia; interventions=EG-009A, EG-009A Placebo, Standard of Care, Dexamethasone"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT04561180 (28-day all-cause mortality). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- dapagliflozin-hfpef-hosp: rows 2; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 2; verdict REGISTRY_ONLY 2, UNDECIDABLE 0.
+  - NCT03877224: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Heart Failure With Preserved Ejection Fraction (HFpEF); interventions=Dapagliflozin, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT03877224 (Composite cardiovascular death or worsening heart failure). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT04475042: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=UNKNOWN; conditions=Heart Failure, Diastolic; interventions=Dapagliflozin, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as STADIA-HFpEF (Composite cardiovascular death or worsening heart failure). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- empagliflozin-hfpef-hosp: rows 3; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 3; verdict REGISTRY_ONLY 3, UNDECIDABLE 0.
+  - NCT03448406: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Heart Failure; interventions=Empagliflozin, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT03448406 (Composite cardiovascular death or worsening heart failure). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT05138575: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=RECRUITING; conditions=Heart Failure With Preserved Ejection Fraction; interventions=Empagliflozin + Potassium Chloride, Empagliflozin + Potassium Nitrate, Potassium Chloride + Placebo for Empagliflozin"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as SAK (Composite cardiovascular death or worsening heart failure). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT06249945: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=RECRUITING; conditions=Heart Failure With Preserved Ejection Fraction, End Stage Renal Disease on Dialysis; interventions=Empagliflozin 25 MG, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as EMPA-PRED (Composite cardiovascular death or worsening heart failure). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- esketamine-trd-madrs: rows 1; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 1; verdict REGISTRY_ONLY 1, UNDECIDABLE 0.
+  - NCT02422186: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Depressive Disorder, Treatment-Resistant; interventions=Esketamine, Placebo, Duloxetine (Oral Antidepressant), Escitalopram (Oral Antidepressant), Sertraline (Oral Antidepressant), +1 more"; note=Omitted because this NCT is already represented in the primary outcome trials as TRANSFORM-3 (Change in MADRS). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- finerenone-ckd-t2d-renal: rows 3; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 3; verdict REGISTRY_ONLY 3, UNDECIDABLE 0.
+  - NCT01968668: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Diabetic Nephropathies; interventions=BAY94-8862, Placebo, BAY 94-8862"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT01968668 (Kidney composite outcome). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT07026539: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=RECRUITING; conditions=Type 2 Diabetes Mellitus (T2DM), Chronic Kidney Disease Due to Type 2 Diabetes Mellitus, Cardiovascular Diseases; interventions=Finerenone (BAY 94-8862), Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as FineCaRe (Kidney composite outcome). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT07775846: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=NOT_YET_RECRUITING; conditions=Type 2 Diabetic Kidney Disease; interventions=empagliflozin, Finerenone, Mazdutide, Finerenone Placebo, Mazdutide Placebo, +1 more"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT07775846 (Kidney composite outcome). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- melatonin-primary-insomnia-sol: rows 1; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 1; verdict REGISTRY_ONLY 1, UNDECIDABLE 0.
+  - NCT00816673: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Primary Insomnia; interventions=placebo Circadin, Circadin"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as Neu I (Sleep-onset latency). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- noac-vs-warfarin-af-stroke: rows 6; omitted_because REGISTRY_ONLY_DROPPED 1, NCT_SHARED_WITH_ACCOUNTED 5; verdict REGISTRY_ONLY 6, UNDECIDABLE 0.
+  - NCT00504556: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Atrial Fibrillation, Thromboembolism; interventions=Edoxaban (DU-176b), warfarin"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT00504556 (Stroke or systemic embolism). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT00806624: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Atrial Fibrillation, Stroke; interventions=DU-176b tablets, Warfarin tablets"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT00806624 (Stroke or systemic embolism). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT00829933: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Atrial Fibrillation; interventions=DU-176b tablets, Warfarin potassium tablets"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT00829933 (Stroke or systemic embolism). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT02935855: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Diabetes; interventions=Dabigatran, Apixaban, Rivaroxaban, Edoxaban, Warfarin, +1 more"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as ORGANON (Stroke or systemic embolism). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT03153150: REGISTRY_ONLY_DROPPED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Intracranial Hemorrhages, Intracranial Hemorrhage, Hypertensive, Subarachnoid Hemorrhage, Subdural Hematoma, +5 more; interventions=Apixaban, Rivaroxaban, Edoxaban, Dabigatran, Acenocoumarol, +2 more"; note=Omitted because the r2 include is an NCT-only registry row with id_type=nct and blank PMID/DOI, and no primary-outcome accounted trial shares this NCT. Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT05006287: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=UNKNOWN; conditions=Atrial Fibrillation; interventions=Non-vitamin K oral anticoagulants (NOACs), Warfarin"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT05006287 (Stroke or systemic embolism). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- omega3-cardiovascular-events: rows 3; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 3; verdict REGISTRY_ONLY 3, UNDECIDABLE 0.
+  - NCT01048502: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Cardiovascular Disease; interventions=Fenofibrate (Tricor) tablets, Placebo, Lovaza"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as FFAME (Major vascular events / MACE). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT01630213: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Cardiovascular Disease; interventions=Vitamin D3 + fish oil/fish oil placebo, Vitamin D3 placebo + fish oil/fish oil placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as VITAL-Echo (Major vascular events / MACE). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT06720662: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=NOT_YET_RECRUITING; conditions=Atherosclerosis Cardiovascular Disease; interventions=Icosapent-ethyl ester capsules, Corn oil Control"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT06720662 (Major vascular events / MACE). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- probiotics-aad-prevention: rows 2; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 2; verdict REGISTRY_ONLY 2, UNDECIDABLE 0.
+  - NCT02993419: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=UNKNOWN; conditions=Antibiotic-associated Diarrhea; interventions=Bacillus licheniformis Intervention, placebo Intervention"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT02993419 (Antibiotic-associated diarrhoea). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT03516409: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=UNKNOWN; conditions=Acute Otitis Media; interventions=Biokult, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT03516409 (Antibiotic-associated diarrhoea). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- sacubitril-valsartan-hfref: rows 3; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 3; verdict REGISTRY_ONLY 3, UNDECIDABLE 0.
+  - NCT02468232: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Heart Failure With Reduced Ejection Fraction (HF-rEF); interventions=LCZ696, Enalapril, Placebo to LCZ696, Placebo to Enalapril"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as PARALLEL-HF (Composite cardiovascular death or heart-failure hospitalization). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT02900378: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Chronic Heart Failure With Reduced Ejection Fraction; interventions=LCZ696 (Sacubitril/Valsartan), Placebo of LCZ696 (Sacubitril/Valsartan), Enalapril, Placebo of Enalapril"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as OUTSTEP-HF (Composite cardiovascular death or heart-failure hospitalization). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT05487261: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=UNKNOWN; conditions=Heart Failure; interventions=Sacubitril-valsartan, Enalapril, placebo, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as PRESENT-HF (Composite cardiovascular death or heart-failure hospitalization). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- semaglutide-obesity-weight: rows 2; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 2; verdict REGISTRY_ONLY 2, UNDECIDABLE 0.
+  - NCT06390501: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Obesity; Drug; interventions=Semaglutide, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT06390501 (Percent change in body weight). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT07731256: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=NOT_YET_RECRUITING; conditions=Lower Back Pain, Obesity (BMI>30), Chronic Lower Back Pain, glp1 Agonist; interventions=Semaglutide (administered by PDS290 pen-injector), Placebo (administered by PDS290 pen-injector)"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT07731256 (Percent change in body weight). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- sglt2-ckd-progression: rows 4; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 4; verdict REGISTRY_ONLY 4, UNDECIDABLE 0.
+  - NCT05614115: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=End-stage Kidney Disease, Kidney Disease, Chronic, Dialysis, Diabetic, +4 more; interventions=Empagliflozin, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT05614115 (CKD progression / kidney composite outcome). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT05884866: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Chronic Renal Failure, Mechanistic Effects of SGLT2 Inhibition and/ or MR Antagonism on Body Fluid and Electrolyte Homeostatis, Chronic Kidney Disease Stage 3, Electrolyte and Fluid Balance Conditions; interventions=Dapagliflozin 10mg Tab, Balcinrenone 50m..."; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as DapaBalci-Leap (CKD progression / kidney composite outcome). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT07060417: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=NOT_YET_RECRUITING; conditions=Non-diabetic Chronic Kidney Disease; interventions=Empagliflozin, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as EMPA-CKD (CKD progression / kidney composite outcome). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT07344922: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Chronic Kidney Disease, Anemia, Cardiovascular Calcification; interventions=Dapagliflozin (10Mg Tab) along with standard medical therapy, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT07344922 (CKD progression / kidney composite outcome). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- sglt2-hfref-hosp-cvdeath: rows 1; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 1; verdict REGISTRY_ONLY 1, UNDECIDABLE 0.
+  - NCT06229678: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=RECRUITING; conditions=Type2diabetes, Heart Failure With Reduced Ejection Fraction; interventions=Empagliflozin 25 MG Oral Tablet, Placebo, Acipimox 250 Mg Oral Capsule"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT06229678 (Composite cardiovascular death or hospitalisation for heart failure). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- sglt2-primary-prevention-hf: rows 1; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 1; verdict REGISTRY_ONLY 1, UNDECIDABLE 0.
+  - NCT02796170: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Type 2 Diabetes, Hypertension; interventions=Dapagliflozin, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NCT02796170 (Hospitalization for heart failure). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- statins-primary-prevention-elderly: rows 1; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 1; verdict REGISTRY_ONLY 1, UNDECIDABLE 0.
+  - NCT00127218: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=COMPLETED; conditions=Atherosclerosis, Cardiovascular Disease; interventions=any statin, niacin, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as NIA-Plaque (Major vascular events). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- tocilizumab-covid19-mortality: rows 2; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 2; verdict REGISTRY_ONLY 2, UNDECIDABLE 0.
+  - NCT04335071: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=TERMINATED; conditions=SARS-CoV-2 Infection; interventions=Tocilizumab (TCZ), Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as CORON-ACT (28-day all-cause mortality). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+  - NCT04412772: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=TERMINATED; conditions=COVID-19; interventions=Tocilizumab, Placebo"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as ARCHITECTS (28-day all-cause mortality). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+- tranexamic-acid-pph: rows 1; omitted_because REGISTRY_ONLY_DROPPED 0, NCT_SHARED_WITH_ACCOUNTED 1; verdict REGISTRY_ONLY 1, UNDECIDABLE 0.
+  - NCT02026297: NCT_SHARED_WITH_ACCOUNTED; REGISTRY_ONLY_NO_PUBLICATION; quote="overallStatus=TERMINATED; conditions=Postpartum Hemorrhage; interventions=Tranexamic Acid, Placebo; Normal Saline"; note=Omitted because this NCT is already represented in the primary outcome declared_absent_trials as TA TEG (Death due to bleeding). Verdict evidence: row fields id_type=nct, pmid blank, doi blank; CT.gov registry fields quoted.
+
+## Raw CT.gov Bodies
+- lane_n/raw/NCT00127218.ctgov.json
+- lane_n/raw/NCT00504556.ctgov.json
+- lane_n/raw/NCT00754819.ctgov.json
+- lane_n/raw/NCT00806624.ctgov.json
+- lane_n/raw/NCT00816673.ctgov.json
+- lane_n/raw/NCT00829933.ctgov.json
+- lane_n/raw/NCT01048502.ctgov.json
+- lane_n/raw/NCT01630213.ctgov.json
+- lane_n/raw/NCT01709981.ctgov.json
+- lane_n/raw/NCT01968668.ctgov.json
+- lane_n/raw/NCT02026297.ctgov.json
+- lane_n/raw/NCT02422186.ctgov.json
+- lane_n/raw/NCT02468232.ctgov.json
+- lane_n/raw/NCT02796170.ctgov.json
+- lane_n/raw/NCT02900378.ctgov.json
+- lane_n/raw/NCT02935855.ctgov.json
+- lane_n/raw/NCT02993419.ctgov.json
+- lane_n/raw/NCT03153150.ctgov.json
+- lane_n/raw/NCT03376698.ctgov.json
+- lane_n/raw/NCT03448406.ctgov.json
+- lane_n/raw/NCT03516409.ctgov.json
+- lane_n/raw/NCT03877224.ctgov.json
+- lane_n/raw/NCT04139655.ctgov.json
+- lane_n/raw/NCT04335071.ctgov.json
+- lane_n/raw/NCT04412772.ctgov.json
+- lane_n/raw/NCT04475042.ctgov.json
+- lane_n/raw/NCT04561180.ctgov.json
+- lane_n/raw/NCT05006287.ctgov.json
+- lane_n/raw/NCT05138575.ctgov.json
+- lane_n/raw/NCT05487261.ctgov.json
+- lane_n/raw/NCT05614115.ctgov.json
+- lane_n/raw/NCT05739929.ctgov.json
+- lane_n/raw/NCT05850091.ctgov.json
+- lane_n/raw/NCT05884866.ctgov.json
+- lane_n/raw/NCT06215989.ctgov.json
+- lane_n/raw/NCT06229678.ctgov.json
+- lane_n/raw/NCT06249945.ctgov.json
+- lane_n/raw/NCT06390501.ctgov.json
+- lane_n/raw/NCT06720662.ctgov.json
+- lane_n/raw/NCT07026539.ctgov.json
+- lane_n/raw/NCT07060417.ctgov.json
+- lane_n/raw/NCT07143136.ctgov.json
+- lane_n/raw/NCT07189091.ctgov.json
+- lane_n/raw/NCT07287345.ctgov.json
+- lane_n/raw/NCT07344922.ctgov.json
+- lane_n/raw/NCT07611019.ctgov.json
+- lane_n/raw/NCT07704164.ctgov.json
+- lane_n/raw/NCT07731256.ctgov.json
+- lane_n/raw/NCT07775846.ctgov.json
+
+## Commands Run
+- `Get-Content -Raw -LiteralPath .\LANE_PROMPT.md`
+- `git status --short`
+- `Test-Path -LiteralPath F:\ProjectIndex\INDEX.md; Test-Path -LiteralPath F:\E156\rewrite-workbook.txt; Test-Path -LiteralPath .\LIVE_CONTEXT.md`
+- `Get-Item -LiteralPath F:\ProjectIndex\INDEX.md | Select-Object FullName,Length,LastWriteTime`
+- `Get-Item -LiteralPath F:\E156\rewrite-workbook.txt | Select-Object FullName,Length,LastWriteTime`
+- `Get-Content -TotalCount 80 -LiteralPath F:\ProjectIndex\INDEX.md`
+- `Get-Content -TotalCount 80 -LiteralPath F:\E156\rewrite-workbook.txt`
+- `rg --files`
+- `Get-Content -Raw -LiteralPath C:\meta-harness\outputs\search_v2\verification\omitted_rows.json`
+- `Get-ChildItem -Name -LiteralPath C:\meta-harness\outputs\search_v2\verification`
+- `Get-ChildItem -Name -LiteralPath C:\meta-harness\cache | Select-Object -First 50`
+- `rg \"ELIGIBLE_RCT|REGISTRY_ONLY_NO_PUBLICATION|WRONG_|UNDECIDABLE|DUPLICATE_OF_ACCOUNTED\" -n .`
+- `Get-Content -Raw -LiteralPath outputs\search_v2\verification\ticagrelor-vs-clopidogrel-acs\ticagrelor-vs-clopidogrel-acs.json`
+- `Get-Content -Raw -LiteralPath outputs\search_v2\verification\ticagrelor-vs-clopidogrel-acs\LANE-V-ticagrelor-vs-clopidogrel-acs-REPORT.md`
+- `Get-Content -Raw -LiteralPath C:\meta-harness\outputs\search_v2\verification\brief-V-colchicine-secondary-cv-prevention.md`
+- `@'<count omitted rows/id fields script>'@ | python -`
+- `@'<inspect r2 snapshot schema script>'@ | python -`
+- `@'<inspect omega3 review/topic/protocol script>'@ | python -`
+- `@'<search selected NCTs across JSON files script>'@ | python -`
+- `@'<check verification JSON existence by slug script>'@ | python -`
+- `@'<summarize tranexamic review script>'@ | python - (failed: UnicodeEncodeError while printing)`
+- `@'<inspect tranexamic review with PYTHONIOENCODING=utf-8 script>'@ | python -`
+- `@'<inspect review schemas for omega3/noac/esketamine script>'@ | python -`
+- `@'<collect outcome-accounted NCT matches script>'@ | python -`
+- `rg \"NCT03153150|SoSTART|Start or STop|SoSTART\" -n docs\reviews\noac-vs-warfarin-af-stroke outputs\search_v2\verification\noac-vs-warfarin-af-stroke cache\noac-vs-warfarin-af-stroke topics\noac-vs-warfarin-af-stroke.json protocols\noac-vs-warfarin-af-stroke.md`
+- `@'<inspect noac lane/review SoSTART presence script>'@ | python -`
+- `@'<dump noac r2 NCT03153150 snapshot record script>'@ | python -`
+- `@'<print noac estimand_exclusions script>'@ | python -`
+- `@'<inspect current/external noac records for NCT03153150 script>'@ | python -`
+- `Get-Content -TotalCount 80 -LiteralPath C:\meta-harness\outputs\search_v2\verification\ledger.jsonl`
+- `rg \"omitted|NCT03153150|NCT02422186|REGISTRY_ONLY|dropped|missing\" -n C:\meta-harness\outputs\search_v2\verification`
+- `Get-Content -Tail 80 -LiteralPath C:\meta-harness\outputs\search_v2\verification\queue.log`
+- `rg \"omitted_rows\" -n . C:\meta-harness`
+- `Get-Content -Raw -LiteralPath scripts\verification_adjudicate.py`
+- `@'<primary-outcome NCT shared-count script>'@ | python -`
+- `@'<fetch CT.gov, write lane_n outputs, and build report script>'@ | python -`

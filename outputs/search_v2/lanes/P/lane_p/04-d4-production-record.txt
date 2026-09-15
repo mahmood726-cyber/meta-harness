@@ -1,0 +1,15 @@
+D4 deploy-artifact check
+
+All check-artifact exit codes read from subprocess.run([...]), not a shell pipe.
+
+D4a bad one-byte diff rc=1
+TARGET production_record.check_artifact: head=0123456789abcdef0123456789abcdef01234567 base=none tree=artifact:manifest-sha256=78e6bfa68353e5b8 files=4 C:/mh-r-P/.tmp/lane-p-d4-fg9auggu/manifest.json C:/mh-r-P/.tmp/lane-p-d4-fg9auggu/bad-diff.tar a.txt ...
+ARTIFACT REFUSED: missing=[] extra=[] differ=['a.txt'] (counts 0/0/1)
+
+D4b bad extra file rc=1
+TARGET production_record.check_artifact: head=0123456789abcdef0123456789abcdef01234567 base=none tree=artifact:manifest-sha256=78e6bfa68353e5b8 files=4 C:/mh-r-P/.tmp/lane-p-d4-fg9auggu/manifest.json C:/mh-r-P/.tmp/lane-p-d4-fg9auggu/bad-extra.tar a.txt ...
+ARTIFACT REFUSED: missing=[] extra=['extra.txt'] differ=[] (counts 0/1/0)
+
+D4c intact tar rc=0
+TARGET production_record.check_artifact: head=0123456789abcdef0123456789abcdef01234567 base=none tree=artifact:manifest-sha256=78e6bfa68353e5b8 files=4 C:/mh-r-P/.tmp/lane-p-d4-fg9auggu/manifest.json C:/mh-r-P/.tmp/lane-p-d4-fg9auggu/good.tar a.txt ...
+artifact == manifest: 2 files, all digests equal (commit 0123456789ab)
