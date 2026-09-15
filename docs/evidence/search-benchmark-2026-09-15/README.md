@@ -1,6 +1,6 @@
 # Search Benchmark (2026-09-15)
 
-**Fix state (orthogonal fields rule): LANDED / NONE / CORPUS / STALE** - generated from TRANCHE-search-benchmark; stale dependencies: docs/evidence/CAPTIONS.json
+**Fix state (orthogonal fields rule): LANDED / NONE / CORPUS / STALE** - generated from TRANCHE-search-benchmark; stale dependencies: docs/evidence/CAPTIONS.json, tests/test_search_benchmark_isolation.py
 
 This bundle records the labelled known-positive search benchmark and the deterministic development/measurement split.
 

@@ -164,10 +164,15 @@ def _journal_year_features(query: str) -> list[str]:
     return [f"journal_year_seed:{journal}+{year}" for journal in journals for year in years]
 
 
-def _query_classification(query):
+def _query_classification(query, exempt_tokens=None):
+    """Classify a query string. `exempt_tokens` (lower-cased) are acronym-shaped tokens that come from a topic's
+    SEALED registered vocabulary (docs/evidence/search-v2-guard-2026-09-15/PROTOCOL.md; the v2 engine is the
+    sole caller); they are reported as vocabulary_token features instead of trial_acronym_token and do not make
+    the query NAME_SEEDED. With no context (every caller that renders a served page) the classifier is unchanged."""
     text = str(query or "")
     lower = text.lower()
     features = []
+    exempt = {str(t).lower() for t in (exempt_tokens or ())}
 
     if "[uid]" in lower:
         features.append("uid_field:[uid]")
@@ -180,7 +185,11 @@ def _query_classification(query):
     for tag in _TITLE_FIELD_RE.findall(text):
         features.append(f"title_field_tag:{tag}")
     name_text = _DOI_RE.sub(" ", text)
-    features.extend(f"trial_acronym_token:{token}" for token in _trial_acronym_tokens(name_text))
+    for token in _trial_acronym_tokens(name_text):
+        if token.lower() in exempt:
+            features.append(f"vocabulary_token:{token}")
+        else:
+            features.append(f"trial_acronym_token:{token}")
     features.extend(_journal_year_features(text))
 
     if any(f.startswith("uid_field:") for f in features):
@@ -196,8 +205,8 @@ def _query_classification(query):
     return {"kind": kind, "features": features}
 
 
-def classify_query(query):
-    return _query_classification(query)["kind"]
+def classify_query(query, exempt_tokens=None):
+    return _query_classification(query, exempt_tokens)["kind"]
 
 
 def _retrieval_basis_kind(query):

@@ -180,15 +180,86 @@ def _feature_token(feature: str) -> str:
     return feature.split(":", 1)[1] if ":" in feature else feature
 
 
-def assert_discovery_query_allowed(query: str, label: str) -> str:
-    """Allow only structural free-text concept queries from the public classifier."""
-    detail = _query_classification(query)
+# --- sealed-vocabulary exemption (docs/evidence/search-v2-guard-2026-09-15/PROTOCOL.md) -------------------------
+# The acronym heuristic in harness/pipeline.py flags any capitalised token with a hyphen or digit, or all-caps >= 4.
+# Drug development codes (BAY94-8862, LCZ696), targets (PCSK9), procedures (CABG) and syndromes (NSTE-ACS) are all
+# flagged, and a hand-grown allowlist is a record of which topics the engine has been run on, not a rule. A token is
+# exempt only if it is covered by a term in the topic's registered vocabulary AND that vocabulary is sealed in
+# registry/search_vocabulary_seal.json (hash of the vocabulary fields at the split-seal commit); a sealed term that
+# equals a benchmark positive's registered acronym is refused AT SEAL TIME by scripts/seal_search_vocabulary.py (the
+# engine never opens the benchmark; tests/test_search_benchmark_isolation.py). Unsealed vocabulary gets no exemption.
+VOCABULARY_FIELDS = ("intervention_agents", "intervention_class_terms", "intervention_terms", "comparator_terms")
+VOCABULARY_INCLUDE_FIELDS = ("population_any",)
+VOCABULARY_SEAL_PATH = os.path.join("registry", "search_vocabulary_seal.json")
+_WORD_SPLIT_RE = re.compile(r"\s+")
+
+
+def vocabulary_fields(config: dict) -> dict:
+    """Exactly the config fields the query builder draws terms from; the seal hashes this object."""
+    out = {k: config.get(k) for k in VOCABULARY_FIELDS if config.get(k) is not None}
+    include = config.get("include") or {}
+    inc = {k: include.get(k) for k in VOCABULARY_INCLUDE_FIELDS if include.get(k) is not None}
+    if inc:
+        out["include"] = inc
+    return out
+
+
+def vocabulary_sha(config: dict) -> str:
+    return _sha_text(canonical_json(vocabulary_fields(config)))
+
+
+def registered_vocabulary(config: dict) -> list[str]:
+    return _dedupe(_flatten_agents(config) + _population_terms(config) + _comparator_terms(config))
+
+
+def load_vocabulary_seal() -> dict:
+    path = os.path.join(ROOT, VOCABULARY_SEAL_PATH)
+    if not os.path.exists(path):
+        return {}
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def sealed_vocabulary(slug: str | None, config: dict) -> dict:
+    """Returns {sealed: bool, reason, seal_sha, working_sha, terms, exempt_tokens}. Never raises: an unsealed or
+    drifted vocabulary simply yields no exemption, and the guard then behaves exactly as it did before the rule."""
+    working = vocabulary_sha(config)
+    row = ((load_vocabulary_seal().get("slugs") or {}).get(slug) if slug else None) or {}
+    seal_sha = row.get("vocabulary_sha256")
+    if not slug:
+        return {"sealed": False, "reason": "no slug: exemption unavailable", "seal_sha": None,
+                "working_sha": working, "terms": [], "exempt_tokens": [], "collision_check": None}
+    if not seal_sha:
+        return {"sealed": False, "reason": f"{slug} has no entry in {VOCABULARY_SEAL_PATH}", "seal_sha": None,
+                "working_sha": working, "terms": [], "exempt_tokens": [], "collision_check": None}
+    if seal_sha != working:
+        return {"sealed": False, "reason": f"{slug} vocabulary drifted from its seal ({seal_sha[:12]} != {working[:12]})",
+                "seal_sha": seal_sha, "working_sha": working, "terms": [], "exempt_tokens": [], "collision_check": None}
+    collision = row.get("benchmark_acronym_collision") or {}
+    if collision.get("collisions"):
+        return {"sealed": False, "reason": f"{slug} sealed vocabulary collides with a benchmark acronym: {collision['collisions']}",
+                "seal_sha": seal_sha, "working_sha": working, "terms": [], "exempt_tokens": [], "collision_check": collision}
+    terms = registered_vocabulary(config)
+    tokens: set[str] = set()
+    for term in terms:
+        low = str(term).strip().lower()
+        tokens.add(low)
+        tokens.update(w for w in _WORD_SPLIT_RE.split(low) if w)
+    return {"sealed": True, "reason": "vocabulary matches its seal", "seal_sha": seal_sha, "working_sha": working,
+            "terms": terms, "exempt_tokens": sorted(tokens), "collision_check": collision}
+
+
+def assert_discovery_query_allowed(query: str, label: str, exempt_tokens=None) -> str:
+    """Allow only structural free-text concept queries from the public classifier. `exempt_tokens` come ONLY from
+    sealed_vocabulary(); passing anything else defeats the guard, which is why build_queries is the sole caller."""
+    detail = _query_classification(query, exempt_tokens)
     kind = detail["kind"]
     if kind != "FREE_TEXT_KEYWORD":
-        offender = _feature_token((detail.get("features") or [kind])[0])
+        offenders = [f for f in (detail.get("features") or []) if not f.startswith("vocabulary_token:")]
+        offender = _feature_token((offenders or [kind])[0])
         raise QueryRefusal(f"{label} refused {kind}: {offender}")
     # Keep the public function in the loop; tests assert its external behavior.
-    public_kind = classify_query(query)
+    public_kind = classify_query(query, exempt_tokens)
     if public_kind != kind:
         raise QueryRefusal(f"{label} classifier mismatch: {public_kind} != {kind}")
     return kind
@@ -249,12 +320,14 @@ def _ctgov_join(terms: list[str]) -> str:
     return " OR ".join(str(t).strip() for t in terms if str(t).strip())
 
 
-def build_queries(config: dict, protocol_text: str, *, lookup_mesh: bool = True) -> dict:
+def build_queries(config: dict, protocol_text: str, *, lookup_mesh: bool = True, slug: str | None = None) -> dict:
     intervention_terms = _dedupe(acq.expand_intervention(_flatten_agents(config)))
     population_terms = _population_terms(config)
     comparator_terms = _comparator_terms(config)
     if not intervention_terms or not population_terms:
         raise QueryRefusal("search_v2 requires both intervention and population terms")
+    seal = sealed_vocabulary(slug, config)
+    exempt = seal["exempt_tokens"]
 
     mesh_terms: set[str] = set()
     if lookup_mesh:
@@ -283,12 +356,18 @@ def build_queries(config: dict, protocol_text: str, *, lookup_mesh: bool = True)
         "query.intr": _ctgov_join(_flatten_agents(config)),
     }
 
-    pubmed_kind = assert_discovery_query_allowed(pubmed_query, "PUBMED_CONCEPT_QUERY")
-    epmc_kind = assert_discovery_query_allowed(epmc_query, "EUROPEPMC_CONCEPT_QUERY")
+    pubmed_kind = assert_discovery_query_allowed(pubmed_query, "PUBMED_CONCEPT_QUERY", exempt)
+    epmc_kind = assert_discovery_query_allowed(epmc_query, "EUROPEPMC_CONCEPT_QUERY", exempt)
     ctgov_kind = assert_discovery_query_allowed(
         ctgov_query["query.cond"] + " " + ctgov_query["query.intr"],
         "CTGOV_CONDITION_INTERVENTION",
+        exempt,
     )
+    used: list[str] = []
+    for q in (pubmed_query, epmc_query, ctgov_query["query.cond"] + " " + ctgov_query["query.intr"]):
+        for feature in _query_classification(q, exempt).get("features") or []:
+            if feature.startswith("vocabulary_token:"):
+                used.append(_feature_token(feature))
     return {
         "pubmed": pubmed_query,
         "europepmc": epmc_query,
@@ -297,6 +376,15 @@ def build_queries(config: dict, protocol_text: str, *, lookup_mesh: bool = True)
             "pubmed": pubmed_kind,
             "europepmc": epmc_kind,
             "ctgov": ctgov_kind,
+        },
+        "vocabulary_exemption": {
+            "protocol": "docs/evidence/search-v2-guard-2026-09-15/PROTOCOL.md",
+            "sealed": seal["sealed"],
+            "reason": seal["reason"],
+            "seal_sha256": seal["seal_sha"],
+            "working_sha256": seal["working_sha"],
+            "exempted_tokens_in_queries": sorted(set(used)),
+            "benchmark_acronym_collision_check": (seal.get("collision_check") or {}).get("coverage_text") or "no seal: not checked",
         },
         "rct_filter": COCHRANE_RCT_FILTER_NAME,
         "terms": {
@@ -879,7 +967,7 @@ def refresh_topic(slug: str, run_date: str | None = None) -> dict:
         pubmed_sid = acq.reserve_source_id(ledger, "PUBMED_CONCEPT_QUERY")
         print(f"[search_v2] topic {slug}: build queries", flush=True)
         with recorder.source(pubmed_sid, "harness.search_v2.build_queries"):
-            queries = build_queries(config, protocol_text, lookup_mesh=True)
+            queries = build_queries(config, protocol_text, lookup_mesh=True, slug=slug)
 
         sid, records = _source_run(
             ledger,
