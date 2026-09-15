@@ -22,6 +22,10 @@ from harness import fixstate  # noqa: E402
 
 REGISTRY_PATH = Path("registry") / "fixes.json"
 LEDGER_PATH = Path("docs") / "fix_ledger.json"
+EXTERNAL_FINDINGS_HEADING = (
+    "Findings about published comparators \u2014 NOT adjudicated by us; verification NONE until an outside party confirms; "
+    "we do not adjudicate our own findings about someone else's paper"
+)
 
 
 def _posix(path: str | Path) -> str:
@@ -116,11 +120,16 @@ def render_ledger(store: dict[str, Any], *, root: Path = ROOT) -> dict[str, Any]
     by_scope = Counter(entry["scope"] for entry in store_entries)
     by_kind = Counter(entry["kind"] for entry in store_entries)
     by_freshness = Counter(fixstate.freshness_state(entry, root) for entry in store_entries)
+    external_findings = [entry for entry in store_entries if entry.get("kind") == "external_finding"]
     return {
         "_doc": "GENERATED VIEW of registry/fixes.json. Do not edit by hand; run scripts/render_fix_ledger.py.",
         "generated_from": _posix(REGISTRY_PATH),
         "schema_version": store.get("schema_version", fixstate.SCHEMA_VERSION),
         "fixes": [_view_entry(entry, root) for entry in store_entries],
+        "external_findings_heading": EXTERNAL_FINDINGS_HEADING,
+        "external_findings_about_published_comparators": [
+            _view_entry(entry, root) for entry in external_findings
+        ],
         "summary": {
             "by_implementation": {
                 value: by_impl.get(value, 0)

@@ -293,6 +293,24 @@ def test_independent_needs_external_evidence(tmp_path: Path) -> None:
     assert any("verification INDEPENDENT needs external evidence outside this repository" in r for r in reasons)
 
 
+def test_external_finding_refuses_internal_verification(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    entry = _entry(
+        repo,
+        kind="external_finding",
+        verification="INTERNAL",
+        verified_by={"identity": OTHER, "kind": "internal_agent"},
+        verifications=[_verification(repo, kind="internal_agent", identity=OTHER)],
+    )
+
+    reasons = _reasons(repo, entry)
+
+    assert any(
+        "external_finding verification must remain NONE unless verified_by.kind is external_auditor" in r
+        for r in reasons
+    )
+
+
 def test_broad_scope_without_named_topic_list_is_refused(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     entry = _entry(repo, scope="CORPUS", executable_evidence=None)

@@ -41,7 +41,7 @@ VERIFICATIONS = ("NONE", "INTERNAL", "INDEPENDENT")
 SCOPES = ("INSTANCE", "REGRESSION_SET", "CORPUS", "HELD_OUT")
 FRESHNESS = ("CURRENT", "STALE")
 VERIFIER_KINDS = ("author", "internal_agent", "external_auditor")
-KINDS = ("fix", "control", "result", "finding")
+KINDS = ("fix", "control", "result", "finding", "external_finding")
 
 OLD_REFUSED_VALUES = {
     "INTERNALLY_VERIFIED",
@@ -521,6 +521,12 @@ def _validate_claim_verification(root: Path, entry: dict[str, Any], label: str) 
     verification = entry.get("verification")
     verified_by = entry.get("verified_by")
     reasons: list[str] = []
+    # A finding about someone else's paper is an external claim: nobody in this environment may raise
+    # its verification. It stays NONE until an external auditor confirms it against the source.
+    if entry.get("kind") == "external_finding" and verification != "NONE" and (
+        not isinstance(verified_by, dict) or verified_by.get("kind") != "external_auditor"
+    ):
+        reasons.append(f"{label}: external_finding verification must remain NONE unless verified_by.kind is external_auditor")
     if verification == "NONE":
         if isinstance(verified_by, dict) and (
             verified_by.get("identity") is not None or verified_by.get("kind") is not None

@@ -262,6 +262,31 @@ def _search_recall_section(docs_dir: str) -> str:
     return out
 
 
+def _external_findings_section(docs_dir: str) -> str:
+    """Findings about published comparators, rendered from the fix ledger under the auditor's heading. Every
+    one is a hypothesis with verification NONE; the count is never a comparison with our own column."""
+    try:
+        ledger = json.load(open(os.path.join(docs_dir, "fix_ledger.json"), encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    rows = ledger.get("external_findings_about_published_comparators") or []
+    if not rows:
+        return ""
+    heading = ledger.get("external_findings_heading") or "Findings about published comparators"
+    n_none = sum(1 for r in rows if r.get("verification") == "NONE")
+    items = "".join(
+        f"<li><code>{_E(r.get('fix_id'))}</code> — {_E(r.get('title'))} "
+        f"[{_E(r.get('fix_state') or r.get('state'))}]</li>" for r in rows)
+    return (f"<div class='absent'><h2>{_E(heading)}</h2>"
+            f"<p><strong>{len(rows)}</strong> findings recorded, <strong>{n_none}</strong> with verification NONE and "
+            f"<strong>{len(rows) - n_none}</strong> confirmed by an outside party. Applying the same instrument to a comparator "
+            "and to our own pool establishes procedural symmetry, not instrument validity: a blind spot in our checker misses "
+            "the same defect in both. These are hypotheses, promoted only by external source checking; the sentence "
+            "\"our instrument found n problems in them and m in us\" is not evidence of anything and is not written here. "
+            "Per-comparator evidence: <a href='evidence/comparator-correctness-2026-09-15/'>comparator-correctness-2026-09-15</a>."
+            f"</p><ul>{items}</ul></div>")
+
+
 def _gate_scorecard_section(docs_dir: str) -> str:
     """Render the measured gate scorecard summary from registry/gate_scorecard.json."""
     try:
@@ -1208,7 +1233,7 @@ def build_index(docs_dir: str) -> str:
                  "The orthogonal fix ledger for every claim is in <a href='fix_ledger.json'>fix_ledger.json</a>; the gate scorecard in "
                  "<a href='gate_scorecard.json'>gate_scorecard.json</a>; the per-file digests of this deployment in "
                  "<a href='_production/manifest.json'>_production/manifest.json</a>.</p></div>")
-    body = (_evidence + _thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
+    body = (_evidence + _external_findings_section(docs_dir) + _thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
             + _currency_section(docs_dir) + _recovery_section(docs_dir)
             + _participant_flow_section(docs_dir) + _iv_iron_strands_section(docs_dir)
             + _search_recall_section(docs_dir)
