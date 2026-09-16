@@ -109,3 +109,8 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 
 ## Search/screening audit #11 (sglt2-ckd; 16:50)
 - SF: rendered rejection trail; kidney-specific vs cardiorenal screening fields (same lane as the EN2 construct fix); SCORED class-boundary decision; six CVOT/HF controls. Register >=69 / 19 pages; 23 controls; 9 unwritten-rule pages.
+
+## Search/screening audit #12 (sglt2-hfref; 17:00) + architecture follow-ups
+- Lane EP (queued FIRST after the four recoveries): precision of the cosine>=0.45 registry-outcome decider in rob2_build.py, n of N by hand adjudication, false matches quoted, pages whose RoB rests on one; no code change.
+- PHASE_2A_DESIGN.md: the two lists (model-source targets vs keep-deterministic) + gate limb + acceptance set.
+- SF: axes 8/9, broader-composite-never-excludes rule, DAPA ACT HF mandatory retrieval, DELIVER/EMPEROR-Preserved controls. Register >=72 / 19 pages; 25 controls; 10 unwritten-rule pages.

@@ -60,3 +60,8 @@ Models may be used anywhere in the harness provided the call is reproducible: a 
 - Two independent outcome fields at screening: `kidney_specific_progression_available` and `cardiorenal_composite_available` (CREDENCE creatinine doubling + CV death; DAPA-CKD ≥50% decline + CV death; EMPA-KIDNEY ≥40% within progression + CV death) — screening and rendering construct must be the same construct (served 0.684 cardiorenal vs kidney-only 0.651).
 - SCORED → `INTERVENTION_CLASS_BOUNDARY(dual SGLT1/2)` decision owed; kidney composite eligible under primary≠eligible.
 - Controls: CANVAS, DECLARE-TIMI 58, EMPA-REG OUTCOME, VERTIS CV (not CKD-defined), EMPEROR-Reduced/-Preserved (HF-defined). Family: EMPA-KIDNEY post-trial follow-up.
+
+## Added 17:00 (search/screening audit #12 sglt2-hfref)
+- Axes 8 and 9 as executable fields: `population_basis ∈ {WHOLE_TRIAL, PRESPECIFIED_RANDOMISED_SUBGROUP}` (DAPA ACT HF 71.5% ≤40%; EMPULSE EF strata; SOLOIST-WHF broad EF — also the dual-agent boundary) and `hf_acuity ∈ {STABLE_CHRONIC_AMBULATORY, ANY_INCL_IN_HOSPITAL_INITIATION}`; the protocol states both or `PROTOCOL_CRITERION_NOT_EXECUTABLE` fires. DAPA ACT HF–TIMI 68 is a mandatory 2026 retrieval test.
+- Outcome rule from the screening side: a trial is never excluded because its headline primary is a broader worsening-HF composite (DAPA-HF incl. urgent IV visits) when the exact target (CV death or HF hospitalisation, 382/2373 vs 495/2371) exists within it — identical to the kidney-specific/cardiorenal two-field rule (audit 11); one mechanism, two topics.
+- Controls: DELIVER, EMPEROR-Preserved.
