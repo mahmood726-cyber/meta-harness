@@ -132,3 +132,6 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 - CORRECTION: STAREE already pooled (auditor error); flips now 3 (VESALIUS MEASURED, STEP 8, ICAP). ST lane corrected in flight via INTEGRATOR_CORRECTION.md.
 - Design axis: 0 of 97 pooled rows non-randomised (MEASURED); statins observational element = comparator, already refused.
 - k=1 tally: 3 wrongly thin / 2 likely legitimate / 4 unaudited. DIRECT to register; extraction-order failure mode -> TE mechanism + sweep; extensions as family+contrast failures; 'elderly' + sex-composition axes; POPULATION_BASIS records the defining characteristic.
+
+## Search/screening audit #18 (tranexamic-acid-pph; 17:20)
+- Indication decision NOT owed: protocol prospectively says treatment (MEASURED). SF: indication read from the population object, not keyword veto; retrieve-and-exclude the prevention family (26+4 trials) with trail; Ducloy-Bouthors X-DESIGN control; route/timing rules only if prospective. Register >=118 / 24 pages; 41 controls.
