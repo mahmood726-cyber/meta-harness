@@ -2,6 +2,29 @@
 
 **Strategy (Mahmood, via Dispatch, 17:45):** stop going wide; prove one page end to end to an independent auditor actively trying to break it. Priority above every remaining corpus-wide class except the three inference-changing recoveries in flight (S8 running, RO queued; VS integrated in landing 2).
 
+
+## TARGET (Mahmood, 18:40: "there is no reason harness meta should be inferior"): **match published meta-analyses on completeness, exceed them on auditability.**
+The engine already exceeds (auditor's concession): Paule-Mandel + modified HKSJ, explicit PI, leave-one-out, source spans, refused states, STALE banner. The deficit is completeness and breadth, all closeable with the sources below. **Scope, stated honestly:** match the page's own 2021 comparator first -- six outcomes (CV death, nonfatal MI, nonfatal stroke, HF hospitalisation, all-cause death, kidney) + trial characteristics + one subgroup (established vs no established CVD) -- then measure the cost per layer; a 21-trial / 99,599-participant review with TSA took a team months and is not the bar for one page. The review pack states, outcome by outcome, where the page now matches published metas, where it exceeds them (span traceability; rendered refusals with the would-be estimate; byte-identical offline replay; machine-checkable rejection trail; declared strands; entered_via), and where it remains behind.
+
+## SOURCES (Mahmood, 18:35) -- REACHABILITY FROM WHERE THE HARNESS RUNS, checked 18:42
+| Source | Reachable? | What it closes |
+|---|---|---|
+| **AACT** | **YES, offline** -- local snapshot F:/AACT-storage/AACT/2026-08-30, 49 tables incl. designs (65 MB), design_outcomes (1.1 GB), outcome_measurements (3.0 GB), reported_events (4.9 GB), interventions, conditions, studies, outcome_analyses, baseline_measurements | layer 2: symmetric concept discovery over all 7 agents + T2D + randomised + placebo, offline; layer 3: randomised-contrast confirmation from design_groups/interventions; the fail-open design/unit keys from designs.intervention_model; layer 5: per-arm AE tables (reported_events); trial-characteristics table (baseline_measurements, eligibilities); structured results (outcome_measurements) |
+| CT.gov results (live) | network -- integrator only | where the snapshot lags (posted after 2026-08-30) |
+| FDA review documents | network -- integrator only (PDF) | FREEDOM-CVO and ELIXA strict 3-point MACE (FDA's class-level analysis is where ~1.24 [0.90-1.70] originates); SAPs and re-analyses -> RoB 2 signalling-question material (layer 6) |
+| EMA EPARs | network -- integrator only | second regulatory read; trials where FDA is thin |
+| NICE | network -- integrator only | HTA re-analyses, absolute effects, NNT |
+| PMC / Europe PMC | network -- integrator only (Europe PMC REST is already a search_v2 adapter) | full texts + supplements via funder deposits |
+| CENTRAL, WHO ICTRP | network -- integrator only | CENTRAL: Embase-derived records (declared-scope mitigation); ICTRP: non-US registries |
+| Older meta-analyses | held (comparator full text) | **pointers only, never the number** |
+Lanes have no network; every network acquisition is the integrator's and lands in the cache as a source under the acquisition contract (verbatim query, date, denominator/funnel, per-record decision + rule id, four states) before a lane consumes it. **Nothing at layers 2-6 is network-blocked for the proof: AACT is local; the rest is a fetch I do.** Every extracted value carries source_level (1 publication/supplement, 2 FDA/EMA, 3 CT.gov/AACT, 4 NICE, 5 older meta = pointer only), rendered.
+
+## FULL TEXT and NO EMBASE (Mahmood, 18:45) -- written into the B-prime amendment before it lands
+abstract-only is no longer terminal: PMC/Europe PMC -> supplements -> publisher OA -> author manuscripts -> FDA/EMA -> CT.gov/AACT, route recorded; becomes `full text not reachable after N named attempts`. No Embase declared as a scope boundary in the protocol (CENTRAL + ICTRP added; completeness claimed for registered trials only; topic-kind statement -- low marginal Embase yield for large registered CVOTs). ELIXA and FREEDOM-CVO go through the whole ladder (supplements, FDA) before either is recorded unresolvable.
+
+## Layer flags REVISED (18:45): layers 2, 4, 5, 6 are no longer at risk of closing provisional for want of sources
+Layer 2: AACT local -> symmetric discovery offline. Layer 4: full text + regulatory compulsory before OUTCOME_NOT_IN_SOURCE is terminal. Layer 5: AACT reported_events per arm -> closeable. Layer 6: FDA/EMA reviews supply SAP/deviation/discontinuation material -> RoB 2 may close properly. FREEDOM-CVO and ELIXA adjudicable from FDA. Remaining honest risk: a specific supplement or FDA document that does not exist or cannot be read -- flagged the moment it is hit.
+
 ## Layer board (MEASURED = read from the a2c53d98 objects / harvested lane reports; CLAIMED = auditor)
 | # | Layer | Current state | What proves it | Machinery (lane / status) |
 |---|---|---|---|---|
@@ -93,7 +116,7 @@ Either way FLOW is decided by the declared rule (under A it is in; under B it is
 | Item | Value |
 |---|---|
 | Start | 2026-09-16 17:45 (strategy received) |
-| Claude turns since start | 9 (at 18:32) |
+| Claude turns since start | 10 (at 18:48) |
 | Codex lanes used | IN (integration), G1 (page), EP (decider precision), SF-scoped | 
 | Model tokens | sum of `tokens used` lines in the lane logs |
 | Wall-clock to "auditor finds nothing" | — |
