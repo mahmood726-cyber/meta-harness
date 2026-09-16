@@ -4,6 +4,14 @@
 
 
 
+
+## FOUNDATION FIRST (Mahmood, 19:40: "ok do trial family node and claim graph first") -- built as general machinery with GLP-1 as the first consumer; the remaining GLP-1 layers run ON TOP of them
+- **Trial-family node** (`LANE-FN.md`, design = integrator's): registry-anchored identity (NCT > EudraCT > ISRCTN > jRCT; synthetic id flagged), typed report roles (primary / secondary / subgroup / pooled / EXTENSION / protocol / SAP / correction / retraction / abstract / FDA / EMA / HTA / registry / cost-effectiveness), arm structure from AACT with the randomised contrasts derived structurally, population entry fields, per-outcome dark-evidence status, lifecycle, `entered_via`. Rules with plants: a report is never a trial (COLCOT CE paper, LoDoCo2 secondary, STEP 6 post-hoc, PLATO subgroups, EMPA-KIDNEY follow-up); an extension that removes the contrast is not a comparison (FREEDOM extension, DIRECT 3-year); one family per count; count chain only; eligibility once per family; every field spanned. Sweep across 32 topics incl. the 0-of-8 -> n-of-8 contrast measurement on glp1.
+- **Claim graph extended** (`LANE-CGX.md`, design = integrator's): FACT / TRANSFORMATION / JUDGEMENT / INTERPRETATION with class marks; every rendered factual sentence a rendering of an object (`SENTENCE_WITHOUT_OBJECT` scan); scope = search completeness, registration precedence, membership, endpoint, result, significance, heterogeneity, PI, RoB coverage + ratings, publication bias basis, GRADE certainty + domains (arithmetic enforced or `provisional`), comparator overlap/parity/recency/rules-differ, reproducibility, every aggregate sentence; provenance DAG claim -> pooled effect -> trial estimate -> span -> document sha -> retrieval time (+ model pin/cache); `invalidate(sha)` returns exactly the downstream claims. Seven pre-fix plants from today's misses.
+- **Order**: landing 2 -> landing 3 (IN) -> FN + CGX on the landing-3 base -> the type system (natural third piece: family arms + typed objects) -> G1 finishes layers 2-11 on top. **Blocked today on the Codex quota (3%) until Mahmood resets** -- briefs are on disk and pushed; nothing else is needed to start.
+- **Cannot-build-today (flagged in advance):** non-NCT registry identities (EudraCT/ISRCTN/jRCT) resolve only from ids in held records or AACT id_information (no network) -> `IDENTITY_FROM_HELD_TEXT`; INTERPRETATION sentences have no deterministic verifier by design -- the alternative-formulation requirement is the check.
+- **Cost ledger split from here**: FOUNDATION (FN + CGX + type system; paid once) vs PAGE PROOF (glp1 layers on top; the number that generalises to 31 pages). Review pack delayed by the foundation build -- Mahmood's deliberate trade.
+
 ## REVISED TARGET (Mahmood, 19:20: "aim high") -- the GLP-1 page is the FIRST INSTANCE OF THE NEW ARCHITECTURE, not a repaired page. Six things built INTO the layers (not a separate phase); sequence unchanged; each timed separately in the ledger.
 | # | Build | Layer | Definition | Sources / mechanism | Cannot-build risk (flag when hit) |
 |---|---|---|---|---|---|
@@ -147,8 +155,8 @@ Either way FLOW is decided by the declared rule (under A it is in; under B it is
 | Item | Value |
 |---|---|
 | Start | 2026-09-16 17:45 (strategy received) |
-| Claude turns since start | 15 (at 19:32) |
-| Codex lanes used | IN (integration), G1 (page), EP (decider precision), SF-scoped | 
+| Claude turns since start | 16 (at 19:45) |
+| Codex lanes used | FOUNDATION: IN (integration), FN (family node), CGX (claim graph) · PAGE: G1, EP (decider precision), SF-scoped | 
 | Model tokens | sum of `tokens used` lines in the lane logs |
 | Wall-clock to "auditor finds nothing" | — |
 | Layers that could NOT be made defensible | — (say so plainly if any) |
