@@ -94,3 +94,6 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 
 ## Search/screening audit #5 (dpp4; 15:50)
 - SF: primary≠eligible endpoint rule (one rule, D5 + screening); CAROLINA comparator control (P/I/C/O coverage complete); entered_via blocking for 2B. Register unchanged at 31 reach-misses / 13 pages.
+
+## Search/screening audit #6 (iv-iron; 16:00)
+- SF: LVEF_THRESHOLD / HF_ACUITY / FORMULATION executable fields; primary!=eligible endpoint second instance; FAIR-HF2 + wider family to register (38 trials / 14 pages); FERRIC-HF, PRACTICE-ASIA-HF controls (7 controls: P I C O design size).

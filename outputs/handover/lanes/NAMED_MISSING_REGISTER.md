@@ -2,7 +2,7 @@
 
 Every trial an external audit named as eligible (P/I/C/design) or as needing an explicit disposition, that the page's screening universe does not contain at all (REACH_MISS — a search failure, Phase 2B). Recovery lanes exist for the four that change a served conclusion. All entries CLAIMED by the auditor until a lane locates the record; PMIDs given where the integrator fetched them from PubMed.
 
-## A. Absent from the screening universe (REACH_MISS) — **31 trials on 13 pages**
+## A. Absent from the screening universe (REACH_MISS) — **33 rows (38 trials) on 14 pages**
 | # | Trial | Page | Effect on the served conclusion | Lane |
 |---|---|---|---|---|
 | 1 | VESALIUS-CV (PMID 41211925) | pcsk9-mace | flips significance | **VS** (running) |
@@ -36,6 +36,8 @@ Every trial an external audit named as eligible (P/I/C/design) or as needing an 
 | 29 | Chan 2007 | spironolactone-hfref-mortality | MRA family; explicit disposition owed | SF / 2B |
 | 30 | Feola | spironolactone-hfref-mortality | explicit disposition owed | SF / 2B |
 | 31 | Berry | spironolactone-hfref-mortality | explicit disposition owed | SF / 2B |
+| 32 | FAIR-HF2 (2025, 1,105 pts) | iv-iron-hfref-hosp | in the 2025 six-trial gold set; if absent the search is definitively incomplete | SF / 2B |
+| 33 | wider IV-iron family: Toblli, FERRIC-HF, EFFECT-HF, PRACTICE-ASIA-HF, IRON-CRT, Marcusohn | iv-iron-hfref-hosp | must be RETRIEVED and excluded transparently (size / follow-up are screening rules, never query terms) | SF / 2B |
 
 ## B. In the corpus but unconsumed (extraction / recovery debt, not search) — 9
 ICAP recurrence component 11/120 vs 25/120 (pericarditis; flips significance; **RO**) · TECOS strict 3-point · EXAMINE one-sided bound (dpp4; RO) · DISPERSE-2 (ticagrelor; shared-control multi-arm decision; RX) · COCS · COPPS (colchicine-postop; extraction debt) · OMEMI · OMEGA (omega-3) · DAPA-HF exact endpoint 382/495 (sglt2-hfref; TE).
@@ -46,10 +48,10 @@ MIRO-CKD, PYY1875, CRUSADERS (`X-CONTRAST`); HISTORI (`X-DOSE`); STEP TEENS (`X-
 ## D. Correct exclusions/refusals that must not regress — 6
 CORE, COPE (open-label; pericarditis) · STEP 11 (Week 44) · Meduri/ESCAPe (60-day) · Risk and Prevention Study (omega-3) · phase-IV monotherapy refusal (metformin).
 
-## E. Retrieve-then-reject controls (search MUST find, screen MUST reject for a named reason) — 5, covering P, I, C and O (added 15:40; CAROLINA 15:50)
-TOPCAT (spironolactone; HFpEF LVEF ≥45% → `X-POPULATION(HFpEF)`) · SELECT (glp1; semaglutide CVOT, population excludes diabetes → `X-POPULATION(no T2D)`) · ELIXA and FREEDOM-CVO (glp1; 4-point primary MACE → endpoint adjudication; FREEDOM-CVO also tests whether an implanted continuous-delivery device counts as "conventional GLP-1RA" — must be prespecified). **CAROLINA** (dpp4; linagliptin vs glimepiride, 6,033 pts, exact 3-point MACE 356/3023 vs 362/3010, HR 0.98 → retrieved AND `X-COMPARATOR(active sulfonylurea)` under a vs-placebo/usual-care question; INCLUDE under a vs-any-glucose-lowering question — the screen must never switch between those silently; the protocol states which). A control never retrieved = silent search failure; retrieved and correctly excluded = the system working. Stronger than plants: they separate reach from screening.
+## E. Retrieve-then-reject controls (search MUST find, screen MUST reject for a named reason) — 7, covering P, I, C, O, design and size (added 15:40; CAROLINA 15:50; FERRIC-HF, PRACTICE-ASIA-HF 16:00)
+TOPCAT (spironolactone; HFpEF LVEF ≥45% → `X-POPULATION(HFpEF)`) · SELECT (glp1; semaglutide CVOT, population excludes diabetes → `X-POPULATION(no T2D)`) · ELIXA and FREEDOM-CVO (glp1; 4-point primary MACE → endpoint adjudication; FREEDOM-CVO also tests whether an implanted continuous-delivery device counts as "conventional GLP-1RA" — must be prespecified). **CAROLINA** (dpp4; linagliptin vs glimepiride, 6,033 pts, exact 3-point MACE 356/3023 vs 362/3010, HR 0.98 → retrieved AND `X-COMPARATOR(active sulfonylurea)` under a vs-placebo/usual-care question; INCLUDE under a vs-any-glucose-lowering question — the screen must never switch between those silently; the protocol states which). **FERRIC-HF** (35 pts, exercise capacity) and **PRACTICE-ASIA-HF** (50 pts, 12 wk, mixed EF) → retrieved AND refused on size/follow-up rules (iv-iron). A control never retrieved = silent search failure; retrieved and correctly excluded = the system working. Stronger than plants: they separate reach from screening.
 
-## F. Unwritten eligibility rules (effective criterion in neither prose nor config) — 3 pages so far
-ticagrelor (de facto double-blind) · glp1 (de facto "dedicated CVOT only" — excludes FLOW) · spironolactone (intervention scope never fixed: slug spironolactone, pool contains eplerenone — "eligible" has no stable meaning until settled). Lane SF sweep: `n of 32 pages with an effective criterion no protocol states`.
+## F. Unwritten eligibility rules (effective criterion in neither prose nor config) — 4 pages so far
+ticagrelor (de facto double-blind) · glp1 (de facto "dedicated CVOT only" — excludes FLOW) · spironolactone (intervention scope never fixed: slug spironolactone, pool contains eplerenone — "eligible" has no stable meaning until settled). · iv-iron (population axis: 'HFrEF' with no LVEF threshold — trials admitted at ≤40 / ≤45 / <50%; acute-vs-chronic HF and formulation FCM-vs-derisomaltose also undeclared) → `LVEF_THRESHOLD`, `HF_ACUITY`, `FORMULATION` as executable population/intervention fields corpus-wide. Lane SF sweep: `n of 32 pages with an effective criterion no protocol states`.
 
-**Scale, one number: 31 named eligible-or-disposition trials missing from the screening universe across 13 of 32 pages, plus 9 held-but-unconsumed; 4 of the 40 flip a served conclusion; 5 retrieve-then-reject controls (P, I, C, O); 3 pages with unwritten rules.**
+**Scale, one number: 38 named eligible-or-disposition trials missing from the screening universe across 14 of 32 pages, plus 9 held-but-unconsumed; 4 of the 47 flip a served conclusion; 7 retrieve-then-reject controls (P, I, C, O, design, size); 4 pages with unwritten rules.**
