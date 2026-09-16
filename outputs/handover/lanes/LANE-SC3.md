@@ -19,3 +19,6 @@ Report file: `LANE-SC3-REPORT.md`. Base `ad5e7c66`. Lanes SC and SC2 run concurr
 5. Rebuild affected pages (screening tables, PRISMA counts); replay; list reworded blocks. A screening flip must never change a pool silently: if a pooled trial would be refused by the arm object, the build refuses (`TRIAL_FAILS_CONTRACT`) and you report the decision owed.
 
 Do not touch: pooling, `harness/synth.py`, search code, the extractor. No network.
+
+## Added 2026-09-16 14:42
+- Positive-control exclusions to plant: CORE and COPE (open-label under a double-blind protocol, pericarditis); Meduri/ESCAPe (60-day vs 30-day-or-in-hospital, corticosteroids-cap) stays refused on timepoint; STEP 11 (Week 44 vs 68) stays refused.
