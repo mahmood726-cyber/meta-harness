@@ -91,3 +91,6 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 
 ## Search/screening audit #1 (ticagrelor; 15:30) — new open stream
 - Lane SF (queued after ST, RO): implicit-criterion sweep (included set narrower than the protocol rule without the rule requiring it), publication→trial-family→one decision, counts re-derived as `publications screened → trial families → eligible trial families`. TICAKOREA, TREAT, POPular AGE added to NAMED_MISSING_REGISTER.md (26 reach-misses on 12 pages; 9 held-unconsumed; 7 false includes; 6 protected refusals). Phase 2B (`search_v2.pin()` onto r3) consumes the register as its acquisition list.
+
+## Search/screening audit #5 (dpp4; 15:50)
+- SF: primary≠eligible endpoint rule (one rule, D5 + screening); CAROLINA comparator control (P/I/C/O coverage complete); entered_via blocking for 2B. Register unchanged at 31 reach-misses / 13 pages.
