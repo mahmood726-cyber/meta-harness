@@ -120,3 +120,7 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 - DECISION FOR MAHMOOD (one question, three pages: sglt2-ckd SCORED, sglt2-hfref SOLOIST-WHF, sglt2-pp SCORED): is the SGLT2 intervention class SELECTIVE SGLT2 inhibitors only, or the SGLT-pathway including dual SGLT1/2 agents (sotagliflozin)? Register >=74 / 20 pages; 31 controls; 11 unwritten-rule pages.
 
 ## Decision 17:20 — class boundaries = two strands (Mahmood). Lane CB queued after PP; strand pairs for iv-iron, glp1, tocilizumab, MRA proposed in DECISION_CLASS_BOUNDARY_STRANDS.md pending Mahmood's approval; corticosteroids and colchicine are dose/regimen (effect-modifier fields), not class strands.
+
+## Search/screening audit #14 (dapagliflozin-hfpef; 17:30)
+- SF: k=1 three-state re-derivation; phenotype keyword veto MEASURED 8 of 38 configs (DELIVER survives by phrase luck); HFpEF slug term; three controls + DAPA-HF. Register >=77 / 21 pages; 35 controls; 12 unwritten-rule pages.
+- Report correction: k=1 pages -> 'unproven until the rejection trail renders', not 'our failure' (2 of 3 our failure, 1 of 3 candidate legitimate).
