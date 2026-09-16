@@ -106,3 +106,6 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 
 ## Search/screening audit #10 (sacubitril-valsartan; 16:40)
 - SF: re-derive all nine k=1 pages; PIONEER-HF ESCALATED (retrieved, outcome-excluded, result-changing; population decision owed to Mahmood); comparator ACEI/ARB vs enalapril; EF-phenotype controls. Register >=68 / 18 pages; 17 controls; 8 unwritten-rule pages.
+
+## Search/screening audit #11 (sglt2-ckd; 16:50)
+- SF: rendered rejection trail; kidney-specific vs cardiorenal screening fields (same lane as the EN2 construct fix); SCORED class-boundary decision; six CVOT/HF controls. Register >=69 / 19 pages; 23 controls; 9 unwritten-rule pages.
