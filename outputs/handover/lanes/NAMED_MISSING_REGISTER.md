@@ -125,6 +125,9 @@ The class: the extractor reads an irrelevant span in a source it already holds a
 ## S. Retrieval-ledger provenance — MEASURED corpus-wide (18:00)
 Screened records ≠ ledger records on **29 of 32** pages; **2,665 of 2,668** ledger records carry only `LEGACY_UNRECORDED` (the 3 exceptions are pcsk9's EXTRA_PMIDS). glp1: 8 PMIDs enumerated, 11 screened, 3 unexplained (SELECT, Giugliano, SOUL). Provenance cannot be reconstructed after the fact; Phase 2B's re-executed search with a live ledger is the only route to `entered_via`.
 
+## T. Design/compatibility gate is fail-open — MEASURED corpus-wide (18:30)
+92 of 98 pooled primary rows have design or unit-of-randomisation UNKNOWN; **98 of 98 are ALLOW_WITH_LABEL** — the gate has never refused a row on any of 32 pages. Root cause: `design_key.registry_designs` reads CT.gov search hits, never the AACT `designs.intervention_model` that `rob2_build` already streams (two lanes' machinery never met). Registry-confirmed randomised contrast 68 of 96. Fix in landing 3: cache AACT designs per topic; UNKNOWN renders `DESIGN_UNPROVEN`, never ALLOW.
+
 ## H. Laws confirmed across pages
 - primary endpoint ≠ eligible endpoint: TECOS, Torres 2015, CONFIRM-HF, HEART-FID, COVACTA, EMPACTA, COVINTOC, CORIMUNO-TOCI-1, Salvarani — 4 pages, 9+ trials; prioritise in the screening rebuild.
 - early termination affects RoB and precision, never eligibility (TOCIBRAS stopped for harm; OMNEON sponsor decision) — record as conduct flags, never exclude.

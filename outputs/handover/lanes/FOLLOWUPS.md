@@ -150,3 +150,11 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 - B-prime adopted; log-HR-only primary pool generalises to every time-to-event topic; comparator-seeded retrieval sweep corpus-wide.
 - MEASURED: 19 of 31 pages render a certainty that does not follow from starting level minus downgrades (11 via the unstated D3 cap) -> CG acceptance proposition + `provisional` rendering (KM2/GI).
 - EXSCEL concern at D2 not D5; PIONEER 6 reporting concerns; machine signals render as 'consistent with low; RoB 2 not assessed'.
+
+## glp1 deep audit (18:30)
+- DK fix (landing 3, core): registry_designs.json from AACT in rob2_build; UNKNOWN -> DESIGN_UNPROVEN never ALLOW; sweep n of 98.
+- CP3/CP4: comparator ingested in full (table, outcomes, RoB figure); match on 7 axes; ELIXA comparator-only; benchmarks 2025 JACC / 2025 T2D placebo meta / 2026 NMA.
+- CG3: CLAIM-SCOPE FAILURE class -- registration, GRADE domains, membership, overlap, reproducibility propositions in the graph.
+- EN: undetermined_death_counted_as_cv + silent_mi_included per trial; estimator_source verified against span (AMPLITUDE-O).
+- Clinical completeness lane (CL): MACE components, CV death, all-cause death, HF hosp, kidney, safety, absolute effects (NNT), trial-characteristics table, prespecified subgroups.
+- Protected: statistical engine.
