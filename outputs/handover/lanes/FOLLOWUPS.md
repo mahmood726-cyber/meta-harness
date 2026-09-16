@@ -100,3 +100,6 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 
 ## Search/screening audit #7 (corticosteroids-cap; 16:15)
 - SF: REMAP-CAP register; comparator equivalence class (bare 'vs placebo' sweep); severity/influenza axes; SLUG_AXIS_NOT_IN_CONFIG rule; paediatric control; Torres primary!=eligible third instance. Register >=42 trials / 15 pages; 8 controls; 5 unwritten-rule pages.
+
+## Search/screening audits #8 (corticosteroids-covid19) and #9 (tocilizumab-covid19; k=1 vs 19) — 16:25
+- SF: REACT steroid + tocilizumab sets as hard search benchmarks; comparator axis first-class rebuild (three failure directions); CASE_CONFIRMATION axis; early termination never eligibility; platform arm extraction; controls STOIC/PRINCIPLE/sarilumab/observational. Register >=63 named / 17 pages.
