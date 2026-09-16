@@ -16,3 +16,7 @@ Report file: `LANE-KM2-REPORT.md`. Base `ad5e7c66`. Lane KM's known-missing sens
 5. Rebuild affected pages; replay; list reworded blocks.
 
 Do not touch: `harness/synth.py`, the K2 refusal itself, pooling inputs, membership, screening. No network.
+
+## Added 2026-09-16 13:58 (topics 17, 18)
+- semaglutide-obesity-weight: k=2 imprecision again dominated by t₁ over two trials whose own CIs are −13.4 to −11.5 and −12.0 to −8.6 — same `imprecision_basis` case as finerenone and sglt2-hfref; add it to the plant set.
+- balanced-crystalloids: GRADE must distinguish *evidence unavailable* from *evidence deliberately refused for want of a variance model* (lane CX emits `ENGINE_CANNOT_CONSUME`); consume that code in the imprecision/indirectness rationale text when present; synthetic plant if CX's field is absent from your clone.

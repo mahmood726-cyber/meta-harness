@@ -16,3 +16,6 @@ Also: NEJM/JAMA/Lancet abstracts carry "(Funded by X; ClinicalTrials.gov number,
 4. Rebuild affected pages; replay; list reworded blocks.
 
 Do not touch: pooling, membership, screening, search, RoB. No network.
+
+## Added 2026-09-16 13:58 (topic 17)
+- semaglutide-obesity-weight: STEP 3 is Novo Nordisk-funded with sponsor involvement in design, analysis and manuscript → 2 of 2 known industry, not 1 known / 1 unknown. Fifth confirmed instance. Locate the span; else `in_source_not_held`.

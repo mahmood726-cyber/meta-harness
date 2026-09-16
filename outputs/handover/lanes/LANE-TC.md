@@ -18,3 +18,6 @@ Report file: `LANE-TC-REPORT.md`. Base `ad5e7c66`. Lane D5 (running) owns the Ro
 5. Rebuild affected pages; replay; list reworded blocks.
 
 Do not touch: RoB domain ratings, GRADE, pooling, membership, screening. No network.
+
+## Added 2026-09-16 13:58 (topic 18)
+- PLUS analysed 4,846 of 5,037 randomised; BaSICS 10,520 of 11,052, excluding 486 consent refusals and 46 duplicates — a **legally mandated** post-randomisation exclusion (deferred consent) deserves its own label `POST_RANDOMISATION_EXCLUSION(kind=consent_withdrawal_mandated)` distinct from investigator-chosen exclusions. Seventh ITT-overstated instance; the analysis-set label is EN's `AVAILABLE_CASE`/`MODIFIED_ITT`, your flag names the cause.

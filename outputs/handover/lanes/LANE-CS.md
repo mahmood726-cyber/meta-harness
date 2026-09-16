@@ -26,3 +26,7 @@ Plus, orthogonal: `REACH_MISS(named)` for trials named by an audit that are not 
 5. Rebuild affected pages; replay; list reworded blocks — the old `eligible_declared_absent` sentences will change on ~27 pages; list every one (page, heading, old, new).
 
 Do not touch: pooling, screening decisions (you classify what screening produced), search. No network.
+
+## Added 2026-09-16 13:58 (topics 17, 18)
+- balanced-crystalloids: CRUSADERS (NCT07189091) recruiting to 2028 → state 4 (and SC3 refuses its contrast); FISSH (NCT03677102) completed, ~1,118 pts, 30-day mortality primary, no results publication → new orthogonal flag `COMPLETED_UNPUBLISHED(registry)` — publication-bias surveillance input, and the cleanest case for registry-first discovery (Phase 2B). Design-refused SMART/SALT/SPLIT are NOT completeness states (they are consumed-or-refused evidence, lane CX) — keep them out of `eligible_declared_absent`.
+- semaglutide-obesity-weight: STEP 5 → timepoint refusal (not a completeness state); STEP 11 likewise; STEP 6 parent trial vs post-hoc report → the trial is the object (PU identity).

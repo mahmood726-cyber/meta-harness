@@ -18,3 +18,7 @@ colchicine-postop-af `follow_up_window`, `analysis_set` (ITT over available-case
 4. Rebuild affected pages; replay; list reworded blocks.
 
 Do not touch: pooling, membership, screening, search, `harness/synth.py`. No network.
+
+## Added 2026-09-16 13:58 (topics 17, 18)
+- balanced-crystalloids: timepoint key "28–90 day or in-hospital" while both pooled trials are 90-day mortality → fifth under-claim case; derive the key from per-trial timepoints.
+- semaglutide-obesity-weight: new effect-modifier dimension `background_lifestyle_intensity` (STEP 3 intensive behavioural therapy, 30 visits, low-calorie diet, placebo −5.8% vs STEP 1 placebo −2.4%); the key says only "lifestyle intervention" → over-claim of homogeneity on the co-intervention dimension; values from held spans only.

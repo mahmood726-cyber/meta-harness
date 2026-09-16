@@ -16,3 +16,7 @@ For every included trial × every registered outcome of its page (primary, harms
 `scripts/reason_audit_sweep.py` → `docs/reason_audit_sweep.json`: `n reason codes FALSE (value held) of N reason codes on 32 pages`, by code kind and page; `n NOT_VERIFIABLE of N`. `scripts/unextracted_sweep.py` → `docs/unextracted_sweep.json`: `n (trial, outcome) pairs HELD_NOT_EXTRACTED of N pairs`, by outcome kind (primary / harm / secondary) and page.
 
 Render the audit block on every page (additive); rebuild; replay; list reworded blocks. Do not touch extraction, pooling, membership, screening, search. No network.
+
+## Added 2026-09-16 13:58 (topics 17, 18)
+- balanced-crystalloids PRISMA "6 eligible but outcome not extracted": three of the six had mortality numbers FOUND and were design-refused → `retrieved_refused` not `not_retrieved` — a `REASON_WRONG_KIND` case for your audit; BaSICS renal outcomes refused on a factorial guard while the source table is headed balanced vs saline → `REASON_FALSE_VALUE_HELD` if the table is in held text.
+- semaglutide-obesity-weight: GI events STEP 1 969/1306 vs 314/655 (discontinuation 59/1306 vs 5/655), STEP 3 337/407 vs 129/204 (14/407 vs 0/204) → classify HELD_NOT_EXTRACTED vs IN_SOURCE_NOT_HELD per span; STEP 3 Novo Nordisk funding sentence likewise (FU lane extracts; you audit the "unknown" code).

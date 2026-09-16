@@ -16,3 +16,7 @@ Report file: `LANE-CP3-REPORT.md`. Base `ad5e7c66`. Lane CP2 has finished on thi
 - Rebuild affected pages; replay; list reworded blocks.
 
 Do not touch: pooling, membership, screening, search. No network.
+
+## Added 2026-09-16 13:58 (topics 17, 18)
+- semaglutide-obesity-weight: the comparator is not the same question — its four studies include O'Neil 2018 (once-DAILY semaglutide 0.05–0.4 mg, 52 wk) and STEP 4 (maintenance-withdrawal after semaglutide run-in, a design the protocol explicitly excludes). Its −11.85 (−12.81, −10.90) matching our −11.84 is coincidence, not validation → `DIFFERENT_EVIDENCE_SAME_NEIGHBOURHOOD`; agreement statistics must not count it. Better contextual comparators exist (a 2024 six-trial 2.4 mg review at −11.80; a 2026 nine-trial analysis at −12.04) — name them only if cached.
+- balanced-crystalloids: Zayed 2018 predates both pooled trials; BEST-Living 2024 (IPD, six RCTs, OR 0.962 [0.909, 1.019]) is the correct principal comparator → recency flag + `PRINCIPAL_COMPARATOR_SUPERSEDED(named)` when a later same-question synthesis is cached.
