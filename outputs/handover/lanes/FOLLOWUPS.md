@@ -118,3 +118,5 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 ## Search/screening audit #13 (sglt2-primary-prevention-hf; 17:15) — convergence with page audit topic 7
 - Lane PP (queued behind ST, RO): no-HF subgroup pool via protocol amendment; PRIMARY_PREVENTION=OF_HF executable; slug-term ambiguity sweep; six established-HF controls; CREDENCE required.
 - DECISION FOR MAHMOOD (one question, three pages: sglt2-ckd SCORED, sglt2-hfref SOLOIST-WHF, sglt2-pp SCORED): is the SGLT2 intervention class SELECTIVE SGLT2 inhibitors only, or the SGLT-pathway including dual SGLT1/2 agents (sotagliflozin)? Register >=74 / 20 pages; 31 controls; 11 unwritten-rule pages.
+
+## Decision 17:20 — class boundaries = two strands (Mahmood). Lane CB queued after PP; strand pairs for iv-iron, glp1, tocilizumab, MRA proposed in DECISION_CLASS_BOUNDARY_STRANDS.md pending Mahmood's approval; corticosteroids and colchicine are dose/regimen (effect-modifier fields), not class strands.

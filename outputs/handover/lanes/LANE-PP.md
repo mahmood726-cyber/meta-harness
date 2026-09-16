@@ -16,3 +16,6 @@ Report file: `LANE-PP-REPORT.md`. Base `ad5e7c66`. No network. Same recovery sha
 6. Rebuild the page; replay; GRADE before/after; list reworded blocks (you do not write acknowledgements).
 
 Do not touch `harness/synth.py`, K2 policy, other topics' caches, search code. No fetch. No commit.
+
+## DECISION (Mahmood, 17:20) — contested class boundary = two declared strands, never a choice (read `DECISION_CLASS_BOUNDARY_STRANDS.md` in the clone root if present)
+SGLT2 pages: Strand A `SELECTIVE_SGLT2` (empagliflozin, dapagliflozin, canagliflozin, ertugliflozin) is PRIMARY; Strand B `SGLT_PATHWAY` adds dual SGLT1/2 (sotagliflozin: SCORED, SOLOIST-WHF). Declare both in the protocol before extraction (retrospective-labelled, SHA), render both ALWAYS, primary fixed at declaration, state that both answers were known. SOLOIST-WHF's EF-spectrum and acuity dispositions are separate typed row fields — the class strand never smuggles them. General compat rule: `CLASS_BOUNDARY_TRIAL(trial, boundary)` on any pooled-eligible trial whose class the protocol does not define → both strands required or the build refuses.
