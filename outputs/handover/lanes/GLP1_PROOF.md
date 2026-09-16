@@ -21,6 +21,20 @@
 
 
 
+
+## DELIVERABLE + EARLY-FLAG RULES (Dispatch, 18:15)
+- **Review pack for Mahmood (phone-readable, no lane ids / file names):** served URL + content hash; what the page says now (k, estimate, CI, τ², PI, certainty or `provisional`); what changed from baseline `90c01bcfbd124495` (trials added/refused and why; FLOW, FREEDOM-CVO, ELIXA specifically); honest weak points (what is still provisional and what would close it); measured cost (wall-clock, lanes, model tokens, Claude turns).
+- **Flag the moment a layer cannot be closed**, not at the end. Standard: proven when an auditor with our access trying to break it finds nothing; "proven on layers 1–5 and 8–11, provisional on 6 and 7 for these reasons" is a real outcome.
+- Do not stall the proof behind the landings: layers that do not depend on a blocked landing run meanwhile.
+
+## EARLY FLAGS — checked now (18:20), MEASURED on the held cache / snapshots / PubMed
+1. **Layer 2 CAN run offline.** `harness/search_v2.py` replays and pins from dated snapshots without network (`replay_snapshot`, `pin`); the glp1 r3 snapshot (`cache/glp1-ra-mace-t2d/snapshots/2026-09-15r3-search_v2/`) exists in the integration clone and **its records contain FLOW (38785209), FREEDOM-CVO (34873344), ELIXA (26630143), SOUL and SELECT** — the concept search already reached all four benchmark trials; pinning it gives every record an `EXECUTED_QUERY` route. No network needed for layer 2. ✔
+2. **Records:** FLOW and FREEDOM-CVO are NOT in `records.json` (the 11-record known-item set) but ARE in the r3 snapshot → they enter by pin, not by hand. ELIXA is already in the set. ✔
+3. **FREEDOM-CVO's 3-point value — PARTIAL, flagged now.** Its primary publication is Ruff 2021, Nat Med (PMID 34873344, [10.1038/s41591-021-01584-3](https://doi.org/10.1038/s41591-021-01584-3)); the abstract reports only the **4-point** primary (95/2,075 vs 79/2,081, HR 1.21 [0.90, 1.63], non-inferiority) and GI-driven AE excess. **The 3-point value is not in any source we hold** (no full text, no supplement, no FDA record cached). Under B-prime the trial is eligible and RETAINED with an OPEN recovery obligation; unless the Nat Med supplement or the FDA record is fetched (network + PDF — the integrator's, not a lane's), the k=11 target closes as **k=10 + FREEDOM-CVO refused-with-reason**. The three circulating 3-point values (≈1.24, 1.20, and the relabelled 1.21) are never inserted from a meta.
+4. **ELIXA's 3-point value — PARTIAL, flagged now.** The NEJM 2015 abstract (held) carries the 4-point primary 1.02 (0.89–1.17) only; the 3-point is in the supplement. Same disposition: retained, OPEN obligation, refused-with-reason unless the supplement/FDA record is fetched.
+5. **Layer 6 will close as `machine signal only, formal RoB 2 not performed` — flagged now.** Held for glp1: 2 full texts (LEADER 27295427, one other), **0 protocols, 0 SAPs**; the registry records supply allocation/masking only. Full RoB 2 signalling questions cannot be answered from held materials for 8 of 8 (soon 9–11) trials. Closing layer 6 honestly means the machine-signal rendering under B-prime, plus the EP precision measurement of the cosine decider; a formal RoB 2 would need protocol/SAP acquisition for ~10 trials (network + PDF reading) — Mahmood's call whether to fund that.
+6. **Layer 7 therefore closes as `GRADE provisional`** (two domains unassessed + RoB machine-only) — an honest close under the amendment, not a failure; the clinical conclusion is unaffected.
+
 ## LAYER 1 — SPECIFICATION ADOPTED: **B-prime** (protocol audit of `4091958c`; Mahmood: "fix all in reproducible harness", 18:05). Amendment text prepared in `glp1_amendment_Bprime.md` (handover copy), RETROSPECTIVE, A and B disclosed; the commit is HELD a few minutes for objection, then landed as a protocol-only commit (the anchor), followed by the rebuild commit (two-commit rule).
 Registers: eligibility by prospective systematic ascertainment of 3-point MACE (not by result availability; MACE measured but unavailable → retain + pursue); ITT time-to-first-event estimand with `undetermined_death_counted_as_cv` recorded per trial; **log-HR only** in the primary pool (the registered "log(RR)" synthesis sentence contradicted the HR estimand — three answers in one object; supersedes it; RR-from-counts as a separate sensitivity) → generalise to every time-to-event topic (corpus follow-up); timepoint = end of randomised blinded follow-up, extensions separate; clinical eligibility rule separated from the machine heuristic in the protocol itself; independent concept search across all seven agents + symmetric registries + citation chasing, no trial-name seed list, `entered_via` + rejection trail; **comparator resolved only after the search is locked** (the registered exact-title sweeps for eight named trials were seeded from the comparator — agreement with it is partly self-fulfilling; corpus sweep: any page whose retrieval identifiers trace to its comparator); harms GI + AE discontinuation prespecified, comparator-reported extras exploratory; full outcome-specific RoB 2 with signalling questions, sources, two-assessor adjudication, low-RoB sensitivity; GRADE across five domains with **no certainty category while any domain is unassessed** (`provisional`).
 
@@ -66,7 +80,7 @@ Either way FLOW is decided by the declared rule (under A it is in; under B it is
 | Item | Value |
 |---|---|
 | Start | 2026-09-16 17:45 (strategy received) |
-| Claude turns since start | 7 (at 18:10) |
+| Claude turns since start | 8 (at 18:20) |
 | Codex lanes used | IN (integration), G1 (page), EP (decider precision), SF-scoped | 
 | Model tokens | sum of `tokens used` lines in the lane logs |
 | Wall-clock to "auditor finds nothing" | — |
