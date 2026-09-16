@@ -33,6 +33,14 @@ Layer 2: AACT local -> symmetric discovery offline. Layer 4: full text + regulat
 - Disagreement decomposer: design note against the glp1 / Hasebe pair (membership, endpoint definition, effect estimate, follow-up choice, statistical model; progressive reproduction of the comparator).
 - Measurement added: `n objects requiring human adjudication of N model-derived objects` on the page (the throughput-ceiling constraint).
 
+
+## Adopted from the verified-evidence-synthesis document (19:05) into THIS proof -- each timed separately in the ledger
+- Layer 4: the compatibility object becomes the effect-estimate TYPE (population, randomised contrast, analysis set, endpoint components, first/recurrent, time origin, follow-up, censoring, effect measure, adjustment, estimator, report); UNKNOWN fails closed (TYPE_UNRESOLVED / DESIGN_UNPROVEN, never ALLOW) -- one change, two purposes.
+- Layer 5: outcome-missingness map extended to the dark-evidence ledger (registered -> started -> completed -> results posted -> publication found -> prespecified -> reported -> extractable -> pooled), AACT-fed.
+- Layer 9: robustness envelope (N defensible specifications; HR range; n favouring treatment; n excluding 1) instead of any ordinal uncertainty wording.
+- Layer 10: evidence/decision separation stated on the page. Defect library: today's controls as executable DEFECT_CLASS tests, starting with KNOWN_ITEM_SEARCH_MASQUERADING_AS_SYSTEMATIC_SEARCH and INCOMPATIBLE_EFFECT_MEASURES.
+- Not built: capture-recapture; ordinal uncertainty budget without measured rows.
+
 ## Layer board (MEASURED = read from the a2c53d98 objects / harvested lane reports; CLAIMED = auditor)
 | # | Layer | Current state | What proves it | Machinery (lane / status) |
 |---|---|---|---|---|
@@ -124,7 +132,7 @@ Either way FLOW is decided by the declared rule (under A it is in; under B it is
 | Item | Value |
 |---|---|
 | Start | 2026-09-16 17:45 (strategy received) |
-| Claude turns since start | 11 (at 19:00) |
+| Claude turns since start | 12 (at 19:08) |
 | Codex lanes used | IN (integration), G1 (page), EP (decider precision), SF-scoped | 
 | Model tokens | sum of `tokens used` lines in the lane logs |
 | Wall-clock to "auditor finds nothing" | — |
