@@ -5,6 +5,13 @@
 
 
 
+
+## RESOLVED 18:40 (Mahmood's FDA permission) -- both membership items close PROPERLY, from level-2 sources, never from a meta
+- **ELIXA strict 3-point MACE: HR 1.02 (0.887-1.172); 400/3034 vs 392/3034; 792 events; Cox PH, ITT on-study** -- FDA Statistical Review NDA 208471 (Adlyxin), p.23 (pdf p24), Table 8 + text; sha256 cf2b3ef9...; corroborated by the Clinical Review p127 ("HR was 1.02 ... upper bound below 1.3") and its component table p128 (CV death 156 vs 158; MI 270 vs 261; stroke 67 vs 60; UA 11 vs 10; HF hosp 122 vs 127). The 3-point and 4-point values coincide because only 0.3% had UA hospitalisation -- the reviews that relabelled were right by luck; this is the trial's own analysis.
+- **FREEDOM-CVO strict 3-point MACE: HR 1.24 (0.90-1.70); 85/2075 (4.1%) vs 69/2081 (3.3%); 154 adjudicated events; Cox PH, ITT end of study, FREEDOM only** -- FDA Briefing Document NDA 209053, EMDAC 21 Sep 2023 (fda.gov/media/172242), Table 19 (pdf p58); sha256 71936239...; the 4-point row (95/2075 vs 79/2081, 1.21 [0.90, 1.63]) equals the Nat Med abstract -- document identity corroborated. Adjudication of the three circulating figures: 1.24 = this (adopted); 1.20 = a meta's pointer (not adopted); 1.21 = the 4-point relabelled (wrong endpoint). CDER's own class-level analysis calls FREEDOM an outlier -- this is the trial that decides whether tau^2 ~ 0 is real.
+- Both recorded as sources under the acquisition contract with source_level 2 (`glp1_regulatory/regulatory_sources_glp1.json` + extracted text with document hashes; PDFs in the scratchpad, 37 MB + 6 MB + 2 MB). RoB 2 signalling material now held for ELIXA (SAP-derived analysis plan, sensitivity analyses, interim cut-offs) and FREEDOM (CDER's analysis plan, strata). EXSCEL's D2 material still needs its own FDA/EMA document (exenatide ER; Bydureon sNDA) -- next fetch.
+- Consequence for the target: the k=11 reconstruction is now computable from held level-1/2 sources (FLOW level 1 abstract; ELIXA and FREEDOM level 2); layers 4 and 9 no longer carry these two as OPEN obligations; layer 6 gains real material.
+
 ## FOUNDATION FIRST (Mahmood, 19:40: "ok do trial family node and claim graph first") -- built as general machinery with GLP-1 as the first consumer; the remaining GLP-1 layers run ON TOP of them
 - **Trial-family node** (`LANE-FN.md`, design = integrator's): registry-anchored identity (NCT > EudraCT > ISRCTN > jRCT; synthetic id flagged), typed report roles (primary / secondary / subgroup / pooled / EXTENSION / protocol / SAP / correction / retraction / abstract / FDA / EMA / HTA / registry / cost-effectiveness), arm structure from AACT with the randomised contrasts derived structurally, population entry fields, per-outcome dark-evidence status, lifecycle, `entered_via`. Rules with plants: a report is never a trial (COLCOT CE paper, LoDoCo2 secondary, STEP 6 post-hoc, PLATO subgroups, EMPA-KIDNEY follow-up); an extension that removes the contrast is not a comparison (FREEDOM extension, DIRECT 3-year); one family per count; count chain only; eligibility once per family; every field spanned. Sweep across 32 topics incl. the 0-of-8 -> n-of-8 contrast measurement on glp1.
 - **Claim graph extended** (`LANE-CGX.md`, design = integrator's): FACT / TRANSFORMATION / JUDGEMENT / INTERPRETATION with class marks; every rendered factual sentence a rendering of an object (`SENTENCE_WITHOUT_OBJECT` scan); scope = search completeness, registration precedence, membership, endpoint, result, significance, heterogeneity, PI, RoB coverage + ratings, publication bias basis, GRADE certainty + domains (arithmetic enforced or `provisional`), comparator overlap/parity/recency/rules-differ, reproducibility, every aggregate sentence; provenance DAG claim -> pooled effect -> trial estimate -> span -> document sha -> retrieval time (+ model pin/cache); `invalidate(sha)` returns exactly the downstream claims. Seven pre-fix plants from today's misses.
@@ -155,7 +162,7 @@ Either way FLOW is decided by the declared rule (under A it is in; under B it is
 | Item | Value |
 |---|---|
 | Start | 2026-09-16 17:45 (strategy received) |
-| Claude turns since start | 16 (at 19:45) |
+| Claude turns since start | 17 (at 19:58) |
 | Codex lanes used | FOUNDATION: IN (integration), FN (family node), CGX (claim graph) · PAGE: G1, EP (decider precision), SF-scoped | 
 | Model tokens | sum of `tokens used` lines in the lane logs |
 | Wall-clock to "auditor finds nothing" | — |
