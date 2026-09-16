@@ -57,3 +57,12 @@ comparator reports the HFrEF subgroup for all-cause mortality.
   RALES (spironolactone) and EMPHASIS-HF (eplerenone).
 - **Negative** - EPHESUS (eplerenone after acute myocardial infarction complicated by
   LV dysfunction and heart failure) must be recovered and EXCLUDED as same-drug but wrong-topic.
+
+## Amendment 2026-09-16 (identifier scope widened from single agent to MRA class)
+**Status: retrospective scope correction.** This amendment is appended before rebuilding
+the served page and does not rename the pinned slug/URL.
+
+- **Original identifier scope.** The served slug `spironolactone-hfref-mortality` read as a single-agent spironolactone identifier.
+- **Widened scope.** Steroidal mineralocorticoid receptor antagonist class review: spironolactone or eplerenone versus placebo in adults with HFrEF.
+- **Reason.** The page title and PICO intervention line already specify spironolactone or eplerenone; the slug/URL is a pinned served identity and is not renamed in this lane fix.
+- **Pre-specified list.** spironolactone; eplerenone.

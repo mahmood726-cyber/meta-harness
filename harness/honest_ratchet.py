@@ -36,7 +36,12 @@ MARKERS = {
     "suppressed_pool": ["Pooled result SUPPRESSED"],
     "design_refusal": ["Pool changed because a design refusal was added", "pooled variance unsupported"],
     "retraction": ["retract", "retraction", "we retract", "retracted", "withdrawn", "superseded"],
-    "declared_absent": ["declared absent", "DECLARED_ABSENT"],
+    # The declared-absent state is one honest marker under several spellings: the legacy phrase and the
+    # typed absence codes (lane RR, 2026-09-16). A page that renames the state has not lost it.
+    "declared_absent": ["declared absent", "DECLARED_ABSENT", "OUTCOME_NOT_IN_SOURCE",
+                        "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH", "COUNTS_PRESENT_NOT_CORROBORATED",
+                        "SOURCE_NOT_RETRIEVED", "MULTI_ARM_UNRESOLVED", "TIMEPOINT_MISMATCH",
+                        "POPULATION_MISMATCH"],
     "not_assessed": ["not assessed", "NOT_ASSESSED"],
 }
 ACK_PATH = Path("docs") / "ratchet_acknowledgements.json"
@@ -137,12 +142,37 @@ def blocks(src: str) -> list[dict[str, str]]:
     return parser.out
 
 
-def compare(base_html: str, new_html: str) -> list[str]:
+_MARKER_ACK_REQUIRED = ("page", "kind", "base_count", "new_count", "reason", "by", "when_utc")
+
+
+def _marker_ack_entries(acknowledgements: Any) -> list[dict[str, Any]]:
+    if isinstance(acknowledgements, dict):
+        raw = acknowledgements.get("marker_acknowledgements", [])
+    else:
+        raw = []
+    return [e for e in raw if isinstance(e, dict)]
+
+
+def _marker_decrease_acknowledged(acknowledgements: Any, page: str, kind: str, base: int, new: int) -> bool:
+    """A marker-count decrease is acceptable only under a signed entry naming the page, the kind and BOTH
+    counts exactly. A decrease is a fix only when someone read both pages and said why; a fix that lands
+    the counts anywhere else is a different change and is not covered."""
+    for e in _marker_ack_entries(acknowledgements):
+        if any(not e.get(k) and e.get(k) != 0 for k in _MARKER_ACK_REQUIRED):
+            continue
+        if e["page"] == page and e["kind"] == kind and e["base_count"] == base and e["new_count"] == new:
+            return True
+    return False
+
+
+def compare(base_html: str, new_html: str, acknowledgements: Any = None, page: str | None = None) -> list[str]:
     base = inventory(base_html)
     new = inventory(new_html)
     out = []
     for kind in MARKERS:
         if base[kind] > 0 and new[kind] < base[kind]:
+            if page and _marker_decrease_acknowledged(acknowledgements, page, kind, base[kind], new[kind]):
+                continue
             out.append(f"{kind}: base count {base[kind]}, new count {new[kind]}")
     return out
 
@@ -327,7 +357,7 @@ def check(root: str | os.PathLike[str], base_ref: str | None = None) -> tuple[bo
         except OSError as exc:
             reasons.append(f"COULD-NOT-EXECUTE: cannot read working-tree {rel}: {exc}")
             continue
-        for violation in compare(base_html or "", new_html):
+        for violation in compare(base_html or "", new_html, acknowledgements, rel):
             reasons.append(f"{rel}: {violation}")
 
     for block_ref in _block_base_refs(root, ref):

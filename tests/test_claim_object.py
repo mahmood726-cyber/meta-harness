@@ -10,7 +10,7 @@ def test_significant_when_ci_excludes_null_ratio():
 
 
 def test_not_significant_when_ci_crosses_null():
-    cl = C.derive({"k": 2, "estimate": 0.55, "ci_low": 0.036, "ci_high": 8.26, "scale": "RR"})
+    cl = C.derive({"k": 3, "estimate": 0.55, "ci_low": 0.36, "ci_high": 1.26, "scale": "RR"})
     assert cl["present"] and cl["significant"] is False and cl["crosses_null"] is True
 
 
@@ -45,9 +45,8 @@ def test_contradiction_scan_fires_on_opposite_assertion():
 
 
 def test_common_effect_interval_excluding_null_is_not_a_contradiction():
-    # k=2: HKSJ crosses the null (not significant) but the common-effect CI excludes it. A surface
-    # stating the common-effect interval 'excludes no-effect' must NOT be flagged (colchicine-recurrent).
-    cl = C.derive({"k": 2, "estimate": 0.48, "ci_low": 0.064, "ci_high": 3.62, "scale": "RR",
+    # A labelled common-effect sensitivity can legitimately be the only interval excluding the null.
+    cl = C.derive({"k": 3, "estimate": 0.48, "ci_low": 0.064, "ci_high": 3.62, "scale": "RR",
                    "ci_low_fixed": 0.30, "ci_high_fixed": 0.77})
     assert cl["significant"] is False and cl["significant_fixed"] is True
     con = C.significance_contradictions(cl, {
@@ -56,7 +55,7 @@ def test_common_effect_interval_excluding_null_is_not_a_contradiction():
 
 
 def test_contradiction_scan_passes_on_consistent_surface():
-    cl = C.derive({"k": 2, "estimate": 0.55, "ci_low": 0.036, "ci_high": 8.26, "scale": "RR"})
+    cl = C.derive({"k": 3, "estimate": 0.55, "ci_low": 0.036, "ci_high": 8.26, "scale": "RR"})
     con = C.significance_contradictions(cl, {
         "page": "The pooled RR crosses the null and is compatible with no effect.",
         "manuscript": "The 95% CI spans the null; the result is not statistically significant."})
@@ -67,6 +66,13 @@ def test_absent_claim_asserts_nothing():
     cl = C.derive({"present": False})
     con = C.significance_contradictions(cl, {"page": "significantly reduced everything"})
     assert con == []
+
+
+def test_k2_refused_ci_emits_no_pooled_claim():
+    cl = C.derive({"k": 2, "estimate": 0.55, "scale": "RR", "ci_low": None, "ci_high": None,
+                   "pooled_ci_refused": {"code": "K2_SINGLE_DF"}})
+    assert cl["present"] is False and cl["state"] == "NO_POOLED_CLAIM_K2"
+    assert cl["crosses_null"] is None and cl["significant"] is False
 
 
 def test_claim_check_helper_and_build_gate_fire(monkeypatch):

@@ -291,7 +291,7 @@ def describe_eligibility(inc: dict) -> str:
     Every clause below corresponds one-to-one to a branch of screen_record."""
     inc = inc or {}
     clauses = ["a randomised controlled trial"]
-    pa = inc.get("population_any")
+    pa = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
     if pa:
         clauses.append(f"population (in title/registry conditions) mentions one of {pa}")
     pn = inc.get("population_none")
@@ -346,11 +346,12 @@ def screen_record(rec, inc, neg_pmids):
     # abstract mention in a trial that is not actually OF the intervention cannot slip in.
     pop_haystack = _text(rec) if inc.get("prevention") else poptext
     pop_haystack_raw = _text_raw(rec) if inc.get("prevention") else raw_pop
-    popok = _has(pop_haystack, inc.get("population_any"))
-    if inc.get("population_any") and not popok:
+    population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
+    popok = _has(pop_haystack, population_any)
+    if population_any and not popok:
         _where = "title/conditions/abstract" if inc.get("prevention") else "title/conditions"
         return ("exclude", "X2",
-                f"population not on-topic: {_where} do not mention any of {inc['population_any']}"
+                f"population not on-topic: {_where} do not mention any of {population_any}"
                 + ("" if inc.get("prevention") else " (an incidental abstract mention does not qualify)") + ".",
                 f"examined {_where}: “{_quote(pop_haystack_raw)}”")
     # Title-anchoring for the intervention exists to reject INCIDENTAL abstract mentions in PMID
@@ -430,7 +431,8 @@ def screen_record_2(rec, inc):
         return "exclude"
     if _has(text, inc.get("population_none")):
         return "exclude"
-    if inc.get("population_any") and not _has(text, inc.get("population_any")):
+    population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
+    if population_any and not _has(text, population_any):
         return "exclude"
     if inc.get("intervention_any") and not _has_intervention(text, inc["intervention_any"]):
         return "exclude"

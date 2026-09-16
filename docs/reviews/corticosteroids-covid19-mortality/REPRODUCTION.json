@@ -1,7 +1,7 @@
 {
   "failures": 0,
   "protocol_sha": "dce99b4135d953e0363d519ff078bc6e1311289c",
-  "review_sha256": "36812bc9e3952cdfa3af9e62aa22c9ced31b603bc74651f870db8bd8387e74a0",
+  "review_sha256": "94fa8f2fdc5f633702009687ed64ba996e9cb73e39b47af35afecda96435165c",
   "from_cache": true,
   "preregistration": {
     "prospective": false,
@@ -13,24 +13,63 @@
     "slug": "corticosteroids-covid19-mortality",
     "our_k": 1,
     "comparable_comparator_k": 5,
-    "status": "GAP",
-    "reason": "1/5. Comparator (WHO REACT prospective MA) used investigator-supplied 28-day mortality not in the trial publications. In our committed cached abstracts, only RECOVERY reports 28-day all-cause mortality counts; the other trials report it only in full text, which is not in our committed cache, and their CT.gov results post no mortality table. The PMC full-text adapter did not run in this build, so the refusal rests on absence from the committed abstract, not on a tested access barrier."
+    "status": "OVERLAPPING",
+    "reason": "1/5. Comparator (WHO REACT prospective MA) used investigator-supplied 28-day mortality not in the trial publications. In our committed cached abstracts, only RECOVERY reports 28-day all-cause mortality counts; the other trials report it only in full text, which is not in our committed cache, and their CT.gov results post no mortality table. The PMC full-text adapter did not run in this build, so the refusal rests on absence from the committed abstract, not on a tested access barrier.",
+    "parity_relation": {
+      "relation": "OVERLAPPING",
+      "label": "INFERRED overlapping -- neither trial set contains the other",
+      "inferred": true,
+      "our_k": 1,
+      "their_k": 5,
+      "their_k_source": "comparable_comparator_k",
+      "shared_k": null,
+      "only_ours_n": 3,
+      "only_theirs_n": 0,
+      "dominance": null,
+      "hand_status": "OVERLAPPING",
+      "hand_status_normalized": "OVERLAPPING",
+      "hand_status_disagrees": false
+    },
+    "input_set_version": "07709b43a0ba82d74e54bf4198be856313f4bdeea8866895527aa65c13d54cd0",
+    "claim_id": "c81d81adbca57b45",
+    "depends_on": {
+      "input_set_version": "07709b43a0ba82d74e54bf4198be856313f4bdeea8866895527aa65c13d54cd0"
+    },
+    "claim_kind": "parity"
   },
   "refusals": [
     {
       "trial": "COVID STEROID (PMID 34138478)",
       "verified": "28-day mortality 6/16 vs 2/14, exact counts in the committed abstract",
-      "not_pooled_because": "n=30, stopped early; pooling it with RECOVERY's rate ratio produces a scale-mismatched IRR+OR combination and an uninformative interval (RR 1.30, 95% CI 0.0002-6827). Honest k=1 (RECOVERY) is preferred over an inflated, garbage k=2."
+      "not_pooled_because": "n=30, stopped early; pooling it with RECOVERY's rate ratio produces a scale-mismatched IRR+OR combination and an uninformative interval (RR 1.30, 95% CI 0.0002-6827). Honest k=1 (RECOVERY) is preferred over an inflated, garbage k=2.",
+      "input_set_version": "07709b43a0ba82d74e54bf4198be856313f4bdeea8866895527aa65c13d54cd0",
+      "claim_id": "5b80fab8fa78833d",
+      "depends_on": {
+        "input_set_version": "07709b43a0ba82d74e54bf4198be856313f4bdeea8866895527aa65c13d54cd0"
+      },
+      "claim_kind": "refusal"
     },
     {
       "trial": "CoDEX (PMID 32876695), Metcovid (PMID 32785710)",
       "verified": "28-day mortality is reported in each trial's full text (CoDEX 85/151 vs 91/148; Metcovid 72/194 vs 76/199)",
-      "not_pooled_because": "those counts are in the publisher full text (JAMA/OUP), not in our committed cached abstract. The PMC full-text adapter did not run in this build (source_status['PMC full text'] = NOT_RUN), so full-text access was not established and the counts cannot be self-verified against a committed source span; re-running the full-text adapter and committing those spans would allow pooling. Refused rather than pool numbers absent from committed evidence."
+      "not_pooled_because": "those counts are in the publisher full text (JAMA/OUP), not in our committed cached abstract. The PMC full-text adapter did not run in this build (source_status['PMC full text'] = NOT_RUN), so full-text access was not established and the counts cannot be self-verified against a committed source span; re-running the full-text adapter and committing those spans would allow pooling. Refused rather than pool numbers absent from committed evidence.",
+      "input_set_version": "07709b43a0ba82d74e54bf4198be856313f4bdeea8866895527aa65c13d54cd0",
+      "claim_id": "5b80fab8fa78833d",
+      "depends_on": {
+        "input_set_version": "07709b43a0ba82d74e54bf4198be856313f4bdeea8866895527aa65c13d54cd0"
+      },
+      "claim_kind": "refusal"
     },
     {
       "trial": "REMAP-CAP (PMID 32876697), CAPE-COVID (PMID 32876689)",
       "verified": "REMAP-CAP reports in-hospital mortality; CAPE-COVID reports day-21 mortality",
-      "not_pooled_because": "neither reports the declared 28-day all-cause mortality in its publication; the comparator (WHO REACT) used investigator-supplied 28-day data not present in the papers."
+      "not_pooled_because": "neither reports the declared 28-day all-cause mortality in its publication; the comparator (WHO REACT) used investigator-supplied 28-day data not present in the papers.",
+      "input_set_version": "07709b43a0ba82d74e54bf4198be856313f4bdeea8866895527aa65c13d54cd0",
+      "claim_id": "5b80fab8fa78833d",
+      "depends_on": {
+        "input_set_version": "07709b43a0ba82d74e54bf4198be856313f4bdeea8866895527aa65c13d54cd0"
+      },
+      "claim_kind": "refusal"
     }
   ],
   "dual": {
@@ -46,13 +85,40 @@
       "overview",
       "manuscript"
     ],
+    "scope_counts": {
+      "outcome_result": 1,
+      "strand_pool": 0,
+      "rob_sensitivity": 2,
+      "grade": 1
+    },
+    "scope": {
+      "counts": {
+        "outcome_result": 1,
+        "strand_pool": 0,
+        "rob_sensitivity": 2,
+        "grade": 1
+      },
+      "surfaces_checked": [
+        "outcome block",
+        "overview",
+        "manuscript"
+      ],
+      "not_in_scope": [
+        "verbatim source quotations",
+        "external comparator prose"
+      ]
+    },
     "contradictions": []
   },
   "proposition_check": {
     "checked": true,
     "contradictions": []
   },
-  "html_sha256": "8c368c9784bac508eea9c9e56f8a938298faa3e6c5113fb61d957d68180b91c5",
+  "claimgraph_check": {
+    "violations": [],
+    "disputes": []
+  },
+  "html_sha256": "4cf35d723539091317323a570927d003262794d1710fe02a7941b03dcf2c9bc0",
   "checks": [
     {
       "check": "render is deterministic",

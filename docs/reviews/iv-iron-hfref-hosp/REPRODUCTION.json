@@ -1,7 +1,7 @@
 {
   "failures": 0,
   "protocol_sha": "a56039f46158272c40c9565150903cf87db37c3c",
-  "review_sha256": "b7f9ff4e7a5babc3cee14b435789f8f6c37f4f348954312c30f9cc81176c616d",
+  "review_sha256": "efd6e08b4f80a04247b8ae2cfbaf709540a2686d7a8d21cfa661dada463c5e70",
   "from_cache": true,
   "preregistration": {
     "prospective": true,
@@ -13,19 +13,52 @@
     "slug": "iv-iron-hfref-hosp",
     "our_k": 2,
     "comparable_comparator_k": 3,
-    "status": "NEAR",
-    "reason": "2/3. Gap = HEART-FID + AFFIRM-AHF, refused on estimand: CT.gov labels HEART-FID heart-failure hospitalizations as COUNT_OF_PARTICIPANTS (297/1532 vs 332/1533) but the publication says \"297 hospitalizations\" = RECURRENT EVENTS, not patients — pooling the CT.gov count as a binary would produce a wrong number, so the recurrent-event guard refuses it. FAIR-HF = no extractable data; EFFECT-HF = open-label (design-excluded). CONFIRM-HF recovered."
+    "status": "OVERLAPPING",
+    "reason": "2/3. Gap = HEART-FID + AFFIRM-AHF, refused on estimand: CT.gov labels HEART-FID heart-failure hospitalizations as COUNT_OF_PARTICIPANTS (297/1532 vs 332/1533) but the publication says \"297 hospitalizations\" = RECURRENT EVENTS, not patients — pooling the CT.gov count as a binary would produce a wrong number, so the recurrent-event guard refuses it. FAIR-HF = no extractable data; EFFECT-HF = open-label (design-excluded). CONFIRM-HF recovered.",
+    "parity_relation": {
+      "relation": "OVERLAPPING",
+      "label": "INFERRED overlapping -- neither trial set contains the other",
+      "inferred": true,
+      "our_k": 2,
+      "their_k": 3,
+      "their_k_source": "comparable_comparator_k",
+      "shared_k": null,
+      "only_ours_n": 1,
+      "only_theirs_n": 0,
+      "dominance": null,
+      "hand_status": "OVERLAPPING",
+      "hand_status_normalized": "OVERLAPPING",
+      "hand_status_disagrees": false
+    },
+    "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
+    "claim_id": "fade158d52a66998",
+    "depends_on": {
+      "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+    },
+    "claim_kind": "parity"
   },
   "refusals": [
     {
       "trial": "AFFIRM-AHF (PMID 33197395), HEART-FID (PMID 37632463), IRONMAN (PMID 36347265)",
       "verified": "total HF hospitalisations located (e.g. AFFIRM-AHF 217 vs 294)",
-      "not_pooled_because": "these are RECURRENT-EVENT totals (rate ratios), not patients-with->=1-event; pooling them as a binomial 2x2 would over-count. Estimand mismatch with the count-based pool."
+      "not_pooled_because": "these are RECURRENT-EVENT totals (rate ratios), not patients-with->=1-event; pooling them as a binomial 2x2 would over-count. Estimand mismatch with the count-based pool.",
+      "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
+      "claim_id": "ce933a443bbad381",
+      "depends_on": {
+        "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+      },
+      "claim_kind": "refusal"
     },
     {
       "trial": "FAIR-HF (PMID 19920054), EFFECT-HF (PMID 28701470)",
       "verified": "abstracts fetched",
-      "not_pooled_because": "FAIR-HF reports only PGA/NYHA (no HF-hospitalisation counts); EFFECT-HF is open-label with peak-VO2 as primary and no HF-hospitalisation result. Named data/outcome gaps."
+      "not_pooled_because": "FAIR-HF reports only PGA/NYHA (no HF-hospitalisation counts); EFFECT-HF is open-label with peak-VO2 as primary and no HF-hospitalisation result. Named data/outcome gaps.",
+      "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
+      "claim_id": "ce933a443bbad381",
+      "depends_on": {
+        "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+      },
+      "claim_kind": "refusal"
     }
   ],
   "dual": {
@@ -35,19 +68,46 @@
     "conflict": 0
   },
   "claim_check": {
-    "claims_checked": 0,
+    "claims_checked": 4,
     "surfaces": [
       "outcome block",
       "overview",
       "manuscript"
     ],
+    "scope_counts": {
+      "outcome_result": 0,
+      "strand_pool": 4,
+      "rob_sensitivity": 0,
+      "grade": 1
+    },
+    "scope": {
+      "counts": {
+        "outcome_result": 0,
+        "strand_pool": 4,
+        "rob_sensitivity": 0,
+        "grade": 1
+      },
+      "surfaces_checked": [
+        "outcome block",
+        "overview",
+        "manuscript"
+      ],
+      "not_in_scope": [
+        "verbatim source quotations",
+        "external comparator prose"
+      ]
+    },
     "contradictions": []
   },
   "proposition_check": {
     "checked": true,
     "contradictions": []
   },
-  "html_sha256": "2ddd114e7b1a835a3c463509a8bad31e79e0d56884ab7f5c90d547f9f7783e04",
+  "claimgraph_check": {
+    "violations": [],
+    "disputes": []
+  },
+  "html_sha256": "e1e71b68dbadf2acedea7977903a00f6dfe6f789ca7db0660105bdcc527d2b64",
   "checks": [
     {
       "check": "render is deterministic",

@@ -7,8 +7,11 @@ import glob
 import json
 import math
 import os
+import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT := os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from harness import parity_relation  # noqa: E402
 
 # divergences (|log-ratio| >= 0.12) adjudicated against the record: why our pooled differs from theirs.
 ADJUDICATION = {
@@ -48,9 +51,13 @@ def build():
         theirs, tsc = rep.get("estimate"), rep.get("scale")
         if theirs is None:
             continue
-        rows.append(_classify(slug, ours, osc, theirs, tsc, rep.get("outcome")))
+        prow = parity_relation.load_parity_row(ROOT, slug)
+        prel = parity_relation.compute(prow, r) if prow else {}
+        rows.append(_classify(slug, ours, osc, theirs, tsc, rep.get("outcome"),
+                              prel.get("relation"), prel.get("label")))
     n = len(rows)
     same_agree = sum(1 for x in rows if x["category"] == "same_estimand_agree")
+    same_replication = sum(1 for x in rows if x["category"] == "same_estimand_replication")
     same_diverge = sum(1 for x in rows if x["category"] == "same_estimand_diverge")
     cross_pending = sum(1 for x in rows if x["category"] == "cross_estimand_pending")
     cross_opp = sum(1 for x in rows if x["category"] == "cross_estimand_opposite")
@@ -62,9 +69,12 @@ def build():
                     "HR is a rate, RR a risk), so a cross-estimand match is NOT a same-question agreement and its "
                     "'agrees' claim is SUPPRESSED until a scale-matched conversion is verified with the "
                     "comparator's event rate. Cross-estimand pairs are still shown with their direction "
-                    "consistency (a weaker, honest signal). Pooled-level only (not per-trial).",
+                    "consistency (a weaker, honest signal). IDENTICAL_SET comparisons are arithmetic "
+                    "replication, not independent corroboration, so their 'agrees' claim is suppressed. "
+                    "Pooled-level only (not per-trial).",
             "n_topics": n,
-            "same_estimand_agree": same_agree, "same_estimand_diverge": same_diverge,
+            "same_estimand_agree": same_agree, "same_estimand_replication": same_replication,
+            "same_estimand_diverge": same_diverge,
             "cross_estimand_pending": cross_pending, "cross_estimand_opposite": cross_opp,
             "non_comparable": noncomp,
             # back-compat field: same-question agreement is now ONLY the same-estimand agreements
@@ -78,24 +88,34 @@ def build():
 _RATIO = {"RR", "OR", "HR", "IRR", "RATE_RATIO"}
 
 
-def _classify(slug, ours, osc, theirs, tsc, their_outcome):
+def _classify(slug, ours, osc, theirs, tsc, their_outcome, relation=None, relation_label=None):
     o = (osc or "").upper()
     t = (tsc or "").upper()
     row = {"slug": slug, "our_estimate": ours, "our_scale": osc,
            "their_estimate": theirs, "their_scale": tsc, "their_outcome": their_outcome,
            "log_ratio_diff": None, "agree_within_12pct": False,
-           "adjudication": ADJUDICATION.get(slug, "")}
+           "adjudication": ADJUDICATION.get(slug, ""),
+           "parity_relation": relation, "parity_relation_label": relation_label}
+    def _stamp_relation():
+        if relation == "IDENTICAL_SET":
+            row.setdefault("agreement_basis", "arithmetic_replication")
+            row.setdefault(
+                "replication_note",
+                relation_label or
+                "arithmetic replication -- same trials; agreement is not independent corroboration")
+        return row
+
     # a continuous vs ratio (or any non-ratio) comparison is not comparable at all
     if o not in _RATIO or t not in _RATIO:
         row["category"] = "non_comparable"
         row["same_question"] = False
-        return row
+        return _stamp_relation()
     try:
         logdiff = abs(math.log(ours) - math.log(theirs))
     except (ValueError, TypeError):
         row["category"] = "non_comparable"
         row["same_question"] = False
-        return row
+        return _stamp_relation()
     row["log_ratio_diff"] = round(logdiff, 3)
     try:
         row["direction_consistent"] = (ours < 1.0) == (theirs < 1.0)
@@ -104,8 +124,15 @@ def _classify(slug, ours, osc, theirs, tsc, their_outcome):
     if o == t:
         # SAME estimand: a genuine same-question comparison.
         if logdiff < 0.12:
-            row["category"] = "same_estimand_agree"
-            row["agree_within_12pct"] = True
+            if relation == "IDENTICAL_SET":
+                row["category"] = "same_estimand_replication"
+                row["agreement_basis"] = "arithmetic_replication"
+                row["replication_note"] = (
+                    relation_label or
+                    "arithmetic replication -- same trials; agreement is not independent corroboration")
+            else:
+                row["category"] = "same_estimand_agree"
+                row["agree_within_12pct"] = True
             row["same_question"] = True
         else:
             row["category"] = "same_estimand_diverge"
@@ -119,13 +146,14 @@ def _classify(slug, ours, osc, theirs, tsc, their_outcome):
                                       f"asserted — HR/RR/OR are not interchangeable without an event-rate-justified "
                                       f"conversion. Direction is "
                                       + ("consistent" if row.get("direction_consistent") else "OPPOSITE") + ".")
-    return row
+    return _stamp_relation()
 
 
 if __name__ == "__main__":
     d = build()
     json.dump(d, open(os.path.join(ROOT, "docs", "external_agreement.json"), "w", encoding="utf-8"), indent=1)
-    print(f"same-ESTIMAND agreement (the only same-question agreement): {d['same_estimand_agree']}/{d['n_topics']}")
+    print(f"same-ESTIMAND agreement (different evidence base only): {d['same_estimand_agree']}/{d['n_topics']}")
+    print(f"  same-estimand arithmetic replication: {d['same_estimand_replication']}")
     print(f"  same-estimand diverge: {d['same_estimand_diverge']}; cross-estimand pending (suppressed): "
           f"{d['cross_estimand_pending']}; cross-estimand opposite: {d['cross_estimand_opposite']}; "
           f"non-comparable: {d['non_comparable']}")

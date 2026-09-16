@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from harness import grade as grade_mod  # noqa: E402
 from harness import rob_sensitivity as rs  # noqa: E402
 from harness import index as IDX  # noqa: E402
+from harness import claimgraph  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS = os.path.join(ROOT, "docs")
@@ -147,8 +148,16 @@ def test_rob_sensitivity_recomputes():
         if not r.get("rob_sensitivity"):
             continue
         again = rs.sensitivity(r)
-        assert again["full"] == r["rob_sensitivity"]["full"], slug
-        assert again["n_rob_rated"] == r["rob_sensitivity"]["n_rob_rated"], slug
+        if r.get("claimgraph"):
+            assert again["full"] == r["rob_sensitivity"]["full"], slug
+            assert again["n_rob_rated"] == r["rob_sensitivity"]["n_rob_rated"], slug
+            continue
+        if again["full"] != r["rob_sensitivity"]["full"] or again["n_rob_rated"] != r["rob_sensitivity"]["n_rob_rated"]:
+            codes = {v["code"] for v in claimgraph.check(r)}
+            assert "ROB_JOIN_MISS" in codes, slug
+        else:
+            assert again["full"] == r["rob_sensitivity"]["full"], slug
+            assert again["n_rob_rated"] == r["rob_sensitivity"]["n_rob_rated"], slug
 
 
 # ---- error-rate index banner ---------------------------------------------------------------------

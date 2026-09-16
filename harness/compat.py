@@ -5,30 +5,55 @@ contract is enforced by several separate guards -- estmeasure (effect-measure cl
 composite-component / timepoint / population mismatch checks that declare a divergent trial
 absent BEFORE it reaches the pool, and the arm-contrast layer. This module makes the contract
 EXPLICIT and auditable: it assembles the one compatibility KEY a pooled outcome satisfies, across
-six dimensions, and a backstop that FAILS CLOSED if a pool is ever rendered whose trials do not
-share the hard dimensions (defense in depth -- a regression that bypassed an upstream guard would
-otherwise pool incompatible quantities silently).
+hard dimensions plus disclosed compatibility dimensions, and a backstop that FAILS CLOSED if a pool
+is ever rendered whose trials do not share the hard dimensions (defense in depth -- a regression
+that bypassed an upstream guard would otherwise pool incompatible quantities silently).
 
 Dimensions:
-  effect_measure   : RR/OR/HR vs IRR vs MD -- the reported effect scale (from estmeasure labels)
-  event_process    : FIRST_EVENT_RATIO vs RATE vs continuous -- the compatibility CLASS; mixing
+  effect_measure   : RR/HR vs OR vs IRR vs MD -- the reported effect scale (from estmeasure labels)
+  event_process    : FIRST_EVENT_RATIO vs ODDS_RATIO vs RATE vs continuous -- the compatibility CLASS; mixing
                      classes is the hard incompatibility estmeasure already suppresses
   endpoint         : single endpoint vs composite -- a composite pools only a matching component set
   follow_up_window : the outcome's timepoint
   analysis_set     : ITT / mITT / per-protocol -- the analysis population
   randomised_contrast : whether each pooled trial is a registry-confirmed randomised contrast of the
                      intervention of interest (from the arm-contrast layer), reported as verified/total
+  prior_disease_stage : per-trial prior disease stage, disclosed when stated
+  background_therapy  : per-trial background therapy, disclosed when stated
 """
+from collections import Counter
+
 from . import extract
+from .membership import canonical_trial_key
+
+_DISCLOSED_DIMENSIONS = (
+    ("prior_disease_stage", "prior disease stage"),
+    ("background_therapy", "background therapy"),
+)
 
 
 def _canon_id(label):
     s = str(label or "")
-    for pre in ("PMID ", "PMID:", "NCT", "PMC"):
-        if s.upper().startswith(pre.upper()):
-            return s[len(pre):].strip() or s.strip()
+    c = canonical_trial_key(s)
+    if c:
+        return c
     # "ACRONYM · 12345678" -> take the trailing id token
     return s.split()[-1].strip() if s.split() else s.strip()
+
+
+def _dimension(trials, field):
+    vals = []
+    per_trial = []
+    for t in trials:
+        val = str(t.get(field) or "not_stated")
+        vals.append(val)
+        per_trial.append({"trial": t.get("label") or t.get("id"), "value": val})
+    counts = Counter(vals)
+    return {
+        "values": sorted(counts),
+        "matched": len(counts) <= 1,
+        "per_trial": per_trial,
+    }
 
 
 def outcome_key(o, core):
@@ -53,8 +78,25 @@ def outcome_key(o, core):
     if em.get("status") == "incompatible":
         mismatches.append({"dimension": "event_process/effect_measure",
                            "detail": "pooled trials span >1 effect-measure compatibility class: "
-                                     + " + ".join(em.get("canonicals", []))})
-    return {
+                                     + " + ".join(em.get("canonicals", [])),
+                           "hard": True})
+    limitations = []
+    dimensions = {}
+    has_disclosed_dimension = False
+    for field, label in _DISCLOSED_DIMENSIONS:
+        if not any(field in t for t in trials):
+            continue
+        has_disclosed_dimension = True
+        dim = _dimension(trials, field)
+        dimensions[field] = dim
+        if not dim["matched"]:
+            limitations.append({
+                "code": "COMPAT_DIMENSION_HETEROGENEOUS",
+                "dimension": field,
+                "detail": f"pooled trials differ on {label}: " + ", ".join(dim["values"]),
+                "hard": False,
+            })
+    key = {
         "effect_measure": em.get("labels") or ([res.get("scale")] if res.get("scale") else []),
         "event_process": classes,
         "endpoint": ("composite" if is_composite else "single endpoint") if is_composite is not None else "unclassified",
@@ -64,12 +106,18 @@ def outcome_key(o, core):
         "matched": not mismatches,
         "mismatches": mismatches,
     }
+    if has_disclosed_dimension:
+        key["limitations"] = limitations
+        key.update(dimensions)
+    return key
 
 
 def _scale_class(scale):
     s = (scale or "").upper()
-    if s in ("RR", "OR", "HR"):
+    if s in ("RR", "HR"):
         return "FIRST_EVENT_RATIO"
+    if s == "OR":
+        return "ODDS_RATIO"
     if s in ("IRR", "RATE_RATIO", "RATE_RATIO_RECURRENT"):
         return "RATE"
     if s in ("MD", "SMD"):

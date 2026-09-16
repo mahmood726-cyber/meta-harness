@@ -193,8 +193,10 @@ def _correlation_for_trial(
 
 def _scale_class(scale: str | None) -> str:
     s = (scale or "").upper()
-    if s in {"RR", "OR", "HR"}:
+    if s in {"RR", "HR"}:
         return "FIRST_EVENT_RATIO"
+    if s == "OR":
+        return "ODDS_RATIO"
     if s in {"IRR", "RATE_RATIO", "RATE_RATIO_RECURRENT"}:
         return "RATE"
     if s in {"MD", "SMD"}:

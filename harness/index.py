@@ -10,6 +10,8 @@ import json
 import os
 import re
 
+from . import parity_relation
+
 _E = lambda x: html.escape("" if x is None else str(x), quote=True)
 
 _FRONT = """<div class="banner">
@@ -53,24 +55,42 @@ def _parity_section(docs_dir: str) -> str:
         rows = json.load(open(p, encoding="utf-8"))
     except (OSError, ValueError):
         return ""
-    at = sum(1 for r in rows if str(r.get("status", "")).startswith("PARITY"))
-    color = {"PARITY": "#e6f4ea", "PARITY-effective": "#e6f4ea", "NEAR": "#fff8e1"}
+    enriched = []
+    for r in rows:
+        rp = os.path.join(docs_dir, "reviews", r.get("slug", ""), "review.json")
+        review = None
+        if os.path.exists(rp):
+            try:
+                review = json.load(open(rp, encoding="utf-8"))
+            except (OSError, ValueError):
+                review = None
+        enriched.append(parity_relation.enrich(r, review, strict=False))
+    identical = sum(1 for r in enriched
+                    if (r.get("parity_relation") or {}).get("relation") == "IDENTICAL_SET")
+    color = {"IDENTICAL_SET": "#e6f4ea", "DOMINANT_SUBSET": "#fff8e1", "SUPERSET": "#fff8e1",
+             "SUBSET": "#fff8e1", "OVERLAPPING": "#fff8e1"}
     body = (f"<div class='banner'><h2>Parity with the published comparator (the finishing metric)</h2>"
             f"<p>For each same-scope topic: our pooled <em>k</em> vs the <strong>comparable</strong> "
             f"comparator <em>k</em> (the comparator's pooled list, enumerated from its own references/"
             f"full text, after removing trials that are out of scope, double-counted substudies, "
-            f"observational, or non-prespecified for the outcome). <strong>{at} of {len(rows)}</strong> "
-            f"same-scope topics are at parity within scope; every remaining shortfall has a named reason. "
+            f"observational, or non-prespecified for the outcome). <strong>{identical} of {len(rows)}</strong> "
+            f"topics with parity rows have an identical computed trial set; identical-set agreement is "
+            f"arithmetic replication, not independent corroboration. Every remaining relation has a named reason. "
             f"This is a measurement snapshot (the enumeration is model-assisted; scope calls are "
             f"assessments, and each pooled recovery was verified against source before it counted).</p>"
-            "<table><tr><th>Topic</th><th>Our k</th><th>Comparable comparator k</th><th>Status</th>"
+            "<table><tr><th>Topic</th><th>Our k</th><th>Comparator k</th><th>Computed relation</th>"
             "<th>Named reason for any difference</th></tr>")
-    for r in rows:
-        st = str(r.get("status", ""))
-        bg = color.get(st, "#fdecec" if st in ("GAP", "COMPARATOR-INVALID", "NOT-ENUMERABLE") else "#fff")
+    for r in enriched:
+        rel = r.get("parity_relation") or {}
+        st = str(rel.get("relation") or r.get("status", ""))
+        bg = color.get(st, "#fdecec" if st in ("COMPARATOR_INVALID", "NOT_ENUMERABLE") else "#fff")
+        their_k = rel.get("their_k")
+        if their_k is None:
+            their_k = r.get("comparable_comparator_k")
         body += (f"<tr style='background:{bg}'><td>{_E(r.get('slug'))}</td>"
-                 f"<td>{_E(r.get('our_k'))}</td><td>{_E(r.get('comparable_comparator_k'))}</td>"
-                 f"<td>{_E(st)}</td><td>{_E(r.get('reason'))}</td></tr>")
+                 f"<td>{_E(rel.get('our_k', r.get('our_k')))}</td><td>{_E(their_k)}</td>"
+                 f"<td>{_E(st)}<br><span>{_E(rel.get('label'))}</span></td>"
+                 f"<td>{_E(r.get('reason'))}</td></tr>")
     return body + "</table></div>"
 
 
@@ -494,11 +514,12 @@ def _external_agreement_section(docs_dir: str) -> str:
     if not n:
         return ""
     ag = d.get("same_estimand_agree", d.get("agree_within_12pct", 0))
+    rep = d.get("same_estimand_replication", 0)
     sd = d.get("same_estimand_diverge", 0)
     cp = d.get("cross_estimand_pending", 0)
     co = d.get("cross_estimand_opposite", 0)
     nc = d.get("non_comparable", 0)
-    same_n = ag + sd
+    same_n = ag + rep + sd
     return (f"<div class='banner'><h2>External validation: our pooled numbers vs the published meta-analyses'</h2>"
             f"<p>The strongest check is against an external hand-built standard: our pooled primary estimate vs "
             f"the published comparator meta-analysis's reported pooled estimate. But a comparison is only 'the "
@@ -507,7 +528,9 @@ def _external_agreement_section(docs_dir: str) -> str:
             f"not a risk), so comparing them on the log scale as if interchangeable is a "
             f"<em>comparator-context mismatch</em>. Keying on the estimand: of {n} topics, <strong>{same_n} are "
             f"same-estimand comparisons, and {ag} of those agree within ~12%</strong> on the log scale "
-            f"(the genuine same-question agreements); {sd} same-estimand comparison(s) diverge (adjudicated). "
+            f"with a different evidence base; <strong>{rep}</strong> are arithmetic replications on an "
+            f"identical trial set and are not counted as independent corroboration; {sd} same-estimand "
+            f"comparison(s) diverge (adjudicated). "
             f"<strong>{cp} are cross-estimand</strong> (e.g. our HR vs their OR): direction-consistent but the "
             f"same-question agreement claim is <strong>SUPPRESSED</strong> until a scale-matched, "
             f"event-rate-justified conversion is verified — a previous version counted these as agreements, "
@@ -742,7 +765,7 @@ def _spec_curve_section(docs_dir: str) -> str:
         return ""
     return (f"<div class='banner'><h2>Specification curve: the headline is the most conservative standard "
             f"choice</h2>"
-            f"<p>Each primary outcome with &ge;2 trials (<strong>{n['n']}</strong> of them) was re-pooled "
+            f"<p>Each non-refused primary outcome with &ge;2 trials (<strong>{n['n']}</strong> of them) was re-pooled "
             f"under three defensible specifications on the model/interval axis: random-effects with the "
             f"Hartung-Knapp interval (the harness default), random-effects with a Wald/z interval, and a "
             f"fixed-effect model. <strong>The direction of effect was stable across all three in "
@@ -1045,16 +1068,24 @@ def _continuous_section(docs_dir: str) -> str:
     review.json so it cannot drift if the pool is rebuilt; the pre-guard 'k=4' is a fixed narrative of
     what the timepoint guard removed (static), and Week-44/Week-68 describe fixed trial designs."""
     k = md = lo = hi = None
+    refused = None
     p = os.path.join(docs_dir, "reviews", "semaglutide-obesity-weight", "review.json")
     if os.path.exists(p):
         try:
             rev = json.load(open(p, encoding="utf-8"))
             res = next((o["result"] for o in rev.get("outcomes", []) if o.get("primary")), {})
             k, md, lo, hi = res.get("k"), res.get("estimate"), res.get("ci_low"), res.get("ci_high")
+            refused = res.get("pooled_ci_refused")
         except (OSError, ValueError, KeyError):
             pass
     if k is None or md is None:
         sema = "a single Week-68 pool after a timepoint-consistency guard removed off-timepoint trials"
+    elif refused:
+        sema = (f"it went from <strong>k=4, a tight and statistically significant pool</strong>, to "
+                f"<strong>k={k}, MD &minus;{abs(round(md,2))}%</strong>; the registered PM/HKSJ CI is "
+                "refused at k=2, so the index makes no pooled significance or null-crossing claim, after "
+                "a timepoint-consistency guard refused to pool two Week-44 trials into a pre-registered "
+                "Week-68 outcome")
     else:
         sema = (f"it went from <strong>k=4, a tight and statistically significant pool</strong>, to "
                 f"<strong>k={k}, MD &minus;{abs(round(md,2))}% (95% CI &minus;{abs(round(lo,2))} to "

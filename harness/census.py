@@ -25,8 +25,11 @@ from .page import render_page
 from . import page
 from . import registration
 from . import claim
+from . import claimgraph
 from . import compat
+from . import membership
 from . import proposition
+from . import parity_relation
 from .synth import CI_PROVENANCE
 
 # Provenances a RENDERED interval may legitimately carry: the canonical engine token, or a single
@@ -88,22 +91,27 @@ def _claim_check(review_core_obj: dict):
                     pass
         for c in claim.significance_contradictions(cl, surfaces):
             contradictions.append({"outcome": o.get("name"), **c})
-    return {"claims_checked": checked, "surfaces": ["outcome block", "overview", "manuscript"],
+    scope_counts = claimgraph.scope_counts(core, checked)
+    surfaces = ["outcome block", "overview", "manuscript"]
+    checked_total = checked + scope_counts.get("strand_pool", 0)
+    scope = {
+        "counts": scope_counts,
+        "surfaces_checked": surfaces,
+        "not_in_scope": ["verbatim source quotations", "external comparator prose"],
+    }
+    return {"claims_checked": checked_total, "surfaces": surfaces,
+            "scope_counts": scope_counts, "scope": scope,
             "contradictions": contradictions}
 
 
-def _parity_row(root: str, slug: str):
+def _parity_row(root: str, slug: str, review_core_obj: Optional[dict] = None):
     """This topic's row from the committed docs/parity.json (a measurement snapshot), or None.
     Shared by census (build) and reproduce_review (replay) so the reproduction block byte-matches."""
-    p = os.path.join(root, "docs", "parity.json")
-    if not slug or not os.path.exists(p):
+    if not slug:
         return None
-    try:
-        for row in json.load(open(p, encoding="utf-8")):
-            if row.get("slug") == slug:
-                return row
-    except (ValueError, OSError):
-        return None
+    row = parity_relation.load_parity_row(root, slug)
+    if row:
+        return parity_relation.enrich(row, review_core_obj)
     return None
 
 
@@ -184,7 +192,7 @@ def build_review_dir(
             pass
     # Parity snapshot (docs/parity.json): this topic's row, outside the core hash. Rendered so a
     # reader sees our k vs the comparable comparator k on the page itself, not only on the index.
-    _pa = _parity_row(_root, manifest_meta.get("slug", ""))
+    _pa = membership.annotate_parity(_parity_row(_root, manifest_meta.get("slug", ""), review_core_obj), review_core_obj)
     if _pa:
         reproduction["parity"] = _pa
     _rf = _refusals_rows(_root, manifest_meta.get("slug", ""))
@@ -210,6 +218,12 @@ def build_review_dir(
     if _pbad:
         raise ValueError("PROPOSITION CONTRADICTION (build refused): a categorical/membership or "
                          "methodological proposition and its negation are asserted at once -> " + json.dumps(_pbad))
+    reproduction = claimgraph.prepare_reproduction(review_core_obj, reproduction)
+    _cgbad = claimgraph.check({**review_core_obj, "reproduction": reproduction})
+    reproduction["claimgraph_check"] = {"violations": _cgbad,
+                                        "disputes": claimgraph.disputes({**review_core_obj, "reproduction": reproduction})}
+    if _cgbad:
+        raise ValueError("CLAIMGRAPH CONTRADICTION (build refused): " + json.dumps(_cgbad))
     # COMPATIBILITY-KEY backstop: refuse a rendered pool whose trials do not share the hard
     # dimensions (an incompatible effect-measure class inside a pool). Defense in depth -- the
     # upstream guards already suppress these, so this passes on a well-formed corpus and fires
