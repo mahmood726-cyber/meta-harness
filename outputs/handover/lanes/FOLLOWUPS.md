@@ -145,3 +145,8 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 - Fourth panel shape HOLDS_ESTIMATE_FALSIFIES_TRANSPORTABILITY (tau2 + PI, not only the estimate) -> missing_effect/KM classifier; re-check every 'robust to known missing' page on tau2/PI.
 - Layer 8: parity compares comparator ELIGIBILITY RULES (Hasebe route restriction) not only trial lists -> COMPARATOR_RULES_DIFFER.
 - Membership: FLOW include from span; FREEDOM-CVO SOURCE_CONFLICT adjudication (three 3-point values); ELIXA primary supplement/FDA, never from a meta. Layer 10: completeness proposition in the claim graph.
+
+## glp1 layers 1/6/7 (18:10)
+- B-prime adopted; log-HR-only primary pool generalises to every time-to-event topic; comparator-seeded retrieval sweep corpus-wide.
+- MEASURED: 19 of 31 pages render a certainty that does not follow from starting level minus downgrades (11 via the unstated D3 cap) -> CG acceptance proposition + `provisional` rendering (KM2/GI).
+- EXSCEL concern at D2 not D5; PIONEER 6 reporting concerns; machine signals render as 'consistent with low; RoB 2 not assessed'.
