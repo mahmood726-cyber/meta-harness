@@ -114,3 +114,7 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 - Lane EP (queued FIRST after the four recoveries): precision of the cosine>=0.45 registry-outcome decider in rob2_build.py, n of N by hand adjudication, false matches quoted, pages whose RoB rests on one; no code change.
 - PHASE_2A_DESIGN.md: the two lists (model-source targets vs keep-deterministic) + gate limb + acceptance set.
 - SF: axes 8/9, broader-composite-never-excludes rule, DAPA ACT HF mandatory retrieval, DELIVER/EMPEROR-Preserved controls. Register >=72 / 19 pages; 25 controls; 10 unwritten-rule pages.
+
+## Search/screening audit #13 (sglt2-primary-prevention-hf; 17:15) — convergence with page audit topic 7
+- Lane PP (queued behind ST, RO): no-HF subgroup pool via protocol amendment; PRIMARY_PREVENTION=OF_HF executable; slug-term ambiguity sweep; six established-HF controls; CREDENCE required.
+- DECISION FOR MAHMOOD (one question, three pages: sglt2-ckd SCORED, sglt2-hfref SOLOIST-WHF, sglt2-pp SCORED): is the SGLT2 intervention class SELECTIVE SGLT2 inhibitors only, or the SGLT-pathway including dual SGLT1/2 agents (sotagliflozin)? Register >=74 / 20 pages; 31 controls; 11 unwritten-rule pages.
