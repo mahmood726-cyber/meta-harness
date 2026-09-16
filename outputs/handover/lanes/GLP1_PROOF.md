@@ -25,6 +25,14 @@ abstract-only is no longer terminal: PMC/Europe PMC -> supplements -> publisher 
 ## Layer flags REVISED (18:45): layers 2, 4, 5, 6 are no longer at risk of closing provisional for want of sources
 Layer 2: AACT local -> symmetric discovery offline. Layer 4: full text + regulatory compulsory before OUTCOME_NOT_IN_SOURCE is terminal. Layer 5: AACT reported_events per arm -> closeable. Layer 6: FDA/EMA reviews supply SAP/deviation/discontinuation material -> RoB 2 may close properly. FREEDOM-CVO and ELIXA adjudicable from FDA. Remaining honest risk: a specific supplement or FDA document that does not exist or cannot be read -- flagged the moment it is hit.
 
+
+## Adopted from the proof-carrying-synthesis strategy (18:55) into THIS proof
+- Trial-family node is the unit at layer 3 (eligibility once per family; reports carry publication_role); counts are families.
+- The source ladder is the only path to a terminal absence: `RESULT NOT LOCATED after sources A-G checked`, attempts listed (layer 4).
+- **Outcome-missingness map built at layer 5**: per eligible family, `MACE prospectively specified / measured / reported / extractable / in primary pool`, each with a span or typed absence -- also the honest denominator for the GRADE publication-bias domain.
+- Disagreement decomposer: design note against the glp1 / Hasebe pair (membership, endpoint definition, effect estimate, follow-up choice, statistical model; progressive reproduction of the comparator).
+- Measurement added: `n objects requiring human adjudication of N model-derived objects` on the page (the throughput-ceiling constraint).
+
 ## Layer board (MEASURED = read from the a2c53d98 objects / harvested lane reports; CLAIMED = auditor)
 | # | Layer | Current state | What proves it | Machinery (lane / status) |
 |---|---|---|---|---|
@@ -116,7 +124,7 @@ Either way FLOW is decided by the declared rule (under A it is in; under B it is
 | Item | Value |
 |---|---|
 | Start | 2026-09-16 17:45 (strategy received) |
-| Claude turns since start | 10 (at 18:48) |
+| Claude turns since start | 11 (at 19:00) |
 | Codex lanes used | IN (integration), G1 (page), EP (decider precision), SF-scoped | 
 | Model tokens | sum of `tokens used` lines in the lane logs |
 | Wall-clock to "auditor finds nothing" | — |
