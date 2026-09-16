@@ -127,3 +127,8 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 
 ## Search/screening audit #15 (empagliflozin-hfpef; 17:40)
 - SF: paired generalisation test with #14; k=1 split now 2 of 4 clear failures / 2 of 4 likely defensible / 5 unaudited. Register >=80 / 22 pages; 37 controls; 13 unwritten-rule pages.
+
+## Audits #16 denosumab, #17 statins (17:05)
+- CORRECTION: STAREE already pooled (auditor error); flips now 3 (VESALIUS MEASURED, STEP 8, ICAP). ST lane corrected in flight via INTEGRATOR_CORRECTION.md.
+- Design axis: 0 of 97 pooled rows non-randomised (MEASURED); statins observational element = comparator, already refused.
+- k=1 tally: 3 wrongly thin / 2 likely legitimate / 4 unaudited. DIRECT to register; extraction-order failure mode -> TE mechanism + sweep; extensions as family+contrast failures; 'elderly' + sex-composition axes; POPULATION_BASIS records the defining characteristic.
