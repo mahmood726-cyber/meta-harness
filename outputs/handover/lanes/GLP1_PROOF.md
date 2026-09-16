@@ -1,0 +1,36 @@
+# Prove one page: `glp1-ra-mace-t2d` — plan, layer state, cost ledger (started 2026-09-16 17:45)
+
+**Strategy (Mahmood, via Dispatch, 17:45):** stop going wide; prove one page end to end to an independent auditor actively trying to break it. Priority above every remaining corpus-wide class except the three inference-changing recoveries in flight (S8 running, RO queued; VS integrated in landing 2).
+
+## Layer board (MEASURED = read from the a2c53d98 objects / harvested lane reports; CLAIMED = auditor)
+| # | Layer | Current state | What proves it | Machinery (lane / status) |
+|---|---|---|---|---|
+| 1 | Protocol | slug implies "dedicated CVOT only" (excludes FLOW) — written nowhere (CLAIMED audit #4); no co-primary rule; no whole-trial-vs-subgroup field; endpoint not enumerated | amendment committed FIRST (SHA = registration, labelled retrospective, both FLOW answers disclosed): `INCLUSION = any randomised GLP-1RA vs placebo in T2D reporting 3-point MACE` (or the dedicated-CVOT restriction, stated) · co-primary/endpoint rule `CV_DEATH \| NONFATAL_MI \| NONFATAL_STROKE`, canonical-closest · `POPULATION_BASIS` with pre-randomisation-characteristic rule · strands `CONVENTIONAL_GLP1RA` (primary) / `GLP1RA_ANY_DELIVERY` (pending Mahmood's approval of the pair) | G1 lane (page lane) — protocol_compiler checks every axis executable (`SLUG_AXIS_NOT_IN_CONFIG` = 0) |
+| 2 | Search | PMID/title-seeded; r3 search_v2 snapshot exists for this topic (2026-09-15r3); FLOW / FREEDOM-CVO / ELIXA / SELECT reachability UNMEASURED | `search_v2.pin()` onto r3 (integrator runs; lanes have no network): 8 pooled + FLOW + FREEDOM-CVO + ELIXA + SELECT all `REACHED`; every pooled row `entered_via`; rejection trail rendered (families retrieved and refused with typed reasons) | SF machinery (queued) + integrator search run; benchmark test `test_search_benchmarks.py` |
+| 3 | Screening | keyword lexicon; per-PMID counting; FLOW excluded by convenience | canonical arm object (drug/dose/route/background/population/timepoint/analysis set) → family dedup BEFORE eligibility → counts `publications → families → eligible families`; FLOW decided by the declared rule; ELIXA/SELECT retrieved-and-refused with typed reasons | SC/SC2/SC3 harvested (arm object, entry-condition rule) + SF (families) |
+| 4 | Extraction | 8 pooled rows, abstract HRs; `OUTCOME_NOT_IN_SOURCE` unreliable corpus-wide (RX 93/668; EX 43/1088) | every pooled value verified against a full digit-bearing span; negative citation for every absence; source hierarchy (published HR > reconstruction); round-trip where counts exist (TE + RT) | EX, RX, TE, XS2 harvested; EX2 (negative citation) new |
+| 5 | Harms | PIONEER 6 GI discontinuation, SUSTAIN-6 AE discontinuation + retinopathy HR 1.76 (1.11–2.78), SOUL GI 5.0% vs 4.4% / SAE 47.9% vs 50.3% — rendered `declared absent` (CLAIMED audit #3) | harms through the same pipeline: strands by definition, typed states, `HARMS_INCOMPLETE` only where a report is genuinely unresolved; no absence served where a value is held | HM partial patch (own tests pass; full suite unverified) + HM2 |
+| 6 | Risk of bias | EXSCEL D5 "some concerns" not reproducible (registry primary == pooled); embedding decider at cosine 0.45 unmeasured; family labelled RoB2 | every machine rating re-derivable from its rule (RB gate — landed in landing 2) + D5 rule replaced (D5 harvested) + EP precision measurement + relabel `registry-machine-signal-restricted` | RB (landing 2), D5 (harvested), EP (queued) |
+| 7 | GRADE | inconsistency rule wrong in principle; imprecision does not name the quantity it grades (τ²≈0.0000447, 8 concordant trials) | inconsistency from Q p / I² CI / direction / PI-CI ratio, rationale generated; `imprecision_basis` names observed-evidence vs superpopulation | KM2 (running) + GI follow-up |
+| 8 | Comparator | Giugliano matched on P and I only; ELIXA 4-point vs our 3-point; parity asserted | match on P, I, C AND O; trial-set overlap computed (CP2: shared_k 7 of 8 MEASURED, ELIXA only-theirs); recency; participant-count reconciliation | CP2, CP3 harvested |
+| 9 | Synthesis | served 0.856 (0.809–0.906), k=8 | known-missing sensitivity rendered: +FLOW k=9 ≈0.8540 (0.8095–0.9008); +FLOW+FREEDOM-CVO k=10 ≈0.8527 (0.7916–0.9184) — the ROBUST shape, said explicitly (values CLAIMED until pooled from held spans) | KM (landing 2) + G1 |
+| 10 | State & claims | "Coverage: 8 of 8 assessed" vs "7 of 8 rated"; hand aggregate sentences; `contradictions caught: 0` without scope | claim graph over every rendered proposition; aggregate sentences generated; scope printed | CG (landed), CG2 harvested, CG3 new |
+| 11 | Reproducibility | replays byte-for-byte today | still true after every layer; any model call pinned/cached/committed/span-verified (contract) | gate (exists) + `model_source_discipline` limb (new) |
+| 12 | Independent break attempt | — | auditor given the same access finds nothing | Mahmood's auditor |
+
+## Sequence
+1. Landing 2 (CK RB KM VS + graph fixes) → hook → CI → main. **Blocked on two pcsk9 acknowledgements Mahmood must sign** (removed k=2 refusal block; removed zero-claims block).
+2. Landing 3 = every harvested lane (EX RX TE XS2 SC SC2 SC3 CP2 CP3 CG2 SH2 CK2 CX FU CK3 D5 EN2 SE + HM partial) onto landing-2 main — the glp1 machinery. Integration by a Codex lane (IN) under strict rules; conflict resolutions listed for my review; I adjudicate.
+3. Integrator runs the discovery search for glp1 (`search_v2.pin()` on r3) and fetches FLOW / FREEDOM-CVO / ELIXA / SELECT records (PubMed, inlined) — network is mine, not the lanes'.
+4. **G1 page lane** on the landing-3 base: protocol amendment first; then layers 2–11 on this page only; every axis executable; report per layer with the evidence an auditor would ask for.
+5. Independent audit (Priority-4 style: someone else, same access).
+
+## Cost ledger (fill as it goes; the number that makes this a template)
+| Item | Value |
+|---|---|
+| Start | 2026-09-16 17:45 (strategy received) |
+| Claude turns since start | counted per response; running total kept here |
+| Codex lanes used | IN (integration), G1 (page), EP (decider precision), SF-scoped | 
+| Model tokens | sum of `tokens used` lines in the lane logs |
+| Wall-clock to "auditor finds nothing" | — |
+| Layers that could NOT be made defensible | — (say so plainly if any) |
