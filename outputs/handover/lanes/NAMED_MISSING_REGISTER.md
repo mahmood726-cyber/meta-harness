@@ -2,7 +2,7 @@
 
 Every trial an external audit named as eligible (P/I/C/design) or as needing an explicit disposition, that the page's screening universe does not contain at all (REACH_MISS — a search failure, Phase 2B). Recovery lanes exist for the four that change a served conclusion. All entries CLAIMED by the auditor until a lane locates the record; PMIDs given where the integrator fetched them from PubMed.
 
-## A. Absent from the screening universe (REACH_MISS) — **26 trials on 12 pages**
+## A. Absent from the screening universe (REACH_MISS) — **31 trials on 13 pages**
 | # | Trial | Page | Effect on the served conclusion | Lane |
 |---|---|---|---|---|
 | 1 | VESALIUS-CV (PMID 41211925) | pcsk9-mace | flips significance | **VS** (running) |
@@ -31,6 +31,11 @@ Every trial an external audit named as eligible (P/I/C/design) or as needing an 
 | 24 | EMPERIAL-Reduced | sglt2-hfref-hosp-cvdeath | absent by design (6MWT) | SC2 |
 | 25 | PROSPER primary-prevention subgroup | statins-primary-prevention-elderly | SUBGROUP_OF_BROADER_TRIAL | ST |
 | 26 | ALLHAT-LLT | statins-primary-prevention-elderly | usual-care comparator → typed refusal | ST |
+| 27 | Vizzardi 2014 | spironolactone-hfref-mortality | 130 pts NYHA I–II, LVEF <40%, all-cause death in primary, ~44 mo — full-text mortality extraction | SF / 2B |
+| 28 | FLOW | glp1-ra-mace-t2d | eligible unless "dedicated CVOT only" is prespecified (it is not) | SF / 2B |
+| 29 | Chan 2007 | spironolactone-hfref-mortality | MRA family; explicit disposition owed | SF / 2B |
+| 30 | Feola | spironolactone-hfref-mortality | explicit disposition owed | SF / 2B |
+| 31 | Berry | spironolactone-hfref-mortality | explicit disposition owed | SF / 2B |
 
 ## B. In the corpus but unconsumed (extraction / recovery debt, not search) — 9
 ICAP recurrence component 11/120 vs 25/120 (pericarditis; flips significance; **RO**) · TECOS strict 3-point · EXAMINE one-sided bound (dpp4; RO) · DISPERSE-2 (ticagrelor; shared-control multi-arm decision; RX) · COCS · COPPS (colchicine-postop; extraction debt) · OMEMI · OMEGA (omega-3) · DAPA-HF exact endpoint 382/495 (sglt2-hfref; TE).
@@ -41,4 +46,10 @@ MIRO-CKD, PYY1875, CRUSADERS (`X-CONTRAST`); HISTORI (`X-DOSE`); STEP TEENS (`X-
 ## D. Correct exclusions/refusals that must not regress — 6
 CORE, COPE (open-label; pericarditis) · STEP 11 (Week 44) · Meduri/ESCAPe (60-day) · Risk and Prevention Study (omega-3) · phase-IV monotherapy refusal (metformin).
 
-**Scale, one number: 26 named eligible-or-disposition trials missing from the screening universe across 12 of 32 pages, plus 9 held-but-unconsumed; 4 of the 35 flip a served conclusion.**
+## E. Retrieve-then-reject controls (search MUST find, screen MUST reject for a named reason) — 4 (added 15:40)
+TOPCAT (spironolactone; HFpEF LVEF ≥45% → `X-POPULATION(HFpEF)`) · SELECT (glp1; semaglutide CVOT, population excludes diabetes → `X-POPULATION(no T2D)`) · ELIXA and FREEDOM-CVO (glp1; 4-point primary MACE → endpoint adjudication; FREEDOM-CVO also tests whether an implanted continuous-delivery device counts as "conventional GLP-1RA" — must be prespecified). A control never retrieved = silent search failure; retrieved and correctly excluded = the system working. Stronger than plants: they separate reach from screening.
+
+## F. Unwritten eligibility rules (effective criterion in neither prose nor config) — 3 pages so far
+ticagrelor (de facto double-blind) · glp1 (de facto "dedicated CVOT only" — excludes FLOW) · spironolactone (intervention scope never fixed: slug spironolactone, pool contains eplerenone — "eligible" has no stable meaning until settled). Lane SF sweep: `n of 32 pages with an effective criterion no protocol states`.
+
+**Scale, one number: 31 named eligible-or-disposition trials missing from the screening universe across 13 of 32 pages, plus 9 held-but-unconsumed; 4 of the 40 flip a served conclusion; 4 retrieve-then-reject controls; 3 pages with unwritten rules.**

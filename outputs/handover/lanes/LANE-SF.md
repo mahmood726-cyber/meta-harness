@@ -15,3 +15,10 @@ Report file: `LANE-SF-REPORT.md`. Base `ad5e7c66`. Read `harness/identity.py` (P
 - Rebuild affected pages (screening tables, PRISMA counts, "n trials met" sentences); replay; list reworded blocks.
 
 Do not touch: pooling, membership of any pool, the extractor, search code (you classify what was retrieved; Phase 2B re-runs the search). No network. No commit.
+
+## Added 15:40 (search/screening audits #3 spironolactone, #4 glp1)
+- **Provenance of every pooled trial is a first-class field**: `entered_via ∈ {EXECUTED_QUERY(source_id), SEEDED_IDENTIFIER(config field), MANUAL_ADDITION(extra_pmids/recovery), LEGACY_UNRECORDED}` derived from the retrieval ledger (`harness/acquisition.py` `found_by`), rendered per pooled trial. "The search found N trials" is unfalsifiable without it; SOUL on glp1 is the case that cannot currently be told apart. Sweep: `n pooled trials whose entry route is EXECUTED_QUERY of N pooled trials` per page; `n LEGACY_UNRECORDED`.
+- **Unwritten rules, instances 2 and 3**: glp1 de facto "dedicated CVOT only" (FLOW eligible under the slug's question; a 2025 review with that question includes it beside the eight CVOTs and SOUL); spironolactone intervention scope never fixed (slug spironolactone; EMPHASIS-HF and J-EMPHASIS-HF are eplerenone) — the identifier-scope amendment on this base disclosed it; your sweep reports it as `IMPLICIT_CRITERION` / `SCOPE_UNSETTLED` and names the decision owed.
+- **Retrieve-then-reject controls as permanent tests** (`tests/test_screening_controls.py`): TOPCAT → retrieved AND `X-POPULATION(HFpEF)`; SELECT → retrieved AND `X-POPULATION(no T2D)`; ELIXA, FREEDOM-CVO → retrieved AND endpoint adjudication (4-point primary), FREEDOM-CVO device rule prespecified-or-flagged. If a control is not in the cached universe the test reports `CONTROL_NOT_REACHED` (a search finding for 2B), never a pass.
+- **Families on both pages**: RALES neurohormonal substudy; every GLP-1 CVOT's renal/HF/subgroup/post-hoc papers — several LEADER or SUSTAIN papers must never count as separate eligible evidence while FLOW is missing.
+- Register rows 27–31 (Vizzardi 2014, FLOW, Chan 2007, Feola, Berry) → `REACH_MISS(named)`.
