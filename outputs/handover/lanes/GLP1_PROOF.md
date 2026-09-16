@@ -167,3 +167,15 @@ Either way FLOW is decided by the declared rule (under A it is in; under B it is
 | Model tokens | sum of `tokens used` lines in the lane logs |
 | Wall-clock to "auditor finds nothing" | — |
 | Layers that could NOT be made defensible | — (say so plainly if any) |
+
+## Reproducibility audit answered 2026-09-16 19:45 (Mahmood's question: is it actually IN the harness?)
+| Item | Committed | Pushed | Reachable by replay from the protocol SHA |
+|---|---|---|---|
+| B-prime amendment | YES, commit A `b10c53d3` (hook: all limbs PASS) | NOT YET (push after commit B) | YES once commit B lands: page core embeds protocol text + anchor |
+| FDA documents (ELIXA StatR, FREEDOM-CVO EMDAC) | PDFs now held in-tree under `outputs/handover/glp1_regulatory/held/` with full sha256; MedR (37 MB) off-tree under the archive contract, digest in-tree; extracted texts in-tree with sha256 | this commit | NO -- values are recorded in a source object, not yet in `cache/<slug>/`; no served page carries them (measured on `b10c53d3`) |
+| Gemini Reviewer B run | now sealed under `outputs/handover/glp1_reviewerB/` (verbatim prompt, sealed input set manifest, response, log, RUN.json) | this commit | NOT REPLAYABLE: agy exposes no decoding params or model version -> contract conditions 2 and 4 UNMET -> classified INDEPENDENT_AUDIT_OBSERVATION, never a source. Influence on served values: NONE (measured) |
+| Two adjudications | `ADJUDICATIONS.json` (who/why/evidence/date/consequence; Mahmood's signature OWED) | this commit | not applied to any page |
+| Trial-family node / claim graph | BRIEFS ONLY (`LANE-FN.md`, `LANE-CGX.md`); no code in any branch | briefs pushed | n/a |
+| Named-missing register, audits, proof board, cost ledger | YES on `handover-2026-09-16` | YES (`ee32d78f` and this commit) | n/a |
+
+**Limb gap, named (MEASURED):** the `reproduction` limb proves *determinism*, not *provenance*. It replays the page from `cache/<slug>/` and compares `review_sha256`; `verified_effects.json` rows carry a prose `source` sentence and no document digest, and no limb locates a span in held bytes. A number typed into `verified_effects.json` with a plausible sentence replays byte-identically and passes. Consequence: an uncommitted model call or an unheld PDF would NOT make the limb fail -- it cannot see them. Closing this is the FACT object in CGX (`document_sha256` + locatable span, `UNVERIFIED_FACT` refused at the gate); the plant is a typed number with no held span, which must be REFUSED before CGX is accepted.
