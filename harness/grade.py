@@ -39,6 +39,17 @@ def _norm_overall(overall):
     return "other"
 
 
+def _rob_entry(rob, trial):
+    keys = [
+        str(trial.get("label") or "").strip(),
+        str(trial.get("id") or "").replace("PMID ", "").replace("PMID:", "").strip(),
+    ]
+    for key in keys:
+        if key and key in rob:
+            return rob[key]
+    return {}
+
+
 def _rob_domain(review):
     prim = next((o for o in review.get("outcomes", []) if o.get("primary")), None)
     trials = (prim or {}).get("trials", []) or []
@@ -261,6 +272,13 @@ def grade(review, ghost=None):
     inc = _inconsistency_domain(res)
     imp = _imprecision_domain(res, scale)
     pub = _pubbias_domain(ghost)
+    _rob2_trials = (review.get("rob2") or {}).get("trials") or {}
+    prim_trials = (prim or {}).get("trials", []) or []
+    d3_levels = [((_rob2_trials.get(str(t.get("label"))) or {}).get("domains") or {}).get("D3_missing_outcome_data", {}).get("level")
+                 for t in prim_trials]
+    d3_unassessed_n = sum(1 for lv in d3_levels if lv == "not assessed")
+    rob_basis = (f"machine-assessed domains only; D3 unassessed on {d3_unassessed_n} "
+                 f"of {len(prim_trials)} trial(s)")
     # NOT RATEABLE on an incoherent evidence object (audit 21 #5 / refinement 2): if the primary pool mixes
     # INCOMPATIBLE estimand classes (a recurrent-event rate ratio pooled with a first-event ratio), the
     # pooled effect is not one coherent quantity, so imprecision/inconsistency are computed from an artefact
@@ -274,6 +292,7 @@ def grade(review, ghost=None):
                                          "basis": "not auto-rated (human judgement)"}},
             "downgrades": rob["downgrade"] + inc["downgrade"] + imp["downgrade"] + pub["downgrade"],
             "certainty": "not_rateable",
+            "rob_basis": rob_basis,
             "not_rateable_reason": ("the primary pool mixes INCOMPATIBLE estimand classes "
                                     f"({' + '.join((res.get('estmeasure') or {}).get('canonicals', []))}); an "
                                     "overall certainty cannot be produced from an incoherent effect object — "
@@ -359,6 +378,7 @@ def grade(review, ghost=None):
         "certainty_capped_d3_unassessed": d3_capped,
         "certainty_capped_unassessed_domain": unassessed_cap,
         "unassessed_domains": unassessed,
+        "rob_basis": rob_basis,
         "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication "
                  "bias are computed from committed fields; indirectness is left to human judgement.",
     }

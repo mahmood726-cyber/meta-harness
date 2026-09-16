@@ -33,7 +33,20 @@ def pooled(slug):
 
 def keywords(slug):
     t = json.load(open(f"{ROOT}/topics/{slug}.json", encoding="utf-8"))
-    return t.get("intervention_terms") or (t.get("include") or {}).get("intervention_any") or []
+    terms = []
+    for key in ("intervention_terms", "intervention_class_terms"):
+        terms.extend(t.get(key) or [])
+    terms.extend((t.get("include") or {}).get("intervention_any") or [])
+    for aliases in (t.get("intervention_agents") or {}).values():
+        terms.extend(aliases or [])
+    out = []
+    seen = set()
+    for term in terms:
+        norm = str(term or "").strip().lower()
+        if norm and norm not in seen:
+            seen.add(norm)
+            out.append(str(term).strip())
+    return out
 
 
 def main(argv):
@@ -52,7 +65,7 @@ def main(argv):
                 # silent pass (the identity gap: an unidentifiable trial must not read as verified).
                 trials[pid] = {"nct": None, "status": "unverified_no_registry_match",
                                "basis": "no NCT/registry match for this pooled trial; the randomised "
-                                        "contrast of the intervention of interest cannot be registry-confirmed."}
+                                        "contrast of the intervention of interest cannot be parser-confirmed."}
                 continue
             status, basis = armcontrast.contrast_status(nct, kws, index)
             entry = index.get(nct.upper())
@@ -62,11 +75,13 @@ def main(argv):
                 trials[pid]["common"] = sorted(common)
                 trials[pid]["differing"] = sorted(differing)
         n_ver = sum(1 for t in trials.values() if t["status"] == "verified")
-        print(f"{slug}: {n_ver}/{len(trials)} contrasts registry-verified"
+        print(f"{slug}: {n_ver}/{len(trials)} contrasts parser-confirmed"
               + (f"  [{','.join(p+':'+t['status'] for p,t in trials.items() if t['status']=='background_only')}]"
                  if any(t["status"] == "background_only" for t in trials.values()) else ""))
         if write:
             json.dump({"source": f"AACT {os.path.basename(__import__('harness').aact.snapshot_dir())} design_groups+interventions",
+                       "metric_label": "parser-confirmed contrast",
+                       "metric_scope": "AACT arm-label parser output; this measures the parser, not trial validity",
                        "trials": trials},
                       open(f"{ROOT}/cache/{slug}/arm_contrast.json", "w", encoding="utf-8", newline=""),
                       indent=2, ensure_ascii=False)

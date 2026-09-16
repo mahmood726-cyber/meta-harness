@@ -1,5 +1,18 @@
 {
   "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+  "output_family": "registry-machine-signal-restricted",
+  "rob_basis": {
+    "output_family": "registry-machine-signal-restricted",
+    "assessed_domains": [
+      "allocation sequence/randomisation",
+      "masking of participants/personnel",
+      "masking of outcome assessment",
+      "registered outcome versus pooled outcome"
+    ],
+    "unassessed_domains": [
+      "D3_missing_outcome_data"
+    ]
+  },
   "trials": {
     "24344086": {
       "nct": "NCT00680186",
@@ -9,24 +22,163 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": false
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Double (blinded): participants/personnel blinded"
+          "basis": "trial masking = Double (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.subject_masked": "",
+            "AACT.designs.caregiver_masked": "",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 0.8% (overall 9.4%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 0.8% (overall 9.4%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 9.4,
+              "differential_pct": 0.8,
+              "groups": [
+                [
+                  1280,
+                  1155
+                ],
+                [
+                  1288,
+                  1172
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Double (blinded): outcome assessment blinded"
+          "basis": "trial masking = Double (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.outcomes_assessor_masked": "",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting"
+          "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Trial-reported recurrent VTE composite",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Number of Participants With Recurrent Symptomatic Venous Thromboembolism (VTE) and Deaths Related to VTE",
+                "title": "",
+                "description": "All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Number of Participants With Recurrent Symptomatic VTE and All Deaths",
+                "title": "",
+                "description": "VTE or any death which occured from randomisation to end of ptp. All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee."
+              },
+              {
+                "measure": "Number of Participants With Recurrent Symptomatic DVT",
+                "title": "",
+                "description": "Symptomatic DVT which occured from randomisation to end of ptp. All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee."
+              },
+              {
+                "measure": "Number of Participants With Recurrent Symptomatic Non-fatal PE",
+                "title": "",
+                "description": "Symptomatic non-fatal PE which occured from randomisation to end of ptp. All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee."
+              },
+              {
+                "measure": "Number of Participants Who Died Due to VTE",
+                "title": "",
+                "description": "VTE - related deaths which occured from randomisation to end of ptp. All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee. Hazard ratios and 95% CI were not calculated because of insufficient number of events."
+              },
+              {
+                "measure": "Number of Participants Who Died (Any Cause)",
+                "title": "",
+                "description": "Any deaths which occured from randomisation to end of ptp. All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee."
+              },
+              {
+                "measure": "Number of Participants With Recurrent Symptomatic Fatal and Non-fatal PE",
+                "title": "",
+                "description": "Symptomatic fatal and non-fatal PE which occured from randomisation to end of ptp. All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee."
+              },
+              {
+                "measure": "Number of Participants With MBE, MBE and/or CRBE, and Any Bleeding Events",
+                "title": "",
+                "description": "\"Major bleeding events (MBE) are defined as~* Fatal bleeding~* Symptomatic bleeding in a critical area or organ~* Bleeding causing a fall in haemoglobin level of 20 g/L (1.24 mmol/L) or more, or leading to transfusion of 2 or more units of whole blood or red cells~Clinically-relevant bleeding events (CRBE) are defined as~* spontaneous skin hematoma \\>=25 cm²~* wound hematoma \\>=100 cm²~* spontaneous nose bleed \\>5 min~* macroscopic hematuria spontaneous or \\>24 hours if associated with an intervention~* spontaneous rectal bleeding~* gingival bleeding \\>5 min~* leading to hospitalisation and / or requiring surgical treatment~* leading to a transfusion of \\<2 units of whole blood or red cells~* any other bleeding event considered clinically relevant by the investigator~Any bleeding events were defined as major, clinically-relevant and nuisance bleeding events. Nuisance bleeding events were defined as all other bleeding events that did not fulfil the criteria from above.\""
+              },
+              {
+                "measure": "Number of Participants With Acute Coronary Syndrome (ACS)",
+                "title": "",
+                "description": "Any ACS occurring during the conduct of the study (centrally adjudicated as definite). Patients having a centrally adjudicated definite ACS during intake of study drug and after stopping study drug, according to treatment group. ACS assessments pre-specified in the protocol without adjudication. Prior to database lock, the steering committee asked to have ACS events adjudicated by an independent committee. After database lock, the committee was provided with source documentation that was blinded to the patient's treatment assignment. ACS results presented are based on adjudication findings."
+              },
+              {
+                "measure": "Laboratory Analyses",
+                "title": "",
+                "description": "Frequency of patients with possible clinically significant abnormalities."
+              }
+            ],
+            "comparison": {
+              "registered_type": "secondary",
+              "registered_label": "Number of Participants With Recurrent Symptomatic VTE and All Deaths",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Number of Participants With Recurrent Symptomatic VTE and All Deaths VTE or any death which occured from randomisation to end of ptp. All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "19966341": {
@@ -37,24 +189,158 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Double (blinded): participants/personnel blinded"
+          "basis": "trial masking = Double (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.subject_masked": "",
+            "AACT.designs.caregiver_masked": "",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 0.3% (overall 7.8%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 0.3% (overall 7.8%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 7.8,
+              "differential_pct": 0.3,
+              "groups": [
+                [
+                  1273,
+                  1172
+                ],
+                [
+                  1266,
+                  1169
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Double (blinded): outcome assessment blinded"
+          "basis": "trial masking = Double (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.outcomes_assessor_masked": "",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting"
+          "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Trial-reported recurrent VTE composite",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Number of Participants With Recurrent Symptomatic Venous Thromboembolism (VTE) and Deaths Related to VTE",
+                "title": "",
+                "description": "All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Number of Participants With Recurrent Symptomatic VTE and All Deaths",
+                "title": "",
+                "description": "\"VTE or any death which occured from randomisation to end of post treatment period.~All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee.\""
+              },
+              {
+                "measure": "Number of Participants With Recurrent Symptomatic DVT",
+                "title": "",
+                "description": "\"Symptomatic DVT which occured from randomisation to end of post treatment period.~All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee.\""
+              },
+              {
+                "measure": "Number of Participants With Recurrent Symptomatic Non-fatal PE",
+                "title": "",
+                "description": "\"Symptomatic non-fatal PE which occured from randomisation to end of post treatment period.~All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee.\""
+              },
+              {
+                "measure": "Number of Participants Who Died Due to VTE",
+                "title": "",
+                "description": "\"VTE - related deaths which occured from randomisation to end of post treatment period.~All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee.\""
+              },
+              {
+                "measure": "Number of Participants Who Died (Any Cause)",
+                "title": "",
+                "description": "Any deaths which occured from randomisation to end of post treatment period. All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee."
+              },
+              {
+                "measure": "Number of Participants With Bleeding Events",
+                "title": "",
+                "description": "\"Major bleeding events (MBE) were defined as~* Fatal bleeding~* Symptomatic bleeding in a critical area or organ~* Bleeding causing a fall in haemoglobin level of 20 g/L (1.24 mmol/L) or more, or leading to transfusion of 2 or more units of whole blood or red cells~Clinically-relevant bleeding events (CRBE) was defined as~* spontaneous skin hematoma \\>=25 cm²~* spontaneous nose bleed \\>5 min~* macroscopic hematuria spontaneous or \\>24 hours if associated with an intervention~* spontaneous rectal bleeding (more than spotting on toilet paper)~* gingival bleeding \\>5 min~* leading to hospitalisation and / or requiring surgical treatment~* leading to a transfusion of \\<2 units of whole blood or red cells~* any other bleeding event considered clinically relevant by the investigator~Any bleeding events were defined as major, clinically-relevant and nuisance bleeding events. Nuisance bleeding events were defined as all other bleeding events that did not fulfil the criteria from above.\""
+              },
+              {
+                "measure": "Number of Participants With Acute Coronary Syndrome (ACS)",
+                "title": "",
+                "description": "\"Any ACS occurring during the conduct of the study (centrally adjudicated as definite).~Counts of patients having a centrally adjudicated definite ACS during intake of active study drug, after stopping active study drug and before or without intake of active study drug, according to treatment group.~All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee.\""
+              },
+              {
+                "measure": "Laboratory Analyses",
+                "title": "",
+                "description": "Frequency of patients with possible clinically significant abnormalities."
+              }
+            ],
+            "comparison": {
+              "registered_type": "secondary",
+              "registered_label": "Number of Participants With Recurrent Symptomatic VTE and All Deaths",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Number of Participants With Recurrent Symptomatic VTE and All Deaths \"VTE or any death which occured from randomisation to end of post treatment period.~All suspected recurrent VTEs and all deaths and bleeding events were evaluated by an independent central adjudication committee, and all analyses are based on the events that were centrally confirmed by this committee.\""
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "22449293": {
@@ -65,24 +351,140 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": false
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "not assessed",
-          "basis": "blinding: subject_masked=None, caregiver_masked=None"
+          "basis": "blinding: subject_masked=None, caregiver_masked=None",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "NONE",
+            "AACT.designs.subject_masked": "",
+            "AACT.designs.caregiver_masked": "",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "not assessed",
-          "basis": "outcome-assessor blinded = None"
+          "basis": "outcome-assessor blinded = None",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "NONE",
+            "AACT.designs.outcomes_assessor_masked": "",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "some concerns",
-          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Percentage of Participants With Symptomatic Recurr') -- possibly post-hoc/unregistered"
+          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Percentage of Participants With Symptomatic Recurrent Venous Thromboembolism [VT') -- possibly post-hoc/unregistered",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Trial-reported recurrent VTE composite",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Percentage of Participants With Symptomatic Recurrent Venous Thromboembolism [VTE] (i.e. the Composite of Recurrent Deep Vein Thrombosis [DVT] or Fatal or Non-fatal Pulmonary Embolism [PE]) Until the Intended End of Study Treatment",
+                "title": "",
+                "description": "All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Events were assessed based on either compression ultrasound (for DVT), venography (for DVT), spiral computed tomography (CT) scanning (for PE), pulmonary angiography (for PE), ventilation/perfusion lung scan (for PE), lung scintigraphy (for PE), autopsy (for fatal PE) or unexplained death for which DVT/PE could not be ruled out (for fatal PE), and/or case summaries."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Percentage of Participants With the Composite Variable Comprising Recurrent DVT, Non-fatal PE and All Cause Mortality Until the Intended End of Study Treatment",
+                "title": "",
+                "description": "All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Events were assessed based on either compression ultrasound (for DVT), venography (for DVT), spiral computed tomography (CT) scanning (for PE), pulmonary angiography (for PE), ventilation/perfusion lung scan (for PE), lung scintigraphy (for PE), autopsy (for deaths), results/films/images of confirmatory testing, and/or case summaries."
+              },
+              {
+                "measure": "Percentage of Participants With an Event for Net Clinical Benefit 1 Until the Intended End of Study Treatment",
+                "title": "",
+                "description": "Net clinical benefit 1: composite of recurrent DVT or non-fatal or fatal PE, and major bleeding. Major bleeding was overt bleeding associated with 2 g/dL or greater fall in hemoglobin, leading to a transfusion of ≥2 units, occurring in a critical site or contributing to death. Net clinical benefit was considered greater in those participants with fewer composite events. All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment, based on either compression ultrasound, venography, spiral computed tomography scanning, pulmonary angiography, ventilation/perfusion lung scan, lung scintigraphy, autopsy or unexplained death for which DVT/PE could not be ruled out, results/films/images of confirmatory testing, and/or case summaries."
+              },
+              {
+                "measure": "Percentage of Participants With Recurrent PE Until the Intended End of Study Treatment",
+                "title": "",
+                "description": "All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Events were assessed based on spiral computed tomography scanning, pulmonary angiography, ventilation/perfusion lung scan, lung scintigraphy, autopsy or unexplained death for which DVT/PE could not be ruled out, results/films/images of confirmatory testing, and/or case summaries."
+              },
+              {
+                "measure": "Percentage of Participants With Recurrent DVT Until the Intended End of Study Treatment",
+                "title": "",
+                "description": "All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Events were assessed based on either compression ultrasound, venography, results/films/images of confirmatory testing, and/or case summaries."
+              },
+              {
+                "measure": "Percentage of Participants With Clinically Relevant Bleeding, Treatment-emergent (Time Window: Until 2 Days After Last Dose)",
+                "title": "",
+                "description": "All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Clinically relevant bleeding included major bleeding (overt bleeding associated with 2 g/dL or greater fall in hemoglobin, leading to a transfusion of 2 or more units of packed red blood cells or whole blood, occurring in a critical site or contributing to death) and non-major bleeding associated with medical intervention, unscheduled physician contact, (temporary) cessation of study treatment, discomfort for the participants such as pain, or impairment of activities of daily life."
+              },
+              {
+                "measure": "Percentage of Participants With All Deaths",
+                "title": "",
+                "description": "All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Events were assessed based on either autopsy, results/films/images of confirmatory testing, and/or case summaries."
+              },
+              {
+                "measure": "Percentage of Participants With Other Vascular Events, On-treatment (Time Window: Until 1 Day After Last Dose)",
+                "title": "",
+                "description": "All pre-defined vascular events (ST segment elevation myocardial infarction, non ST segment elevation myocardial infarction, unstable angina, ischemic stroke, transient ischemic attack, non-central nervous system systemic embolism or vascular death) were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Events were assessed based results/films/images of confirmatory testing, and/or case summaries."
+              }
+            ],
+            "comparison": {
+              "registered_type": null,
+              "registered_label": "Percentage of Participants With Symptomatic Recurrent Venous Thromboembolism [VTE] (i.e. the Composite of Recurrent Deep Vein Thrombosis [DVT] or Fatal or Non-fatal Pulmonary Embolism [PE]) Until the Intended End of Study Treatment",
+              "matched": false,
+              "method": "no_match",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Percentage of Participants With Symptomatic Recurrent Venous Thromboembolism [VTE] (i.e. the Composite of Recurrent Deep Vein Thrombosis [DVT] or Fatal or Non-fatal Pulmonary Embolism [PE]) Until the Intended End of Study Treatment All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Events were assessed based on either compression ultrasound (for DVT), venography (for DVT), spiral computed tomography (CT) scanning (for PE), pulmonary angiography (for PE), ventilation/perfusion lung scan (for PE), lung scintigraphy (for PE), autopsy (for fatal PE) or unexplained death for which DVT/PE could not be ruled out (for fatal PE), and/or case summaries."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "some concerns"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "21128814": {
@@ -93,24 +495,135 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": false
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): participants/personnel blinded"
+          "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "NONE",
+            "AACT.designs.subject_masked": "",
+            "AACT.designs.caregiver_masked": "",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): outcome assessment blinded"
+          "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "NONE",
+            "AACT.designs.outcomes_assessor_masked": "",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "some concerns",
-          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Percentage of Participants With Symptomatic Recurr') -- possibly post-hoc/unregistered"
+          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Percentage of Participants With Symptomatic Recurrent Venous Thromboembolism [VT') -- possibly post-hoc/unregistered",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Trial-reported recurrent VTE composite",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Percentage of Participants With Symptomatic Recurrent Venous Thromboembolism [VTE] (i.e. the Composite of Recurrent Deep Vein Thrombosis [DVT] or Fatal or Non-fatal Pulmonary Embolism [PE]) Until the Intended End of Study Treatment",
+                "title": "",
+                "description": "All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Events were assessed based on either compression ultrasound (for DVT), venography (for DVT), spiral computed tomography (CT) scanning (for PE), pulmonary angiography (for PE), ventilation/perfusion lung scan (for PE), lung scintigraphy (for PE), autopsy (for fatal PE) or unexplained death for which DVT/PE could not be ruled out (for fatal PE), and/or case summaries."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Percentage of Participants With the Composite Variable Comprising Recurrent DVT, Non-fatal PE and All Cause Mortality Until the Intended End of Study Treatment",
+                "title": "",
+                "description": "All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Events were assessed based on either compression ultrasound (for DVT), venography (for DVT), spiral computed tomography (CT) scanning (for PE), pulmonary angiography (for PE), ventilation/perfusion lung scan (for PE), lung scintigraphy (for PE), autopsy (for deaths), results/films/images of confirmatory testing, and/or case summaries."
+              },
+              {
+                "measure": "Percentage of Participants With an Event for Net Clinical Benefit 1 Until the Intended End of Study Treatment",
+                "title": "",
+                "description": "Net clinical benefit 1: composite of recurrent DVT or non-fatal or fatal PE, and major bleeding. Major bleeding was overt bleeding associated with 2 g/dL or greater fall in hemoglobin, leading to a transfusion of ≥2 units, occurring in a critical site or contributing to death. Net clinical benefit was considered greater in those participants with fewer composite events. All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment, based on either compression ultrasound, venography, spiral computed tomography scanning, pulmonary angiography, ventilation/perfusion lung scan, lung scintigraphy, autopsy or unexplained death for which DVT/PE could not be ruled out, results/films/images of confirmatory testing, and/or case summaries."
+              },
+              {
+                "measure": "Percentage of Participants With Recurrent DVT Until the Intended End of Study Treatment",
+                "title": "",
+                "description": "All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Events were assessed based on either compression ultrasound, venography, results/films/images of confirmatory testing, and/or case summaries."
+              },
+              {
+                "measure": "Percentage of Participants With Clinically Relevant Bleeding, Treatment-emergent (Time Window: Until 2 Days After Last Dose)",
+                "title": "",
+                "description": "All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Clinically relevant bleeding included major bleeding (overt bleeding associated with 2 g/dL or greater fall in hemoglobin, leading to a transfusion of 2 or more units of packed red blood cells or whole blood, occurring in a critical site or contributing to death) and non-major bleeding associated with medical intervention, unscheduled physician contact, (temporary) cessation of study treatment, discomfort for the participants such as pain, or impairment of activities of daily life."
+              },
+              {
+                "measure": "Percentage of Participants With All Deaths",
+                "title": "",
+                "description": "All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Events were assessed based on either autopsy, results/films/images of confirmatory testing, and/or case summaries."
+              },
+              {
+                "measure": "Percentage of Participants With Other Vascular Events, On-treatment (Time Window: Until 1 Day After Last Dose)",
+                "title": "",
+                "description": "All pre-defined vascular events (ST segment elevation myocardial infarction, non ST segment elevation myocardial infarction, unstable angina, ischemic stroke, transient ischemic attack, non-central nervous system systemic embolism or vascular death) were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Events were assessed based results/films/images of confirmatory testing, and/or case summaries."
+              }
+            ],
+            "comparison": {
+              "registered_type": null,
+              "registered_label": "Percentage of Participants With Symptomatic Recurrent Venous Thromboembolism [VTE] (i.e. the Composite of Recurrent Deep Vein Thrombosis [DVT] or Fatal or Non-fatal Pulmonary Embolism [PE]) Until the Intended End of Study Treatment",
+              "matched": false,
+              "method": "no_match",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Percentage of Participants With Symptomatic Recurrent Venous Thromboembolism [VTE] (i.e. the Composite of Recurrent Deep Vein Thrombosis [DVT] or Fatal or Non-fatal Pulmonary Embolism [PE]) Until the Intended End of Study Treatment All events were adjudicated and confirmed by a central independent adjudication committee blinded to treatment. Events were assessed based on either compression ultrasound (for DVT), venography (for DVT), spiral computed tomography (CT) scanning (for PE), pulmonary angiography (for PE), ventilation/perfusion lung scan (for PE), lung scintigraphy (for PE), autopsy (for fatal PE) or unexplained death for which DVT/PE could not be ruled out (for fatal PE), and/or case summaries."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "some concerns"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "23991658": {
@@ -121,24 +634,128 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Triple (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Triple (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "TRIPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 0.3% (overall 4.8%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 0.3% (overall 4.8%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 4.8,
+              "differential_pct": 0.3,
+              "groups": [
+                [
+                  4143,
+                  3937
+                ],
+                [
+                  4149,
+                  3955
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Triple (blinded): outcome assessment blinded"
+          "basis": "trial masking = Triple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "TRIPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome IS the trial's pre-registered primary outcome",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Trial-reported recurrent VTE composite",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Symptomatic Recurrent VTE, i.e., the Composite of DVT, Non-fatal PE, and Fatal PE",
+                "title": "",
+                "description": "\"Symptomatic recurrent Venous Thromboembolism (VTE), i.e., the composite of deep Vein Thrombosis (DVT), non-fatal Pulmonary Embolism (PE), and fatal PE occurring during the Overall Study Period.~Overall Study Period defined as The time from the reference date (randomization date/initial dose of study drug date) to the last study follow-up visit.\""
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "The Composite Clinical Outcome of Symptomatic Recurrent VTE and All-cause Mortality",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Clinically Relevant Bleeding (i.e., Major or Clinically Relevant Non-major Bleeding) Occurring During Treatment",
+                "title": "",
+                "description": "Clinically relevant bleeding (i.e., major or clinically relevant non-major bleeding) occurring during treatment plus 3 days after their last dose for that time period."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Symptomatic Recurrent VTE, i.e., the Composite of DVT, Non-fatal PE, and Fatal PE",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Symptomatic Recurrent VTE, i.e., the Composite of DVT, Non-fatal PE, and Fatal PE \"Symptomatic recurrent Venous Thromboembolism (VTE), i.e., the composite of deep Vein Thrombosis (DVT), non-fatal Pulmonary Embolism (PE), and fatal PE occurring during the Overall Study Period.~Overall Study Period defined as The time from the reference date (randomization date/initial dose of study drug date) to the last study follow-up visit.\""
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "23808982": {
@@ -149,24 +766,205 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": false
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.outcomes_assessor_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting"
+          "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Trial-reported recurrent VTE composite",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Incidence of Adjudicated Composite of Symptomatic, Recurrent Venous Thromboembolism (VTE) or VTE-Related Death During 6 Months of Treatment",
+                "title": "",
+                "description": "VTE: nonfatal deep vein thrombosis (DVT) or nonfatal pulmonary embolism (PE). All events were adjudicated by an ICAC blinded to treatment. DVT assessed by compression ultrasound and/or venography; PE assessed by spiral computed tomography scanning, pulmonary angiography, and/or ventilation/perfusion lung scan. Event rate (proportion of participants): n/N (n=number of participants with observation; N=total number of efficacy evaluable participants). Intended treatment period: longer of the dosing period plus 2 days (completed treatment) or 355 days (discontinued early). Composite endpoint: events at any time from randomization until end of intended treatment, regardless whether drug treatment was received. All randomized participants with a non-missing primary endpoint were summarized. Missing endpoint = outcomes which could not be documented on or after study Day 154. Participants were categorized to the assigned group regardless of the treatment actually received (intent-to-treat)."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Incidence of Adjudicated Composite of Recurrent Symptomatic Venous Thromboembolism (VTE) or All-Cause Death",
+                "title": "",
+                "description": "VTE included: nonfatal DVT or nonfatal PE. All events were adjudicated by an ICAC blinded to treatment. DVT was assessed by compression ultrasound and/or venography; PE was assessed by spiral computed tomography scanning, pulmonary angiography, and/or ventilation/perfusion lung scan. Event rate (proportion of participants with event) calculated as n/N (n=number of participants with observation; N=total number of efficacy evaluable participants). Intended treatment period: longer of the dosing period plus 2 days (completed treatment) or 355 days (discontinued early). Composite endpoint included events at any time from randomization until end of the intended treatment period, regardless whether drug treatment was received, ie intent to treat (ITT) principle. Each participant scored as having an event only if they experienced one or more of the elements of the composite. Participants with missing endpoint information excluded."
+              },
+              {
+                "measure": "Incidence of Adjudicated Composite of Recurrent Symptomatic VTE or Cardiovascular (CV)-Related Death",
+                "title": "",
+                "description": "VTE included: nonfatal DVT or nonfatal PE. All events were adjudicated by an ICAC blinded to treatment. DVT was assessed by compression ultrasound and/or venography; PE was assessed by spiral computed tomography scanning, pulmonary angiography, and/or ventilation/perfusion lung scan. Event rate (proportion of participants with event) calculated as n/N (n=number of participants with observation; N=total number of efficacy evaluable participants, participants with missing endpoint information excluded). Intended treatment period: longer of the dosing period plus 2 days (completed treatment) or 355 days (discontinued early). Composite endpoint included events at any time from randomization until end of the intended treatment period, regardless whether drug treatment was received, ie, ITT principle. Each participant scored as having an event only if the participant experienced one or more of the elements of the composite."
+              },
+              {
+                "measure": "Incidence of Adjudicated Composite of Recurrent Symptomatic VTE or VTE-related Death or Major Bleeding",
+                "title": "",
+                "description": "VTE included: nonfatal DVT or nonfatal PE. All events were adjudicated by an ICAC blinded to treatment. DVT assessed by compression ultrasound and/or venography; PE assessed by spiral computed tomography scanning, pulmonary angiography, and/or ventilation/perfusion lung scan. Major bleeding defined by International Society on Thrombosis and Haemostasis: acute, clinically overt bleeding associated with decrease in hemoglobin (Hgb) of 2 g/dL or more or bleeding leading to transfusion or bleeding in a critical site or bleeding that is fatal . Event rate (proportion of participants with event): n/N (n=number of participants with observation; N=Total number of participants, excluding those with missing endpoint and including those not in the efficacy evaluable population with a bleeding event that occurred during treatment period. Events included regardless of whether or not participant received treatment, ie, ITT principle"
+              },
+              {
+                "measure": "Incidence of Adjudicated Composite of Recurrent Symptomatic VTE, Myocardial Infarction, Stroke, CV-related Death, Clinically Relevant Non-major (CRNM) Bleeding or Major Bleeding",
+                "title": "",
+                "description": "VTE=Nonfatal DVT or nonfatal PE adjudicated by ICAC blinded to treatment. DVT: compression ultrasound and/or venography; PE: spiral computed tomography scanning, pulmonary angiography, and/or ventilation/perfusion lung scan. Major Bleeding = acute, clinically overt bleeding: decrease in Hgb of 2 g/dL or more or bleeding leading to transfusion or bleeding in a critical site or fatal bleeding. CRNM = acute clinically overt bleeding: compromising hemodynamics, leading to hospitalization, hematoma, epistasis \\>5 minutes or repetitive, gingival bleeding, hematuria, macroscopic gastrointestinal hemorrhage, rectal blood loss, hemoptysis. n/N (n=number of participants with observation; N=Total number of participants, excluding those with missing endpoint and including those not in the efficacy evaluable population with a bleeding event that occurred during treatment period). Events included regardless of whether or not treatment was received (ITT)."
+              },
+              {
+                "measure": "Incidence of Adjudicated Symptomatic Nonfatal Deep Vein Thrombosis (DVT) During the Intended Treatment Period",
+                "title": "",
+                "description": "DVT adjudicated by an ICAC blinded to treatment. DVT evaluated by: compression ultrasound and/or venography. Includes events that occurred during the intended treatment period, regardless of whether the participant received study medication, intent to treat principle (ITT). Event rate (proportion of participants with event): n/N (n=number of participants with observation; N=Total number of participants, excluding those with missing endpoint). Intended treatment period: longer of the dosing period plus 2 days (completed treatment) or 355 days (discontinued early)."
+              },
+              {
+                "measure": "Incidence of Adjudicated Symptomatic Nonfatal Pulmonary Embolism (PE) During the Intended Treatment Period",
+                "title": "",
+                "description": "PE adjudicated by an ICAC blinded to treatment. PE: spiral computed tomography scanning, pulmonary angiography, and/or ventilation/perfusion lung scan. Includes events that occurred during the intended treatment period, regardless of whether the participant received study medication (ITT principle). Event rate (proportion of participants with event): n/N (n=number of participants with observation; N=Total number of participants, excluding those with missing endpoint). Intended treatment period: longer of the dosing period plus 2 days (completed treatment) or 355 days (discontinued early)."
+              },
+              {
+                "measure": "Incidence of Adjudicated Venous Thromboembolism (VTE)-Related Death During the Intended Treatment Period",
+                "title": "",
+                "description": "VTE-related death included: DVT-related death or PE-related death. All events were adjudicated by an ICAC blinded to treatment. DVT was assessed by compression ultrasound and/or venography; PE was assessed by spiral computed tomography scanning, pulmonary angiography, and/or ventilation/perfusion lung scan. Event rate (proportion of participants with event) calculated as n/N (n=number of participants with observation; N=total number of participants in respective treatment groups excluding participants with missing endpoint information). Intended treatment period: longer of the dosing period plus 2 days (completed treatment) or 355 days (discontinued early). Includes events that occur during the intended treatment period regardless of whether or not the participant received study medication (ITT principle)."
+              },
+              {
+                "measure": "Incidence of Cardiovascular (CV)-Related Death Including VTE-related Death During the Intended Treatment Period",
+                "title": "",
+                "description": "VTE-related death included: DVT-related death or PE-related death. All events were adjudicated by an ICAC blinded to treatment. DVT assessed by compression ultrasound and/or venography; PE assessed by spiral computed tomography scanning, pulmonary angiography, and/or ventilation/perfusion lung scan. Event rate (proportion of participants with event) calculated as n/N (n=number of participants with observation; N=total number of participants in respective treatment groups excluding participants with missing endpoint information). Intended treatment period: longer of the dosing period plus 2 days (completed treatment) or 355 days (discontinued early). Includes events that occur during the intended treatment period regardless of whether or not the participant received study medication (ITT principle)."
+              },
+              {
+                "measure": "Incidence of All-Cause Death During the Intended Treatment Period",
+                "title": "",
+                "description": "Intended treatment period: longer of the dosing period plus 2 days (completed treatment) or 355 days (discontinued early). Includes events that occurred during the intended treatment period, regardless of whether the participant received study medication (ITT principle). Event rate (proportion of participants with event): n/N (n=number of participants with observation; N=Total number of participants, excluding those with missing endpoint information)."
+              },
+              {
+                "measure": "Incidence of Adjudicated Major Bleeding During the Treatment Period in Treated Participants",
+                "title": "",
+                "description": "All events were adjudicated by an ICAC blinded to treatment. Bleeding defined by International Society on Thrombosis and Haemostasis: Major Bleeding: acute, clinically overt bleeding: decrease in hemoglobin (hgb) of 2 g/dL or more or bleeding leading to transfusion or bleeding in a critical site or fatal bleeding. Event rate (proportion of participants with event): n/N (n=number of participants with observation; N=Total number of participants in respective treatment group (all participants who received at least one dose of study drug). Participants were categorized to the treatment group to which they were assigned unless incorrect study treatment was received throughout the study, in which case the participant was categorized according to the treatment received."
+              },
+              {
+                "measure": "Incidence of Adjudicated Major/CRNM Bleeding During the Treatment Period in Treated Participants",
+                "title": "",
+                "description": "Major Bleeding = acute, clinically overt bleeding: decrease in hemoglobin of 2 g/dL or more, or bleeding leading to transfusion, or bleeding in a critical site, or fatal bleeding. CRNM = acute clinically overt bleeding: compromising hemodynamics, leading to hospitalization, hematoma, epistasis \\>5 minutes or repetitive, gingival bleeding, hematuria, macroscopic gastrointestinal hemorrhage, rectal blood loss, hemoptysis. Minor =: All acute clinically overt bleeding events not meeting the criteria for either major bleeding or CRNM. All events were adjudicated by an ICAC blinded to treatment. Total bleeding = any of major, or CRNM, or minor bleeding. Event rate (proportion of participants with event): n/N (n=number of participants with observation; N=Total number of treated (received at least 1 dose of study drug)."
+              },
+              {
+                "measure": "Incidence of Adjudicated Clinically Relevant Non Major (CRNM) Bleeding During the Treatment Period in Treated Participants",
+                "title": "",
+                "description": "Bleeding defined by International Society on Thrombosis and Haemostasis: CRNM defined as acute clinically overt bleeding: compromising hemodynamics, leading to hospitalization, hematoma, epistasis \\>5 minutes or repetitive, gingival bleeding, hematuria, macroscopic gastrointestinal hemorrhage, rectal blood loss, hemoptysis. All events were adjudicated by an ICAC blinded to treatment. Event rate (proportion of participants with event): calculated as n/N (n=number of participants with observation; N=Total number of participants in respective treatment group (all participants who received at least one dose of study drug). Participants were categorized to the treatment group to which they were assigned unless incorrect study treatment was received throughout the study, in which case the participant was categorized according to the treatment received."
+              },
+              {
+                "measure": "Incidence of Adjudicated Minor Bleeding During the Treatment Period in Treated Participants",
+                "title": "",
+                "description": "Bleeding defined by International Society on Thrombosis and Haemostasis: Minor bleeding: all acute clinically overt bleeding events not meeting the criteria for either major bleeding or CRNM. All events wre adjudicated by an ICAC blinded to treatment. Event rate (proportion of participants) calculated as n/N (n=number of participants with observation; N=Total number of participants in respective treatment group (all participants who received at least one dose of study drug). Participants were categorized to the treatment group to which they were assigned unless incorrect study treatment was received throughout the study, in which case the participant was categorized according to the treatment received."
+              },
+              {
+                "measure": "Incidence of Adjudicated Total Bleeding During the Treatment Period in Treated Participants",
+                "title": "",
+                "description": "Bleeding defined by International Society on Thrombosis and Haemostasis: Total Bleeding defined as any of major, CRNM, or minor bleeding. All events were adjudicated by an ICAC blinded to treatment. Event rate (proportion of participants with event): n/N (n=number of participants with observation; N=Total number of participants in respective treatment group (all participants who received at least one dose of study drug). Participants were categorized to the treatment group to which they were assigned unless incorrect study treatment was received throughout the study, in which case the participant was categorized according to the treatment received."
+              },
+              {
+                "measure": "Number of Participants With Adverse Events (AEs), Serious AEs (SAEs), Bleeding AEs, Discontinuations Due to AEs and Death During the Treatment Period in Treated Participants",
+                "title": "",
+                "description": "Treated Participants: all who received at least 1 dose of study drug. Participants categorized to the treatment group to which they were assigned unless incorrect study treatment was received throughout the study, in which case the participant was categorized according to treatment received. Included all SAEs and AEs with onset from first dose to last dose + 2 days (for AEs) or + 30 days (for SAEs); note; bleeding AEs and SAEs from first dose to last dose + 2 days included. Discontinuations due to AE included all AEs/SAEs from first dose until drug was discontinued. AE=any new unfavorable symptom, sign, or disease or worsening of a preexisting condition that may not have a causal relationship with treatment. SAE=a medical event that at any dose results in death, persistent or significant disability/incapacity, or drug dependency/abuse; is life-threatening, an important medical event, or a congenital anomaly/birth defect; or requires or prolongs hospitalization."
+              },
+              {
+                "measure": "Number of Treated Participants With Marked Abnormalities in Hematology Laboratory Tests",
+                "title": "",
+                "description": "Lower limit of normal (LLN). Upper limit of normal (ULN). Pre-therapy (PreRx). Absolute (Abs) neutrophil count, bands + neutrophils (ANC). Cells per microliter (c/µL). Grams per deciliter (g/dL). Cells per Liter (c/L). Millimeter (MM). White blood cells: \\< 0.75\\*LLN, \\> 1.25\\*ULN; Hemoglobin: \\<= 11.5 g/dL (males), \\<= 9.5 g/dL (females); Hematocrit: \\<= 37% (males), \\<= 32% (females); Erythrocytes: \\<0.75\\*10\\^6 c/µL\\*PreRx; Platelet count: \\< 75\\*10\\^9 c/L, \\> 700\\*10\\^9 c/L; ANC: \\< 1.00\\*10\\^3 c/µL; Abs eosinophils: \\> 0.750\\*10\\^3 c/µL; Abs Basophils: \\> 400/MM\\^3; Abs Monocytes\\> 2000/MM\\^3; Abs Lymphocytes: \\< 0.750\\*10\\*3 c/ µL, \\> 7.5\\*10\\^3 c/ µL."
+              },
+              {
+                "measure": "Number of Treated Participants With Marked Abnormalities in Electrolyte Laboratory Tests",
+                "title": "",
+                "description": "Bicarbonate milliequivalents/Liter (mEq/L) Low/High: \\< 0.75\\*LLN or \\> 1.25\\*ULN, or if pre-dose \\< LLN then use \\< 0.75\\*pre-dose or \\> ULN if pre-dose \\> ULN then use \\> 1.25\\*pre-dose or \\< LLN; Serum Calcium mg/dL Low/High: \\< 0.8\\*LLN or \\> 1.2\\*ULN, or if pre-dose \\< LLN then use \\< 0.75\\*pre-dose or \\> ULN if pre-dose \\> ULN then use \\> 1.25\\*pre-dose or \\< LLN; Serum Chloride mEq/L: \\< 0.9\\*LLN or \\> 1.1\\*ULN, or if pre-dose \\< LLN then use \\< 0.9\\*pre-dose or \\> ULN if pre-dose \\> ULN then use \\> 1.1\\*pre-dose or \\< LLN; Serum Potassium mEq/L: \\< 0.9\\*LLN or \\> 1.1\\*ULN, or if pre-dose \\< LLN then use \\< 0.9\\*pre-dose or \\> ULN if pre-dose \\> ULN then use \\> 1.1\\*pre-dose or \\< LLN; Serum Sodium mEq/L: \\< 0.95\\*LLN or \\> 1.05\\*ULN, or if pre-dose \\< LLN then use \\< 0.95\\*pre-dose or \\> ULN if pre-dose \\> ULN then use \\> 1.05\\*pre-dose or \\< LLN."
+              },
+              {
+                "measure": "Number of Treated Participants With Marked Abnormalities in Kidney and Liver Function Laboratory Tests",
+                "title": "",
+                "description": "Blood urea nitrogen (BUN), milligrams/deciliter (mg/dL), units per liter (U/L). BUN mg/dL High: \\> 1.5\\*ULN; Creatinine mg/dL: \\> 1.5\\*ULN; Alanine aminotransferase (ALT) U/L: \\> 3\\*ULN; Aspartate aminotransferase (AST) U/L: \\> 3\\*ULN; Alkaline phosphatase U/L: \\> 2\\*ULN; Bilirubin Direct mg/dL: \\> 1.5\\*ULN; Bilirubin Total mg/dL: \\> 2\\*ULN."
+              },
+              {
+                "measure": "Number of Treated Participants With Marked Abnormalities in Creatine Kinase, Uric Acid, and Total Protein Laboratory Tests",
+                "title": "",
+                "description": "Creatine kinase High: \\>5\\*ULN Units/Liter (U/L); Total Protein High/Low: \\< 0.9 \\*LLN or \\> 1.1\\*ULN, or if pre-dose \\< LLN then use 0.9\\* pre-dose or \\> ULN if pre-dose \\> ULN then use 1.1 \\*pre-dose or \\<LLN; Uric acid High: \\> 1.5\\* ULN, or if pre-dose \\> ULN then use \\> 2 \\*pre-dose."
+              },
+              {
+                "measure": "Number of Treated Participants With Marked Abnormalities in Urinalysis Laboratory Tests",
+                "title": "",
+                "description": "All tests in urine: Glucose: If missing pre-dose use ≥ 2, or if value ≥ 4, or if pre-dose = 0 or 0.5 use ≥ 2, or if pre-dose = 1 use ≥ 3, or if pre-dose = 2 or 3 use ≥ 4; Protein: If missing pre-dose use ≥ 2, or if value ≥ 4, or if pre-dose = 0 or 0.5 use ≥ 2, or if pre-dose = 1 use ≥ 3, or if pre-dose = 2 or 3 use ≥ 4; Blood: If missing pre-dose use ≥ 2, or if value ≥ 4, or if pre-dose = 0 or 0.5 use ≥ 2, or if pre-dose = 1 use ≥ 3, or if pre-dose = 2 or 3 use ≥ 4; Leukocyte esterase: If missing pre-dose use ≥ 2, or if value ≥ 4, or if pre-dose = 0 or 0.5 use ≥ 2, or if pre-dose = 1 use ≥ 3, or if pre-dose = 2 or 3 use ≥ 4;Red blood cells (RBC): If missing pre-dose use ≥ 2, or if value ≥ 4, or if pre-dose = 0 or 0.5 use ≥ 2, or if pre-dose = 1 use ≥ 3, or if pre-dose = 2 or 3 use ≥ 4; White blood cells (WBC): If missing pre-dose use ≥ 2, or if value ≥ 4, or if pre-dose = 0 or 0.5 use ≥ 2, or if pre-dose = 1 use ≥ 3, or if pre-dose = 2 or 3 use ≥ 4."
+              }
+            ],
+            "comparison": {
+              "registered_type": "secondary",
+              "registered_label": "Incidence of Adjudicated Composite of Recurrent Symptomatic VTE or Cardiovascular (CV)-Related Death",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Incidence of Adjudicated Composite of Recurrent Symptomatic VTE or Cardiovascular (CV)-Related Death VTE included: nonfatal DVT or nonfatal PE. All events were adjudicated by an ICAC blinded to treatment. DVT was assessed by compression ultrasound and/or venography; PE was assessed by spiral computed tomography scanning, pulmonary angiography, and/or ventilation/perfusion lung scan. Event rate (proportion of participants with event) calculated as n/N (n=number of participants with observation; N=total number of efficacy evaluable participants, participants with missing endpoint information excluded). Intended treatment period: longer of the dosing period plus 2 days (completed treatment) or 355 days (discontinued early). Composite endpoint included events at any time from randomization until end of the intended treatment period, regardless whether drug treatment was received, ie, ITT principle. Each participant scored as having an event only if the participant experienced one or more of the elements of the composite."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     }
   }

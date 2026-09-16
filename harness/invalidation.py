@@ -30,6 +30,7 @@ Conditions (each NAMED on the page so a reader sees WHY, and evidenced from comm
 import re
 from . import design_key
 from . import identity as identity_mod
+from . import missing_effect
 
 
 def _primary(core):
@@ -321,11 +322,23 @@ def assess(core, signals=None):
     kem = [x for x in (signals.get("known_eligible_missing") or [])
            if x.get("status") != "verification_failed"]
     if kem:
+        kem_with_effect = [
+            x for x in kem
+            if x.get("effect") is not None and x.get("ci_low") is not None and x.get("ci_high") is not None
+        ]
+        kem_effects = missing_effect.annotate(core, kem_with_effect) if kem_with_effect else []
         names = ", ".join(str(x.get("trial")) for x in kem[:6])
+        classes = [
+            f"{x.get('trial')}={x.get('missing_evidence_effect')}"
+            for x in kem_effects
+            if x.get("missing_evidence_effect")
+        ]
+        class_detail = (" Missing-evidence effect: " + "; ".join(classes[:6]) + ".") if classes else ""
         reasons.append({"code": "known_eligible_missing",
                         "detail": "a trial identified as eligible under the registered PICO is not pooled ("
                                   + names + (", and others" if len(kem) > 6 else "")
-                                  + ") — the pooled result and completeness claim cannot be current"})
+                                  + ") — the pooled result and completeness claim cannot be current"
+                                  + (("." + class_detail) if class_detail else "")})
     # 0c. NEVER_CONSIDERED: a trial verified in-scope but absent from every identifier space in the
     #     corpus (not screened, not excluded, not declared absent). The true search-failure measure.
     ncr = signals.get("never_considered") or []

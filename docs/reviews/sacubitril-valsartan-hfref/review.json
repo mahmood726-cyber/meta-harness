@@ -1350,7 +1350,41 @@
             "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
           },
           "trial_family_id": "NCT01035255",
-          "publication_role": "primary"
+          "publication_role": "primary",
+          "analysis_set": "intention-to-treat",
+          "follow_up_window": "trial end / longest randomized follow-up",
+          "endpoint_definition": "primary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure, but the trial was designed to detect a difference in the rates of death from cardiovascular causes",
+          "population_age": "not_stated",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "25176015",
+            "trial_label": "25176015",
+            "analysis_set": {
+              "value": "intention-to-treat",
+              "source": "study_effect.analysis_population",
+              "span": "intention-to-treat"
+            },
+            "follow_up_window": {
+              "value": "trial end / longest randomized follow-up",
+              "source": "outcome.timepoint",
+              "span": "trial end / longest randomized follow-up"
+            },
+            "endpoint_definition": {
+              "value": "primary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure, but the trial was designed to detect a difference in the rates of death from cardiovascular causes",
+              "source": "committed source text",
+              "span": "of 200 mg twice daily) or enalapril (at a dose of 10 mg twice daily), in addition to recommended therapy. The primary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure, but the trial was designed to detect a difference in the rates of death from cardiovascular causes. RESULTS: The trial was stopped early, according to prespecified rules, after a median follow-up of 27 months"
+            },
+            "population_age": {
+              "value": "not_stated",
+              "source": "committed source text",
+              "span": ""
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          }
         }
       ],
       "declared_absent_trials": [
@@ -1521,7 +1555,7 @@
         "event_process": [
           "FIRST_EVENT_RATIO"
         ],
-        "endpoint": "composite",
+        "endpoint": "trial-defined Composite cardiovascular death or heart-failure hospitalization (definitions listed per trial)",
         "follow_up_window": "trial end / longest randomized follow-up",
         "analysis_set": "intention-to-treat",
         "randomised_contrast": {
@@ -1529,7 +1563,12 @@
           "total": 1
         },
         "matched": true,
-        "mismatches": []
+        "mismatches": [],
+        "dimension_matches": {
+          "endpoint": false
+        },
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "underlying_checked": true
       },
       "recovery_recheck": {
         "hard_incompatible": false,
@@ -1540,6 +1579,23 @@
         "k": 1,
         "reconstructed_members": [],
         "label_mix_small_k": false
+      },
+      "compat_underlying": {
+        "status": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "dimensions": [
+          "endpoint"
+        ],
+        "per_trial": {
+          "endpoint": [
+            {
+              "trial_id": "25176015",
+              "trial_label": "25176015",
+              "value": "primary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure, but the trial was designed to detect a difference in the rates of death from cardiovascular causes",
+              "source": "committed source text",
+              "span": "of 200 mg twice daily) or enalapril (at a dose of 10 mg twice daily), in addition to recommended therapy. The primary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure, but the trial was designed to detect a difference in the rates of death from cardiovascular causes. RESULTS: The trial was stopped early, according to prespecified rules, after a median follow-up of 27 months"
+            }
+          ]
+        }
       }
     }
   ],
@@ -1591,6 +1647,19 @@
   "comparator_scope_note": "k=1 CONTRIBUTING, not a complete-evidence claim: PARADIGM-HF supplies the only EXTRACTABLE primary-outcome estimate here; 7 records screened in and 6 are declared absent for this pooled number. This is NOT the complete eligible evidence base -- external audit identified PARALLEL-HF (225 HFrEF patients, sacubitril/valsartan vs enalapril, the same primary composite) as a further eligible RCT the trial-level search missed; the concept-query search rebuild is the fix. Separately, the only open-access comparator (PMID 36722326) is a multi-class network meta-analysis, not a sacubitril-specific pairwise meta (a scope mismatch, stated). Component/harm secondaries were dropped rather than shipped ambiguous (see refusals).",
   "rob2": {
     "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+    "output_family": "registry-machine-signal-restricted",
+    "rob_basis": {
+      "output_family": "registry-machine-signal-restricted",
+      "assessed_domains": [
+        "allocation sequence/randomisation",
+        "masking of participants/personnel",
+        "masking of outcome assessment",
+        "registered outcome versus pooled outcome"
+      ],
+      "unassessed_domains": [
+        "D3_missing_outcome_data"
+      ]
+    },
     "trials": {
       "25176015": {
         "nct": "NCT01035255",
@@ -1600,35 +1669,158 @@
         "domains": {
           "D1_randomisation": {
             "level": "low",
-            "basis": "AACT allocation = RANDOMIZED"
+            "basis": "AACT allocation = RANDOMIZED",
+            "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+            "inputs": {
+              "AACT.designs.allocation": "RANDOMIZED",
+              "trial_text.randomized_by_text": true
+            },
+            "derived_at_build": true
           },
           "D2_deviations": {
             "level": "low",
-            "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
+            "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+            "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "DOUBLE",
+              "AACT.designs.subject_masked": "t",
+              "AACT.designs.caregiver_masked": "f",
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
           },
           "D3_missing_outcome_data": {
             "level": "not assessed",
-            "basis": "not assessed — AACT flow shows between-arm differential attrition 2.8% (overall 19.0%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+            "basis": "not assessed - AACT flow shows between-arm differential attrition 2.8% (overall 19.0%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+            "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+            "inputs": {
+              "AACT.milestones.attrition": {
+                "overall_pct": 19.0,
+                "differential_pct": 2.8,
+                "groups": [
+                  [
+                    4209,
+                    3468
+                  ],
+                  [
+                    4233,
+                    3371
+                  ]
+                ]
+              }
+            },
+            "derived_at_build": true
           },
           "D4_outcome_measurement": {
             "level": "low",
-            "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)"
+            "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+            "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "DOUBLE",
+              "AACT.designs.outcomes_assessor_masked": "f",
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+            "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting",
+            "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+            "inputs": {
+              "pooled_outcome": "Composite cardiovascular death or heart-failure hospitalization",
+              "registered_primary_outcomes": [
+                {
+                  "measure": "Number of Participants That Had First Occurrence of the Composite Endpoint, Which is Defined as Either Cardiovascular (CV) Death or Heart Failure (HF) Hospitalization",
+                  "title": "",
+                  "description": "Number of participants that had first occurrence of the composite endpoint, which is defined as either CV death or HF hospitalization due to HF."
+                }
+              ],
+              "registered_secondary_outcomes": [
+                {
+                  "measure": "Number of Patients - All-cause Mortality",
+                  "title": "",
+                  "description": "Number of patients - All-cause mortality. All-cause mortality is common in Heart Failure HF patients this measures how many patients had this event. The data is on FAS population up to March 31, 2014"
+                },
+                {
+                  "measure": "Number of Patients Reported With Adjudicated Primary Causes of Death",
+                  "title": "",
+                  "description": "Number of patients reported with adjudicated primary causes of death. The data is on Randomization population up to March 31, 2014"
+                },
+                {
+                  "measure": "Change From Baseline to Month 8 for the Kansas City Cardiomyopathy Questionnaire (KCCQ) Clinical Summary Score",
+                  "title": "",
+                  "description": "Change from baseline to Month 8 for the Kansas City Cardiomyopathy Questionnaire (KCCQ) clinical summary score. KCCQ is a 23-item, self-administered instrument that quantifies physical function, symptoms (frequency, severity and recent change), social function, self-efficacy and knowledge, and quality of life. KCCQ clinical summary score is a composite assessment of physical limitations and total symptom scores. Scores are transformed to a range of 0-100, in which higher scores reflect better health status."
+                },
+                {
+                  "measure": "Number of Patients With First Confirmed Renal Dysfunction",
+                  "title": "",
+                  "description": "Number of patients with first confirmed renal dysfunction"
+                },
+                {
+                  "measure": "Percentage of Participants With New Onset of Atrial Fibrillation (AF)",
+                  "title": "",
+                  "description": "Percentage of participants with New Onset of Atrial Fibrillation The new onset atrial fibrillation (AF) analysis was based on a subset of FAS: i.e., for patients without a history of AF at baseline (patients with a history of AF were excluded from this analysis)."
+                }
+              ],
+              "comparison": {
+                "registered_type": "secondary",
+                "registered_label": "Number of Patients - All-cause Mortality",
+                "matched": true,
+                "method": "text_identity",
+                "pooled_components": [
+                  "CV_DEATH"
+                ],
+                "registered_components": [],
+                "registered_text": "Number of Patients - All-cause Mortality Number of patients - All-cause mortality. All-cause mortality is common in Heart Failure HF patients this measures how many patients had this event. The data is on FAS population up to March 31, 2014"
+              }
+            },
+            "derived_at_build": true
           }
+        },
+        "rob_basis": {
+          "output_family": "registry-machine-signal-restricted",
+          "assessed_domains": [
+            {
+              "domain": "D1_randomisation",
+              "label": "allocation sequence/randomisation",
+              "level": "low"
+            },
+            {
+              "domain": "D2_deviations",
+              "label": "masking of participants/personnel",
+              "level": "low"
+            },
+            {
+              "domain": "D4_outcome_measurement",
+              "label": "masking of outcome assessment",
+              "level": "low"
+            },
+            {
+              "domain": "D5_selective_reporting",
+              "label": "registered outcome versus pooled outcome",
+              "level": "low"
+            }
+          ],
+          "unassessed_domains": [
+            {
+              "domain": "D3_missing_outcome_data",
+              "label": "missing outcome data",
+              "level": "not assessed"
+            }
+          ]
         }
       }
     }
   },
   "arm_contrast": {
     "source": "AACT 2026-08-30 design_groups+interventions",
+    "metric_label": "parser-confirmed contrast",
+    "metric_scope": "AACT arm-label parser output; this measures the parser, not trial validity",
     "trials": {
       "25176015": {
         "nct": "NCT01035255",
         "status": "verified",
-        "basis": "the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)",
+        "basis": "parser-confirmed contrast: keyword 'LCZ696' matched AACT arm intervention 'lcz696 200 mg bid'; the intervention of interest DIFFERS across the randomised arms",
         "common": [],
         "differing": [
           "enalapril 10 mg bid",
@@ -1734,6 +1926,30 @@
         "detail": "screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: EVALUATE-HF, OUTSTEP-HF, ANSWER-HF, PRESENT-HF, PARALLEL-HF, PIONEER-HF; the completeness claim cannot be current"
       }
     ]
+  },
+  "compat_underlying": {
+    "checked": true,
+    "n_pre_fix_asserted_not_underlying": 1,
+    "n_post_fix_asserted_not_underlying": 0,
+    "pre_fix_violations": [
+      {
+        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
+        "outcome": "Composite cardiovascular death or heart-failure hospitalization",
+        "dimension": "endpoint",
+        "asserted": "composite",
+        "per_trial_values": [
+          {
+            "trial_id": "25176015",
+            "trial_label": "25176015",
+            "value": "primary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure, but the trial was designed to detect a difference in the rates of death from cardiovascular causes",
+            "source": "committed source text",
+            "span": "of 200 mg twice daily) or enalapril (at a dose of 10 mg twice daily), in addition to recommended therapy. The primary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure, but the trial was designed to detect a difference in the rates of death from cardiovascular causes. RESULTS: The trial was stopped early, according to prespecified rules, after a median follow-up of 27 months"
+          }
+        ],
+        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
+      }
+    ],
+    "post_fix_violations": []
   },
   "rob_sensitivity": {
     "outcome": "Composite cardiovascular death or heart-failure hospitalization",
@@ -1843,6 +2059,7 @@
       "publication_bias",
       "indirectness"
     ],
+    "rob_basis": "machine-assessed domains only; D3 unassessed on 1 of 1 trial(s)",
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
     "input_set_version": "119ddc306af87c7b7101ec7caf69f23aefa7c6752fda12539349aca4d3f77506",
     "claim_id": "d91855bb7d16752c",
@@ -1881,8 +2098,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE &mdash; this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: EVALUATE-HF, OUTSTEP-HF, ANSWER-HF, PRESENT-HF, PARALLEL-HF, PIONEER-HF; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "42b65c3d050e645c7cbadd21c2f8190e86a8613c0b7be4861c97ae9345250e87",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: EVALUATE-HF, OUTSTEP-HF, ANSWER-HF, PRESENT-HF, PARALLEL-HF, PIONEER-HF; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "2c7a0a02e914d0168a63449184700dbdae4097feb7ff6218a5a0f95772622928",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -2090,8 +2307,8 @@
       "source_fields": [
         "/arm_contrast/trials"
       ],
-      "rendered_text": "<div class='absent'><strong>Randomised-contrast disclosure (per pooled trial, from the registry arm structure &mdash; disclosed, not an adjustment).</strong> Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>1 of 1</strong> pooled trials have a registry-confirmed contrast (the intervention of interest differs across arms). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>25176015</td><td>randomised contrast verified</td><td title='the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)'>enalapril 10 mg bid; lcz696 200 mg bid</td></tr></table></div>",
-      "text_sha256": "0d53128d0d5d55aa57eff0168420289b6def1485bf2c489db1ef8308590aadb5",
+      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>1 of 1</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>25176015</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;LCZ696&#x27; matched AACT arm intervention &#x27;lcz696 200 mg bid&#x27;; the intervention of interest DIFFERS across the randomised arms'>enalapril 10 mg bid; lcz696 200 mg bid</td></tr></table></div>",
+      "text_sha256": "991499b368b1425a7cc1205cd3b482538d727e11f2fc53cedb4461a5fcdb99a2",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2172,8 +2389,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 0 downgrade(s)).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses machine-derived signals (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 1 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>single trial (k=1): between-study inconsistency is not estimable</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.73, 0.87]; excludes the null with a reasonably tight interval -&gt; precise; single trial — imprecision judged from the CI, not downgraded merely for k=1</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>no registry ghost census available for this topic</td></tr></table></div>",
-      "text_sha256": "43688a6599bc2163ec95c6820004a0eb3b527a6673c07737925e6d9e55114c21",
+      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 0 downgrade(s)). <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 1 of 1 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 1 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>single trial (k=1): between-study inconsistency is not estimable</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.73, 0.87]; excludes the null with a reasonably tight interval -&gt; precise; single trial — imprecision judged from the CI, not downgraded merely for k=1</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>no registry ghost census available for this topic</td></tr></table></div>",
+      "text_sha256": "aec4e876563a448bd055a26636ecd61f29e828c7593b1d0234ba092217904482",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2253,7 +2470,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "3fb64a1e01434eb6ee9ea8a764a84c749270dfff",
-    "review_sha256": "bf293e8d0ea386718c19d2a44bf39516d4b1c3b4ff7990ba05f82900ae360b92",
+    "review_sha256": "a356c5facaa6b33b160818c28734228fa78c6c4709a77eb2b9aed0b5ca5b44c9",
     "from_cache": true,
     "preregistration": {
       "prospective": false,

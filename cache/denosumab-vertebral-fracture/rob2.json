@@ -1,5 +1,18 @@
 {
   "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+  "output_family": "registry-machine-signal-restricted",
+  "rob_basis": {
+    "output_family": "registry-machine-signal-restricted",
+    "assessed_domains": [
+      "allocation sequence/randomisation",
+      "masking of participants/personnel",
+      "masking of outcome assessment",
+      "registered outcome versus pooled outcome"
+    ],
+    "unassessed_domains": [
+      "D3_missing_outcome_data"
+    ]
+  },
   "trials": {
     "19671655": {
       "nct": "NCT00089791",
@@ -9,24 +22,128 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "f",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 1.8% (overall 17.0%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 1.8% (overall 17.0%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 17.0,
+              "differential_pct": 1.8,
+              "groups": [
+                [
+                  3906,
+                  3206
+                ],
+                [
+                  3902,
+                  3272
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.outcomes_assessor_masked": "f",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome IS the trial's pre-registered primary outcome",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "New vertebral fracture",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Number of Participants With New Vertebral Fractures",
+                "title": "",
+                "description": "A new vertebral fracture, assessed by lateral spine X-ray using Genant semiquantitative scoring method, was identified as an ≥ 1 grade increase from the Baseline grade of 0 in any vertebra from T4 to L4. New vertebral fractures included morphometric vertebral fractures (assessed at scheduled visits and not associated with signs or symptoms \\[or both\\] indicative of a fracture) and clinical vertebral fractures (assessed at either a scheduled or unscheduled visit and associated with any signs and/or symptoms indicative of a fracture, excluding any fracture associated with high trauma severity or a pathologic fracture)."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Number of Participants With Nonvertebral Fractures",
+                "title": "",
+                "description": "Nonvertebral fractures (osteoporotic) were those occurring on study excluding those of the vertebrae (cervical, thoracic, and lumbar), skull, facial, mandible, metacarpus, finger phalanges, and toe phalanges. Fractures associated with high trauma severity (fractures that were the result of a fall from higher than the height of a stool, chair, first rung on a ladder or equivalent (\\> 20 inches) or was the result of severe trauma other than a fall) and pathologic fractures were excluded from this category. Nonvertebral fractures were required to be confirmed either by radiographs or other diagnostic images such as computerized tomography (CT) or magnetic resonance imaging (MRI), or by documentation in a radiology report, surgical report, or discharge summary."
+              },
+              {
+                "measure": "Number of Participants With a Hip Fracture",
+                "title": "",
+                "description": "Hip fractures are a subset of nonvertebral fractures including femur neck, femur intertrochanter, and femur subtrochanter."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Number of Participants With New Vertebral Fractures",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Number of Participants With New Vertebral Fractures A new vertebral fracture, assessed by lateral spine X-ray using Genant semiquantitative scoring method, was identified as an ≥ 1 grade increase from the Baseline grade of 0 in any vertebra from T4 to L4. New vertebral fractures included morphometric vertebral fractures (assessed at scheduled visits and not associated with signs or symptoms \\[or both\\] indicative of a fracture) and clinical vertebral fractures (assessed at either a scheduled or unscheduled visit and associated with any signs and/or symptoms indicative of a fracture, excluding any fracture associated with high trauma severity or a pathologic fracture)."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     }
   }

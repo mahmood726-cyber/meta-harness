@@ -1,5 +1,18 @@
 {
   "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+  "output_family": "registry-machine-signal-restricted",
+  "rob_basis": {
+    "output_family": "registry-machine-signal-restricted",
+    "assessed_domains": [
+      "allocation sequence/randomisation",
+      "masking of participants/personnel",
+      "masking of outcome assessment",
+      "registered outcome versus pooled outcome"
+    ],
+    "unassessed_domains": [
+      "D3_missing_outcome_data"
+    ]
+  },
   "trials": {
     "42132185": {
       "nct": null,
@@ -9,24 +22,95 @@
       "domains": {
         "D1_randomisation": {
           "level": "not assessed",
-          "basis": "AACT allocation = unstated"
+          "basis": "AACT allocation = unstated",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "",
+            "trial_text.randomized_by_text": false
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): participants/personnel blinded"
+          "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "",
+            "AACT.designs.subject_masked": null,
+            "AACT.designs.caregiver_masked": null,
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): outcome assessment blinded"
+          "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "",
+            "AACT.designs.outcomes_assessor_masked": null,
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
-          "level": "not assessed",
-          "basis": "no registered outcomes available for this trial"
+          "level": "not_assessable",
+          "basis": "no registered primary or secondary outcomes available for this trial",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Postoperative atrial fibrillation",
+            "registered_primary_outcomes": [],
+            "registered_secondary_outcomes": [],
+            "comparison": {
+              "matched": false,
+              "method": "no_registered_outcome",
+              "pooled_components": [],
+              "registered_components": []
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "not_assessable"
+          }
+        ]
       }
     },
     "32720823": {
@@ -37,24 +121,110 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome IS the trial's pre-registered primary outcome",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Postoperative atrial fibrillation",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Atrial fibrillation",
+                "title": "",
+                "description": "AF documented by EKG"
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Side effects of colchicine",
+                "title": "",
+                "description": "Gastrointestinal side effects"
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Atrial fibrillation",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Atrial fibrillation AF documented by EKG"
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "25172965": {
@@ -65,24 +235,135 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome IS the trial's pre-registered primary outcome",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Postoperative atrial fibrillation",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Post-pericardiotomy syndrome, post-operative effusions, post-operative atrial fibrillation incidence",
+                "title": "",
+                "description": "Incidence of the outcomes at 3 months from cardiac surgery"
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Cardiac Tamponade or Need for Pericardiocentesis",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Need for thoracentesis",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Recurrence of the post-pericardiotomy syndrome",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Re-admission",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Overall mortality",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Stroke incidence",
+                "title": "",
+                "description": ""
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Post-pericardiotomy syndrome, post-operative effusions, post-operative atrial fibrillation incidence",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Post-pericardiotomy syndrome, post-operative effusions, post-operative atrial fibrillation incidence Incidence of the outcomes at 3 months from cardiac surgery"
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "27502857": {
@@ -93,24 +374,95 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = unstated but the trial's own abstract states random assignment (abstract-corrected registry data error; FLAGGED registry-vs-trial disagreement)"
+          "basis": "AACT allocation = unstated but the trial's own abstract states random assignment (abstract-corrected registry data error; FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "not assessed",
-          "basis": "blinding: subject_masked=None, caregiver_masked=None"
+          "basis": "blinding: subject_masked=None, caregiver_masked=None",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "",
+            "AACT.designs.subject_masked": null,
+            "AACT.designs.caregiver_masked": null,
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "not assessed",
-          "basis": "outcome-assessor blinded = None"
+          "basis": "outcome-assessor blinded = None",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "",
+            "AACT.designs.outcomes_assessor_masked": null,
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
-          "level": "not assessed",
-          "basis": "no registered outcomes available for this trial"
+          "level": "not_assessable",
+          "basis": "no registered primary or secondary outcomes available for this trial",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Postoperative atrial fibrillation",
+            "registered_primary_outcomes": [],
+            "registered_secondary_outcomes": [],
+            "comparison": {
+              "matched": false,
+              "method": "no_registered_outcome",
+              "pooled_components": [],
+              "registered_components": []
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "not_assessable"
+          }
+        ]
       }
     }
   }

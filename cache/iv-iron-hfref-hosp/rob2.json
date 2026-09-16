@@ -1,5 +1,18 @@
 {
   "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+  "output_family": "registry-machine-signal-restricted",
+  "rob_basis": {
+    "output_family": "registry-machine-signal-restricted",
+    "assessed_domains": [
+      "allocation sequence/randomisation",
+      "masking of participants/personnel",
+      "masking of outcome assessment",
+      "registered outcome versus pooled outcome"
+    ],
+    "unassessed_domains": [
+      "D3_missing_outcome_data"
+    ]
+  },
   "trials": {
     "40159390": {
       "nct": "NCT03036462",
@@ -9,24 +22,167 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": false
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Triple (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Triple (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "TRIPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "f",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Triple (blinded): outcome assessment blinded"
+          "basis": "trial masking = Triple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "TRIPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome IS the trial's pre-registered primary outcome",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Heart-failure hospitalization",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Time-to-first event of CV death or HF hospitalisation",
+                "title": "",
+                "description": "\"Show that treatment of patients with systolic heart failure (HF) and iron deficiency (ID) with i.v. iron (Ferric Carboxymaltose, FCM) versus placebo (i.v. NaCl) can extend the time-to-first-event of heart failure hospitalisations and cardiovascular (CV) death.~Type I error rate control across the three primary endpoints will be ensured by using the Hochberg procedure.\""
+              },
+              {
+                "measure": "Rate of total (first and recurrent) events of hospitalisations for heart failure (HF)",
+                "title": "",
+                "description": "Show that treatment of patients with systolic heart failure (HF) and iron deficiency (ID) with i.v. iron (Ferric Carboxymaltose, FCM) versus placebo (i.v. NaCl) reduces the rate of recurrent events of heart failure hospitalisations."
+              },
+              {
+                "measure": "Time-to-first event of CV death or HF hospitalisation in patients with TSAT <20%",
+                "title": "",
+                "description": "Show that treatment of patients with systolic heart failure (HF) and iron deficiency (ID) with i.v. iron (Ferric Carboxymaltose, FCM) versus placebo (i.v. NaCl) can extend the time-to-first-event of heart failure hospitalisations and cardiovascular (CV) death in the population of patients with TSAT\\<20%."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Changes in 6-minute walk-test (nomogram)",
+                "title": "",
+                "description": "Changes in 6-minute walk-test during follow-up"
+              },
+              {
+                "measure": "Changes in NYHA (New York Heart Association) functional class (scale)",
+                "title": "",
+                "description": "Changes in NYHA functional class during follow-up"
+              },
+              {
+                "measure": "Changes in EQ-5D (questionnaire)",
+                "title": "",
+                "description": "Changes EQ-5D during follow-up"
+              },
+              {
+                "measure": "Changes in Patient Global Assessment (PGA) of wellbeing (questionnaire)",
+                "title": "",
+                "description": "Changes in PGA of wellbeing during follow-up"
+              },
+              {
+                "measure": "Changes in renal parameters (laboratory parameters)",
+                "title": "",
+                "description": "Changes in renal parameters from baseline to end of follow-up, assessing creatinine levels"
+              },
+              {
+                "measure": "Changes in cardiovascular parameters (laboratory parameters)",
+                "title": "",
+                "description": "Changes in cardiovascular parameters from baseline to end of follow-up, assessing natriuretic peptide levels"
+              },
+              {
+                "measure": "Changes in inflammatory parameters (laboratory parameters)",
+                "title": "",
+                "description": "Changes in inflammatory parameters from baseline to end of follow-up, assessing C-reactive protein levels"
+              },
+              {
+                "measure": "Changes in metabolic parameters (laboratory parameters)",
+                "title": "",
+                "description": "Changes in metabolic parameters from baseline to end of follow-up, assessing aspartate or alanine transaminase levels"
+              },
+              {
+                "measure": "Key Safety Endpoint: cardiovascular mortality",
+                "title": "",
+                "description": "cardiovascular mortality during 36 months of follow-up"
+              },
+              {
+                "measure": "Key Safety Endpoint: All-cause mortality",
+                "title": "",
+                "description": "All-cause mortality during 36 months of follow-up"
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Time-to-first event of CV death or HF hospitalisation",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [
+                "CV_DEATH"
+              ],
+              "registered_text": "Time-to-first event of CV death or HF hospitalisation \"Show that treatment of patients with systolic heart failure (HF) and iron deficiency (ID) with i.v. iron (Ferric Carboxymaltose, FCM) versus placebo (i.v. NaCl) can extend the time-to-first-event of heart failure hospitalisations and cardiovascular (CV) death.~Type I error rate control across the three primary endpoints will be ensured by using the Hochberg procedure.\""
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "25176939": {
@@ -37,24 +193,104 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.outcomes_assessor_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "some concerns",
-          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Change in six minute walk test from baseline to we') -- possibly post-hoc/unregistered"
+          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Change in six minute walk test from baseline to week 24') -- possibly post-hoc/unregistered",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Heart-failure hospitalization",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Change in six minute walk test from baseline to week 24",
+                "title": "",
+                "description": ""
+              }
+            ],
+            "registered_secondary_outcomes": [],
+            "comparison": {
+              "registered_type": null,
+              "registered_label": "Change in six minute walk test from baseline to week 24",
+              "matched": false,
+              "method": "no_match",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Change in six minute walk test from baseline to week 24"
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "some concerns"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     }
   }

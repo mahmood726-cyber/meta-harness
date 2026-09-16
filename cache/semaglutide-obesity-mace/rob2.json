@@ -1,32 +1,287 @@
 {
   "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+  "output_family": "registry-machine-signal-restricted",
+  "rob_basis": {
+    "output_family": "registry-machine-signal-restricted",
+    "assessed_domains": [
+      "allocation sequence/randomisation",
+      "masking of participants/personnel",
+      "masking of outcome assessment",
+      "registered outcome versus pooled outcome"
+    ],
+    "unassessed_domains": [
+      "D3_missing_outcome_data"
+    ]
+  },
   "trials": {
     "37952131": {
       "nct": "NCT03574597",
       "registry_in_aact": true,
       "assessed_from": "registry+abstract",
-      "overall": "some concerns",
+      "overall": "low (on assessed domains; some domains require human judgement)",
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 0.3% (overall 3.1%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 0.3% (overall 3.1%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 3.1,
+              "differential_pct": 0.3,
+              "groups": [
+                [
+                  8803,
+                  8544
+                ],
+                [
+                  8801,
+                  8517
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
-          "level": "some concerns",
-          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Participants From Time of Randomization to First O') -- possibly post-hoc/unregistered"
+          "level": "low",
+          "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (CV_DEATH, NONFATAL_MI, NONFATAL_STROKE)",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "3-point major adverse cardiovascular events",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Participants From Time of Randomization to First Occurrence of a Composite Outcome Measure Consisting of: Cardiovascular (CV) Death, Non-fatal Myocardial Infarction (MI), or Non-fatal Stroke",
+                "title": "",
+                "description": "Number of participants with first occurrence of composite outcome measure consisted of CV death (undetermined cause of death presumed CV death), non-fatal MI, or non-fatal stroke are presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Participants From Time of Randomisation to CV Death",
+                "title": "",
+                "description": "Number of participants with CV death are presented. The outcome measure was evalulated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Participants From Time of Randomisation to First Occurrence of a Composite Heart Failure (HF) Outcome Measure Consisting of: HF Hospitalisation, Urgent HF Visit or CV Death",
+                "title": "",
+                "description": "Number of participants with first occurrence of a composite HF outcome measure consisted of HF hospitalisation, urgent HF visit or CV death are presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Participants From Time of Randomisation to All-cause Death",
+                "title": "",
+                "description": "Number of participants with all-cause death are presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Participants From Time of Randomisation to First Occurrence of an Expanded Composite CV Outcome Measure Consisting of: CV Death, Non-fatal MI, Non-fatal Stroke, Coronary Revascularisation or Unstable Angina Pectoris (UAP) Requiring Hospitalisation",
+                "title": "",
+                "description": "Number of participants with first occurrence of an expanded composite CV outcome measure consisted of CV death, non-fatal MI, non-fatal stroke, coronary revascularisation or UAP requiring hospitalisation are presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Participants From Time of Randomisation to First Occurrence of a Composite Outcome Measure Consisting of: All-cause Death, Non-fatal MI, or Non-fatal Stroke",
+                "title": "",
+                "description": "Number of participants with first occurrence of a composite outcome measure consisted of all-cause death, non-fatal MI, or non-fatal stroke are presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Participants From Time of Randomisation to First Occurrence of Non-fatal MI",
+                "title": "",
+                "description": "Number of participants with first occurrence of non-fatal MI are presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Participants From Time of Randomisation to First Occurrence of Non-fatal Stroke",
+                "title": "",
+                "description": "Number of participants with first occurrence of non-fatal stroke are presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Participants From Time of Randomisation to First Occurrence of Coronary Revascularisation",
+                "title": "",
+                "description": "Number of participants with first occurrence of coronary revascularisation are presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Participants From Time of Randomisation to First Occurrence of UAP Requiring Hospitalisation",
+                "title": "",
+                "description": "Number of participants with first occurrence of UAP requiring hospitalisation are presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Participants From Time of Randomisation to First Occurrence of HF Requiring Hospitalisation or Urgent HF Visit",
+                "title": "",
+                "description": "Number of participants with first occurrence of HF requiring hospitalisation or urgent HF visit are presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Participants From Time of Randomisation to First Occurrence of Glycosylated Haemoglobin (HbA1c) Greater Than Equals to (≥) 48 Millimole Per Mole (mmol/Mol) (6.5 Percentage [%])",
+                "title": "",
+                "description": "Number of participants with first occurrence of HbA1c ≥ 48 mmol/mol (6.5%) are presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Participants From Time of Randomisation to First Occurrence of a 5-component Composite Nephropathy Outcome Measure",
+                "title": "",
+                "description": "Number of participants with first occurrence of a 5-component composite nephropathy outcome measure consisted of onset of persistent macroalbuminuria (UACR \\> 300 milligram per gram \\[mg/g\\]), persistent 50% reduction in estimated glomerular filtration rate (eGFR) compared with baseline (randomisation), onset of persistent eGFR \\< 15 ml/min/1.73m\\^2, initiation of chronic renal replacement therapy (dialysis or transplantation) or renal death. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Participants From Time of Randomisation to HbA1c ≥ 39 mmol/Mol (5.7%) (for Participants With a Screening HbA1c <39 mmol/Mol [5.7%])",
+                "title": "",
+                "description": "Number of participants with HbA1c ≥ 39 mmol/mol (5.7%) are presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Participants With HbA1c < 39 mmol/Mol (5.7%) (for Participants With a Screening HbA1c ≥ 39 mmol/Mol [5.7%])",
+                "title": "",
+                "description": "Number of participants with HbA1c \\< 39 mmol/mol (5.7%) are presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Change in Systolic Blood Pressure (SBP)",
+                "title": "",
+                "description": "Change in SBP from randomisation (week 0) to week 104 is presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Change in Diastolic Blood Pressure (DBP)",
+                "title": "",
+                "description": "Change in DBP from randomisation (week 0) to week 104 is presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Change in Pulse",
+                "title": "",
+                "description": "Change in pulse from randomisation (week 0) to week 104 is presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Change in High Sensitivity C-Reactive Protein (hsCRP) - Ratio to Baseline",
+                "title": "",
+                "description": "Change in hsCRP (milligram per liter \\[mg/L\\]) from randomisation (week 0) to week 104 presented as ratio to baseline (week 0). The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Change in Total Cholesterol - Ratio to Baseline",
+                "title": "",
+                "description": "Change in total cholesterol (milligram per deciliter \\[mg/dL\\]) from randomisation (week 0) to week 104 is presented as ratio to baseline (week 0). The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Change in High Density Lipoprotein (HDL) Cholesterol - Ratio to Baseline",
+                "title": "",
+                "description": "Change in HDL (mg/dL) from randomisation (week 0) to week 104 is presented as ratio to baseline (week 0). The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Change in Low Density Lipoprotein (LDL) Cholesterol - Ratio to Baseline",
+                "title": "",
+                "description": "Change in LDL (mg/dL) from randomisation (week 0) to week 104 is presented as ratio to baseline (week 0). The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Change in Triglycerides - Ratio to Baseline",
+                "title": "",
+                "description": "Change in triglycerides (mg/dL) from randomisation (week 0) to week 104 is presented as ratio to baseline (week 0). The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Change in Body Weight",
+                "title": "",
+                "description": "Percentage change in body weight from randomisation (week 0) to week 104 is presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Change in Waist Circumference",
+                "title": "",
+                "description": "Change is waist circumference from randomisation (week 0) to week 104 is presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Change From Randomisation (Week 0) in Participant Reported Outcome (PRO): EuroQol Five Dimensions Five Level Questionnaire (EQ-5D-5L) Index Score to Week 104",
+                "title": "",
+                "description": "EQ-5D-5L is a PRO tool used to estimate impact on participant's health-related quality of life and provides a description of their problems by dimensions (descriptive system). EQ-5D has 5 dimensions: mobility, self-care, usual activities, pain, anxiety/depression, and each dimension has 5 levels: not at all, mild, moderate, severe, extreme. Participant marks most appropriate statement in each dimension, resulting in 1-digit number and digits from 5 dimensions can be combined in 5-digit number describing participant's health state. Index score records an average health status according to dimensions using an algorithm, ranges 0-1 with higher score indicates better health status. Outcome measure was evaluated based on data from in-trial observation period (defined as date of randomisation to one of the dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant \\[who were lost to follow-up\\], date of death)."
+              },
+              {
+                "measure": "Change From Randomisation (Week 0) in PRO: EuroQol Five Dimensions Visual Analogue Scale (EQ-5D-VAS) to Week 104",
+                "title": "",
+                "description": "EQ-5D-5L is a PRO tool used to estimate impact on participant's health-related quality of life and provides a description of their problems by dimensions (descriptive system). EQ-5D has 5 dimensions: mobility, self-care, usual activities, pain, anxiety/depression, and each dimension has 5 levels: not at all, mild, moderate, severe, extreme. Participant marks most appropriate statement in each dimension, resulting in 1-digit number and digits from 5 dimensions can be combined in 5-digit number describing participant's health state. VAS component records a participant's overall self-rated health on a range of 0-100 with higher score indicates better self-reported health status. Outcome measure was evaluated based on data from in-trial observation period (defined as date of randomisation to one of the dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant \\[who were lost to follow-up\\], date of death)."
+              },
+              {
+                "measure": "Change in HbA1c - Percentage",
+                "title": "",
+                "description": "Change in HbA1c (percentage) from randomisation (week 0) to week 104 is presented. The outcome measure was evaulated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              },
+              {
+                "measure": "Change in HbA1c - mmol/Mol",
+                "title": "",
+                "description": "Change in HbA1c (mmol/mol) from randomisation (week 0) to week 104 is presented. The outcome measure was evaulated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Participants From Time of Randomization to First Occurrence of a Composite Outcome Measure Consisting of: Cardiovascular (CV) Death, Non-fatal Myocardial Infarction (MI), or Non-fatal Stroke",
+              "matched": true,
+              "method": "component_set",
+              "pooled_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_text": "Participants From Time of Randomization to First Occurrence of a Composite Outcome Measure Consisting of: Cardiovascular (CV) Death, Non-fatal Myocardial Infarction (MI), or Non-fatal Stroke Number of participants with first occurrence of composite outcome measure consisted of CV death (undetermined cause of death presumed CV death), non-fatal MI, or non-fatal stroke are presented. The outcome measure was evaluated based on data from in-trial observation period. In-trial observation period defined as the period from date of randomisation to one of the following dates, whichever comes first: date of follow-up visit, date when participant withdrew consent, date of last contact with participant for participants who were lost to follow-up (participant did not complete the trial and did not withdraw consent), date of death."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     }
   }

@@ -12,7 +12,9 @@ from __future__ import annotations
 
 _CLASS_TERMS = ("inhibitors", "antagonists", "agonists", "sglt2", "sglt-2", "glp-1", "glp1",
                 "mineralocorticoid receptor", "statins", "anticoagulants", "receptor blocker",
-                "beta-blockers", "ace inhibitor", " arb ", "doac", "noac", "crystalloids")
+                "beta-blockers", "ace inhibitor", " arb ", "doac", "noac", "crystalloids",
+                "probiotics", "probiotic", "omega-3", "omega 3", "n-3 fatty", "fish oil",
+                "fatty acid")
 
 
 def _has_class(text: str) -> bool:

@@ -93,7 +93,17 @@ def compute(row: dict, review: Optional[dict] = None) -> dict:
     hand_status = row.get("status")
     hand_norm = _normalise_status(hand_status)
 
-    our_k = _as_int(row.get("our_k"))
+    # our_k is DERIVED from the live primary pool when the review object is present (integration 2026-09-16):
+    # the hand row's count is a snapshot that goes stale the moment a recovery changes k (pcsk9: 2 -> 3 with
+    # VESALIUS-CV), and the gate refuses a stored count that disagrees with the pool. The hand value is kept
+    # beside it as hand_our_k so the drift is visible, never silently overwritten.
+    live_k = None
+    for _o in (review or {}).get("outcomes", []) or []:
+        if _o.get("primary"):
+            live_k = _as_int((_o.get("result") or {}).get("k"))
+            break
+    hand_our_k = _as_int(row.get("our_k"))
+    our_k = live_k if live_k is not None else hand_our_k
     if our_k is None:
         our_k = _as_int(overlap.get("ours_k"))
 
@@ -165,11 +175,14 @@ def compute(row: dict, review: Optional[dict] = None) -> dict:
     hand_disagrees = hand_norm in VOCABULARY and hand_norm != relation
     if hand_norm and hand_norm not in VOCABULARY:
         hand_disagrees = True
+    _hand_drift = (hand_our_k is not None and live_k is not None and hand_our_k != live_k)
     return {
         "relation": relation,
         "label": _relation_label(relation, inferred, dominance),
         "inferred": inferred,
         "our_k": our_k,
+        "hand_our_k": hand_our_k,
+        "hand_our_k_stale": _hand_drift,
         "their_k": their_k,
         "their_k_source": their_k_source if their_k is not None else None,
         "shared_k": shared_k,
@@ -186,6 +199,12 @@ def enrich(row: dict, review: Optional[dict] = None, strict: bool = True) -> dic
     out = dict(row or {})
     rel = compute(out, review)
     out["parity_relation"] = rel
+    # The rendered/gated our_k is the derived one; the hand snapshot stays visible under its own name.
+    if rel.get("our_k") is not None:
+        if out.get("our_k") is not None and out.get("our_k") != rel["our_k"]:
+            out["hand_our_k"] = out.get("our_k")
+            out["hand_our_k_stale"] = True
+        out["our_k"] = rel["our_k"]
     if strict and rel["hand_status_disagrees"]:
         raise ValueError(
             "PARITY-RELATION REFUSED: hand status "

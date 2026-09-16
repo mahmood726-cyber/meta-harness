@@ -65,14 +65,19 @@ def build_arm_index(ncts) -> dict:
     return out
 
 
-def _kw_matches(keywords, pool) -> bool:
+def _kw_match(keywords, pool):
     for kw in keywords or []:
         k = (kw or "").strip().lower()
         if not k:
             continue
-        if any(k in intv or intv in k for intv in pool):
-            return True
-    return False
+        for intv in pool:
+            if k in intv or intv in k:
+                return kw, intv
+    return None
+
+
+def _kw_matches(keywords, pool) -> bool:
+    return _kw_match(keywords, pool) is not None
 
 
 def contrast_status(nct: str, keywords, index: dict) -> tuple[str, str]:
@@ -93,11 +98,17 @@ def contrast_status(nct: str, keywords, index: dict) -> tuple[str, str]:
     common, differing = entry
     if not differing:
         return ("unverified_no_contrast", "registry coded no arm-level contrast (single active intervention)")
-    if _kw_matches(keywords, differing):
-        return ("verified", "the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)")
-    if _kw_matches(keywords, common):
+    diff_match = _kw_match(keywords, differing)
+    if diff_match:
+        kw, arm = diff_match
+        return ("verified", f"parser-confirmed contrast: keyword {kw!r} matched AACT arm intervention "
+                f"{arm!r}; the intervention of interest DIFFERS across the randomised arms")
+    common_match = _kw_match(keywords, common)
+    if common_match:
+        kw, arm = common_match
         return ("background_only", "the intervention of interest is present in EVERY arm (background); the "
-                "randomised contrast is a different intervention")
+                f"randomised contrast is a different intervention (keyword {kw!r} matched AACT arm "
+                f"intervention {arm!r})")
     return ("unverified_granularity", "a randomised contrast exists but the intervention of interest is not "
             "machine-matchable to a coded arm (registry class label / development code); contrast not machine-verified")
 

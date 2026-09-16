@@ -1590,7 +1590,41 @@
             "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
           },
           "trial_family_id": "NCT03619213",
-          "publication_role": "primary"
+          "publication_role": "primary",
+          "analysis_set": "intention-to-treat",
+          "follow_up_window": "trial end / longest randomized follow-up",
+          "endpoint_definition": "primary outcome was a composite of worsening heart failure (which was defined as either an unplanned hospitalization for heart failure or an urgent visit for heart failure) or cardiovascular death, as assessed in a time-to-event analysis",
+          "population_age": "not_stated",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "36027570",
+            "trial_label": "36027570",
+            "analysis_set": {
+              "value": "intention-to-treat",
+              "source": "study_effect.analysis_population",
+              "span": "intention-to-treat"
+            },
+            "follow_up_window": {
+              "value": "trial end / longest randomized follow-up",
+              "source": "outcome.timepoint",
+              "span": "trial end / longest randomized follow-up"
+            },
+            "endpoint_definition": {
+              "value": "primary outcome was a composite of worsening heart failure (which was defined as either an unplanned hospitalization for heart failure or an urgent visit for heart failure) or cardiovascular death, as assessed in a time-to-event analysis",
+              "source": "committed source text",
+              "span": "receive dapagliflozin (at a dose of 10 mg once daily) or matching placebo, in addition to usual therapy. The primary outcome was a composite of worsening heart failure (which was defined as either an unplanned hospitalization for heart failure or an urgent visit for heart failure) or cardiovascular death, as assessed in a time-to-event analysis. RESULTS: Over a median of 2.3 years, the primary outcome occurred in 512 of 3131 patients (16.4%) in the dap"
+            },
+            "population_age": {
+              "value": "not_stated",
+              "source": "committed source text",
+              "span": ""
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          }
         }
       ],
       "declared_absent_trials": [
@@ -1729,7 +1763,7 @@
         "event_process": [
           "FIRST_EVENT_RATIO"
         ],
-        "endpoint": "composite",
+        "endpoint": "trial-defined Composite cardiovascular death or worsening heart failure (definitions listed per trial)",
         "follow_up_window": "trial end / longest randomized follow-up",
         "analysis_set": "intention-to-treat",
         "randomised_contrast": {
@@ -1737,7 +1771,12 @@
           "total": 1
         },
         "matched": true,
-        "mismatches": []
+        "mismatches": [],
+        "dimension_matches": {
+          "endpoint": false
+        },
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "underlying_checked": true
       },
       "recovery_recheck": {
         "hard_incompatible": false,
@@ -1748,6 +1787,23 @@
         "k": 1,
         "reconstructed_members": [],
         "label_mix_small_k": false
+      },
+      "compat_underlying": {
+        "status": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "dimensions": [
+          "endpoint"
+        ],
+        "per_trial": {
+          "endpoint": [
+            {
+              "trial_id": "36027570",
+              "trial_label": "36027570",
+              "value": "primary outcome was a composite of worsening heart failure (which was defined as either an unplanned hospitalization for heart failure or an urgent visit for heart failure) or cardiovascular death, as assessed in a time-to-event analysis",
+              "source": "committed source text",
+              "span": "receive dapagliflozin (at a dose of 10 mg once daily) or matching placebo, in addition to usual therapy. The primary outcome was a composite of worsening heart failure (which was defined as either an unplanned hospitalization for heart failure or an urgent visit for heart failure) or cardiovascular death, as assessed in a time-to-event analysis. RESULTS: Over a median of 2.3 years, the primary outcome occurred in 512 of 3131 patients (16.4%) in the dap"
+            }
+          ]
+        }
       }
     }
   ],
@@ -1821,6 +1877,19 @@
   "comparator_scope_note": "k=1 CONTRIBUTING, not a complete-evidence claim: DELIVER (NCT03619213) supplies the only EXTRACTABLE primary-outcome estimate here. This is NOT a claim that the eligible evidence base is a single trial -- 5 records screened in for this PICO and 4 are declared absent for this pooled number (no extractable primary estimate in the committed source). External audit also flagged further eligible HFpEF records (e.g. an EMPA-VISION-style cohort design) that a trial-level search can miss; the concept-query search rebuild is the fix. The nearest published synthesis pools the SGLT2-inhibitor CLASS (a broader, network-level PICO), so its larger k is a scope difference, not evidence this review failed to retrieve.",
   "rob2": {
     "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+    "output_family": "registry-machine-signal-restricted",
+    "rob_basis": {
+      "output_family": "registry-machine-signal-restricted",
+      "assessed_domains": [
+        "allocation sequence/randomisation",
+        "masking of participants/personnel",
+        "masking of outcome assessment",
+        "registered outcome versus pooled outcome"
+      ],
+      "unassessed_domains": [
+        "D3_missing_outcome_data"
+      ]
+    },
     "trials": {
       "36027570": {
         "nct": "NCT03619213",
@@ -1830,35 +1899,165 @@
         "domains": {
           "D1_randomisation": {
             "level": "low",
-            "basis": "AACT allocation = RANDOMIZED"
+            "basis": "AACT allocation = RANDOMIZED",
+            "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+            "inputs": {
+              "AACT.designs.allocation": "RANDOMIZED",
+              "trial_text.randomized_by_text": true
+            },
+            "derived_at_build": true
           },
           "D2_deviations": {
             "level": "low",
-            "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+            "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+            "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "QUADRUPLE",
+              "AACT.designs.subject_masked": "t",
+              "AACT.designs.caregiver_masked": "t",
+              "trial_text.blinded_by_text": false
+            },
+            "derived_at_build": true
           },
           "D3_missing_outcome_data": {
             "level": "not assessed",
-            "basis": "not assessed — AACT flow shows between-arm differential attrition 0% (overall 0.3%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+            "basis": "not assessed - AACT flow shows between-arm differential attrition 0% (overall 0.3%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+            "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+            "inputs": {
+              "AACT.milestones.attrition": {
+                "overall_pct": 0.3,
+                "differential_pct": 0.0,
+                "groups": [
+                  [
+                    3131,
+                    3121
+                  ],
+                  [
+                    3132,
+                    3121
+                  ]
+                ]
+              }
+            },
+            "derived_at_build": true
           },
           "D4_outcome_measurement": {
             "level": "low",
-            "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+            "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+            "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "QUADRUPLE",
+              "AACT.designs.outcomes_assessor_masked": "t",
+              "trial_text.blinded_by_text": false
+            },
+            "derived_at_build": true
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+            "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting",
+            "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+            "inputs": {
+              "pooled_outcome": "Composite cardiovascular death or worsening heart failure",
+              "registered_primary_outcomes": [
+                {
+                  "measure": "Subjects Included in the Composite Endpoint of CV Death, Hospitalization Due to Heart Failure or Urgent Visit Due to Heart Failure.",
+                  "title": "",
+                  "description": "\"Dual primary efficacy~Primary endpoint analysed in all patients randomised (Full analysis set).~The analysis was assessed on Full Analysis Set, including events occurring on or prior to Primary Analysis Censoring Date.\""
+                },
+                {
+                  "measure": "Subjects Included in the Composite Endpoint of CV Death, Hospitalization Due to Heart Failure or Urgent Visit Due to Heart Failure for LVEF <60% Subpopulation",
+                  "title": "",
+                  "description": "\"Dual primary efficacy~Primary endpoint analysed in all patients randomised with LVEF \\< 60% at baseline.~The analysis was assessed on Full Analysis Set, including events occurring on or prior to Primary Analysis Censoring Date.\""
+                }
+              ],
+              "registered_secondary_outcomes": [
+                {
+                  "measure": "Events Included in the Composite Endpoint of CV Death or Recurrent Heart Failure Event (Hospitalization Due to Heart Failure or Urgent Heart Failure Visit)",
+                  "title": "",
+                  "description": "\"Secondary efficacy~Total number of heart failure events (first and recurrent) and cardiovascular death, analysed in all randomized patients.~The analysis was assessed on Full Analysis Set, including events occurring on or prior to Primary Analysis Censoring Date.\""
+                },
+                {
+                  "measure": "Events Included in the Composite Endpoint of CV Death or Recurrent Heart Failure Event (Hospitalization Due to Heart Failure or Urgent Heart Failure Visit) for LVEF <60% Subpopulation",
+                  "title": "",
+                  "description": "\"Secondary efficacy~Total number of heart failure events (first and recurrent) and cardiovascular death, analysed in all randomized patients with LVEF \\< 60% at baseline~The analysis was assessed on Full Analysis Set, including events occurring on or prior to Primary Analysis Censoring Date.\""
+                },
+                {
+                  "measure": "Change From Baseline in the KCCQ Total Symptom Score at 8 Months",
+                  "title": "",
+                  "description": "KCCQ is a 23-item, self-administered instrument that quantifies physical function, symptoms (frequency, severity and recent change), social function, self-efficacy and knowledge, and quality of life. The KCCQ Total Symptom Score incorporates the symptom domains into a single score. Scores are transformed to a range of 0-100, in which higher scores reflect better health status."
+                },
+                {
+                  "measure": "Subjects Included in the Endpoint of Cardiovascular Death",
+                  "title": "",
+                  "description": "\"Secondary efficacy~The analysis was assessed on Full Analysis Set, including deaths occurring on or prior to Primary Analysis Censoring Date.\""
+                },
+                {
+                  "measure": "Subjects Included in the Endpoint of All-cause Mortality",
+                  "title": "",
+                  "description": "\"Secondary efficacy~The analysis was assessed on Full Analysis Set, including deaths occurring on or prior to Primary Analysis Censoring Date.\""
+                }
+              ],
+              "comparison": {
+                "registered_type": "secondary",
+                "registered_label": "Subjects Included in the Endpoint of Cardiovascular Death",
+                "matched": true,
+                "method": "component_set",
+                "pooled_components": [
+                  "CV_DEATH"
+                ],
+                "registered_components": [
+                  "CV_DEATH"
+                ],
+                "registered_text": "Subjects Included in the Endpoint of Cardiovascular Death \"Secondary efficacy~The analysis was assessed on Full Analysis Set, including deaths occurring on or prior to Primary Analysis Censoring Date.\""
+              }
+            },
+            "derived_at_build": true
           }
+        },
+        "rob_basis": {
+          "output_family": "registry-machine-signal-restricted",
+          "assessed_domains": [
+            {
+              "domain": "D1_randomisation",
+              "label": "allocation sequence/randomisation",
+              "level": "low"
+            },
+            {
+              "domain": "D2_deviations",
+              "label": "masking of participants/personnel",
+              "level": "low"
+            },
+            {
+              "domain": "D4_outcome_measurement",
+              "label": "masking of outcome assessment",
+              "level": "low"
+            },
+            {
+              "domain": "D5_selective_reporting",
+              "label": "registered outcome versus pooled outcome",
+              "level": "low"
+            }
+          ],
+          "unassessed_domains": [
+            {
+              "domain": "D3_missing_outcome_data",
+              "label": "missing outcome data",
+              "level": "not assessed"
+            }
+          ]
         }
       }
     }
   },
   "arm_contrast": {
     "source": "AACT 2026-08-30 design_groups+interventions",
+    "metric_label": "parser-confirmed contrast",
+    "metric_scope": "AACT arm-label parser output; this measures the parser, not trial validity",
     "trials": {
       "36027570": {
         "nct": "NCT03619213",
         "status": "verified",
-        "basis": "the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)",
+        "basis": "parser-confirmed contrast: keyword 'dapagliflozin' matched AACT arm intervention 'dapagliflozin'; the intervention of interest DIFFERS across the randomised arms",
         "common": [],
         "differing": [
           "dapagliflozin"
@@ -1961,6 +2160,30 @@
         "detail": "screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT03030235, NCT04730947, STADIA-HFPEF, REC:NCT03877224; the completeness claim cannot be current"
       }
     ]
+  },
+  "compat_underlying": {
+    "checked": true,
+    "n_pre_fix_asserted_not_underlying": 1,
+    "n_post_fix_asserted_not_underlying": 0,
+    "pre_fix_violations": [
+      {
+        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
+        "outcome": "Composite cardiovascular death or worsening heart failure",
+        "dimension": "endpoint",
+        "asserted": "composite",
+        "per_trial_values": [
+          {
+            "trial_id": "36027570",
+            "trial_label": "36027570",
+            "value": "primary outcome was a composite of worsening heart failure (which was defined as either an unplanned hospitalization for heart failure or an urgent visit for heart failure) or cardiovascular death, as assessed in a time-to-event analysis",
+            "source": "committed source text",
+            "span": "receive dapagliflozin (at a dose of 10 mg once daily) or matching placebo, in addition to usual therapy. The primary outcome was a composite of worsening heart failure (which was defined as either an unplanned hospitalization for heart failure or an urgent visit for heart failure) or cardiovascular death, as assessed in a time-to-event analysis. RESULTS: Over a median of 2.3 years, the primary outcome occurred in 512 of 3131 patients (16.4%) in the dap"
+          }
+        ],
+        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
+      }
+    ],
+    "post_fix_violations": []
   },
   "rob_sensitivity": {
     "outcome": "Composite cardiovascular death or worsening heart failure",
@@ -2071,6 +2294,7 @@
       "publication_bias",
       "indirectness"
     ],
+    "rob_basis": "machine-assessed domains only; D3 unassessed on 1 of 1 trial(s)",
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
     "input_set_version": "2dc15c68b09bdb064dd52ca2c5eaf2b8ac66fc1f63ae4f0aeff0e153fded2490",
     "claim_id": "4d634bfd20a0b301",
@@ -2109,8 +2333,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE &mdash; this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (PMID_ENUMERATION_explicit): protocol Search section explicitly says UID-anchored queries for the named trials — known-item retrieval, cannot discover an unknown eligible trial.</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT03030235, NCT04730947, STADIA-HFPEF, REC:NCT03877224; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "f819a6f30db12004b0ab7b5cb886b49277ee48145fa1d061b6da30d7c4347a18",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (PMID_ENUMERATION_explicit): protocol Search section explicitly says UID-anchored queries for the named trials — known-item retrieval, cannot discover an unknown eligible trial.</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT03030235, NCT04730947, STADIA-HFPEF, REC:NCT03877224; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "96ff9db63154501d7dfc8b5e3fbd8934c5e97ee3e35c2f6be0888593cbb81c00",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -2341,8 +2565,8 @@
       "source_fields": [
         "/arm_contrast/trials"
       ],
-      "rendered_text": "<div class='absent'><strong>Randomised-contrast disclosure (per pooled trial, from the registry arm structure &mdash; disclosed, not an adjustment).</strong> Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>1 of 1</strong> pooled trials have a registry-confirmed contrast (the intervention of interest differs across arms). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>36027570</td><td>randomised contrast verified</td><td title='the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)'>dapagliflozin</td></tr></table></div>",
-      "text_sha256": "64dc9c567d7c4b58a50be320ee41324ba7279e6bf2080103c0c14bdda0ef4fa9",
+      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>1 of 1</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>36027570</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;dapagliflozin&#x27; matched AACT arm intervention &#x27;dapagliflozin&#x27;; the intervention of interest DIFFERS across the randomised arms'>dapagliflozin</td></tr></table></div>",
+      "text_sha256": "b4ece25096e2ded89b8e5ab70aaca6600cc1688e9376056dbb96165504cf7013",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2423,8 +2647,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 0 downgrade(s)).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses machine-derived signals (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 1 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>single trial (k=1): between-study inconsistency is not estimable</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.73, 0.92]; excludes the null with a reasonably tight interval -&gt; precise; single trial — imprecision judged from the CI, not downgraded merely for k=1</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (8 of ~40 completed unpublished, 20%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "557225312243664f9da0afc27c513f49f39dd4dbb64d80c564e746fd173b199b",
+      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 0 downgrade(s)). <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 1 of 1 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 1 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>single trial (k=1): between-study inconsistency is not estimable</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.73, 0.92]; excludes the null with a reasonably tight interval -&gt; precise; single trial — imprecision judged from the CI, not downgraded merely for k=1</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (8 of ~40 completed unpublished, 20%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "7a29f912990d8526b4b2982266eda98e9b098f3bf4e0608d9a5f310cdeff44ee",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2504,7 +2728,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "a6788cc518027a2b1b2aa9e94ac45b393a13efca",
-    "review_sha256": "871a16cebf962649b81a3a1d1e257b6b589679d0df05db35c69c122b7653cc61",
+    "review_sha256": "bcbe50646bd53761cf2b43db0a524c20f19a66a6e9c766b5c3781caf89619bb3",
     "from_cache": true,
     "preregistration": {
       "prospective": false,

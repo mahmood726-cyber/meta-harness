@@ -21,7 +21,9 @@ _CROSSOVER = re.compile(r"\b(?:multiple[-\s]?crossover|double[-\s]?crossover|cro
                         r"(?:trial|design|study)|two[-\s]?period\s+crossover)\b", re.I)
 _FACTORIAL = re.compile(
     r"\b(?:factorial(?:,\s*|\s+)(?:randomi[sz]ed|clinical trial|trial|design|assignment)"
-    r"|randomi[sz]ed\b.{0,80}\b\d+\s*(?:x|\u00d7|by)\s*\d+\b.{0,80}\bfactorial)\b",
+    r"|randomi[sz]ed\b.{0,80}\b\d+\s*(?:x|\u00d7|by)\s*\d+\b.{0,80}\bfactorial"
+    r"|randomi[sz]ed\b.{0,120}\bone of four trial margarines\b"
+    r"|one of four trial margarines\b.{0,180}\bEPA\b.{0,80}\bDHA\b.{0,80}\bALA\b)\b",
     re.I,
 )
 _STEPPED_WEDGE = re.compile(r"\bstepped[-\s]?wedge(?:\s+(?:cluster[-\s]?randomi[sz]ed|trial|design|study))?\b", re.I)

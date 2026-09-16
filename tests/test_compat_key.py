@@ -90,7 +90,7 @@ def test_plant_analysis_set_refused_and_itt_not():
 
 
 def test_plant_randomised_contrast_disclosed():
-    # A pooled trial not registry-confirmed as a randomised contrast is disclosed (verified < total).
+    # A pooled trial not parser-confirmed as a randomised contrast is disclosed (verified < total).
     o = {"name": "x", "primary": True,
          "result": {"k": 2, "estimate": 0.9, "scale": "RR",
                     "estmeasure": {"status": "homogeneous", "classes": ["FIRST_EVENT_RATIO"],

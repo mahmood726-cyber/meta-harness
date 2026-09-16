@@ -39,21 +39,22 @@ def _protocol_sha(slug):
     return _registration_sha(slug)
 
 
-def replay_core(slug):
+def replay_core(slug, protocol_sha=None):
     """Re-run the pipeline from the committed cache + protocol SHA (no network)."""
     config = json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8"))
     records = fetch.ensure(config, "")  # committed cache is present -> no network
-    return build_review_core(slug, config, records, _protocol_sha(slug))
+    return build_review_core(slug, config, records, protocol_sha or _protocol_sha(slug))
 
 
 def reproduce(slug):
     """Return (ok, reasons). Regenerate the core + page and compare to what is committed."""
     d = os.path.join(ROOT, "docs", "reviews", slug)
     manifest = json.load(open(os.path.join(d, "manifest.json"), encoding="utf-8"))
+    protocol_sha = manifest.get("protocol_sha") or _protocol_sha(slug)
     served = open(os.path.join(d, "index.html"), encoding="utf-8").read()
     reasons = []
 
-    core = replay_core(slug)
+    core = replay_core(slug, protocol_sha)
     regen_sha = review_sha256(core)
     if regen_sha != manifest.get("review_sha256"):
         reasons.append(f"review_sha256 mismatch: replay {regen_sha} vs committed {manifest.get('review_sha256')} "
@@ -62,8 +63,10 @@ def reproduce(slug):
     # Render the served page exactly as build_topic does: core + reproduction block. The re-search
     # diff (if committed) lives in the reproduction block and is rendered, so replay must load the
     # same committed cache/<slug>/research_diff.json to byte-match — it is stable (measured once).
-    repro = {"failures": 0, "protocol_sha": _protocol_sha(slug), "review_sha256": regen_sha, "from_cache": True,
-             "preregistration": _reg.preregistration_sha(slug)}
+    prereg = dict(_reg.preregistration_sha(slug))
+    prereg["build_sha"] = protocol_sha
+    repro = {"failures": 0, "protocol_sha": protocol_sha, "review_sha256": regen_sha, "from_cache": True,
+             "preregistration": prereg}
     _rd = os.path.join(ROOT, "cache", slug, "research_diff.json")
     if os.path.exists(_rd):
         repro["research_diff"] = json.load(open(_rd, encoding="utf-8"))

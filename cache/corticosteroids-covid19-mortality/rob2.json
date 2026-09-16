@@ -1,5 +1,18 @@
 {
   "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+  "output_family": "registry-machine-signal-restricted",
+  "rob_basis": {
+    "output_family": "registry-machine-signal-restricted",
+    "assessed_domains": [
+      "allocation sequence/randomisation",
+      "masking of participants/personnel",
+      "masking of outcome assessment",
+      "registered outcome versus pooled outcome"
+    ],
+    "unassessed_domains": [
+      "D3_missing_outcome_data"
+    ]
+  },
   "trials": {
     "32678530": {
       "nct": "NCT04381936",
@@ -9,24 +22,130 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "not assessed",
-          "basis": "blinding: subject_masked=None, caregiver_masked=None"
+          "basis": "blinding: subject_masked=None, caregiver_masked=None",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "NONE",
+            "AACT.designs.subject_masked": "",
+            "AACT.designs.caregiver_masked": "",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "not assessed",
-          "basis": "outcome-assessor blinded = None"
+          "basis": "outcome-assessor blinded = None",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "NONE",
+            "AACT.designs.outcomes_assessor_masked": "",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "some concerns",
-          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Community-acquired pneumonia: All-cause mortality ') -- possibly post-hoc/unregistered"
+          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Community-acquired pneumonia: All-cause mortality (with subsidiary analyses of c') -- possibly post-hoc/unregistered",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "28-day all-cause mortality",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Community-acquired pneumonia: All-cause mortality (with subsidiary analyses of cause of death and of death at various timepoints following discharge)",
+                "title": "",
+                "description": "For each pairwise comparison with the 'no additional treatment' arm, the primary objective is to provide reliable estimates of the effect of study treatments on all-cause mortality."
+              },
+              {
+                "measure": "Influenza co-primary outcome: All-cause mortality (with subsidiary analysis of cause of death and death at various timepoints following discharge)",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Influenza co-primary outcome: Time to discharge alive from hospital",
+                "title": "",
+                "description": ""
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Community-acquired pneumonia: Duration of hospital stay",
+                "title": "",
+                "description": "To assess the effects of study treatment on number of days stay in hospital"
+              },
+              {
+                "measure": "Community-acquired pneumonia: Composite endpoint of death or need for mechanical ventilation or ECMO",
+                "title": "",
+                "description": "Among patients not on invasive mechanical ventilation at baseline, the number of patients with a composite endpoint of death or need for invasive mechanical ventilation or ECMO."
+              },
+              {
+                "measure": "Influenza: Composite endpoint of death or need for mechanical ventilation or ECMO",
+                "title": "",
+                "description": "Among patients not on invasive mechanical ventilation at baseline, the number of patients with a composite endpoint of death or need for invasive mechanical ventilation or ECMO."
+              }
+            ],
+            "comparison": {
+              "registered_type": null,
+              "registered_label": "Community-acquired pneumonia: All-cause mortality (with subsidiary analyses of cause of death and of death at various timepoints following discharge)",
+              "matched": false,
+              "method": "no_match",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Community-acquired pneumonia: All-cause mortality (with subsidiary analyses of cause of death and of death at various timepoints following discharge) For each pairwise comparison with the 'no additional treatment' arm, the primary objective is to provide reliable estimates of the effect of study treatments on all-cause mortality."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "some concerns"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "not assessed"
+          }
+        ]
       }
     }
   }

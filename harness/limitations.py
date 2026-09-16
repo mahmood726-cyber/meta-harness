@@ -44,6 +44,7 @@ class LimitationKind(str, Enum):
     RANDOMISED_CONTRAST = "RANDOMISED_CONTRAST"
     ROB_SENSITIVITY = "ROB_SENSITIVITY"
     GRADE_CERTAINTY = "GRADE_CERTAINTY"
+    HARMS_INCOMPLETE = "HARMS_INCOMPLETE"
     ROB_SPANCHECK = "ROB_SPANCHECK"
     SEARCH_PROVENANCE = "SEARCH_PROVENANCE"
 
@@ -114,6 +115,7 @@ _VALIDITY_THREATENING_KINDS = {
     LimitationKind.SUPPRESSED_POOL.value,
     LimitationKind.RETRACTED_TRIAL_POOLED.value,
     LimitationKind.STALE_TOPIC.value,
+    LimitationKind.HARMS_INCOMPLETE.value,
     LimitationKind.SEARCH_PROVENANCE.value,
     LimitationKind.RETRIEVAL_CLASS.value,
     LimitationKind.CLAIM_CHECK_ZERO.value,
@@ -177,6 +179,12 @@ def _linked_decision(kind: LimitationKind | str, evidence_state: EvidenceState |
             "action": "REFUSE",
             "gate_id": "limitation:search-provenance",
             "decision_state": "unqualified registry-first/systematic-search claim refused",
+        }
+    if kind_value == LimitationKind.HARMS_INCOMPLETE.value:
+        return {
+            "action": "REFUSE",
+            "gate_id": "compat-check:harms-incomplete",
+            "decision_state": "isolated harms estimate is suppressed until known primary-pool reports are extracted or typed-refused",
         }
     if kind_value in {
         LimitationKind.STALE_TOPIC.value,
@@ -259,6 +267,8 @@ def _primary(review: dict[str, Any]) -> dict[str, Any] | None:
 def _declared_absent_state(section: Any) -> str:
     if isinstance(section, dict):
         state = section.get("state")
+        if state == "HARMS_INCOMPLETE":
+            return EvidenceState.PARTIAL.value
         if state in _SOURCE_ABSENCE_STATES:
             return _SOURCE_ABSENCE_STATES[state]
         if section.get("absent_kind") == "refused_on_evidence":
@@ -379,6 +389,16 @@ def _k2_ci_refusal_block(res: dict[str, Any]) -> str:
         "<div class='absent'><strong>Registered pooled CI REFUSED at k=2.</strong> "
         f"{_e(ref.get('detail'))} The point estimate may be displayed, but no pooled "
         "significance/null-crossing claim is emitted.</div>"
+    )
+
+
+def _harms_incomplete_block(res: dict[str, Any]) -> str:
+    unresolved = res.get("known_eligible_outcome_reports_unresolved") or []
+    names = ", ".join(str(x.get("trial_id")) for x in unresolved[:8])
+    return (
+        "<div class='absent'><strong>HARMS_INCOMPLETE.</strong> "
+        f"{_e(res.get('reason'))} "
+        f"<span class='muted'>Known unresolved primary-pool trial(s): {_e(names)}</span></div>"
     )
 
 
@@ -518,7 +538,7 @@ def _funding_block(fund: list[dict[str, Any]]) -> str:
 
 def _arm_contrast_block(ac: dict[str, dict[str, Any]]) -> str:
     labels = {
-        "verified": "randomised contrast verified",
+        "verified": "parser-confirmed contrast",
         "background_only": "BACKGROUND IN ALL ARMS &mdash; not a randomised contrast",
         "unverified_granularity": "contrast unverified (registry class label / dev code)",
         "unverified_no_contrast": "contrast unverified (no arm-level contrast coded)",
@@ -534,14 +554,14 @@ def _arm_contrast_block(ac: dict[str, dict[str, Any]]) -> str:
         for pid, entry in sorted(ac.items(), key=lambda kv: (order.get(kv[1].get("status"), 9), kv[0]))
     )
     return (
-        "<div class='absent'><strong>Randomised-contrast disclosure (per pooled trial, from the "
-        "registry arm structure &mdash; disclosed, not an adjustment).</strong> Eligibility should test "
+        "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the "
+        "AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test "
         "what actually DIFFERS between the randomised arms, not the mere presence of the drug word: "
         "a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same "
         "agent, randomising a different drug) is not a randomised comparison of it. For each pooled "
         "trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + "
         f"<code>interventions</code>: <strong>{n_ver} of {len(ac)}</strong> pooled trials have a "
-        "registry-confirmed contrast (the intervention of interest differs across arms)"
+        "parser-confirmed contrast (the intervention of interest matched a differing coded arm)"
         + (f"; <strong>{n_bg} is background in every arm (flagged)</strong>" if n_bg else "")
         + ". A trial with no registry arm data, or coded under a class label / development code we "
         "cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, "
@@ -624,6 +644,13 @@ def _grade_block(grade: dict[str, Any]) -> str:
             "risk-of-bias domain, is NOT ASSESSED for any pooled trial (no outcome-missingness "
             "source) &mdash; high certainty cannot be certified on a structurally-incomplete bias assessment."
         )
+    if grade.get("rob_basis"):
+        cap += f" <strong>RoB basis:</strong> {_e(grade.get('rob_basis'))}."
+    rob_phrase = (
+        "uses registry-machine-signal-restricted domains"
+        if grade.get("rob_basis")
+        else "uses machine-derived signals"
+    )
     if grade.get("certainty") == "not_rateable":
         return (
             "<div class='absent'><strong>Overall certainty: not rateable.</strong> "
@@ -640,7 +667,7 @@ def _grade_block(grade: dict[str, Any]) -> str:
         f"(starting from <em>high</em> for randomized trials, {grade.get('downgrades',0)} "
         f"downgrade(s)).{cap}"
         "<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias "
-        "uses machine-derived signals (not a human RoB2) and indirectness is not auto-rated, "
+        f"{rob_phrase} (not a human RoB2) and indirectness is not auto-rated, "
         "so a formal human GRADE assessment may differ. "
         "Risk of bias, inconsistency, imprecision and publication bias are computed from "
         "committed fields; <strong>publication bias is assessed from the registry ghost census, "
@@ -712,7 +739,6 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
 
     inv = review.get("invalidation") or {}
     if inv.get("stale"):
-        reasons = "".join(f"<li>{_e(item.get('detail'))}</li>" for item in inv.get("reasons", []))
         add(
             "overview:stale-topic",
             LimitationKind.STALE_TOPIC,
@@ -720,9 +746,7 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
             "current/settled topic result",
             EvidenceState.STALE,
             ["/invalidation/stale", "/invalidation/reasons"],
-            "<div class='absent'><strong>STALE &mdash; this topic's result is not current.</strong> "
-            "One or more dependent outputs on this page are known to be incomplete, superseded, or "
-            f"unproven, so the result must not be read as a settled current estimate:<ul>{reasons}</ul></div>",
+            _page._stale_topic_overview(review),
         )
 
     identifier_html = _page._identifier_scope_block(review)
@@ -995,14 +1019,20 @@ def _add_outcome_limitations(add: Any, outcome: dict[str, Any], prefix: str) -> 
     result = outcome.get("result") or {}
     rr = _absent(result)
     if rr:
+        is_harms_incomplete = result.get("state") == "HARMS_INCOMPLETE"
+        block = _harms_incomplete_block(result) if is_harms_incomplete else _absent_block(rr)
         add(
             f"{prefix}:result-absent",
-            LimitationKind.DECLARED_ABSENT_SECTION,
+            LimitationKind.HARMS_INCOMPLETE if is_harms_incomplete else LimitationKind.DECLARED_ABSENT_SECTION,
             Severity.BLOCKS_CLAIM,
             f"outcome result: {outcome.get('name')}",
-            _declared_absent_state(result),
-            ["/outcomes/*/result/present", "/outcomes/*/result/reason"],
-            _absent_block(rr),
+            EvidenceState.PARTIAL if is_harms_incomplete else _declared_absent_state(result),
+            (
+                ["/harms/*/result/state", "/harms/*/result/known_eligible_outcome_reports_unresolved"]
+                if is_harms_incomplete
+                else ["/outcomes/*/result/present", "/outcomes/*/result/reason"]
+            ),
+            block,
         )
     elif result.get("suppressed_incompatible"):
         add(

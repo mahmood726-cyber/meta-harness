@@ -104,6 +104,8 @@ _ABSENCE_STATE_LABEL = {
     "EXTRACTION_NOT_PERFORMED": "not extracted — the outcome's number IS in the source (extraction gap, not trial absence)",
     "SOURCE_NOT_RETRIEVED": "source not retrieved -- cached abstract text is missing",
     "REFUSED_ON_EVIDENCE": "excluded on evidence — a number was found and deliberately not pooled (see reason)",
+    "outcome_post_hoc_not_pooled": "excluded on evidence -- outcome was post hoc and not prespecified",
+    "outcome_not_reported": "declared absent -- outcome not reported in the committed source",
 }
 
 
@@ -366,6 +368,74 @@ def _common_effect_row(res: dict) -> tuple[str, str] | None:
 
 _ROB_SENS_REFUSED_HTML = "<h4>Risk-of-bias sensitivity (re-pooled with the same estimator)</h4><div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> Not computed: the primary pooled row is REFUSED ({code}), so there is no pooled estimate to re-pool by risk-of-bias stratum. The per-trial rows and their risk-of-bias ratings are shown above; a stratified re-pool of a refused pool would be a number about nothing.</div>"
 
+
+
+def _known_missing_sensitivity_panel(o: dict) -> str:
+    kms = o.get("known_missing_sensitivity") or {}
+    if not kms:
+        return ""
+    rows = []
+    for r in kms.get("rows") or []:
+        if r.get("value_status") == "IN_COMMITTED_SOURCE":
+            if r.get("ai") is not None:
+                val = f"{_e(r.get('ai'))}/{_e(r.get('n1i'))} vs {_e(r.get('ci'))}/{_e(r.get('n2i'))}"
+            elif r.get("effect") is not None:
+                val = (f"{_num(r.get('effect'))} ({_e(r.get('scale'))}), 95% CI "
+                       f"{_num(r.get('ci_low'))}-{_num(r.get('ci_high'))}")
+            else:
+                val = "source-backed value"
+            val += (f"<div class='muted'>{_e(r.get('source_ref'))}: {_e(r.get('source_span'))}</div>"
+                    f"<div class='muted'>{_e(r.get('verify_basis'))}</div>")
+        elif r.get("value_status") == "IN_SOURCE_DIFFERENT_ESTIMAND":
+            val = "different estimand in committed source; no target-estimand number used"
+        else:
+            val = "named, value not in committed source; no number computed"
+        sens = r.get("sensitivity")
+        if sens:
+            sens_txt = (f"{_e(sens.get('label'))}: k={_e(sens.get('k'))}, "
+                        f"{_num(sens.get('estimate'))} ({_e(sens.get('scale'))}), 95% CI "
+                        f"{_num(sens.get('ci_low'))}-{_num(sens.get('ci_high'))}; "
+                        f"tau2={_tau(sens.get('tau2'))}")
+            conclusion = sens.get("conclusion_effect")
+        else:
+            sens_txt = "not computable"
+            conclusion = r.get("conclusion_effect") or "NOT_COMPUTABLE"
+        rows.append(
+            "<tr>"
+            f"<td>{_e(r.get('name') or r.get('trial_key'))}</td>"
+            f"<td>{_e(r.get('value_status'))}</td>"
+            f"<td>{_e(r.get('missing_class'))}</td>"
+            f"<td>{_e(r.get('why_eligible'))}</td>"
+            f"<td>{val}</td>"
+            f"<td>{sens_txt}</td>"
+            f"<td>{_e(conclusion)}</td>"
+            "</tr>"
+        )
+    combined = kms.get("combined")
+    combined_html = ""
+    if combined:
+        combined_html = (
+            "<p><strong>Combined SENSITIVITY:</strong> "
+            f"k={_e(combined.get('k'))}, {_num(combined.get('estimate'))} ({_e(combined.get('scale'))}), "
+            f"95% CI {_num(combined.get('ci_low'))}-{_num(combined.get('ci_high'))}; "
+            f"tau2={_tau(combined.get('tau2'))}; conclusion_effect={_e(combined.get('conclusion_effect'))}.</p>"
+        )
+        if combined.get("pi_low") is not None:
+            combined_html += (f"<p class='note'>Prediction interval "
+                              f"{_num(combined.get('pi_low'))}-{_num(combined.get('pi_high'))}.</p>")
+    comp = f"<p class='note'>Endpoint components: <code>{_e(kms.get('components'))}</code></p>" if kms.get("components") else ""
+    return (
+        "<div class='kms-panel' id='known-missing-sensitivity'>"
+        f"<h3>{_e(kms.get('heading') or 'Known eligible trials not in this pool, and what they would do')}</h3>"
+        f"<p><strong>Panel conclusion effect: {_e(kms.get('headline_conclusion_effect') or 'NOT_COMPUTABLE')}.</strong> "
+        "These rows are SENSITIVITY only; they do not replace the primary pool.</p>"
+        + combined_html + comp +
+        "<table class='arms'><tr><th>Trial</th><th>Value status</th><th>Debt class</th>"
+        "<th>Why eligible</th><th>Committed value/span</th><th>Sensitivity</th><th>Conclusion effect</th></tr>"
+        + rows_join(rows) + "</table></div>"
+    )
+
+
 # ---- tabs --------------------------------------------------------------------
 
 def _transparency_counts(r):
@@ -494,18 +564,41 @@ def _hazard_acknowledgements_block(r):
     )
 
 
+def _stale_topic_overview(r):
+    inv = r.get("invalidation") or {}
+    if not inv.get("stale"):
+        return ""
+    reasons = "".join(f"<li>{_e(x.get('detail'))}</li>" for x in inv.get("reasons", []))
+    prim_for_inv = _primary(r)
+    kms = (prim_for_inv or {}).get("known_missing_sensitivity") or {}
+    if not kms:
+        return (
+            "<div class='absent'><strong>STALE — this topic's result is not current.</strong> "
+            "One or more dependent outputs on this page are known to be incomplete, superseded, or "
+            f"unproven, so the result must not be read as a settled current estimate:<ul>{reasons}</ul></div>"
+        )
+    link = " See the <a href='#known-missing-sensitivity'>known-missing sensitivity panel</a>."
+    change = (
+        " Named, in-source missing evidence changes the CI null-crossing conclusion; the served "
+        "conclusion is invalidated by that evidence."
+        if kms.get("headline_conclusion_effect") in ("CHANGES_CI_NULL_CROSSING", "CHANGES_DIRECTION")
+        else ""
+    )
+    return (
+        "<div class='absent'><strong>STALE — this topic's result is not current.</strong> "
+        "One or more dependent outputs on this page are known to be incomplete, superseded, or "
+        f"unproven, so the result must not be read as a settled current estimate. {change}{link}<ul>{reasons}</ul></div>"
+    )
+
+
 def _overview(r, neutral):
     parts = [f"<h2>{_e(r.get('title'))}</h2>", f"<p class='q'>{_e(r.get('question'))}</p>"]
     # INVALIDATION PROPAGATION: a single STALE verdict poisons the headline. If any dependent output
     # is known incomplete/superseded/unproven, say so at the top rather than let the result read as
     # current. Each reason is named; the corpus index publishes the count as it falls.
-    inv = r.get("invalidation") or {}
-    if inv.get("stale"):
-        _rz = "".join(f"<li>{_e(x.get('detail'))}</li>" for x in inv.get("reasons", []))
-        parts.append(
-            "<div class='absent'><strong>STALE — this topic's result is not current.</strong> "
-            "One or more dependent outputs on this page are known to be incomplete, superseded, or "
-            f"unproven, so the result must not be read as a settled current estimate:<ul>{_rz}</ul></div>")
+    stale = _stale_topic_overview(r)
+    if stale:
+        parts.append(stale)
     parts.append(_identifier_scope_block(r))
     rc = (r.get("search") or {}).get("retrieval_class") or {}
     if rc.get("class") in ("KNOWN_ITEM_RETRIEVAL", "TITLE_SEEDED_RETRIEVAL", "HAND_WRITTEN_KEYWORD_SEARCH"):
@@ -576,6 +669,7 @@ def _overview(r, neutral):
                 rows.append(("Between-study τ²", _tau(res.get("tau2"))))
             rows.append(("Method", prim.get("method") or r.get("method_declared")))
             parts.append(_kv(rows))
+            parts.append(_known_missing_sensitivity_panel(prim))
     if not neutral:
         _tok, _ttot, _tcomp = _transparency_counts(r)
         if _ttot:
@@ -609,11 +703,11 @@ def _overview(r, neutral):
             "outcomes with registered trials succeeded, while continuous, recurrent-event and older "
             "literature were declined — so the success rate reflects a selected sample, not the whole "
             "field.</li>"
-            "<li><strong>Risk of bias is partial.</strong> RoB2 domains are computed from machine-"
+            "<li><strong>Risk of bias is partial.</strong> Registry-machine-signal-restricted domains are computed from machine-"
             "available registry fields; domains needing human reading are marked not-assessed.</li>"
             "<li><strong>Registry snapshot is dated.</strong> AACT is a fixed local snapshot; trials "
             "registered, or results posted, after it are invisible to the registry-first recall, ghost "
-            "and RoB2 signals (the snapshot date is shown on those blocks). The re-search mode on the "
+            "and registry-machine-signal-restricted signals (the snapshot date is shown on those blocks). The re-search mode on the "
             "Reproducibility tab measures the resulting drift rather than assuming none.</li>"
             "<li><strong>Dual screening is not fully independent.</strong> The two rule screeners share "
             "an author and criteria, so their agreement overstates reliability; an independent model "
@@ -1111,7 +1205,13 @@ def _outcome_block(o, show_inputs=True):
     body = f"<h4>{_e(o.get('name'))}{' (primary)' if o.get('primary') else ''}</h4>"
     res = o.get("result")
     rr = _absent(res)
-    if rr:
+    if rr and isinstance(res, dict) and res.get("state") == "HARMS_INCOMPLETE":
+        unresolved = res.get("known_eligible_outcome_reports_unresolved") or []
+        names = ", ".join(str(x.get("trial_id")) for x in unresolved[:8])
+        body += ("<div class='absent'><strong>HARMS_INCOMPLETE.</strong> "
+                 f"{_e(res.get('reason'))} "
+                 f"<span class='muted'>Known unresolved primary-pool trial(s): {_e(names)}</span></div>")
+    elif rr:
         body += _absent_block(rr)
     elif res.get("unrenderable"):
         body += _unrenderable_block(res)
@@ -1171,6 +1271,17 @@ def _outcome_block(o, show_inputs=True):
         if cerow:
             _eu = _evidence_unit_summary(o)
             rows.append((cerow[0] + (f" [k={_k_display(o)}]" if _eu else ""), cerow[1]))
+        for sens in res.get("co_primary_sensitivities") or []:
+            pool = sens.get("pool") or {}
+            if pool.get("estimate") is None:
+                continue
+            rows.append((
+                "Alternative co-primary sensitivity",
+                f"{_e(sens.get('trial'))}: {_e(sens.get('alternative'))} -> "
+                f"k={_e(pool.get('k'))}, {_e(pool.get('scale'))} {_num(pool.get('estimate'))} "
+                f"(95% CI {_num(pool.get('ci_low'))}-{_num(pool.get('ci_high'))}); "
+                f"tau^2={_tau(pool.get('tau2'))}. {_e(sens.get('rule'))}",
+            ))
         rows.extend([
             ("Prediction interval", (f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}" if res.get('pi_low') is not None else None)),
             ("τ²", _tau(res.get("tau2")) if res.get("tau2") is not None else None),
@@ -1180,26 +1291,34 @@ def _outcome_block(o, show_inputs=True):
             ("Leave-one-out (influence)", _loo_text(res.get("leave_one_out"))),
         ])
         body += _kv([(k, v) for k, v in rows if v is not None])
+        if o.get("primary"):
+            body += _known_missing_sensitivity_panel(o)
         # COMPATIBILITY KEY: the explicit contract that lets these trials be pooled -- the six
         # dimensions they must share. Rendered so a reader can see the pool is not a mix of
-        # different quantities; the randomised-contrast fraction discloses how many are registry-
+        # different quantities; the randomised-contrast fraction discloses how many are parser-
         # confirmed contrasts of the intervention of interest.
         ck = o.get("compat_key")
         if ck:
             rc = ck.get("randomised_contrast") or {}
             _labels = ck.get("effect_measure") or []
+            _dm = ck.get("dimension_matches") or {}
+            _het = [d for d, ok in sorted(_dm.items()) if ok is False]
             body += "<h5>Compatibility key (pooling contract)</h5>" + _kv([
                 ("Effect-measure class", ", ".join(ck.get("event_process") or []) or None),
                 # Factual: the distinct reported labels actually pooled (HR, RR, …). Not a reassurance
                 # that they are identical -- the recovery-recheck limitation below states the caveat.
                 ("Effect-measure labels pooled", ", ".join(_labels) if len(set(_labels)) > 1 else None),
                 ("Endpoint", ck.get("endpoint")),
+                *([("Endpoint components", _compat_dimension_text(ck.get("endpoint_components")))]
+                  if "endpoint_components" in ck else []),
                 ("Follow-up window", ck.get("follow_up_window")),
                 ("Analysis set", ck.get("analysis_set")),
                 *([("Prior disease stage", _compat_dimension_text(ck.get("prior_disease_stage")))]
                   if "prior_disease_stage" in ck else []),
                 *([("Background therapy", _compat_dimension_text(ck.get("background_therapy")))]
                   if "background_therapy" in ck else []),
+                ("Heterogeneous key dimensions",
+                 (", ".join(_het) + f" [{_e(ck.get('limitation_code'))}]") if _het else None),
                 ("Randomised contrast (registry-confirmed)",
                  (f"{rc.get('verified')} of {rc.get('total')} pooled trials"
                   if rc.get("total") else None)),
@@ -1209,6 +1328,19 @@ def _outcome_block(o, show_inputs=True):
             if _lims:
                 body += ("<p class='note'>Compatibility limitation: "
                          + _e("; ".join(x.get("detail", "") for x in _lims)) + ".</p>")
+            cu = o.get("compat_underlying") or {}
+            ptr = cu.get("per_trial") or {}
+            if ptr:
+                rows = []
+                for dim, vals in sorted(ptr.items()):
+                    for item in vals:
+                        rows.append(
+                            f"<tr><td>{_e(dim)}</td><td>{_e(item.get('trial_id'))}</td>"
+                            f"<td>{_e(item.get('value'))}</td><td>{_e(item.get('span'))}</td></tr>"
+                        )
+                body += ("<table class='arms'><tr><th>Dimension</th><th>Trial</th>"
+                         "<th>Derived value</th><th>Source span</th></tr>"
+                         f"{''.join(rows)}</table>")
         if _evidence_unit_summary(o):
             body += f"<p class='note'>k = {_e(_k_display(o))}.</p>"
         # RECOVERY-INDUCED-INCOMPATIBILITY disclosure: a pool that mixes effect-measure labels at small
@@ -1332,12 +1464,19 @@ def _comparator(r, neutral):
             v = "COMPARATOR INVALID"
         else:
             v = "⚠ SCOPE MISMATCH"
+        topic_level = sc.get("topic_intervention_level") or ("class-level" if sc.get("topic_is_class") else "a single agent")
+        comp_level = sc.get("comparator_intervention_level") or ("class-level" if sc.get("comparator_is_class") else "a single agent")
         body += ("<h4>Scope match (is this the same question?)</h4>"
-                 f"<p><strong>{v}.</strong> Intervention level: topic is {'class-level' if sc.get('topic_is_class') else 'a single agent'}, "
-                 f"comparator is {'class-level' if sc.get('comparator_is_class') else 'a single agent'} "
+                 f"<p><strong>{v}.</strong> Intervention level: topic is {_e(topic_level)}, "
+                 f"comparator is {_e(comp_level)} "
                  f"(match: {_e(sc.get('intervention_level_match'))}); population match: {_e(sc.get('population_match'))}. "
                  f"{_e(sc.get('note'))} <span class='muted'>Decided by one uniform rule applied to every topic "
                  "before the k was seen.</span></p>")
+        if sc.get("population_match_basis"):
+            pm = sc.get("population_match_basis") or {}
+            paed = ", ".join(x.get("trial_id", "") for x in pm.get("pool_has_paediatric_trials", []) or [])
+            body += (f"<p><strong>Population-scope basis.</strong> {_e(pm.get('comparator'))}; "
+                     f"paediatric pooled trial(s): {_e(paed)}.</p>")
         # When the uniform rule flags a mismatch, resolving a VALID (same-scope) comparator is required.
         # This per-topic note records the resolution: either a single-agent benchmark exists and is
         # used, or none exists (k=1 is the complete single-drug evidence base — itself a finding), or
@@ -1700,12 +1839,12 @@ def _uoa_sensitivity(r, uoa_ids):
 
 
 def _riskofbias(r, neutral):
-    """RoB2-style risk of bias, per pooled trial, built from AACT structured design fields + the
+    """Registry-machine-signal-restricted risk of bias, per pooled trial, built from AACT structured design fields + the
     registry-vs-pooled outcome (Domain 5). Partial-but-honest: domains needing human judgement are
     marked 'not assessed', never guessed. No published-meta comparator in our set renders this."""
     rb = r.get("rob2") or {}
     assessed = rb.get("trials") or {}
-    # RoB2 here is assessed for the PRIMARY outcome's pooled trials (that is the scope the builder
+    # These signals are assessed for the PRIMARY outcome's pooled trials (that is the scope the builder
     # scans), so the coverage denominator is that set — and any primary-pooled trial with no registry
     # match is shown as an explicit "not assessed" row rather than silently omitted (the defect the
     # fair judge flagged). Trials pooled only in secondary outcomes are outside this scope and are
@@ -1735,11 +1874,11 @@ def _riskofbias(r, neutral):
         cells = "".join(f"<td title='{_e(a['domains'][k]['basis'])}'>{_e(a['domains'][k]['level'])}</td>" for k, _ in dom_labels)
         rows.append(f"<tr><td>{_e(pid)}</td><td><strong>{_e(a.get('overall'))}</strong></td>{cells}</tr>")
     # Pooled trials with NO registry match: render as explicit not-assessed rows, with the reason, so
-    # coverage is visible. RoB2 D1/D2/D4 here are auto-derived from AACT registry fields keyed on NCT;
+    # coverage is visible. D1/D2/D4 here are auto-derived from AACT registry fields keyed on NCT;
     # a trial with no NCT/AACT match cannot be machine-assessed and is not guessed.
     unassessed = sorted(pid for pid in pooled if pid not in assessed)
     _na = "not assessed"
-    _basis = "no NCT/AACT registry match for this pooled trial — the auto-derived RoB2 domains are not machine-assessable here and are not guessed"
+    _basis = "no NCT/AACT registry match for this pooled trial - the auto-derived risk-of-bias domains are not machine-assessable here and are not guessed"
     for pid in unassessed:
         cells = "".join(f"<td class='absent-cell' title='{_e(_basis)}'>{_e(_na)}</td>" for _ in dom_labels)
         rows.append(f"<tr><td>{_e(pid)}</td><td class='absent-cell'>{_e(_na)}</td>{cells}</tr>")
@@ -1757,7 +1896,7 @@ def _riskofbias(r, neutral):
              + ")"
              + (f"; {len(unassessed)} pooled trial(s) had no assessable source and are shown as "
                 f"<em>not assessed</em> ({_e(', '.join(unassessed))}) — never guessed." if unassessed else "")
-             + (f" RoB2 is scoped to the primary outcome; {len(secondary_only)} trial(s) pooled only in "
+             + (f" Risk-of-bias signals are scoped to the primary outcome; {len(secondary_only)} trial(s) pooled only in "
                 f"secondary outcomes ({_e(', '.join(sorted(secondary_only)))}) are outside this assessment."
                 if secondary_only else "")) if n_pool else ""
     uoa = r.get("unit_of_analysis") or []
@@ -1862,13 +2001,13 @@ def _riskofbias(r, neutral):
                      "<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Scanned</th>"
                      f"<th>Verbatim statement</th></tr>{fund_rows}</table></div>")
     # Arm-contrast disclosure (TIER-1 structural fix): whether each pooled trial's intervention of interest
-    # is a registry-CONFIRMED randomised contrast (differs across arms) or a fail-open/background inclusion.
+    # is parser-confirmed as a randomised contrast (differs across arms) or a fail-open/background inclusion.
     # The fail-open state is VISIBLE (a trial with no registry arm data reads 'contrast unverified'), never a
     # silent verified-looking inclusion. Never an adjustment; a disclosure computed from AACT arm structure.
     ac = (r.get("arm_contrast") or {}).get("trials") or {}
     ac_html = ""
     if ac:
-        _AC_LABEL = {"verified": "randomised contrast verified",
+        _AC_LABEL = {"verified": "parser-confirmed contrast",
                      "background_only": "BACKGROUND IN ALL ARMS — not a randomised contrast",
                      "unverified_granularity": "contrast unverified (registry class label / dev code)",
                      "unverified_no_contrast": "contrast unverified (no arm-level contrast coded)",
@@ -1881,14 +2020,14 @@ def _riskofbias(r, neutral):
             f"<tr><td>{_e(pid)}</td><td>{_e(_AC_LABEL.get(e.get('status'), e.get('status')))}</td>"
             f"<td title='{_e(e.get('basis'))}'>{_e('; '.join(e.get('differing') or []) or '&mdash;')}</td></tr>"
             for pid, e in sorted(ac.items(), key=lambda kv: (_AC_ORD.get(kv[1].get("status"), 9), kv[0])))
-        ac_html = ("<div class='absent'><strong>Randomised-contrast disclosure (per pooled trial, from the "
-                   "registry arm structure — disclosed, not an adjustment).</strong> Eligibility should test "
+        ac_html = ("<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the "
+                   "AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test "
                    "what actually DIFFERS between the randomised arms, not the mere presence of the drug word: "
                    "a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same "
                    "agent, randomising a different drug) is not a randomised comparison of it. For each pooled "
                    "trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + "
                    f"<code>interventions</code>: <strong>{n_ver} of {len(ac)}</strong> pooled trials have a "
-                   "registry-confirmed contrast (the intervention of interest differs across arms)"
+                   "parser-confirmed contrast (the intervention of interest matched a differing coded arm)"
                    + (f"; <strong>{n_bg} is background in every arm (flagged)</strong>" if n_bg else "")
                    + ". A trial with no registry arm data, or coded under a class label / development code we "
                    "cannot machine-match, is shown as <em>contrast unverified</em> — a VISIBLE fail-open state, "
@@ -1966,6 +2105,13 @@ def _riskofbias(r, neutral):
             cap += (" The rating is capped below <em>high</em> because D3 (missing outcome data), a required "
                     "risk-of-bias domain, is NOT ASSESSED for any pooled trial (no outcome-missingness "
                     "source) — high certainty cannot be certified on a structurally-incomplete bias assessment.")
+        if g.get("rob_basis"):
+            cap += f" <strong>RoB basis:</strong> {_e(g.get('rob_basis'))}."
+        rob_phrase = (
+            "uses registry-machine-signal-restricted domains"
+            if g.get("rob_basis")
+            else "uses machine-derived signals"
+        )
         if g.get("certainty") == "not_rateable":
             grade_html = ("<h4>GRADE certainty — NOT RATEABLE</h4>"
                           "<div class='absent'><strong>Overall certainty: not rateable.</strong> "
@@ -1982,7 +2128,7 @@ def _riskofbias(r, neutral):
                       f"(starting from <em>high</em> for randomized trials, {g.get('downgrades',0)} "
                       "downgrade(s)).{}"
                       "<strong>PROVISIONAL:</strong> this is a machine-derived certainty — risk of bias "
-                      "uses machine-derived signals (not a human RoB2) and indirectness is not auto-rated, "
+                      f"{rob_phrase} (not a human RoB2) and indirectness is not auto-rated, "
                       "so a formal human GRADE assessment may differ. "
                       "Risk of bias, inconsistency, imprecision and publication bias are computed from "
                       "committed fields; <strong>publication bias is assessed from the registry ghost census, "
@@ -2005,8 +2151,8 @@ def _riskofbias(r, neutral):
                     "human review caught it. The number is here because a RoB block a reader cannot trust is "
                     "worthless (<code>docs/rob_spancheck.json</code>).</div>")
     return (f"<p>{cover}</p>" + rsc_html + uoa_html + ac_html + fund_html
-            + "<p><strong>Machine-derived risk-of-bias signals</strong> (per pooled trial) &mdash; NOT a "
-            "formal Cochrane RoB2 assessment, which requires human judgements the registry cannot supply. "
+            + "<p><strong>Registry-machine-signal-restricted risk-of-bias signals</strong> (per pooled trial) &mdash; NOT a "
+            "formal human risk-of-bias assessment, which requires human judgements the registry cannot supply. "
             "These are computed from what is machine-available "
             f"({_e(rb.get('source') or 'AACT registry fields')}). <strong>Domain 5 (selective reporting)</strong> "
             "is computed from the trial's REGISTERED primary outcome vs the outcome we pooled — a machine-checkable "
@@ -2052,6 +2198,7 @@ table.recs th,table.recs td,table.arms th,table.arms td{border:1px solid #dbe3e8
 .vok{color:#137333;font-weight:600}.vno{color:#b31412;font-weight:600}
 .absent{background:#fff4e5;border:1px solid #f0c27b;padding:10px 14px;border-radius:6px;color:#7a4b00}
 .absent-cell{color:#7a4b00}
+.kms-panel{background:#fff4e5;border:1px solid #f0c27b;padding:10px 14px;border-radius:6px;color:#7a4b00;margin:12px 0}
 .banner{background:#eaf4fb;border-left:4px solid #4ea1d3;padding:10px 14px;margin:12px 0;font-size:13.5px}
 .hazard-acks{border-left:4px solid #7c6f64;background:#f5f4f2;padding:10px 14px;margin:12px 0;font-size:13px}
 .note{color:#4a5b66;font-size:12.5px;margin:6px 0;font-style:italic}

@@ -23,7 +23,10 @@ from . import rob_sensitivity as rob_sens_mod
 from . import claim as claim_mod
 from . import claimgraph as claimgraph_mod
 from . import invalidation as invalidation_mod
+from . import known_missing as known_missing_mod
+from . import missing_effect as missing_effect_mod
 from . import compat as compat_mod
+from . import compat_check as compat_check_mod
 from . import recovery_recheck as recovery_recheck_mod
 from . import absence as absence_mod
 from . import protocol_compiler as protocol_compiler_mod
@@ -549,9 +552,11 @@ def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
 def _pool_result(studies, scale="RR", *, require_study_effect=False):
     r = pool(studies, scale=scale, require_study_effect=require_study_effect)
     i2 = k2_mod.i2_from_q(r.Q, r.k)
-    res = {"k": r.k, "estimate": round(r.estimate, 4), "scale": r.scale,
-           "ci_low": round(r.ci_low, 4), "ci_high": round(r.ci_high, 4), "tau2": round(r.tau2, 5),
-           "Q": round(r.Q, 5), **({"i2": round(i2, 1)} if i2 is not None else {}),
+    def _rf(value, digits):
+        return round(float(value), digits)
+    res = {"k": r.k, "estimate": _rf(r.estimate, 4), "scale": r.scale,
+           "ci_low": _rf(r.ci_low, 4), "ci_high": _rf(r.ci_high, 4), "tau2": _rf(r.tau2, 5),
+           "Q": _rf(r.Q, 5), **({"i2": _rf(i2, 1)} if i2 is not None else {}),
            "ci_provenance": r.ci_provenance}  # engine token; the interval-provenance gate checks it
     if r.k == 1:
         # External audit: at k=1 there is nothing to pool — print the single trial's SOURCE CI
@@ -573,7 +578,7 @@ def _pool_result(studies, scale="RR", *, require_study_effect=False):
                           "degree of freedom and is not reliable at k=2 (Cochrane) — see the common-effect "
                           "sensitivity CI instead.")
     else:
-        res["pi_low"], res["pi_high"] = round(r.pi_low, 4), round(r.pi_high, 4)
+        res["pi_low"], res["pi_high"] = _rf(r.pi_low, 4), _rf(r.pi_high, 4)
         if r.tau2 == 0:
             res["pi_note"] = ("tau^2 estimated as 0, so the prediction interval coincides with the "
                               "confidence interval (no between-study heterogeneity detected).")
@@ -582,9 +587,9 @@ def _pool_result(studies, scale="RR", *, require_study_effect=False):
     # conventional common-effect CI alongside. (k==1 is already z-based, so its fixed CI equals the
     # primary and adds nothing.)
     if r.k == 2 and r.ci_low_fixed is not None:
-        res["ci_low_fixed"] = round(r.ci_low_fixed, 4)
-        res["ci_high_fixed"] = round(r.ci_high_fixed, 4)
-        res["estimate_fixed"] = round(r.estimate_fixed, 4)
+        res["ci_low_fixed"] = _rf(r.ci_low_fixed, 4)
+        res["ci_high_fixed"] = _rf(r.ci_high_fixed, 4)
+        res["estimate_fixed"] = _rf(r.estimate_fixed, 4)
         res["fixed_note"] = ("common-effect sensitivity (z-based; not the registered interval): with only "
                              "two trials the registered HKSJ interval uses a t-multiplier on a single "
                              "degree of freedom; the z-based common-effect interval is labelled separately.")
@@ -611,6 +616,7 @@ def _invalidation_signals(slug):
         kem = json.load(open(os.path.join(ROOT, "docs", "known_eligible_missing.json"), encoding="utf-8"))
         rows = (kem.get("topics") or {}).get(slug)
         if rows:
+            rows = missing_effect_mod.enrich_from_cache(ROOT, slug, rows)
             out["known_eligible_missing"] = rows
     except (OSError, ValueError):
         pass
@@ -885,6 +891,11 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 and _abs_over.get("outcome") == spec.get("name")):
             absent.append({"label": label, "id": idstr, "absent_kind": "adjudicated_absent",
                            "state": _abs_over.get("state"),  # override may pin the ontology state; else defaulted below
+                           "reason_code": _abs_over.get("reason_code") or _abs_over.get("state"),
+                           "source_span": _abs_over.get("source", ""),
+                           "verbatim_span": _abs_over.get("source", ""),
+                           **({"published_alternative": _abs_over.get("published_alternative")}
+                              if _abs_over.get("published_alternative") else {}),
                            "reason": _abs_over.get("reason", "declared absent (override): the committed source "
                                      "reports no value for this outcome; the extracted number was a different endpoint")})
             continue
@@ -912,6 +923,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             trials.append({"label": label, "id": idstr, "effect": ve_over["effect"],
                            "ci_low": ve_over.get("ci_low"), "ci_high": ve_over.get("ci_high"),
                            "scale": ve_over.get("scale", "HR"), "provenance": "fulltext_verified",
+                           **({"alternative_co_primary": ve_over.get("alternative_co_primary")}
+                              if ve_over.get("alternative_co_primary") else {}),
                            "source": ve_over.get("source", "hand-verified endpoint correction (override)")})
             continue
         # SOURCE HIERARCHY: the ABSTRACT headline (the authors' primary-outcome result, unambiguous)
@@ -1074,6 +1087,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
            "estimand": spec.get("estimand", "RR"), "population": spec.get("population"),
            "timepoint": spec.get("timepoint"), "method": METHOD,
            "trials": trials, "declared_absent_trials": absent}
+    if spec.get("component_compat_key"):
+        out["component_compat_key"] = True
     if design_refusals:
         out["design_refusals"] = [{
             "trial": design_key.display_name(t),
@@ -1139,6 +1154,36 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             )
             study.study_effect = trial["study_effect"]
         out["result"] = _pool_result(studies, scale=pooled_scale, require_study_effect=True)
+        _alts = []
+        for idx, t in enumerate(trials):
+            alt = t.get("alternative_co_primary")
+            if not isinstance(alt, dict) or alt.get("effect") is None:
+                continue
+            alt_trials = [dict(x) for x in trials]
+            alt_trials[idx].update({
+                "effect": alt.get("effect"),
+                "ci_low": alt.get("ci_low"),
+                "ci_high": alt.get("ci_high"),
+                "scale": alt.get("scale", t.get("scale") or pooled_scale),
+                "source": alt.get("source", t.get("source")),
+            })
+            alt_studies = [
+                Study(label=x["label"], effect=x.get("effect"), ci_low=x.get("ci_low"),
+                      ci_high=x.get("ci_high"),
+                      ai=x.get("ai"), n1i=x.get("n1i"), ci=x.get("ci"), n2i=x.get("n2i"),
+                      source=x.get("source", ""), measure=_meas(x))
+                for x in alt_trials
+            ]
+            ar = _pool_result(alt_studies, scale=alt.get("scale", pooled_scale))
+            _alts.append({
+                "trial": t.get("label"),
+                "selected": t.get("co_primary_selected") or t.get("components"),
+                "alternative": alt.get("label") or alt.get("components"),
+                "rule": alt.get("rule", "alternative prespecified co-primary endpoint sensitivity"),
+                "pool": ar,
+            })
+        if _alts:
+            out["result"]["co_primary_sensitivities"] = _alts
         if design_refusals:
             out["result"]["design_refusal"] = {
                 "pool_changed": True,
@@ -1570,7 +1615,7 @@ def build_review_core(slug, config, records, protocol_sha):
         **({"evidence_base_caveat": config["evidence_base_caveat"]} if config.get("evidence_base_caveat") else {}),
         **({"rob2": _rb} if (_rb := _load_rob2(slug)) else {}),
         # Arm-contrast disclosure (TIER-1 structural fix): per pooled trial, whether the intervention of
-        # interest is a registry-confirmed RANDOMISED CONTRAST or a fail-open/background inclusion. Visible,
+        # interest is a parser-confirmed RANDOMISED CONTRAST or a fail-open/background inclusion. Visible,
         # never silent -- a trial admitted with no registry arm data reads 'contrast unverified', not verified.
         **({"arm_contrast": _ac} if (_ac := _load_arm_contrast(slug)) else {}),
         **({"integrity": integrity} if integrity else {}),
@@ -1697,6 +1742,12 @@ def build_review_core(slug, config, records, protocol_sha):
             for _ak, _av in _ann.items():
                 if _av not in (None, "", []):
                     _t[_ak] = _av
+    # COMPATIBILITY-UNDERLYING CHECK (lane CK): derive the compatibility dimensions from every pooled trial row
+    # and its committed source text; an asserted uniform key the rows do not support is relabelled mixed/trial-defined.
+    compat_check_mod.enrich(review, records)
+    # KNOWN-MISSING SENSITIVITY: invalidation names eligible evidence outside the primary pool.
+    # This panel keeps the primary untouched and shows only source-backed re-pools as SENSITIVITY.
+    known_missing_mod.build(review, _inv_sig, rec_by_id, records)
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config so a divergence (estimand, analysis set, design masking AND/OR) between the registered
     # prose and the machine rules cannot pass -- the tocilizumab self-certification defect (a check

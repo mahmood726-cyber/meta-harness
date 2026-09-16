@@ -627,6 +627,60 @@
     {
      "adjudication": {
       "adjudicated_by": {
+       "identity": "test_compat_underlying plant",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": null,
+      "evidence": [
+       "tests/test_compat_underlying.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-compat-key-underlying-plant-1",
+     "evidence": [
+      "tests/test_compat_underlying.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "pre-fix compatibility key asserted uniform analysis set, follow-up window, and endpoint dimensions contradicted by per-trial source-derived values",
+     "when_utc": null,
+     "where": "harness/gate.py:check_compat_key_underlying"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-compat-key-underlying-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_compat_key_underlying"
+    }
+   ],
+   "gate_id": "gate.check_compat_key_underlying",
+   "what_it_refuses": "The compatibility key is a gate, not prose. If an outcome key asserts a uniform dimension (analysis set, follow-up window, endpoint) but the pooled trial rows/sources derive heterogeneous values, refuse the page until the key is relabelled mixed/trial-defined.",
+   "where": "harness/gate.py:check_compat_key_underlying"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
        "identity": "v1 plant-validation test harness",
        "kind": "internal_agent"
       },
@@ -1390,6 +1444,60 @@
    "gate_id": "gate.check_pooled_verified",
    "what_it_refuses": "THE BAR, made structural: every pooled number's digits must appear in its committed source span (verify.verify_pooled marks 'verified'/'verified_handchecked'/'not-yet').",
    "where": "harness/gate.py:check_pooled_verified"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_rob_rederivation.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-rob-rederivable-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_rob_rederivation.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "stored registry-machine risk-of-bias level not rederivable from rule inputs plant",
+     "when_utc": null,
+     "where": "harness/gate.py:check_rob_rederivable"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-rob-rederivable-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_rob_rederivable"
+    }
+   ],
+   "gate_id": "gate.check_rob_rederivable",
+   "what_it_refuses": "Stored registry-machine risk-of-bias levels must re-run from their own rule inputs.",
+   "where": "harness/gate.py:check_rob_rederivable"
   },
   {
    "events": [
@@ -3068,14 +3176,47 @@
      "where": "harness/gate.py:check_limitation_decision_links"
     }
    ],
-   "gate_id": "gate.check_limitation_decision_links",
-   "what_it_refuses": "Review pages where a VALIDITY_THREATENING limitation object lacks a linked typed analytic decision (diagnostic-decision decoupling / disclosure-as-control).",
-   "where": "harness/gate.py:check_limitation_decision_links"
-  },
-  {
-   "gate_id": "verify_all.limb_search_completeness",
-   "where": "scripts/verify_all.py:limb_search_completeness",
-   "what_it_refuses": "search completeness (search_v2 measurement current; every state explicit; no zero from an exit code)",
+  "gate_id": "gate.check_limitation_decision_links",
+  "what_it_refuses": "Review pages where a VALIDITY_THREATENING limitation object lacks a linked typed analytic decision (diagnostic-decision decoupling / disclosure-as-control).",
+  "where": "harness/gate.py:check_limitation_decision_links"
+ },
+ {
+  "events": [
+   {
+    "adjudication": {
+     "adjudicated_by": {
+      "identity": "Codex GPT-5 (lane KM)",
+      "kind": "internal_agent"
+     },
+     "architecture_identity": "eddfa1b76f20e847e1b3382d05e9b6d4198252725de77cef78ecce84c2be0795",
+     "evidence": [
+      "tests/test_known_missing_panel.py"
+     ],
+     "verdict": "TRUE_POSITIVE",
+     "when_utc": null
+    },
+    "commit": null,
+    "event_id": "gate-check-known-missing-panel-plant-1",
+    "evidence": [
+     "tests/test_known_missing_panel.py",
+     "harness/known_missing.py",
+     "harness/gate.py"
+    ],
+    "kind": "PLANT",
+    "source_list": "plant_validations",
+    "what_refused": "pre-fix GLP-1 FLOW/FREEDOM-CVO named missing evidence and colchicine COCS/COPPS eligible-declared-absent evidence without a known_missing_sensitivity panel",
+    "when_utc": null,
+    "where": "harness/gate.py:check_known_missing_panel"
+   }
+  ],
+  "gate_id": "gate.check_known_missing_panel",
+  "what_it_refuses": "Review pages that name eligible missing evidence but do not publish a dependency-stamped, source-backed known-missing sensitivity panel for the primary outcome.",
+  "where": "harness/gate.py:check_known_missing_panel"
+ },
+ {
+  "gate_id": "verify_all.limb_search_completeness",
+  "where": "scripts/verify_all.py:limb_search_completeness",
+  "what_it_refuses": "search completeness (search_v2 measurement current; every state explicit; no zero from an exit code)",
    "events": [
     {
      "event_id": "verify-all-limb-search-completeness-plants-2026-09-15",

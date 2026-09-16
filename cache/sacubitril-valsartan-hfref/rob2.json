@@ -1,5 +1,18 @@
 {
   "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+  "output_family": "registry-machine-signal-restricted",
+  "rob_basis": {
+    "output_family": "registry-machine-signal-restricted",
+    "assessed_domains": [
+      "allocation sequence/randomisation",
+      "masking of participants/personnel",
+      "masking of outcome assessment",
+      "registered outcome versus pooled outcome"
+    ],
+    "unassessed_domains": [
+      "D3_missing_outcome_data"
+    ]
+  },
   "trials": {
     "25176015": {
       "nct": "NCT01035255",
@@ -9,24 +22,145 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 2.8% (overall 19.0%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 2.8% (overall 19.0%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 19.0,
+              "differential_pct": 2.8,
+              "groups": [
+                [
+                  4209,
+                  3468
+                ],
+                [
+                  4233,
+                  3371
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.outcomes_assessor_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Composite cardiovascular death or heart-failure hospitalization",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Number of Participants That Had First Occurrence of the Composite Endpoint, Which is Defined as Either Cardiovascular (CV) Death or Heart Failure (HF) Hospitalization",
+                "title": "",
+                "description": "Number of participants that had first occurrence of the composite endpoint, which is defined as either CV death or HF hospitalization due to HF."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Number of Patients - All-cause Mortality",
+                "title": "",
+                "description": "Number of patients - All-cause mortality. All-cause mortality is common in Heart Failure HF patients this measures how many patients had this event. The data is on FAS population up to March 31, 2014"
+              },
+              {
+                "measure": "Number of Patients Reported With Adjudicated Primary Causes of Death",
+                "title": "",
+                "description": "Number of patients reported with adjudicated primary causes of death. The data is on Randomization population up to March 31, 2014"
+              },
+              {
+                "measure": "Change From Baseline to Month 8 for the Kansas City Cardiomyopathy Questionnaire (KCCQ) Clinical Summary Score",
+                "title": "",
+                "description": "Change from baseline to Month 8 for the Kansas City Cardiomyopathy Questionnaire (KCCQ) clinical summary score. KCCQ is a 23-item, self-administered instrument that quantifies physical function, symptoms (frequency, severity and recent change), social function, self-efficacy and knowledge, and quality of life. KCCQ clinical summary score is a composite assessment of physical limitations and total symptom scores. Scores are transformed to a range of 0-100, in which higher scores reflect better health status."
+              },
+              {
+                "measure": "Number of Patients With First Confirmed Renal Dysfunction",
+                "title": "",
+                "description": "Number of patients with first confirmed renal dysfunction"
+              },
+              {
+                "measure": "Percentage of Participants With New Onset of Atrial Fibrillation (AF)",
+                "title": "",
+                "description": "Percentage of participants with New Onset of Atrial Fibrillation The new onset atrial fibrillation (AF) analysis was based on a subset of FAS: i.e., for patients without a history of AF at baseline (patients with a history of AF were excluded from this analysis)."
+              }
+            ],
+            "comparison": {
+              "registered_type": "secondary",
+              "registered_label": "Number of Patients - All-cause Mortality",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [
+                "CV_DEATH"
+              ],
+              "registered_components": [],
+              "registered_text": "Number of Patients - All-cause Mortality Number of patients - All-cause mortality. All-cause mortality is common in Heart Failure HF patients this measures how many patients had this event. The data is on FAS population up to March 31, 2014"
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     }
   }

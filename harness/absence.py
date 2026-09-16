@@ -48,6 +48,8 @@ POPULATION_MISMATCH = "POPULATION_MISMATCH"
 SOURCE_NOT_RETRIEVED = "SOURCE_NOT_RETRIEVED"
 EXTRACTION_NOT_PERFORMED = "EXTRACTION_NOT_PERFORMED"
 REFUSED_ON_EVIDENCE = "REFUSED_ON_EVIDENCE"
+OUTCOME_POST_HOC_NOT_POOLED = "outcome_post_hoc_not_pooled"
+OUTCOME_NOT_REPORTED = "outcome_not_reported"
 
 _CODE_ALIASES = {
     "NO_OUTCOME_DATA_IN_SOURCE": OUTCOME_NOT_IN_SOURCE,
@@ -257,6 +259,16 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
     poolable. It never changes extraction order and never makes a non-pooled value poolable.
     """
     row = row or {}
+    if row.get("state") in (OUTCOME_POST_HOC_NOT_POOLED, OUTCOME_NOT_REPORTED):
+        code = row.get("state")
+        span = row.get("source_span") or row.get("verbatim_span") or row.get("source") or reason or ""
+        return {
+            "reason_code": code,
+            "state": code,
+            "state_basis": _basis(code, span, reason),
+            "source_span": _clip(span),
+            "verbatim_span": _clip(span),
+        }
     hint = _reason_hint_code(reason)
     design_span = None
     for b in (((row.get("design") or {}).get("basis")) or []):

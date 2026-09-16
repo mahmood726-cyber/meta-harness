@@ -1,5 +1,18 @@
 {
   "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+  "output_family": "registry-machine-signal-restricted",
+  "rob_basis": {
+    "output_family": "registry-machine-signal-restricted",
+    "assessed_domains": [
+      "allocation sequence/randomisation",
+      "masking of participants/personnel",
+      "masking of outcome assessment",
+      "registered outcome versus pooled outcome"
+    ],
+    "unassessed_domains": [
+      "D3_missing_outcome_data"
+    ]
+  },
   "trials": {
     "19717846": {
       "nct": "NCT00391872",
@@ -9,52 +22,338 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": false
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 0.5% (overall 3.0%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 0.5% (overall 3.0%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 3.0,
+              "differential_pct": 0.5,
+              "groups": [
+                [
+                  9333,
+                  9026
+                ],
+                [
+                  9291,
+                  9036
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Participants With Any Event From the Composite of Death From Vascular Causes, Myocardial Infarction (MI), and Stroke",
+                "title": "",
+                "description": "Participants with death from vascular causes, MI, or stroke. If no event, censoring occurs at the earliest of patient withdrawal consent or date of scheduled withdrawal from therapy. Intention To Treat (ITT) analysis of whole population. Events were adjudicated by an endpoint committee."
+              },
+              {
+                "measure": "Participants With Any Major Bleeding Event",
+                "title": "",
+                "description": "Participants with major (fatal/life-threatening or other) bleed by a study protocol scale based on need for treatment, number of transfusions, hemoglobin decrease, and other factors. Events were adjudicated by an endpoint committee."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Participants With Any Event From the Composite of Death From Vascular Causes, MI, and Stroke for the Subgroup of Patients With Intent for Invasive Management at Randomization",
+                "title": "",
+                "description": "Participants with death from vascular causes, MI, or stroke. If no event, censoring occurs at the earliest of patient withdrawal consent or date of scheduled withdrawal from therapy. ITT analysis of intent for invasive management population. Events were adjudicated by an endpoint committee."
+              },
+              {
+                "measure": "Participants With Any Event From the Composite of All-cause Mortality, MI, and Stroke",
+                "title": "",
+                "description": "Participants with death from any cause, MI, or stroke. If no event, censoring occurs at the earliest of patient withdrawal of consent or date of scheduled withdrawal from therapy. ITT analysis of whole population. Events were adjudicated by an endpoint committee."
+              },
+              {
+                "measure": "Participants With Any Event From the Composite of Death From Vascular Causes, MI (Including Silent), Stroke, Recurrent Ischemia, Transient Ischemic Attack (TIA) and Other Arterial Thrombotic Events.",
+                "title": "",
+                "description": "Participants with death from vascular causes, MI, stroke, recurrent ischemia, or other thrombotic events. If no event, censoring occurs at the earliest of patient withdrawal consent or date of scheduled withdrawal from therapy. ITT analysis of whole population. Events were adjudicated."
+              },
+              {
+                "measure": "Participants With MI Event",
+                "title": "",
+                "description": "Participants with MI event. If no event, censoring occurs at the earliest of patient withdrawal consent or date of scheduled withdrawal from therapy. ITT (intention to treat) analysis of whole population. Events were adjudicated by an endpoint committee."
+              },
+              {
+                "measure": "Participants With Death From Vascular Causes",
+                "title": "",
+                "description": "Participants with death from vascular causes. If no event, censoring occurs at the earliest of patient withdrawal consent or date of scheduled withdrawal from therapy. ITT (intention to treat) analysis of whole population. Events were adjudicated by an endpoint committee."
+              },
+              {
+                "measure": "Participants With Stroke",
+                "title": "",
+                "description": "Participants with stroke. If no event, censoring occurs at the earliest of patient withdrawal consent or date of scheduled withdrawal from therapy. ITT (intention to treat) analysis of whole population. Events were adjudicated by an endpoint committee."
+              },
+              {
+                "measure": "Participants With Death From Any Cause",
+                "title": "",
+                "description": "Participants with death from any cause. If no event, censoring occurs at the earliest of patient withdrawal consent or date of scheduled withdrawal from therapy. ITT (intention to treat) analysis of whole population. Events were adjudicated by an endpoint committee."
+              },
+              {
+                "measure": "Participants With Non-CABG (Coronary Artery Bypass Graft) Related Major Bleeding",
+                "title": "",
+                "description": "Participants with non CABG related major (fatal/life-threatening or other) bleed by a study protocol scale based on need for treatment, number of transfusions, hemoglobin decrease, and other factors. Events were adjudicated by an endpoint committee."
+              },
+              {
+                "measure": "Participants With Major or Minor Bleeding",
+                "title": "",
+                "description": "Participants with major (fatal/life-threatening or other) or minor bleed by a study protocol scale based on need for treatment, number of transfusions, hemoglobin decrease, and other factors. Events were adjudicated by an endpoint committee."
+              },
+              {
+                "measure": "Participants With Non-procedural Major Bleeding",
+                "title": "",
+                "description": "Participants with non-procedural major bleed by a study protocol scale based on need for treatment, number of transfusions, hemoglobin decrease, and other factors. Events were adjudicated by an endpoint committee."
+              },
+              {
+                "measure": "Participants With Coronary Artery Bypass Graft (CABG) Major Bleeding",
+                "title": "",
+                "description": "Participants with a major CABG-related bleed by a study protocol scale based on need for treatment, number of transfusions, hemoglobin decrease, and other factors. All CABG surgeries were submitted for adjudication by an endpoint committee as potential bleeds."
+              },
+              {
+                "measure": "Participants With Coronary Artery Bypass Graft (CABG) Major Fatal/Life-threatening Bleeding",
+                "title": "",
+                "description": "Number of participants with a major fatal/life-threatening CABG-related bleed by a study protocol scale based on need for treatment, number of transfusions, hemoglobin decrease, and other factors. All CABG surgeries were submitted for adjudication by an endpoint committee as potential bleeds."
+              },
+              {
+                "measure": "Participants With Ventricular Pauses of Greater Than or Equal to 3 Seconds in Patients Monitored by Holter 24-hour ECG Recorders for 1 Week Following Randomization",
+                "title": "",
+                "description": "Number of participants who were observed to have at least 1 ventricular pause of at least 3 seconds. Population is all patients who were observed over 2 week-long periods. Pauses were flagged algorithmically and confirmed by Thrombolysis in Myocardial Infarction (TIMI) group cardiologists."
+              },
+              {
+                "measure": "Participants With Ventricular Pauses of Greater Than or Equal to 3 Seconds in Patients Monitored by Holter 24 Hour ECG Recorders for 1 Week at 1 Month Following Randomization",
+                "title": "",
+                "description": "Number of participants who were observed to have at least 1 ventricular pause of at least 3 seconds. Population is all patients who were observed over 2 week-long periods. Pauses were flagged algorithmically and confirmed by TIMI cardiologists."
+              }
+            ],
+            "comparison": {
+              "registered_type": "secondary",
+              "registered_label": "Participants With Non-CABG (Coronary Artery Bypass Graft) Related Major Bleeding",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_components": [],
+              "registered_text": "Participants With Non-CABG (Coronary Artery Bypass Graft) Related Major Bleeding Participants with non CABG related major (fatal/life-threatening or other) bleed by a study protocol scale based on need for treatment, number of transfusions, hemoglobin decrease, and other factors. Events were adjudicated by an endpoint committee."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "26376600": {
       "nct": "NCT01294462",
       "registry_in_aact": true,
       "assessed_from": "registry+abstract",
-      "overall": "low (on assessed domains; some domains require human judgement)",
+      "overall": "some concerns",
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": false
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 0.7% (overall 16.1%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 0.7% (overall 16.1%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 16.1,
+              "differential_pct": 0.7,
+              "groups": [
+                [
+                  401,
+                  335
+                ],
+                [
+                  400,
+                  337
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
-          "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "level": "some concerns",
+          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Major Bleeding') -- possibly post-hoc/unregistered",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Major Bleeding",
+                "title": "",
+                "description": "Time to first occurrence of any major bleeding event (adjudicated by an independent Clinical Endpoint Committee (ICEC)). 1-year event rate (%) estimated via Kaplan-Meier method."
+              },
+              {
+                "measure": "Major Adverse Cardiac Events (MACE)",
+                "title": "",
+                "description": "Time to first occurrence of any event from the composite of death from vascular causes, Myocardial Infarction (MI) and stroke (adjudicated by an ICEC). 1-year event rate (%) estimated via Kaplan-Meier method."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Major and Minor Bleeding",
+                "title": "",
+                "description": "Time to first occurrence of any major or minor bleeding event (adjudicated by an independent Clinical Endpoint Committee (ICEC)). 1-year event rate (%) estimated via Kaplan-Meier method."
+              },
+              {
+                "measure": "Composite of All-cause Mortality, MI or Stroke",
+                "title": "",
+                "description": "Time to first occurrence of any event from the composite of death from any causes, Myocardial Infarction (MI) and stroke (adjudicated by an ICEC). 1-year event rate (%) estimated via Kaplan-Meier method."
+              }
+            ],
+            "comparison": {
+              "registered_type": null,
+              "registered_label": "Major Bleeding",
+              "matched": false,
+              "method": "no_match",
+              "pooled_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_components": [],
+              "registered_text": "Major Bleeding Time to first occurrence of any major bleeding event (adjudicated by an independent Clinical Endpoint Committee (ICEC)). 1-year event rate (%) estimated via Kaplan-Meier method."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "some concerns"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     }
   }

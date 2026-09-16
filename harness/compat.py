@@ -17,7 +17,7 @@ Dimensions:
   follow_up_window : the outcome's timepoint
   analysis_set     : ITT / mITT / per-protocol -- the analysis population
   randomised_contrast : whether each pooled trial is a registry-confirmed randomised contrast of the
-                     intervention of interest (from the arm-contrast layer), reported as verified/total
+                     intervention of interest (the AACT arm-label parser / arm-contrast layer), reported as verified/total
   prior_disease_stage : per-trial prior disease stage, disclosed when stated
   background_therapy  : per-trial background therapy, disclosed when stated
 """
@@ -56,6 +56,25 @@ def _dimension(trials, field):
     }
 
 
+def _component_dimension(trials):
+    vals = []
+    per_trial = []
+    for t in trials:
+        comps = t.get("components")
+        if comps:
+            val = " | ".join(str(x).upper().replace(" ", "_") for x in comps)
+        else:
+            val = "not_stated"
+        vals.append(val)
+        per_trial.append({"trial": t.get("label") or t.get("id"), "value": val})
+    counts = Counter(vals)
+    return {
+        "values": sorted(counts),
+        "matched": len(counts) <= 1,
+        "per_trial": per_trial,
+    }
+
+
 def outcome_key(o, core):
     """Assemble the compatibility key for one pooled outcome. Returns None if the outcome is not a
     rendered pool (absent / suppressed / no trials)."""
@@ -65,8 +84,8 @@ def outcome_key(o, core):
     em = res.get("estmeasure") or {}
     classes = em.get("classes") or ([_scale_class(res.get("scale"))] if res.get("scale") else [])
     is_composite = extract.declared_is_composite(o.get("name", "")) if hasattr(extract, "declared_is_composite") else None
-    # randomised contrast: fraction of pooled trials the arm-contrast layer confirms as a randomised
-    # contrast of the intervention of interest.
+    # randomised contrast: fraction of pooled trials the arm-contrast parser confirms as a contrast
+    # of the intervention of interest. This is parser coverage, not a trial-validity property.
     ac = ((core.get("arm_contrast") or {}).get("trials")) or {}
     trials = o.get("trials") or []
     verified = 0
@@ -96,19 +115,34 @@ def outcome_key(o, core):
                 "detail": f"pooled trials differ on {label}: " + ", ".join(dim["values"]),
                 "hard": False,
             })
+    component_dim = (_component_dimension(trials)
+                     if o.get("component_compat_key") and any(t.get("components") for t in trials)
+                     else None)
     key = {
         "effect_measure": em.get("labels") or ([res.get("scale")] if res.get("scale") else []),
         "event_process": classes,
-        "endpoint": ("composite" if is_composite else "single endpoint") if is_composite is not None else "unclassified",
+        "endpoint": ("component-defined composite" if component_dim else
+                     ("composite" if is_composite else "single endpoint") if is_composite is not None else "unclassified"),
         "follow_up_window": o.get("timepoint"),
         "analysis_set": o.get("population"),
         "randomised_contrast": {"verified": verified, "total": len(trials)},
         "matched": not mismatches,
         "mismatches": mismatches,
     }
+    if component_dim:
+        key["endpoint_components"] = component_dim
+        if not component_dim["matched"]:
+            limitations.append({
+                "code": "COMPAT_DIMENSION_HETEROGENEOUS",
+                "dimension": "endpoint_components",
+                "detail": "pooled trials differ on composite components: " + "; ".join(component_dim["values"]),
+                "hard": False,
+            })
     if has_disclosed_dimension:
         key["limitations"] = limitations
         key.update(dimensions)
+    elif limitations:
+        key["limitations"] = limitations
     return key
 
 

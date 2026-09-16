@@ -1,5 +1,18 @@
 {
   "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+  "output_family": "registry-machine-signal-restricted",
+  "rob_basis": {
+    "output_family": "registry-machine-signal-restricted",
+    "assessed_domains": [
+      "allocation sequence/randomisation",
+      "masking of participants/personnel",
+      "masking of outcome assessment",
+      "registered outcome versus pooled outcome"
+    ],
+    "unassessed_domains": [
+      "D3_missing_outcome_data"
+    ]
+  },
   "trials": {
     "31185157": {
       "nct": "NCT02692716",
@@ -9,24 +22,211 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 0.1% (overall 0.3%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 0.1% (overall 0.3%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 0.3,
+              "differential_pct": 0.1,
+              "groups": [
+                [
+                  1591,
+                  1586
+                ],
+                [
+                  1592,
+                  1586
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.outcomes_assessor_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (CV_DEATH, NONFATAL_MI, NONFATAL_STROKE)",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "3-point major adverse cardiovascular events",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Time From Randomisation to First Occurrence of a Major Adverse Cardiovascular Event (MACE) Composite Endpoint Consisting of: Cardiovascular Death, Non-fatal Myocardial Infarction or Non-fatal Stroke",
+                "title": "",
+                "description": "Number of participants experiencing a first event of a MACE, defined as cardiovascular death, non-fatal myocardial infarction, or non-fatal stroke are presented. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Time From Randomisation to First Occurrence of an Expanded Composite Cardiovascular Endpoint Consisting of: Cardiovascular Death, Non-fatal Myocardial Infarction, Non-fatal Stroke, UAP Requiring Hospitalisation or Hospitalisation for Heart Failure",
+                "title": "",
+                "description": "Participants experiencing first occurrence of an expanded composite CV endpoint \\[defined as cardiovascular death, non-fatal myocardial infarction, non-fatal stroke, UAP (unstable angina pectoris) requiring hospitalisation or heart failure requiring hospitalisation\\] are presented. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+              },
+              {
+                "measure": "Time From Randomisation to First Occurrence of Each of the Individual Components in the Expanded Composite Cardiovascular Endpoint",
+                "title": "",
+                "description": "Participants experiencing an event onset for each individual component of the expanded composite cardiovascular outcomes (defined as cardiovascular death, non-fatal myocardial infarction, non-fatal stroke, unstable angina requiring hospitalisation or heart failure requiring hospitalisation) are presented. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+              },
+              {
+                "measure": "Time From Randomisation to First Occurrence of a Composite Endpoint Consisting of: All-cause Death, Non-fatal Myocardial Infarction or Nonfatal Stroke",
+                "title": "",
+                "description": "Participants experiencing first occurrence of a composite CV endpoint (defined as all-cause death, non-fatal myocardial infarction or nonfatal stroke) are presented. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+              },
+              {
+                "measure": "Time From Randomisation to First Occurrence of Fatal or Non-fatal Myocardial Infarction",
+                "title": "",
+                "description": "Number of participants experiencing a first event of a fatal or non-fatal myocardial infarction are presented. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+              },
+              {
+                "measure": "Time From Randomisation to First Occurrence of Fatal or Non-fatal Stroke",
+                "title": "",
+                "description": "Number of participants experiencing a first event of a fatal or non-fatal stroke are presented. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+              },
+              {
+                "measure": "Time From Randomisation to All-cause Death",
+                "title": "",
+                "description": "Number of all-cause deaths in the study are presented. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+              },
+              {
+                "measure": "Time to First AE Leading to Permanent Trial Product Discontinuation",
+                "title": "",
+                "description": "Number of participants who permanently discontinued trial product in ths study are presented. Results are based on the on-treatment observation period which starts at the date of first dose on trial product; ends on last date on trial product +38 days (ascertainment window)."
+              },
+              {
+                "measure": "Number of Serious Adverse Events",
+                "title": "",
+                "description": "Number of serious adverse events were recorded from week 0 to week 87 in the study. Results are based on the on-treatment observation period which started at the date of first dose on trial product and ended on last date on trial product +38 days (ascertainment window)."
+              },
+              {
+                "measure": "Change in Eye Examination Category",
+                "title": "",
+                "description": "Participants with eye examination findings, normal, abnormal non clinically significant (NCS) and abnormal clinically significant (CS) at baseline (week -3) and end of treatment visit (week 83) are presented. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+              },
+              {
+                "measure": "Change in Pulse Rate",
+                "title": "",
+                "description": "Change from baseline (week 0) in pulse rate measured at the end of treatment visit (week 83) is reported. Results are based on the on-treatment observation period which started at the date of first dose on trial product, ended on last date on trial product +38 days (ascertainment window)."
+              },
+              {
+                "measure": "Change in Systolic and Diastolic Blood Pressure",
+                "title": "",
+                "description": "Change from baseline (week 0) in systolic and diastolic blood pressure measured at the end of treatment visit (week 83) is reported. Results are based on the on-treatment observation period which started at the date of first dose on trial product, ended on last date on trial product +38 days (ascertainment window)."
+              },
+              {
+                "measure": "Change in Glycosylated Haemoglobin (HbA1c)",
+                "title": "",
+                "description": "Change from baseline (week 0) in HbA1c measured at the end of treatment visit (week 83) is reported. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+              },
+              {
+                "measure": "Change in Body Weight",
+                "title": "",
+                "description": "Change from baseline (week 0) in body weight measured at the end of treatment visit (week 83) is reported. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+              },
+              {
+                "measure": "Change in Total Cholesterol - Ratio to Baseline",
+                "title": "",
+                "description": "Change from baseline (week 0) in total cholesterol (mmol/L) at the end of treatment (week 83) visit is presented as ratio to baseline. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+              },
+              {
+                "measure": "Change in LDL-cholesterol - Ratio to Baseline",
+                "title": "",
+                "description": "Change from baseline (week 0) in LDL cholesterol (mmol/L) at end of treatment visit (week 83) is presented as ratio to baseline. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+              },
+              {
+                "measure": "Change in HDL-cholesterol - Ratio to Baseline",
+                "title": "",
+                "description": "Change from baseline (week 0) in HDL cholesterol (mmol/L) at end of treatment visit (week 83) is presented as ratio to baseline. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+              },
+              {
+                "measure": "Change in Triglycerides - Ratio to Baseline",
+                "title": "",
+                "description": "Change from baseline (week 0) in triglycerides (mmol/L) at end of treatment visit (week 83) is presented as ratio to baseline. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Time From Randomisation to First Occurrence of a Major Adverse Cardiovascular Event (MACE) Composite Endpoint Consisting of: Cardiovascular Death, Non-fatal Myocardial Infarction or Non-fatal Stroke",
+              "matched": true,
+              "method": "component_set",
+              "pooled_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_text": "Time From Randomisation to First Occurrence of a Major Adverse Cardiovascular Event (MACE) Composite Endpoint Consisting of: Cardiovascular Death, Non-fatal Myocardial Infarction or Non-fatal Stroke Number of participants experiencing a first event of a MACE, defined as cardiovascular death, non-fatal myocardial infarction, or non-fatal stroke are presented. Results are based on the in-trial observation period which started at the date of randomisation, included the period after permanent trial product discontinuation, if any and ended at the date of the follow-up visit regardless of adherence to treatment."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "27633186": {
@@ -37,24 +237,209 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "f",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 1.1% (overall 2.0%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 1.1% (overall 2.0%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 2.0,
+              "differential_pct": 1.1,
+              "groups": [
+                [
+                  826,
+                  812
+                ],
+                [
+                  822,
+                  811
+                ],
+                [
+                  824,
+                  804
+                ],
+                [
+                  825,
+                  805
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.outcomes_assessor_masked": "f",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting"
+          "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (CV_DEATH, NONFATAL_MI, NONFATAL_STROKE)",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "3-point major adverse cardiovascular events",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Time From Randomisation to First Occurrence of a MACE, Defined as Cardiovascular Death, Non-fatal Myocardial Infarction, or Non-fatal Stroke",
+                "title": "",
+                "description": "Percentage of subjects experiencing a first event of a major adverse cardiovascular event (MACE), defined as cardiovascular (CV) death, non-fatal myocardial infarction (MI), or non-fatal stroke."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Time From Randomisation to First Occurrence of an Expanded Composite Cardiovascular Outcome",
+                "title": "",
+                "description": "Percentage of subjects experiencing first occurrence of an expanded composite CV outcome (defined as either MACE, revascularisation \\[coronary and peripheral\\], unstable angina requiring hospitalisation or hospitalisation for heart failure)"
+              },
+              {
+                "measure": "Time From Randomisation to Each Individual Component of the Expanded Composite Cardiovascular Outcome",
+                "title": "",
+                "description": "Percentage of subjects experiencing an event onset for each individual component of the expanded composite cardiovascular outcomes (defined as either MACE, revascularisation \\[coronary and peripheral\\], unstable angina requiring hospitalisation or hospitalisation for heart failure)."
+              },
+              {
+                "measure": "Time From Randomisation to First Occurrence of All-cause Death, Non-fatal MI, or Non-fatal Stroke",
+                "title": "",
+                "description": "Percentage of subjects experiencing a first occurrence of all-cause death, non-fatal MI, or non-fatal stroke."
+              },
+              {
+                "measure": "Change From Baseline to Last Assessment in the Trial in Other Treatment Outcomes: Glycosylated Haemoglobin (HbA1c)",
+                "title": "",
+                "description": "Estimated mean change from baseline in glycosylated haemoglobin (HbA1c) to last assessment in the trial during the treatment period."
+              },
+              {
+                "measure": "Change From Baseline to Last Assessment in the Trial in Other Treatment Outcomes: Fasting Plasma Glucose",
+                "title": "",
+                "description": "Estimated mean change from baseline to last assessment in fasting plasma glucose in the trial during the treatment period."
+              },
+              {
+                "measure": "Change From Baseline to Last Assessment in the Trial in Other Treatment Outcomes: Body Weight",
+                "title": "",
+                "description": "Estimated mean change from baseline to last assessment in body weight in the trial during the treatment period."
+              },
+              {
+                "measure": "Change From Baseline to Last Assessment in the Trial in Other Treatment Outcomes: Lipid Profile",
+                "title": "",
+                "description": "Estimated ratio to baseline at week 104 during the treatment period in lipid profile (total cholesterol, HDL cholesterol, LDL cholesterol and triglycerides)."
+              },
+              {
+                "measure": "Change From Baseline to Last Assessment in the Trial in Other Treatment Outcomes: Urinary Albumin to Creatinine Ratio",
+                "title": "",
+                "description": "Estimated ratio to baseline in urinary albumin to creatinine ratio at week 104 during the treatment period."
+              },
+              {
+                "measure": "Change From Baseline to Last Assessment in the Trial in Other Treatment Outcomes: Vital Signs",
+                "title": "",
+                "description": "Estimated mean change from baseline to last assessment in the trial during the treatment period in vital signs (diastolic blood pressure and systolic blood pressure)."
+              },
+              {
+                "measure": "Incidence During the Trial in Other Treatment Outcomes: Hypoglycaemic Events",
+                "title": "",
+                "description": "Rates (event rate per 100 exposure years) of severe or blood glucose confirmed symptomatic hypoglycaemia defned as an episode that was severe according to the American diabetic association (ADA) classification or blood glucose (BG) confirmed by a PG value \\<3.1 mmol/L (56 mg/dL) with symptoms consistent with hypoglycaemia."
+              },
+              {
+                "measure": "Incidence During the Trial in Other Treatment Outcomes: Adverse Events",
+                "title": "",
+                "description": "Rates (event rate per 100 years of exposure) of treatment emergent adverse events."
+              },
+              {
+                "measure": "Occurrence During the Trial in Other Treatment Outcomes: Anti-semaglutide Antibodies",
+                "title": "",
+                "description": "The percentage of subjects that tested positive for anti-semaglutide antibodies at any time point post-baseline during the trial, from week 0 to week 109."
+              },
+              {
+                "measure": "Change From Baseline to Last Assessment in the Trial in Other Treatment Outcomes: Patient Reported Outcome (PRO)",
+                "title": "",
+                "description": "Estimated mean change from baseline to last assessment in the trial in patient reported outcomes (PRO). PRO questionnaire (SF-36v2TM) measured the individual overall health related quality of life namely bodily pain, general health, mental component summary, mental health, physical component summary, physical functioning, role-emotional, role-physical, social functioning and vitality. The PRO scores were transformed to a 0-100 scale with higher scores indicating greater health related quality of life."
+              },
+              {
+                "measure": "Change From Baseline to Last Assessment in the Trial in Other Treatment Outcomes: Lipid Profile (Free Fatty Acids)",
+                "title": "",
+                "description": "Estimated ratio to baseline at week 104 during the treatment period in lipid profile (free fatty acids)."
+              },
+              {
+                "measure": "Change From Baseline to Last Assessment in the Trial in Other Treatment Outcomes: Vital Signs (Pulse Rate)",
+                "title": "",
+                "description": "Estimated mean change from baseline to last assessment in the trial during the treatment period in vital signs (pulse rate)."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Time From Randomisation to First Occurrence of a MACE, Defined as Cardiovascular Death, Non-fatal Myocardial Infarction, or Non-fatal Stroke",
+              "matched": true,
+              "method": "component_set",
+              "pooled_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_text": "Time From Randomisation to First Occurrence of a MACE, Defined as Cardiovascular Death, Non-fatal Myocardial Infarction, or Non-fatal Stroke Percentage of subjects experiencing a first event of a major adverse cardiovascular event (MACE), defined as cardiovascular (CV) death, non-fatal myocardial infarction (MI), or non-fatal stroke."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "27295427": {
@@ -65,24 +450,151 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 0.4% (overall 3.2%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 0.4% (overall 3.2%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 3.2,
+              "differential_pct": 0.4,
+              "groups": [
+                [
+                  4668,
+                  4529
+                ],
+                [
+                  4672,
+                  4513
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.outcomes_assessor_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (CV_DEATH, NONFATAL_MI, NONFATAL_STROKE)",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "3-point major adverse cardiovascular events",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Time From Randomisation to First Occurrence of Cardiovascular Death, Non-fatal Myocardial Infarction, or Non-fatal Stroke (a Composite Cardiovascular Outcome)",
+                "title": "",
+                "description": "Time from randomisation to first occurrence of cardiovascular death, non-fatal myocardial infarction, or non-fatal stroke (a composite cardiovascular outcome). The percentage of subjects experiencing a first event of cardiovascular death, non-fatal myocardial infarction, or non-fatal stroke (a composite cardiovascular outcome) is presented."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Time From Rand. to First Occurrence of an Expanded Composite Cardiovascular Outcome Defined as Either Cardiovascular Death, Non-fatal Myocardial Infarction, Non-fatal Stroke, Revascularisation, Hospitalisation for Unstable Angina or for Heart Failure.",
+                "title": "",
+                "description": "Time from randomisation to first occurrence of an expanded composite cardiovascular outcome defined as either cardiovascular death, non-fatal myocardial infarction, non-fatal stroke, coronary revascularisation, hospitalisation for unstable angina or for heart failure. The percentage of subjects experiencing first occurrence of an expanded composite cardiovascular outcome defined as either cardiovascular death, non-fatal myocardial infarction, non-fatal stroke, coronary revascularisation, hospitalisation for unstable angina or for heart failure is presented."
+              },
+              {
+                "measure": "Time From Randomisation to All Cause Death",
+                "title": "",
+                "description": "Time from randomisation to all cause death. The percentage of subjects with a death by any cause (all-cause death) is presented."
+              },
+              {
+                "measure": "Time From Randomisation to Each Individual Component of the Expanded Composite Cardiovascular Outcome",
+                "title": "",
+                "description": "Time from randomisation to each individual component of the expanded composite cardiovascular outcome. The percentage of subjects experiencing each of the individual component of the expanded composite cardiovascular outcome (defined as either cardiovascular death, non-fatal myocardial infarction, non-fatal stroke, coronary revascularisation, hospitalisation for unstable angina or heart failure) is presented."
+              },
+              {
+                "measure": "Time From Randomisation to First Occurrence of a Composite Microvascular Outcome",
+                "title": "",
+                "description": "\"Time from randomisation to first occurrence of a composite microvascular outcome, defined as any one of the following:~* new onset of persistent macroalbuminuria~* persistent doubling of serum creatinine~* need for continuous renal replacement therapy~* death due to renal disease~* need for retinal photocoagulation or treatment with intravitreal agents~* vitreous haemorrhage~* diabetes-related blindness~The percentage of subjects experiencing a first occurrence of a composite microvascular outcome is presented.\""
+              },
+              {
+                "measure": "Time From Randomisation to Each Individual Component of the Composite Microvascular Outcome and to the Retinopathy and Nephropathy Composite Outcomes Separately.",
+                "title": "",
+                "description": "Time from randomisation to each individual component of the composite microvascular outcome and to the retinopathy and nephropathy composite outcomes separately. The percentage of subjects experiencing each individual component of the composite microvascular outcome are presented."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Time From Randomisation to First Occurrence of Cardiovascular Death, Non-fatal Myocardial Infarction, or Non-fatal Stroke (a Composite Cardiovascular Outcome)",
+              "matched": true,
+              "method": "component_set",
+              "pooled_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_text": "Time From Randomisation to First Occurrence of Cardiovascular Death, Non-fatal Myocardial Infarction, or Non-fatal Stroke (a Composite Cardiovascular Outcome) Time from randomisation to first occurrence of cardiovascular death, non-fatal myocardial infarction, or non-fatal stroke (a composite cardiovascular outcome). The percentage of subjects experiencing a first event of cardiovascular death, non-fatal myocardial infarction, or non-fatal stroke (a composite cardiovascular outcome) is presented."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "34215025": {
@@ -93,24 +605,145 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 1.4% (overall 97.5%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 1.4% (overall 97.5%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 97.5,
+              "differential_pct": 1.4,
+              "groups": [
+                [
+                  1359,
+                  42
+                ],
+                [
+                  1359,
+                  36
+                ],
+                [
+                  1358,
+                  23
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (CV_DEATH, NONFATAL_MI, NONFATAL_STROKE)",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "3-point major adverse cardiovascular events",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Time to First Occurrence of Major Adverse Cardiovascular Events (MACE): Event Rate Per 100 Participant-years for First Occurrence of Major Cardiovascular (CV) Event - Non-Inferiority Analysis",
+                "title": "",
+                "description": "All MACE positively adjudicated by the clinical endpoint committee (CEC) were used in the analysis of the composite outcome of first occurrence to CV death, non-fatal myocardial infarction (MI), and non-fatal stroke. Kaplan-Meier curves of the cumulative event rate by treatment groups were used to depict the first occurrence of MACE over time. The event rate per 100 participant-years (calculated by 100\\*number of participants with events/sum of time at risk (days) over all participants/365.25) measured in terms of number of events per 100 participant-years was reported."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Time to First Occurrence of Major Adverse Cardiovascular Events: Event Rate Per 100 Participant-years for First Occurrence of Major Cardiovascular Event - Superiority Analysis",
+                "title": "",
+                "description": "All MACE positively adjudicated by the CEC were used in the analysis of the composite outcome of first occurrence to CV death, non-fatal MI, and non-fatal stroke. Kaplan-Meier curves of the cumulative event rate by treatment groups were used to depict the first occurrence of MACE over time. The event rate per 100 participant-years (calculated by 100\\*number of participants with events/sum of time at risk (days) over all participants/365.25) measured in terms of number of events per 100 participant-years was reported."
+              },
+              {
+                "measure": "Time to First Occurrence of the Expanded Major Adverse Cardiovascular Events Composite Events: Event Rate Per 100 Participant-years for First Occurrence of Expanded Major Cardiovascular Event",
+                "title": "",
+                "description": "All MACE positively adjudicated by the CEC were used in the analysis of the expanded outcome of first occurrence to CV death (including fatal MI and fatal stroke), non-fatal MI, non-fatal stroke, coronary revascularization or hospitalization for unstable angina. Kaplan-Meier curves of the cumulative event rate by treatment groups were used to depict the first occurrence of MACE over time. The event rate per 100 participant-years (calculated by 100\\*number of participants with events/sum of time at risk (days) over all participants/365.25) measured in terms of number of events per 100 participant-years was reported. Data analysis was also performed independently by external steering committee for the publication."
+              },
+              {
+                "measure": "Time to First Occurrence of Composite Renal Endpoint: Event Rate Per 100 Participant-years for First Occurrence of Composite Renal Endpoint",
+                "title": "",
+                "description": "Composite renal endpoint included the following: incident macroalbuminuria (defined as urinary albumin-to-creatinine ratio of greater than (\\>) 300, as measured in mg of albumin to grams of creatinine, or \\>33.9, as measured in mg of albumin to millimoles of creatinine), plus an increase in urinary albumin-to-creatinine ratio of at least 30% from baseline, a sustained decrease in estimated glomerular filtration rate (eGFR) of at least 40% for 30 days or more, renal-replacement therapy for 90 days or more, and a sustained eGFR of less than 15 ml per minute per 1.73 m\\^2 for 30 days or more. Kaplan-Meier curves of the cumulative event rate by treatment groups were used to depict the first occurrence of renal endpoint over time. The event rate per 100 participant-years (calculated by 100\\*number of participants with events/sum of time at risk (days) over all participants/365.25) measured in terms of number of events per 100 participant-years was reported."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Time to First Occurrence of Major Adverse Cardiovascular Events (MACE): Event Rate Per 100 Participant-years for First Occurrence of Major Cardiovascular (CV) Event - Non-Inferiority Analysis",
+              "matched": true,
+              "method": "component_set",
+              "pooled_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_text": "Time to First Occurrence of Major Adverse Cardiovascular Events (MACE): Event Rate Per 100 Participant-years for First Occurrence of Major Cardiovascular (CV) Event - Non-Inferiority Analysis All MACE positively adjudicated by the clinical endpoint committee (CEC) were used in the analysis of the composite outcome of first occurrence to CV death, non-fatal myocardial infarction (MI), and non-fatal stroke. Kaplan-Meier curves of the cumulative event rate by treatment groups were used to depict the first occurrence of MACE over time. The event rate per 100 participant-years (calculated by 100\\*number of participants with events/sum of time at risk (days) over all participants/365.25) measured in terms of number of events per 100 participant-years was reported."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "31189511": {
@@ -121,24 +754,151 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 0% (overall 0.3%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 0% (overall 0.3%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 0.3,
+              "differential_pct": 0.0,
+              "groups": [
+                [
+                  4952,
+                  4935
+                ],
+                [
+                  4949,
+                  4932
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "DOUBLE",
+            "AACT.designs.outcomes_assessor_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (CV_DEATH, NONFATAL_MI, NONFATAL_STROKE)",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "3-point major adverse cardiovascular events",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Number of Participants Who Experienced an Event For Time, From Randomization to First Occurrence of Cardiovascular Death, Non-fatal Myocardial Infarction, or Non-fatal Stroke (a Composite Cardiovascular Outcome)",
+                "title": "",
+                "description": "The time from randomization to first occurrence of cardiovascular death, non-fatal myocardial infarction, or non-fatal stroke (a composite endpoint) was evaluated using time-to-event analysis. The primary analysis model was a Cox proportional hazards regression model for the time to the first occurrence of a primary endpoint event, with treatment as a fixed effect using the intent-to-treat population. The number of participants who experienced a primary cardiovascular (CV) endpoint event is presented."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Number of Participants Who Experienced an Event for Time to First Occurrence After Randomization of Cardiovascular Death, Non-fatal Myocardial Infarction, or Non-fatal Stroke, Individually",
+                "title": "",
+                "description": "The time from randomization to first occurrence of cardiovascular death, non-fatal myocardial infarction, or non-fatal stroke (individually) was evaluated using time-to-event analysis via the Cox proportional hazards regression model where response equals treatment. Death from CV causes is defined as a death resulting from an acute myocardial infarction (MI), sudden cardiac death, death due to heart failure, death due to stroke, or death due to other CV causes. The number of participants who experienced an event is presented."
+              },
+              {
+                "measure": "Number of Participants Who Experienced an Event for Time to All-cause Mortality",
+                "title": "",
+                "description": "The time to all-cause mortality was evaluated using time-to-event analysis via the Cox proportional hazards regression model where response equals treatment. The number of participants who experienced an event is presented."
+              },
+              {
+                "measure": "Number of Participants Who Experienced an Event for Time to First Occurrence After Randomization of the Composite Microvascular Endpoint",
+                "title": "",
+                "description": "The time from randomization to first occurrence of the composite microvascular endpoint was evaluated using time-to-event analysis via the Cox proportional hazards regression model where response equals treatment. The composite microvascular endpoint is defined as diabetic retinopathy requiring laser therapy, vitrectomy, or anti-vascular endothelial growth factor therapy (VEGF), clinical proteinuria, a greater than equal ≥ 30% decline in estimated glomerular filtration rate, or need for chronic renal replacement therapy. The number of participants who experienced the composite microvascular endpoint event is presented."
+              },
+              {
+                "measure": "Number of Participants Who Experienced An Event for Time to First Occurrence After Randomization of Heart Failure Requiring Hospitalization or an Urgent Heart Failure Clinic Visit",
+                "title": "",
+                "description": "The time to first occurrence after randomization of heart failure requiring hospitalization or an urgent heart failure clinic visit was evaluated using time-to-event analysis via the Cox proportional hazards regression model where response equals treatment. The number of participants who experienced an event is presented."
+              },
+              {
+                "measure": "Number of Participants Who Experienced an Event for Time to First Occurrence After Randomization of First Hospitalization for Unstable Angina",
+                "title": "",
+                "description": "Time to first occurrence after randomization of first hospitalization for unstable angina was evaluated using time-to-event analysis via the Cox proportional hazards regression model where response equals treatment. The number of participants who experienced an event is presented."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Number of Participants Who Experienced an Event For Time, From Randomization to First Occurrence of Cardiovascular Death, Non-fatal Myocardial Infarction, or Non-fatal Stroke (a Composite Cardiovascular Outcome)",
+              "matched": true,
+              "method": "component_set",
+              "pooled_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_text": "Number of Participants Who Experienced an Event For Time, From Randomization to First Occurrence of Cardiovascular Death, Non-fatal Myocardial Infarction, or Non-fatal Stroke (a Composite Cardiovascular Outcome) The time from randomization to first occurrence of cardiovascular death, non-fatal myocardial infarction, or non-fatal stroke (a composite endpoint) was evaluated using time-to-event analysis. The primary analysis model was a Cox proportional hazards regression model for the time to the first occurrence of a primary endpoint event, with treatment as a fixed effect using the intent-to-treat population. The number of participants who experienced a primary cardiovascular (CV) endpoint event is presented."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "30291013": {
@@ -149,52 +909,391 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 0.9% (overall 2.8%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 0.9% (overall 2.8%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 2.8,
+              "differential_pct": 0.9,
+              "groups": [
+                [
+                  4732,
+                  4578
+                ],
+                [
+                  4731,
+                  4620
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (CV_DEATH, NONFATAL_MI, NONFATAL_STROKE)",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "3-point major adverse cardiovascular events",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Time to First Occurrence of Major Adverse Cardiovascular Events (MACE) During Cardiovascular (CV) Follow-up Time Period",
+                "title": "",
+                "description": "Time to MACE defined as the time to first occurrence of Cardiovascular Endpoint Committee (CEC)-adjudicated MACE (CV death, myocardial infarction \\[MI\\] or stroke) was analyzed using a Cox Proportional Hazards regression model with treatment group as the only covariate. The incidence rate per 100 person years (100\\*number of participants with at least 1 event)/first event person-years) is presented along with 95% confidence interval. First event person-years=(cumulative total time to first event for participants who have the event+cumulative total of censored time for participants without the event)/365.25, based on the CV follow-up time period. The analysis was performed on the Intent to Treat (ITT) Population which comprised of all randomized participants excluding participants who did not provide consent."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Time to First Occurrence of MACE or Urgent Revascularization for Unstable Angina",
+                "title": "",
+                "description": "Time to first occurrence of CEC-adjudicated MACE (CV death, MI or stroke) or urgent revascularization for unstable angina was analyzed using a Cox Proportional Hazards regression model with treatment group as the only covariate. The incidence rate per 100 person years (100\\*number of participants with at least 1 event)/first event person-years) is presented along with 95% confidence interval. First event person-years=(cumulative total time to first event for participants who have the event+cumulative total of censored time for participants without the event)/365.25, based on the CV follow-up time period."
+              },
+              {
+                "measure": "Time to Adjudicated CV Death",
+                "title": "",
+                "description": "Time to adjudicated CV death was analyzed using a Cox Proportional Hazards regression model with treatment group as the only covariate. The incidence rate per 100 person years (100\\*number of participants with at least 1 event)/first event person-years) is presented along with 95% confidence interval. First event person-years=(cumulative total time to first event for participants who have the event+cumulative total of censored time for participants without the event)/365.25, based on the CV follow-up time period."
+              },
+              {
+                "measure": "Time to First Occurrence of Adjudicated MI",
+                "title": "",
+                "description": "Time to first occurrence of adjudicated MI was analyzed using a Cox Proportional Hazards regression model with treatment group as the only covariate. The incidence rate per 100 person years (100\\*number of participants with at least 1 event)/first event person-years) is presented along with 95% confidence interval. First event person-years=(cumulative total time to first event for participants who have the event+cumulative total of censored time for participants without the event)/365.25, based on the CV follow-up time period."
+              },
+              {
+                "measure": "Time to First Occurrence of Adjudicated Stroke",
+                "title": "",
+                "description": "Time to first occurrence of adjudicated stroke was analyzed using a Cox Proportional Hazards regression model with treatment group as the only covariate. The incidence rate per 100 person years (100\\*number of participants with at least 1 event)/first event person-years) is presented along with 95% confidence interval. First event person-years=(cumulative total time to first event for participants who have the event+cumulative total of censored time for participants without the event)/365.25, based on the CV follow-up time period."
+              },
+              {
+                "measure": "Time to First Occurrence of Adjudicated CV Death or Hospitalization for Heart Failure (HF)",
+                "title": "",
+                "description": "Time to first occurrence of adjudicated CV death or hospitalization for HF was analyzed using a Cox Proportional Hazards regression model with treatment group as the only covariate. The incidence rate per 100 person years (100\\*number of participants with at least 1 event)/first event person-years) is presented along with 95% confidence interval. First event person-years=(cumulative total time to first event for participants who have the event+cumulative total of censored time for participants without the event)/365.25, based on the CV follow-up time period."
+              },
+              {
+                "measure": "Time to Initiation of Insulin of More Than 3 Months Duration for Those Participants Not Treated With Insulin at Study Start",
+                "title": "",
+                "description": "Time to initiation of insulin of more than 3 months duration in participants not treated with insulin at study start was analyzed using a Cox Proportional Hazards regression model with treatment group as the only covariate. The incidence rate per 100 person years (100\\*number of participants with at least 1 event)/first event person-years) is presented along with 95% confidence interval. First event person-years=(cumulative total time to first event for participants who have the event+cumulative total of censored time for participants without the event)/365.25, based on the on-therapy and post-therapy AE time period. The analysis was performed on Non-Insulin Population which comprised of participants in the ITT Population who were not on insulin at Baseline."
+              },
+              {
+                "measure": "Time to Initiation of Prandial Insulin in Those Participants on Basal Insulin at Study Start",
+                "title": "",
+                "description": "Time to initiation of prandial insulin in those participants on basal insulin at study start was analyzed using a Cox Proportional Hazards regression model with treatment group as the only covariate. The incidence rate per 100 person years (100\\*number of participants with at least 1 event)/first event person-years) is presented along with 95% confidence interval. First event person-years=(cumulative total time to first event for participants who have the event+cumulative total of censored time for participants without the event)/365.25, based on the on-therapy and post-therapy AE time period. The analysis was performed on Basal Insulin Population which comprised of participants in the ITT Population who were on basal insulin but not on other insulin at Baseline (i.e., will not include a participant on a mixed insulin or on a prandial-only insulin)."
+              },
+              {
+                "measure": "Percentage of Participants Achieving Composite Metabolic Endpoint",
+                "title": "",
+                "description": "Percentage of participants achieving composite metabolic endpoint defined as the percentage of participants achieving glycemic control (glycated hemoglobin \\[HbA1c\\] \\<=7% ) with no severe hypoglycemic incidents and weight gain \\< 5%. Final Assessment is the latest post-Baseline assessment of both HbA1c and weight."
+              },
+              {
+                "measure": "Time to First Occurrence of a Clinically Important Microvascular Event",
+                "title": "",
+                "description": "Clinically important microvascular events were defined as the following: need for renal transplant or dialysis, new diabetes-related blindness, and procedures (laser photocoagulation or anti-vascular endothelial growth factor treatment or vitrectomy for diabetic retinopathy/eye disease). Time to first occurrence of a clinically important microvascular event was analyzed using a Cox Proportional Hazards regression model with treatment group as the only covariate. The incidence rate per 100 person years (100\\*number of participants with at least 1 event)/first event person-years) is presented along with 95% confidence interval. First event person-years=(cumulative total time to first event for participants who have the event+cumulative total of censored time for participants without the event)/365.25, based on the on-therapy and post-therapy AE time period."
+              },
+              {
+                "measure": "Change From Baseline in HbA1c",
+                "title": "",
+                "description": "Change from Baseline in HbA1c was analyzed using mixed model repeated measures (MMRM) including observed case data (does not impute any missing data). Baseline is the last non-missing value assessed on or before treatment start date. Change from Baseline is the value at specified time point minus the Baseline value. Change from Baseline in HbA1c using Baseline data from Local or Central Laboratory, and post-Baseline Central Laboratory data is presented."
+              },
+              {
+                "measure": "Change From Baseline in Body Weight",
+                "title": "",
+                "description": "Change from Baseline in body weight was analyzed using mixed model repeated measures including observed case data (does not impute any missing data). Baseline is the last non-missing value assessed on or before treatment start date. Change from Baseline is the value at specified time point minus the Baseline value."
+              },
+              {
+                "measure": "Change From Baseline in Treatment Related Impact Measures-Diabetes (TRIM-D) Total Score",
+                "title": "",
+                "description": "The TRIM-D is a 28 item treatment satisfaction measure with 5 domains assessing Treatment Burden, Daily Life, Diabetes Management, Compliance and Psychological Health. The raw score ranges for each subscale were: treatment burden (6 to 30), daily life (5 to 25), diabetes management (5 to 25), compliance (4 to 20) and psychological health (8 to 40), higher scores indicating better health state. Total raw score was determined by summing the raw scores for each of the subscales and the total score (transformed) was determined as \\[(raw score minus lowest possible raw score)/possible raw score range\\] x100. The possible total (transformed) score range is 0-100, where higher scores indicated better health state. Baseline is the last non-missing value assessed on or before treatment start date. Change from Baseline is the value at specified time point minus the Baseline value."
+              },
+              {
+                "measure": "Change From Baseline in EuroQol- 5 Dimension (EQ-5D) Visual Analogue Scale (VAS) Score",
+                "title": "",
+                "description": "The EQ-5D is a standardized instrument used to evaluate generic health-related quality of life, comprising 5 domains: mobility, self-care, usual activities, pain/discomfort, and anxiety/depression. It provides a simple descriptive profile and a single index value for health status. The EQ-5D self-reported questionnaire includes a visual analog scale (VAS), which records the respondent's self-rated health status on a graduated (0-100) scale, where 0 represents the worst imaginable health state and 100 represents the best imaginable health state. Baseline is the last non-missing value assessed on or before treatment start date. Change from Baseline is the value at specified time point minus the Baseline value."
+              },
+              {
+                "measure": "Time to Death",
+                "title": "",
+                "description": "Time to death was analyzed using a Cox Proportional Hazards regression model with treatment group as the only covariate. The incidence rate per 100 person years (100\\*number of participants who died/endpoint person-years) is presented along with 95% confidence interval. Endpoint person-years=(cumulative total time to event for participants who have the event+cumulative total of censored time for participants without the event)/365.25, based on the Vital Status follow-up time period."
+              },
+              {
+                "measure": "Number of Participants With Non-fatal Serious Adverse Events (SAEs)",
+                "title": "",
+                "description": "SAE is defined as any untoward medical occurrence that, at any dose: results in death; is life-threatening; requires hospitalization or prolongation of existing hospitalization; results in disability/incapacity; is a congenital anomaly/birth defect; other important medical events that may not be immediately life-threatening or result in death or hospitalization but may jeopardize the participant or may require medical or surgical intervention to prevent one of the other outcomes listed before; is associated with liver injury and impaired liver function. Number of participants with on-therapy non-fatal SAEs are presented. Safety Population comprised of all randomized participants who received at least one dose of study treatment."
+              },
+              {
+                "measure": "Number of Participants With Adverse Events (AEs) Leading to Discontinuation of Investigational Product (AELD)",
+                "title": "",
+                "description": "The number of participants with on-therapy AEs leading to discontinuation of investigational product is reported."
+              },
+              {
+                "measure": "Number of Participants With AEs of Special Interest",
+                "title": "",
+                "description": "The protocol defined AEs of special interest included: development of thyroid cancer; hematologic malignancy; pancreatic cancer; pancreatitis (investigator reported and pancreatitis positively adjudicated by the Pancreatic Adjudication Committee \\[PAC\\]); investigational product injection site reactions; immunological reactions; severe hypoglycemic events; hepatic events; hepatic enzyme elevations (including gamma glutamyl transferase \\[GGT\\]); serious gastrointestinal (GI) events; appendicitis; atrial fibrillation/flutter; pneumonia; worsening renal function and diabetic retinopathy. The number of participants with on-therapy AEs of special interest is reported."
+              },
+              {
+                "measure": "Change in Estimated Glomerular Filtration Rate (eGFR) Calculated Using Modification of Diet in Renal Disease (MDRD) Formula",
+                "title": "",
+                "description": "Blood samples were collected for the measurement of serum creatinine. Serum creatinine values were used to calculate eGFR using the MDRD formula, eGFR=175 x (serum creatinine)\\^-1.154 x (Age)\\^-0.203 x (0.742 if female) x (1.212 if African American). Baseline is the last non-missing value assessed on or before treatment start date. Change from Baseline is the value at specified time point minus the Baseline value. Change from Baseline in eGFR using Baseline data from Local or Central Laboratory, and post-Baseline Central Laboratory data for the on-treatment time period is presented."
+              },
+              {
+                "measure": "Change From Baseline in Blood Pressure",
+                "title": "",
+                "description": "Systolic blood pressure (SBP) and diastolic blood pressure (DBP) were taken with the participant in a semi-recumbent or seated position after at least a 5-minute rest period. Baseline is the last non-missing value assessed on or before treatment start date. Change from Baseline is the value at specified time point minus the Baseline value."
+              },
+              {
+                "measure": "Change From Baseline in Heart Rate",
+                "title": "",
+                "description": "Heart rate was measured with the participant in a semi-recumbent or seated position after at least a 5-minute rest period. Baseline is the last non-missing value assessed on or before treatment start date. Change from Baseline is the value at specified time point minus the Baseline value."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Time to First Occurrence of Major Adverse Cardiovascular Events (MACE) During Cardiovascular (CV) Follow-up Time Period",
+              "matched": true,
+              "method": "component_set",
+              "pooled_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_text": "Time to First Occurrence of Major Adverse Cardiovascular Events (MACE) During Cardiovascular (CV) Follow-up Time Period Time to MACE defined as the time to first occurrence of Cardiovascular Endpoint Committee (CEC)-adjudicated MACE (CV death, myocardial infarction \\[MI\\] or stroke) was analyzed using a Cox Proportional Hazards regression model with treatment group as the only covariate. The incidence rate per 100 person years (100\\*number of participants with at least 1 event)/first event person-years) is presented along with 95% confidence interval. First event person-years=(cumulative total time to first event for participants who have the event+cumulative total of censored time for participants without the event)/365.25, based on the CV follow-up time period. The analysis was performed on the Intent to Treat (ITT) Population which comprised of all randomized participants excluding participants who did not provide consent."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "28910237": {
       "nct": "NCT01144338",
       "registry_in_aact": true,
       "assessed_from": "registry+abstract",
-      "overall": "some concerns",
+      "overall": "low (on assessed domains; some domains require human judgement)",
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Triple (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Triple (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "TRIPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "f",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 0.5% (overall 3.8%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 0.5% (overall 3.8%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 3.8,
+              "differential_pct": 0.5,
+              "groups": [
+                [
+                  7396,
+                  7093
+                ],
+                [
+                  7356,
+                  7094
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Triple (blinded): outcome assessment blinded"
+          "basis": "trial masking = Triple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "TRIPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": false
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
-          "level": "some concerns",
-          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Primary Efficacy Outcome MACE Events') -- possibly post-hoc/unregistered"
+          "level": "low",
+          "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (CV_DEATH, NONFATAL_MI, NONFATAL_STROKE)",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "3-point major adverse cardiovascular events",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Primary Efficacy Outcome MACE Events",
+                "title": "",
+                "description": "\"The primary efficacy outcome variable is defined as the composite endpoint of cardiovascular death, nonfatal MI, or nonfatal stroke. The number of participants who had an event is reported in the results.~The primary efficacy endpoint is the same as the primary safety endpoint, and the statistical analysis tests the superiority of exenatide against the placebo.\""
+              },
+              {
+                "measure": "Primary Safety Outcome MACE Events",
+                "title": "",
+                "description": "\"The primary safety outcome variable is defined as the composite endpoint of cardiovascular death, nonfatal MI, or nonfatal stroke. The number of participants who had an event is reported in the results.~The primary safety endpoint is the same as the primary efficacy endpoints, and the statistical analysis tests the non-inferiority of exenatide against placebo.\""
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Secondary Efficacy Outcome All-Cause Mortality",
+                "title": "",
+                "description": "The secondary efficacy outcome variable is defined as the all-cause mortality (deaths). The number of participants who had an event is reported in the results."
+              },
+              {
+                "measure": "Secondary Efficacy Outcome CV Death",
+                "title": "",
+                "description": "Component of the primary efficacy outcome: cardiovascular death. The number of participants who had an event is reported in the results."
+              },
+              {
+                "measure": "Secondary Efficacy Outcome MI",
+                "title": "",
+                "description": "Component of primary efficacy outcome: fatal or non-fatal MI. The number of participants who had an event is reported in the results."
+              },
+              {
+                "measure": "Secondary Efficacy Outcome Stroke",
+                "title": "",
+                "description": "Component of primary efficacy outcome: fatal or non-fatal stroke. The number of participants who had an event is reported in the results."
+              },
+              {
+                "measure": "Secondary Efficacy Outcome Hospitalization for ACS",
+                "title": "",
+                "description": "The secondary efficacy outcome variable is defined as hospitalization for acute coronary syndrome. The number of participants who had an event is reported in the results."
+              },
+              {
+                "measure": "Secondary Efficacy Outcome Hospitalization for HF",
+                "title": "",
+                "description": "The secondary efficacy outcome variable is defined as hospitalization for heart failure. The number of participants who had an event is reported in the results."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Primary Efficacy Outcome MACE Events",
+              "matched": true,
+              "method": "component_set",
+              "pooled_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_text": "Primary Efficacy Outcome MACE Events \"The primary efficacy outcome variable is defined as the composite endpoint of cardiovascular death, nonfatal MI, or nonfatal stroke. The number of participants who had an event is reported in the results.~The primary efficacy endpoint is the same as the primary safety endpoint, and the statistical analysis tests the superiority of exenatide against the placebo.\""
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "40162642": {
@@ -205,24 +1304,246 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "not assessed — AACT flow shows between-arm differential attrition 0.3% (overall 1.6%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+          "basis": "not assessed - AACT flow shows between-arm differential attrition 0.3% (overall 1.6%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": {
+              "overall_pct": 1.6,
+              "differential_pct": 0.3,
+              "groups": [
+                [
+                  4825,
+                  4755
+                ],
+                [
+                  4826,
+                  4740
+                ]
+              ]
+            }
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (CV_DEATH, NONFATAL_MI, NONFATAL_STROKE)",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "3-point major adverse cardiovascular events",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Number of Participants From Randomization to First Occurrence of a Major Adverse Cardiovascular Event (MACE), a Composite Endpoint Consisting of: Cardiovascular (CV) Death/Non-fatal Myocardial Infarction/Non-fatal Stroke",
+                "title": "",
+                "description": "Number of participants with first occurrence of EAC (event adjudication committee) confirmed major adverse cardiovascular event (MACE), a composite end-point. i.e., from time of randomization to first occurrence of cardiovascular (CV) death, non-fatal myocardial infarction and non-fatal stroke combined data during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "Number of Participants From Randomization to First Occurrence of CV Death;Renal Death;Onset of Persistent≥50% Reduction in eGFR(CKD-EPI);Onset of Persistent eGFR(CKD-EPI)<15 mL/Min/1.73m^2;Initiation of Chronic Renal Replacement Therapy",
+                "title": "",
+                "description": "Number of participants with first occurrence of a composite endpoint. i.e., from time of randomization to first occurrence of CV death, renal death, onset of persistent greater than or equal to (≥) 50% reduction in estimated glomerular filtration rate (eGFR) (chronic kidney disease epidemiology collaboration CKD-EPI), onset of persistent eGFR (CKD-EPI) less than (\\<)15 milliliters per minute per 1.73 square meters (mL/min/1.73 m\\^2), initiation of chronic renal replacement therapy (dialysis or kidney transplantation) combined data during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomization to Time of Occurrence of CV Death",
+                "title": "",
+                "description": "Number of participants from time of randomization to time to occurrence of EAC confirmed CV death during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomization to First Occurrence of Major Adverse Limb Events (MALE), a Composite Endpoint Consisting of: Acute Limb Ischemia Hospitalisation/Chronic Limb Ischemia Hospitalisation",
+                "title": "",
+                "description": "Number of participants from randomization to first occurrence of EAC confirmed major adverse limb events (MALE), a composite endpoint consisting of: acute limb ischemia hospitalisation/chronic limb ischemia hospitalisation combined data during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to First Occurrence of an Expanded MACE Composite Endpoint Consisting of: CV Death/Non-fatal Myocardial Infarction/ Non-fatal Stroke/Coronary Revascularisation/Unstable Angina Pectoris Requiring Hospitalisation",
+                "title": "",
+                "description": "The number of participants from randomisation to first occurrence of an expanded MACE composite endpoint consisting of: CV death/non-fatal myocardial infarction/ non-fatal stroke/coronary revascularisation/unstable angina pectoris requiring hospitalisation combined data during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to First Occurrence of a Composite Endpoint Consisting of : All-cause Death/ Non-fatal MI/ Non-fatal Stroke",
+                "title": "",
+                "description": "The number of participants from randomisation to first occurrence of EAC confirmed composite endpoint consisting of : all-cause death/ non-fatal MI/ non-fatal stroke combined data during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to First Occurrence of a Composite Heart Failure Endpoint Consisting of: CV Death/Heart Failure Requiring Hospitalisation/Urgent Heart Failure Visit",
+                "title": "",
+                "description": "Number of participants from randomisation to first occurrence of EAC confirmed composite heart failure endpoint consisting of: CV death/heart failure requiring hospitalisation/urgent heart failure visit combined data during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death"
+              },
+              {
+                "measure": "Number of Participants From Randomization to First Occurrence of CKD Endpoint:Renal Death;Onset of Persistent≥50% Reduction in eGFR (CKD-EPI);Onset of Persistent eGFR(CKD-EPI)<15 mL/Min/1.73 m^2;Initiation of Chronic Renal Replacement Therapy",
+                "title": "",
+                "description": "The number of participants from randomization to first occurrence of CKD endpoint:renal death;onset of persistent≥50% reduction in eGFR (CKD-EPI);onset of persistent eGFR(CKD-EPI)\\<15 mL/min/1.73 m\\^2;initiation of chronic renal replacement therapy combined data during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to Time to Occurrence of All-cause Death",
+                "title": "",
+                "description": "The number of participants from randomisation to time to occurrence of EAC confirmed all-cause death during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to First Occurrence of Non-fatal Myocardial Infarction (MI)",
+                "title": "",
+                "description": "The number of participants from randomisation to first occurrence of EAC confirmed non-fatal MI during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to First Occurrence of Non-fatal Stroke",
+                "title": "",
+                "description": "The number of participants from randomisation to first occurrence of EAC confirmed non-fatal stroke during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to First Occurrence of Heart Failure Requiring Hospitalisation or Urgent Heart Failure Visit",
+                "title": "",
+                "description": "The number of participants from randomisation to first occurrence of EAC confirmed heart failure requiring hospitalisation or urgent heart failure visit during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to First Occurrence of Coronary Revascularisation",
+                "title": "",
+                "description": "The number of participants from randomisation to first occurrence of coronary revascularisation during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to First Occurrence of Unstable Angina Requiring Hospitalisation",
+                "title": "",
+                "description": "The number of participants from randomisation to first occurrence of EAC confirmed unstable angina requiring hospitalisation during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to Time to Occurrence of Renal Death",
+                "title": "",
+                "description": "The number of participants from randomisation to time to occurrence of EAC confirmed renal death during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to First Occurrence of Onset of Persistent 50% or More Reduction in eGFR",
+                "title": "",
+                "description": "The number of participants from randomisation to first occurrence of onset of persistent 50% or more reduction in eGFR during in-trial period were observed. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to First Occurrence of Onset of Persistent eGFR (CKD-EPI) Below 15 mL/Min/1.73 m^2",
+                "title": "",
+                "description": "The number of participants from randomisation to first occurrence of onset of persistent eGFR (CKD-EPI) below 15 mL/min/1.73 m\\^2 during in-trial period were observed. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to First Occurrence of Initiation of Chronic Renal Replacement Therapy (Dialysis or Kidney Transplantation)",
+                "title": "",
+                "description": "The number of participants from randomisation to first occurrence of EAC confirmed initiation of chronic renal replacement therapy (dialysis or kidney transplantation) during in-trial period were presented. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to First Occurrence of Acute Limb Ischemia",
+                "title": "",
+                "description": "The number of participants from randomisation to first occurrence of EAC confirmed acute limb ischaemia hospitalization during in-trial period were presented. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to First Occurrence of Chronic Limb Ischemia Hospitalisation",
+                "title": "",
+                "description": "The number of participants from randomisation to first occurrence of EAC confirmed chronic limb ischaemia hospitalization during in-trial period were presented. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Annual Rate of Change in eGFR (CKD-EPI) (Total eGFR Slope)",
+                "title": "",
+                "description": "Annual rate of change in eGFR in terms of chronic kidney disease CKD-EPI were reported during in trial period. eGFR was calculated using the CKD-EPI formula. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Change From Baseline in Glycosylated Haemoglobin (HbA1c)",
+                "title": "",
+                "description": "Change in HbA1c from baseline (Week 0) up to Week 104 during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Change From Baseline in Body Weight",
+                "title": "",
+                "description": "Change in body weight from baseline (Week 0) up to Week 104 during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Severe Hypoglycaemic Episodes",
+                "title": "",
+                "description": "The number of severe hypoglycaemic episodes (such as the seriousness of hypoglycaemia, contributing factors, seizures, and unconsciousness; classified by American Diabetes Association) observed during the in-trial period were reported in this endpoint. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              },
+              {
+                "measure": "Number of Participants From Randomisation to First Occurrence of a Severe Hypoglycaemic Episode",
+                "title": "",
+                "description": "The number of participants from randomisation to first occurrence of severe hypoglycaemic episodes (such as the seriousness of hypoglycaemia, contributing factors, seizures, and unconsciousness; classified by American Diabetes Association) during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Number of Participants From Randomization to First Occurrence of a Major Adverse Cardiovascular Event (MACE), a Composite Endpoint Consisting of: Cardiovascular (CV) Death/Non-fatal Myocardial Infarction/Non-fatal Stroke",
+              "matched": true,
+              "method": "component_set",
+              "pooled_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE"
+              ],
+              "registered_text": "Number of Participants From Randomization to First Occurrence of a Major Adverse Cardiovascular Event (MACE), a Composite Endpoint Consisting of: Cardiovascular (CV) Death/Non-fatal Myocardial Infarction/Non-fatal Stroke Number of participants with first occurrence of EAC (event adjudication committee) confirmed major adverse cardiovascular event (MACE), a composite end-point. i.e., from time of randomization to first occurrence of cardiovascular (CV) death, non-fatal myocardial infarction and non-fatal stroke combined data during in-trial period were reported. In-trial observation period was defined as the period from date of randomization to the first of (both inclusive): date of follow-up visit, date when participant withdrew consent, date of last contact with participant (for participant lost to follow-up), and date of death."
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     }
   }

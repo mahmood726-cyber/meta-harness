@@ -751,7 +751,41 @@
             "canonical_estimand": "RISK_RATIO"
           },
           "trial_family_id": "NCT02721654",
-          "publication_role": "primary"
+          "publication_role": "primary",
+          "analysis_set": "intention-to-treat",
+          "follow_up_window": "28-90 day or in-hospital",
+          "endpoint_definition": "primary outcome was death from any cause within 90 days after randomization",
+          "population_age": "adult",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "35041780",
+            "trial_label": "35041780",
+            "analysis_set": {
+              "value": "intention-to-treat",
+              "source": "study_effect.analysis_population",
+              "span": "intention-to-treat"
+            },
+            "follow_up_window": {
+              "value": "28-90 day or in-hospital",
+              "source": "outcome.timepoint",
+              "span": "28-90 day or in-hospital"
+            },
+            "endpoint_definition": {
+              "value": "primary outcome was death from any cause within 90 days after randomization",
+              "source": "committed source text",
+              "span": "o receive BMES (Plasma-Lyte 148) or saline as fluid therapy in the intensive care unit (ICU) for 90 days. The primary outcome was death from any cause within 90 days after randomization. Secondary outcomes were receipt of new renal-replacement therapy and the maximum increase in the creatinine"
+            },
+            "population_age": {
+              "value": "adult",
+              "source": "committed source text",
+              "span": "or a difference of -0.15 percentage points Balanced Multielectrolyte Solution versus Saline in Critically Ill Adults. BACKGROUND: Whether the use of balanced multielectrolyte solution (BMES) in preference to 0.9% sodium chlori"
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          }
         },
         {
           "label": "34375394",
@@ -859,7 +893,41 @@
             "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
           },
           "trial_family_id": "NCT02875873",
-          "publication_role": "primary"
+          "publication_role": "primary",
+          "analysis_set": "intention-to-treat",
+          "follow_up_window": "28-90 day or in-hospital",
+          "endpoint_definition": "Mortality",
+          "population_age": "not_stated",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "34375394",
+            "trial_label": "34375394",
+            "analysis_set": {
+              "value": "intention-to-treat",
+              "source": "study_effect.analysis_population",
+              "span": "intention-to-treat"
+            },
+            "follow_up_window": {
+              "value": "28-90 day or in-hospital",
+              "source": "outcome.timepoint",
+              "span": "28-90 day or in-hospital"
+            },
+            "endpoint_definition": {
+              "value": "Mortality",
+              "source": "outcome.name",
+              "span": "Mortality"
+            },
+            "population_age": {
+              "value": "not_stated",
+              "source": "committed source text",
+              "span": ""
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          }
         }
       ],
       "declared_absent_trials": [
@@ -1244,7 +1312,7 @@
         "event_process": [
           "FIRST_EVENT_RATIO"
         ],
-        "endpoint": "single endpoint",
+        "endpoint": "trial-defined Mortality (definitions listed per trial)",
         "follow_up_window": "28-90 day or in-hospital",
         "analysis_set": "intention-to-treat",
         "randomised_contrast": {
@@ -1252,7 +1320,12 @@
           "total": 2
         },
         "matched": true,
-        "mismatches": []
+        "mismatches": [],
+        "dimension_matches": {
+          "endpoint": false
+        },
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "underlying_checked": true
       },
       "recovery_recheck": {
         "hard_incompatible": false,
@@ -1267,7 +1340,31 @@
         ],
         "label_mix_small_k": true
       },
-      "recovery_disclosure": "Pooled trials report different effect-measure labels (HR + RR), combined as first-event relative ratios. This is an approximation, not an identity: a hazard ratio and a cumulative risk ratio are not the same number when events are common or follow-up differs. One contributing effect is reconstructed from raw arm counts (35041780); at this k a single influential trial can move the summary and widen the interval. Read the pooled effect as approximate."
+      "recovery_disclosure": "Pooled trials report different effect-measure labels (HR + RR), combined as first-event relative ratios. This is an approximation, not an identity: a hazard ratio and a cumulative risk ratio are not the same number when events are common or follow-up differs. One contributing effect is reconstructed from raw arm counts (35041780); at this k a single influential trial can move the summary and widen the interval. Read the pooled effect as approximate.",
+      "compat_underlying": {
+        "status": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "dimensions": [
+          "endpoint"
+        ],
+        "per_trial": {
+          "endpoint": [
+            {
+              "trial_id": "35041780",
+              "trial_label": "35041780",
+              "value": "primary outcome was death from any cause within 90 days after randomization",
+              "source": "committed source text",
+              "span": "o receive BMES (Plasma-Lyte 148) or saline as fluid therapy in the intensive care unit (ICU) for 90 days. The primary outcome was death from any cause within 90 days after randomization. Secondary outcomes were receipt of new renal-replacement therapy and the maximum increase in the creatinine"
+            },
+            {
+              "trial_id": "34375394",
+              "trial_label": "34375394",
+              "value": "Mortality",
+              "source": "outcome.name",
+              "span": "Mortality"
+            }
+          ]
+        }
+      }
     },
     {
       "name": "Acute kidney injury",
@@ -1506,31 +1603,57 @@
       },
       "result": {
         "present": false,
-        "reason": "DESIGN REFUSAL: after refusing reconstructed non-parallel designs without an explicit design adjustment, only k=0 trial(s) remain; no pooled number is rendered. Remaining and refused trials are named below.",
-        "design_refusal": true,
-        "k_after_design_refusal": 0,
-        "refused": [
+        "state": "HARMS_INCOMPLETE",
+        "n_reporting_pool_trials": 2,
+        "n_pooled": 0,
+        "known_eligible_outcome_reports_unresolved": [
           {
-            "trial": "SPLIT",
-            "id": "PMID 26444692",
-            "design": "CLUSTER_CROSSOVER",
-            "reason": "typed design action REFUSE: SPLIT is cluster-crossover; cluster design + SE not design-adjusted; naive precision direction: OPTIMISTIC"
+            "trial_id": "35041780",
+            "trial_label": "35041780",
+            "terms": [
+              "acute kidney injury"
+            ],
+            "span": "(bmes) in preference to 0.9% sodium chloride solution (saline) in critically ill patients reduces the risk of acute kidney injury or death is uncertain. methods: in a double-blind, randomized, controlled trial, we assigned critically ill p"
+          },
+          {
+            "trial_id": "34375394",
+            "trial_label": "34375394",
+            "terms": [
+              "acute kidney injury"
+            ],
+            "span": "ory studies have questioned whether specific fluid types result in improved outcomes, including mortality and acute kidney injury. objective: to determine the effect of a balanced solution vs saline solution (0.9% sodium chloride) on 90-da"
           }
         ],
-        "claim": {
-          "present": false,
-          "significant": false,
-          "crosses_null": null,
-          "touches_null": null,
-          "null": null,
-          "direction": null
-        },
+        "reason": "HARMS_INCOMPLETE: 2 known eligible outcome report(s) from primary-pool trials are unresolved; an isolated k=0 harm estimate is suppressed until those rows are extracted or typed-refused.",
         "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         "claim_id": "a667671e587fd7ad",
         "depends_on": {
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
         },
         "claim_kind": "outcome_result"
+      },
+      "harms_incomplete": {
+        "state": "HARMS_INCOMPLETE",
+        "n_reporting_pool_trials": 2,
+        "n_pooled": 0,
+        "unresolved": [
+          {
+            "trial_id": "35041780",
+            "trial_label": "35041780",
+            "terms": [
+              "acute kidney injury"
+            ],
+            "span": "(bmes) in preference to 0.9% sodium chloride solution (saline) in critically ill patients reduces the risk of acute kidney injury or death is uncertain. methods: in a double-blind, randomized, controlled trial, we assigned critically ill p"
+          },
+          {
+            "trial_id": "34375394",
+            "trial_label": "34375394",
+            "terms": [
+              "acute kidney injury"
+            ],
+            "span": "ory studies have questioned whether specific fluid types result in improved outcomes, including mortality and acute kidney injury. objective: to determine the effect of a balanced solution vs saline solution (0.9% sodium chloride) on 90-da"
+          }
+        ]
       }
     },
     {
@@ -1573,7 +1696,41 @@
             }
           },
           "trial_family_id": "NCT02721654",
-          "publication_role": "primary"
+          "publication_role": "primary",
+          "analysis_set": null,
+          "follow_up_window": null,
+          "endpoint_definition": "primary outcome was death from any cause within 90 days after randomization",
+          "population_age": "adult",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "35041780",
+            "trial_label": "35041780",
+            "analysis_set": {
+              "value": null,
+              "source": "underivable",
+              "span": ""
+            },
+            "follow_up_window": {
+              "value": null,
+              "source": "underivable",
+              "span": ""
+            },
+            "endpoint_definition": {
+              "value": "primary outcome was death from any cause within 90 days after randomization",
+              "source": "committed source text",
+              "span": "o receive BMES (Plasma-Lyte 148) or saline as fluid therapy in the intensive care unit (ICU) for 90 days. The primary outcome was death from any cause within 90 days after randomization. Secondary outcomes were receipt of new renal-replacement therapy and the maximum increase in the creatinine"
+            },
+            "population_age": {
+              "value": "adult",
+              "source": "committed source text",
+              "span": "difference of -0.20 percentage points (95% Balanced Multielectrolyte Solution versus Saline in Critically Ill Adults. BACKGROUND: Whether the use of balanced multielectrolyte solution (BMES) in preference to 0.9% sodium chlori"
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          }
         }
       ],
       "declared_absent_trials": [
@@ -1897,6 +2054,19 @@
   "comparator_scope_note": "Design-key update: our primary pool is now k=2 after refusing reconstructed non-parallel designs without an explicit design adjustment (SMART, SALT, SPLIT). Any earlier same-scope k/parity note is superseded for this build; refused trials remain screened-in eligible records but are named exclusions, not pooled counts.",
   "rob2": {
     "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+    "output_family": "registry-machine-signal-restricted",
+    "rob_basis": {
+      "output_family": "registry-machine-signal-restricted",
+      "assessed_domains": [
+        "allocation sequence/randomisation",
+        "masking of participants/personnel",
+        "masking of outcome assessment",
+        "registered outcome versus pooled outcome"
+      ],
+      "unassessed_domains": [
+        "D3_missing_outcome_data"
+      ]
+    },
     "trials": {
       "35041780": {
         "nct": "NCT02721654",
@@ -1906,24 +2076,155 @@
         "domains": {
           "D1_randomisation": {
             "level": "low",
-            "basis": "AACT allocation = RANDOMIZED"
+            "basis": "AACT allocation = RANDOMIZED",
+            "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+            "inputs": {
+              "AACT.designs.allocation": "RANDOMIZED",
+              "trial_text.randomized_by_text": true
+            },
+            "derived_at_build": true
           },
           "D2_deviations": {
             "level": "low",
-            "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+            "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+            "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "QUADRUPLE",
+              "AACT.designs.subject_masked": "t",
+              "AACT.designs.caregiver_masked": "t",
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
           },
           "D3_missing_outcome_data": {
             "level": "not assessed",
-            "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+            "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+            "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+            "inputs": {
+              "AACT.milestones.attrition": null
+            },
+            "derived_at_build": true
           },
           "D4_outcome_measurement": {
             "level": "low",
-            "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+            "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+            "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "QUADRUPLE",
+              "AACT.designs.outcomes_assessor_masked": "t",
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+            "basis": "the pooled outcome IS the trial's pre-registered primary outcome",
+            "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+            "inputs": {
+              "pooled_outcome": "Mortality",
+              "registered_primary_outcomes": [
+                {
+                  "measure": "Death from all causes",
+                  "title": "",
+                  "description": ""
+                }
+              ],
+              "registered_secondary_outcomes": [
+                {
+                  "measure": "Mean and peak serum creatinine concentration",
+                  "title": "",
+                  "description": ""
+                },
+                {
+                  "measure": "ICU, hospital and 28 day all-cause mortality",
+                  "title": "",
+                  "description": ""
+                },
+                {
+                  "measure": "Duration of ICU stay",
+                  "title": "",
+                  "description": ""
+                },
+                {
+                  "measure": "Duration of Hospital stay",
+                  "title": "",
+                  "description": ""
+                },
+                {
+                  "measure": "Proportion of patients newly treated with renal replacement therapy",
+                  "title": "",
+                  "description": ""
+                },
+                {
+                  "measure": "Duration of mechanical ventilation in ICU",
+                  "title": "",
+                  "description": ""
+                },
+                {
+                  "measure": "Proportion of patients treated with and duration of treatment with vasoactive drugs",
+                  "title": "",
+                  "description": ""
+                },
+                {
+                  "measure": "Quality of life assessment using the EQ-5D-5L questionnaire",
+                  "title": "",
+                  "description": ""
+                },
+                {
+                  "measure": "Maximum post-randomisation increase in serum creatinine in ICU during the index hospital admission.",
+                  "title": "",
+                  "description": ""
+                },
+                {
+                  "measure": "Healthcare services usage during the six months after randomisation by healthcare record linkage using state and national data linkage units",
+                  "title": "",
+                  "description": ""
+                }
+              ],
+              "comparison": {
+                "registered_type": "primary",
+                "registered_label": "Death from all causes",
+                "matched": true,
+                "method": "text_identity",
+                "pooled_components": [],
+                "registered_components": [],
+                "registered_text": "Death from all causes"
+              }
+            },
+            "derived_at_build": true
           }
+        },
+        "rob_basis": {
+          "output_family": "registry-machine-signal-restricted",
+          "assessed_domains": [
+            {
+              "domain": "D1_randomisation",
+              "label": "allocation sequence/randomisation",
+              "level": "low"
+            },
+            {
+              "domain": "D2_deviations",
+              "label": "masking of participants/personnel",
+              "level": "low"
+            },
+            {
+              "domain": "D4_outcome_measurement",
+              "label": "masking of outcome assessment",
+              "level": "low"
+            },
+            {
+              "domain": "D5_selective_reporting",
+              "label": "registered outcome versus pooled outcome",
+              "level": "low"
+            }
+          ],
+          "unassessed_domains": [
+            {
+              "domain": "D3_missing_outcome_data",
+              "label": "missing outcome data",
+              "level": "not assessed"
+            }
+          ]
         }
       },
       "34375394": {
@@ -1934,119 +2235,138 @@
         "domains": {
           "D1_randomisation": {
             "level": "low",
-            "basis": "AACT allocation = RANDOMIZED"
+            "basis": "AACT allocation = RANDOMIZED",
+            "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+            "inputs": {
+              "AACT.designs.allocation": "RANDOMIZED",
+              "trial_text.randomized_by_text": true
+            },
+            "derived_at_build": true
           },
           "D2_deviations": {
             "level": "low",
-            "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+            "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+            "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "QUADRUPLE",
+              "AACT.designs.subject_masked": "t",
+              "AACT.designs.caregiver_masked": "t",
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
           },
           "D3_missing_outcome_data": {
             "level": "not assessed",
-            "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+            "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+            "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+            "inputs": {
+              "AACT.milestones.attrition": null
+            },
+            "derived_at_build": true
           },
           "D4_outcome_measurement": {
             "level": "low",
-            "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+            "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+            "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "QUADRUPLE",
+              "AACT.designs.outcomes_assessor_masked": "t",
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+            "basis": "the pooled outcome IS the trial's pre-registered primary outcome",
+            "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+            "inputs": {
+              "pooled_outcome": "Mortality",
+              "registered_primary_outcomes": [
+                {
+                  "measure": "Mortality",
+                  "title": "",
+                  "description": ""
+                }
+              ],
+              "registered_secondary_outcomes": [
+                {
+                  "measure": "Renal failure requiring renal replacement therapy",
+                  "title": "",
+                  "description": ""
+                },
+                {
+                  "measure": "Renal Injury (KDIGO equal or greater than 2)",
+                  "title": "",
+                  "description": ""
+                },
+                {
+                  "measure": "Hepatic, cardiac, neurological, coagulation, and respiratory dysfunctions (assessed by Sequential Organ Failure Assessment [SOFA] scores)",
+                  "title": "",
+                  "description": ""
+                },
+                {
+                  "measure": "Mechanical ventilation free days",
+                  "title": "",
+                  "description": ""
+                }
+              ],
+              "comparison": {
+                "registered_type": "primary",
+                "registered_label": "Mortality",
+                "matched": true,
+                "method": "text_identity",
+                "pooled_components": [],
+                "registered_components": [],
+                "registered_text": "Mortality"
+              }
+            },
+            "derived_at_build": true
           }
-        }
-      },
-      "29485925": {
-        "nct": "NCT02444988",
-        "registry_in_aact": true,
-        "assessed_from": "registry+abstract",
-        "overall": "some concerns",
-        "domains": {
-          "D1_randomisation": {
-            "level": "low",
-            "basis": "AACT allocation = RANDOMIZED"
-          },
-          "D2_deviations": {
-            "level": "some concerns",
-            "basis": "blinding: subject_masked=False, caregiver_masked=False"
-          },
-          "D3_missing_outcome_data": {
-            "level": "not assessed",
-            "basis": "not assessed — AACT flow shows between-arm differential attrition 0% (overall 0.0%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
-          },
-          "D4_outcome_measurement": {
-            "level": "low",
-            "basis": "outcome-assessor blinded = True"
-          },
-          "D5_selective_reporting": {
-            "level": "low",
-            "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting"
-          }
-        }
-      },
-      "27749094": {
-        "nct": "NCT02345486",
-        "registry_in_aact": true,
-        "assessed_from": "registry+abstract",
-        "overall": "low (on assessed domains; some domains require human judgement)",
-        "domains": {
-          "D1_randomisation": {
-            "level": "low",
-            "basis": "AACT allocation = RANDOMIZED"
-          },
-          "D2_deviations": {
-            "level": "not assessed",
-            "basis": "blinding: subject_masked=None, caregiver_masked=None"
-          },
-          "D3_missing_outcome_data": {
-            "level": "not assessed",
-            "basis": "not assessed — AACT flow shows between-arm differential attrition 0% (overall 0.0%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
-          },
-          "D4_outcome_measurement": {
-            "level": "not assessed",
-            "basis": "outcome-assessor blinded = None"
-          },
-          "D5_selective_reporting": {
-            "level": "low",
-            "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting"
-          }
-        }
-      },
-      "26444692": {
-        "nct": null,
-        "registry_in_aact": false,
-        "assessed_from": "abstract only",
-        "overall": "low (on assessed domains; some domains require human judgement)",
-        "domains": {
-          "D1_randomisation": {
-            "level": "not assessed",
-            "basis": "AACT allocation = unstated"
-          },
-          "D2_deviations": {
-            "level": "low",
-            "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): participants/personnel blinded"
-          },
-          "D3_missing_outcome_data": {
-            "level": "not assessed",
-            "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
-          },
-          "D4_outcome_measurement": {
-            "level": "low",
-            "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): outcome assessment blinded"
-          },
-          "D5_selective_reporting": {
-            "level": "not assessed",
-            "basis": "no registered outcomes available for this trial"
-          }
+        },
+        "rob_basis": {
+          "output_family": "registry-machine-signal-restricted",
+          "assessed_domains": [
+            {
+              "domain": "D1_randomisation",
+              "label": "allocation sequence/randomisation",
+              "level": "low"
+            },
+            {
+              "domain": "D2_deviations",
+              "label": "masking of participants/personnel",
+              "level": "low"
+            },
+            {
+              "domain": "D4_outcome_measurement",
+              "label": "masking of outcome assessment",
+              "level": "low"
+            },
+            {
+              "domain": "D5_selective_reporting",
+              "label": "registered outcome versus pooled outcome",
+              "level": "low"
+            }
+          ],
+          "unassessed_domains": [
+            {
+              "domain": "D3_missing_outcome_data",
+              "label": "missing outcome data",
+              "level": "not assessed"
+            }
+          ]
         }
       }
     }
   },
   "arm_contrast": {
     "source": "AACT 2026-08-30 design_groups+interventions",
+    "metric_label": "parser-confirmed contrast",
+    "metric_scope": "AACT arm-label parser output; this measures the parser, not trial validity",
     "trials": {
       "35041780": {
         "nct": "NCT02721654",
         "status": "verified",
-        "basis": "the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)",
+        "basis": "parser-confirmed contrast: keyword 'Plasma-Lyte' matched AACT arm intervention 'plasma-lyte 148®'; the intervention of interest DIFFERS across the randomised arms",
         "common": [],
         "differing": [
           "0.9% sodium chloride",
@@ -2056,7 +2376,7 @@
       "34375394": {
         "nct": "NCT02875873",
         "status": "verified",
-        "basis": "the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)",
+        "basis": "parser-confirmed contrast: keyword 'Plasma-Lyte A' matched AACT arm intervention 'plasma-lyte'; the intervention of interest DIFFERS across the randomised arms",
         "common": [],
         "differing": [
           "fast infusion speed",
@@ -2064,31 +2384,6 @@
           "saline 0.9%",
           "slow infusion speed"
         ]
-      },
-      "29485925": {
-        "nct": "NCT02444988",
-        "status": "unverified_granularity",
-        "basis": "a randomised contrast exists but the intervention of interest is not machine-matchable to a coded arm (registry class label / development code); contrast not machine-verified",
-        "common": [],
-        "differing": [
-          "0.9% saline",
-          "physiologically-balanced isotonic crystalloid"
-        ]
-      },
-      "27749094": {
-        "nct": "NCT02345486",
-        "status": "unverified_granularity",
-        "basis": "a randomised contrast exists but the intervention of interest is not machine-matchable to a coded arm (registry class label / development code); contrast not machine-verified",
-        "common": [],
-        "differing": [
-          "0.9% sodium chloride",
-          "physiologically balanced fluid"
-        ]
-      },
-      "26444692": {
-        "nct": null,
-        "status": "unverified_no_registry_match",
-        "basis": "no NCT/registry match for this pooled trial; the randomised contrast of the intervention of interest cannot be registry-confirmed."
       }
     }
   },
@@ -2239,6 +2534,37 @@
       "note": "zero linked publications on CT.gov, so no PMID existed to retrieve"
     }
   ],
+  "compat_underlying": {
+    "checked": true,
+    "n_pre_fix_asserted_not_underlying": 1,
+    "n_post_fix_asserted_not_underlying": 0,
+    "pre_fix_violations": [
+      {
+        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
+        "outcome": "Mortality",
+        "dimension": "endpoint",
+        "asserted": "single endpoint",
+        "per_trial_values": [
+          {
+            "trial_id": "35041780",
+            "trial_label": "35041780",
+            "value": "primary outcome was death from any cause within 90 days after randomization",
+            "source": "committed source text",
+            "span": "o receive BMES (Plasma-Lyte 148) or saline as fluid therapy in the intensive care unit (ICU) for 90 days. The primary outcome was death from any cause within 90 days after randomization. Secondary outcomes were receipt of new renal-replacement therapy and the maximum increase in the creatinine"
+          },
+          {
+            "trial_id": "34375394",
+            "trial_label": "34375394",
+            "value": "Mortality",
+            "source": "outcome.name",
+            "span": "Mortality"
+          }
+        ],
+        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
+      }
+    ],
+    "post_fix_violations": []
+  },
   "rob_sensitivity": {
     "outcome": "Mortality",
     "estimand": "RR",
@@ -2372,6 +2698,7 @@
       "publication_bias",
       "indirectness"
     ],
+    "rob_basis": "machine-assessed domains only; D3 unassessed on 2 of 2 trial(s)",
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
     "input_set_version": "b6c7145842a2d8ea1b8c83b26799692a4bb8428a12358195beba01e4cb46a9d2",
     "claim_id": "5ab568d047cf9f87",
@@ -2410,8 +2737,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE &mdash; this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>an in-scope trial was NEVER retrieved (absent from every identifier space): FISSH — invisible to screening/PRISMA/declared-absent; the search is demonstrably incomplete</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT02444988, NCT02345486, PMID:26444692, PMID:27604335, NCT01270854, CRUSADERS; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "95c82c487138bc6da5149eaee7424e5a6f951d9d6b02f85e06cfed0cca9f0af6",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>an in-scope trial was NEVER retrieved (absent from every identifier space): FISSH — invisible to screening/PRISMA/declared-absent; the search is demonstrably incomplete</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT02444988, NCT02345486, PMID:26444692, PMID:27604335, NCT01270854, CRUSADERS; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "05c0a316ac1d5f63f27e4e02ed3a056af119ec1f732cb3ad47435f35a1e396a3",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -2601,36 +2928,31 @@
       "consumer": {
         "gate_id": "design_key.decision_for_trial",
         "gate_input_path": "/outcomes/*/result/design_refusal",
-        "gate_verdict_at_build": "REFUSE: typed design action REFUSE: SMART is cluster-crossover; cluster design + SE not design-adjusted; naive precision direction: OPTIMISTIC; REFUSE: typed design action REFUSE: SALT is cluster-crossover; cluster design + SE not design-adjusted; naive precision direction: OPTIMISTIC; REFUSE: typed design action REFUSE: SPLIT is cluster-crossover; cluster design + SE not design-adjusted; naive precision direction: OPTIMISTIC; REFUSE: typed design action REFUSE: SPLIT is cluster-crossover; cluster design + SE not design-adjusted; naive precision direction: OPTIMISTIC; REFUSE: typed design action REFUSE: SPLIT is cluster-crossover; cluster design + SE not design-adjusted; naive precision direction: OPTIMISTIC"
+        "gate_verdict_at_build": "REFUSE: typed design action REFUSE: SMART is cluster-crossover; cluster design + SE not design-adjusted; naive precision direction: OPTIMISTIC; REFUSE: typed design action REFUSE: SALT is cluster-crossover; cluster design + SE not design-adjusted; naive precision direction: OPTIMISTIC; REFUSE: typed design action REFUSE: SPLIT is cluster-crossover; cluster design + SE not design-adjusted; naive precision direction: OPTIMISTIC; REFUSE: typed design action REFUSE: SPLIT is cluster-crossover; cluster design + SE not design-adjusted; naive precision direction: OPTIMISTIC"
       }
     },
     {
       "limitation_id": "topic:balanced-crystalloids-vs-saline-mortality:harms:0:acute-kidney-injury:result-absent",
-      "kind": "DECLARED_ABSENT_SECTION",
-      "limitation_class": "INFORMATIONAL",
+      "kind": "HARMS_INCOMPLETE",
+      "limitation_class": "VALIDITY_THREATENING",
       "severity": "BLOCKS_CLAIM",
       "claim_affected": "outcome result: Acute kidney injury",
-      "evidence_state": "DECLARED_ABSENT",
+      "evidence_state": "PARTIAL",
       "source_fields": [
-        "/outcomes/*/result/present",
-        "/outcomes/*/result/reason"
+        "/harms/*/result/state",
+        "/harms/*/result/known_eligible_outcome_reports_unresolved"
       ],
-      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> DESIGN REFUSAL: after refusing reconstructed non-parallel designs without an explicit design adjustment, only k=0 trial(s) remain; no pooled number is rendered. Remaining and refused trials are named below.</div>",
-      "text_sha256": "06b40fc6b0dddc477ac9475875fc2f284018b2e124e8706a20b0425da5b61654",
+      "rendered_text": "<div class='absent'><strong>HARMS_INCOMPLETE.</strong> HARMS_INCOMPLETE: 2 known eligible outcome report(s) from primary-pool trials are unresolved; an isolated k=0 harm estimate is suppressed until those rows are extracted or typed-refused. <span class='muted'>Known unresolved primary-pool trial(s): 35041780, 34375394</span></div>",
+      "text_sha256": "62b443579884dc74ef3ae0897acee0d18031bc301832a9955f7bcc1c0e21862c",
       "linked_decision": {
-        "action": "ALLOW_WITH_LABEL",
-        "gate_id": "limitation:labelled-validity-threat",
-        "decision_state": "validity threat is explicitly labelled on the affected claim"
+        "action": "REFUSE",
+        "gate_id": "compat-check:harms-incomplete",
+        "decision_state": "isolated harms estimate is suppressed until known primary-pool reports are extracted or typed-refused"
       },
-      "consumer": null,
-      "unwired": true,
-      "unwired_reason": "section/outcome absence is visible scoping evidence; no single analytic gate consumes all such sections",
-      "unwired_acknowledged": {
-        "signed_by": "Codex lane AD",
-        "date": "2026-09-15",
-        "reason": "Declared section or outcome absence is already the visible scoped result; no single analytic gate consumes every such absence object.",
-        "tranche": "TRANCHE-hazard-consumers",
-        "ack_id": "HC-DECLARED_ABSENT_SECTION-DECLARED_ABSENT"
+      "consumer": {
+        "gate_id": "compat_check.harms_incomplete",
+        "gate_input_path": "/harms/*/result/state",
+        "gate_verdict_at_build": "HARMS_INCOMPLETE: Acute kidney injury"
       }
     },
     {
@@ -2721,12 +3043,12 @@
       "limitation_class": "INFORMATIONAL",
       "severity": "QUALIFIES_CLAIM",
       "claim_affected": "randomised intervention contrast",
-      "evidence_state": "PARTIAL",
+      "evidence_state": "RECORDED",
       "source_fields": [
         "/arm_contrast/trials"
       ],
-      "rendered_text": "<div class='absent'><strong>Randomised-contrast disclosure (per pooled trial, from the registry arm structure &mdash; disclosed, not an adjustment).</strong> Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>2 of 5</strong> pooled trials have a registry-confirmed contrast (the intervention of interest differs across arms). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>27749094</td><td>contrast unverified (registry class label / dev code)</td><td title='a randomised contrast exists but the intervention of interest is not machine-matchable to a coded arm (registry class label / development code); contrast not machine-verified'>0.9% sodium chloride; physiologically balanced fluid</td></tr><tr><td>29485925</td><td>contrast unverified (registry class label / dev code)</td><td title='a randomised contrast exists but the intervention of interest is not machine-matchable to a coded arm (registry class label / development code); contrast not machine-verified'>0.9% saline; physiologically-balanced isotonic crystalloid</td></tr><tr><td>34375394</td><td>randomised contrast verified</td><td title='the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)'>fast infusion speed; plasma-lyte; saline 0.9%; slow infusion speed</td></tr><tr><td>35041780</td><td>randomised contrast verified</td><td title='the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)'>0.9% sodium chloride; plasma-lyte 148®</td></tr><tr><td>26444692</td><td>unverified_no_registry_match</td><td title='no NCT/registry match for this pooled trial; the randomised contrast of the intervention of interest cannot be registry-confirmed.'>&amp;mdash;</td></tr></table></div>",
-      "text_sha256": "96acfdb9339232e5620346a72a4a830392636f580f59ff35b14e69d3b693d74a",
+      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>2 of 2</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>34375394</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;Plasma-Lyte A&#x27; matched AACT arm intervention &#x27;plasma-lyte&#x27;; the intervention of interest DIFFERS across the randomised arms'>fast infusion speed; plasma-lyte; saline 0.9%; slow infusion speed</td></tr><tr><td>35041780</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;Plasma-Lyte&#x27; matched AACT arm intervention &#x27;plasma-lyte 148®&#x27;; the intervention of interest DIFFERS across the randomised arms'>0.9% sodium chloride; plasma-lyte 148®</td></tr></table></div>",
+      "text_sha256": "f454f446775c46f5dc9ff86334094880b83fe0b5c08665bf06ec42140773806b",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2807,8 +3129,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 1 downgrade(s)).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses machine-derived signals (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 2 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>k=2: inconsistency is not assessable automatically; Q-derived I^2=0.0%; tau^2=0.0; two concordant trials; prediction interval absence is not evidence of no inconsistency, so downgrade is left to human judgement</td></tr><tr><td>Imprecision</td><td><strong>NOT ASSESSED</strong></td><td>registered pooled CI refused at k=2 (K2_SINGLE_DF); imprecision requires human judgement and is not read from the quarantined HKSJ interval | counted as ONE conservative downgrade pending human judgement (a check that could not run cannot raise certainty)</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (5 of ~16 completed unpublished, 31%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "97791bc00e1f157a073452e800b04fc8e9b138ae23ced8871d8da5f4c412b0ac",
+      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 1 downgrade(s)). <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 2 of 2 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 2 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>k=2: inconsistency is not assessable automatically; Q-derived I^2=0.0%; tau^2=0.0; two concordant trials; prediction interval absence is not evidence of no inconsistency, so downgrade is left to human judgement</td></tr><tr><td>Imprecision</td><td><strong>NOT ASSESSED</strong></td><td>registered pooled CI refused at k=2 (K2_SINGLE_DF); imprecision requires human judgement and is not read from the quarantined HKSJ interval | counted as ONE conservative downgrade pending human judgement (a check that could not run cannot raise certainty)</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (5 of ~16 completed unpublished, 31%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "ffd8d7de3ac856ba3271a19c2caf624c984d935c29cb9c719c4372962cbf0e52",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2912,7 +3234,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "f85737aa471079fa1ef93da4ca0caf21c83b77e8",
-    "review_sha256": "a0a753a3afb3cdb544cbe7afc91193788b75c1858eef0da94e4ce0c62c13c70e",
+    "review_sha256": "e80476d50aacdb5b16a4649bd2f1a043b4c7ae643e6910f22a7b5f1232f9867d",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -2931,6 +3253,8 @@
         "label": "INFERRED overlapping -- neither trial set contains the other",
         "inferred": true,
         "our_k": 2,
+        "hand_our_k": 2,
+        "hand_our_k_stale": false,
         "their_k": 5,
         "their_k_source": "comparable_comparator_k",
         "shared_k": null,

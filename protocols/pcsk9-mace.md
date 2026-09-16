@@ -69,3 +69,33 @@ established ASCVD.
 - **Negative** - FIDELIO-DKD (finerenone in chronic kidney disease and type 2
   diabetes; PMID 33264825) must be recovered and EXCLUDED as wrong population and
   wrong intervention for this topic.
+
+## Amendment 2026-09-16 (external-audit recovery; co-primary endpoint rule)
+**Status: retrospective external-audit recovery before extraction/rebuild.** This
+amendment does not make the retrieval systematic and does not rename the pinned
+slug/URL. The page remains STALE for `search_not_executed`: the added records are
+hand-named audit recoveries, not evidence that the original search ran.
+
+- **Added hand-named records.** VESALIUS-CV (PMID 41211925), ODYSSEY LONG TERM
+  (PMID 25773378), and GLAGOV (PMID 27846344) are added through `extra_pmids`
+  with `discovery_capable=false`, source kind `EXTRA_PMIDS`, on the external audit
+  query text `external audit topic 15 (Mahmood, 2026-09-16): VESALIUS-CV;
+  ODYSSEY LONG TERM; GLAGOV`.
+- **Co-primary endpoint rule.** When a trial registers more than one primary MACE
+  definition, pool the prespecified co-primary endpoint whose component set is
+  closest to canonical 3-point MACE: cardiovascular/coronary-heart-disease death,
+  myocardial infarction, and stroke. If component-set closeness is tied, use the
+  co-primary listed first in the registration/publication.
+- **Rule disclosure.** VESALIUS-CV reports both co-primary results in its abstract,
+  so both the 3-point HR 0.75 (95% CI 0.65 to 0.86) and the 4-point HR 0.81
+  (95% CI 0.73 to 0.89) were known when this rule was written. The rule is justified
+  only by component-set closeness to canonical 3-point MACE, never by which result
+  is larger or more precise.
+- **Sensitivity requirement.** The alternative VESALIUS-CV co-primary endpoint is
+  always rendered as a sensitivity row when the selected co-primary is pooled; it is
+  not hidden.
+- **Outcome-layer discipline.** ODYSSEY LONG TERM and GLAGOV screen in on
+  P/I/C/design if the record text supports those axes. ODYSSEY LONG TERM reports a
+  post-hoc MACE analysis and is typed `outcome_post_hoc_not_pooled`; GLAGOV reports
+  surrogate atheroma-volume outcomes and no MACE result and is typed
+  `outcome_not_reported`. Neither is pooled.

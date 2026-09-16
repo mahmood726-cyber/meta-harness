@@ -33,6 +33,7 @@ from . import registration as _registration
 from .synth import method_text as _method_text
 from .limitations import publication_gate_refusals
 from . import claimgraph
+from . import compat_check as _compat_check
 
 REQUIRED_MANIFEST = ("slug", "declared_method", "served_method", "protocol_sha",
                      "generator", "review_sha256", "html_sha256")
@@ -137,6 +138,66 @@ def check_primary_result(review_dir):
     return []
 
 
+def _known_missing_triggered(rev):
+    inv = rev.get("invalidation") or {}
+    for r in inv.get("reasons") or []:
+        if r.get("code") == "known_eligible_missing":
+            return True
+        if r.get("code") == "eligible_declared_absent":
+            detail = str(r.get("detail") or "")
+            if "36286314" in detail and "22090167" in detail:
+                return True
+    return False
+
+
+def check_known_missing_panel(review_dir):
+    """A page that names eligible evidence outside the primary pool must show the dependent
+    sensitivity panel. Any row that renders a number must carry a committed-source span."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1: no review.json to check known-missing sensitivity panel"]
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for known-missing sensitivity panel: {exc}"]
+    if not _known_missing_triggered(rev):
+        return []
+    outs = rev.get("outcomes") or []
+    prim = next((o for o in outs if o.get("primary")), outs[0] if outs else None)
+    panel = (prim or {}).get("known_missing_sensitivity") or {}
+    if not panel:
+        return ["L1: known eligible missing evidence is named but the primary outcome has no "
+                "known_missing_sensitivity panel"]
+    reasons = []
+    if not panel.get("claim_id") or "depends_on" not in panel:
+        reasons.append("L1: known_missing_sensitivity panel lacks claim_id/depends_on dependency stamp")
+    rows = panel.get("rows") or []
+    if not rows:
+        reasons.append("L1: known_missing_sensitivity panel has no rows")
+    for row in rows:
+        has_number = bool(row.get("sensitivity")) or any(
+            row.get(k) is not None for k in ("effect", "ai", "mean1", "e1i")
+        )
+        if has_number:
+            if row.get("value_status") != "IN_COMMITTED_SOURCE":
+                reasons.append(f"L1: known-missing row {row.get('trial_key')} has a number but "
+                               f"value_status={row.get('value_status')!r}")
+            if not row.get("source_span"):
+                reasons.append(f"L1: known-missing row {row.get('trial_key')} has a number but no "
+                               "committed-source span")
+            if not row.get("verify_basis"):
+                reasons.append(f"L1: known-missing row {row.get('trial_key')} has a number but no "
+                               "verify_basis")
+        else:
+            numeric_keys = [k for k in ("estimate", "ci_low", "ci_high", "tau2", "ai", "n1i", "ci", "n2i")
+                            if row.get(k) is not None]
+            if numeric_keys:
+                reasons.append(f"L1: known-missing row {row.get('trial_key')} is non-computable but "
+                               f"still carries numeric fields {numeric_keys}")
+    return reasons
+
+
 def check_limitation_decision_links(review_dir):
     p = os.path.join(review_dir, "review.json")
     if not os.path.exists(p):
@@ -208,6 +269,39 @@ def check_pooled_verified(review_dir):
     if bad:
         return [f"L1: pooled number(s) not verified against the committed source span — a page must not "
                 f"pool a number whose digits are not located in its source: {'; '.join(bad[:6])}"]
+    return []
+
+
+def check_rob_rederivable(review_dir):
+    """Stored registry-machine risk-of-bias levels must re-run from their own rule inputs."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1: no review.json to check risk-of-bias re-derivation"]
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for risk-of-bias re-derivation: {exc}"]
+    try:
+        from . import embed, rob2
+
+        def _match(a, b):
+            ranked = embed.rank(a, [b])
+            return bool(ranked) and ranked[0][1] >= 0.45
+
+        bad = rob2.rederivation_violations(rev, _match)
+    except Exception as exc:  # noqa: BLE001
+        return [f"L1: risk-of-bias re-derivation could not run ({exc})"]
+    if bad:
+        rows = []
+        for item in bad[:6]:
+            detail = (f"{item.get('trial')} {item.get('domain')}: stored={item.get('stored_level')!r}, "
+                      f"re-derived={item.get('expected_level')!r}")
+            if item.get("reason"):
+                detail += f" ({item.get('reason')})"
+            rows.append(detail)
+        return [f"L1: registry-machine risk-of-bias rating(s) are not re-derivable from their own rule "
+                f"inputs: {'; '.join(rows)}"]
     return []
 
 
@@ -739,6 +833,36 @@ def check_method_matches_scale(review_dir):
     return reasons
 
 
+def check_compat_key_underlying(review_dir):
+    """The compatibility key is a gate, not prose. If an outcome key asserts a uniform dimension
+    (analysis set, follow-up window, endpoint) but the pooled trial rows/sources derive heterogeneous
+    values, refuse the page until the key is relabelled mixed/trial-defined."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1(compat): no review.json to check compatibility key against trial rows"]
+    try:
+        rev = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"L1(compat): cannot read review.json ({exc})"]
+    slug = rev.get("slug") or os.path.basename(os.path.normpath(review_dir))
+    records = {}
+    cp = os.path.join(ROOT, "cache", slug, "records.json")
+    if os.path.exists(cp):
+        try:
+            records = json.load(open(cp, encoding="utf-8"))
+        except (OSError, ValueError):
+            records = {}
+    bad = _compat_check.page_gate_violations(rev, records)
+    if not bad:
+        return []
+    bits = [
+        f"{v.get('outcome')}::{v.get('dimension')} asserted {v.get('asserted')!r}"
+        for v in bad[:6]
+    ]
+    return ["L1(compat): compatibility key asserted a uniform value contradicted by pooled trial rows "
+            f"({'; '.join(bits)}) -- relabel the dimension mixed/trial-defined and list per-trial values"]
+
+
 def gate_page(review_dir):
     """Return (ok: bool, reasons: list[str]). ok == True only if both limbs pass."""
     try:
@@ -749,8 +873,10 @@ def gate_page(review_dir):
                + check_cache_tracked(manifest)
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
+               + check_known_missing_panel(review_dir)
                + check_limitation_decision_links(review_dir)
                + check_pooled_verified(review_dir)
+               + check_rob_rederivable(review_dir)
                + check_manuscript_numbers(review_dir)
                + check_fetch_complete(review_dir)
                + check_access_claim_supported(review_dir)
@@ -765,6 +891,7 @@ def gate_page(review_dir):
                + check_prespecification_in_protocol(review_dir)
                + check_population_identity(review_dir)
                + check_method_matches_scale(review_dir)
+               + check_compat_key_underlying(review_dir)
                + check_preregistration_not_build(review_dir)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons

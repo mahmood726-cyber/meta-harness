@@ -1086,7 +1086,41 @@
             "canonical_estimand": "RISK_RATIO"
           },
           "trial_family_id": "NCT04381936",
-          "publication_role": "primary"
+          "publication_role": "primary",
+          "analysis_set": "intention-to-treat",
+          "follow_up_window": "28 days",
+          "endpoint_definition": "28-day all-cause mortality",
+          "population_age": "not_stated",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "32678530",
+            "trial_label": "32678530",
+            "analysis_set": {
+              "value": "intention-to-treat",
+              "source": "study_effect.analysis_population",
+              "span": "intention-to-treat"
+            },
+            "follow_up_window": {
+              "value": "28 days",
+              "source": "outcome.timepoint",
+              "span": "28 days"
+            },
+            "endpoint_definition": {
+              "value": "28-day all-cause mortality",
+              "source": "outcome.name",
+              "span": "28-day all-cause mortality"
+            },
+            "population_age": {
+              "value": "not_stated",
+              "source": "committed source text",
+              "span": ""
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          }
         }
       ],
       "declared_absent_trials": [
@@ -1285,7 +1319,7 @@
         "event_process": [
           "FIRST_EVENT_RATIO"
         ],
-        "endpoint": "single endpoint",
+        "endpoint": "trial-defined 28-day all-cause mortality (definitions listed per trial)",
         "follow_up_window": "28 days",
         "analysis_set": "intention-to-treat",
         "randomised_contrast": {
@@ -1293,7 +1327,12 @@
           "total": 1
         },
         "matched": true,
-        "mismatches": []
+        "mismatches": [],
+        "dimension_matches": {
+          "endpoint": false
+        },
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "underlying_checked": true
       },
       "recovery_recheck": {
         "hard_incompatible": false,
@@ -1304,6 +1343,23 @@
         "k": 1,
         "reconstructed_members": [],
         "label_mix_small_k": false
+      },
+      "compat_underlying": {
+        "status": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "dimensions": [
+          "endpoint"
+        ],
+        "per_trial": {
+          "endpoint": [
+            {
+              "trial_id": "32678530",
+              "trial_label": "32678530",
+              "value": "28-day all-cause mortality",
+              "source": "outcome.name",
+              "span": "28-day all-cause mortality"
+            }
+          ]
+        }
       }
     },
     {
@@ -1567,6 +1623,19 @@
   "estimand_exclusions": [],
   "rob2": {
     "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+    "output_family": "registry-machine-signal-restricted",
+    "rob_basis": {
+      "output_family": "registry-machine-signal-restricted",
+      "assessed_domains": [
+        "allocation sequence/randomisation",
+        "masking of participants/personnel",
+        "masking of outcome assessment",
+        "registered outcome versus pooled outcome"
+      ],
+      "unassessed_domains": [
+        "D3_missing_outcome_data"
+      ]
+    },
     "trials": {
       "32678530": {
         "nct": "NCT04381936",
@@ -1576,35 +1645,143 @@
         "domains": {
           "D1_randomisation": {
             "level": "low",
-            "basis": "AACT allocation = RANDOMIZED"
+            "basis": "AACT allocation = RANDOMIZED",
+            "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+            "inputs": {
+              "AACT.designs.allocation": "RANDOMIZED",
+              "trial_text.randomized_by_text": true
+            },
+            "derived_at_build": true
           },
           "D2_deviations": {
             "level": "not assessed",
-            "basis": "blinding: subject_masked=None, caregiver_masked=None"
+            "basis": "blinding: subject_masked=None, caregiver_masked=None",
+            "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "NONE",
+              "AACT.designs.subject_masked": "",
+              "AACT.designs.caregiver_masked": "",
+              "trial_text.blinded_by_text": false
+            },
+            "derived_at_build": true
           },
           "D3_missing_outcome_data": {
             "level": "not assessed",
-            "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+            "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+            "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+            "inputs": {
+              "AACT.milestones.attrition": null
+            },
+            "derived_at_build": true
           },
           "D4_outcome_measurement": {
             "level": "not assessed",
-            "basis": "outcome-assessor blinded = None"
+            "basis": "outcome-assessor blinded = None",
+            "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "NONE",
+              "AACT.designs.outcomes_assessor_masked": "",
+              "trial_text.blinded_by_text": false
+            },
+            "derived_at_build": true
           },
           "D5_selective_reporting": {
             "level": "some concerns",
-            "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Community-acquired pneumonia: All-cause mortality ') -- possibly post-hoc/unregistered"
+            "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Community-acquired pneumonia: All-cause mortality (with subsidiary analyses of c') -- possibly post-hoc/unregistered",
+            "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+            "inputs": {
+              "pooled_outcome": "28-day all-cause mortality",
+              "registered_primary_outcomes": [
+                {
+                  "measure": "Community-acquired pneumonia: All-cause mortality (with subsidiary analyses of cause of death and of death at various timepoints following discharge)",
+                  "title": "",
+                  "description": "For each pairwise comparison with the 'no additional treatment' arm, the primary objective is to provide reliable estimates of the effect of study treatments on all-cause mortality."
+                },
+                {
+                  "measure": "Influenza co-primary outcome: All-cause mortality (with subsidiary analysis of cause of death and death at various timepoints following discharge)",
+                  "title": "",
+                  "description": ""
+                },
+                {
+                  "measure": "Influenza co-primary outcome: Time to discharge alive from hospital",
+                  "title": "",
+                  "description": ""
+                }
+              ],
+              "registered_secondary_outcomes": [
+                {
+                  "measure": "Community-acquired pneumonia: Duration of hospital stay",
+                  "title": "",
+                  "description": "To assess the effects of study treatment on number of days stay in hospital"
+                },
+                {
+                  "measure": "Community-acquired pneumonia: Composite endpoint of death or need for mechanical ventilation or ECMO",
+                  "title": "",
+                  "description": "Among patients not on invasive mechanical ventilation at baseline, the number of patients with a composite endpoint of death or need for invasive mechanical ventilation or ECMO."
+                },
+                {
+                  "measure": "Influenza: Composite endpoint of death or need for mechanical ventilation or ECMO",
+                  "title": "",
+                  "description": "Among patients not on invasive mechanical ventilation at baseline, the number of patients with a composite endpoint of death or need for invasive mechanical ventilation or ECMO."
+                }
+              ],
+              "comparison": {
+                "registered_type": null,
+                "registered_label": "Community-acquired pneumonia: All-cause mortality (with subsidiary analyses of cause of death and of death at various timepoints following discharge)",
+                "matched": false,
+                "method": "no_match",
+                "pooled_components": [],
+                "registered_components": [],
+                "registered_text": "Community-acquired pneumonia: All-cause mortality (with subsidiary analyses of cause of death and of death at various timepoints following discharge) For each pairwise comparison with the 'no additional treatment' arm, the primary objective is to provide reliable estimates of the effect of study treatments on all-cause mortality."
+              }
+            },
+            "derived_at_build": true
           }
+        },
+        "rob_basis": {
+          "output_family": "registry-machine-signal-restricted",
+          "assessed_domains": [
+            {
+              "domain": "D1_randomisation",
+              "label": "allocation sequence/randomisation",
+              "level": "low"
+            },
+            {
+              "domain": "D5_selective_reporting",
+              "label": "registered outcome versus pooled outcome",
+              "level": "some concerns"
+            }
+          ],
+          "unassessed_domains": [
+            {
+              "domain": "D2_deviations",
+              "label": "masking of participants/personnel",
+              "level": "not assessed"
+            },
+            {
+              "domain": "D3_missing_outcome_data",
+              "label": "missing outcome data",
+              "level": "not assessed"
+            },
+            {
+              "domain": "D4_outcome_measurement",
+              "label": "masking of outcome assessment",
+              "level": "not assessed"
+            }
+          ]
         }
       }
     }
   },
   "arm_contrast": {
     "source": "AACT 2026-08-30 design_groups+interventions",
+    "metric_label": "parser-confirmed contrast",
+    "metric_scope": "AACT arm-label parser output; this measures the parser, not trial validity",
     "trials": {
       "32678530": {
         "nct": "NCT04381936",
         "status": "verified",
-        "basis": "the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)",
+        "basis": "parser-confirmed contrast: keyword 'dexamethasone' matched AACT arm intervention 'corticosteroids (dexamethasone)'; the intervention of interest DIFFERS across the randomised arms",
         "common": [],
         "differing": [
           "anakinra",
@@ -1733,6 +1910,30 @@
       }
     ]
   },
+  "compat_underlying": {
+    "checked": true,
+    "n_pre_fix_asserted_not_underlying": 1,
+    "n_post_fix_asserted_not_underlying": 0,
+    "pre_fix_violations": [
+      {
+        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
+        "outcome": "28-day all-cause mortality",
+        "dimension": "endpoint",
+        "asserted": "single endpoint",
+        "per_trial_values": [
+          {
+            "trial_id": "32678530",
+            "trial_label": "32678530",
+            "value": "28-day all-cause mortality",
+            "source": "outcome.name",
+            "span": "28-day all-cause mortality"
+          }
+        ],
+        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
+      }
+    ],
+    "post_fix_violations": []
+  },
   "rob_sensitivity": {
     "outcome": "28-day all-cause mortality",
     "estimand": "OR",
@@ -1829,6 +2030,7 @@
       "publication_bias",
       "indirectness"
     ],
+    "rob_basis": "machine-assessed domains only; D3 unassessed on 1 of 1 trial(s)",
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
     "input_set_version": "07709b43a0ba82d74e54bf4198be856313f4bdeea8866895527aa65c13d54cd0",
     "claim_id": "041976a8db3a696c",
@@ -1867,8 +2069,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE &mdash; this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT04348305, NCT02735707, NCT02517489, NCT04343729, NCT04327401, COVIDICUS, and 1 more; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "6d797e1506ad98ad0e91540582d7b4c1590d1ff68a42b61eb1ef52acda3e173e",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT04348305, NCT02735707, NCT02517489, NCT04343729, NCT04327401, COVIDICUS, and 1 more; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "3d7f140718ea3d3ddf54fee78a58305c23f0ee4815dd1cc4bed52a9fea174633",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -2077,8 +2279,8 @@
       "source_fields": [
         "/arm_contrast/trials"
       ],
-      "rendered_text": "<div class='absent'><strong>Randomised-contrast disclosure (per pooled trial, from the registry arm structure &mdash; disclosed, not an adjustment).</strong> Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>1 of 1</strong> pooled trials have a registry-confirmed contrast (the intervention of interest differs across arms). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>32678530</td><td>randomised contrast verified</td><td title='the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)'>anakinra; aspirin; azithromycin; baloxavir marboxil; baricitinib; colchicine; convalescent plasma; corticosteroid; corticosteroids (dexamethasone); dimethyl fumarate; empagliflozin; high dose corticosteroid; hydroxychloroquine; immunoglobulin; lopinavir-ritonavir; molnupiravir; oseltamivir; paxlovid; sotrovimab; synthetic neutralising antibodies; tocilizumab</td></tr></table></div>",
-      "text_sha256": "7bf846ea9cecd833be5f254dfa556964ab1949c7f21df9ad521b77c720c94645",
+      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>1 of 1</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>32678530</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;dexamethasone&#x27; matched AACT arm intervention &#x27;corticosteroids (dexamethasone)&#x27;; the intervention of interest DIFFERS across the randomised arms'>anakinra; aspirin; azithromycin; baloxavir marboxil; baricitinib; colchicine; convalescent plasma; corticosteroid; corticosteroids (dexamethasone); dimethyl fumarate; empagliflozin; high dose corticosteroid; hydroxychloroquine; immunoglobulin; lopinavir-ritonavir; molnupiravir; oseltamivir; paxlovid; sotrovimab; synthetic neutralising antibodies; tocilizumab</td></tr></table></div>",
+      "text_sha256": "2a1152fda0717ddfb3af2c4d95ff65cfe00e310773808630a752ea6aa4bdd7f3",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2159,8 +2361,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 1 downgrade(s)).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses machine-derived signals (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>&minus;1</td><td>1 of 1 assessed trial(s) at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>single trial (k=1): between-study inconsistency is not estimable</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.75, 0.93]; excludes the null with a reasonably tight interval -&gt; precise; single trial — imprecision judged from the CI, not downgraded merely for k=1</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (27 of ~69 completed unpublished, 39%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "1612cb8f95fe78c8ce76f052ded58150bd0f238d8360a3c5e1ff412ffe0a3d9b",
+      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 1 downgrade(s)). <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 1 of 1 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>&minus;1</td><td>1 of 1 assessed trial(s) at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>single trial (k=1): between-study inconsistency is not estimable</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.75, 0.93]; excludes the null with a reasonably tight interval -&gt; precise; single trial — imprecision judged from the CI, not downgraded merely for k=1</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (27 of ~69 completed unpublished, 39%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "ff8f0fb07db5ea49374c42c7cbf9e95fd5aa62e93a1cb2b0c3210fdbdce4f686",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2240,7 +2442,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "dce99b4135d953e0363d519ff078bc6e1311289c",
-    "review_sha256": "94fa8f2fdc5f633702009687ed64ba996e9cb73e39b47af35afecda96435165c",
+    "review_sha256": "c6e8414230b641c461ac5a561b4b831bd7860b56fc09fb79d0945d26745cfcbb",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -2259,6 +2461,8 @@
         "label": "INFERRED overlapping -- neither trial set contains the other",
         "inferred": true,
         "our_k": 1,
+        "hand_our_k": 1,
+        "hand_our_k_stale": false,
         "their_k": 5,
         "their_k_source": "comparable_comparator_k",
         "shared_k": null,

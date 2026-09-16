@@ -1,5 +1,18 @@
 {
   "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+  "output_family": "registry-machine-signal-restricted",
+  "rob_basis": {
+    "output_family": "registry-machine-signal-restricted",
+    "assessed_domains": [
+      "allocation sequence/randomisation",
+      "masking of participants/personnel",
+      "masking of outcome assessment",
+      "registered outcome versus pooled outcome"
+    ],
+    "unassessed_domains": [
+      "D3_missing_outcome_data"
+    ]
+  },
   "trials": {
     "20404379": {
       "nct": null,
@@ -9,24 +22,95 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = unstated but the trial's own abstract states random assignment (abstract-corrected registry data error; FLAGGED registry-vs-trial disagreement)"
+          "basis": "AACT allocation = unstated but the trial's own abstract states random assignment (abstract-corrected registry data error; FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): participants/personnel blinded"
+          "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "",
+            "AACT.designs.subject_masked": null,
+            "AACT.designs.caregiver_masked": null,
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): outcome assessment blinded"
+          "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "",
+            "AACT.designs.outcomes_assessor_masked": null,
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
-          "level": "not assessed",
-          "basis": "no registered outcomes available for this trial"
+          "level": "not_assessable",
+          "basis": "no registered primary or secondary outcomes available for this trial",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Major vascular events",
+            "registered_primary_outcomes": [],
+            "registered_secondary_outcomes": [],
+            "comparison": {
+              "matched": false,
+              "method": "no_registered_outcome",
+              "pooled_components": [],
+              "registered_components": []
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "not_assessable"
+          }
+        ]
       }
     },
     "42670961": {
@@ -37,24 +121,195 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome IS the trial's pre-registered primary outcome",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "Major vascular events",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Disability free survival - death or development of dementia or development of persistent physical disability",
+                "title": "",
+                "description": "Defined as survival free of dementia or persistent physical disability (as derived from the endpoints of all-cause mortality, dementia and physical disability)"
+              },
+              {
+                "measure": "Major cardiovascular events",
+                "title": "",
+                "description": "Defined as the first occurrence of a cardiovascular death or a non-fatal myocardial infarction or stroke or coronary revascularisation"
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "A composite of cardiovascular death, non-fatal myocardial infarction or non-fatal stroke",
+                "title": "",
+                "description": "A composite of cardiovascular death, non-fatal myocardial infarction or non-fatal stroke"
+              },
+              {
+                "measure": "Cardiovascular death",
+                "title": "",
+                "description": "Fatal cardiovascular events"
+              },
+              {
+                "measure": "Fatal and Non-fatal Mycocardial infarction",
+                "title": "",
+                "description": "Fatal and non-fatal"
+              },
+              {
+                "measure": "Hospitalisations",
+                "title": "",
+                "description": "Hospitalisation reasons and length of stay"
+              },
+              {
+                "measure": "Fatal and Non-fatal Cancer",
+                "title": "",
+                "description": "Fatal and Non-fatal Cancer (excluding non-melanoma skin cancer)"
+              },
+              {
+                "measure": "Other cognitive impairment",
+                "title": "",
+                "description": "Cognitive decline as assessed using cognitive tests excluding depression"
+              },
+              {
+                "measure": "Quality of life measured by the Short Form Health Survey (SF-36)",
+                "title": "",
+                "description": "Quality of life (measured by the Short Form Health Survey (SF-36) administered at every second year of follow-up)."
+              },
+              {
+                "measure": "Cost-effectiveness of statin",
+                "title": "",
+                "description": "Cost-effectiveness of statin"
+              },
+              {
+                "measure": "Fatal and Non-fatal Stroke",
+                "title": "",
+                "description": "Fatal and Non-fatal Stroke can be a) haemorrhagic or b) thromboembolic"
+              },
+              {
+                "measure": "Approved need for permanent residential care",
+                "title": "",
+                "description": "ACAS report"
+              },
+              {
+                "measure": "Dementia",
+                "title": "",
+                "description": "All-cause dementia (COWAT, Stroop test, Trail Making Test, HVLT-R, SDMT, ADAS-Cog, Lurian overlapping figures) or external diagnosis"
+              },
+              {
+                "measure": "Persistent physical disability",
+                "title": "",
+                "description": "KATZ-ADL administered every 6 months or external diagnosis"
+              },
+              {
+                "measure": "All cause death",
+                "title": "",
+                "description": "All cause death"
+              },
+              {
+                "measure": "Heart failure",
+                "title": "",
+                "description": "Heart failure"
+              },
+              {
+                "measure": "Atrial fibrillation",
+                "title": "",
+                "description": "Atrial fibrillation"
+              },
+              {
+                "measure": "Revascularisation procedure",
+                "title": "",
+                "description": "Revascularisation procedure including coronary revascularisation"
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Major cardiovascular events",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [
+                "CV_DEATH",
+                "NONFATAL_MI",
+                "NONFATAL_STROKE",
+                "REVASCULARISATION"
+              ],
+              "registered_text": "Major cardiovascular events Defined as the first occurrence of a cardiovascular death or a non-fatal myocardial infarction or stroke or coronary revascularisation"
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     }
   }

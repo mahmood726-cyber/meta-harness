@@ -751,10 +751,10 @@
               "validity_critical": false
             }
           },
-          "background_therapy": "standard_care",
-          "prior_disease_stage": "primary_prevention",
-          "evidence_unit": "prespecified_subgroup",
           "evidence_unit_detail": "JUPITER",
+          "prior_disease_stage": "primary_prevention",
+          "background_therapy": "standard_care",
+          "evidence_unit": "prespecified_subgroup",
           "study_effect": {
             "effect_estimate": 0.61,
             "standard_error": 0.1474715493077838,
@@ -785,7 +785,41 @@
             "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
           },
           "trial_family_id": "PMID:20404379",
-          "publication_role": "primary"
+          "publication_role": "primary",
+          "analysis_set": "intention-to-treat; older-adult evidence includes one whole trial and one pre-specified JUPITER >=70-years subgroup",
+          "follow_up_window": "trial end",
+          "endpoint_definition": "JUPITER >=70 subgroup: 5-point composite; age cut chosen post-hoc.; DISCLOSED (subgroup + component note)",
+          "population_age": "not_stated",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "20404379",
+            "trial_label": "20404379",
+            "analysis_set": {
+              "value": "intention-to-treat; older-adult evidence includes one whole trial and one pre-specified JUPITER >=70-years subgroup",
+              "source": "study_effect.analysis_population",
+              "span": "intention-to-treat; older-adult evidence includes one whole trial and one pre-specified JUPITER >=70-years subgroup"
+            },
+            "follow_up_window": {
+              "value": "trial end",
+              "source": "outcome.timepoint",
+              "span": "trial end"
+            },
+            "endpoint_definition": {
+              "value": "JUPITER >=70 subgroup: 5-point composite; age cut chosen post-hoc.; DISCLOSED (subgroup + component note)",
+              "source": "docs/definition_audit.json",
+              "span": "JUPITER >=70 subgroup: 5-point composite; age cut chosen post-hoc.; DISCLOSED (subgroup + component note)"
+            },
+            "population_age": {
+              "value": "not_stated",
+              "source": "committed source text",
+              "span": ""
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          }
         },
         {
           "label": "42670961",
@@ -817,8 +851,8 @@
               "validity_critical": false
             }
           },
-          "background_therapy": "standard_care",
           "prior_disease_stage": "primary_prevention",
+          "background_therapy": "standard_care",
           "evidence_unit": "trial",
           "study_effect": {
             "effect_estimate": 0.7,
@@ -850,7 +884,41 @@
             "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
           },
           "trial_family_id": "NCT02099123",
-          "publication_role": "primary"
+          "publication_role": "primary",
+          "analysis_set": "intention-to-treat; older-adult evidence includes one whole trial and one pre-specified JUPITER >=70-years subgroup",
+          "follow_up_window": "trial end",
+          "endpoint_definition": "Major vascular events",
+          "population_age": "adult",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "42670961",
+            "trial_label": "42670961",
+            "analysis_set": {
+              "value": "intention-to-treat; older-adult evidence includes one whole trial and one pre-specified JUPITER >=70-years subgroup",
+              "source": "study_effect.analysis_population",
+              "span": "intention-to-treat; older-adult evidence includes one whole trial and one pre-specified JUPITER >=70-years subgroup"
+            },
+            "follow_up_window": {
+              "value": "trial end",
+              "source": "outcome.timepoint",
+              "span": "trial end"
+            },
+            "endpoint_definition": {
+              "value": "Major vascular events",
+              "source": "outcome.name",
+              "span": "Major vascular events"
+            },
+            "population_age": {
+              "value": "adult",
+              "source": "committed source text",
+              "span": "participants (15.5 events per 1000 Atorvastatin, Cardiovascular Events, and Disability-free Survival in Older Adults. BACKGROUND: The effectiveness and safety of statins for the primary prevention of cardiovascular events and"
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          }
         }
       ],
       "declared_absent_trials": [
@@ -1013,7 +1081,7 @@
         "event_process": [
           "FIRST_EVENT_RATIO"
         ],
-        "endpoint": "single endpoint",
+        "endpoint": "trial-defined Major vascular events (definitions listed per trial)",
         "follow_up_window": "trial end",
         "analysis_set": "intention-to-treat; older-adult evidence includes one whole trial and one pre-specified JUPITER >=70-years subgroup",
         "randomised_contrast": {
@@ -1054,7 +1122,12 @@
               "value": "standard_care"
             }
           ]
-        }
+        },
+        "dimension_matches": {
+          "endpoint": false
+        },
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "underlying_checked": true
       },
       "recovery_recheck": {
         "hard_incompatible": false,
@@ -1065,6 +1138,30 @@
         "k": 2,
         "reconstructed_members": [],
         "label_mix_small_k": false
+      },
+      "compat_underlying": {
+        "status": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "dimensions": [
+          "endpoint"
+        ],
+        "per_trial": {
+          "endpoint": [
+            {
+              "trial_id": "20404379",
+              "trial_label": "20404379",
+              "value": "JUPITER >=70 subgroup: 5-point composite; age cut chosen post-hoc.; DISCLOSED (subgroup + component note)",
+              "source": "docs/definition_audit.json",
+              "span": "JUPITER >=70 subgroup: 5-point composite; age cut chosen post-hoc.; DISCLOSED (subgroup + component note)"
+            },
+            {
+              "trial_id": "42670961",
+              "trial_label": "42670961",
+              "value": "Major vascular events",
+              "source": "outcome.name",
+              "span": "Major vascular events"
+            }
+          ]
+        }
       }
     },
     {
@@ -1405,6 +1502,19 @@
   "estimand_exclusions": [],
   "rob2": {
     "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+    "output_family": "registry-machine-signal-restricted",
+    "rob_basis": {
+      "output_family": "registry-machine-signal-restricted",
+      "assessed_domains": [
+        "allocation sequence/randomisation",
+        "masking of participants/personnel",
+        "masking of outcome assessment",
+        "registered outcome versus pooled outcome"
+      ],
+      "unassessed_domains": [
+        "D3_missing_outcome_data"
+      ]
+    },
     "trials": {
       "20404379": {
         "nct": null,
@@ -1414,24 +1524,95 @@
         "domains": {
           "D1_randomisation": {
             "level": "low",
-            "basis": "AACT allocation = unstated but the trial's own abstract states random assignment (abstract-corrected registry data error; FLAGGED registry-vs-trial disagreement)"
+            "basis": "AACT allocation = unstated but the trial's own abstract states random assignment (abstract-corrected registry data error; FLAGGED registry-vs-trial disagreement)",
+            "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+            "inputs": {
+              "AACT.designs.allocation": "",
+              "trial_text.randomized_by_text": true
+            },
+            "derived_at_build": true
           },
           "D2_deviations": {
             "level": "low",
-            "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): participants/personnel blinded"
+            "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): participants/personnel blinded",
+            "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "",
+              "AACT.designs.subject_masked": null,
+              "AACT.designs.caregiver_masked": null,
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
           },
           "D3_missing_outcome_data": {
             "level": "not assessed",
-            "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+            "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+            "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+            "inputs": {
+              "AACT.milestones.attrition": null
+            },
+            "derived_at_build": true
           },
           "D4_outcome_measurement": {
             "level": "low",
-            "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): outcome assessment blinded"
+            "basis": "the trial's own abstract/text (double-blind/placebo-controlled) (blinded): outcome assessment blinded",
+            "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "",
+              "AACT.designs.outcomes_assessor_masked": null,
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
           },
           "D5_selective_reporting": {
-            "level": "not assessed",
-            "basis": "no registered outcomes available for this trial"
+            "level": "not_assessable",
+            "basis": "no registered primary or secondary outcomes available for this trial",
+            "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+            "inputs": {
+              "pooled_outcome": "Major vascular events",
+              "registered_primary_outcomes": [],
+              "registered_secondary_outcomes": [],
+              "comparison": {
+                "matched": false,
+                "method": "no_registered_outcome",
+                "pooled_components": [],
+                "registered_components": []
+              }
+            },
+            "derived_at_build": true
           }
+        },
+        "rob_basis": {
+          "output_family": "registry-machine-signal-restricted",
+          "assessed_domains": [
+            {
+              "domain": "D1_randomisation",
+              "label": "allocation sequence/randomisation",
+              "level": "low"
+            },
+            {
+              "domain": "D2_deviations",
+              "label": "masking of participants/personnel",
+              "level": "low"
+            },
+            {
+              "domain": "D4_outcome_measurement",
+              "label": "masking of outcome assessment",
+              "level": "low"
+            }
+          ],
+          "unassessed_domains": [
+            {
+              "domain": "D3_missing_outcome_data",
+              "label": "missing outcome data",
+              "level": "not assessed"
+            },
+            {
+              "domain": "D5_selective_reporting",
+              "label": "registered outcome versus pooled outcome",
+              "level": "not_assessable"
+            }
+          ]
         }
       },
       "42670961": {
@@ -1442,40 +1623,213 @@
         "domains": {
           "D1_randomisation": {
             "level": "low",
-            "basis": "AACT allocation = RANDOMIZED"
+            "basis": "AACT allocation = RANDOMIZED",
+            "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+            "inputs": {
+              "AACT.designs.allocation": "RANDOMIZED",
+              "trial_text.randomized_by_text": true
+            },
+            "derived_at_build": true
           },
           "D2_deviations": {
             "level": "low",
-            "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+            "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+            "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "QUADRUPLE",
+              "AACT.designs.subject_masked": "t",
+              "AACT.designs.caregiver_masked": "t",
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
           },
           "D3_missing_outcome_data": {
             "level": "not assessed",
-            "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+            "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+            "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+            "inputs": {
+              "AACT.milestones.attrition": null
+            },
+            "derived_at_build": true
           },
           "D4_outcome_measurement": {
             "level": "low",
-            "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+            "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+            "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "QUADRUPLE",
+              "AACT.designs.outcomes_assessor_masked": "t",
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+            "basis": "the pooled outcome IS the trial's pre-registered primary outcome",
+            "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+            "inputs": {
+              "pooled_outcome": "Major vascular events",
+              "registered_primary_outcomes": [
+                {
+                  "measure": "Disability free survival - death or development of dementia or development of persistent physical disability",
+                  "title": "",
+                  "description": "Defined as survival free of dementia or persistent physical disability (as derived from the endpoints of all-cause mortality, dementia and physical disability)"
+                },
+                {
+                  "measure": "Major cardiovascular events",
+                  "title": "",
+                  "description": "Defined as the first occurrence of a cardiovascular death or a non-fatal myocardial infarction or stroke or coronary revascularisation"
+                }
+              ],
+              "registered_secondary_outcomes": [
+                {
+                  "measure": "A composite of cardiovascular death, non-fatal myocardial infarction or non-fatal stroke",
+                  "title": "",
+                  "description": "A composite of cardiovascular death, non-fatal myocardial infarction or non-fatal stroke"
+                },
+                {
+                  "measure": "Cardiovascular death",
+                  "title": "",
+                  "description": "Fatal cardiovascular events"
+                },
+                {
+                  "measure": "Fatal and Non-fatal Mycocardial infarction",
+                  "title": "",
+                  "description": "Fatal and non-fatal"
+                },
+                {
+                  "measure": "Hospitalisations",
+                  "title": "",
+                  "description": "Hospitalisation reasons and length of stay"
+                },
+                {
+                  "measure": "Fatal and Non-fatal Cancer",
+                  "title": "",
+                  "description": "Fatal and Non-fatal Cancer (excluding non-melanoma skin cancer)"
+                },
+                {
+                  "measure": "Other cognitive impairment",
+                  "title": "",
+                  "description": "Cognitive decline as assessed using cognitive tests excluding depression"
+                },
+                {
+                  "measure": "Quality of life measured by the Short Form Health Survey (SF-36)",
+                  "title": "",
+                  "description": "Quality of life (measured by the Short Form Health Survey (SF-36) administered at every second year of follow-up)."
+                },
+                {
+                  "measure": "Cost-effectiveness of statin",
+                  "title": "",
+                  "description": "Cost-effectiveness of statin"
+                },
+                {
+                  "measure": "Fatal and Non-fatal Stroke",
+                  "title": "",
+                  "description": "Fatal and Non-fatal Stroke can be a) haemorrhagic or b) thromboembolic"
+                },
+                {
+                  "measure": "Approved need for permanent residential care",
+                  "title": "",
+                  "description": "ACAS report"
+                },
+                {
+                  "measure": "Dementia",
+                  "title": "",
+                  "description": "All-cause dementia (COWAT, Stroop test, Trail Making Test, HVLT-R, SDMT, ADAS-Cog, Lurian overlapping figures) or external diagnosis"
+                },
+                {
+                  "measure": "Persistent physical disability",
+                  "title": "",
+                  "description": "KATZ-ADL administered every 6 months or external diagnosis"
+                },
+                {
+                  "measure": "All cause death",
+                  "title": "",
+                  "description": "All cause death"
+                },
+                {
+                  "measure": "Heart failure",
+                  "title": "",
+                  "description": "Heart failure"
+                },
+                {
+                  "measure": "Atrial fibrillation",
+                  "title": "",
+                  "description": "Atrial fibrillation"
+                },
+                {
+                  "measure": "Revascularisation procedure",
+                  "title": "",
+                  "description": "Revascularisation procedure including coronary revascularisation"
+                }
+              ],
+              "comparison": {
+                "registered_type": "primary",
+                "registered_label": "Major cardiovascular events",
+                "matched": true,
+                "method": "text_identity",
+                "pooled_components": [],
+                "registered_components": [
+                  "CV_DEATH",
+                  "NONFATAL_MI",
+                  "NONFATAL_STROKE",
+                  "REVASCULARISATION"
+                ],
+                "registered_text": "Major cardiovascular events Defined as the first occurrence of a cardiovascular death or a non-fatal myocardial infarction or stroke or coronary revascularisation"
+              }
+            },
+            "derived_at_build": true
           }
+        },
+        "rob_basis": {
+          "output_family": "registry-machine-signal-restricted",
+          "assessed_domains": [
+            {
+              "domain": "D1_randomisation",
+              "label": "allocation sequence/randomisation",
+              "level": "low"
+            },
+            {
+              "domain": "D2_deviations",
+              "label": "masking of participants/personnel",
+              "level": "low"
+            },
+            {
+              "domain": "D4_outcome_measurement",
+              "label": "masking of outcome assessment",
+              "level": "low"
+            },
+            {
+              "domain": "D5_selective_reporting",
+              "label": "registered outcome versus pooled outcome",
+              "level": "low"
+            }
+          ],
+          "unassessed_domains": [
+            {
+              "domain": "D3_missing_outcome_data",
+              "label": "missing outcome data",
+              "level": "not assessed"
+            }
+          ]
         }
       }
     }
   },
   "arm_contrast": {
     "source": "AACT 2026-08-30 design_groups+interventions",
+    "metric_label": "parser-confirmed contrast",
+    "metric_scope": "AACT arm-label parser output; this measures the parser, not trial validity",
     "trials": {
       "20404379": {
         "nct": null,
         "status": "unverified_no_registry_match",
-        "basis": "no NCT/registry match for this pooled trial; the randomised contrast of the intervention of interest cannot be registry-confirmed."
+        "basis": "no NCT/registry match for this pooled trial; the randomised contrast of the intervention of interest cannot be parser-confirmed."
       },
       "42670961": {
         "nct": "NCT02099123",
         "status": "verified",
-        "basis": "the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)",
+        "basis": "parser-confirmed contrast: keyword 'statin' matched AACT arm intervention 'atorvastatin'; the intervention of interest DIFFERS across the randomised arms",
         "common": [],
         "differing": [
           "atorvastatin"
@@ -1615,6 +1969,37 @@
       }
     ]
   },
+  "compat_underlying": {
+    "checked": true,
+    "n_pre_fix_asserted_not_underlying": 1,
+    "n_post_fix_asserted_not_underlying": 0,
+    "pre_fix_violations": [
+      {
+        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
+        "outcome": "Major vascular events",
+        "dimension": "endpoint",
+        "asserted": "single endpoint",
+        "per_trial_values": [
+          {
+            "trial_id": "20404379",
+            "trial_label": "20404379",
+            "value": "JUPITER >=70 subgroup: 5-point composite; age cut chosen post-hoc.; DISCLOSED (subgroup + component note)",
+            "source": "docs/definition_audit.json",
+            "span": "JUPITER >=70 subgroup: 5-point composite; age cut chosen post-hoc.; DISCLOSED (subgroup + component note)"
+          },
+          {
+            "trial_id": "42670961",
+            "trial_label": "42670961",
+            "value": "Major vascular events",
+            "source": "outcome.name",
+            "span": "Major vascular events"
+          }
+        ],
+        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
+      }
+    ],
+    "post_fix_violations": []
+  },
   "rob_sensitivity": {
     "outcome": "Major vascular events",
     "estimand": "RR",
@@ -1748,6 +2133,7 @@
       "publication_bias",
       "indirectness"
     ],
+    "rob_basis": "machine-assessed domains only; D3 unassessed on 2 of 2 trial(s)",
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
     "input_set_version": "f44328846b615020845953b2a911c29fcc712565d5849fd509489df08a54b9e3",
     "claim_id": "0b21e07f91d5091b",
@@ -1786,8 +2172,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE &mdash; this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: PMID:30251369, NCT00000542, NIA-PLAQUE; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "440139f59e625a7592c68c99ab766da995d79624d8bc66e6bbf49cef746d0f42",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: PMID:30251369, NCT00000542, NIA-PLAQUE; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "18beafda9f51587574dfc22f604e95c663fd7e8585486ec7a6645b92535c41f4",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -2082,8 +2468,8 @@
       "source_fields": [
         "/arm_contrast/trials"
       ],
-      "rendered_text": "<div class='absent'><strong>Randomised-contrast disclosure (per pooled trial, from the registry arm structure &mdash; disclosed, not an adjustment).</strong> Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>1 of 2</strong> pooled trials have a registry-confirmed contrast (the intervention of interest differs across arms). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>42670961</td><td>randomised contrast verified</td><td title='the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)'>atorvastatin</td></tr><tr><td>20404379</td><td>unverified_no_registry_match</td><td title='no NCT/registry match for this pooled trial; the randomised contrast of the intervention of interest cannot be registry-confirmed.'>&amp;mdash;</td></tr></table></div>",
-      "text_sha256": "50ebf4b09e1dfb33974697a4fd0cf15da424783f63a3c84ce5fc6cb3d170840f",
+      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>1 of 2</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>42670961</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;statin&#x27; matched AACT arm intervention &#x27;atorvastatin&#x27;; the intervention of interest DIFFERS across the randomised arms'>atorvastatin</td></tr><tr><td>20404379</td><td>unverified_no_registry_match</td><td title='no NCT/registry match for this pooled trial; the randomised contrast of the intervention of interest cannot be parser-confirmed.'>&amp;mdash;</td></tr></table></div>",
+      "text_sha256": "a0dfeff31a68b47ad1a261f09c57581b882b8897e0f5f2de34c2faa36f1c8f21",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2164,8 +2550,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 1 downgrade(s)).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses machine-derived signals (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 2 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>k=2: inconsistency is not assessable automatically; Q-derived I^2=0.0%; tau^2=0.0; two concordant trials; prediction interval absence is not evidence of no inconsistency, so downgrade is left to human judgement</td></tr><tr><td>Imprecision</td><td><strong>NOT ASSESSED</strong></td><td>registered pooled CI refused at k=2 (K2_SINGLE_DF); imprecision requires human judgement and is not read from the quarantined HKSJ interval | counted as ONE conservative downgrade pending human judgement (a check that could not run cannot raise certainty)</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (33 of ~97 completed unpublished, 34%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "f0268a796130523b1f9f41e28c126f080d1861046ae1759b2907dd42102f7de0",
+      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 1 downgrade(s)). <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 2 of 2 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 2 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>k=2: inconsistency is not assessable automatically; Q-derived I^2=0.0%; tau^2=0.0; two concordant trials; prediction interval absence is not evidence of no inconsistency, so downgrade is left to human judgement</td></tr><tr><td>Imprecision</td><td><strong>NOT ASSESSED</strong></td><td>registered pooled CI refused at k=2 (K2_SINGLE_DF); imprecision requires human judgement and is not read from the quarantined HKSJ interval | counted as ONE conservative downgrade pending human judgement (a check that could not run cannot raise certainty)</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (33 of ~97 completed unpublished, 34%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "c7d2bca250e1603471f642f6cf68d3f83ec780fb870467d1a0c6c67f16f8da14",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2269,7 +2655,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
-    "review_sha256": "6e486b71a5389ed963718c1dad89058412d8baa2f09dd322b354888988523471",
+    "review_sha256": "e6299935991a3ace9afd7d0223146a6db2a17183dbbd609f5cc82e403bf8cd9b",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -2288,6 +2674,8 @@
         "label": "comparator invalid -- not an RCT meta / not the same question",
         "inferred": false,
         "our_k": 2,
+        "hand_our_k": 2,
+        "hand_our_k_stale": false,
         "their_k": 0,
         "their_k_source": "comparable_comparator_k",
         "shared_k": null,

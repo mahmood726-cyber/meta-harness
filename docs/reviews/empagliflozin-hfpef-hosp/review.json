@@ -1572,7 +1572,41 @@
             "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
           },
           "trial_family_id": "NCT03057951",
-          "publication_role": "primary"
+          "publication_role": "primary",
+          "analysis_set": "intention-to-treat",
+          "follow_up_window": "trial end / longest randomized follow-up",
+          "endpoint_definition": "EMPEROR-Preserved: CV death + HHF, no urgent-visit component.; DISCLOSED (component note; k=1)",
+          "population_age": "not_stated",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "34449189",
+            "trial_label": "34449189",
+            "analysis_set": {
+              "value": "intention-to-treat",
+              "source": "study_effect.analysis_population",
+              "span": "intention-to-treat"
+            },
+            "follow_up_window": {
+              "value": "trial end / longest randomized follow-up",
+              "source": "outcome.timepoint",
+              "span": "trial end / longest randomized follow-up"
+            },
+            "endpoint_definition": {
+              "value": "EMPEROR-Preserved: CV death + HHF, no urgent-visit component.; DISCLOSED (component note; k=1)",
+              "source": "docs/definition_audit.json",
+              "span": "EMPEROR-Preserved: CV death + HHF, no urgent-visit component.; DISCLOSED (component note; k=1)"
+            },
+            "population_age": {
+              "value": "not_stated",
+              "source": "committed source text",
+              "span": ""
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          }
         }
       ],
       "declared_absent_trials": [
@@ -1689,7 +1723,7 @@
         "event_process": [
           "FIRST_EVENT_RATIO"
         ],
-        "endpoint": "composite",
+        "endpoint": "trial-defined Composite cardiovascular death or worsening heart failure (definitions listed per trial)",
         "follow_up_window": "trial end / longest randomized follow-up",
         "analysis_set": "intention-to-treat",
         "randomised_contrast": {
@@ -1697,7 +1731,12 @@
           "total": 1
         },
         "matched": true,
-        "mismatches": []
+        "mismatches": [],
+        "dimension_matches": {
+          "endpoint": false
+        },
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "underlying_checked": true
       },
       "recovery_recheck": {
         "hard_incompatible": false,
@@ -1708,6 +1747,97 @@
         "k": 1,
         "reconstructed_members": [],
         "label_mix_small_k": false
+      },
+      "compat_underlying": {
+        "status": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "dimensions": [
+          "endpoint"
+        ],
+        "per_trial": {
+          "endpoint": [
+            {
+              "trial_id": "34449189",
+              "trial_label": "34449189",
+              "value": "EMPEROR-Preserved: CV death + HHF, no urgent-visit component.; DISCLOSED (component note; k=1)",
+              "source": "docs/definition_audit.json",
+              "span": "EMPEROR-Preserved: CV death + HHF, no urgent-visit component.; DISCLOSED (component note; k=1)"
+            }
+          ]
+        }
+      },
+      "known_missing_sensitivity": {
+        "claim_id": "empagliflozin-hfpef-hosp::primary::known_missing_sensitivity",
+        "depends_on": {
+          "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a"
+        },
+        "depends_on_detail": [
+          {
+            "path": "/invalidation/reasons",
+            "codes": [
+              "search_not_executed",
+              "known_eligible_missing",
+              "eligible_declared_absent"
+            ]
+          },
+          {
+            "path": "/outcomes/primary/result",
+            "k": 1,
+            "estimate": 0.79
+          }
+        ],
+        "heading": "Known eligible trials not in this pool, and what they would do",
+        "label": "SENSITIVITY",
+        "rows": [
+          {
+            "trial_key": "EMPA-VISION",
+            "name": "EMPA-VISION",
+            "source_ref": null,
+            "source_span": null,
+            "verify_basis": "named trial is not present in the committed topic cache",
+            "value_status": "NOT_IN_COMMITTED_SOURCE",
+            "missing_class": "NOT_IN_COMMITTED_SOURCE",
+            "why_eligible": "known_eligible_missing via concept-query",
+            "sensitivity_label": "SENSITIVITY",
+            "conclusion_effect": "NOT_COMPUTABLE"
+          },
+          {
+            "trial_key": "NCT05138575",
+            "name": "SGLT2i and KNO3 in HFpEF - The SAK HFpEF Trial",
+            "source_ref": "cache/empagliflozin-hfpef-hosp/records.json#NCT05138575.abstract",
+            "source_span": "",
+            "verify_basis": "committed source does not carry an extractable target-estimand value",
+            "value_status": "NOT_IN_COMMITTED_SOURCE",
+            "missing_class": "NOT_IN_COMMITTED_SOURCE",
+            "why_eligible": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+            "sensitivity_label": "SENSITIVITY",
+            "conclusion_effect": "NOT_COMPUTABLE"
+          },
+          {
+            "trial_key": "NCT06249945",
+            "name": "EMPAgliflozin in Heart Failure With PReserved Ejection Fraction and End Stage Renal Disease",
+            "source_ref": "cache/empagliflozin-hfpef-hosp/records.json#NCT06249945.abstract",
+            "source_span": "",
+            "verify_basis": "committed source does not carry an extractable target-estimand value",
+            "value_status": "NOT_IN_COMMITTED_SOURCE",
+            "missing_class": "NOT_IN_COMMITTED_SOURCE",
+            "why_eligible": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+            "sensitivity_label": "SENSITIVITY",
+            "conclusion_effect": "NOT_COMPUTABLE"
+          },
+          {
+            "trial_key": "NCT03448406",
+            "name": "This Study Tests Empagliflozin in Patients With Chronic Heart Failure With Preserved Ejection Fraction (HFpEF). The Study Looks at How Far Patients Can Walk in 6 Minutes and at Their Heart Failure Symptoms.",
+            "source_ref": "cache/empagliflozin-hfpef-hosp/records.json#NCT03448406.abstract",
+            "source_span": "",
+            "verify_basis": "committed source does not carry an extractable target-estimand value",
+            "value_status": "NOT_IN_COMMITTED_SOURCE",
+            "missing_class": "NOT_IN_COMMITTED_SOURCE",
+            "why_eligible": "eligible double-blind/placebo-controlled RCT: intervention empagliflozin, comparator placebo, population preserved ejection fraction — P/I/C/design met.",
+            "sensitivity_label": "SENSITIVITY",
+            "conclusion_effect": "NOT_COMPUTABLE"
+          }
+        ],
+        "headline_conclusion_effect": "NOT_COMPUTABLE"
       }
     }
   ],
@@ -1767,6 +1897,19 @@
   "comparator_scope_note": "k=1 CONTRIBUTING, not a complete-evidence claim: EMPEROR-Preserved (NCT03057951) supplies the only EXTRACTABLE primary-outcome estimate here. This is NOT a claim that the eligible evidence base is a single trial -- 4 records screened in and 3 are declared absent for this pooled number. External audit identified EMPA-VISION (a randomised double-blind trial with a separate HFpEF cohort) as eligible and missed by the trial-level search; the cohort-level screening + concept-query rebuild is the fix. The nearest published synthesis pools the SGLT2-inhibitor CLASS (a broader, network-level PICO), so its larger k is a scope difference, not evidence this review failed to retrieve.",
   "rob2": {
     "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+    "output_family": "registry-machine-signal-restricted",
+    "rob_basis": {
+      "output_family": "registry-machine-signal-restricted",
+      "assessed_domains": [
+        "allocation sequence/randomisation",
+        "masking of participants/personnel",
+        "masking of outcome assessment",
+        "registered outcome versus pooled outcome"
+      ],
+      "unassessed_domains": [
+        "D3_missing_outcome_data"
+      ]
+    },
     "trials": {
       "34449189": {
         "nct": "NCT03057951",
@@ -1776,35 +1919,180 @@
         "domains": {
           "D1_randomisation": {
             "level": "low",
-            "basis": "AACT allocation = RANDOMIZED"
+            "basis": "AACT allocation = RANDOMIZED",
+            "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+            "inputs": {
+              "AACT.designs.allocation": "RANDOMIZED",
+              "trial_text.randomized_by_text": true
+            },
+            "derived_at_build": true
           },
           "D2_deviations": {
             "level": "low",
-            "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)"
+            "basis": "trial masking = Double (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+            "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "DOUBLE",
+              "AACT.designs.subject_masked": "t",
+              "AACT.designs.caregiver_masked": "f",
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
           },
           "D3_missing_outcome_data": {
             "level": "not assessed",
-            "basis": "not assessed — AACT flow shows between-arm differential attrition 0% (overall 31.6%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating"
+            "basis": "not assessed - AACT flow shows between-arm differential attrition 0% (overall 31.6%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+            "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+            "inputs": {
+              "AACT.milestones.attrition": {
+                "overall_pct": 31.6,
+                "differential_pct": 0.0,
+                "groups": [
+                  [
+                    2991,
+                    2046
+                  ],
+                  [
+                    2997,
+                    2051
+                  ]
+                ]
+              }
+            },
+            "derived_at_build": true
           },
           "D4_outcome_measurement": {
             "level": "low",
-            "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)"
+            "basis": "trial masking = Double (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+            "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "DOUBLE",
+              "AACT.designs.outcomes_assessor_masked": "f",
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+            "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting",
+            "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+            "inputs": {
+              "pooled_outcome": "Composite cardiovascular death or worsening heart failure",
+              "registered_primary_outcomes": [
+                {
+                  "measure": "Time to First Event of Adjudicated Cardiovascular (CV) Death or Adjudicated Hospitalisation for Heart Failure (HHF)",
+                  "title": "",
+                  "description": "\"Failure with preserved Ejection Fraction (HFpEF). The incidence rate per 100 patient years (pt-yrs) is presented and calculated as followed:~Incidence rate per 100 pt-yrs = 100 \\* number of patients with event / time at risk \\[years\\].~Time at risk \\[years\\] = Sum of time at risk \\[days\\] over all patients in a treatment group / 365.25.~Patients without a specific endpoint event were censored at the last date the patient was known to be free of the event or at the end of the planned treatment period, whichever was earlier.\""
+                }
+              ],
+              "registered_secondary_outcomes": [
+                {
+                  "measure": "Occurrence of Adjudicated Hospitalisation for Heart Failure (HHF) (First and Recurrent)",
+                  "title": "",
+                  "description": "Reported is the total number of adjudicated HHF events (first and recurrent) which occurred."
+                },
+                {
+                  "measure": "eGFR (CKD-EPI) cr Slope of Change From Baseline",
+                  "title": "",
+                  "description": "\"Glomerular filtration rate estimated by the chronic kidney disease epidemiology collaboration formula with serum creatinine measurement (eGFR(CKD-EPI)cr) slope of change from baseline.~Available on-treatment change-from-baseline data were used. The slope represents the long term effect of eGFR change from baseline and provides the yearly rate of decline.~Timepoints after baseline were included in calculation of slope of change from baseline.~The slope per patient was calculated using a random coefficient model with terms for treatment, region, baseline status of diabetes, age, sex, left ventricular ejection fraction (LVEF) and glomerular filtration rate estimated by the chronic kidney disease epidemiology collaboration formula (eGFR (CKD-EPI)cr) at baseline and in addition the factors time, treatment-by-time interaction, and baseline eGFR (CKD-EPI)cr-by-time interaction.\""
+                },
+                {
+                  "measure": "Time to the First Event in the Composite Renal Endpoint: Chronic Dialysis, Renal Transplant, or Sustained Reduction in eGFR (CKD-EPI)cr",
+                  "title": "",
+                  "description": "\"Chronic dialysis was defined as dialysis with a frequency of twice per week or more for at least 90 days.~Sustained was determined by two or more consecutive post-baseline central laboratory measurement separated by at least 30 days.~Reduction in glomerular filtration rate estimated by the chronic kidney disease epidemiology collaboration formula with serum creatinine measurement (eGFR (CKD-EPI)cr) was defined as reduction in eGFR from baseline ≥40%, eGFR \\<15 mL/min/1.73 m\\^2 for patients with baseline eGFR ≥30 mL/min/1.73 m\\^2, or eGFR \\<10 mL/min/1.73 m\\^2 for patients with baseline eGFR \\<30 mL/min/1.73 m\\^2.~The incidence rate per 100 patient years (100 \\* number of patients with event / time at risk \\[years\\]) is reported. Time at risk \\[year\\] is calculated as: Sum of time at risk \\[days\\] over all patients in a treatment group / 365.25.~Abbreviation:~Patient-years (pt-yrs).\""
+                },
+                {
+                  "measure": "Time to First Adjudicated Hospitalisation for Heart Failure (HHF)",
+                  "title": "",
+                  "description": "\"Time to first adjudicated HHF. The incidence rate per 100 patient years (pt-yrs) is presented and calculated as followed:~Incidence rate per 100 pt-yrs = 100 \\* number of patients with event / time at risk \\[years\\].~Time at risk \\[years\\] = Sum of time at risk \\[days\\] over all patients in a treatment group / 365.25.~Patients without a specific endpoint event were censored at the last date the patient was known to be free of the event or at the end of the planned treatment period, whichever was earlier.\""
+                },
+                {
+                  "measure": "Time to Adjudicated Cardiovascular (CV) Death",
+                  "title": "",
+                  "description": "\"Time to adjudicated CV death. The incidence rate per 100 patient years (pt-yrs) is presented and calculated as followed:~Incidence rate per 100 pt-yrs = 100 \\* number of patients with event / time at risk \\[years\\].~Time at risk \\[years\\] = Sum of time at risk \\[days\\] over all patients in a treatment group / 365.25.~Patients without a specific endpoint event were censored at the last date the patient was known to be free of the event or at the end of the planned treatment period, whichever was earlier.\""
+                },
+                {
+                  "measure": "Time to All-cause Mortality",
+                  "title": "",
+                  "description": "\"Time to all-cause mortality. The incidence rate per 100 patient years (pt-yrs) is presented and calculated as followed:~Incidence rate per 100 pt-yrs = 100 \\* number of patients with event / time at risk \\[years\\].~Time at risk \\[years\\] = Sum of time at risk \\[days\\] over all patients in a treatment group / 365.25.~Patients without a specific endpoint event were censored at the last date the patient was known to be free of the event or at the end of the planned treatment period, whichever was earlier.\""
+                },
+                {
+                  "measure": "Time to Onset of Diabetes Mellitus (DM) in Patients With Pre-DM",
+                  "title": "",
+                  "description": "\"Time to onset of DM (defined as HbA1c ≥6.5% or as diagnosed by the investigator) in patients with pre-DM.~Pre-DM was defined as no history of DM and no HbA1c ≥6.5% before treatment, and a pre-treatment HbA1c value of ≥5.7% and \\<6.5%.~The incidence rate per 100 patient years (pt-yrs) is presented and calculated as followed:~Incidence rate per 100 pt-yrs = 100 \\* number of patients with event / time at risk \\[years\\].~Time at risk \\[years\\] = Sum of time at risk \\[days\\] over all patients in a treatment group / 365.25.~Patients without a specific endpoint event were censored at the last date the patient was known to be free of the event or at the end of the planned treatment period, whichever was earlier.\""
+                },
+                {
+                  "measure": "Change From Baseline in Kansas City Cardiomyopathy Questionaire (KCCQ) Clinical Summary Score at Week 52",
+                  "title": "",
+                  "description": "\"The KCCQ is a 23-item self-administered questionnaire designed to evaluate physical limitations, symptoms (frequency, severity, and changes over time), social limitations, self-efficacy, and quality of life in patients with Heart Failure. The KCCQ-clinical summary score comprises the following domains: Symptom frequency, symptom burden and physical limitation. The score is calculated by summing domain responses and then transforming scores to a 0-100 unit scale with higher scores indicating better health status.~For patients who died, a worst score (score of 0) was imputed for the score at all subsequent scheduled visits after the date of death where the score would have been assessed.~Change from baseline in KCCQ-score at week 52 was modeled using a MMRM with visit (week 12, 32 and 52) as repeated measures, adjusted mean (standard error) at week 52 is reported.\""
+                },
+                {
+                  "measure": "Occurrence of All-cause Hospitalisation (First and Recurrent)",
+                  "title": "",
+                  "description": "Occurrence of all-cause hospitalisation (first and recurrent). Total number of all cause hospitalisations is reported."
+                }
+              ],
+              "comparison": {
+                "registered_type": "secondary",
+                "registered_label": "Time to Adjudicated Cardiovascular (CV) Death",
+                "matched": true,
+                "method": "component_set",
+                "pooled_components": [
+                  "CV_DEATH"
+                ],
+                "registered_components": [
+                  "CV_DEATH"
+                ],
+                "registered_text": "Time to Adjudicated Cardiovascular (CV) Death \"Time to adjudicated CV death. The incidence rate per 100 patient years (pt-yrs) is presented and calculated as followed:~Incidence rate per 100 pt-yrs = 100 \\* number of patients with event / time at risk \\[years\\].~Time at risk \\[years\\] = Sum of time at risk \\[days\\] over all patients in a treatment group / 365.25.~Patients without a specific endpoint event were censored at the last date the patient was known to be free of the event or at the end of the planned treatment period, whichever was earlier.\""
+              }
+            },
+            "derived_at_build": true
           }
+        },
+        "rob_basis": {
+          "output_family": "registry-machine-signal-restricted",
+          "assessed_domains": [
+            {
+              "domain": "D1_randomisation",
+              "label": "allocation sequence/randomisation",
+              "level": "low"
+            },
+            {
+              "domain": "D2_deviations",
+              "label": "masking of participants/personnel",
+              "level": "low"
+            },
+            {
+              "domain": "D4_outcome_measurement",
+              "label": "masking of outcome assessment",
+              "level": "low"
+            },
+            {
+              "domain": "D5_selective_reporting",
+              "label": "registered outcome versus pooled outcome",
+              "level": "low"
+            }
+          ],
+          "unassessed_domains": [
+            {
+              "domain": "D3_missing_outcome_data",
+              "label": "missing outcome data",
+              "level": "not assessed"
+            }
+          ]
         }
       }
     }
   },
   "arm_contrast": {
     "source": "AACT 2026-08-30 design_groups+interventions",
+    "metric_label": "parser-confirmed contrast",
+    "metric_scope": "AACT arm-label parser output; this measures the parser, not trial validity",
     "trials": {
       "34449189": {
         "nct": "NCT03057951",
         "status": "verified",
-        "basis": "the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)",
+        "basis": "parser-confirmed contrast: keyword 'empagliflozin' matched AACT arm intervention 'empagliflozin'; the intervention of interest DIFFERS across the randomised arms",
         "common": [],
         "differing": [
           "empagliflozin"
@@ -1919,6 +2207,30 @@
       }
     ]
   },
+  "compat_underlying": {
+    "checked": true,
+    "n_pre_fix_asserted_not_underlying": 1,
+    "n_post_fix_asserted_not_underlying": 0,
+    "pre_fix_violations": [
+      {
+        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
+        "outcome": "Composite cardiovascular death or worsening heart failure",
+        "dimension": "endpoint",
+        "asserted": "composite",
+        "per_trial_values": [
+          {
+            "trial_id": "34449189",
+            "trial_label": "34449189",
+            "value": "EMPEROR-Preserved: CV death + HHF, no urgent-visit component.; DISCLOSED (component note; k=1)",
+            "source": "docs/definition_audit.json",
+            "span": "EMPEROR-Preserved: CV death + HHF, no urgent-visit component.; DISCLOSED (component note; k=1)"
+          }
+        ],
+        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
+      }
+    ],
+    "post_fix_violations": []
+  },
   "rob_sensitivity": {
     "outcome": "Composite cardiovascular death or worsening heart failure",
     "estimand": "HR",
@@ -2028,6 +2340,7 @@
       "publication_bias",
       "indirectness"
     ],
+    "rob_basis": "machine-assessed domains only; D3 unassessed on 1 of 1 trial(s)",
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
     "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a",
     "claim_id": "8429603714cf0573",
@@ -2066,8 +2379,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE &mdash; this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (PMID_ENUMERATION_explicit): protocol Search section explicitly says UID-anchored queries for the named trials — known-item retrieval, cannot discover an unknown eligible trial.</li><li>a trial identified as eligible under the registered PICO is not pooled (EMPA-VISION) — the pooled result and completeness claim cannot be current</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: SAK, EMPA-PRED, REC:NCT03448406; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "1433b8e84b8b0b34f84bfcdce24efc576dface91380eece0dd5fe0142c6d9a09",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate.  See the <a href='#known-missing-sensitivity'>known-missing sensitivity panel</a>.<ul><li>no genuine executed concept search (PMID_ENUMERATION_explicit): protocol Search section explicitly says UID-anchored queries for the named trials — known-item retrieval, cannot discover an unknown eligible trial.</li><li>a trial identified as eligible under the registered PICO is not pooled (EMPA-VISION) — the pooled result and completeness claim cannot be current</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: SAK, EMPA-PRED, REC:NCT03448406; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "4b00e6107df60c20e81114307de1dce84ef0a0aa56bbbeebd2439a49039c384b",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -2326,8 +2639,8 @@
       "source_fields": [
         "/arm_contrast/trials"
       ],
-      "rendered_text": "<div class='absent'><strong>Randomised-contrast disclosure (per pooled trial, from the registry arm structure &mdash; disclosed, not an adjustment).</strong> Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>1 of 1</strong> pooled trials have a registry-confirmed contrast (the intervention of interest differs across arms). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>34449189</td><td>randomised contrast verified</td><td title='the intervention of interest DIFFERS across the randomised arms (registry-confirmed contrast)'>empagliflozin</td></tr></table></div>",
-      "text_sha256": "6e8e554d0fab3975ca047c3c66034242bba6b40b5aea14f8901418928f34bb2a",
+      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>1 of 1</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>34449189</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;empagliflozin&#x27; matched AACT arm intervention &#x27;empagliflozin&#x27;; the intervention of interest DIFFERS across the randomised arms'>empagliflozin</td></tr></table></div>",
+      "text_sha256": "3368a5aabe74a3b9042527d2ff87c9be15fa1e84c3120fc327822ee42eeab49e",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2408,8 +2721,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 0 downgrade(s)).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses machine-derived signals (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 1 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>single trial (k=1): between-study inconsistency is not estimable</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.69, 0.9]; excludes the null with a reasonably tight interval -&gt; precise; single trial — imprecision judged from the CI, not downgraded merely for k=1</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (11 of ~37 completed unpublished, 30%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "45aa933d29e09b341ea589a3c56af2a6895410804c7867f80f68b7360d9df64e",
+      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 0 downgrade(s)). <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 1 of 1 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 1 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>single trial (k=1): between-study inconsistency is not estimable</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.69, 0.9]; excludes the null with a reasonably tight interval -&gt; precise; single trial — imprecision judged from the CI, not downgraded merely for k=1</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (11 of ~37 completed unpublished, 30%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "754861e7fc62ad6da739b81c014b33346e5a7b72b53fa9abc5ac5e001b0cc141",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2489,7 +2802,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "c5dc828d141fe01e81ce46b9a9e29863c2a01918",
-    "review_sha256": "36e18c17f4d7d2b470257553634c3434c97bd8dc62917751b59d4c7890936856",
+    "review_sha256": "420776b5b3fae25f4f660ff885e6edf62300d9f077d56359e1f059ac82f9f094",
     "from_cache": true,
     "preregistration": {
       "prospective": true,

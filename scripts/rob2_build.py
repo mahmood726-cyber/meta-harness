@@ -1,4 +1,4 @@
-"""Build per-pooled-trial RoB2 assessments from the local AACT snapshot + registry-vs-pooled outcome
+"""Build per-pooled-trial registry-machine-signal-restricted assessments from the local AACT snapshot + registry-vs-pooled outcome
 (Domain 5), writing committed cache/<slug>/rob2.json. Measure-time; replayed offline; rendered.
     python scripts/rob2_build.py [--write] [<slug> ...]
 """
@@ -54,11 +54,12 @@ def main(argv):
         nct = (r.get("nct_id") or "").upper()
         if nct in alln:
             ot = (r.get("outcome_type") or "").lower()
-            title = r.get("measure") or r.get("title") or ""
+            outcome = {"measure": r.get("measure") or "", "title": r.get("title") or "",
+                       "description": r.get("description") or ""}
             if ot == "primary":
-                regprim[nct].append(title)
-            elif ot == "secondary" and title:
-                regsec[nct].append(title)
+                regprim[nct].append(outcome)
+            elif ot == "secondary" and (outcome["measure"] or outcome["title"] or outcome["description"]):
+                regsec[nct].append(outcome)
     _BLIND_TXT = ("double-blind", "double blind", "double-masked", "double masked", "double-dummy",
                   "double dummy", "placebo-controlled", "placebo controlled", "triple-blind",
                   "quadruple-blind", "quadruple blind")
@@ -84,10 +85,14 @@ def main(argv):
                               blinded_by_text=blinded_txt, randomized_by_text=rand_txt)
             assess[pid] = {"nct": nct, "registry_in_aact": bool(NCT and NCT in designs),
                            "assessed_from": ("registry+abstract" if (NCT and NCT in designs) else "abstract only"),
-                           "overall": rob2.overall(dom), "domains": dom}
+                           "overall": rob2.overall(dom), "domains": dom, "rob_basis": rob2.rob_basis(dom)}
         print(f"{slug}: " + "; ".join(f"{p}={a['overall'].split('(')[0].strip()}" for p, a in assess.items()))
         if write:
             json.dump({"source": f"AACT {os.path.basename(aact.snapshot_dir())} + registry-vs-pooled (D5)",
+                       "output_family": rob2.OUTPUT_FAMILY,
+                       "rob_basis": {"output_family": rob2.OUTPUT_FAMILY,
+                                     "assessed_domains": [rob2.DOMAIN_LABELS[d] for d in rob2.MACHINE_DOMAINS],
+                                     "unassessed_domains": ["D3_missing_outcome_data"]},
                        "trials": assess}, open(f"{ROOT}/cache/{slug}/rob2.json", "w", encoding="utf-8", newline=""),
                       indent=2, ensure_ascii=False)
     return 0

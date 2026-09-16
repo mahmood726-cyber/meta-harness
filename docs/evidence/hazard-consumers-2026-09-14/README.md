@@ -1,6 +1,6 @@
 # Hazard Consumers (2026-09-14)
 
-**Fix state (orthogonal fields rule): LANDED / NONE / CORPUS / STALE** - generated from TRANCHE-hazard-consumers; stale dependencies: GATE_GAPS.md, docs/evidence/CAPTIONS.json, docs/hazard_acknowledgements.json, +38 more
+**Fix state (orthogonal fields rule): LANDED / NONE / CORPUS / STALE** - generated from TRANCHE-hazard-consumers; stale dependencies: GATE_GAPS.md, docs/evidence/CAPTIONS.json, docs/hazard_acknowledgements.json, +39 more
 
 Base ref for the reproducible pre-wiring sweep: `a177740544be8044231e1c1b1e5ad1460d69f70e`.
 

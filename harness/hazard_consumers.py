@@ -92,6 +92,12 @@ WIRED_CONSUMERS: dict[tuple[str, str], dict[str, str]] = {
         "/arm_contrast/trials",
         "compat",
     ),
+    ("HARMS_INCOMPLETE", "PARTIAL"): _spec(
+        "compat_check.harms_incomplete",
+        "harness.compat_check.enrich",
+        "/harms/*/result/state",
+        "compat_underlying",
+    ),
     ("RETRIEVAL_CLASS", "NOT_RUN"): _spec(
         "invalidation.assess",
         "harness.invalidation.assess",
@@ -292,6 +298,16 @@ def _compat_verdict(review: dict[str, Any]) -> str:
     return "; ".join(bits) if bits else "NO_POOLED_COMPAT_KEY"
 
 
+def _compat_underlying_verdict(review: dict[str, Any]) -> str:
+    names: list[str] = []
+    outcomes = list(review.get("harms") or []) + list(review.get("outcomes") or [])
+    for outcome in outcomes:
+        result = outcome.get("result") if isinstance(outcome, dict) else {}
+        if isinstance(result, dict) and result.get("state") == "HARMS_INCOMPLETE":
+            names.append(str(outcome.get("name") or "unnamed harm"))
+    return "HARMS_INCOMPLETE: " + "; ".join(names) if names else "NO_HARMS_INCOMPLETE"
+
+
 def _gate_verdict(review: dict[str, Any], obj: dict[str, Any], spec: dict[str, str],
                   phase: str = PHASE_FINAL) -> str:
     runner = spec["runner"]
@@ -303,6 +319,8 @@ def _gate_verdict(review: dict[str, Any], obj: dict[str, Any], spec: dict[str, s
         return _design_verdict(review, obj)
     if runner == "compat":
         return _compat_verdict(review)
+    if runner == "compat_underlying":
+        return _compat_underlying_verdict(review)
     return "UNKNOWN_RUNNER"
 
 
@@ -491,6 +509,16 @@ def _plant_core(pair: tuple[str, str]) -> dict[str, Any]:
             "retrieval_auditable": False,
             "search_provenance": {"retraction": "not a completed systematic search"},
         }
+    elif kind == "HARMS_INCOMPLETE":
+        core["harms"] = [{
+            "name": "Plant harm",
+            "result": {
+                "present": False,
+                "state": "HARMS_INCOMPLETE",
+                "reason": "plant",
+                "known_eligible_outcome_reports_unresolved": [{"trial_id": "111"}],
+            },
+        }]
     return core
 
 
@@ -571,6 +599,8 @@ def _plant_verdict(pair: tuple[str, str], spec: dict[str, str], planted: bool) -
         return _plant_design(pair, planted)
     if runner == "compat":
         return _plant_compat(pair, planted)
+    if runner == "compat_underlying":
+        return _compat_underlying_verdict(_plant_core(pair) if planted else _clean_core())
     return "UNKNOWN_RUNNER"
 
 

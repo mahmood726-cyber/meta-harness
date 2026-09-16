@@ -1,5 +1,18 @@
 {
   "source": "AACT 2026-08-30 + registry-vs-pooled (D5)",
+  "output_family": "registry-machine-signal-restricted",
+  "rob_basis": {
+    "output_family": "registry-machine-signal-restricted",
+    "assessed_domains": [
+      "allocation sequence/randomisation",
+      "masking of participants/personnel",
+      "masking of outcome assessment",
+      "registered outcome versus pooled outcome"
+    ],
+    "unassessed_domains": [
+      "D3_missing_outcome_data"
+    ]
+  },
   "trials": {
     "36942789": {
       "nct": "NCT02517489",
@@ -9,24 +22,200 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Triple (blinded): participants/personnel blinded"
+          "basis": "trial masking = Triple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "TRIPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Triple (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)"
+          "basis": "trial masking = Triple (blinded); overrides outcomes_assessor_masked=False (FLAGGED registry-vs-trial disagreement)",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "TRIPLE",
+            "AACT.designs.outcomes_assessor_masked": "f",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome IS the trial's pre-registered primary outcome"
+          "basis": "the pooled outcome IS the trial's pre-registered primary outcome",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "All-cause mortality",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Day 28 all causes mortality",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Day 21 failure",
+                "title": "",
+                "description": "For the sub-group of patients included with COVID19, failure is defined as death or need of respiratory support (mechanical ventilation or high-flow oxygen therapy);"
+              }
+            ],
+            "registered_secondary_outcomes": [
+              {
+                "measure": "In patients non-invasively ventilated at inclusion, proportion of patients needing endotracheal intubation",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "In patients non-ventilated at inclusion, proportion of patients requiring non-invasive ventilation",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "In patients non-ventilated at inclusion, proportion of patients needing endotracheal intubation",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Day 28 ventilator-free-days",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Number of patients with vasopressor therapy initiation from inclusion to day 28",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Day 28 vasopressor-free-days",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "ICU and/or intermediate care unit LOS",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "All-causes mortality at day 90",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "SF-36 Health Survey at day 90",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Biomarkers: procalcitonin at baseline, day 3 and day 7",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Biomarkers: C-reactive protein at baseline, day 3 and day 7",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Biomarkers: plasmatic concentration of pro-inflammatory cytokines (IL-6, IL-20, IL-22, IL-22BP, HBD2, TNF) at baseline, day 3 and day 7",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "P/F ratio measured daily from baseline to day 7, at the end of treatment, at the end of ICU-stay and/or day 28",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "SOFA calculated daily from baseline to day 7, at the end of treatment, at the end of ICU-stay and/or day 28",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Proportion of patients experiencing secondary infection during their ICU-stay",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Proportion of patients experiencing gastrointestinal bleeding during their ICU-stay",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Daily amount of insulin administered to the patient from day 1 to day 7",
+                "title": "",
+                "description": ""
+              },
+              {
+                "measure": "Weight-gain at baseline and day 7",
+                "title": "",
+                "description": ""
+              }
+            ],
+            "comparison": {
+              "registered_type": "primary",
+              "registered_label": "Day 28 all causes mortality",
+              "matched": true,
+              "method": "text_identity",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Day 28 all causes mortality"
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     },
     "25688779": {
@@ -37,24 +226,104 @@
       "domains": {
         "D1_randomisation": {
           "level": "low",
-          "basis": "AACT allocation = RANDOMIZED"
+          "basis": "AACT allocation = RANDOMIZED",
+          "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+          "inputs": {
+            "AACT.designs.allocation": "RANDOMIZED",
+            "trial_text.randomized_by_text": true
+          },
+          "derived_at_build": true
         },
         "D2_deviations": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded"
+          "basis": "trial masking = Quadruple (blinded): participants/personnel blinded",
+          "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.subject_masked": "t",
+            "AACT.designs.caregiver_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D3_missing_outcome_data": {
           "level": "not assessed",
-          "basis": "no AACT participant-flow data; outcome missingness needs human judgement"
+          "basis": "no AACT participant-flow data; outcome missingness needs human judgement",
+          "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+          "inputs": {
+            "AACT.milestones.attrition": null
+          },
+          "derived_at_build": true
         },
         "D4_outcome_measurement": {
           "level": "low",
-          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded"
+          "basis": "trial masking = Quadruple (blinded): outcome assessment blinded",
+          "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+          "inputs": {
+            "AACT.designs.masking": "QUADRUPLE",
+            "AACT.designs.outcomes_assessor_masked": "t",
+            "trial_text.blinded_by_text": true
+          },
+          "derived_at_build": true
         },
         "D5_selective_reporting": {
           "level": "some concerns",
-          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Rate of non-response to empiric antimicrobial trea') -- possibly post-hoc/unregistered"
+          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Rate of non-response to empiric antimicrobial treatment') -- possibly post-hoc/unregistered",
+          "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+          "inputs": {
+            "pooled_outcome": "All-cause mortality",
+            "registered_primary_outcomes": [
+              {
+                "measure": "Rate of non-response to empiric antimicrobial treatment",
+                "title": "",
+                "description": ""
+              }
+            ],
+            "registered_secondary_outcomes": [],
+            "comparison": {
+              "registered_type": null,
+              "registered_label": "Rate of non-response to empiric antimicrobial treatment",
+              "matched": false,
+              "method": "no_match",
+              "pooled_components": [],
+              "registered_components": [],
+              "registered_text": "Rate of non-response to empiric antimicrobial treatment"
+            }
+          },
+          "derived_at_build": true
         }
+      },
+      "rob_basis": {
+        "output_family": "registry-machine-signal-restricted",
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "some concerns"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     }
   }

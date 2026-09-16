@@ -38,6 +38,17 @@ def _norm(overall):
     return "other"
 
 
+def _rob_entry(rob, trial):
+    keys = [
+        str(trial.get("label") or "").strip(),
+        str(trial.get("id") or "").replace("PMID ", "").replace("PMID:", "").strip(),
+    ]
+    for key in keys:
+        if key and key in rob:
+            return rob[key]
+    return {}
+
+
 def _studies_and_scale(trials, declared_estimand):
     """Identical to harness.pipeline: Study build + pooled_scale selection."""
     meas = declared_estimand if declared_estimand in ("RR", "OR") else "RR"
