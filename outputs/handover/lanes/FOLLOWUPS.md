@@ -124,3 +124,6 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 ## Search/screening audit #14 (dapagliflozin-hfpef; 17:30)
 - SF: k=1 three-state re-derivation; phenotype keyword veto MEASURED 8 of 38 configs (DELIVER survives by phrase luck); HFpEF slug term; three controls + DAPA-HF. Register >=77 / 21 pages; 35 controls; 12 unwritten-rule pages.
 - Report correction: k=1 pages -> 'unproven until the rejection trail renders', not 'our failure' (2 of 3 our failure, 1 of 3 candidate legitimate).
+
+## Search/screening audit #15 (empagliflozin-hfpef; 17:40)
+- SF: paired generalisation test with #14; k=1 split now 2 of 4 clear failures / 2 of 4 likely defensible / 5 unaudited. Register >=80 / 22 pages; 37 controls; 13 unwritten-rule pages.
