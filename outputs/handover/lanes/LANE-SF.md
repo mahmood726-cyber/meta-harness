@@ -49,3 +49,8 @@ Models may be used anywhere in the harness provided the call is reproducible: a 
 - **Case-definition axis** `CASE_CONFIRMATION ∈ {LAB_CONFIRMED, SUSPECTED_ALLOWED}` (METCOVID ~81% confirmed; REACT permitted probable) — prespecified or flagged; severity axis on both COVID pages.
 - Early termination is a conduct flag, never an eligibility filter (TOCIBRAS); drug-specific arm extraction for platforms (REMAP-CAP tocilizumab vs sarilumab; COV-AID factorial).
 - Controls: STOIC, PRINCIPLE (`X-ROUTE`), sarilumab-only (`X-INTERVENTION`), observational cohorts (`X-DESIGN`).
+
+## Added 16:40 (search/screening audit #10 sacubitril-valsartan; the nine k=1 pages)
+- **Re-derive every k=1 page** (register §I): `publications → families → eligible families → contributing`, with a typed screening reason per non-contributor. Sacubitril: PARADIGM-HF alone vs 11 randomised comparative HFrEF trials; PIONEER-HF was RETRIEVED and excluded on OUTCOME (primary NT-proBNP; prespecified CV death / HF rehospitalisation reported) — under the primary≠eligible law it screens IN; its population axis (acute decompensated vs stable chronic) is `PROTOCOL_CRITERION_NOT_EXECUTABLE(population acuity)` → decision owed, rendered; do not pool it yourself.
+- Comparator axis 7th case: `vs ACEI or ARB` vs `vs enalapril specifically` (PRIME valsartan) — the protocol must choose; `COMPARATOR_CLASS` carries `ACEI`, `ARB`, `ENALAPRIL_SPECIFIC`.
+- Controls: PARAGON-HF, PARAMOUNT (`X-POPULATION(EF phenotype)`), PARADISE-MI (`X-POPULATION(post-MI LVD)`); PRIME → adjudication object, never silent discard. Families: PARADIGM-HF subgroup papers (India, blood pressure, dose, aetiology) → one parent.

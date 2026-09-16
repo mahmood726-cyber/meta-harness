@@ -103,3 +103,6 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 
 ## Search/screening audits #8 (corticosteroids-covid19) and #9 (tocilizumab-covid19; k=1 vs 19) — 16:25
 - SF: REACT steroid + tocilizumab sets as hard search benchmarks; comparator axis first-class rebuild (three failure directions); CASE_CONFIRMATION axis; early termination never eligibility; platform arm extraction; controls STOIC/PRINCIPLE/sarilumab/observational. Register >=63 named / 17 pages.
+
+## Search/screening audit #10 (sacubitril-valsartan; 16:40)
+- SF: re-derive all nine k=1 pages; PIONEER-HF ESCALATED (retrieved, outcome-excluded, result-changing; population decision owed to Mahmood); comparator ACEI/ARB vs enalapril; EF-phenotype controls. Register >=68 / 18 pages; 17 controls; 8 unwritten-rule pages.
