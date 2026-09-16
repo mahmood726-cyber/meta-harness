@@ -135,3 +135,8 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 
 ## Search/screening audit #18 (tranexamic-acid-pph; 17:20)
 - Indication decision NOT owed: protocol prospectively says treatment (MEASURED). SF: indication read from the population object, not keyword veto; retrieve-and-exclude the prevention family (26+4 trials) with trail; Ducloy-Bouthors X-DESIGN control; route/timing rules only if prospective. Register >=118 / 24 pages; 41 controls.
+
+## Search audit #19 semaglutide-weight; extraction audit #1 colchicine-secondary; next-series prep (17:40)
+- SF/S8: five undeclared axes on semaglutide-weight (route, dose, diabetes, withdrawal design, duration); STEP UP 2.4-vs-placebo arm adjudicated; SELECT weight prespecified analysis (primary!=eligible again); register rows 66-67.
+- OUTCOME_NOT_IN_SOURCE unreliability is ALREADY MEASURED (EX 43/1088 cells, RX 93/668 reason codes) -- landing 3 (EX+RX first) puts it on the pages. EX2 (model contract): negative span citation for every absence.
+- Priority-1 artefact built: 115 rows, 26 with truncated spans -> extractor must store full digit-bearing spans (EX2/TE). Priority 2 harms (HM partial + HM2), Priority 3 RoB/GRADE (EP first), Priority 4 independent re-audit of landing-1 classes on served a2c53d98 bytes.
