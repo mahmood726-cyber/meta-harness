@@ -97,3 +97,6 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 
 ## Search/screening audit #6 (iv-iron; 16:00)
 - SF: LVEF_THRESHOLD / HF_ACUITY / FORMULATION executable fields; primary!=eligible endpoint second instance; FAIR-HF2 + wider family to register (38 trials / 14 pages); FERRIC-HF, PRACTICE-ASIA-HF controls (7 controls: P I C O design size).
+
+## Search/screening audit #7 (corticosteroids-cap; 16:15)
+- SF: REMAP-CAP register; comparator equivalence class (bare 'vs placebo' sweep); severity/influenza axes; SLUG_AXIS_NOT_IN_CONFIG rule; paediatric control; Torres primary!=eligible third instance. Register >=42 trials / 15 pages; 8 controls; 5 unwritten-rule pages.
