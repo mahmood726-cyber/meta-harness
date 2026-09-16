@@ -134,6 +134,8 @@ Either way FLOW is decided by the declared rule (under A it is in; under B it is
 - **Layer 10 addition from what the audit did NOT find:** a gate on the significance proposition cannot detect an incomplete set producing an artificially narrow heterogeneity picture — the claim graph needs a **completeness proposition** (membership upstream of the result claim), and `contradictions caught: 0` prints its scope.
 - **Target for the proof:** reproduce the k=11 reconstruction from held spans (with FREEDOM-CVO's adjudicated value and ELIXA's primary-source 3-point) or explicitly refuse each row with its typed reason — never insert an auditor's number.
 
+## Quota-cliff safety (19:30): every in-flight lane's brief is on disk in its worktree; CS, S8, KM2 finished and are harvested by content (patch sha + report on the handover branch); ST is the only lane still running (brief on disk, partial output on disk). Codex reset planned; Spark held for the mechanical remainder.
+
 ## Sequence
 1. Landing 2 (CK RB KM VS + graph fixes) → hook → CI → main. **Blocked on two pcsk9 acknowledgements Mahmood must sign** (removed k=2 refusal block; removed zero-claims block).
 2. Landing 3 = every harvested lane (EX RX TE XS2 SC SC2 SC3 CP2 CP3 CG2 SH2 CK2 CX FU CK3 D5 EN2 SE + HM partial) onto landing-2 main — the glp1 machinery. Integration by a Codex lane (IN) under strict rules; conflict resolutions listed for my review; I adjudicate.
@@ -145,7 +147,7 @@ Either way FLOW is decided by the declared rule (under A it is in; under B it is
 | Item | Value |
 |---|---|
 | Start | 2026-09-16 17:45 (strategy received) |
-| Claude turns since start | 14 (at 19:25) |
+| Claude turns since start | 15 (at 19:32) |
 | Codex lanes used | IN (integration), G1 (page), EP (decider precision), SF-scoped | 
 | Model tokens | sum of `tokens used` lines in the lane logs |
 | Wall-clock to "auditor finds nothing" | — |
