@@ -84,6 +84,40 @@ def intervention_line(md_text):
     return _norm_text(" ".join(out))
 
 
+def scope_amendments(md_text):
+    """Parse dated protocol amendments that explicitly change identifier/intervention scope.
+
+    The project already records post-registration changes as appended Markdown sections headed
+    ``## Amendment YYYY-MM-DD``. This parser recognizes only the narrow identifier-scope form; absent
+    or ambiguous prose returns no amendment, so the identifier gate keeps failing closed.
+    """
+    text = md_text or ""
+    out = []
+    matches = list(re.finditer(r"^## Amendment\s+(\d{4}-\d{2}-\d{2})([^\n]*)\n", text, re.M))
+    for i, m in enumerate(matches):
+        body_start = m.end()
+        body_end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        body = text[body_start:body_end].strip()
+        folded = _fold_for_prose(m.group(2) + " " + body)
+        if "identifier" not in folded or not any(w in folded for w in ("widened", "widen", "scope")):
+            continue
+        original = re.search(r"\*\*Original identifier scope\.\*\*\s*([^\n]+)", body, re.I)
+        widened = re.search(r"\*\*Widened scope\.\*\*\s*([^\n]+)", body, re.I)
+        reason = re.search(r"\*\*Reason\.\*\*\s*([^\n]+)", body, re.I)
+        agents = re.search(r"\*\*Pre-specified list\.\*\*\s*([^\n]+)", body, re.I)
+        out.append({
+            "date": m.group(1),
+            "kind": "identifier_scope",
+            "heading": _norm_text(m.group(2).strip(" -\u2013\u2014")),
+            "original_scope": _norm_text(original.group(1) if original else ""),
+            "widened_scope": _norm_text(widened.group(1) if widened else ""),
+            "reason": _norm_text(reason.group(1) if reason else ""),
+            "pre_specified_list": _norm_text(agents.group(1) if agents else ""),
+            "body": _norm_text(body),
+        })
+    return out
+
+
 def _intervention_declaration_divergences(md_text, config):
     agents = config.get("intervention_agents")
     class_terms = config.get("intervention_class_terms")

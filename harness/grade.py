@@ -23,6 +23,8 @@ anti-drift prose guard stays satisfied when rendered like _error_coverage_sectio
 """
 from __future__ import annotations
 
+from . import k2 as k2_mod
+
 
 def _norm_overall(overall):
     if not overall:
@@ -41,7 +43,10 @@ def _rob_domain(review):
     prim = next((o for o in review.get("outcomes", []) if o.get("primary")), None)
     trials = (prim or {}).get("trials", []) or []
     rob = (review.get("rob2") or {}).get("trials") or {}
-    levels = [_norm_overall((rob.get(str(t.get("label"))) or {}).get("overall")) for t in trials]
+    # Join by the trial identity (PMID/NCT), never the display label: acronym labels (SOUL, PHILO,
+    # CLEAR SYNERGY) are rated in rob2 under their PMID and were invisible here (integration 2026-09-16).
+    from .claimgraph import trial_key as _tk
+    levels = [_norm_overall((rob.get(_tk(t)) or rob.get(str(t.get("label"))) or {}).get("overall")) for t in trials]
     n = len(levels)
     rated = [x for x in levels if x]
     n_rated = len(rated)
@@ -77,9 +82,40 @@ def _rob_domain(review):
 def _inconsistency_domain(res):
     k = res.get("k")
     tau2 = res.get("tau2")
+    if tau2 is None:
+        tau2 = (res.get("counterfactual") or {}).get("would_be_tau2")
     if k is None or k < 2:
         return {"downgrade": 0, "not_estimable": True, "assessed": False,
                 "basis": "single trial (k=1): between-study inconsistency is not estimable"}
+    i2 = res.get("i2")
+    if i2 is None:
+        i2 = k2_mod.i2_from_q(res.get("Q"), k)
+    if k == 2:
+        conflict = res.get("pool_refused", {}).get("code") == k2_mod.DIRECTION_CONFLICT_K2
+        high_i2 = False
+        try:
+            high_i2 = i2 is not None and float(i2) > k2_mod.AUTO_INCONSISTENCY_I2_THRESHOLD
+        except (TypeError, ValueError):
+            high_i2 = False
+        basis = f"k=2: inconsistency is not assessable automatically"
+        if i2 is not None:
+            basis += f"; Q-derived I^2={round(float(i2), 1)}%"
+        if tau2 is not None:
+            basis += f"; tau^2={tau2}"
+        if conflict:
+            basis += "; trial point estimates conflict in direction and/or their CIs do not overlap"
+        elif high_i2:
+            basis += f"; I^2 > {k2_mod.AUTO_INCONSISTENCY_I2_THRESHOLD:g}%"
+        else:
+            basis += "; two concordant trials"
+        basis += "; prediction interval absence is not evidence of no inconsistency, so downgrade is left to human judgement"
+        # Two CONCORDANT trials with low I^2 are an assessable state (direction and I^2 are computed);
+        # only a direction conflict or high I^2 is genuinely unassessable by machine and draws the
+        # conservative floor in grade(). The k=2 state is still not an automatic 'no inconsistency'.
+        return {"downgrade": 0, "not_assessable_automatically": bool(conflict or high_i2),
+                "k2_not_automatic": True, "assessed": False,
+                "direction_conflict": conflict, "i2": round(float(i2), 1) if i2 is not None else None,
+                "basis": basis}
     # PI substantially wider than CI (on the log scale for ratios) signals real heterogeneity.
     down = 0
     basis = f"tau^2={tau2}"
@@ -111,6 +147,16 @@ def _imprecision_domain(res, scale):
     a conventional GRADE default; the threshold is stated so a reader can substitute a topic-specific
     minimally-important difference."""
     k = res.get("k")
+    if res.get("pool_refused"):
+        return {"downgrade": 0, "assessed": False, "not_assessable_automatically": True,
+                "basis": ("pooled row refused ("
+                          f"{(res.get('pool_refused') or {}).get('code')}); imprecision cannot be "
+                          "machine-rated from a non-served pooled CI")}
+    if res.get("pooled_ci_refused"):
+        return {"downgrade": 0, "assessed": False, "not_assessable_automatically": True,
+                "basis": ("registered pooled CI refused at k=2 ("
+                          f"{(res.get('pooled_ci_refused') or {}).get('code')}); imprecision requires "
+                          "human judgement and is not read from the quarantined HKSJ interval")}
     cil, cih = res.get("ci_low"), res.get("ci_high")
     if cil is None or cih is None:
         return {"downgrade": 0, "assessed": False, "basis": "no confidence interval available"}
@@ -235,6 +281,17 @@ def grade(review, ghost=None):
                                     "is made coherent (harmonise the measure or split the outcome)"),
             "basis": "partial GRADE: overall certainty NOT RATEABLE (estimand-incompatible pool).",
         }
+    # A domain the machine could NOT assess (k=2 refused CI; direction conflict) is counted as ONE
+    # conservative downgrade pending human judgement. Refusing to serve an interval must never RAISE
+    # certainty -- on corticosteroids-cap the refusal turned 'low' into 'moderate' before this floor
+    # (integration 2026-09-16). The domain object keeps downgrade=0 and says why; the floor is here.
+    conservative = []
+    for name, dom in (("imprecision", imp), ("inconsistency", inc)):
+        if dom.get("not_assessable_automatically") and not dom.get("downgrade"):
+            dom["downgrade"] = 1
+            dom["conservative"] = True
+            dom["basis"] = (dom.get("basis") or "") + " | counted as ONE conservative downgrade pending human judgement (a check that could not run cannot raise certainty)"
+            conservative.append(name)
     downgrades = rob["downgrade"] + inc["downgrade"] + imp["downgrade"] + pub["downgrade"]
     idx = min(downgrades, 3)  # high -> moderate -> low -> very_low
     # RoB coverage incompleteness caps at 'moderate' (cannot certify high on unassessed bias)
@@ -259,7 +316,8 @@ def grade(review, ghost=None):
     # if D3 is ever assessed for a pooled trial, the cap lifts automatically.
     _rob2_trials = (review.get("rob2") or {}).get("trials") or {}
     prim_trials = (prim or {}).get("trials", []) or []
-    d3_levels = [((_rob2_trials.get(str(t.get("label"))) or {}).get("domains") or {}).get("D3_missing_outcome_data", {}).get("level")
+    from .claimgraph import trial_key as _tk2
+    d3_levels = [((_rob2_trials.get(_tk2(t)) or _rob2_trials.get(str(t.get("label"))) or {}).get("domains") or {}).get("D3_missing_outcome_data", {}).get("level")
                  for t in prim_trials]
     d3_all_unassessed = bool(d3_levels) and all(lv == "not assessed" for lv in d3_levels)
     d3_capped = False
@@ -294,6 +352,7 @@ def grade(review, ghost=None):
                                       "judgement; not auto-rated (the scope note on the page states the PICO)"},
         },
         "downgrades": downgrades,
+        "conservative_downgrades_pending_human_judgement": conservative,
         "certainty": CERT[idx],
         "certainty_capped_by_rob_coverage": capped,
         "certainty_capped_single_trial": single_trial_capped,

@@ -15,6 +15,38 @@ def _num(x):
         return None
 
 
+def _intlike(x):
+    n = _num(x)
+    return n is not None and abs(n - round(n)) < 1e-9
+
+
+def _registry_measure_type(om, class_title, measurements, denom_units):
+    """Classify the selected CT.gov row's numeric meaning for cross-source display."""
+    ptype = (om.get("paramType") or "").upper()
+    if ptype in ("COUNT_OF_PARTICIPANTS", "COUNT_OF_UNITS"):
+        return ptype
+    text = " ".join(str(x or "") for x in (
+        ptype, om.get("title"), class_title, om.get("unitOfMeasure"), denom_units
+    )).lower()
+    has_limits = any((m or {}).get("lowerLimit") is not None or (m or {}).get("upperLimit") is not None
+                     for m in measurements)
+    values_are_counts = measurements and all(_intlike((m or {}).get("value")) for m in measurements)
+    if has_limits or "km estimate" in text or "kaplan" in text:
+        return "KM_ESTIMATE"
+    if ptype == "NUMBER" and values_are_counts and "participant" in text:
+        return "COUNT_OF_PARTICIPANTS"
+    if ptype == "NUMBER" and ("percentage" in text or "percent" in text):
+        return "PERCENTAGE"
+    return ptype or "UNKNOWN"
+
+
+def _ratio_or_none(a, b):
+    a, b = _num(a), _num(b)
+    if a is None or b in (None, 0):
+        return None
+    return a / b
+
+
 def _classify_arms(groups, interv_l, comp_l):
     """Assign the two arms to (intervention_gid, comparator_gid) by group title, with the standard
     2-arm fallback (the placebo/control arm is the comparator, the other is the intervention)."""
@@ -204,15 +236,22 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
             continue
         # per-group event count (first class/category measurements)
         events = {}
+        raw_measurements = {}
+        selected_class_title = None
+        selected_category_title = None
         classes = om.get("classes", [])
         if classes and classes[0].get("categories"):
+            selected_class_title = classes[0].get("title")
+            selected_category_title = classes[0]["categories"][0].get("title")
             for m in classes[0]["categories"][0].get("measurements", []):
                 events[m.get("groupId")] = _num(m.get("value"))
+                raw_measurements[m.get("groupId")] = m
         # per-group denominator
         denoms = {}
         for d in om.get("denoms", []):
             for c in d.get("counts", []):
                 denoms[c.get("groupId")] = _num(c.get("value"))
+        denom_units = "; ".join(d.get("units", "") for d in om.get("denoms", []) if d.get("units"))
         if not denoms:  # fall back to group-level "seriousNumAffected"? no — need denom
             continue
         # classify each group as intervention or comparator by title
@@ -242,9 +281,32 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
             continue  # this OM is a subgroup, not the whole trial — do not pool as the trial
         gi = next(g.get("title") for g in groups if g.get("id") == interv_gid)
         gc = next(g.get("title") for g in groups if g.get("id") == comp_gid)
+        mi, mc = raw_measurements.get(interv_gid) or {}, raw_measurements.get(comp_gid) or {}
+        measure_type = _registry_measure_type(om, selected_class_title, [mi, mc], denom_units)
+        raw_ai, raw_ci = _num(mi.get("value")), _num(mc.get("value"))
+        if measure_type == "COUNT_OF_PARTICIPANTS":
+            implied = _ratio_or_none(_ratio_or_none(ai, n1i), _ratio_or_none(ci, n2i))
+            values = f"{int(ai)}/{int(n1i)} ({gi[:24]}) vs {int(ci)}/{int(n2i)} ({gc[:24]})"
+        else:
+            implied = _ratio_or_none(raw_ai, raw_ci)
+            values = (f"{raw_ai:g} ({gi[:24]}) vs {raw_ci:g} ({gc[:24]}); "
+                      f"denominators {int(n1i)} vs {int(n2i)}")
+        title = om.get("title", "")
+        tf = (om.get("timeFrame") or om.get("time_frame") or "").strip()
+        popd = (om.get("populationDescription") or "").strip()
         out = {"ai": int(ai), "n1i": int(n1i), "ci": int(ci), "n2i": int(n2i),
-               "source": (f"ClinicalTrials.gov results (structured): outcome '{om.get('title','')[:80]}' "
-                          f"{int(ai)}/{int(n1i)} ({gi[:24]}) vs {int(ci)}/{int(n2i)} ({gc[:24]})")}
+               "registry_title": title,
+               "registry_type": om.get("type"),
+               "registry_param_type": ptype or None,
+               "registry_measure_type": measure_type,
+               "registry_timeframe": tf,
+               "registry_selected_timepoint": selected_class_title or selected_category_title or "",
+               "registry_population": popd,
+               "registry_intervention_value": raw_ai,
+               "registry_comparator_value": raw_ci,
+               "registry_implied_effect": implied,
+               "source": (f"ClinicalTrials.gov results (structured): outcome '{title[:80]}' "
+                          f"{measure_type} {values}")}
         # Carry the model-derived identity judgment that admitted this OM, so the page can render it
         # (checkable, 5 fields). The judgment gated selection; it does NOT supply any number here.
         if judgments is not None:

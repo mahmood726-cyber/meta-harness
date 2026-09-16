@@ -32,6 +32,7 @@ from .registration import protocol_sha as _registration_sha
 from . import registration as _registration
 from .synth import method_text as _method_text
 from .limitations import publication_gate_refusals
+from . import claimgraph
 
 REQUIRED_MANIFEST = ("slug", "declared_method", "served_method", "protocol_sha",
                      "generator", "review_sha256", "html_sha256")
@@ -312,6 +313,8 @@ def check_parity_our_k(review_dir):
         return []
     k = res.get("k")
     par = (rev.get("reproduction") or {}).get("parity") or {}
+    if par.get("unrenderable") or par.get("membership_status") == "STALE_VS_MEMBERSHIP":
+        return []
     our_k = par.get("our_k")
     reasons = []
     # (1) COUNT: equality, not <=. A same-scope subset is a different quantity that belongs in its own field,
@@ -341,6 +344,21 @@ def check_parity_our_k(review_dir):
                 reasons.append(f"L1: parity reason names '{nm}' as EXCLUDED but it IS in the pooled set — a "
                                f"stale narrative describing a review that no longer exists (audit 28).")
     return reasons
+
+
+def check_claimgraph(review_dir):
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1: no review.json to check claimgraph"]
+    try:
+        rev = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for claimgraph: {exc}"]
+    violations = claimgraph.check(rev)
+    if violations:
+        return ["L1: claimgraph violations remain (stale dependent result-bearing object): "
+                + json.dumps(violations[:6], ensure_ascii=False)]
+    return []
 
 
 def check_no_double_counted_trial(review_dir):
@@ -736,6 +754,7 @@ def gate_page(review_dir):
                + check_manuscript_numbers(review_dir)
                + check_fetch_complete(review_dir)
                + check_access_claim_supported(review_dir)
+               + check_claimgraph(review_dir)
                + check_parity_our_k(review_dir)
                + check_no_double_counted_trial(review_dir)
                + check_pivotal_present(manifest)

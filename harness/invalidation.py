@@ -29,6 +29,7 @@ Conditions (each NAMED on the page so a reader sees WHY, and evidenced from comm
 """
 import re
 from . import design_key
+from . import identity as identity_mod
 
 
 def _primary(core):
@@ -101,6 +102,17 @@ def _agent_and_class_maps(config):
     return term_to_agent, class_keys
 
 
+def _scope_amendment(config):
+    for amendment in config.get("protocol_scope_amendments") or []:
+        if amendment.get("kind") != "identifier_scope" or not amendment.get("date"):
+            continue
+        body = " ".join(str(amendment.get(k) or "") for k in (
+            "heading", "original_scope", "widened_scope", "reason", "pre_specified_list", "body"))
+        if "identifier" in body.lower() and any(w in body.lower() for w in ("widen", "scope")):
+            return amendment
+    return None
+
+
 def _identifier_level(slug, config):
     """Classify the slug's leading intervention token from declared agents/class terms."""
     slug_l = str(slug or "").lower()
@@ -165,7 +177,8 @@ def identifier_scope(slug, config, screening_records):
     elif level == "AGENT":
         off_agent = {trial: agent for trial, agent in pooled_agents.items() if agent != identifier_agent}
         if off_agent:
-            verdict = "SINGLE_AGENT_OVER_CLASS_POOL"
+            amendment = _scope_amendment(config or {})
+            verdict = "DISCLOSED_SCOPE_AMENDMENT" if amendment else "SINGLE_AGENT_OVER_CLASS_POOL"
             assignments = ", ".join(f"{trial}={agent}" for trial, agent in pooled_agents.items())
             k = len(pooled_agents)
             n = len(off_agent)
@@ -177,6 +190,15 @@ def identifier_scope(slug, config, screening_records):
                 f"about {identifier_agent} alone"
             )
             reason = {"code": "identifier_single_agent_class_pool", "detail": detail}
+            if amendment:
+                detail = (
+                    f"the original identifier names {identifier_agent}, but dated protocol amendment "
+                    f"{amendment.get('date')} widens the review to {amendment.get('widened_scope') or iline}. "
+                    f"Original scope: {amendment.get('original_scope') or identifier_agent}. "
+                    f"Pre-specified list: {amendment.get('pre_specified_list') or 'not stated'}. "
+                    f"Pool assignment after amendment: {assignments}. The served slug/URL remains pinned."
+                )
+                reason = None
         else:
             verdict = "MATCH"
             detail = f"identifier names {identifier_agent}; all included records map to that agent"
@@ -188,6 +210,7 @@ def identifier_scope(slug, config, screening_records):
         "unresolved": unresolved,
         "verdict": verdict,
         "detail": detail,
+        **({"amendment": amendment} if "amendment" in locals() and amendment else {}),
         **({"reason": reason} if reason else {}),
     }
 def _trial_name(t):
@@ -223,13 +246,26 @@ def _eligible_not_pooled(core, id_nct=None):
     pooled = set()
     for o in (core.get("outcomes") or []):
         for t in (o.get("trials") or []):
+            fam = t.get("trial_family_id")
+            if fam:
+                pooled.add(fam)
             rid = _norm_id(t.get("id") or t.get("label"))
             pooled.add(rid)
             if rid in id_nct:
                 pooled.add(_norm_id(id_nct[rid]))
+    try:
+        from .claimgraph import strand_member_keys
+        pooled.update(strand_member_keys(core.get("strands") or {}))
+    except Exception:
+        pass
     out = []
     for r in ((core.get("screening") or {}).get("records") or []):
         if r.get("decision") != "include":
+            continue
+        if r.get("publication_role") in identity_mod.NON_TRIAL_PUBLICATION_ROLES:
+            continue
+        fam = r.get("trial_family_id")
+        if fam and fam in pooled:
             continue
         nid = _norm_id(r.get("id"))
         if nid and nid in pooled:
@@ -237,7 +273,7 @@ def _eligible_not_pooled(core, id_nct=None):
         if nid in id_nct and _norm_id(id_nct[nid]) in pooled:
             continue
         if nid:
-            out.append(r.get("id"))
+            out.append(fam or r.get("id"))
     # stable, de-duplicated
     seen = set()
     return [x for x in out if not (x in seen or seen.add(x))]
@@ -364,9 +400,14 @@ def assess(core, signals=None):
                                   + "; the completeness claim cannot be current"})
     # 3b. A page with NO checkable pooled claim renders 'Claims checked: 0' -- the canonical-claim gate
     #     cannot fire, so a clean-looking output on the WORST page. That is a failing state, not neutral.
-    if not any(_present(o.get("result")) for o in (core.get("outcomes") or [])):
+    #     Declared strand pools ARE claims (the claim graph counts them), so a page whose only pooled
+    #     numbers are strands is not claim-free -- this consumer must read the same membership the
+    #     counter reads, or it contradicts the counter (iv-iron: 4 strand claims vs 'Claims checked: 0').
+    _strand_pools = sum(1 for _s in ((core.get("strands") or {}).get("strands") or [])
+                        if isinstance(_s, dict) and isinstance(_s.get("pool"), dict) and (_s["pool"].get("k") or 0) >= 1)
+    if not any(_present(o.get("result")) for o in (core.get("outcomes") or [])) and _strand_pools == 0:
         reasons.append({"code": "no_checkable_claim",
-                        "detail": "no outcome produced a pooled claim (Claims checked: 0) — the canonical-claim "
+                        "detail": "no outcome or declared strand produced a pooled claim — the canonical-claim "
                                   "gate cannot fire here, so a page with the weakest evidence would otherwise "
                                   "show the cleanest gate output; treated as a limitation, not a pass"})
     # 4. A search source errored (retrieval completeness unproven, distinct from RAN_ZERO). Suppressed

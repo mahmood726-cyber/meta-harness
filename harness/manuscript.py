@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import html as _html
 
+from . import rob_sensitivity as _rob_sensitivity_mod
+from harness import identity as _identity_mod
+
 
 def _e(s):
     return _html.escape(str(s)) if s is not None else ""
@@ -22,6 +25,49 @@ def _fmt(x, nd=2):
         return f"{round(float(x), nd):g}"
     except (TypeError, ValueError):
         return str(x)
+
+
+def _unit_label(unit):
+    if unit == "prespecified_subgroup":
+        return "pre-specified subgroup"
+    if unit == "post_hoc_subgroup":
+        return "post-hoc subgroup"
+    return "trial"
+
+
+def _evidence_unit_summary(outcome):
+    trials = outcome.get("trials") or []
+    if not trials or all((t.get("evidence_unit") or "trial") == "trial" for t in trials):
+        return None
+    counts = {}
+    for t in trials:
+        unit = t.get("evidence_unit") or "trial"
+        counts[unit] = counts.get(unit, 0) + 1
+    bits = []
+    if counts.get("trial"):
+        bits.append(f"{counts['trial']} trial" + ("" if counts["trial"] == 1 else "s"))
+    for unit in ("prespecified_subgroup", "post_hoc_subgroup"):
+        group = [t for t in trials if t.get("evidence_unit") == unit]
+        if not group:
+            continue
+        details = sorted({t.get("evidence_unit_detail") for t in group if t.get("evidence_unit_detail")})
+        if len(group) == 1 and details:
+            bits.append(f"1 {_unit_label(unit)} of {details[0]}")
+        else:
+            bits.append(f"{len(group)} {_unit_label(unit)}" + ("" if len(group) == 1 else "s"))
+    return " + ".join(bits)
+
+
+def _k_phrase(outcome):
+    k = (outcome.get("result") or {}).get("k")
+    eu = _evidence_unit_summary(outcome)
+    return f"k = {k} ({eu})" if eu and k is not None else f"{k} trials"
+
+
+def _forest_k_phrase(outcome):
+    k = (outcome.get("result") or {}).get("k")
+    eu = _evidence_unit_summary(outcome)
+    return f"k = {k} ({eu})" if eu and k is not None else f"k={k}"
 
 
 def _primary(review):
@@ -62,6 +108,18 @@ def object_numerals(review):
     for o in review.get("outcomes", []):
         add(len(o.get("trials", []) or []))
         add(len(o.get("declared_absent_trials", []) or []))
+        if review.get("publication_units"):
+            counts = _identity_mod.outcome_counts(o)
+            add(counts["pooled"].get("trials"))
+            add(counts["pooled"].get("publications"))
+            add(counts["absent"].get("trials"))
+            add(counts["absent"].get("publications"))
+        units = {}
+        for t in o.get("trials", []) or []:
+            unit = t.get("evidence_unit") or "trial"
+            units[unit] = units.get(unit, 0) + 1
+        for v in units.values():
+            add(v)
     # grade downgrades, rob coverage
     g = review.get("grade") or {}
     add(g.get("downgrades"))
@@ -74,6 +132,7 @@ def object_numerals(review):
             add(st.get(k))
     # the confidence/prediction-interval level is a fixed statistical constant the manuscript states
     out.add("95")
+    out.add("12.71")
     # numerals present in committed TEXT fields the manuscript quotes verbatim (title, question, and each
     # outcome's timepoint/population) are object-sourced, not invented (e.g. 'semaglutide 2.4 mg', 'Week 68')
     import re as _re
@@ -162,7 +221,7 @@ def _forest(review):
         y += rowh // 2
         xc, xl, xh = xpix(pooled[0]), xpix(pooled[1]), xpix(pooled[2])
         parts.append(f"<polygon points='{xl:.1f},{y:.1f} {xc:.1f},{y-6:.1f} {xh:.1f},{y:.1f} {xc:.1f},{y+6:.1f}' fill='#b31412'/>")
-        parts.append(f"<text x='6' y='{y+4:.1f}' fill='#b31412' font-weight='600'>Pooled (k={res.get('k')})</text>")
+        parts.append(f"<text x='6' y='{y+4:.1f}' fill='#b31412' font-weight='600'>Pooled ({_e(_forest_k_phrase(prim))})</text>")
         pv = f"{_fmt(pooled[0])} [{_fmt(pooled[1])}, {_fmt(pooled[2])}]"
         parts.append(f"<text x='{W-padR+6}' y='{y+4:.1f}' fill='#b31412' font-weight='600'>{_e(pv)}</text>")
     parts.append(f"<text x='{padL}' y='{H-6}' fill='#78909c'>{_e(scale or 'effect')} ({'log scale, null=1' if is_ratio else 'null=0'})</text></svg>")
@@ -220,16 +279,39 @@ def render(review, neutral: bool = False) -> str:
         _search_phrase = (f"The registry-first (AACT) adapter did NOT complete for this topic (status "
                           f"{_e(_aact)}); the evidence set was assembled by known-item retrieval, NOT a completed "
                           f"registry-first or systematic search (retracted claim).")
-    n_absent = len(prim.get("declared_absent_trials", []) or [])
+    if review.get("publication_units"):
+        absent_counts = _identity_mod.outcome_counts(prim)["absent"]
+        n_absent = absent_counts.get("trials", 0)
+        absent_phrase = _identity_mod.count_phrase(absent_counts, "trial family")
+    else:
+        n_absent = len(prim.get("declared_absent_trials", []) or [])
+        absent_phrase = f"{n_absent} eligible trial(s)"
 
     # ---- structured abstract ----
-    if res.get("suppressed_incompatible"):
+    if res.get("pool_refused"):
+        ref = res.get("pool_refused") or {}
+        anchor = ref.get("honest_k1_anchor") or {}
+        if anchor:
+            rem = ", ".join(str(x.get("label")) for x in (ref.get("named_remainders") or []))
+            result_sentence = (
+                f"The two eligible trials conflict in direction, so no pooled effect is reported. "
+                f"The pre-named k=1 anchor is {_e(anchor.get('name') or anchor.get('label'))}: "
+                f"{_e(anchor.get('scale') or scale)} {_fmt(anchor.get('effect'))} "
+                f"(95% CI {_fmt(anchor.get('ci_low'))} to {_fmt(anchor.get('ci_high'))}); "
+                f"the named remainder is {_e(rem)}."
+            )
+        else:
+            result_sentence = (
+                "The two eligible trials conflict in direction or interval support, so no pooled effect is "
+                "reported; both trial estimates are reported individually."
+            )
+    elif res.get("suppressed_incompatible"):
         # FAIL CLOSED (audit 23): no pooled result sentence when the estimand pool is incompatible.
         result_sentence = ("The eligible trials report the primary outcome on INCOMPATIBLE estimand classes ("
                            + _e(" + ".join((res.get("estmeasure") or {}).get("canonicals", [])))
-                           + "), so no pooled effect is reported: a recurrent-event/rate ratio and a "
-                           "first-event ratio are not one quantity. The per-trial estimates are reported and "
-                           "each coherent strand must be pooled separately.")
+                           + "), so no pooled effect is reported: these effect measures are not one "
+                           "quantity without an explicit, source-backed conversion. The per-trial estimates "
+                           "are reported and each coherent strand must be pooled separately.")
     elif res.get("present") is False or k is None:
         result_sentence = ("No eligible trial reported the primary outcome with an extractable, "
                            "source-verified estimate, so it is declared absent rather than pooled.")
@@ -237,11 +319,17 @@ def render(review, neutral: bool = False) -> str:
         result_sentence = (f"A single eligible trial contributed an extractable estimate: {scale} "
                            f"{est} (95% CI {lo} to {hi}); with k=1 no between-trial heterogeneity or "
                            f"prediction interval is estimable.")
+    elif res.get("pooled_ci_refused"):
+        result_sentence = (
+            f"Pooling {k} trials retained the point estimate ({scale} {est}), but the registered PM/HKSJ "
+            "confidence interval is not served at k=2 because it uses t(1)=12.71; no pooled "
+            "significance or null-crossing claim is made."
+        )
     else:
         pi = ""
         if res.get("pi_low") is not None:
             pi = f" The 95% prediction interval was {_fmt(res.get('pi_low'))} to {_fmt(res.get('pi_high'))}."
-        result_sentence = (f"Pooling {k} trials gave {scale} {est} (95% CI {lo} to {hi}), "
+        result_sentence = (f"Pooling {_k_phrase(prim)} gave {scale} {est} (95% CI {lo} to {hi}), "
                            f"random-effects (Paule-Mandel with a Hartung-Knapp interval).{pi}")
 
     abstract = (
@@ -254,7 +342,7 @@ def render(review, neutral: bool = False) -> str:
         f"page; it does not validate search completeness or extraction, and byte-for-byte reproduction from "
         f"the protocol SHA is not currently claimed — see Data availability.)</p>"
         f"<p><strong>Results.</strong> {result_sentence} "
-        + (f"{n_absent} eligible trial(s) were declared absent for this outcome (reported reason on each)."
+        + (f"{absent_phrase} were declared absent for this outcome (reported reason on each)."
            if n_absent else "")
         + "</p>"
         f"<p><strong>Certainty.</strong> "
@@ -283,11 +371,14 @@ def render(review, neutral: bool = False) -> str:
 
     # ---- results ----
     forest = _forest(review)
+    forest_caption = ("Forest plot of the primary outcome, rendered from the committed per-trial estimates."
+                      if res.get("pool_refused") or res.get("pooled_ci_refused") else
+                      "Forest plot of the primary outcome, rendered from the committed per-trial estimates "
+                      "and the pooled result.")
     results = (
         "<h4>Results</h4>"
         f"<p>{result_sentence}</p>"
-        + (f"<figure>{forest}<figcaption class='note'>Forest plot of the primary outcome, rendered from the "
-           "committed per-trial estimates and the pooled result.</figcaption></figure>" if forest else "")
+        + (f"<figure>{forest}<figcaption class='note'>{forest_caption}</figcaption></figure>" if forest else "")
     )
     if sens.get("full"):
         n_rated, n_tr = sens.get("n_rob_rated"), sens.get("n_trials")
@@ -297,19 +388,27 @@ def render(review, neutral: bool = False) -> str:
                     + ("; no trial is rated high risk. " if not sens.get("any_high") else ". ")
                     + (f"Restricted to low-risk trials the estimate was {scale} {_fmt(lo_s.get('estimate'))} "
                        f"(95% CI {_fmt(lo_s.get('ci_low'))} to {_fmt(lo_s.get('ci_high'))}, k={lo_s.get('k')}); "
-                       "read the widened interval with the coverage caveat." if lo_s.get("estimate") is not None
+                       f"{_rob_sensitivity_mod.low_only_relation_context_text(sens)}" if lo_s.get("estimate") is not None
                        else "a low-risk-only subpool was not estimable.") + "</p>")
 
     # ---- limitations ----
     lim_bits = []
     if g.get("domains", {}).get("imprecision", {}).get("downgrade"):
         lim_bits.append("the confidence interval is wide or crosses the null (imprecision)")
+    elif not g.get("domains", {}).get("imprecision", {}).get("assessed", True):
+        lim_bits.append("imprecision is not machine-assessed because the pooled k=2 CI is refused")
     if g.get("domains", {}).get("inconsistency", {}).get("downgrade"):
         lim_bits.append("between-trial heterogeneity was detected (inconsistency)")
+    elif not g.get("domains", {}).get("inconsistency", {}).get("assessed", True):
+        lim_bits.append("inconsistency is not automatically assessable at k=2")
     if not sens.get("rob_covered", True):
         lim_bits.append("risk of bias is not assessed for every pooled trial (registry-derived coverage)")
     if g.get("domains", {}).get("publication_bias", {}).get("downgrade"):
         lim_bits.append("the trial registry shows unpublished completed trials (possible publication bias)")
+    ck = prim.get("compat_key") or {}
+    for lim in ck.get("limitations") or []:
+        if lim.get("code") == "COMPAT_DIMENSION_HETEROGENEOUS":
+            lim_bits.append(lim.get("detail"))
     limitations = (
         "<h4>Limitations</h4>"
         "<p>" + ("Overall GRADE certainty is not rateable for this outcome because the primary pool mixes "

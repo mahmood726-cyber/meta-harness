@@ -28,6 +28,8 @@ from harness.canonical import review_sha256, sha256_text  # noqa: E402
 from harness.pipeline import build_review_core  # noqa: E402
 from harness.page import render_page  # noqa: E402
 from harness import census  # noqa: E402
+from harness import claimgraph  # noqa: E402
+from harness import membership  # noqa: E402
 from harness import proposition  # noqa: E402
 from harness.registration import protocol_sha as _registration_sha  # noqa: E402
 from harness import registration as _reg  # noqa: E402
@@ -65,7 +67,7 @@ def reproduce(slug):
     _rd = os.path.join(ROOT, "cache", slug, "research_diff.json")
     if os.path.exists(_rd):
         repro["research_diff"] = json.load(open(_rd, encoding="utf-8"))
-    _pa = census._parity_row(ROOT, slug)
+    _pa = membership.annotate_parity(census._parity_row(ROOT, slug, core), core)
     if _pa:
         repro["parity"] = _pa
     _rf = census._refusals_rows(ROOT, slug)
@@ -76,6 +78,11 @@ def reproduce(slug):
         repro["dual"] = _du
     repro["claim_check"] = census._claim_check(core)
     repro["proposition_check"] = {"checked": True, "contradictions": proposition.contradictions(core)}
+    repro = claimgraph.prepare_reproduction(core, repro)
+    cg_bad = claimgraph.check({**core, "reproduction": repro})
+    repro["claimgraph_check"] = {"violations": cg_bad}
+    if cg_bad:
+        reasons.append("claimgraph violations remain: " + json.dumps(cg_bad))
     final = dict(core, reproduction=repro)
     if sha256_text(render_page(final)) != sha256_text(served):
         reasons.append("served index.html does not byte-match a re-render from the replayed core")

@@ -28,8 +28,9 @@ def _has_any(text, terms) -> bool:
 def assess(config: dict, comparator_title: str, comparator_abstract: str = "") -> dict:
     inc = config.get("include", {})
     topic_terms = (config.get("intervention_terms") or []) + (inc.get("intervention_any") or [])
-    topic_is_class = _has_class(" ".join(topic_terms))
-    comparator_is_class = _has_class(comparator_title)
+    class_terms = tuple(config.get("intervention_class_terms") or ()) + _CLASS_TERMS
+    topic_is_class = _has_class(" ".join(topic_terms)) or _has_any(" ".join(topic_terms), class_terms)
+    comparator_is_class = _has_class(comparator_title) or _has_any(comparator_title, class_terms)
     iv_level_match = not (comparator_is_class and not topic_is_class)
     pop = _has_any((comparator_title or "") + " " + (comparator_abstract or ""), inc.get("population_any") or [])
     valid = bool(iv_level_match and pop)

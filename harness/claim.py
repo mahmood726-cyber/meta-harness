@@ -70,6 +70,18 @@ def derive(result):
       direction    : 'benefit' / 'harm' / 'none' relative to the null (benefit = estimate on
                      the protective side for a ratio: <1; for MD, <0). Descriptive only.
     """
+    if result.get("pool_refused"):
+        return {"present": False, "pooled_claim": False, "state": "POOL_REFUSED",
+                "refusal_code": (result.get("pool_refused") or {}).get("code"),
+                "significant": False, "crosses_null": None, "touches_null": None,
+                "null": null_value(result.get("scale")), "direction": None,
+                "basis": "no pooled claim is emitted because the pooled row is refused"}
+    if result.get("pooled_ci_refused"):
+        return {"present": False, "pooled_claim": False, "state": "NO_POOLED_CLAIM_K2",
+                "refusal_code": (result.get("pooled_ci_refused") or {}).get("code"),
+                "significant": False, "crosses_null": None, "touches_null": None,
+                "null": null_value(result.get("scale")), "direction": None,
+                "basis": "no significance/null-crossing claim is emitted for a refused k=2 HKSJ CI"}
     if not _is_present(result):
         return {"present": False, "significant": False, "crosses_null": None,
                 "touches_null": None, "null": None, "direction": None}

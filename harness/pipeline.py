@@ -14,9 +14,14 @@ import os
 import re
 
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
+from . import parity_relation
+from . import k2 as k2_mod
+from . import identity as identity_mod
+from . import membership as membership_mod
 from . import grade as grade_mod
 from . import rob_sensitivity as rob_sens_mod
 from . import claim as claim_mod
+from . import claimgraph as claimgraph_mod
 from . import invalidation as invalidation_mod
 from . import compat as compat_mod
 from . import recovery_recheck as recovery_recheck_mod
@@ -373,6 +378,110 @@ def _rr_cs(ai, n1, ci, n2):
     return (ai / n1) / (ci / n2)
 
 
+CROSS_SOURCE_LOG_TOL = 0.12
+
+_ENDPOINT_STOPWORDS = {
+    "a", "an", "and", "any", "by", "first", "for", "from", "in", "measure", "number",
+    "occurrence", "of", "outcome", "participants", "the", "time", "to", "with",
+}
+
+
+def _fmt_effect(x):
+    return "NA" if x is None else f"{float(x):.3g}"
+
+
+def _norm_endpoint_tokens(s):
+    toks = re.findall(r"[a-z0-9]+", (s or "").lower())
+    out = []
+    for t in toks:
+        if t in _ENDPOINT_STOPWORDS:
+            continue
+        if t.endswith("s") and len(t) > 4:
+            t = t[:-1]
+        out.append(t)
+    return set(out)
+
+
+def _mace_like(s):
+    sl = (s or "").lower()
+    if any(x in sl for x in ("mace", "major adverse cardiovascular", "major cardiovascular",
+                             "serious vascular event")):
+        return True
+    components = 0
+    components += int("cardiovascular death" in sl or "cv death" in sl)
+    components += int("myocardial infarction" in sl or re.search(r"\bmi\b", sl) is not None)
+    components += int("stroke" in sl)
+    return components >= 2
+
+
+def _endpoint_title_matches(spec, registry_title):
+    declared = spec.get("name") or ""
+    title = registry_title or ""
+    dl, tl = declared.lower(), title.lower()
+    if "all-cause" in dl or "all cause" in dl:
+        has_all_cause = any(x in tl for x in ("all-cause", "all cause", "all causes", "any cause"))
+        adds_nonmortality = any(x in tl for x in ("hospitalization", "hospitalisation", "heart failure"))
+        return has_all_cause and not adds_nonmortality
+    if "fracture" in dl:
+        need = _norm_endpoint_tokens(declared) & {"fracture", "vertebral", "nonvertebral", "hip", "new"}
+        return bool(need) and need.issubset(_norm_endpoint_tokens(title))
+    if _mace_like(declared):
+        return _mace_like(title)
+    declared_tokens = _norm_endpoint_tokens(declared)
+    title_tokens = _norm_endpoint_tokens(title)
+    if declared_tokens and len(declared_tokens & title_tokens) >= max(1, len(declared_tokens) // 2):
+        return True
+    for kw in spec.get("keywords") or []:
+        if len(kw) > 5 and kw.lower() in tl:
+            return True
+    return False
+
+
+def _pooled_effect_for_endpoint_match(ex):
+    rr = _rr_cs(ex.get("ai"), ex.get("n1i"), ex.get("ci"), ex.get("n2i"))
+    if rr:
+        return rr, "RR"
+    eff = ex.get("effect")
+    if eff is not None:
+        return eff, ex.get("scale") or "effect"
+    return None, None
+
+
+def _classify_endpoint_match(spec, registry_title, pooled_effect, registry_effect, *,
+                             registry_measure_type=None, registry_timepoint=None,
+                             registry_population=None, pooled_scale=None):
+    title = registry_title or ""
+    rtype = registry_measure_type or "UNKNOWN"
+    if not title:
+        return {"endpoint_match": "NOT_CHECKABLE",
+                "endpoint_match_reason": "registry outcome title is missing"}
+    if not _endpoint_title_matches(spec, title):
+        return {"endpoint_match": "DIFFERENT_ENDPOINT",
+                "endpoint_match_reason": f"registry title is not the pooled endpoint: {title}"}
+    if rtype == "KM_ESTIMATE":
+        return {"endpoint_match": "DIFFERENT_ENDPOINT",
+                "endpoint_match_reason": (f"registry title matches but the selected measure is a KM/timepoint "
+                                          f"estimate ({registry_timepoint or 'timepoint not named'}), not the "
+                                          f"pooled {pooled_scale or 'effect'} endpoint: {title}")}
+    if pooled_effect is None or registry_effect is None or pooled_effect <= 0 or registry_effect <= 0:
+        return {"endpoint_match": "NOT_CHECKABLE",
+                "endpoint_match_reason": f"cannot compare pooled and registry effects for: {title}"}
+    import math
+    delta = abs(math.log(float(pooled_effect) / float(registry_effect)))
+    if delta > CROSS_SOURCE_LOG_TOL:
+        return {"endpoint_match": "DIFFERENT_ENDPOINT",
+                "endpoint_match_reason": (f"registry-implied value {_fmt_effect(registry_effect)} differs from "
+                                          f"pooled {_fmt_effect(pooled_effect)} by log delta {delta:.3g} "
+                                          f"> tolerance {CROSS_SOURCE_LOG_TOL}: {title}")}
+    conversion = ""
+    if (pooled_scale or "").upper() in ("HR", "RR/HR") and rtype in ("COUNT_OF_PARTICIPANTS", "PERCENTAGE"):
+        conversion = (" pooled HR is compared with a registry proportion ratio only because the values "
+                      f"agree within log tolerance {CROSS_SOURCE_LOG_TOL}; this is corroboration, not replacement.")
+    return {"endpoint_match": "SAME_ENDPOINT",
+            "endpoint_match_reason": (f"registry title, population/timepoint metadata, and numeric value match "
+                                      f"the pooled endpoint within log tolerance {CROSS_SOURCE_LOG_TOL}." + conversion)}
+
+
 def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
     """SECOND INDEPENDENT EXTRACTOR + adjudication. A trial pooled from its abstract is corroborated
     against CT.gov structured results (a different source, extracted independently) when the trial
@@ -386,9 +495,35 @@ def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
     cg = extract_ctgov(oms, spec["keywords"], interv, comp)
     if not cg:
         return None
-    c_rr = _rr_cs(cg.get("ai"), cg.get("n1i"), cg.get("ci"), cg.get("n2i"))
+    c_rr = cg.get("registry_implied_effect")
+    if c_rr is None:
+        c_rr = _rr_cs(cg.get("ai"), cg.get("n1i"), cg.get("ci"), cg.get("n2i"))
     a_rr = _rr_cs(ex.get("ai"), ex.get("n1i"), ex.get("ci"), ex.get("n2i"))
-    out = {"ctgov_rr": round(c_rr, 3) if c_rr else None, "ctgov_source": cg.get("source", "")}
+    pooled_effect, pooled_scale = _pooled_effect_for_endpoint_match(ex)
+    verdict = _classify_endpoint_match(
+        spec,
+        cg.get("registry_title") or "",
+        pooled_effect,
+        c_rr,
+        registry_measure_type=cg.get("registry_measure_type"),
+        registry_timepoint=cg.get("registry_selected_timepoint") or cg.get("registry_timeframe"),
+        registry_population=cg.get("registry_population"),
+        pooled_scale=pooled_scale,
+    )
+    out = {"ctgov_rr": round(c_rr, 3) if c_rr else None,
+           "ctgov_source": cg.get("source", ""),
+           "registry_title": cg.get("registry_title"),
+           "registry_type": cg.get("registry_type"),
+           "registry_param_type": cg.get("registry_param_type"),
+           "registry_measure_type": cg.get("registry_measure_type"),
+           "registry_timeframe": cg.get("registry_timeframe"),
+           "registry_selected_timepoint": cg.get("registry_selected_timepoint"),
+           "registry_population": cg.get("registry_population"),
+           "registry_implied_effect": round(c_rr, 6) if c_rr else None,
+           "pooled_effect_for_endpoint_match": round(pooled_effect, 6) if pooled_effect else None,
+           "pooled_scale_for_endpoint_match": pooled_scale,
+           "endpoint_match_tolerance_log": CROSS_SOURCE_LOG_TOL,
+           **verdict}
     if a_rr and c_rr:
         import math
         ratio = a_rr / c_rr
@@ -396,20 +531,27 @@ def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
         gross = ratio > 1.5 or ratio < (1 / 1.5)
         out["abstract_rr"] = round(a_rr, 3)
         out["agree"] = not (flip and gross)
-        out["note"] = ("independently corroborated by CT.gov structured results"
-                       if out["agree"] else
-                       "DISCREPANCY vs CT.gov structured results (direction flip) — investigate before trusting")
     else:
         out["agree"] = None
-        out["note"] = ("CT.gov structured result present; measures are not both count-derived "
-                       "(abstract effect vs registry counts), shown for corroboration only")
+    out["corroborates_endpoint"] = (
+        out.get("endpoint_match") == "SAME_ENDPOINT" and out.get("agree") is not False
+    )
+    if out.get("agree") is False:
+        out["note"] = "DISCREPANCY vs CT.gov structured results (direction flip) — investigate before trusting"
+    elif out["corroborates_endpoint"]:
+        out["note"] = "independently corroborated by CT.gov structured results; " + out["endpoint_match_reason"]
+    else:
+        title = out.get("registry_title") or "untitled registry outcome"
+        out["note"] = f"registry reports a DIFFERENT measure: {title} — {out.get('endpoint_match_reason')}"
     return out
 
 
 def _pool_result(studies, scale="RR", *, require_study_effect=False):
     r = pool(studies, scale=scale, require_study_effect=require_study_effect)
+    i2 = k2_mod.i2_from_q(r.Q, r.k)
     res = {"k": r.k, "estimate": round(r.estimate, 4), "scale": r.scale,
            "ci_low": round(r.ci_low, 4), "ci_high": round(r.ci_high, 4), "tau2": round(r.tau2, 5),
+           "Q": round(r.Q, 5), **({"i2": round(i2, 1)} if i2 is not None else {}),
            "ci_provenance": r.ci_provenance}  # engine token; the interval-provenance gate checks it
     if r.k == 1:
         # External audit: at k=1 there is nothing to pool — print the single trial's SOURCE CI
@@ -443,10 +585,9 @@ def _pool_result(studies, scale="RR", *, require_study_effect=False):
         res["ci_low_fixed"] = round(r.ci_low_fixed, 4)
         res["ci_high_fixed"] = round(r.ci_high_fixed, 4)
         res["estimate_fixed"] = round(r.estimate_fixed, 4)
-        res["fixed_note"] = ("common-effect (fixed-effect, z-based) sensitivity: with only two trials "
-                             "the HKSJ interval uses a t-multiplier on a single degree of freedom and is "
-                             "very wide; where the two trials agree this conventional interval is the "
-                             "more informative bound.")
+        res["fixed_note"] = ("common-effect sensitivity (z-based; not the registered interval): with only "
+                             "two trials the registered HKSJ interval uses a t-multiplier on a single "
+                             "degree of freedom; the z-based common-effect interval is labelled separately.")
     return res
 
 
@@ -678,10 +819,32 @@ def _with_model_adjudication(slug, dual, decisions):
     return dual
 
 
+def _apply_trial_annotations(spec, trials):
+    """Copy source-backed per-trial compatibility annotations from the topic spec onto pooled rows."""
+    anns = spec.get("trial_annotations") or {}
+    if not anns:
+        return
+    allowed = {
+        "prior_disease_stage",
+        "background_therapy",
+        "components",
+        "evidence_unit",
+        "evidence_unit_detail",
+    }
+    for t in trials:
+        pid = str(t.get("id", "")).replace("PMID ", "").strip()
+        ann = anns.get(pid) or anns.get(str(t.get("label") or "")) or anns.get(str(t.get("id") or ""))
+        if not isinstance(ann, dict):
+            continue
+        for k in allowed:
+            if k in ann:
+                t[k] = ann[k]
+
+
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
                    locate_judgments=None, verified_effects=None, dose_selection=None,
-                   registry_designs=None):
+                   registry_designs=None, k2_anchor_config=None):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     dose_selection = dose_selection or {}
@@ -906,6 +1069,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     trials, design_refusals = design_key.split_design_refusals(trials)
     for t in design_refusals:
         absent.append(design_key.refusal_absence(t))
+    _apply_trial_annotations(spec, trials)
     out = {"name": spec["name"], "kind": kind, "primary": bool(spec.get("primary")),
            "estimand": spec.get("estimand", "RR"), "population": spec.get("population"),
            "timepoint": spec.get("timepoint"), "method": METHOD,
@@ -919,6 +1083,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             **({"published_alternative": (t.get("design") or {}).get("published_alternative")}
                if (t.get("design") or {}).get("published_alternative") else {}),
         } for t in design_refusals]
+    out["membership"] = membership_mod.build_outcome_membership(out, included)
     if design_refusals and len(trials) < 2:
         out["result"] = {
             "present": False,
@@ -991,8 +1156,9 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # decided by COMPATIBILITY CLASS, not by reported label. Mixing labels WITHIN one class (RALES's
         # Cox "relative risk" + EMPHASIS's "hazard ratio" -- both first-event relative ratios) is
         # compatible and disclosed, NOT the old alarming "mixed (HR/RR)". Mixing ACROSS classes (a
-        # recurrent-event rate ratio + a first-event hazard ratio -- the iv-iron defect) is a genuine
-        # INCOMPATIBILITY and is flagged as such. The pooling math is unchanged (per-study log-effects).
+        # recurrent-event rate ratio + a first-event hazard ratio -- the iv-iron defect, or an odds ratio
+        # + risk ratio) is a genuine INCOMPATIBILITY and is flagged as such. The pooling math is unchanged
+        # (per-study log-effects).
         for t in trials:
             if t.get("e1i") is not None:
                 _rl = "IRR"
@@ -1036,12 +1202,19 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             out["result"]["suppressed_incompatible"] = True
             out["result"]["suppressed_reason"] = (
                 "pooled effect SUPPRESSED: the trials mix incompatible estimand classes ("
-                + " + ".join(_compat["canonicals"]) + ") — a recurrent-event/rate ratio and a first-event "
-                "ratio are not one quantity, so no pooled effect, CI, heterogeneity or sensitivity is valid. "
+                + " + ".join(_compat["canonicals"]) + ") — these effect measures are not one quantity "
+                "without an explicit, source-backed conversion, so no pooled effect, CI, heterogeneity "
+                "or sensitivity is valid. "
                 "The per-trial estimates are shown; pool each coherent strand separately.")
         elif _compat["status"] == "compatible_labels":
             # one compatibility class, >1 label: keep the pooled ratio scale, disclose the label mix
             out["result"]["scale_mixed"] = _compat["labels"]
+        if not _incompat and out["result"].get("k") == 2:
+            k2_mod.apply_k2_policy(
+                out["result"],
+                trials,
+                anchor_config=k2_anchor_config,
+            )
         # DECLARED METHOD MATCHES THE SCALE ACTUALLY POOLED: a mean-difference outcome must carry the
         # mean-difference method string, not the log-ratio one (the melatonin/esketamine/semaglutide-weight
         # defect). Chosen from the ACTUAL result scale via the single source of truth.
@@ -1061,7 +1234,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # much any single trial moves the estimate; at k<=2 it is not assessable and we say so (never
         # hidden). Uses the same pooler and scale; no new number is invented.
         k_now = out["result"].get("k")
-        if isinstance(k_now, int) and k_now >= 3 and not _incompat:
+        if isinstance(k_now, int) and k_now >= 3 and not _incompat and not out["result"].get("pool_refused"):
             loo = []
             for j in range(len(studies)):
                 sub = studies[:j] + studies[j + 1:]
@@ -1075,7 +1248,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 "most_influential": worst["dropped"] if worst else None,
                 "per_trial": loo,
                 "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."}
-        elif isinstance(k_now, int) and not _incompat:
+        elif isinstance(k_now, int) and not _incompat and not out["result"].get("pool_refused"):
             out["result"]["leave_one_out"] = {"note": f"not assessable at k={k_now} (leave-one-out needs k>=3)"}
         if out["result"].get("k") == 1:
             # A single trial is not a random-effects meta-analysis: present it honestly as the
@@ -1268,7 +1441,8 @@ def build_review_core(slug, config, records, protocol_sha):
     outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp,
                                outcome_judgments=ojudg, verified_arms=varms, locate_judgments=ljudg,
                                verified_effects=veffs, dose_selection=dsel,
-                               registry_designs=registry_designs)
+                               registry_designs=registry_designs,
+                               k2_anchor_config=config.get("k2_direction_conflict_anchor"))
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 
@@ -1306,12 +1480,15 @@ def build_review_core(slug, config, records, protocol_sha):
                 newer.append(rec_by_id.get(d["id"], {}).get("acronym") or d["id"])
         except ValueError:
             pass
+    comp_scope = scope.assess(config, comp_rec.get("title") or "", comp_abstract)
+    if invalid_note := parity_relation.invalid_scope_override(ROOT, slug):
+        comp_scope = {**comp_scope, "scope_valid": False, "note": invalid_note}
     comparator = {
         "name": comp_rec.get("title") or "comparator", "year": comp_year,
         "journal": comp_rec.get("journal"), "pmid": comp_rec.get("id"), "doi": comp_rec.get("doi"),
         "url": (f"https://doi.org/{comp_rec.get('doi')}" if comp_rec.get("doi") else None),
         "open_access": bool(oa.get("is_oa")), "reported": reported,
-        "scope": scope.assess(config, comp_rec.get("title") or "", comp_abstract),
+        "scope": comp_scope,
         "overlap": {"ours_k": ours_k, "theirs_k": theirs_k,
                     **({"theirs_k_source": config["comparator_k_source"]} if config.get("comparator_k_source") else {}),
                     "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
@@ -1363,6 +1540,8 @@ def build_review_core(slug, config, records, protocol_sha):
         source_status.get("Registry-first (AACT)"),
     )
 
+    integrity = membership_mod.integrity_with_membership(_load_integrity(slug), outcomes)
+
     review = {
         "slug": slug, "title": config["title"], "question": config["question"],
         "method_declared": _declared_method,
@@ -1394,7 +1573,7 @@ def build_review_core(slug, config, records, protocol_sha):
         # interest is a registry-confirmed RANDOMISED CONTRAST or a fail-open/background inclusion. Visible,
         # never silent -- a trial admitted with no registry arm data reads 'contrast unverified', not verified.
         **({"arm_contrast": _ac} if (_ac := _load_arm_contrast(slug)) else {}),
-        **({"integrity": _integ} if (_integ := _load_integrity(slug)) else {}),
+        **({"integrity": integrity} if integrity else {}),
         # Unit-of-analysis disclosure (ME-26/27): pooled trials with a cluster-randomized or crossover
         # design, from the committed abstracts. Rendered as a caveat; not an adjustment (ICC unavailable).
         **({"unit_of_analysis": _uoa} if (_uoa := unit_of_analysis.scan_pooled({"outcomes": outcomes}, rec_by_id)) else {}),
@@ -1407,6 +1586,7 @@ def build_review_core(slug, config, records, protocol_sha):
         # Corpus-level RoB span-check agreement (rendered on the RoB tab).
         **({"rob_spancheck": _rsc} if (_rsc := _load_rob_spancheck()) else {}),
     }
+    identity_mod.annotate_review(review, merged, config.get("companion_reports") or [])
     # CANONICAL CLAIM: one derivation of significance / null-crossing / direction per result,
     # attached to every outcome (primary, secondary, harms) and every transcribed comparator claim,
     # so a surface DERIVES the stated judgement from one object instead of recomputing it (the
@@ -1420,6 +1600,9 @@ def build_review_core(slug, config, records, protocol_sha):
         for _r in _cmp.get("reported", []):
             if isinstance(_r, dict):
                 _r["claim"] = claim_mod.derive(_r)
+    # DECLARED STRANDS are result-bearing objects for this topic, not index-only prose.
+    # Attach them before invalidation so strand members count as pooled membership.
+    claimgraph_mod.attach_strands(review, ROOT)
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config before invalidation, because identifier-scope needs the PICO I-line quote for its reason.
     _protocol_i_line = ""
@@ -1427,7 +1610,10 @@ def build_review_core(slug, config, records, protocol_sha):
         _md = open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8").read()
         _protocol_i_line = protocol_compiler_mod.intervention_line(_md)
         _div = protocol_compiler_mod.compare(slug, _md, config)
+        _amendments = protocol_compiler_mod.scope_amendments(_md)
         review["protocol_config"] = {"divergences": _div, "intervention_i_line": _protocol_i_line}
+        if _amendments:
+            review["protocol_history"] = {"amendments": _amendments}
     except OSError:
         pass
     # IDENTIFIER SCOPE: detect a single-agent slug over a class-level included pool structurally
@@ -1435,6 +1621,8 @@ def build_review_core(slug, config, records, protocol_sha):
     _scope_config = dict(config)
     if _protocol_i_line:
         _scope_config["protocol_i_line"] = _protocol_i_line
+    if review.get("protocol_history"):
+        _scope_config["protocol_scope_amendments"] = review["protocol_history"].get("amendments") or []
     review["identifier_scope"] = invalidation_mod.identifier_scope(
         slug, _scope_config, (review.get("screening") or {}).get("records") or []
     )
@@ -1478,36 +1666,17 @@ def build_review_core(slug, config, records, protocol_sha):
             _disc = recovery_recheck_mod.disclosure(_rr)
             if _disc:
                 _o["recovery_disclosure"] = _disc
-    # ABSENCE-STATE ONTOLOGY (external audit, STATE root system): "declared absent" conflated four
-    # epistemically different things and let a page assert "no harms recorded" while the source in fact
-    # reports the harm (dpp4 SAVOR HF-hospitalisation 1.27; REWIND GI 2347/4949). Attach a per-trial
-    # `state` to every declared-absent entry so the strong DECLARED_ABSENT claim (a statement about the
-    # TRIAL) is reserved for NO_OUTCOME_DATA_IN_SOURCE, and a machine failure to extract a number that
-    # IS in the source reads as EXTRACTION_NOT_PERFORMED (a statement about US). Only the machine-absent
-    # kind is classified from the source; a deliberate refusal (estimand/timepoint/identity mismatch)
-    # kept its number and is REFUSED_ON_EVIDENCE — never an assertion the outcome is absent from the
-    # trial. `UNASSESSED NEVER COUNTS AS FAVOURABLE`.
+    # REFUSAL-REASON TRUTH (STATE root system): a declared-absent/refused row must say what the cached
+    # source actually supports. SOURCE_NOT_RETRIEVED is reserved for a missing cached abstract; if an
+    # outcome effect is visible but belongs to a different estimand class, the row says so and quotes
+    # the source span. This annotation never makes a value poolable; it only replaces generic fallback
+    # prose with a typed, source-backed refusal.
     _kw_by_name = {sp.get("name"): sp.get("keywords") for sp, _ in _outcome_specs(config)}
+    _spec_by_name = {sp.get("name"): sp for sp, _ in _outcome_specs(config)}
     for _o in review.get("outcomes", []):
         _kws = _kw_by_name.get(_o.get("name")) or []
+        _sp = _spec_by_name.get(_o.get("name")) or {}
         for _t in (_o.get("declared_absent_trials") or []):
-            _kind = _t.get("absent_kind")
-            if _kind == "refused_on_evidence":
-                _t["state"] = "REFUSED_ON_EVIDENCE"
-                _t["state_basis"] = ("a number for this outcome WAS extracted from the source and then "
-                                     "deliberately not pooled (see reason); this is NOT a claim the trial "
-                                     "lacks the outcome")
-                continue
-            if _kind == "adjudicated_absent":
-                _t.setdefault("state", None)
-                if not _t.get("state"):
-                    _t["state"] = "NO_OUTCOME_DATA_IN_SOURCE"
-                    _t["state_basis"] = ("human-adjudicated against the committed source: it reports no value "
-                                         "for THIS outcome")
-                else:
-                    _t.setdefault("state_basis", "human-adjudicated override")
-                continue
-            # machine_absent (or legacy entries with no kind): classify from the source we actually hold.
             _pid = str(_t.get("id", "")).replace("PMID ", "")
             _ab = (rec_by_id.get(_pid) or {}).get("abstract", "")
             _ftp = os.path.join(ROOT, "cache", slug, f"ft_{_pid}.txt")
@@ -1517,8 +1686,17 @@ def build_review_core(slug, config, records, protocol_sha):
                     _ft = open(_ftp, encoding="utf-8").read()
                 except OSError:
                     _ft = None
-            _st, _basis = absence_mod.classify(_kws, _ab, _ft)
-            _t["state"], _t["state_basis"] = _st, _basis
+            _ann = absence_mod.classify_reason(
+                _kws, _ab, _ft,
+                outcome_name=_o.get("name"),
+                declared_estimand=_sp.get("estimand") or _o.get("estimand"),
+                reason=_t.get("reason"),
+                absent_kind=_t.get("absent_kind"),
+                row=_t,
+            )
+            for _ak, _av in _ann.items():
+                if _av not in (None, "", []):
+                    _t[_ak] = _av
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config so a divergence (estimand, analysis set, design masking AND/OR) between the registered
     # prose and the machine rules cannot pass -- the tocilizumab self-certification defect (a check
@@ -1532,21 +1710,6 @@ def build_review_core(slug, config, records, protocol_sha):
                                          "intervention_i_line": protocol_compiler_mod.intervention_line(_md)}
         except OSError:
             pass
-    # DECLARED STRANDS on the TOPIC PAGE: where a topic's single pool is suppressed (incompatible
-    # estimands) and a committed strands artefact (docs/<*>_strands.json, slug-matched) decomposes it
-    # into compatible strands, attach it so the TOPIC page renders the same strands the index shows.
-    # Otherwise the topic page would render a bare refusal while the index renders four strands for the
-    # same review -- a categorical/state contradiction between two surfaces. The artefact is a committed
-    # docs/*.json, so the gate's dependency rule already forces a rebuild if it changes (no staleness).
-    import glob as _glob
-    for _sp in _glob.glob(os.path.join(ROOT, "docs", "*_strands.json")):
-        try:
-            _sd = json.load(open(_sp, encoding="utf-8"))
-        except (OSError, ValueError):
-            continue
-        if _sd.get("slug") == slug:
-            review["strands"] = _sd
-            break
     # RoB-stratified sensitivity re-pool of the primary outcome (regenerates from the object, so the
     # figure the page renders is reproduced, not typed). Uses the same validated pooler.
     # RoB-stratified sensitivity is a RE-POOL, so it must also fail closed on an INCOMPATIBLE primary
@@ -1554,12 +1717,19 @@ def build_review_core(slug, config, records, protocol_sha):
     _prim_res = next((o.get("result") or {} for o in review.get("outcomes", []) if o.get("primary")), {})
     if (_prim_res.get("present") is not False
             and not _prim_res.get("suppressed_incompatible")
+            and not _prim_res.get("pool_refused")
             and (_sens := rob_sens_mod.sensitivity(review))):
+        # At k=2 the registered CI is refused (K2_SINGLE_DF); rob_sensitivity.sensitivity() marks the
+        # stratum CIs refused itself so the block renders strata + point estimates rather than vanishing.
         review["rob_sensitivity"] = _sens
     # Partial, object-derived GRADE certainty (risk-of-bias, inconsistency, imprecision, registry-based
     # publication bias computed from committed fields; indirectness left to human judgement).
     if (_grade := grade_mod.grade(review, _load_ghost(slug))):
         review["grade"] = _grade
+    claimgraph_mod.stamp_review(review)
+    _cg_bad = claimgraph_mod.check(review)
+    if _cg_bad:
+        raise ValueError("CLAIMGRAPH CONTRADICTION (build refused): " + json.dumps(_cg_bad))
     review["limitations"] = build_limitations(review)
     return review
 

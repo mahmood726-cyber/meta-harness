@@ -20,6 +20,9 @@ import re
 from typing import Any
 
 from . import manuscript as _manuscript_mod
+from . import rob_sensitivity as _rob_sensitivity_mod
+from . import claimgraph as _claimgraph_mod
+from . import identity as _identity_mod
 
 TABS = [
     ("overview", "Overview"),
@@ -76,15 +79,30 @@ def _absent_block(reason: str) -> str:
     return f'<div class="absent"><strong>DECLARED ABSENT.</strong> {_e(reason)}</div>'
 
 
+def _unrenderable_block(obj: dict[str, Any]) -> str:
+    return (
+        "<div class='absent'><strong>UNRENDERABLE claimgraph object.</strong> "
+        f"Violation <code>{_e(obj.get('violation_code'))}</code>; "
+        f"claim_id <code>{_e(obj.get('claim_id'))}</code>. "
+        "The stale object's numbers and prose are suppressed.</div>"
+    )
+
+
 # ABSENCE-STATE ONTOLOGY (external audit, STATE root system): the per-trial `state` set in the pipeline
 # is the authority for how a declared-absent trial is labelled — a machine-checkable field, not a guess
 # off the reason string. Only NO_OUTCOME_DATA_IN_SOURCE licenses the strong "declared absent" claim (a
 # statement about the TRIAL). The other states are statements about US (extraction/retrieval) or a
 # deliberate refusal of a number that WAS found — none is evidence the outcome does not exist.
 _ABSENCE_STATE_LABEL = {
+    "OUTCOME_NOT_IN_SOURCE": "not in cached source -- no outcome sentence/effect found",
     "NO_OUTCOME_DATA_IN_SOURCE": "declared absent — no outcome data in the retrieved source",
+    "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH": "excluded on evidence -- effect present but wrong estimand class",
+    "COUNTS_PRESENT_NOT_CORROBORATED": "not extracted -- arm counts present but percentage corroboration failed",
+    "MULTI_ARM_UNRESOLVED": "excluded on evidence -- multi-arm contrast unresolved",
+    "TIMEPOINT_MISMATCH": "excluded on evidence -- timepoint mismatch",
+    "POPULATION_MISMATCH": "excluded on evidence -- population or analysis-set mismatch",
     "EXTRACTION_NOT_PERFORMED": "not extracted — the outcome's number IS in the source (extraction gap, not trial absence)",
-    "SOURCE_NOT_RETRIEVED": "not established — abstract only; full text not retrieved, so absence in the trial is unproven",
+    "SOURCE_NOT_RETRIEVED": "source not retrieved -- cached abstract text is missing",
     "REFUSED_ON_EVIDENCE": "excluded on evidence — a number was found and deliberately not pooled (see reason)",
 }
 
@@ -280,6 +298,74 @@ def _effect_label(res) -> str:
     return "Single-trial effect" if res.get("k") == 1 else "Pooled effect"
 
 
+def _k2_pool_refusal_block(res: dict) -> str:
+    ref = res.get("pool_refused") or {}
+    cf = res.get("counterfactual") or {}
+    line = (
+        "<div class='absent'><strong>Pooled result REFUSED (k=2 direction conflict).</strong> "
+        f"{_e(ref.get('detail'))} {_e(ref.get('rule'))}"
+    )
+    if cf.get("would_be_estimate") is not None:
+        line += (
+            f" <em>The invalid pooled row is quarantined for audit only: "
+            f"{_num(cf.get('would_be_estimate'))} ({_num(cf.get('would_be_ci_low'))}-"
+            f"{_num(cf.get('would_be_ci_high'))}), tau^2={_e(cf.get('would_be_tau2'))}, "
+            f"I^2={_e(cf.get('would_be_i2'))}%.</em>"
+        )
+    anchor = ref.get("honest_k1_anchor") or {}
+    if anchor:
+        line += (
+            f"<p><strong>Honest k=1 anchor:</strong> {_e(anchor.get('name') or anchor.get('label'))} "
+            f"{_e(anchor.get('scale') or res.get('scale'))} {_num(anchor.get('effect'))} "
+            f"(95% CI {_num(anchor.get('ci_low'))}-{_num(anchor.get('ci_high'))}). "
+            f"{_e(anchor.get('basis') or '')}</p>"
+        )
+        rem = ref.get("named_remainders") or []
+        if rem:
+            items = "".join(
+                f"<li>{_e(x.get('label'))}: {_e(x.get('scale') or res.get('scale'))} {_num(x.get('effect'))} "
+                f"(95% CI {_num(x.get('ci_low'))}-{_num(x.get('ci_high'))})</li>" for x in rem
+            )
+            line += f"<p><strong>Named remainder(s), not pooled:</strong></p><ul>{items}</ul>"
+    return line + "</div>"
+
+
+def _registered_ci_refusal_text(res: dict) -> str:
+    ref = res.get("pooled_ci_refused") or {}
+    return f"REFUSED ({_e(ref.get('code'))}): {_e(ref.get('detail'))}"
+
+
+def _k2_ci_refusal_block(res: dict) -> str:
+    ref = res.get("pooled_ci_refused") or {}
+    return (
+        "<div class='absent'><strong>Registered pooled CI REFUSED at k=2.</strong> "
+        f"{_e(ref.get('detail'))} The point estimate may be displayed, but no pooled "
+        "significance/null-crossing claim is emitted.</div>"
+    )
+
+
+def _effect_rows(res: dict) -> list[tuple[str, str]]:
+    if res.get("pooled_ci_refused"):
+        return [
+            ("Pooled point estimate (registered CI refused)",
+             f"{_num(res.get('estimate'))} ({_e(res.get('scale'))}); no pooled significance/null-crossing claim"),
+            ("Registered PM/HKSJ CI", _registered_ci_refusal_text(res)),
+        ]
+    return [(_effect_label(res), _ci(res))]
+
+
+def _common_effect_row(res: dict) -> tuple[str, str] | None:
+    if res.get("ci_low_fixed") is None:
+        return None
+    txt = (f"{_num(res.get('estimate_fixed'))} ({res.get('scale')}), 95% CI "
+           f"{_num(res.get('ci_low_fixed'))}-{_num(res.get('ci_high_fixed'))}")
+    if res.get("fixed_heterogeneity_caveat"):
+        txt += f" [{_e(res.get('fixed_heterogeneity_caveat'))}]"
+    return ("Common-effect sensitivity (z-based; not the registered interval)", txt)
+
+
+_ROB_SENS_REFUSED_HTML = "<h4>Risk-of-bias sensitivity (re-pooled with the same estimator)</h4><div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> Not computed: the primary pooled row is REFUSED ({code}), so there is no pooled estimate to re-pool by risk-of-bias stratum. The per-trial rows and their risk-of-bias ratings are shown above; a stratified re-pool of a refused pool would be a number about nothing.</div>"
+
 # ---- tabs --------------------------------------------------------------------
 
 def _transparency_counts(r):
@@ -349,6 +435,11 @@ def _identifier_scope_block(r):
     if verdict in ("MATCH", "NOT_APPLICABLE"):
         return ("<p class='muted'><strong>Identifier scope:</strong> "
                 f"{_e(scope.get('detail'))}. Verdict: <code>{_e(verdict)}</code>.</p>")
+    if verdict == "DISCLOSED_SCOPE_AMENDMENT":
+        amend = scope.get("amendment") or {}
+        return ("<div class='banner'><strong>Identifier scope amendment.</strong> "
+                f"Dated {_e(amend.get('date'))}: {_e(scope.get('detail'))} "
+                f"<span class='muted'>Verdict: <code>{_e(verdict)}</code>.</span></div>")
     if verdict == "UNRESOLVED":
         unresolved = "; ".join(
             f"{x.get('trial')}={x.get('matched_intervention')}" for x in scope.get("unresolved", []) or []
@@ -428,7 +519,10 @@ def _overview(r, neutral):
     prim = _primary(r)
     if prim and _absent(prim) is None:
         res = prim.get("result") or {}
-        if res.get("suppressed_incompatible"):
+        if res.get("pool_refused"):
+            parts.append("<h3>Primary outcome</h3>")
+            parts.append(_k2_pool_refusal_block(res))
+        elif res.get("suppressed_incompatible"):
             # FAIL CLOSED (audit 23): the overview summary must not present a suppressed-incompatible primary
             # as pooled — no "Trials pooled (k)", no "Pooled effect" row (even with the number popped, the
             # framing implies a pool). Show the suppression, defer per-trial estimates to Results.
@@ -447,18 +541,25 @@ def _overview(r, neutral):
             pooled = _pooled_ids(prim)
             k = res.get("k")
             kdisp = f"{k} — {'; '.join(pooled)}" if pooled else k
-            n_inc = _n_included(r)
-            n_absent = len(prim.get("declared_absent_trials") or [])
+            has_units = _has_publication_units(r)
+            inc_counts = _included_unit_counts(r)
+            count_noun = "trial family" if has_units else "trial"
             recon = None
-            if n_inc is not None and k is not None and isinstance(k, int):
-                if n_inc != k:
-                    recon = (f"{n_inc} trials met P/I/C/design (screening); {k} reported this "
+            if inc_counts["trials"] is not None and k is not None and isinstance(k, int):
+                if inc_counts["trials"] != k:
+                    absent_counts = _outcome_unit_counts(prim, has_units=has_units)["absent"]
+                    recon = (f"{_identity_mod.count_phrase(inc_counts, count_noun)} met P/I/C/design (screening); {k} reported this "
                              f"outcome with an extractable number and were pooled; the remaining "
-                             f"{n_inc - k} are listed as declared-absent in Results (they were "
+                             f"{_identity_mod.count_phrase(absent_counts, count_noun)} are listed as declared-absent in Results (they were "
                              f"included but reported no poolable value for this outcome).")
                 else:
-                    recon = (f"all {n_inc} screened-in trials reported this outcome and were "
-                             f"pooled (screening count = k).")
+                    if has_units:
+                        recon = (f"all {_identity_mod.count_phrase(inc_counts, count_noun)} reported this outcome and were "
+                                 f"pooled (screening count = k).")
+                    else:
+                        label = "trial" if inc_counts["trials"] == 1 else "trials"
+                        recon = (f"all {inc_counts['trials']} screened-in {label} reported this outcome and were "
+                                 f"pooled (screening count = k).")
             rows = [
                 ("Outcome", prim.get("name")),
                 ("Estimand", res.get("scale") or prim.get("estimand")),
@@ -466,11 +567,9 @@ def _overview(r, neutral):
             ]
             if recon:
                 rows.append(("Screened-in → pooled", recon))
-            rows.append((_effect_label(res), _ci(res)))
+            rows.extend(_effect_rows(res))
             if res.get("ci_low_fixed") is not None:
-                rows.append(("Common-effect CI (k=2 sensitivity)",
-                             f"{_num(res.get('estimate_fixed'))} ({res.get('scale')}), 95% CI "
-                             f"{_num(res.get('ci_low_fixed'))}–{_num(res.get('ci_high_fixed'))}"))
+                rows.append(_common_effect_row(res))
             if res.get("pi_low") is not None:
                 rows.append(("Prediction interval", f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}"))
             if res.get("tau2") is not None:
@@ -542,6 +641,28 @@ def _pooled_ids(o):
         lbl, idv = t.get("label"), t.get("id")
         ids.append(f"{lbl} ({idv})" if lbl and str(lbl) != str(idv) else str(idv))
     return ids
+
+
+def _has_publication_units(r):
+    return bool(r.get("publication_units"))
+
+
+def _included_unit_counts(r):
+    if _has_publication_units(r):
+        return _identity_mod.included_counts(r)
+    n = _n_included(r) or 0
+    return {"trials": n, "publications": n}
+
+
+def _outcome_unit_counts(o, *, has_units=False):
+    if has_units:
+        return _identity_mod.outcome_counts(o)
+    n_pool = len(o.get("trials") or [])
+    n_abs = len(o.get("declared_absent_trials") or [])
+    return {
+        "pooled": {"trials": n_pool, "publications": n_pool},
+        "absent": {"trials": n_abs, "publications": n_abs},
+    }
 
 
 def _n_included(r):
@@ -660,26 +781,34 @@ def _screening(r, neutral):
     if reason:
         return _absent_block(reason)
     recs = s.get("records", []) or []
+    show_units = _has_publication_units(r) and any(x.get("trial_family_id") for x in recs)
+    unit_heads = "<th>Trial family</th><th>Publication role</th>" if show_units else ""
     if (r.get("search") or {}).get("retrieval"):
         head = ("<tr><th>Record</th><th>Type</th><th>Decision</th><th>Rule</th><th>Found by</th>"
-                "<th>Reason (true of the record)</th><th>Verbatim span (from the record)</th></tr>")
+                f"{unit_heads}<th>Reason (true of the record)</th><th>Verbatim span (from the record)</th></tr>")
         rows = "".join(
-            f"<tr><td>{_e(x.get('id'))}</td><td>{_e(x.get('id_type'))}</td>"
-            f"<td class='dec-{_e(x.get('decision'))}'>{_e(x.get('decision'))}</td>"
-            f"<td>{_e(x.get('rule_id'))}</td><td>{_e(', '.join(x.get('found_by') or []))}</td>"
-            f"<td>{_e(x.get('reason'))}</td>"
-            f"<td class='span'>{_e(x.get('span'))}</td></tr>"
+            (f"<tr><td>{_e(x.get('id'))}</td><td>{_e(x.get('id_type'))}</td>"
+             f"<td class='dec-{_e(x.get('decision'))}'>{_e(x.get('decision'))}</td>"
+             f"<td>{_e(x.get('rule_id'))}</td><td>{_e(', '.join(x.get('found_by') or []))}</td>"
+            + (f"<td>{_e(x.get('trial_family_id'))}</td><td>{_e(x.get('publication_role'))}</td>"
+               if show_units else "")
+             + f"<td>{_e(x.get('reason'))}</td>"
+             + f"<td class='span'>{_e(x.get('span'))}</td></tr>")
             for x in recs)
     else:
         head = ("<tr><th>Record</th><th>Type</th><th>Decision</th><th>Rule</th>"
-                "<th>Reason (true of the record)</th><th>Verbatim span (from the record)</th></tr>")
+                f"{unit_heads}<th>Reason (true of the record)</th><th>Verbatim span (from the record)</th></tr>")
         rows = "".join(
-            f"<tr><td>{_e(x.get('id'))}</td><td>{_e(x.get('id_type'))}</td>"
-            f"<td class='dec-{_e(x.get('decision'))}'>{_e(x.get('decision'))}</td>"
-            f"<td>{_e(x.get('rule_id'))}</td><td>{_e(x.get('reason'))}</td>"
-            f"<td class='span'>{_e(x.get('span'))}</td></tr>"
+            (f"<tr><td>{_e(x.get('id'))}</td><td>{_e(x.get('id_type'))}</td>"
+             f"<td class='dec-{_e(x.get('decision'))}'>{_e(x.get('decision'))}</td>"
+             f"<td>{_e(x.get('rule_id'))}</td>"
+            + (f"<td>{_e(x.get('trial_family_id'))}</td><td>{_e(x.get('publication_role'))}</td>"
+               if show_units else "")
+            + f"<td>{_e(x.get('reason'))}</td>"
+             + f"<td class='span'>{_e(x.get('span'))}</td></tr>")
             for x in recs)
     n_inc = sum(1 for x in recs if x.get("decision") == "include")
+    inc_counts = _included_unit_counts(r)
     integ = r.get("integrity")
     integ_html = ""
     if integ:
@@ -695,12 +824,30 @@ def _screening(r, neutral):
                    + (f"; {len(retro)} registered retrospectively — after enrolment began, a reporting-bias "
                       f"signal, not disqualifying ({_e(', '.join(retro))})" if retro else "")
                    + f" (checked {_e(integ.get('checked_utc'))} via {_e(integ.get('source'))} + AACT dates).</p>")
+            if integ.get("n_not_checkable") is not None:
+                msg = (f"<p class='note'><strong>Trial integrity:</strong> {_e(integ.get('n_pooled'))} "
+                       f"trials pooled; {_e(integ.get('n_pubmed_checked'))} checked via PubMed, "
+                       f"{_e(integ.get('n_not_checkable'))} not checkable (registry-only rows). "
+                       "None of the PubMed-checkable pooled trials is retracted"
+                       + (f"; {len(concern)} under an expression of concern ({_e(', '.join(concern))})" if concern else "")
+                       + (f"; {len(retro)} registered retrospectively - after enrolment began, a reporting-bias "
+                          f"signal, not disqualifying ({_e(', '.join(retro))})" if retro else "")
+                       + f" (checked {_e(integ.get('checked_utc'))} via {_e(integ.get('source'))}).</p>")
             integ_html = msg
     # PRISMA 2020 flow (items 16a/16b): counts at every stage, exclusions broken down by rule.
     from collections import Counter as _C
     rule_counts = _C(x.get("rule_id") for x in recs if x.get("decision") == "exclude")
     prim = next((o for o in (r.get("outcomes") or []) if o.get("primary")), None)
     pooled_k = ((prim or {}).get("result") or {}).get("k") if prim else None
+    if show_units:
+        absent_counts = (_outcome_unit_counts(prim, has_units=True)["absent"]
+                         if prim else {"trials": max(inc_counts["trials"] - (pooled_k or 0), 0),
+                                       "publications": max(inc_counts["publications"] - (pooled_k or 0), 0)})
+        eligible_display = _identity_mod.count_phrase(inc_counts, "trial family")
+        absent_display = _identity_mod.count_phrase(absent_counts, "trial family")
+    else:
+        eligible_display = n_inc
+        absent_display = n_inc - (pooled_k or 0)
     n_identified = ((r.get("search") or {}).get("n_records")) or len(recs)
     excl_bits = " · ".join(f"{rid} {n}" for rid, n in sorted(rule_counts.items()))
     flow = ("<h4>Study selection flow (PRISMA 2020)</h4>"
@@ -708,9 +855,9 @@ def _screening(r, neutral):
             f"<tr><td>Records identified (committed search)</td><td>{_e(n_identified)}</td></tr>"
             f"<tr><td>Records screened (deduplicated)</td><td>{_e(len(recs))}</td></tr>"
             f"<tr><td>Excluded at screening — by rule</td><td>{_e(sum(rule_counts.values()))} ({_e(excl_bits)})</td></tr>"
-            f"<tr><td>Met eligibility (P/I/C/design)</td><td>{_e(n_inc)}</td></tr>"
+            f"<tr><td>Met eligibility (P/I/C/design)</td><td>{_e(eligible_display)}</td></tr>"
             f"<tr><td><strong>Pooled in the primary outcome (k)</strong></td><td><strong>{_e(pooled_k)}</strong></td></tr>"
-            f"<tr><td>Eligible but outcome not extracted from the abstract (full-text pass pending)</td><td>{_e(n_inc - (pooled_k or 0))}</td></tr>"
+            f"<tr><td>Eligible but outcome not extracted from the abstract (full-text pass pending)</td><td>{_e(absent_display)}</td></tr>"
             "</table>"
             "<p class='note'>Every excluded record's rule id, reason and verbatim span are listed below "
             "(PRISMA item 16b: exclusions with reasons).</p>")
@@ -735,7 +882,9 @@ def _screening(r, neutral):
                      f"adjudicated {_e(ma.get('n'))} content-bearing disagreements; it agrees with the served "
                      f"rule screener on <strong>{_e(ma.get('agree_with_served'))}/{_e(ma.get('n'))}</strong>. "
                      f"{_e(ma.get('note'))} Flags: {_e(flag_txt)}</p>")
-    body = (_identifier_scope_block(r) + flow + integ_html + f"<p>{len(recs)} records screened; <strong>{n_inc} included</strong>. "
+    included_phrase = ((f"{_identity_mod.count_phrase(inc_counts, 'trial family')} included")
+                       if show_units else f"{n_inc} included")
+    body = (_identifier_scope_block(r) + flow + integ_html + f"<p>{len(recs)} records screened; <strong>{included_phrase}</strong>. "
             "Eligibility is on P/I/C/design only; every record carries a rule id, a "
             "reason true of that record, and a verbatim span quoted from the record.</p>"
             f"<table class='recs'>{head}{rows}</table>")
@@ -749,6 +898,64 @@ def _screening(r, neutral):
             body += f"<li><strong>Negative:</strong> {_e(nc)}</li>"
         body += "</ul>"
     return body
+
+
+def _unit_label(unit):
+    if unit == "prespecified_subgroup":
+        return "pre-specified subgroup"
+    if unit == "post_hoc_subgroup":
+        return "post-hoc subgroup"
+    return "trial"
+
+
+def _evidence_unit_summary(o):
+    trials = o.get("trials") or []
+    if not trials or all((t.get("evidence_unit") or "trial") == "trial" for t in trials):
+        return None
+    counts = collections.Counter((t.get("evidence_unit") or "trial") for t in trials)
+    bits = []
+    if counts.get("trial"):
+        bits.append(f"{counts['trial']} trial" + ("" if counts["trial"] == 1 else "s"))
+    for unit in ("prespecified_subgroup", "post_hoc_subgroup"):
+        group = [t for t in trials if t.get("evidence_unit") == unit]
+        if not group:
+            continue
+        details = sorted({t.get("evidence_unit_detail") for t in group if t.get("evidence_unit_detail")})
+        if len(group) == 1 and details:
+            bits.append(f"1 {_unit_label(unit)} of {details[0]}")
+        else:
+            bits.append(f"{len(group)} {_unit_label(unit)}" + ("" if len(group) == 1 else "s"))
+    return " + ".join(bits)
+
+
+def _k_display(o):
+    k = (o.get("result") or {}).get("k")
+    eu = _evidence_unit_summary(o)
+    return f"{k} ({eu})" if eu and k is not None else k
+
+
+def _common_effect_label(o):
+    if _evidence_unit_summary(o):
+        return f"Common-effect CI (k={_k_display(o)} sensitivity)"
+    return "Common-effect CI (k=2 sensitivity)"
+
+
+def _compat_dimension_text(dim):
+    if not dim:
+        return None
+    vals = dim.get("values") or []
+    if vals == ["not_stated"]:
+        return None
+    per = dim.get("per_trial") or []
+    by_val = collections.defaultdict(list)
+    for item in per:
+        by_val[item.get("value")].append(str(item.get("trial")))
+    bits = []
+    for val in vals:
+        labs = ", ".join(x for x in by_val.get(val, []) if x)
+        bits.append(f"{val}" + (f" ({labs})" if labs else ""))
+    prefix = "matched" if dim.get("matched") else "heterogeneous"
+    return f"{prefix}: " + "; ".join(bits)
 
 
 def _trial_inputs(o):
@@ -781,16 +988,36 @@ def _trial_inputs(o):
             src = _e(t.get("source"))
         cs = t.get("cross_source")
         if cs:
-            # Second independent extractor (CT.gov structured) corroborating the abstract number.
-            verd = ("✓ corroborated" if cs.get("agree") else
-                    ("⚠ DISCREPANCY" if cs.get("agree") is False else "· corroboration"))
             bits = []
             if cs.get("abstract_rr") is not None and cs.get("ctgov_rr") is not None:
                 bits.append(f"abstract RR {cs['abstract_rr']} vs CT.gov RR {cs['ctgov_rr']}")
             elif cs.get("ctgov_rr") is not None:
                 bits.append(f"CT.gov RR {cs['ctgov_rr']}")
-            src += (f"<div class='xsrc'><em>second source ({verd}):</em> "
-                    + (_e("; ".join(bits) + ". ") if bits else "") + _e(cs.get("note", "")) + "</div>")
+            meta = []
+            if cs.get("registry_measure_type"):
+                meta.append(f"type {cs.get('registry_measure_type')}")
+            if cs.get("registry_selected_timepoint") or cs.get("registry_timeframe"):
+                meta.append("timepoint " + str(cs.get("registry_selected_timepoint") or cs.get("registry_timeframe")))
+            if cs.get("registry_population"):
+                meta.append("population " + str(cs.get("registry_population")))
+            if cs.get("corroborates_endpoint"):
+                # SAME_ENDPOINT only: CT.gov structured result may corroborate the pooled row.
+                src += (f"<div class='xsrc'><em>second source (✓ corroborated):</em> "
+                        + (_e("; ".join(bits) + ". ") if bits else "")
+                        + (_e("; ".join(meta) + ". ") if meta else "")
+                        + _e(cs.get("note", "")) + "</div>")
+            elif cs.get("agree") is False:
+                src += (f"<div class='xsrc'><em>second source (⚠ DISCREPANCY):</em> "
+                        + (_e("; ".join(bits) + ". ") if bits else "")
+                        + (_e("; ".join(meta) + ". ") if meta else "")
+                        + _e(cs.get("note", "")) + "</div>")
+            else:
+                title = cs.get("registry_title") or "untitled registry outcome"
+                src += (f"<div class='xsrc'><em>registry reports a DIFFERENT measure: {_e(title)}</em> "
+                        + (_e("; ".join(bits) + ". ") if bits else "")
+                        + (_e("; ".join(meta) + ". ") if meta else "")
+                        + _e(cs.get("endpoint_match") or "NOT_CHECKABLE") + ": "
+                        + _e(cs.get("endpoint_match_reason") or cs.get("note", "")) + "</div>")
         j = t.get("identity_judgment")
         if j:
             # Model-derived outcome-identity judgment (checkable, 5 fields). It admitted this
@@ -820,6 +1047,20 @@ def _trial_inputs(o):
                     f"action {_e(decision.get('action'))}"
                     + (f" <span class='muted'>{_e(basis)}</span>" if basis else "")
                     + "</div>")
+        details = []
+        if t.get("evidence_unit"):
+            ev = _unit_label(t.get("evidence_unit"))
+            if t.get("evidence_unit_detail"):
+                ev += f" of {t.get('evidence_unit_detail')}"
+            details.append(f"evidence unit: {ev}")
+        if t.get("prior_disease_stage"):
+            details.append(f"prior disease stage: {t.get('prior_disease_stage')}")
+        if t.get("background_therapy"):
+            details.append(f"background therapy: {t.get('background_therapy')}")
+        if t.get("components"):
+            details.append("components: " + "; ".join(str(x) for x in (t.get("components") or [])))
+        if details:
+            src += "<div class='ident'><em>compatibility row fields:</em> " + _e("; ".join(details)) + "</div>"
         rows.append(f"<tr><td>{_e(t.get('label'))}</td><td>{_e(t.get('id'))}</td>"
                     f"<td>{inp}</td><td>{src}</td></tr>")
     absent_rows = []
@@ -831,9 +1072,18 @@ def _trial_inputs(o):
                        f"{_num(alt.get('effect'))} ({_e(alt.get('scale'))}), 95% CI "
                        f"{_num(alt.get('ci_low'))}â€“{_num(alt.get('ci_high'))}"
                        + ("; adjusted" if alt.get("adjusted") else "; not labelled adjusted") + ".")
+        code = t.get("reason_code") or t.get("state")
+        span = t.get("source_span") or t.get("verbatim_span")
+        reason_detail = _e(t.get("reason"))
+        if code:
+            reason_detail += f"<br><code>{_e(code)}</code>"
+        if span:
+            reason_detail += f"<br><span class='muted'>span: {_e(span)}</span>"
+        if t.get("state_basis"):
+            reason_detail += f"<br><span class='muted'>basis: {_e(t.get('state_basis'))}</span>"
         absent_rows.append(f"<tr><td>{_e(t.get('label'))}</td><td>{_e(t.get('id'))}</td>"
                            f"<td class='absent-cell'>{_e(_absent_label(t.get('reason'), t.get('state')))}</td>"
-                           f"<td>{_e(t.get('reason'))}{alt_txt}</td></tr>")
+                           f"<td>{reason_detail}{alt_txt}</td></tr>")
     absent = "".join(absent_rows)
     return ("<table class='arms'><tr><th>Trial</th><th>Id</th><th>Input</th><th>Source</th></tr>"
             + rows_join(rows) + absent + "</table>")
@@ -863,6 +1113,10 @@ def _outcome_block(o, show_inputs=True):
     rr = _absent(res)
     if rr:
         body += _absent_block(rr)
+    elif res.get("unrenderable"):
+        body += _unrenderable_block(res)
+    elif res.get("pool_refused"):
+        body += _k2_pool_refusal_block(res)
     elif res.get("suppressed_incompatible"):
         # FAIL CLOSED (audit 23): detected-invalid means NOTHING pooled is rendered — no effect, CI, tau^2,
         # prediction interval, common-effect sensitivity, forest or leave-one-out. Only the reason + the
@@ -888,7 +1142,9 @@ def _outcome_block(o, show_inputs=True):
             body += ("<div class='absent'><strong>Pool changed because a design refusal was added.</strong> "
                      f"{_e(_dr.get('statement'))} Refused trial(s): {refused}. Any published estimates for "
                      "refused trials are disclosed in the trial table below and are not pooled.</div>")
-        body += _kv([(k, v) for k, v in [
+        if res.get("pooled_ci_refused"):
+            body += _k2_ci_refusal_block(res)
+        rows = [
             # Show the scale of the number ACTUALLY pooled (res["scale"]: RR / HR / IRR / MD /
             # "mixed (…)"), not the topic's target estimand — the target is stated in the Analysis
             # Method prose, and a row reading "Estimand RR" beside a pooled HR is the defect this fixes.
@@ -901,26 +1157,29 @@ def _outcome_block(o, show_inputs=True):
             ("Estimand compatibility", (
                 ("⚠ INCOMPATIBLE — the pooled trials report DIFFERENT estimand classes ("
                  + " + ".join((res.get("estmeasure") or {}).get("canonicals", []))
-                 + "): a recurrent-event/rate ratio and a first-event ratio count different things, so "
-                 "the pooled number mixes measures that are not directly poolable — read it as a rough "
-                 "signal, not a valid summary (a stated limitation, surfaced not smoothed)")
+                 + "): these measures are not directly poolable without an explicit, source-backed "
+                 "conversion — read any forced pooled number as an invalid diagnostic only, not a valid "
+                 "summary (a stated limitation, surfaced not smoothed)")
                 if (res.get("estmeasure") or {}).get("status") == "incompatible" else None)),
             ("Analysis population", o.get("population")),
             ("Timepoint", o.get("timepoint")),
             ("Method", o.get("method")),
-            ("k", res.get("k")),
-            (_effect_label(res), _ci(res)),
-            ("Common-effect CI (k=2 sensitivity)",
-             (f"{_num(res.get('estimate_fixed'))} ({res.get('scale')}), 95% CI "
-              f"{_num(res.get('ci_low_fixed'))}–{_num(res.get('ci_high_fixed'))}"
-              if res.get("ci_low_fixed") is not None else None)),
+            ("k", _k_display(o)),
+        ]
+        rows.extend(_effect_rows(res))
+        cerow = _common_effect_row(res)
+        if cerow:
+            _eu = _evidence_unit_summary(o)
+            rows.append((cerow[0] + (f" [k={_k_display(o)}]" if _eu else ""), cerow[1]))
+        rows.extend([
             ("Prediction interval", (f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}" if res.get('pi_low') is not None else None)),
             ("τ²", _tau(res.get("tau2")) if res.get("tau2") is not None else None),
             ("Note", res.get("pi_note")),
             ("Small-k note", res.get("fixed_note")),
             ("Composite heterogeneity", res.get("composite_heterogeneity")),
             ("Leave-one-out (influence)", _loo_text(res.get("leave_one_out"))),
-        ] if v is not None])
+        ])
+        body += _kv([(k, v) for k, v in rows if v is not None])
         # COMPATIBILITY KEY: the explicit contract that lets these trials be pooled -- the six
         # dimensions they must share. Rendered so a reader can see the pool is not a mix of
         # different quantities; the randomised-contrast fraction discloses how many are registry-
@@ -937,10 +1196,21 @@ def _outcome_block(o, show_inputs=True):
                 ("Endpoint", ck.get("endpoint")),
                 ("Follow-up window", ck.get("follow_up_window")),
                 ("Analysis set", ck.get("analysis_set")),
+                *([("Prior disease stage", _compat_dimension_text(ck.get("prior_disease_stage")))]
+                  if "prior_disease_stage" in ck else []),
+                *([("Background therapy", _compat_dimension_text(ck.get("background_therapy")))]
+                  if "background_therapy" in ck else []),
                 ("Randomised contrast (registry-confirmed)",
                  (f"{rc.get('verified')} of {rc.get('total')} pooled trials"
                   if rc.get("total") else None)),
             ])
+            _lims = [x for x in (ck.get("limitations") or [])
+                     if x.get("code") == "COMPAT_DIMENSION_HETEROGENEOUS"]
+            if _lims:
+                body += ("<p class='note'>Compatibility limitation: "
+                         + _e("; ".join(x.get("detail", "") for x in _lims)) + ".</p>")
+        if _evidence_unit_summary(o):
+            body += f"<p class='note'>k = {_e(_k_display(o))}.</p>"
         # RECOVERY-INDUCED-INCOMPATIBILITY disclosure: a pool that mixes effect-measure labels at small
         # k (e.g. a recovery adding a reconstructed RR to a published RR + HR pool) is surfaced as an
         # approximation to weigh, never smoothed over. Object-derived from the recovery-recheck verdict.
@@ -961,16 +1231,20 @@ def _outcome_block(o, show_inputs=True):
         if n_abs and n_pool:
             _states = collections.Counter((t.get("state") or "") for t in (o.get("declared_absent_trials") or []))
             _nd = _states.get("NO_OUTCOME_DATA_IN_SOURCE", 0)
-            body += (f"<p class='note'>k = {n_pool}: the {n_pool} trial(s) named below were "
-                     f"pooled; {n_abs} further screened-in trial(s) had no poolable value for this "
-                     f"outcome and are listed below with an explicit <em>absence state</em>. These are "
-                     f"four different things and only one is a claim about the trial: "
-                     f"<em>no outcome data in source</em> (the full text was retrieved and is silent — the "
-                     f"only state that means the trial itself lacks the outcome; {_nd} here) vs. "
-                     f"<em>not extracted</em> (the number IS in the retrieved source — an extraction gap, "
-                     f"about us, not the trial), <em>abstract only, full text not retrieved</em> (absence "
-                     f"in the trial is unproven), and <em>excluded on evidence</em> (a number was found and "
-                     f"deliberately not pooled — see reason). An unassessed outcome never counts as "
+            unitized = any((t.get("trial_family_id") for t in (o.get("trials") or []))) or any(
+                (t.get("trial_family_id") for t in (o.get("declared_absent_trials") or [])))
+            absent_display = (
+                "a further " + _identity_mod.count_phrase(_outcome_unit_counts(o, has_units=True)["absent"],
+                                                           "trial family")
+                if unitized else f"{n_abs} further screened-in trial(s)"
+            )
+            body += (f"<p class='note'>k = {_k_display(o)}: the {n_pool} trial(s) named below were "
+                     f"pooled; {absent_display} had no poolable value for this "
+                     f"outcome and are listed below with an explicit <em>absence/refusal state</em>. These "
+                     f"typed states distinguish source silence from effect-present estimand mismatches, "
+                     f"uncorroborated counts, multi-arm/timepoint/population mismatches, missing cached "
+                     f"abstracts, and other evidence refusals; only <em>no outcome data in source</em> "
+                     f"({_nd} here) is a claim about the trial itself. An unassessed outcome never counts as "
                      f"favourable to the intervention.</p>")
         body += _trial_inputs(o)
     return body
@@ -1051,7 +1325,13 @@ def _comparator(r, neutral):
         body += f"<p>{_e(rep.get('outcome'))}: {_num(rep.get('estimate'))} ({rep.get('scale')}), 95% CI {_num(rep.get('ci_low'))}–{_num(rep.get('ci_high'))}</p>"
     sc = c.get("scope") or {}
     if sc:
-        v = "✓ same question" if sc.get("scope_valid") else "⚠ SCOPE MISMATCH"
+        note_l = str(sc.get("note") or "").lower()
+        if sc.get("scope_valid"):
+            v = "✓ same question"
+        elif "comparator invalid" in note_l:
+            v = "COMPARATOR INVALID"
+        else:
+            v = "⚠ SCOPE MISMATCH"
         body += ("<h4>Scope match (is this the same question?)</h4>"
                  f"<p><strong>{v}.</strong> Intervention level: topic is {'class-level' if sc.get('topic_is_class') else 'a single agent'}, "
                  f"comparator is {'class-level' if sc.get('comparator_is_class') else 'a single agent'} "
@@ -1162,10 +1442,35 @@ def _reproduction(r, neutral):
     # where the comparator's extra trials are out-of-scope, double-counted substudies, observational,
     # or non-prespecified for the outcome.
     if pa := rep.get("parity"):
-        body += (f"<h4>Parity with the published comparator</h4><p>Our pooled <em>k</em> = "
-                 f"<strong>{_e(pa.get('our_k'))}</strong> vs the comparable same-scope comparator "
-                 f"<em>k</em> = <strong>{_e(pa.get('comparable_comparator_k'))}</strong> &mdash; "
-                 f"<strong>{_e(pa.get('status'))}</strong>. {_e(pa.get('reason'))}</p>")
+        body += "<h4>Parity with the published comparator</h4>"
+        if pa.get("unrenderable"):
+            # A parity row whose prose names a trial set that is no longer the pool renders as the
+            # claim-graph refusal block, never as its stale sentence (CG).
+            body += _unrenderable_block(pa)
+        elif pa.get("membership_status") == "STALE_VS_MEMBERSHIP":
+            # The membership object (EM) found the parity prose naming a pooled trial as refused.
+            conflicts = pa.get("membership_conflicts") or []
+            named = ", ".join(
+                f"{c.get('label') or c.get('trial_key')} ({c.get('trial_key')})" for c in conflicts
+            )
+            body += ("<div class='note'><strong>STALE_VS_MEMBERSHIP.</strong> "
+                     "The stored comparator-parity row is not rendered because it contradicts the "
+                     "current outcome membership object: "
+                     f"{_e(named)} is pooled in this review but the stored parity text describes it as "
+                     "a gap/refused/not-pooled trial. The stale prose is suppressed until the hand "
+                     "parity object is rewritten from the current membership.</div>")
+        else:
+            # The status word comes from the computed trial-set relation; hand text is commentary (CP).
+            rel = pa.get("parity_relation") or {}
+            status = rel.get("relation") or pa.get("status")
+            label = rel.get("label") or status
+            their_k = rel.get("their_k")
+            if their_k is None:
+                their_k = pa.get("comparable_comparator_k")
+            body += (f"<p>Our pooled <em>k</em> = "
+                     f"<strong>{_e(rel.get('our_k', pa.get('our_k')))}</strong> vs the comparator "
+                     f"<em>k</em> = <strong>{_e(their_k)}</strong> &mdash; "
+                     f"<strong>{_e(status)}</strong>: {_e(label)}. Commentary: {_e(pa.get('reason'))}</p>")
     # INDEPENDENT SECOND EXTRACTION (blind): a second extractor located each pooled number's digits
     # from the abstract, blind to ours. agree = same 2x2; reconcile = same result via a different
     # statistic; conflict = genuine numeric disagreement; not-checkable = not stated in the abstract.
@@ -1184,7 +1489,7 @@ def _reproduction(r, neutral):
     if rf := rep.get("refusals"):
         rows = "".join(
             f"<tr><td>{_e(x.get('trial'))}</td><td>{_e(x.get('verified'))}</td>"
-            f"<td>{_e(x.get('not_pooled_because'))}</td></tr>" for x in rf)
+            f"<td>{_e(x.get('not_pooled_because'))}{(' <strong>DISPUTED &mdash; this trial IS pooled despite the refusal above; both policies are declared; decision owed to ' + _e(x['disputed'].get('decision_owed_to')) + ' (signed ' + _e(x['disputed'].get('signed_by')) + ', ' + _e(x['disputed'].get('date')) + '): ' + _e(x['disputed'].get('reason')) + '</strong>') if isinstance(x.get('disputed'), dict) else ''}</td></tr>" for x in rf)
         body += ("<h4>Verified but not pooled (refusals, with reasons)</h4>"
                  "<p class='muted'>Trials we located and whose numbers we verified against source, "
                  "yet deliberately did not pool. Honest k over inflated k: a named refusal is a result.</p>"
@@ -1207,7 +1512,8 @@ def _reproduction(r, neutral):
                  "not recomputed per surface. At build the rendered page and manuscript are scanned for "
                  "any wording that asserts the opposite of that object; the build is refused on a "
                  f"contradiction. <strong>Claims checked: {_e(n_chk)}; "
-                 f"contradictions caught: {n_con}.</strong>"
+                 f"contradictions caught: {n_con}; scope: "
+                 f"{_e(_claimgraph_mod.scope_summary(cc.get('scope') or {}))}.</strong>"
                  + ("" if n_con == 0 else " " + _e(json.dumps(cc.get("contradictions"))))
                  + "</p>" + _zero)
         # SEVENTH GATE (categorical/membership + methodological): the two contradiction families a
@@ -1592,10 +1898,18 @@ def _riskofbias(r, neutral):
     # RoB-stratified sensitivity re-pool (object-derived from r['rob_sensitivity']; regenerates on rebuild)
     sens = r.get("rob_sensitivity") or {}
     sens_html = ""
+    _prim_refused = next(((o.get("result") or {}).get("pool_refused") for o in (r.get("outcomes") or [])
+                          if o.get("primary")), None)
+    if not sens.get("full") and _prim_refused:
+        # A refused pooled row (k=2 direction conflict) has no re-pool; the block still states that
+        # under its own heading -- a disclosure that vanishes is a ratchet loss, a stated refusal is not.
+        sens_html = _ROB_SENS_REFUSED_HTML.format(code=_e(_prim_refused.get("code")))
     if sens.get("full"):
         def _fmt(p):
             if not p:
                 return "&mdash;"
+            if p.get("ci_refused"):
+                return f"k={p['k']}, {p['scale']} {p['estimate']} (CI refused at k=2: {_e(p['ci_refused'])})"
             return f"k={p['k']}, {p['scale']} {p['estimate']} [{p['ci_low']}, {p['ci_high']}]"
         f, dh, lo = sens.get("full"), sens.get("drop_high"), sens.get("low_only")
         n_rated, n_tr = sens.get("n_rob_rated"), sens.get("n_trials")
@@ -1609,8 +1923,7 @@ def _riskofbias(r, neutral):
                         "bias, so this stratum has no trials to re-pool (an empty subgroup is not agreement "
                         "with the full pool)")
         else:
-            low_cell = _fmt(lo) + ("" if sens.get("low_only_informative")
-                                   else " <em>(fewer trials than the full pool &mdash; see coverage)</em>")
+            low_cell = _fmt(lo) + _rob_sensitivity_mod.low_only_relation_note_html(sens)
         lines.append(f"<tr><td>Low risk of bias only</td><td>{low_cell}</td></tr>")
         sens_html = ("<h4>Risk-of-bias sensitivity (re-pooled with the same estimator)</h4>"
                      "<div class='absent'><strong>Does the result survive dropping the trials that are not "
@@ -1620,10 +1933,8 @@ def _riskofbias(r, neutral):
                      + ("no pooled trial is rated <em>high</em> risk (the registry-derived assessment does not "
                         "reach 'high'), so the standard drop-high sensitivity is inert and the informative "
                         "stratum is <em>low-only</em>. " if not sens.get("any_high") else "")
-                     + "An unrated trial cannot be placed in a stratum, so a low-only pool with fewer trials "
-                     "than the full pool reflects both risk of bias and assessment coverage &mdash; read the "
-                     "widened interval with that caveat, not as instability of the effect."
-                     f"<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr>"
+                     + _rob_sensitivity_mod.low_only_relation_context_html(sens)
+                     + f"<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr>"
                      f"{''.join(lines)}</table></div>")
     # Partial, object-derived GRADE certainty (from r['grade'])
     g = r.get("grade") or {}

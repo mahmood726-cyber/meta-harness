@@ -18,6 +18,14 @@ def test_same_estimand_close_is_agreement():
     assert r["category"] == "same_estimand_agree" and r["agree_within_12pct"] is True
 
 
+def test_same_estimand_identical_set_is_replication_not_agreement():
+    r = EA._classify("t", 0.80, "RR", 0.82, "RR", "O", "IDENTICAL_SET",
+                     "arithmetic replication -- same trials; agreement is not independent corroboration")
+    assert r["category"] == "same_estimand_replication"
+    assert r["agree_within_12pct"] is False
+    assert r["agreement_basis"] == "arithmetic_replication"
+
+
 def test_same_estimand_far_is_diverge():
     r = EA._classify("t", 0.50, "RR", 0.90, "RR", "O")
     assert r["category"] == "same_estimand_diverge" and r["agree_within_12pct"] is False
@@ -50,16 +58,21 @@ def test_committed_json_counts_only_same_estimand_agreements():
     # the back-compat headline equals the same-estimand agreement count (never cross-estimand)
     assert d["agree_within_12pct"] == d["same_estimand_agree"]
     for row in d["rows"]:
-        if row["category"].startswith("cross_estimand") or row["category"] == "non_comparable":
+        if (row["category"].startswith("cross_estimand")
+                or row["category"] in ("non_comparable", "same_estimand_replication")):
             assert row["agree_within_12pct"] is False, row["slug"]
+        if row["category"].startswith("cross_estimand") or row["category"] == "non_comparable":
             assert row.get("same_question") is False, row["slug"]
 
 
 def test_index_prose_does_not_assert_cross_estimand_agreement():
     # The rendered index must not resurrect the old "21 agree on the same question" claim.
-    h = open(os.path.join(_ROOT, "docs", "index.html"), encoding="utf-8").read()
+    import harness.index as IDX
+
+    h = IDX.build_index(os.path.join(_ROOT, "docs"))
     i = h.find("External validation")
     assert i >= 0
     seg = h[i:i + 2000]
     assert "SUPPRESSED" in seg
     assert "same estimand" in seg
+    assert "arithmetic replications" in seg

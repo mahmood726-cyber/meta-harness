@@ -19,8 +19,10 @@ import re
 from enum import Enum
 from typing import Any
 
+from . import claimgraph
 from . import hazard_consumers as _hazard_consumers
 from . import page as _page
+from . import rob_sensitivity as _rob_sensitivity_mod
 
 
 class LimitationKind(str, Enum):
@@ -339,6 +341,47 @@ def _suppressed_outcome_block(res: dict[str, Any]) -> str:
     )
 
 
+def _k2_pool_refusal_block(res: dict[str, Any]) -> str:
+    ref = res.get("pool_refused") or {}
+    cf = res.get("counterfactual") or {}
+    line = (
+        "<div class='absent'><strong>Pooled result REFUSED (k=2 direction conflict).</strong> "
+        f"{_e(ref.get('detail'))} {_e(ref.get('rule'))}"
+    )
+    if cf.get("would_be_estimate") is not None:
+        line += (
+            f" <em>The invalid pooled row is quarantined for audit only: "
+            f"{_num(cf.get('would_be_estimate'))} ({_num(cf.get('would_be_ci_low'))}-"
+            f"{_num(cf.get('would_be_ci_high'))}), tau^2={_e(cf.get('would_be_tau2'))}, "
+            f"I^2={_e(cf.get('would_be_i2'))}%.</em>"
+        )
+    anchor = ref.get("honest_k1_anchor") or {}
+    if anchor:
+        line += (
+            f"<p><strong>Honest k=1 anchor:</strong> {_e(anchor.get('name') or anchor.get('label'))} "
+            f"{_e(anchor.get('scale') or res.get('scale'))} {_num(anchor.get('effect'))} "
+            f"(95% CI {_num(anchor.get('ci_low'))}-{_num(anchor.get('ci_high'))}). "
+            f"{_e(anchor.get('basis') or '')}</p>"
+        )
+        rem = ref.get("named_remainders") or []
+        if rem:
+            items = "".join(
+                f"<li>{_e(x.get('label'))}: {_e(x.get('scale') or res.get('scale'))} {_num(x.get('effect'))} "
+                f"(95% CI {_num(x.get('ci_low'))}-{_num(x.get('ci_high'))})</li>" for x in rem
+            )
+            line += f"<p><strong>Named remainder(s), not pooled:</strong></p><ul>{items}</ul>"
+    return line + "</div>"
+
+
+def _k2_ci_refusal_block(res: dict[str, Any]) -> str:
+    ref = res.get("pooled_ci_refused") or {}
+    return (
+        "<div class='absent'><strong>Registered pooled CI REFUSED at k=2.</strong> "
+        f"{_e(ref.get('detail'))} The point estimate may be displayed, but no pooled "
+        "significance/null-crossing claim is emitted.</div>"
+    )
+
+
 def _design_refusal_block(res: dict[str, Any]) -> str:
     dr = res.get("design_refusal") or {}
     refused = "; ".join(
@@ -508,8 +551,13 @@ def _arm_contrast_block(ac: dict[str, dict[str, Any]]) -> str:
     )
 
 
+_ROB_SENS_REFUSED_HTML = "<h4>Risk-of-bias sensitivity (re-pooled with the same estimator)</h4><div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> Not computed: the primary pooled row is REFUSED ({code}), so there is no pooled estimate to re-pool by risk-of-bias stratum. The per-trial rows and their risk-of-bias ratings are shown above; a stratified re-pool of a refused pool would be a number about nothing.</div>"
+
+
 def _rob_sensitivity_block(sens: dict[str, Any]) -> str:
     def _fmt(point: dict[str, Any] | None) -> str:
+        if point and point.get("ci_refused"):
+            return f"k={point['k']}, {point['scale']} {point['estimate']} (CI refused at k=2: {point['ci_refused']})"
         if not point:
             return "&mdash;"
         return f"k={point['k']}, {point['scale']} {point['estimate']} [{point['ci_low']}, {point['ci_high']}]"
@@ -525,10 +573,7 @@ def _rob_sensitivity_block(sens: dict[str, Any]) -> str:
             "with the full pool)"
         )
     else:
-        low_cell = _fmt(low_only) + (
-            "" if sens.get("low_only_informative")
-            else " <em>(fewer trials than the full pool &mdash; see coverage)</em>"
-        )
+        low_cell = _fmt(low_only) + _rob_sensitivity_mod.low_only_relation_note_html(sens)
     lines.append(f"<tr><td>Low risk of bias only</td><td>{low_cell}</td></tr>")
     return (
         "<div class='absent'><strong>Does the result survive dropping the trials that are not "
@@ -538,10 +583,8 @@ def _rob_sensitivity_block(sens: dict[str, Any]) -> str:
         + ("no pooled trial is rated <em>high</em> risk (the registry-derived assessment does not "
            "reach 'high'), so the standard drop-high sensitivity is inert and the informative "
            "stratum is <em>low-only</em>. " if not sens.get("any_high") else "")
-        + "An unrated trial cannot be placed in a stratum, so a low-only pool with fewer trials "
-        "than the full pool reflects both risk of bias and assessment coverage &mdash; read the "
-        "widened interval with that caveat, not as instability of the effect."
-        f"<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr>"
+        + _rob_sensitivity_mod.low_only_relation_context_html(sens)
+        + f"<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr>"
         f"{''.join(lines)}</table></div>"
     )
 
@@ -645,7 +688,8 @@ def _claim_check_count(review: dict[str, Any]) -> int:
         claim = result.get("claim") or {}
         if claim.get("present"):
             count += 1
-    return count
+    scope_counts = claimgraph.scope_counts(review, count)
+    return count + int(scope_counts.get("strand_pool") or 0)
 
 
 def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
@@ -722,6 +766,16 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
     primary = _primary(review)
     if primary and _absent(primary) is None:
         pres = primary.get("result") or {}
+        if pres.get("pool_refused"):
+            add(
+                "overview:k2-direction-conflict:primary",
+                LimitationKind.SUPPRESSED_POOL,
+                Severity.BLOCKS_CLAIM,
+                "primary pooled estimate",
+                EvidenceState.SUPPRESSED,
+                ["/outcomes/*/result/pool_refused", "/outcomes/*/result/k2_trial_diagnostics"],
+                _k2_pool_refusal_block(pres),
+            )
         if pres.get("suppressed_incompatible"):
             add(
                 "overview:suppressed-pool:primary",
@@ -960,7 +1014,28 @@ def _add_outcome_limitations(add: Any, outcome: dict[str, Any], prefix: str) -> 
             ["/outcomes/*/result/suppressed_incompatible", "/outcomes/*/result/suppressed_reason"],
             _suppressed_outcome_block(result),
         )
-    elif result.get("design_refusal"):
+    elif result.get("pool_refused"):
+        add(
+            f"{prefix}:k2-direction-conflict",
+            LimitationKind.SUPPRESSED_POOL,
+            Severity.BLOCKS_CLAIM,
+            f"pooled estimate: {outcome.get('name')}",
+            EvidenceState.SUPPRESSED,
+            ["/outcomes/*/result/pool_refused", "/outcomes/*/result/k2_trial_diagnostics"],
+            _k2_pool_refusal_block(result),
+        )
+    elif result.get("pooled_ci_refused"):
+        add(
+            f"{prefix}:k2-ci-refused",
+            LimitationKind.GRADE_CERTAINTY,
+            Severity.QUALIFIES_CLAIM,
+            f"pooled confidence interval: {outcome.get('name')}",
+            EvidenceState.NOT_ASSESSED,
+            ["/outcomes/*/result/pooled_ci_refused", "/outcomes/*/result/ci_hksj_unserved"],
+            _k2_ci_refusal_block(result),
+        )
+    if (not rr and not result.get("suppressed_incompatible") and not result.get("pool_refused")
+            and result.get("design_refusal")):
         add(
             f"{prefix}:design-refusal",
             LimitationKind.UNIT_OF_ANALYSIS,
@@ -1044,6 +1119,18 @@ def _add_risk_of_bias_limitations(add: Any, review: dict[str, Any]) -> None:
         )
 
     sens = review.get("rob_sensitivity") or {}
+    _prim_refused = next(((o.get("result") or {}).get("pool_refused") for o in (review.get("outcomes") or [])
+                          if o.get("primary")), None)
+    if not sens.get("full") and _prim_refused:
+        add(
+            "riskofbias:rob-sensitivity",
+            LimitationKind.ROB_SENSITIVITY,
+            Severity.QUALIFIES_CLAIM,
+            "risk-of-bias sensitivity interpretation",
+            EvidenceState.PARTIAL,
+            ["/outcomes/*/result/pool_refused"],
+            _ROB_SENS_REFUSED_HTML.format(code=str(_prim_refused.get("code"))),
+        )
     if sens.get("full"):
         add(
             "riskofbias:rob-sensitivity",

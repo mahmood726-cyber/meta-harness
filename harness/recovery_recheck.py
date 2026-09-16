@@ -10,12 +10,14 @@ Two things are surfaced:
   hard_incompatible  — the pooled trials span >1 effect-measure compatibility class (compat.check).
                        This is a build-refusal condition (a recovery that pools a RATE trial into a
                        FIRST_EVENT pool must be caught here, not silently averaged).
-  label_mix_small_k  — the pool combines DIFFERENT effect-measure labels (e.g. HR + RR) at small k.
+  label_mix_small_k  — the pool combines DIFFERENT effect-measure labels (HR + RR) at small k.
                        Not a hard incompatibility (a Cox HR and a cumulative RR are the same
                        first-event class), but at small k a single influential trial can dominate,
                        so it is DISCLOSED as a limitation (surfaced, not smoothed) rather than
-                       reassured away. This is exactly the spironolactone case: RALES RR 0.70 +
-                       EMPHASIS-HF HR 0.76 + reconstructed J-EMPHASIS RR 1.685, k=3.
+                       reassured away. OR + RR/HR is not this path: odds ratios are a separate
+                       estimand class and are suppressed before this disclosure. This is exactly
+                       the spironolactone case: RALES RR 0.70 + EMPHASIS-HF HR 0.76 +
+                       reconstructed J-EMPHASIS RR 1.685, k=3.
 """
 from . import compat
 
@@ -66,6 +68,8 @@ def disclosure(verdict):
     if verdict.get("hard_incompatible"):
         return None  # the incompatibility/suppression path renders its own, stronger banner
     if verdict.get("label_mix_small_k"):
+        if set(verdict["effect_measure_labels"]) != {"HR", "RR"}:
+            return None
         labs = " + ".join(verdict["effect_measure_labels"])
         recon = verdict.get("reconstructed_members") or []
         recon_note = (f" One contributing effect is reconstructed from raw arm counts "

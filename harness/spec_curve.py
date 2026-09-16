@@ -49,6 +49,16 @@ def spec_curve(review):
                                   "curve is a re-pool and must not run",
                 "suppressed_incompatible": True,
                 "scale": (prim.get("result") or {}).get("scale")}
+    if (prim.get("result") or {}).get("pool_refused"):
+        return {"not_applicable": "primary k=2 pooled row is refused for direction conflict; the "
+                                  "specification curve is a re-pool and must not run",
+                "pool_refused": True,
+                "scale": (prim.get("result") or {}).get("scale")}
+    if (prim.get("result") or {}).get("pooled_ci_refused"):
+        return {"not_applicable": "registered PM/HKSJ CI is refused at k=2; no HKSJ significance "
+                                  "state is emitted for the specification curve",
+                "pooled_ci_refused": True,
+                "scale": (prim.get("result") or {}).get("scale")}
     studies, scale = _studies_and_scale(prim["trials"], prim.get("estimand", "RR"))
     try:
         pr = pool(studies, scale=scale)

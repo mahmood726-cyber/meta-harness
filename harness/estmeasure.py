@@ -11,14 +11,16 @@ A reported effect carries three things, not one:
 
 Pooling compatibility is decided by CLASS, not by label. Two effects are compatible only if they share
 event multiplicity and time structure:
-  * FIRST_EVENT_RATIO   {RISK_RATIO, ODDS_RATIO, HAZARD_RATIO_FIRST_EVENT} — one event per person, a
-                        relative effect; mixing these LABELS is not a real estimand conflict (RALES's
+  * FIRST_EVENT_RATIO   {RISK_RATIO, HAZARD_RATIO_FIRST_EVENT} — one event per person, a
+                        relative effect; mixing HR/RR labels is disclosed as approximate (RALES's
                         Cox "relative risk" + EMPHASIS's "hazard ratio" are both this class).
+  * ODDS_RATIO          {ODDS_RATIO} — odds are not risks; OR is compatible only with OR unless an
+                        explicit, source-backed conversion is recorded upstream.
   * RATE                {INCIDENCE_RATE_RATIO, RATE_RATIO_RECURRENT} — multiple events / person-time.
   * CONTINUOUS          {MEAN_DIFFERENCE, SMD}
 Mixing WITHIN a class is compatible (a label-only mix, disclosed); mixing ACROSS classes is a genuine
-INCOMPATIBILITY — a recurrent-event rate ratio pooled with a first-event hazard ratio counts different
-things (the iv-iron defect, audit 12) and must be flagged, not smoothed into "mixed".
+INCOMPATIBILITY — a recurrent-event rate ratio pooled with a first-event hazard ratio, or an odds ratio
+pooled with a risk/hazard ratio, counts different things and must be flagged, not smoothed into "mixed".
 
 Pure and committed-source-only, so it replays offline and reproduces.
 """
@@ -30,7 +32,7 @@ _CANON = {"RR": "RISK_RATIO", "OR": "ODDS_RATIO", "HR": "HAZARD_RATIO_FIRST_EVEN
           "IRR": "INCIDENCE_RATE_RATIO", "MD": "MEAN_DIFFERENCE", "SMD": "SMD"}
 
 _CLASS = {
-    "RISK_RATIO": "FIRST_EVENT_RATIO", "ODDS_RATIO": "FIRST_EVENT_RATIO",
+    "RISK_RATIO": "FIRST_EVENT_RATIO", "ODDS_RATIO": "ODDS_RATIO",
     "HAZARD_RATIO_FIRST_EVENT": "FIRST_EVENT_RATIO",
     "INCIDENCE_RATE_RATIO": "RATE", "RATE_RATIO_RECURRENT": "RATE",
     "MEAN_DIFFERENCE": "CONTINUOUS", "SMD": "CONTINUOUS",
@@ -41,9 +43,10 @@ _CLASS = {
 # an over-broad cue (bare "recurrent" catches the OUTCOME NAME "recurrent VTE"; bare "rate"/"total"
 # catches unrelated prose) previously mis-upgraded binary risk ratios to rate ratios and falsely flagged
 # whole topics incompatible. Compatibility is decided by the reported LABEL's canonical class, which is
-# already correct: an IRR-labelled trial is RATE by label, an HR/RR/OR is FIRST_EVENT by label. The Cox
-# distinction (RALES) does not change the class (a Cox "relative risk" is still FIRST_EVENT, same class as
-# an "HR"), so it never affects a mixing decision and needs no risky text inference.
+# already correct: an IRR-labelled trial is RATE by label, an HR/RR is FIRST_EVENT by label, and an OR is
+# odds by label. The Cox distinction (RALES) does not change the class (a Cox "relative risk" is still
+# FIRST_EVENT, same class as an "HR"), so it never affects a mixing decision and needs no risky text
+# inference.
 _COX = re.compile(r"\bcox\b|proportional[- ]hazards? (?:model|regression)", re.I)
 _RATE_MODEL = re.compile(r"rate ratio|per (?:100 )?person[- ]?years?|incidence[- ]rate|"
                          r"recurrent[- ]event (?:analysis|method)|lin[- ]wei[- ]yang[- ]ying", re.I)
