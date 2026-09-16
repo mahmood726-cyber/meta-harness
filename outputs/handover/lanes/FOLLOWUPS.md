@@ -140,3 +140,8 @@ Five contradictions on one page; all must fire pre-fix on `ad5e7c66`: (1) Torres
 - SF/S8: five undeclared axes on semaglutide-weight (route, dose, diabetes, withdrawal design, duration); STEP UP 2.4-vs-placebo arm adjudicated; SELECT weight prespecified analysis (primary!=eligible again); register rows 66-67.
 - OUTCOME_NOT_IN_SOURCE unreliability is ALREADY MEASURED (EX 43/1088 cells, RX 93/668 reason codes) -- landing 3 (EX+RX first) puts it on the pages. EX2 (model contract): negative span citation for every absence.
 - Priority-1 artefact built: 115 rows, 26 with truncated spans -> extractor must store full digit-bearing spans (EX2/TE). Priority 2 harms (HM partial + HM2), Priority 3 RoB/GRADE (EP first), Priority 4 independent re-audit of landing-1 classes on served a2c53d98 bytes.
+
+## glp1 baseline audit 90c01bcfbd124495 (17:55)
+- Fourth panel shape HOLDS_ESTIMATE_FALSIFIES_TRANSPORTABILITY (tau2 + PI, not only the estimate) -> missing_effect/KM classifier; re-check every 'robust to known missing' page on tau2/PI.
+- Layer 8: parity compares comparator ELIGIBILITY RULES (Hasebe route restriction) not only trial lists -> COMPARATOR_RULES_DIFFER.
+- Membership: FLOW include from span; FREEDOM-CVO SOURCE_CONFLICT adjudication (three 3-point values); ELIXA primary supplement/FDA, never from a meta. Layer 10: completeness proposition in the claim graph.
