@@ -11,21 +11,23 @@ sys.path.insert(0, str(ROOT))
 from harness import claimgraph, page, propositions
 
 
-def compact_scan(scan):
+def compact_scan(scan, full=False):
     violations = scan['violations']
     return {k: v for k, v in scan.items() if k != 'violations'} | {
         'violation_counts': dict(Counter(v['code'] for v in violations)),
-        'violation_examples': violations[:10],
+        'violation_examples': violations if full else violations[:10],
         'examples_of_violations': len(violations),
     }
 
 
-def sweep(root=ROOT):
+def sweep(root=ROOT, slug=None):
     root = Path(root)
     pages = []
     cache_counts = Counter()
     cache_rows = []
     for path in sorted((root / 'cache').glob('*/verified_effects.json')):
+        if slug and path.parent.name != slug:
+            continue
         rows = json.loads(path.read_text(encoding='utf-8'))
         if not isinstance(rows, dict):
             raise ValueError(f'Expected row mapping: {path}')
@@ -38,6 +40,8 @@ def sweep(root=ROOT):
                                'class': status['class'], 'reason': status.get('reason'),
                                'rendered': claimgraph.fact_render(dict(row, id=key), root)})
     for path in sorted((root / 'docs' / 'reviews').glob('*/review.json')):
+        if slug and path.parent.name != slug:
+            continue
         review = json.loads(path.read_text(encoding='utf-8'))
         graph = claimgraph.review_graph(review, root)
         served = claimgraph.scan_rendered((path.parent / 'index.html').read_text(encoding='utf-8'), graph)
@@ -49,7 +53,7 @@ def sweep(root=ROOT):
         typed_violations = graph.check()
         classes = Counter(obj['class'] for obj in graph.objects.values())
         judgements = Counter(obj.get('adjudication', 'OWED') for obj in graph.objects.values() if obj['class'] == 'JUDGEMENT')
-        pages.append({'slug': review['slug'], 'served': compact_scan(served), 'fresh_renderer': compact_scan(fresh),
+        pages.append({'slug': review['slug'], 'served': compact_scan(served, full=bool(slug)), 'fresh_renderer': compact_scan(fresh, full=bool(slug)),
                       'propositions_by_class': dict(classes),
                       'contradictions_caught': len(contradictions),
                       'of_propositions': len(graph.objects),
@@ -72,8 +76,13 @@ def sweep(root=ROOT):
 
 
 if __name__ == '__main__':
-    result = sweep()
-    target = ROOT / 'docs' / 'claim_scope_sweep.json'
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--slug')
+    parser.add_argument('--output', type=Path)
+    args = parser.parse_args()
+    result = sweep(slug=args.slug)
+    target = args.output or ROOT / 'docs' / 'claim_scope_sweep.json'
     target.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
     counts = result['cache_effects']
     print(f"UNVERIFIED_FACT: {counts['unverified']} of {counts['of_rows']} verified_effects rows")

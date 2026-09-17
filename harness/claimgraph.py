@@ -17,6 +17,8 @@ import re
 from pathlib import Path
 import html
 import subprocess
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Any
 
 
@@ -605,17 +607,47 @@ def _held_path(root: Path, value: Any, *, document: bool = False) -> Path:
         parts = path.relative_to(root.resolve()).parts
         allowed = (len(parts) >= 4 and parts[0] == "cache" and parts[2] == "held")
         allowed |= parts[:4] == ("outputs", "handover", "glp1_regulatory", "held")
+        # Already committed primary publications are held documents too.
+        allowed |= (len(parts) == 3 and parts[0] == "cache" and
+                    (parts[2] == "records.json" or
+                     (parts[2].startswith("ft_") and parts[2].endswith(".txt"))))
+        allowed |= (parts[:6] == ("outputs", "search_v2", "lanes", "R3", "lane_r3", "raw")
+                    and parts[-1].endswith("-efetch.xml"))
         if not allowed:
             raise ValueError("document is not under an allowed held directory")
     return path
 
 
+_COMMITTED_BATCH = ContextVar("claimgraph_committed_batch", default=None)
+
+
+@contextmanager
+def _provenance_batch():
+    """Reuse identical byte comparisons within one synchronous validation only."""
+    if _COMMITTED_BATCH.get() is not None:
+        yield
+        return
+    token = _COMMITTED_BATCH.set({})
+    try:
+        yield
+    finally:
+        _COMMITTED_BATCH.reset(token)
+
+
 def _committed(root: Path, path: Path) -> bool:
     """A matching local digest alone cannot establish committed provenance."""
     rel = path.relative_to(root.resolve()).as_posix()
+    raw = path.read_bytes()
+    cache = _COMMITTED_BATCH.get()
+    key = (str(root.resolve()), rel, hashlib.sha256(raw).hexdigest())
+    if cache is not None and key in cache:
+        return cache[key]
     result = subprocess.run(["git", "-C", str(root), "show", f"HEAD:{rel}"],
                             capture_output=True)
-    return result.returncode == 0 and result.stdout == path.read_bytes()
+    verified = result.returncode == 0 and result.stdout == raw
+    if cache is not None:
+        cache[key] = verified
+    return verified
 
 
 def verify_fact(row: dict[str, Any], root: Path | str = ROOT) -> dict[str, Any]:
@@ -645,7 +677,8 @@ def verify_fact(row: dict[str, Any], root: Path | str = ROOT) -> dict[str, Any]:
             raise ValueError("held document or extraction differs from committed bytes")
         # Verify the displayed effect and bounds are in this span, not merely in
         # some unrelated sentence elsewhere in the held document.
-        numbers = {float(n) for n in re.findall(r"(?<![\w.])-?\d+(?:\.\d+)?(?!\w|\.\d)", span)}
+        numeric_span = re.sub(r"(?<=\d)[·‧∙](?=\d)", ".", span)
+        numbers = {float(n) for n in re.findall(r"(?<![\w.])-?\d+(?:\.\d+)?(?!\w|\.\d)", numeric_span)}
         for field in ("effect", "ci_low", "ci_high", "ai", "ci", "n1i", "n2i", "e1i", "e2i", "t1i", "t2i", "mean1", "mean2", "sd1", "sd2", "nc1", "nc2"):
             value = row.get(field)
             if isinstance(value, (float, int)) and not isinstance(value, bool) and float(value) not in numbers:
@@ -701,6 +734,7 @@ class ClaimGraph:
         self.invalidated.update(affected)
         return sorted(affected)
 
+    @_provenance_batch()
     def check(self) -> list[dict[str, Any]]:
         violations = []
         def cyclic(start, node, seen):
@@ -762,6 +796,18 @@ class ClaimGraph:
             return {"FACT": states.count("FACT"), "UNVERIFIED_FACT": states.count("UNVERIFIED_FACT"), "total": len(states)}
         if operation == "count":
             return len(inputs)
+        if operation == "reported_effect_pool":
+            from .synth import Study, pool
+            refs = obj["input_refs"]
+            if set(refs) != set(obj.get("depends_on") or []):
+                raise ValueError("pool dependency mismatch")
+            rows = [self.objects[ref]["row"] for ref in refs]
+            if not rows or any(not verify_fact(row, self.root)["verified"] for row in rows):
+                raise ValueError("pool contains unverified source inputs")
+            result = pool([Study(label=row.get("id", str(i)), effect=row["effect"],
+                                 ci_low=row["ci_low"], ci_high=row["ci_high"],
+                                 measure=obj["scale"]) for i, row in enumerate(rows)], scale=obj["scale"])
+            return {key: getattr(result, key) for key in POOL_FIELDS}
         if operation == "sum":
             return sum(inputs)
         if operation == "log":
@@ -770,17 +816,32 @@ class ClaimGraph:
             return {state: inputs.count(state) for state in sorted(set(inputs))}
         if operation == "certainty":
             domains = inputs["domains"]
+            if (not isinstance(inputs["start"], int) or isinstance(inputs["start"], bool)
+                    or not 0 <= inputs["start"] <= 3 or len(domains) != 5
+                    or any(not isinstance(d.get("downgrades"), int)
+                           or isinstance(d.get("downgrades"), bool)
+                           or not 0 <= d["downgrades"] <= 3 for d in domains)):
+                raise ValueError("invalid GRADE inputs")
             if any(d.get("assessed") is not True for d in domains):
                 return "provisional"
             return ("very low", "low", "moderate", "high")[max(0, inputs["start"] - sum(
                 d["downgrades"] for d in domains))]
         raise ValueError(f"unsupported transformation {operation}")
 
+    @_provenance_batch()
     def render(self, claim_id: str) -> str:
+        return self._render_checked(claim_id, {v["claim_id"]: v for v in self.check()})
+
+    @_provenance_batch()
+    def render_all(self):
+        """One validation snapshot per rendering batch, without cross-call caching."""
+        violations = {v["claim_id"]: v for v in self.check()}
+        return {cid: self._render_checked(cid, violations) for cid in self.objects}
+
+    def _render_checked(self, claim_id, violations):
         if claim_id not in self.objects:
             raise ValueError(f"SENTENCE_WITHOUT_OBJECT: {claim_id}")
         obj = self.objects[claim_id]
-        violations = {v["claim_id"]: v for v in self.check()}
         mark = obj["class"]
         if claim_id in violations:
             code = violations[claim_id]["code"]
@@ -799,6 +860,12 @@ class ClaimGraph:
             value = self.recompute(claim_id)
             if obj.get("operation") == "fact_coverage":
                 text = f"Source provenance: {value['FACT']} FACT of {value['total']} trial-outcome rows; {value['UNVERIFIED_FACT']} UNVERIFIED_FACT of {value['total']}."
+            elif obj.get("operation") == "reported_effect_pool":
+                fmt = lambda v: f"{v:.6g}" if isinstance(v, float) else str(v)
+                text = (f"{obj['label']}: pooled {obj['scale']} {fmt(value['estimate'])} "
+                        f"(95% CI {fmt(value['ci_low'])} to {fmt(value['ci_high'])}); "
+                        f"k={value['k']}; HKSJ/PM tau squared={fmt(value['tau2'])}; "
+                        f"prediction interval {fmt(value['pi_low'])} to {fmt(value['pi_high'])}.")
             else:
                 text = f"{obj.get('label', claim_id)}: {value}."
         elif obj["class"] == "INTERPRETATION":
@@ -838,6 +905,49 @@ def certainty_render(review):
     return graph.render(cid)
 
 
+GRADE_DOMAINS = ("risk_of_bias", "inconsistency", "imprecision", "indirectness", "publication_bias")
+
+
+def grade_objects(grade):
+    """Register the recorded machine judgements; never infer assessment from a zero.
+
+    A basis is preserved as a basis, not promoted to a source-verified FACT.
+    Missing assessment remains OWED even when a legacy downgrade field is zero.
+    """
+    objects = []
+    domains = grade.get("domains") or {}
+    for name in GRADE_DOMAINS:
+        domain = domains.get(name) or {}
+        assessed = domain.get("assessed") is True
+        basis = domain.get("basis")
+        text = name.replace("_", " ") + ": "
+        text += (f"recorded downgrade {domain.get('downgrade', 0)}."
+                 if assessed else "NOT ASSESSED; judgement owed.")
+        if basis:
+            text += " Recorded basis: " + str(basis)
+        objects.append({"claim_id": "grade-domain-" + name, "class": "JUDGEMENT",
+                        "text": text, "adjudication": "RULE" if assessed else "OWED",
+                        "basis": ({"rule_id": "harness.grade:recorded-domain-assessment",
+                                   "source_field": "grade.domains." + name,
+                                   "recorded_basis": basis} if basis else
+                                  ({"rule_id": "assessment-must-be-explicit",
+                                    "source_field": "grade.domains." + name,
+                                    "assessed": False} if not assessed else None))})
+    inputs = [domains.get(name, {}).get("downgrade", 0) for name in GRADE_DOMAINS]
+    objects.append({"claim_id": "grade-downgrades", "class": "TRANSFORMATION",
+                    "operation": "sum", "inputs": inputs, "value": sum(inputs),
+                    "label": "Recorded domain downgrades"})
+    return objects
+
+
+def grade_render(grade, claim_id):
+    graph = ClaimGraph()
+    for obj in grade_objects(grade):
+        graph.add(obj["claim_id"], obj["class"],
+                  **{k: v for k, v in obj.items() if k not in ("claim_id", "class")})
+    return graph.render(claim_id)
+
+
 def certainty_violations(review):
     grade = review.get("grade") or {}
     if not grade or grade.get("certainty") == "not_rateable":
@@ -875,10 +985,49 @@ def review_graph(review, root=ROOT):
     graph.objects['fact-coverage']['value'] = graph.recompute('fact-coverage')
     if review.get("grade"):
         graph.add("grade-certainty", "TRANSFORMATION", **certainty_object(review["grade"]))
+        for obj in grade_objects(review["grade"]):
+            graph.add(obj["claim_id"], obj["class"],
+                      **{k: v for k, v in obj.items() if k not in ("claim_id", "class")})
     for obj in (review.get("claimgraph") or {}).get("typed_objects") or []:
         fields = {k: v for k, v in obj.items() if k not in ("claim_id", "class")}
         graph.add(obj["claim_id"], obj["class"], **fields)
+    for strand in (review.get("strands") or {}).get("strands") or []:
+        register_strand(graph, strand)
     return graph
+
+
+POOL_FIELDS = ("k", "estimate", "ci_low", "ci_high", "tau2", "pi_low", "pi_high")
+
+
+def register_strand(graph, strand):
+    """Migrate reported-effect strands only; other input schemas stay explicit debt."""
+    members = strand.get("members") or []
+    stored = strand.get("pool") or {}
+    scale = strand.get("effect_measure")
+    if (not stored or not members or stored.get("common_effect_sensitivity")
+            or scale not in ("HR", "RR", "OR", "IRR")
+            or any(any(row.get(k) is None for k in ("effect", "ci_low", "ci_high")) for row in members)):
+        return None
+    refs = []
+    for member in members:
+        row = dict(member, scale=scale)
+        cid = "fact-" + _sha(row)[:16]
+        if cid not in graph.objects:
+            graph.add(cid, "FACT", row=row)
+        refs.append(cid)
+    cid = "strand-pool-" + _sha({"strand": strand.get("strand"), "refs": refs})[:16]
+    if cid not in graph.objects:
+        graph.add(cid, "TRANSFORMATION", operation="reported_effect_pool", scale=scale,
+                  input_refs=refs, depends_on=sorted(set(refs)),
+                  value={k: stored.get(k, stored.get("effect") if k == "estimate" else None) for k in POOL_FIELDS},
+                  label="Strand " + str(strand.get("strand")))
+    return cid
+
+
+def strand_render(strand):
+    graph = ClaimGraph()
+    cid = register_strand(graph, strand)
+    return graph.render(cid) if cid else None
 
 
 def provenance_summary(review, root=ROOT):
@@ -951,7 +1100,15 @@ def scan_rendered(rendered: str, graph: ClaimGraph) -> dict[str, Any]:
         def flush(self):
             value = " ".join("".join(self.buffer).split())
             if value:
-                self.units.append({"claim_id": self.active, "text": value})
+                tags = [tag for tag, _ in self.stack]
+                # Semantic table headers are furniture only when shaped as a
+                # short label. Sentences in headers remain auditable debt.
+                structural = (not self.active and "th" in tags
+                              and len(value.split()) <= 12
+                              and not re.search(r"[.!?;]|\b(?:is|are|was|were|has|have|reported|included|excluded)\b", value, re.I))
+                self.units.append({"claim_id": self.active, "text": value,
+                                   "context": "/".join(tags),
+                                   "structural": structural})
             self.buffer = []
 
         def handle_starttag(self, tag, attrs):
@@ -984,13 +1141,22 @@ def scan_rendered(rendered: str, graph: ClaimGraph) -> dict[str, Any]:
     scanner.flush()
     violations = []
     matched = 0
-    for unit in scanner.units:
+    from collections import Counter
+    classes = Counter()
+    structural = []
+    expected_renderings = graph.render_all()
+    for ordinal, unit in enumerate(scanner.units, 1):
+        if unit["structural"]:
+            structural.append({"unit_id": f"unit-{ordinal:04d}", "text": unit["text"],
+                               "context": unit["context"], "rule": "short-semantic-table-header"})
+            continue
         cid = unit["claim_id"]
         if cid not in graph.objects:
-            violations.append(_violation("SENTENCE_WITHOUT_OBJECT", "unregistered", cid or "", unit["text"]))
+            violations.append(_violation("SENTENCE_WITHOUT_OBJECT", "unregistered", cid or "", unit["text"],
+                                         unit_id=f"unit-{ordinal:04d}", context=unit["context"]))
             continue
         expected = Scanner()
-        expected.feed(graph.render(cid))
+        expected.feed(expected_renderings[cid])
         expected.flush()
         text = " ".join(u["text"] for u in expected.units)
         expected_mark = expected.claim_marks.get(cid)
@@ -998,7 +1164,11 @@ def scan_rendered(rendered: str, graph: ClaimGraph) -> dict[str, Any]:
             violations.append(_violation("RENDERING_MISMATCH", graph.objects[cid]["class"], cid, unit["text"]))
         else:
             matched += 1
-    return {"rendered_units": len(scanner.units), "with_object": matched,
+            classes[graph.objects[cid]["class"]] += 1
+    return {"rendered_units": len(scanner.units) - len(structural), "with_object": matched,
+            "with_object_by_class": dict(classes),
+            "structural_units": structural, "structural_count": len(structural),
+            "visible_units_before_structural_rules": len(scanner.units),
             "unit_contract": "conservative visible prose/table text runs; not an exact linguistic sentence count",
             "violations": violations}
 

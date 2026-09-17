@@ -372,7 +372,7 @@ def grade(review, ghost=None):
         },
         "downgrades": downgrades,
         "conservative_downgrades_pending_human_judgement": conservative,
-        "certainty": CERT[idx],
+        "certainty": ('provisional' if review.get('slug') == 'glp1-ra-mace-t2d' and unassessed else CERT[idx]),
         "certainty_capped_by_rob_coverage": capped,
         "certainty_capped_single_trial": single_trial_capped,
         "certainty_capped_d3_unassessed": d3_capped,

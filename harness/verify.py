@@ -54,6 +54,10 @@ def _effect_in(text: str, val) -> bool:
 
 def verify_pooled(trial: dict, abstract: str | None) -> tuple[str, str]:
     """Return (status, basis): status in {"verified","verified_handchecked","not-yet"}."""
+    if trial.get('source_level') or trial.get('document_sha256'):
+        from .verified_source import refusal
+        reason = refusal(trial)
+        return ('not-yet', reason) if reason else ('verified', 'effect and CI in digest-verified committed span')
     prov = trial.get("provenance")
     span = trial.get("source") or ""
     # bytes to check against: the committed abstract for abstract/full-text (the number may pair a

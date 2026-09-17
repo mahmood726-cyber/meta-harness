@@ -1,0 +1,68 @@
+[
+  {
+    "step": "build",
+    "command": [
+      "scripts/build_topic.py",
+      "glp1-ra-mace-t2d",
+      "--now",
+      "2026-09-11"
+    ],
+    "exit_code": 0,
+    "log": "LANE-GL-BUILD.txt"
+  },
+  {
+    "step": "replay",
+    "command": [
+      "scripts/reproduce_review.py",
+      "glp1-ra-mace-t2d"
+    ],
+    "exit_code": 0,
+    "log": "LANE-GL-REPLAY.txt"
+  },
+  {
+    "step": "gate",
+    "command": [
+      "-c",
+      "import json; from harness.gate import gate_page; ok, reasons = gate_page('docs/reviews/glp1-ra-mace-t2d'); print(json.dumps({'verdict': 'PASS' if ok else 'REFUSED', 'reasons': reasons}, ensure_ascii=False, indent=2)); raise SystemExit(0 if ok else 1)"
+    ],
+    "exit_code": 1,
+    "log": "LANE-GL-GATE.txt"
+  },
+  {
+    "step": "scope",
+    "command": [
+      "scripts/claim_scope_sweep.py",
+      "--slug",
+      "glp1-ra-mace-t2d",
+      "--output",
+      "LANE-GL-SCOPE.json"
+    ],
+    "exit_code": 0,
+    "log": "LANE-GL-SCOPE.txt"
+  },
+  {
+    "step": "focused",
+    "command": [
+      "-m",
+      "pytest",
+      "tests/",
+      "-q",
+      "-x",
+      "-k",
+      "glp1 or verified or strand or known_missing"
+    ],
+    "exit_code": 0,
+    "log": "LANE-GL-FOCUSED.txt"
+  },
+  {
+    "step": "full",
+    "command": [
+      "-m",
+      "pytest",
+      "tests/",
+      "-q"
+    ],
+    "exit_code": 1,
+    "log": "LANE-GL-FULL.txt"
+  }
+]

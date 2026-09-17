@@ -358,7 +358,7 @@ def render(review, neutral: bool = False) -> str:
            "No downgrade count or overall certainty is reported for an incoherent effect object."
            if _grade_not_rateable else
             (f"{claimgraph.certainty_render(review)} "
-             f"(from {g.get('downgrades', 0)} downgrade(s); {_pub_certainty_phrase}, "
+             f"{claimgraph.grade_render(g, 'grade-downgrades')} ({_pub_certainty_phrase}, "
              f"indirectness left to human judgement)." if cert else "Certainty was reported as signals."))
         + "</p>"
     )
