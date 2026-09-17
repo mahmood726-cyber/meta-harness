@@ -38,13 +38,16 @@ def test_primary_trial_values_and_membership_are_unchanged():
     fields = ('id','effect','ci_low','ci_high','scale','ai','n1i','ci','n2i','mean1','mean2','sd1','sd2','nc1','nc2')
     for slug in slugs:
         rel = f'docs/reviews/{slug}/review.json'
-        before = json.loads(subprocess.check_output(['git','show',f'{BASE}:{rel}'],cwd=ROOT,encoding='utf-8'))
+        # The baseline is a committed fixture pinned to BASE (a lane-base commit CI never fetches), captured once
+        # from `git show`; a control must be pinned to an immutable version, never read from a live ref.
+        snap = json.loads((EVIDENCE/'primary-baseline-f6f7b14c.json').read_text(encoding='utf-8'))
+        assert snap['pinned_commit'] == BASE
+        before = snap['pages'][slug]
         after = json.loads((ROOT/rel).read_text(encoding='utf-8'))
-        assert before['screening']['records'] == after['screening']['records'], slug
-        a = next(o for o in before['outcomes'] if o.get('primary'))
+        assert before['screening_records'] == after['screening']['records'], slug
         b = next(o for o in after['outcomes'] if o.get('primary'))
         values = lambda o: [{k:t.get(k) for k in fields} for t in o['trials']]
-        assert values(a) == values(b), slug
+        assert before['primary_values'] == values(b), slug
 
 
 def test_retained_aact_rows_match_audit_hashes():
