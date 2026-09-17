@@ -35,6 +35,7 @@ from .limitations import publication_gate_refusals
 from . import arm_object
 from . import claimgraph
 from . import compat_check as _compat_check
+from . import effect_type as _effect_type
 from . import propositions
 from . import eligibility_chain
 from . import scope_identity as scope_identity_mod
@@ -1037,10 +1038,20 @@ def gate_page(review_dir):
                + check_arm_object_contract(review_dir)
                + check_method_matches_scale(review_dir)
                + check_compat_key_underlying(review_dir)
+               + check_effect_types(review_dir)
                + check_scope_identity(review_dir, html)
                + check_preregistration_not_build(review_dir)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons
+
+
+def check_effect_types(review_dir):
+    try:
+        with open(os.path.join(review_dir, "review.json"), encoding="utf-8") as f:
+            review = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1(effect_type): cannot read review.json: {exc}"]
+    return ["L1(effect_type): " + reason for reason in _effect_type.check_review(review)]
 
 
 def main(argv):

@@ -98,17 +98,17 @@ def test_valid_page_passes_non_replay_limbs():
         assert not reasons, f"valid page should pass non-replay limbs, got: {reasons}"
 
 
-def test_real_review_reproduces_and_passes_full_gate():
-    # A real committed page must pass the WHOLE gate including Level-B replay (the pipeline
-    # re-run from committed cache regenerates the committed numbers). Skips only if run
-    # outside the repo (no docs/reviews present).
+def test_legacy_untyped_review_refuses_full_gate():
+    # TY deliberately does not rebuild served pages. A legacy pool without
+    # row types must refuse until the integrator rebuilds it under the target.
     import os as _os
     root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
     d = _os.path.join(root, "docs", "reviews", "noac-vs-warfarin-af-stroke")
     if not _os.path.isdir(d):
         return
     ok, reasons = gate_page(d)
-    assert ok, f"real committed review must pass the full gate, got: {reasons}"
+    assert not ok
+    assert any("L1(effect_type): EFFECT_TYPE_REFUSED" in r for r in reasons), reasons
 
 
 def test_real_review_harms_incomplete_refuses_full_gate():

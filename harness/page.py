@@ -1476,6 +1476,35 @@ def _loo_text(loo):
     return _e(loo.get("note"))
 
 
+def typed_effects_html(o):
+    from .effect_type import AXES, known
+    effects = o.get("effect_types") or []
+    if not effects:
+        return ""
+    head = "<tr><th>Axis</th>" + "".join(f"<th>{_e(e['trial'])}</th>" for e in effects) + "</tr>"
+    rows = []
+    for n, axis in enumerate(AXES, 1):
+        cells = []
+        for e in effects:
+            f = e["axes"][axis]
+            b = f["basis"]
+            cls = ("span" if b.get("span") else "rule") if known(f) else "UNKNOWN"
+            basis = b.get("span") or b.get("rule_id") or b.get("absence_code")
+            cells.append(f'<td class="{cls}">{_e(f["value"])}<br>{cls}: {_e(basis)}<br>{_e(b.get("source"))}</td>')
+        rows.append(f"<tr><th>{n}. {_e(axis)}</th>{''.join(cells)}</tr>")
+    verdicts = "".join(f"<li>{_e(e['trial'])}: {_e(e.get('unification', {}).get('status'))} — "
+                       f"{_e(e.get('unification', {}).get('reason', ''))} "
+                       f"{_e('; '.join(e.get('unification', {}).get('disclosures', [])))} "
+                       f"{_e(', '.join(e.get('unification', {}).get('coercion_ids', [])))}</li>" for e in effects)
+    register = "".join(f"<li><strong>{_e(c['coercion_id'])}</strong>: {_e(c['why'])}; "
+                       f"{_e(c['consequence'])}; {_e(c['who'])}; {_e(c['date'])}; signed by {_e(c['signed_by'])}. "
+                       + " ".join(f"{_e(s['source'])}: {_e(s['span'])}" for s in c["evidence_spans"]) + "</li>"
+                       for c in o.get("coercions", []))
+    return ("<section class='typed-effects'><h4>Typed effects</h4><p>Candidate rows, including type refusals.</p>"
+            + "<table>" + head + "".join(rows) + "</table><ul>" + verdicts + "</ul>"
+            + "<h4>Coercion register</h4>" + ("<ul>" + register + "</ul>" if register else "<p>No declared coercions.</p>") + "</section>")
+
+
 def _outcome_block(o, show_inputs=True):
     reason = _absent(o)
     if reason:
@@ -1691,7 +1720,7 @@ def _outcome_block(o, show_inputs=True):
                      f"({_nd} here) is a claim about the trial itself. An unassessed outcome never counts as "
                      f"favourable to the intervention.</p>")
         body += _trial_inputs(o)
-    return body
+    return body + typed_effects_html(o)
 
 
 def _definition_audit_block(r):

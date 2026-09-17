@@ -50,7 +50,12 @@ def test_published_target_effect_beats_reconstructed_counts():
     assert pre_fix.get("ai") == 20 and pre_fix.get("effect") is None
 
     out = _one_trial(abstract, estimand="RR")
-    trial = out["trials"][0]
+    # Source selection still prefers the published HR, but the typed RR
+    # target now refuses it unless an external coercion is declared.
+    assert out["trials"] == []
+    trial = out["effect_type_refusals"][0]
+    assert trial["unification"]["status"] == "REFUSE"
+    assert trial["unification"]["axis"] == 9
     assert trial["effect"] == 0.80
     assert trial["scale"] == "HR"
     assert trial["selection_rule"] == "PUBLISHED_EFFECT_TARGET_CLASS"

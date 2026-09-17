@@ -33,6 +33,7 @@ from . import invalidation as invalidation_mod
 from . import known_missing as known_missing_mod
 from . import missing_effect as missing_effect_mod
 from . import compat as compat_mod
+from . import effect_type as effect_type_mod
 from . import compat_check as compat_check_mod
 from . import compat_direction as compat_direction_mod
 from . import recovery_recheck as recovery_recheck_mod
@@ -1014,7 +1015,7 @@ def _apply_trial_annotations(spec, trials):
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
                    locate_judgments=None, verified_effects=None, dose_selection=None,
-                   registry_designs=None, k2_anchor_config=None):
+                   registry_designs=None, k2_anchor_config=None, effect_coercions=(), effect_protocol_text=""):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     dose_selection = dose_selection or {}
@@ -1327,6 +1328,21 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             row.update(meta)
     _apply_trial_annotations(spec, trials)
     for t in trials:
+        if t.get("mean1") is not None:
+            reconstructed_scale = "MD"
+        elif t.get("ai") is not None:
+            reconstructed_scale = "OR" if str(selector_estimand).upper() == "OR" else "RR"
+        else:
+            reconstructed_scale = None
+        if reconstructed_scale:
+            t.setdefault("effect_type_evidence", {})["effect_measure"] = {
+                "value": reconstructed_scale,
+                "basis": {"rule_id": "harness.synth:Study.yi_vi:" + reconstructed_scale}}
+    effect_target = effect_type_mod.protocol_target(spec, effect_protocol_text)
+    trials, type_refusals, effect_types = effect_type_mod.type_rows(
+        trials, effect_target, rec_by_id, effect_coercions)
+    absent.extend(type_refusals)
+    for t in trials:
         if t.get("cross_source"):
             _refresh_cross_source_identity(t["cross_source"], spec, t.get("components"))
     out = {"name": spec["name"], "kind": kind, "primary": bool(spec.get("primary")),
@@ -1334,6 +1350,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
            "timepoint": spec.get("timepoint"), "method": METHOD,
            "served_estimand": selector_estimand, "estimand_decision": estimand_decision,
            "trials": trials, "declared_absent_trials": absent}
+    out.update(effect_types=effect_types, effect_type_target=effect_target,
+               effect_type_refusals=type_refusals, coercions=list(effect_coercions))
     if spec.get("component_compat_key"):
         out["component_compat_key"] = True
     if design_refusals:
@@ -1572,6 +1590,12 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             out["result"] = {"present": False,
                              "reason": "no included trial reported this outcome with a percentage-corroborated "
                                        "count or an effect+CI in its abstract"}
+    if type_refusals:
+        out["effect_type_counts"] = {"candidate_rows": len(effect_types), "accepted_rows": len(trials),
+                                     "refused_rows": len(type_refusals)}
+        if not trials:
+            out["result"] = {"present": False, "k": 0,
+                             "reason": "; ".join(t["reason"] for t in type_refusals)}
     if out.get("design_refusals"):
         out["design_consumption"] = design_variance.consumption_summary(out)
         if isinstance(out.get("result"), dict):
@@ -1731,12 +1755,17 @@ def build_review_core(slug, config, records, protocol_sha):
     dsel = _load_dose_selection(slug)
     ljudg = locate.load(slug) if config.get("locate_gate") else None
     registry_designs = design_key.registry_designs(records)
+    effect_coercions = effect_type_mod.load_coercions(
+        os.path.join(ROOT, "cache", slug, "coercions.json"))
+    effect_protocol_text = _read_text("protocols", slug + ".md")
     outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp,
                                outcome_judgments=ojudg, verified_arms=varms, locate_judgments=ljudg,
                                verified_effects=veffs, dose_selection=dsel,
                                registry_designs=registry_designs,
-                               k2_anchor_config=config.get("k2_direction_conflict_anchor"))
+                               k2_anchor_config=config.get("k2_direction_conflict_anchor"),
+                               effect_coercions=effect_coercions, effect_protocol_text=effect_protocol_text)
                 for spec, kind in _outcome_specs(config)]
+    effect_type_mod.persist(os.path.join(ROOT, "cache", slug, "effect_types.json"), outcomes)
     primary = outcomes[0]
 
     comp_rec = rec_by_id.get(config.get("comparator_pmid")) or {}
