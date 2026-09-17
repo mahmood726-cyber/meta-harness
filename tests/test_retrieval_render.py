@@ -6,8 +6,9 @@ from harness.page import render_page
 ERROR_PHRASE = "attempted and FAILED — its zero is not observed, not absent"
 ZERO_PHRASE = "ran; nothing matched"
 REPLAY_SENTENCE = (
-    "This page is a REPLAY of that snapshot: re-running from the protocol SHA regenerates "
-    "it byte-for-byte. A live re-search is a separate, dated event (see Re-search below if present)."
+    "This page replays the committed retrieval snapshot; it is not a claim that the protocol "
+    "SHA alone regenerates the page byte-for-byte. A live re-search is a separate, dated event "
+    "(see Re-search below if present)."
 )
 
 

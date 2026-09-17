@@ -35,3 +35,12 @@ PMC9438305, DOI 10.1186/s13019-022-01958-9; open access). Reports POAF RR 0.62 (
 - **Positive** — the search recovers the colchicine-vs-placebo cardiac-surgery POAF RCTs the comparator pools.
 - **Negative** — CORP (colchicine for recurrent pericarditis, PMID 21873705 — another topic in this set)
   must be recovered and EXCLUDED (wrong population).
+
+## Retrospective executable-screen amendment (2026-09-16)
+`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that the
+cardiac-surgery population vocabulary missed "myocardial revascularization"
+language in Zarpelon PMID 27223641. The config now treats myocardial
+revascularization/revascularisation surgery as cardiac-surgery vocabulary and
+accepts its randomized "control group" wording as the usual-care control. This
+amendment changes screening only and does not make dose/timing-ambiguous or
+multi-arm outcome data poolable.

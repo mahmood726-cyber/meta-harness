@@ -253,7 +253,12 @@
         ],
         "matched_intervention": "denosumab",
         "trial_family_id": "NCT00089791",
-        "publication_role": "primary"
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "registry_status": "COMPLETED",
+        "results_first_posted_date": "2014-01-10",
+        "completion_date": "2008-06-17",
+        "completeness_basis": "CT.gov status/results dates from local AACT snapshot"
       },
       {
         "id": "25944523",
@@ -1185,6 +1190,78 @@
       "caveat": "the two rule sets share an author and the same eligibility criteria, so they are NOT statistically independent; this agreement overstates inter-rater reliability. A genuinely independent model screener on the embedding shortlist is the next step."
     }
   },
+  "scope_identity": {
+    "slug": "denosumab-vertebral-fracture",
+    "eligibility_scope": {
+      "type": "OPEN_PIC_DESIGN",
+      "basis": "topics/<slug>.json include + protocols/<slug>.md",
+      "population_terms": [
+        "postmenopausal women with osteoporosis",
+        "postmenopausal osteoporosis",
+        "osteoporosis in postmenopausal women"
+      ],
+      "population_exclusions": [
+        "women and men",
+        "prostate cancer",
+        "breast cancer",
+        "cancer",
+        "malignancy",
+        "metastatic",
+        "bone metastases",
+        "androgen-deprivation",
+        "androgen deprivation",
+        "aromatase inhibitor",
+        "multiple myeloma",
+        "giant cell tumor",
+        "paediatric",
+        "pediatric",
+        "children",
+        "chronic kidney disease",
+        "renal insufficiency",
+        "romosozumab",
+        "teriparatide",
+        "abaloparatide",
+        "bisphosphonate",
+        "vertebroplasty"
+      ],
+      "intervention_terms": [
+        "denosumab",
+        "AMG 162",
+        "Prolia"
+      ],
+      "comparator_terms": [
+        "placebo"
+      ],
+      "design_terms": [
+        "randomised controlled trial",
+        "double blind"
+      ],
+      "phase_terms": [],
+      "outcome_reporting_is_eligibility": false,
+      "description": ""
+    },
+    "search_scope": {
+      "type": "PRE_IDENTIFIED_SET",
+      "retrieval_class": "TITLE_SEEDED_RETRIEVAL",
+      "retrieval_label": "TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH",
+      "query_count": 3,
+      "queries": [
+        "19671655[uid]",
+        "denosumab[Title] AND prevention[Title] AND fractures[Title] AND postmenopausal[Title] AND osteoporosis[Title]",
+        "19671655[uid] || denosumab[Title] AND prevention[Title] AND fractures[Title] AND postmenopausal[Title] AND osteoporosis[Title]"
+      ],
+      "source_kinds": [
+        "LEGACY_UNRECORDED",
+        "PUBMED_LEGACY_QUERY",
+        "PUBMED_PMID_ENUMERATION"
+      ],
+      "discovery_capable_source_count": 1,
+      "description": "retrieval can test only named PMIDs/titles/trial identifiers already supplied"
+    },
+    "verdict": "SCOPE_MISMATCH",
+    "reason": "open P/I/C/design eligibility was evaluated only inside a pre-identified retrieval set; the open eligibility universe was not tested",
+    "render_requirement": "N of the pre-identified set met eligibility; eligibility over the open scope was NOT tested (search class TITLE_SEEDED_RETRIEVAL)"
+  },
   "outcomes": [
     {
       "name": "New vertebral fracture",
@@ -1194,6 +1271,20 @@
       "population": "intention-to-treat",
       "timepoint": "36 months",
       "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "served_estimand": "HR",
+      "estimand_decision": {
+        "declared_estimand": "RR",
+        "decision": "time_to_first_event",
+        "target_scale": "HR",
+        "target_class": "FIRST_EVENT_RATIO",
+        "published_candidate_scales": [
+          "HR",
+          "RR"
+        ],
+        "served_scale_changed": true,
+        "reason": "published HR exists for the target outcome",
+        "rule": "prefer published HR; keep reconstruction only when no HR exists"
+      },
       "trials": [
         {
           "label": "19671655",
@@ -1204,10 +1295,27 @@
           "scale": "RR",
           "source": "abstract effect+CI (RR): RESULTS: As compared with placebo, denosumab reduced the risk of new radiographic vertebral fracture, with a cumulative incidence of 2.3% in the denosumab group, versus 7.2% in the placebo group (risk",
           "provenance": "abstract",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [
+            {
+              "derivation": "reported",
+              "provenance": "abstract",
+              "source_span": "abstract effect+CI (HR): Denosumab also reduced the risk of nonvertebral fracture, with a cumulative incidence of 6.5% in the denosumab group, versus 8.0% in the placebo group (hazard ratio, 0.80; ...",
+              "effect": 0.8,
+              "ci_low": 0.67,
+              "ci_high": 0.95,
+              "scale": "HR",
+              "estimand_class": "FIRST_EVENT_RATIO",
+              "not_selected_reason": "source_hierarchy_lower_precedence"
+            }
+          ],
           "cross_source": {
             "ctgov_rr": 0.325,
             "ctgov_source": "ClinicalTrials.gov results (structured): outcome 'Number of Participants With New Vertebral Fractures' COUNT_OF_PARTICIPANTS 86/3702 (Denosumab 60 mg Q6M) vs 264/3691 (Placebo)",
             "registry_title": "Number of Participants With New Vertebral Fractures",
+            "registry_description": "A new vertebral fracture, assessed by lateral spine X-ray using Genant semiquantitative scoring method, was identified as an ≥ 1 grade increase from the Baseline grade of 0 in any vertebra from T4 to L4. New vertebral fractures included morphometric vertebral fractures (assessed at scheduled visits and not associated with signs or symptoms \\[or both\\] indicative of a fracture) and clinical vertebral fractures (assessed at either a scheduled or unscheduled visit and associated with any signs and/or symptoms indicative of a fracture, excluding any fracture associated with high trauma severity or a pathologic fracture).",
             "registry_type": "PRIMARY",
             "registry_param_type": "NUMBER",
             "registry_measure_type": "COUNT_OF_PARTICIPANTS",
@@ -1218,15 +1326,32 @@
             "pooled_effect_for_endpoint_match": 0.32,
             "pooled_scale_for_endpoint_match": "RR",
             "endpoint_match_tolerance_log": 0.12,
-            "endpoint_match": "SAME_ENDPOINT",
-            "endpoint_match_reason": "registry title, population/timepoint metadata, and numeric value match the pooled endpoint within log tolerance 0.12.",
+            "registry_intervention_value": 86.0,
+            "registry_comparator_value": 264.0,
+            "identity": {
+              "title_match": true,
+              "component_match": true,
+              "measure_type": "risk ratio from counts",
+              "population_match": true,
+              "verdict": "IDENTICAL_ENDPOINT"
+            },
+            "second_source_verdict": "IDENTICAL_ENDPOINT",
+            "endpoint_match": "IDENTICAL_ENDPOINT",
+            "endpoint_match_reason": "registry title, component set, measure type (risk ratio from counts), population, and numeric value match the pooled endpoint within log tolerance 0.12.",
+            "registry_effect_label": "CT.gov risk ratio from counts",
             "agree": null,
             "corroborates_endpoint": true,
-            "note": "independently corroborated by CT.gov structured results; registry title, population/timepoint metadata, and numeric value match the pooled endpoint within log tolerance 0.12."
+            "note": "independently corroborated by CT.gov structured results; registry title, component set, measure type (risk ratio from counts), population, and numeric value match the pooled endpoint within log tolerance 0.12."
           },
+          "source_hierarchy_limitations": [
+            {
+              "code": "MIXED_BY_SOURCE_LIMIT",
+              "reason": "Outcome decision prefers published HR, but this row has no committed HR effect+CI; the row remains on the reconstructed/available scale and the pool is mixed by source limit.",
+              "citation": "SOURCE_NOT_RETRIEVED_FULL_TEXT_NEEDED"
+            }
+          ],
           "verified": "verified",
           "verify_basis": "effect present in committed source",
-          "derivation": "reported",
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
@@ -1236,11 +1361,16 @@
               "evidence": []
             },
             "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [],
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              }
+            ],
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -1248,7 +1378,7 @@
           "study_effect": {
             "effect_estimate": 0.32,
             "standard_error": 0.11619487201692441,
-            "estimand": "RR",
+            "estimand": "HR",
             "analysis_population": "intention-to-treat",
             "randomisation_unit": "UNKNOWN",
             "study_design": "UNKNOWN",
@@ -1262,9 +1392,9 @@
               "span": "abstract effect+CI (RR): RESULTS: As compared with placebo, denosumab reduced the risk of new radiographic vertebral fracture, with a cumulative incidence of 2.3% in the denosumab group, versus 7.2% in the placebo group (risk"
             },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -1309,7 +1439,10 @@
             "intervention_ontology": {
               "intervention_class": null
             }
-          }
+          },
+          "trial_id": "PMID 19671655",
+          "report_id": "PMID 19671655",
+          "outcome_effect_id": "denosumab-vertebral-fracture::New vertebral fracture::PMID 19671655::PMID 19671655"
         }
       ],
       "declared_absent_trials": [],
@@ -1363,6 +1496,13 @@
         },
         "claim_kind": "outcome_result"
       },
+      "endpoint_canonical": {
+        "label": "NEW_VERTEBRAL_FRACTURE",
+        "event_time": "TIME_TO_FIRST_EVENT",
+        "components": [],
+        "component_sets": [],
+        "status": "NOT_DECLARED"
+      },
       "compat_key": {
         "effect_measure": [
           "RR"
@@ -1373,17 +1513,26 @@
         "endpoint": "trial-defined New vertebral fracture (definitions listed per trial)",
         "follow_up_window": "36 months",
         "analysis_set": "intention-to-treat",
+        "analysis_set_declared": "intention-to-treat",
         "randomised_contrast": {
           "verified": 1,
           "total": 1
         },
         "matched": true,
         "mismatches": [],
+        "endpoint_canonical": {
+          "label": "NEW_VERTEBRAL_FRACTURE",
+          "event_time": "TIME_TO_FIRST_EVENT",
+          "components": [],
+          "component_sets": [],
+          "status": "NOT_DECLARED"
+        },
+        "endpoint_canonical_status": "NOT_DECLARED",
         "dimension_matches": {
           "endpoint": false
         },
-        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS",
-        "underlying_checked": true
+        "underlying_checked": true,
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS"
       },
       "recovery_recheck": {
         "hard_incompatible": false,
@@ -1421,6 +1570,19 @@
       "population": null,
       "timepoint": null,
       "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "served_estimand": "HR",
+      "estimand_decision": {
+        "declared_estimand": "RR",
+        "decision": "time_to_first_event",
+        "target_scale": "HR",
+        "target_class": "FIRST_EVENT_RATIO",
+        "published_candidate_scales": [
+          "HR"
+        ],
+        "served_scale_changed": true,
+        "reason": "published HR exists for the target outcome",
+        "rule": "prefer published HR; keep reconstruction only when no HR exists"
+      },
       "trials": [
         {
           "label": "19671655",
@@ -1431,10 +1593,15 @@
           "scale": "HR",
           "source": "abstract effect+CI (HR): Denosumab also reduced the risk of nonvertebral fracture, with a cumulative incidence of 6.5% in the denosumab group, versus 8.0% in the placebo group (hazard ratio, 0.80; 95% CI, 0.67 to 0.95; P=0.01",
           "provenance": "abstract",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
           "cross_source": {
             "ctgov_rr": 0.813,
             "ctgov_source": "ClinicalTrials.gov results (structured): outcome 'Number of Participants With Nonvertebral Fractures' COUNT_OF_PARTICIPANTS 238/3902 (Denosumab 60 mg Q6M) vs 293/3906 (Placebo)",
             "registry_title": "Number of Participants With Nonvertebral Fractures",
+            "registry_description": "Nonvertebral fractures (osteoporotic) were those occurring on study excluding those of the vertebrae (cervical, thoracic, and lumbar), skull, facial, mandible, metacarpus, finger phalanges, and toe phalanges. Fractures associated with high trauma severity (fractures that were the result of a fall from higher than the height of a stool, chair, first rung on a ladder or equivalent (\\> 20 inches) or was the result of severe trauma other than a fall) and pathologic fractures were excluded from this category. Nonvertebral fractures were required to be confirmed either by radiographs or other diagnostic images such as computerized tomography (CT) or magnetic resonance imaging (MRI), or by documentation in a radiology report, surgical report, or discharge summary.",
             "registry_type": "SECONDARY",
             "registry_param_type": "NUMBER",
             "registry_measure_type": "COUNT_OF_PARTICIPANTS",
@@ -1445,15 +1612,25 @@
             "pooled_effect_for_endpoint_match": 0.8,
             "pooled_scale_for_endpoint_match": "HR",
             "endpoint_match_tolerance_log": 0.12,
-            "endpoint_match": "SAME_ENDPOINT",
-            "endpoint_match_reason": "registry title, population/timepoint metadata, and numeric value match the pooled endpoint within log tolerance 0.12. pooled HR is compared with a registry proportion ratio only because the values agree within log tolerance 0.12; this is corroboration, not replacement.",
+            "registry_intervention_value": 238.0,
+            "registry_comparator_value": 293.0,
+            "identity": {
+              "title_match": true,
+              "component_match": true,
+              "measure_type": "risk ratio from counts",
+              "population_match": true,
+              "verdict": "SECOND_SOURCE_DIFFERENT_MEASURE"
+            },
+            "second_source_verdict": "SECOND_SOURCE_DIFFERENT_MEASURE",
+            "endpoint_match": "SECOND_SOURCE_DIFFERENT_MEASURE",
+            "endpoint_match_reason": "registry value is a risk ratio from counts, not pooled HR (36 months): Number of Participants With Nonvertebral Fractures",
+            "registry_effect_label": "CT.gov risk ratio from counts",
             "agree": null,
-            "corroborates_endpoint": true,
-            "note": "independently corroborated by CT.gov structured results; registry title, population/timepoint metadata, and numeric value match the pooled endpoint within log tolerance 0.12. pooled HR is compared with a registry proportion ratio only because the values agree within log tolerance 0.12; this is corroboration, not replacement."
+            "corroborates_endpoint": false,
+            "note": "SECOND_SOURCE_DIFFERENT_MEASURE: registry value is a risk ratio from counts, not pooled HR (36 months): Number of Participants With Nonvertebral Fractures"
           },
           "verified": "verified",
           "verify_basis": "effect present in committed source",
-          "derivation": "reported",
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
@@ -1463,11 +1640,16 @@
               "evidence": []
             },
             "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [],
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              }
+            ],
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -1475,7 +1657,7 @@
           "study_effect": {
             "effect_estimate": 0.8,
             "standard_error": 0.08907925731388323,
-            "estimand": "RR",
+            "estimand": "HR",
             "analysis_population": "UNKNOWN",
             "randomisation_unit": "UNKNOWN",
             "study_design": "UNKNOWN",
@@ -1489,9 +1671,9 @@
               "span": "abstract effect+CI (HR): Denosumab also reduced the risk of nonvertebral fracture, with a cumulative incidence of 6.5% in the denosumab group, versus 8.0% in the placebo group (hazard ratio, 0.80; 95% CI, 0.67 to 0.95; P=0.01"
             },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -1536,7 +1718,10 @@
             "intervention_ontology": {
               "intervention_class": null
             }
-          }
+          },
+          "trial_id": "PMID 19671655",
+          "report_id": "PMID 19671655",
+          "outcome_effect_id": "denosumab-vertebral-fracture::Nonvertebral fracture::PMID 19671655::PMID 19671655"
         }
       ],
       "declared_absent_trials": [],
@@ -1590,6 +1775,13 @@
         },
         "claim_kind": "outcome_result"
       },
+      "endpoint_canonical": {
+        "label": "NONVERTEBRAL_FRACTURE",
+        "event_time": "TIME_TO_FIRST_EVENT",
+        "components": [],
+        "component_sets": [],
+        "status": "NOT_DECLARED"
+      },
       "compat_key": {
         "effect_measure": [
           "HR"
@@ -1600,17 +1792,26 @@
         "endpoint": "trial-defined Nonvertebral fracture (definitions listed per trial)",
         "follow_up_window": null,
         "analysis_set": null,
+        "analysis_set_declared": null,
         "randomised_contrast": {
           "verified": 1,
           "total": 1
         },
         "matched": true,
         "mismatches": [],
+        "endpoint_canonical": {
+          "label": "NONVERTEBRAL_FRACTURE",
+          "event_time": "TIME_TO_FIRST_EVENT",
+          "components": [],
+          "component_sets": [],
+          "status": "NOT_DECLARED"
+        },
+        "endpoint_canonical_status": "NOT_DECLARED",
         "dimension_matches": {
           "endpoint": false
         },
-        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS",
-        "underlying_checked": true
+        "underlying_checked": true,
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS"
       },
       "recovery_recheck": {
         "hard_incompatible": false,
@@ -1648,6 +1849,19 @@
       "population": null,
       "timepoint": null,
       "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "served_estimand": "HR",
+      "estimand_decision": {
+        "declared_estimand": "RR",
+        "decision": "time_to_first_event",
+        "target_scale": "HR",
+        "target_class": "FIRST_EVENT_RATIO",
+        "published_candidate_scales": [
+          "HR"
+        ],
+        "served_scale_changed": true,
+        "reason": "published HR exists for the target outcome",
+        "rule": "prefer published HR; keep reconstruction only when no HR exists"
+      },
       "trials": [
         {
           "label": "19671655",
@@ -1658,10 +1872,15 @@
           "scale": "HR",
           "source": "abstract effect+CI (HR): Denosumab reduced the risk of hip fracture, with a cumulative incidence of 0.7% in the denosumab group, versus 1.2% in the placebo group (hazard ratio, 0.60; 95% CI, 0.37 to 0.97; P=0.04)--a relative ",
           "provenance": "abstract",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
           "cross_source": {
             "ctgov_rr": 0.605,
             "ctgov_source": "ClinicalTrials.gov results (structured): outcome 'Number of Participants With a Hip Fracture' COUNT_OF_PARTICIPANTS 26/3902 (Denosumab 60 mg Q6M) vs 43/3906 (Placebo)",
             "registry_title": "Number of Participants With a Hip Fracture",
+            "registry_description": "Hip fractures are a subset of nonvertebral fractures including femur neck, femur intertrochanter, and femur subtrochanter.",
             "registry_type": "SECONDARY",
             "registry_param_type": "NUMBER",
             "registry_measure_type": "COUNT_OF_PARTICIPANTS",
@@ -1672,15 +1891,25 @@
             "pooled_effect_for_endpoint_match": 0.6,
             "pooled_scale_for_endpoint_match": "HR",
             "endpoint_match_tolerance_log": 0.12,
-            "endpoint_match": "SAME_ENDPOINT",
-            "endpoint_match_reason": "registry title, population/timepoint metadata, and numeric value match the pooled endpoint within log tolerance 0.12. pooled HR is compared with a registry proportion ratio only because the values agree within log tolerance 0.12; this is corroboration, not replacement.",
+            "registry_intervention_value": 26.0,
+            "registry_comparator_value": 43.0,
+            "identity": {
+              "title_match": true,
+              "component_match": true,
+              "measure_type": "risk ratio from counts",
+              "population_match": true,
+              "verdict": "SECOND_SOURCE_DIFFERENT_MEASURE"
+            },
+            "second_source_verdict": "SECOND_SOURCE_DIFFERENT_MEASURE",
+            "endpoint_match": "SECOND_SOURCE_DIFFERENT_MEASURE",
+            "endpoint_match_reason": "registry value is a risk ratio from counts, not pooled HR (36 months): Number of Participants With a Hip Fracture",
+            "registry_effect_label": "CT.gov risk ratio from counts",
             "agree": null,
-            "corroborates_endpoint": true,
-            "note": "independently corroborated by CT.gov structured results; registry title, population/timepoint metadata, and numeric value match the pooled endpoint within log tolerance 0.12. pooled HR is compared with a registry proportion ratio only because the values agree within log tolerance 0.12; this is corroboration, not replacement."
+            "corroborates_endpoint": false,
+            "note": "SECOND_SOURCE_DIFFERENT_MEASURE: registry value is a risk ratio from counts, not pooled HR (36 months): Number of Participants With a Hip Fracture"
           },
           "verified": "verified",
           "verify_basis": "effect present in committed source",
-          "derivation": "reported",
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
@@ -1690,11 +1919,16 @@
               "evidence": []
             },
             "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [],
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              }
+            ],
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -1702,7 +1936,7 @@
           "study_effect": {
             "effect_estimate": 0.6,
             "standard_error": 0.24587009594600592,
-            "estimand": "RR",
+            "estimand": "HR",
             "analysis_population": "UNKNOWN",
             "randomisation_unit": "UNKNOWN",
             "study_design": "UNKNOWN",
@@ -1716,9 +1950,9 @@
               "span": "abstract effect+CI (HR): Denosumab reduced the risk of hip fracture, with a cumulative incidence of 0.7% in the denosumab group, versus 1.2% in the placebo group (hazard ratio, 0.60; 95% CI, 0.37 to 0.97; P=0.04)--a relative "
             },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -1763,7 +1997,10 @@
             "intervention_ontology": {
               "intervention_class": null
             }
-          }
+          },
+          "trial_id": "PMID 19671655",
+          "report_id": "PMID 19671655",
+          "outcome_effect_id": "denosumab-vertebral-fracture::Hip fracture::PMID 19671655::PMID 19671655"
         }
       ],
       "declared_absent_trials": [],
@@ -1817,6 +2054,13 @@
         },
         "claim_kind": "outcome_result"
       },
+      "endpoint_canonical": {
+        "label": "HIP_FRACTURE",
+        "event_time": "TIME_TO_FIRST_EVENT",
+        "components": [],
+        "component_sets": [],
+        "status": "NOT_DECLARED"
+      },
       "compat_key": {
         "effect_measure": [
           "HR"
@@ -1827,17 +2071,26 @@
         "endpoint": "trial-defined Hip fracture (definitions listed per trial)",
         "follow_up_window": null,
         "analysis_set": null,
+        "analysis_set_declared": null,
         "randomised_contrast": {
           "verified": 1,
           "total": 1
         },
         "matched": true,
         "mismatches": [],
+        "endpoint_canonical": {
+          "label": "HIP_FRACTURE",
+          "event_time": "TIME_TO_FIRST_EVENT",
+          "components": [],
+          "component_sets": [],
+          "status": "NOT_DECLARED"
+        },
+        "endpoint_canonical_status": "NOT_DECLARED",
         "dimension_matches": {
           "endpoint": false
         },
-        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS",
-        "underlying_checked": true
+        "underlying_checked": true,
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS"
       },
       "recovery_recheck": {
         "hard_incompatible": false,
@@ -1875,6 +2128,17 @@
       "population": null,
       "timepoint": null,
       "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
+      "served_estimand": "RR",
+      "estimand_decision": {
+        "declared_estimand": "RR",
+        "decision": "cumulative_risk_at_trial_end",
+        "target_scale": "RR",
+        "target_class": "FIRST_EVENT_RATIO",
+        "published_candidate_scales": [],
+        "served_scale_changed": false,
+        "reason": "declared cumulative risk-ratio estimand",
+        "rule": "prefer published RR; otherwise reconstruct RR from counts consistently"
+      },
       "trials": [],
       "declared_absent_trials": [
         {
@@ -1884,11 +2148,26 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
           "trial_family_id": "NCT00089791",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2014-01-10",
+          "completion_date": "2008-06-17",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
           "reason_code": "OUTCOME_NOT_IN_SOURCE",
           "state": "OUTCOME_NOT_IN_SOURCE",
           "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"BACKGROUND: Denosumab is a fully human monoclonal antibody to the receptor activator of nuclear factor-kappaB ligand (RANKL) that blocks its binding to RANK, inhibiting the development and activity o...\"; no sentence matching the outcome terms was found",
           "source_span": "BACKGROUND: Denosumab is a fully human monoclonal antibody to the receptor activator of nuclear factor-kappaB ligand (RANKL) that blocks its binding to RANK, inhibiting the development and activity o...",
           "verbatim_span": "BACKGROUND: Denosumab is a fully human monoclonal antibody to the receptor activator of nuclear factor-kappaB ligand (RANKL) that blocks its binding to RANK, inhibiting the development and activity o...",
+          "trial_id": "PMID 19671655",
+          "report_id": "PMID 19671655",
+          "outcome_effect_id": "denosumab-vertebral-fracture::Serious adverse events::PMID 19671655::PMID 19671655",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+          },
+          "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
+          "harm_source_reported": false,
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "0119dfd6d2f9e39c",
           "depends_on": {
@@ -1917,6 +2196,10 @@
           "null": null,
           "direction": null
         },
+        "harm_reporting_trials_n": 0,
+        "harm_extracted_trials_n": 0,
+        "harm_registered_trials_n": 1,
+        "harm_absence_certified": true,
         "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         "claim_id": "4e164010b2e50f14",
         "depends_on": {
@@ -1933,6 +2216,17 @@
       "population": null,
       "timepoint": null,
       "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
+      "served_estimand": "RR",
+      "estimand_decision": {
+        "declared_estimand": "RR",
+        "decision": "cumulative_risk_at_trial_end",
+        "target_scale": "RR",
+        "target_class": "FIRST_EVENT_RATIO",
+        "published_candidate_scales": [],
+        "served_scale_changed": false,
+        "reason": "declared cumulative risk-ratio estimand",
+        "rule": "prefer published RR; otherwise reconstruct RR from counts consistently"
+      },
       "trials": [],
       "declared_absent_trials": [
         {
@@ -1942,11 +2236,28 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
           "trial_family_id": "NCT00089791",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2014-01-10",
+          "completion_date": "2008-06-17",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
           "reason_code": "OUTCOME_NOT_IN_SOURCE",
           "state": "OUTCOME_NOT_IN_SOURCE",
           "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"There was no increase in the risk of cancer, infection, cardiovascular disease, delayed fracture healing, or hypocalcemia, and there were no cases of osteonecrosis of the jaw and no adverse reactions...\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
           "source_span": "There was no increase in the risk of cancer, infection, cardiovascular disease, delayed fracture healing, or hypocalcemia, and there were no cases of osteonecrosis of the jaw and no adverse reactions...",
           "verbatim_span": "There was no increase in the risk of cancer, infection, cardiovascular disease, delayed fracture healing, or hypocalcemia, and there were no cases of osteonecrosis of the jaw and no adverse reactions...",
+          "trial_id": "PMID 19671655",
+          "report_id": "PMID 19671655",
+          "outcome_effect_id": "denosumab-vertebral-fracture::Serious infection::PMID 19671655::PMID 19671655",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+          },
+          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_source_reported": true,
+          "harm_source_span": "There was no increase in the risk of cancer, infection, cardiovascular disease, delayed fracture healing, or hypocalcemia, and there were no cases of osteonecrosis of the jaw and no adverse reactions to the injection of denosumab.",
+          "harm_source_signal": "term_signal",
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "139576674435b07b",
           "depends_on": {
@@ -1970,7 +2281,7 @@
         "reported_by": [
           "19671655"
         ],
-        "reason": "REPORTED but not extractable as a pooled value: 19671655 mention this outcome in the committed abstract, but without arm counts or an effect+CI in an extractable form (e.g. a bare percentage with no denominator). This outcome is NOT absent — it is reported-but-not-poolable from the committed source; full-text acquisition would recover the countable form.",
+        "reason": "HARMS_INCOMPLETE -- 1 known reported outcome(s) unresolved (19671655) among 1 source-reporting trial(s); extracted k=0. The page must not render this as harm absence.",
         "claim": {
           "present": false,
           "significant": false,
@@ -1979,6 +2290,26 @@
           "null": null,
           "direction": null
         },
+        "harm_reporting_trials_n": 1,
+        "harm_extracted_trials_n": 0,
+        "harm_registered_trials_n": 1,
+        "harm_reporting_trials": [
+          {
+            "id": "19671655",
+            "label": "19671655",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "There was no increase in the risk of cancer, infection, cardiovascular disease, delayed fracture healing, or hypocalcemia, and there were no cases of osteonecrosis of the jaw and no adverse reactions to the injection of denosumab."
+          }
+        ],
+        "harms_incomplete": true,
+        "known_reported_not_yet_extracted": [
+          {
+            "id": "19671655",
+            "label": "19671655",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "There was no increase in the risk of cancer, infection, cardiovascular disease, delayed fracture healing, or hypocalcemia, and there were no cases of osteonecrosis of the jaw and no adverse reactions to the injection of denosumab."
+          }
+        ],
         "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         "claim_id": "e3400b44c75832b0",
         "depends_on": {
@@ -2112,7 +2443,7 @@
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome IS the trial's pre-registered primary outcome",
+            "basis": "the pooled outcome IS the trial's pre-registered primary outcome; registered 'Number of Participants With New Vertebral Fractures'",
             "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
             "inputs": {
               "pooled_outcome": "New vertebral fracture",
@@ -2179,7 +2510,36 @@
               "level": "not assessed"
             }
           ]
-        }
+        },
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     }
   },
@@ -2241,14 +2601,15 @@
   "funding": [
     {
       "id": "PMID 19671655",
-      "type": "not stated (abstract only — full text not retrieved)",
+      "type": "not stated (abstract only - full text not retrieved)",
       "span": "",
-      "source": "abstract only",
-      "scanned": "abstract only"
+      "source": "abstract",
+      "scanned": "abstract",
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
     }
   ],
   "rob_spancheck": {
-    "_doc": "RoB span-check: a cross-family (Fable) sample verified the model/registry-derived RoB2 domain ratings (randomization / blinding / assessor-blinding) against each trial abstract. Rebuilds RoB credibility with a number after a visible rendering break. Seed 20260912.",
+    "_doc": "Partial machine assessment span-check: a cross-family (Fable) sample verified the model/registry-derived partial machine domain ratings (randomization / blinding / assessor-blinding) against each trial abstract. Rebuilds registry-machine-signal-restricted credibility with a number after a visible rendering break. Seed 20260912.",
     "checker": "Fable (cross-family)",
     "n_sampled": 45,
     "seed": 20260912,
@@ -2265,14 +2626,7 @@
     "n_records_annotated": 79
   },
   "protocol_config": {
-    "divergences": [
-      {
-        "code": "DESIGN_MASKING_ANDOR",
-        "dimension": "design",
-        "prose": "double-blind OR placebo-controlled",
-        "config": "double-blind AND placebo-controlled"
-      }
-    ],
+    "divergences": [],
     "intervention_i_line": "denosumab, including amg 162 or prolia terminology."
   },
   "identifier_scope": {
@@ -2303,7 +2657,7 @@
         "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
         "outcome": "New vertebral fracture",
         "dimension": "endpoint",
-        "asserted": "single endpoint",
+        "asserted": "NEW_VERTEBRAL_FRACTURE",
         "per_trial_values": [
           {
             "trial_id": "19671655",
@@ -2319,7 +2673,7 @@
         "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
         "outcome": "Nonvertebral fracture",
         "dimension": "endpoint",
-        "asserted": "single endpoint",
+        "asserted": "NONVERTEBRAL_FRACTURE",
         "per_trial_values": [
           {
             "trial_id": "19671655",
@@ -2335,7 +2689,7 @@
         "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
         "outcome": "Hip fracture",
         "dimension": "endpoint",
-        "asserted": "single endpoint",
+        "asserted": "HIP_FRACTURE",
         "per_trial_values": [
           {
             "trial_id": "19671655",
@@ -2349,6 +2703,123 @@
       }
     ],
     "post_fix_violations": []
+  },
+  "reason_code_audit": {
+    "denominator_source": "declared_absent_trials reason_code/state rows on this page",
+    "N": 2,
+    "counts": {
+      "REASON_TRUE": 2,
+      "REASON_FALSE_VALUE_HELD": 0,
+      "REASON_WRONG_KIND": 0,
+      "NOT_VERIFIABLE": 0
+    },
+    "n_false_value_held": 0,
+    "n_not_verifiable": 0,
+    "by_code_kind": {
+      "OUTCOME_NOT_IN_SOURCE": {
+        "REASON_TRUE": 2,
+        "REASON_FALSE_VALUE_HELD": 0,
+        "REASON_WRONG_KIND": 0,
+        "NOT_VERIFIABLE": 0
+      }
+    },
+    "rows": [
+      {
+        "slug": "denosumab-vertebral-fracture",
+        "outcome": "Serious adverse events",
+        "outcome_kind": "harm",
+        "trial_key": "19671655",
+        "label": "19671655",
+        "id": "PMID 19671655",
+        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "denosumab-vertebral-fracture",
+        "outcome": "Serious infection",
+        "outcome_kind": "harm",
+        "trial_key": "19671655",
+        "label": "19671655",
+        "id": "PMID 19671655",
+        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      }
+    ]
+  },
+  "unextracted_outcome_audit": {
+    "denominator_source": "included screening records x registered outcomes in this review",
+    "N": 5,
+    "counts": {
+      "EXTRACTED": 3,
+      "HELD_NOT_EXTRACTED": 0,
+      "NOT_IN_HELD_SOURCES": 2,
+      "ABSENT_BY_DESIGN": 0
+    },
+    "n_held_not_extracted": 0,
+    "by_outcome_kind": {
+      "primary": {
+        "EXTRACTED": 1,
+        "HELD_NOT_EXTRACTED": 0,
+        "NOT_IN_HELD_SOURCES": 0,
+        "ABSENT_BY_DESIGN": 0
+      },
+      "secondary": {
+        "EXTRACTED": 2,
+        "HELD_NOT_EXTRACTED": 0,
+        "NOT_IN_HELD_SOURCES": 0,
+        "ABSENT_BY_DESIGN": 0
+      },
+      "harm": {
+        "EXTRACTED": 0,
+        "HELD_NOT_EXTRACTED": 0,
+        "NOT_IN_HELD_SOURCES": 2,
+        "ABSENT_BY_DESIGN": 0
+      }
+    },
+    "rows": [
+      {
+        "slug": "denosumab-vertebral-fracture",
+        "trial_key": "19671655",
+        "trial_label": "19671655",
+        "outcome": "New vertebral fracture",
+        "outcome_kind": "primary",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "denosumab-vertebral-fracture",
+        "trial_key": "19671655",
+        "trial_label": "19671655",
+        "outcome": "Nonvertebral fracture",
+        "outcome_kind": "secondary",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "denosumab-vertebral-fracture",
+        "trial_key": "19671655",
+        "trial_label": "19671655",
+        "outcome": "Hip fracture",
+        "outcome_kind": "secondary",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "denosumab-vertebral-fracture",
+        "trial_key": "19671655",
+        "trial_label": "19671655",
+        "outcome": "Serious adverse events",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "denosumab-vertebral-fracture",
+        "trial_key": "19671655",
+        "trial_label": "19671655",
+        "outcome": "Serious infection",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      }
+    ]
   },
   "rob_sensitivity": {
     "outcome": "New vertebral fracture",
@@ -2405,6 +2876,9 @@
     },
     "drop_high_informative": false,
     "low_only_relation": "identical_to_full",
+    "low_only_kind": "bias_sensitivity",
+    "low_only_excluded_adverse": 0,
+    "low_only_excluded_unassessed": 0,
     "low_only_informative": false,
     "low_only_predicate": "same_trial_set"
   },
@@ -2574,8 +3048,8 @@
         "/search/retrieval/snapshot",
         "/search/retrieval/sources"
       ],
-      "rendered_text": "<div class='banner'><p><strong>Snapshot:</strong> records_sha256 <code>32165834</code>; retrieved_utc 2026-09-11; mode LEGACY_UNRECORDED: a pre-ledger fetch; which query retrieved which record was not recorded; every record's found_by names this single source.</p><p>This page is a REPLAY of that snapshot: re-running from the protocol SHA regenerates it byte-for-byte. A live re-search is a separate, dated event (see Re-search below if present).</p></div>",
-      "text_sha256": "14c2c25fa650941e6f2db54a51abb3ff1f22c258119e680ae59418177b09ad0c",
+      "rendered_text": "<div class='banner'><p><strong>Snapshot:</strong> records_sha256 <code>32165834</code>; retrieved_utc 2026-09-11; mode LEGACY_UNRECORDED: a pre-ledger fetch; which query retrieved which record was not recorded; every record's found_by names this single source.</p><p>This page replays the committed retrieval snapshot; it is not a claim that the protocol SHA alone regenerates the page byte-for-byte. A live re-search is a separate, dated event (see Re-search below if present).</p></div>",
+      "text_sha256": "f0f860fa0f3083231666220d5a8494406ae00e04cc78b6ee894ba40f54b0a513",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2679,8 +3153,8 @@
         "/outcomes/*/result/present",
         "/outcomes/*/result/reason"
       ],
-      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> REPORTED but not extractable as a pooled value: 19671655 mention this outcome in the committed abstract, but without arm counts or an effect+CI in an extractable form (e.g. a bare percentage with no denominator). This outcome is NOT absent — it is reported-but-not-poolable from the committed source; full-text acquisition would recover the countable form.</div>",
-      "text_sha256": "55494f1f4ec4073a3b934c65d8647afa80a07c01de301eeec5a6c09a4fdf2f76",
+      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> HARMS_INCOMPLETE -- 1 known reported outcome(s) unresolved (19671655) among 1 source-reporting trial(s); extracted k=0. The page must not render this as harm absence.</div>",
+      "text_sha256": "9473089decf0477519f1f6bdc837a1b2ec77318ac911dd4063d67ca8c6c3d9e3",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2760,8 +3234,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from a verbatim statement in the committed source (full text preferred, abstract fallback), including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>0 of 0 known</strong> (1 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 1 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Scanned</th><th>Verbatim statement</th></tr><tr><td>PMID 19671655</td><td>not stated (abstract only — full text not retrieved)</td><td>abstract only</td><td></td></tr></table></div>",
-      "text_sha256": "8172ccc74edbdf59c892e8114a81a4297992cc15eed2a2441345f1eff0ecda94",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>0 of 0 known</strong> (1 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 19671655</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
+      "text_sha256": "107f9ad2ce5d76be2842ce068c84057f85807c4d98165fd162a06d4a464d2066",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2790,8 +3264,8 @@
         "/rob_sensitivity/drop_high",
         "/rob_sensitivity/low_only"
       ],
-      "rendered_text": "<div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> The primary outcome is re-pooled by risk-of-bias stratum with the identical estimator. <strong>1 of 1</strong> pooled trials have a risk-of-bias rating; no pooled trial is rated <em>high</em> risk (the registry-derived assessment does not reach 'high'), so the standard drop-high sensitivity is inert and the informative stratum is <em>low-only</em>. All pooled trials are low risk, so the low-only re-pool is the full pool; there is no coverage-driven k reduction in this stratum.<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr><tr><td>Full pool (all pooled trials)</td><td>k=1, RR 0.32 [0.2548, 0.4018]</td></tr><tr><td>Low risk of bias only</td><td>k=1, RR 0.32 [0.2548, 0.4018] <em>(all pooled trials are low risk; the re-pool is the full pool)</em></td></tr></table></div>",
-      "text_sha256": "5b4bb724f3f1326ad05992b9bfc4095c18c78276e83aa00cffd61fb3a8e2d7f3",
+      "rendered_text": "<div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> The primary outcome is re-pooled by risk-of-bias stratum with the identical estimator. <strong>1 of 1</strong> pooled trials have a risk-of-bias rating; no pooled trial is rated <em>high</em> risk (the registry-derived assessment does not reach 'high'), so the standard drop-high sensitivity is inert and the informative stratum is <em>low-only</em>. Low-only kind: <code>bias_sensitivity</code> (0 adverse rating exclusion(s), 0 unassessed-domain exclusion(s)). All pooled trials are low risk, so the low-only re-pool is the full pool; there is no coverage-driven k reduction in this stratum.<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr><tr><td>Full pool (all pooled trials)</td><td>k=1, RR 0.32 [0.2548, 0.4018]</td></tr><tr><td>Low risk of bias only</td><td>k=1, RR 0.32 [0.2548, 0.4018] <em>(all pooled trials are low risk; the re-pool is the full pool)</em></td></tr></table></div>",
+      "text_sha256": "76d1ad17c9a206612180921ac4af7b7b2d8ec697847d5d2083b201d668d668f0",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2819,8 +3293,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 0 downgrade(s)). <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 1 of 1 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 1 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>single trial (k=1): between-study inconsistency is not estimable</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.26, 0.41]; excludes the null with a reasonably tight interval -&gt; precise; single trial — imprecision judged from the CI, not downgraded merely for k=1</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (11 of ~79 completed unpublished, 14%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "a2fe243a7899da6ef341414ba7da457f44679aadd3db74d9ee8074c1f801b4e4",
+      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 0 downgrade(s)). <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 1 of 1 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (registry-machine-signal-restricted signals, not a human risk-of-bias assessment) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency and imprecision are computed from committed fields; <strong>publication bias is NOT ASSESSED automatically</strong> because the available registry ghost census is descriptive until its denominator is PICO-scoped. <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 1 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>single trial (k=1): between-study inconsistency is not estimable</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.26, 0.41]; excludes the null with a reasonably tight interval -&gt; precise; single trial — imprecision judged from the CI, not downgraded merely for k=1</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (11 of ~79 completed unpublished, 14%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "20f0b55aac23889434e822b73bf1975ce51c24e6999bdf290d7bb4019913318f",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2897,10 +3371,78 @@
       }
     }
   ],
+  "propositions": {
+    "version": 1,
+    "objects": [
+      {
+        "kind": "publication_bias_state",
+        "surface": "grade/manuscript/reporting",
+        "source_path": "/grade/domains/publication_bias",
+        "assessed": false,
+        "state": "NOT_ASSESSED",
+        "claim_id": "785fa24e85d4d2bc"
+      },
+      {
+        "kind": "declared_equals_enforced",
+        "surface": "reporting/prisma_item_5",
+        "source_path": "/protocol_config/divergences",
+        "asserted_equal": true,
+        "divergence_count": 0,
+        "divergence_codes": [],
+        "claim_id": "2eb93d01c8ed8224"
+      },
+      {
+        "kind": "byte_reproducible",
+        "surface": "search/reporting/reproduction/manuscript",
+        "source_path": "/reproduction",
+        "asserts_protocol_sha_replay": false,
+        "asserts_committed_cache_replay": true,
+        "claim_id": "ffece3f8af6a0b03"
+      },
+      {
+        "kind": "pooled_count",
+        "surface": "overview/results/manuscript",
+        "source_path": "/outcomes/*[primary]/result/k",
+        "subject": "primary_effect_objects",
+        "count": 1,
+        "claim_id": "5cb7cb94b7a46f28"
+      },
+      {
+        "kind": "rated_count",
+        "surface": "riskofbias/manuscript",
+        "source_path": "/rob_sensitivity",
+        "rated": 1,
+        "total": 1,
+        "claim_id": "f3cfb5ce652671d4"
+      },
+      {
+        "kind": "retracted_count",
+        "surface": "riskofbias/integrity",
+        "source_path": "/integrity",
+        "pooled": 1,
+        "retracted": 0,
+        "claim_id": "03bfa63d09bd1b11"
+      }
+    ],
+    "scope_counts": {
+      "publication_bias_state": 1,
+      "declared_equals_enforced": 1,
+      "byte_reproducible": 1,
+      "pooled_count": 1,
+      "rated_count": 1,
+      "retracted_count": 1,
+      "search_found": 0,
+      "state_collapsed": 0
+    },
+    "not_in_scope": [
+      "verbatim source quotations",
+      "external comparator prose without a committed object row"
+    ]
+  },
   "reproduction": {
     "failures": 0,
     "protocol_sha": "3fb64a1e01434eb6ee9ea8a764a84c749270dfff",
-    "review_sha256": "48d9f051ef27bf64f07b77eb1f6f1073d666857866073473237f555037e09cfb",
+    "review_sha256": "9bde6b8478f32ca9d19bb0a5a572995349f88398ff7b962a59c6e35b391ec80b",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -2978,7 +3520,34 @@
     },
     "proposition_check": {
       "checked": true,
-      "contradictions": []
+      "contradictions": [],
+      "legacy_contradictions": [],
+      "scope_counts": {
+        "publication_bias_state": 1,
+        "declared_equals_enforced": 1,
+        "byte_reproducible": 1,
+        "pooled_count": 1,
+        "rated_count": 1,
+        "retracted_count": 1,
+        "search_found": 0,
+        "state_collapsed": 0
+      },
+      "scope": {
+        "scope_counts": {
+          "publication_bias_state": 1,
+          "declared_equals_enforced": 1,
+          "byte_reproducible": 1,
+          "pooled_count": 1,
+          "rated_count": 1,
+          "retracted_count": 1,
+          "search_found": 0,
+          "state_collapsed": 0
+        },
+        "not_in_scope": [
+          "verbatim source quotations",
+          "external comparator prose without a committed object row"
+        ]
+      }
     },
     "claimgraph_check": {
       "violations": [],

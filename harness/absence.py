@@ -50,11 +50,16 @@ EXTRACTION_NOT_PERFORMED = "EXTRACTION_NOT_PERFORMED"
 REFUSED_ON_EVIDENCE = "REFUSED_ON_EVIDENCE"
 OUTCOME_POST_HOC_NOT_POOLED = "outcome_post_hoc_not_pooled"
 OUTCOME_NOT_REPORTED = "outcome_not_reported"
+RETRIEVED_INCOMPATIBLE_STRUCTURE = "RETRIEVED_INCOMPATIBLE_STRUCTURE"
+RETRIEVED_REFUSED_WITH_REASON = "RETRIEVED_REFUSED_WITH_REASON"
+UNIT_MISMATCH_CYCLE_LEVEL = "UNIT_MISMATCH_CYCLE_LEVEL"
+ENGINE_CANNOT_CONSUME = "ENGINE_CANNOT_CONSUME"
 
 _CODE_ALIASES = {
     "NO_OUTCOME_DATA_IN_SOURCE": OUTCOME_NOT_IN_SOURCE,
     "EXTRACTION_NOT_PERFORMED": EXTRACTION_NOT_PERFORMED,
     "REFUSED_ON_EVIDENCE": REFUSED_ON_EVIDENCE,
+    "ENGINE_CANNOT_CONSUME": ENGINE_CANNOT_CONSUME,
     "SOURCE_NOT_RETRIEVED": SOURCE_NOT_RETRIEVED,
 }
 
@@ -268,6 +273,21 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
             "state_basis": _basis(code, span, reason),
             "source_span": _clip(span),
             "verbatim_span": _clip(span),
+        }
+    if (
+        row.get("state") == ENGINE_CANNOT_CONSUME
+        or row.get("reason_code") == ENGINE_CANNOT_CONSUME
+        or row.get("absent_kind") == "engine_cannot_consume"
+    ):
+        return {
+            "reason_code": ENGINE_CANNOT_CONSUME,
+            "state": ENGINE_CANNOT_CONSUME,
+            "state_basis": row.get("state_basis") or _basis(
+                ENGINE_CANNOT_CONSUME,
+                detail="design-adjusted effect or ICC design effect is not held",
+            ),
+            "source_span": row.get("source_span") or "",
+            "verbatim_span": row.get("verbatim_span") or "",
         }
     hint = _reason_hint_code(reason)
     design_span = None

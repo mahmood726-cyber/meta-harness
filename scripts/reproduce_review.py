@@ -31,6 +31,7 @@ from harness import census  # noqa: E402
 from harness import claimgraph  # noqa: E402
 from harness import membership  # noqa: E402
 from harness import proposition  # noqa: E402
+from harness import propositions  # noqa: E402
 from harness.registration import protocol_sha as _registration_sha  # noqa: E402
 from harness import registration as _reg  # noqa: E402
 
@@ -80,10 +81,20 @@ def reproduce(slug):
     if _du:
         repro["dual"] = _du
     repro["claim_check"] = census._claim_check(core)
-    repro["proposition_check"] = {"checked": True, "contradictions": proposition.contradictions(core)}
+    _legacy_prop = proposition.contradictions(core)
+    _prop_doc = propositions.check_document(core)
+    _pbad = _legacy_prop + (_prop_doc.get("contradictions") or [])
+    repro["proposition_check"] = {
+        "checked": True,
+        "contradictions": _pbad,
+        "legacy_contradictions": _legacy_prop,
+        "scope_counts": _prop_doc.get("scope_counts") or {},
+        "scope": _prop_doc.get("scope") or {},
+    }
     repro = claimgraph.prepare_reproduction(core, repro)
     cg_bad = claimgraph.check({**core, "reproduction": repro})
-    repro["claimgraph_check"] = {"violations": cg_bad}
+    repro["claimgraph_check"] = {"violations": cg_bad,
+                                 "disputes": claimgraph.disputes({**core, "reproduction": repro})}
     if cg_bad:
         reasons.append("claimgraph violations remain: " + json.dumps(cg_bad))
     final = dict(core, reproduction=repro)

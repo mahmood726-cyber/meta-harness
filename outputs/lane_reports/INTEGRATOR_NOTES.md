@@ -1,0 +1,8 @@
+# Integrator notes for lane IN — two core fixes to apply after the patches (MEASURED root causes)
+
+## 1. Design key never reads AACT (fail-open gate: 92 of 98 pooled rows UNKNOWN, 98 of 98 ALLOW_WITH_LABEL)
+`harness/design_key.registry_designs(records)` reads only `records["ctgov"]` / `records["designs"]` (the topic's CT.gov search hits — 1 record on glp1, without `intervention_model`). `scripts/rob2_build.py` already streams the AACT `designs` table (`aact._iter_rows(aact._table("designs"))`) for the pooled NCTs.
+Fix: (a) in `rob2_build.py --write`, also write `cache/<slug>/registry_designs.json` = `{NCT: {intervention_model, allocation, masking, ...the designs row}}` for every NCT in the topic's records (not only pooled); (b) in `design_key.registry_designs`, merge that file when present (`cache/<slug>/registry_designs.json`, slug from `records["slug"]`), registry row keys upper-cased; (c) in `design_key`'s decision: when design or unit is still UNKNOWN after registry + abstract-sentence derivation, return action `DESIGN_UNPROVEN` (gate_id `design-key:design-unproven`) with decision_state "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify" — never `ALLOW`/`ALLOW_WITH_LABEL`; the page renders the row's design cell as UNPROVEN. Then run `python scripts/rob2_build.py --write` for all 32 topics BEFORE the rebuild so the caches exist; report `n rows still UNKNOWN of 98` after.
+
+## 2. Registered-outcome identity via cosine ≥ 0.45 in `rob2_build._match`
+Do NOT change it (lane EP measures its precision first). Note it in the report.

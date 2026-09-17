@@ -553,6 +553,17 @@ def composite_heterogeneity(outcome_name: str, trial_sources) -> str:
     # CV outcome mentioned in the same abstract) invented an "HF hospitalization" narrative on the sglt2-ckd
     # and finerenone kidney pools. Pick the vocabulary from the outcome type.
     _is_kidney = any(w in name for w in ("kidney", "renal", "ckd", "egfr", "nephro"))
+    explicit_defs = []
+    for src in trial_sources:
+        if isinstance(src, dict) and src.get("endpoint_definition"):
+            explicit_defs.append(str(src.get("endpoint_definition")))
+    if explicit_defs and len(explicit_defs) == len(trial_sources):
+        vals = sorted(set(explicit_defs))
+        if len(vals) > 1:
+            return ("pooled trials use each trial's OWN primary composite; component sets differ across trials"
+                    + " (endpoint definitions: " + "; ".join(vals) + ")"
+                    + " -- the pooled estimate mixes composite definitions (disclosed, not adjusted)")
+        return ""
     if _is_kidney:
         comp_kws = [("50%", "50% eGFR-decline threshold"), ("40%", "40% eGFR-decline threshold"),
                     ("57%", "57% eGFR-decline threshold"), ("doubling", "creatinine-doubling"),
@@ -576,6 +587,8 @@ def composite_heterogeneity(outcome_name: str, trial_sources) -> str:
         return ""
     sigs = set()
     for src in trial_sources:
+        if isinstance(src, dict):
+            src = src.get("source", "")
         win = _defn_window((src or "").lower())
         if not win:
             continue

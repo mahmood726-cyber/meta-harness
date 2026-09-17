@@ -1,0 +1,160 @@
+{
+ "slug": "glp1-ra-mace-t2d",
+ "contract": "acquisition: verbatim query, date, document identity + sha256, denominator/funnel, per-record decision with rule id, four states (RAN_OK / RAN_ZERO / RAN_ERROR / NOT_RUN); source_level per hierarchy (1 publication/supplement, 2 regulatory FDA/EMA, 3 registry results CT.gov/AACT, 4 HTA, 5 older meta = pointer only)",
+ "acquired_by": "integrator (Claude Opus 5) with Mahmood's explicit permission for FDA documents, 2026-09-16, via Dispatch ('I give you permission for FDA')",
+ "sources": [
+  {
+   "source_id": "FDA_NDA208471_StatR_2016",
+   "kind": "REGULATORY_FDA",
+   "source_level": 2,
+   "query": "https://www.accessdata.fda.gov/drugsatfda_docs/nda/2016/208471Orig1s000StatR.pdf (Adlyxin / lixisenatide NDA 208471, Statistical Review, reviewer Yueqin Zhao)",
+   "fetched_utc": "2026-09-16T18:33:00Z",
+   "document_sha256_prefix": "cf2b3ef92247b85e",
+   "document_bytes": 6307791,
+   "pages": 176,
+   "state": "RAN_OK",
+   "denominator": "one document; 176 pages scanned for a 3-component composite row",
+   "decisions": [
+    {
+     "trial": "ELIXA",
+     "trial_key": "PMID 26630143",
+     "nct": "NCT01147250",
+     "outcome": "3-point MACE (CV death, non-fatal MI, non-fatal stroke), time to first event, ITT, on-study",
+     "rule_id": "source-ladder:regulatory-review:MACE3-row-v1",
+     "decision": "EXTRACTED",
+     "effect": {
+      "scale": "HR",
+      "estimate": 1.02,
+      "ci_low": 0.887,
+      "ci_high": 1.172,
+      "estimator": "Cox proportional hazards, ITT on-study"
+     },
+     "counts": {
+      "ai": 400,
+      "n1i": 3034,
+      "ci": 392,
+      "n2i": 3034,
+      "person_years_treat": 6368.7,
+      "person_years_control": 6340.2
+     },
+     "span_page_pdf": 24,
+     "span_page_printed": 23,
+     "span": "ITT analyses (on-study and on-treatment) of MACE, defined as cardiovascular death, non-fatal MI, and non-fatal stroke, are consistent with those of MACE+ (Table 8). The reason for the similarity is that only 0.3% of subjects in the ITT population experienced hospitalization for unstable angina. For ITT analysis 792 MACE events were observed, 392 and 400 in placebo and lixisenatide group, respectively. The 95% confidence interval for the hazard ratio is (0.887, 1.172) with a point estimate of 1.02.",
+     "table_span": "Table 8: Analysis of the MACE Endpoint | Placebo (N=3,034) | Lixisenatide (N=3,034) | Hazard ratio (95% CI) | MACE endpoint (on-study) 1.02 (0.89, 1.18) | No. of patients with event (%) 392 (12.9%) 400 (13.2%) | Total Person Year 6340.2 6368.7 | Incidence Rate 6.18 6.28",
+     "note": "The 4-point primary (1.02 [0.89, 1.17]) and the 3-point secondary (1.02 [0.887, 1.172]) are numerically near-identical because only 0.3% had unstable-angina hospitalisation; older reviews that relabelled the 4-point as 3-point reached the right number by luck. This value is the trial's own 3-point analysis, verified by the FDA statistical reviewer."
+    }
+   ],
+   "document_sha256": "cf2b3ef92247b85e7be7c3b56c3cc4fc0af007b3950acee95eea9c995653db38",
+   "held": {
+    "held_in_tree": "outputs/handover/glp1_regulatory/held/208471Orig1s000StatR.pdf",
+    "extracted_text": "outputs/handover/glp1_regulatory/208471Orig1s000StatR.pdf.txt"
+   },
+   "extracted_text_sha256": "952b8088e14b457d97364f13bb0f9407803bf875faed5fa30d995972e2687a26",
+   "span_location_check": "OWED: locate each `span` verbatim in extracted_text on replay (not yet a limb)"
+  },
+  {
+   "source_id": "FDA_NDA208471_MedR_2016",
+   "kind": "REGULATORY_FDA",
+   "source_level": 2,
+   "query": "https://www.accessdata.fda.gov/drugsatfda_docs/nda/2016/208471Orig1s000MedR.pdf (Adlyxin / lixisenatide NDA 208471, Clinical Review, Suchitra Balakrishnan)",
+   "fetched_utc": "2026-09-16T18:33:00Z",
+   "document_sha256_prefix": "80d91f3cdaea588b",
+   "document_bytes": 37422229,
+   "pages": 690,
+   "state": "RAN_OK",
+   "decisions": [
+    {
+     "trial": "ELIXA",
+     "outcome": "3-point MACE corroboration + component counts",
+     "rule_id": "source-ladder:regulatory-review:corroboration-v1",
+     "decision": "CORROBORATES",
+     "span_page_pdf": 127,
+     "span": "The results of the analysis of the composite MACE (a composite of cardiovascular death, non-fatal myocardial infarction and non-fatal stroke) endpoint were consistent with the findings for the primary composite endpoint, with comparable event rates between treatment groups. The HR was 1.02 with an associated upper bound of the 2-sided 95% CI below 1.3.",
+     "components_span_page_pdf": 128,
+     "components": {
+      "cv_death": {
+       "treat": 156,
+       "control": 158
+      },
+      "mi": {
+       "treat": 270,
+       "control": 261
+      },
+      "stroke": {
+       "treat": 67,
+       "control": 60
+      },
+      "ua_hosp": {
+       "treat": 11,
+       "control": 10
+      },
+      "hf_hosp": {
+       "treat": 122,
+       "control": 127
+      },
+      "n_per_arm": 3034
+     },
+     "rob2_material": "SAP-derived: Cox PH prespecified; on-study and on-treatment sensitivity analyses verified by the statistical reviewer; proportional-hazards check (Figure 15); interim analyses at earlier cut-offs reported (pdf p391, p406: MACE point estimate 1.17 at interim) -- available for D2/D5 signalling questions."
+    }
+   ],
+   "document_sha256": "80d91f3cdaea588b845de18d3ef9b254936ec8768305bd91e554d9de3f39acc3",
+   "held": {
+    "held_in_tree": null,
+    "held_off_tree": "F:/meta-harness-raw-archive/regulatory/glp1-ra-mace-t2d/208471Orig1s000MedR.pdf (37 MB; archive contract, custody = author's machine)",
+    "extracted_text": "outputs/handover/glp1_regulatory/208471Orig1s000MedR.pdf.txt"
+   },
+   "extracted_text_sha256": "448150daf6667013259e6e4c741aba8a60153af651d5d04886455d3b8e595c22",
+   "span_location_check": "OWED: locate each `span` verbatim in extracted_text on replay (not yet a limb)"
+  },
+  {
+   "source_id": "FDA_NDA209053_EMDAC_briefing_2023",
+   "kind": "REGULATORY_FDA",
+   "source_level": 2,
+   "query": "https://www.fda.gov/media/172242/download (FDA Briefing Document, NDA 209053, ITCA 650 (exenatide in DUROS device), Endocrinologic and Metabolic Drugs Advisory Committee, 21 Sep 2023)",
+   "fetched_utc": "2026-09-16T18:36:00Z",
+   "document_sha256_prefix": "719362393b2029c2",
+   "document_bytes": 2253251,
+   "pages": 97,
+   "state": "RAN_OK",
+   "decisions": [
+    {
+     "trial": "FREEDOM-CVO",
+     "trial_key": "PMID 34873344",
+     "nct": "NCT01455896",
+     "outcome": "3-point MACE (CV death, nonfatal MI, nonfatal stroke), time to first event, ITT, end of study, FREEDOM (CLP-107) only",
+     "rule_id": "source-ladder:regulatory-review:MACE3-row-v1",
+     "decision": "EXTRACTED",
+     "effect": {
+      "scale": "HR",
+      "estimate": 1.24,
+      "ci_low": 0.9,
+      "ci_high": 1.7,
+      "estimator": "Cox proportional hazards regression (CDER review staff; R v4.2; treatment, study and CV risk as strata)"
+     },
+     "counts": {
+      "ai": 85,
+      "n1i": 2075,
+      "ci": 69,
+      "n2i": 2081,
+      "incidence_rate_treat_per100py": 2.94,
+      "incidence_rate_control_per100py": 2.37,
+      "adjudicated_events": 154
+     },
+     "span_page_pdf": 58,
+     "span": "Table 19. Time to First Occurrence of 3-Point MACE (CV Death, Nonfatal MI, Nonfatal Stroke) and 4-Point MACE (CV Death, Nonfatal MI, Nonfatal Stroke, Unstable Angina) - ITT Population End of Study, FREEDOM (CLP-107) | MACE Type | ITCA 650 Number of Events/Total No. (%) IR (n/100 PY) | Control Number of Events/Total No. (%) IR (n/100 PY) | HR (95% CI)** | 3-Point MACE* 85/2075 (4.1%) 2.94 | 69/2081 (3.3%) 2.37 | 1.24 (0.90, 1.70) | 4-Point MACE 95/2075 (4.6%) 3.29 | 79/2081 (3.8%) 2.72 | 1.21 (0.90, 1.63) | Source: CDER Review staff. * One hundred fifty-four positively adjudicated 3-point MACE events. ** Based on a Cox proportional hazards regression model.",
+     "cross_check": "4-point row 95/2075 vs 79/2081, HR 1.21 (0.90, 1.63) equals the Nat Med 2021 abstract (PMID 34873344) primary result -- document identity corroborated at level 1.",
+     "adjudication_of_circulating_values": "1.24 (0.90-1.70) = this FDA end-of-study FREEDOM-only analysis (adopted; level 2); 1.20 (0.88-1.64) = a full-text meta's figure, level 5 pointer, not adopted; 1.21 (0.90-1.63) = the 4-point primary relabelled by some reviews as 3-point -- wrong endpoint. The FDA document also gives end-of-treatment and pooled (CLP-103/105/107) variants; the review's timepoint rule (end of randomised follow-up, trial-only) selects the end-of-study FREEDOM-only row.",
+     "note": "CDER concluded FREEDOM is an outlier versus the seven other GLP1RA CVOTs on 3-point MACE (Figure 14/15); ITCA 650 is not approved. This is the trial that decides whether the near-zero heterogeneity on the served page is real."
+    }
+   ],
+   "document_sha256": "719362393b2029c2d4a081ab1bc69647034b2168efe686808d419f16177f0103",
+   "held": {
+    "held_in_tree": "outputs/handover/glp1_regulatory/held/fda_media_172242_ITCA650.pdf",
+    "extracted_text": "outputs/handover/glp1_regulatory/fda_media_172242_ITCA650.pdf.txt"
+   },
+   "extracted_text_sha256": "e27b9985959e139b9c84f15b7e364d3c82a2fed861819e2b777f6b3f5aef963e",
+   "span_location_check": "OWED: locate each `span` verbatim in extracted_text on replay (not yet a limb)"
+  }
+ ],
+ "replay_status": "documents held and digested 2026-09-16; spans NOT yet machine-located on replay; values NOT yet on any served page"
+}

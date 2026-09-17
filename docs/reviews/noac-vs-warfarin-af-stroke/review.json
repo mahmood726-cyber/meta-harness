@@ -7,8 +7,12 @@
     "sha": "876acb8be1d610715286042396952dccb50942e1",
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
-    "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['atrial fibrillation', 'nonvalvular atrial fibrillation', 'non-valvular atrial fibrillation']; and none of ['mechanical heart valve', 'mechanical heart valves', 'valvular heart disease', 'mitral stenosis', 'heart valve', 'venous thromboembolism', 'deep-vein thrombosis', 'deep vein thrombosis', 'pulmonary embolism', 'acute coronary', 'antiphospholipid', 'catheter ablation', 'ablation', 'cardioversion', 'device procedures', 'left atrial appendage', 'postoperative', 'perioperative']; randomised intervention is one of ['dabigatran', 'rivaroxaban', 'apixaban', 'edoxaban', 'direct oral anticoagulant', 'direct oral anticoagulants', 'DOAC', 'DOACs', 'NOAC', 'NOACs', 'non-vitamin K antagonist oral anticoagulant', 'non-vitamin K antagonist oral anticoagulants', 'DU-176b', 'DU 176b', 'BIBR 1048', 'BIBR1048', 'BAY 59-7939', 'BMS-562247'] (named in title/conditions); a comparator among ['warfarin', 'vitamin K antagonist', 'vitamin k antagonist', 'VKA']. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator.",
-    "text": "# Protocol - direct oral anticoagulants versus warfarin for stroke prevention in atrial fibrillation\n\n**Registration.** The commit adding this file registers the review; its SHA is embedded\nin the page's Protocol tab and Reproducibility tab. The protocol is committed before\nthe synthesis is run.\n\n## PICO\n- **P** - adults with non-valvular atrial fibrillation treated for stroke prevention.\n- **I** - a direct oral anticoagulant: dabigatran, rivaroxaban, apixaban, or edoxaban.\n- **C** - warfarin or other vitamin K antagonist anticoagulation.\n- **O (primary)** - stroke or systemic embolism.\n- **O (harms)** - major bleeding.\n\n## Estimand / population / timepoint\n- **Estimand** - ratio-scale effect, labelled HR when trials report hazard ratios and RR\n  when the trial abstract reports a relative risk.\n- **Population** - intention-to-treat as randomised where the trial abstract reports it.\n- **Timepoint** - trial end / longest reported follow-up in the pivotal trial abstract.\n\n## Amendment 2026-09-12 (POST-HOC — dose/analysis selection rule, added after trial data were known)\n**Status: retrospective.** This rule was NOT in the protocol at the original registration SHA; it\nis recorded here as a dated amendment so the analysis is labelled post-amendment, not presented as\nprespecified. It formalises what the pooled analysis already does and aligns with the registered\ncomparator, which is the **standard-dose** DOAC-vs-warfarin comparison (Carnicelli 2022, standard-dose\nHR 0.81).\n- **Dose rule.** For a multi-dose trial, pool the **approved/marketed higher dose** vs warfarin, not\n  the lower dose: dabigatran **150 mg** (RE-LY, not the 110 mg arm), edoxaban **60 mg** high-dose\n  (ENGAGE AF-TIMI 48, not the 30 mg arm). Rationale: the higher dose is the licensed stroke-prevention\n  regimen and matches the standard-dose comparator.\n- **Analysis-set rule.** Use the **intention-to-treat** estimate to match the ITT basis of ROCKET-AF\n  and ARISTOTLE in the pool (ENGAGE high-dose ITT HR 0.87, not the on-treatment 0.79).\n- **Confidence-level rule.** Where a trial reports a non-95% CI (ENGAGE 97.5%), recover the log-scale\n  SE at the **stated** level before pooling; the conversion is disclosed on the row.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is atrial fibrillation, judged from title or registry conditions;\n- **I3** - direct oral anticoagulant versus warfarin / vitamin K antagonist comparator;\n- **design** - randomised DOAC-vs-warfarin allocation; double-blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (e.g. mechanical heart valves, venous thromboembolism,\n  antiphospholipid syndrome, catheter ablation, cardioversion, device-procedure studies);\n- **X3** - wrong intervention/comparison (no direct oral anticoagulant versus\n  warfarin / vitamin K antagonist contrast);\n- **X5** - off-topic: a primary trial of another disease/topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports stroke or systemic\n> embolism, or gives a 2x2 table versus only an effect+CI, is recorded as target-result\n> status at extraction - never as an exclusion. A published effect + CI is a poolable\n> input when the fixed extractor can corroborate it from the abstract.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: UID searches for the four pivotal direct DOAC-vs-warfarin AF RCTs: RE-LY,\n  ROCKET AF, ARISTOTLE, and ENGAGE AF-TIMI 48.\n- ClinicalTrials.gov: condition \"atrial fibrillation\", intervention \"edoxaban warfarin\".\n- Comparator-reference seeding is disabled because the resolved 2022 IPD/NMA cites later\n  subgroup publications that share NCT IDs with the pivotal trials; the UID searches\n  intentionally preserve the primary trial abstracts as the extraction source.\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log ratio effects; **Paule-Mandel** tau^2; **HKSJ**\n95% CI on `t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a\nstudy only if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs\nmetafor 5.0.1 (<1e-6).\n\nThis topic is network-shaped in the literature, but this harness synthesis is explicitly\nthe direct pairwise DOAC-vs-warfarin comparison. No indirect treatment comparison or\nnetwork estimate is calculated by the harness.\n\n## Comparator (resolved; open-access confirmed)\nCarnicelli et al., *Circulation* 2022, \"Direct Oral Anticoagulants Versus Warfarin in\nPatients With Atrial Fibrillation: Patient-Level Network Meta-Analyses of Randomized\nClinical Trials With Interaction Testing by Age and Sex\" (PMID 34985309, PMCID\nPMC8800560, DOI 10.1161/CIRCULATIONAHA.121.056355; Unpaywall is_oa=true). It reports\nstandard-dose DOAC versus warfarin for stroke or systemic embolism as HR 0.81\n(95% CI 0.74-0.89), and reports major bleeding.\n\nRuff et al. 2014 in *Lancet* was checked because it is the classic direct trial-level\nmeta-analysis (PMID 24315724, DOI 10.1016/S0140-6736(13)62343-0), but Unpaywall reported\nis_oa=false, so it was not used as the comparator.\n\n## Controls\n- **Positive** - the search must recover and include RE-LY (PMID 19717844), ROCKET AF\n  (PMID 21830957), and ARISTOTLE (PMID 21870978).\n- **Negative** - RE-ALIGN, dabigatran versus warfarin in mechanical heart valves\n  (PMID 23991661), must be recovered and excluded as the wrong population.\n"
+    "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['atrial fibrillation', 'nonvalvular atrial fibrillation', 'non-valvular atrial fibrillation']; and none of ['mechanical heart valve', 'mechanical heart valves', 'valvular heart disease', 'mitral stenosis', 'heart valve', 'venous thromboembolism', 'deep-vein thrombosis', 'deep vein thrombosis', 'pulmonary embolism', 'acute coronary', 'antiphospholipid', 'catheter ablation', 'ablation', 'cardioversion', 'device procedures', 'left atrial appendage', 'postoperative', 'perioperative', 'cardiac surgery', 'cardiac surgical']; randomised intervention is one of ['dabigatran', 'rivaroxaban', 'apixaban', 'edoxaban', 'direct oral anticoagulant', 'direct oral anticoagulants', 'DOAC', 'DOACs', 'NOAC', 'NOACs', 'non-vitamin K antagonist oral anticoagulant', 'non-vitamin K antagonist oral anticoagulants', 'DU-176b', 'DU 176b', 'BIBR 1048', 'BIBR1048', 'BAY 59-7939', 'BMS-562247'] (named in title/conditions); a comparator among ['warfarin', 'vitamin K antagonist', 'vitamin k antagonist', 'VKA']. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator.",
+    "text": "# Protocol - direct oral anticoagulants versus warfarin for stroke prevention in atrial fibrillation\n\n**Registration.** The commit adding this file registers the review; its SHA is embedded\nin the page's Protocol tab and Reproducibility tab. The protocol is committed before\nthe synthesis is run.\n\n## PICO\n- **P** - adults with non-valvular atrial fibrillation treated for stroke prevention.\n- **I** - a direct oral anticoagulant: dabigatran, rivaroxaban, apixaban, or edoxaban.\n- **C** - warfarin or other vitamin K antagonist anticoagulation.\n- **O (primary)** - stroke or systemic embolism.\n- **O (harms)** - major bleeding.\n\n## Estimand / population / timepoint\n- **Estimand** - ratio-scale effect, labelled HR when trials report hazard ratios and RR\n  when the trial abstract reports a relative risk.\n- **Population** - intention-to-treat as randomised where the trial abstract reports it.\n- **Timepoint** - trial end / longest reported follow-up in the pivotal trial abstract.\n\n## Amendment 2026-09-12 (POST-HOC — dose/analysis selection rule, added after trial data were known)\n**Status: retrospective.** This rule was NOT in the protocol at the original registration SHA; it\nis recorded here as a dated amendment so the analysis is labelled post-amendment, not presented as\nprespecified. It formalises what the pooled analysis already does and aligns with the registered\ncomparator, which is the **standard-dose** DOAC-vs-warfarin comparison (Carnicelli 2022, standard-dose\nHR 0.81).\n- **Dose rule.** For a multi-dose trial, pool the **approved/marketed higher dose** vs warfarin, not\n  the lower dose: dabigatran **150 mg** (RE-LY, not the 110 mg arm), edoxaban **60 mg** high-dose\n  (ENGAGE AF-TIMI 48, not the 30 mg arm). Rationale: the higher dose is the licensed stroke-prevention\n  regimen and matches the standard-dose comparator.\n- **Analysis-set rule.** Use the **intention-to-treat** estimate to match the ITT basis of ROCKET-AF\n  and ARISTOTLE in the pool (ENGAGE high-dose ITT HR 0.87, not the on-treatment 0.79).\n- **Confidence-level rule.** Where a trial reports a non-95% CI (ENGAGE 97.5%), recover the log-scale\n  SE at the **stated** level before pooling; the conversion is disclosed on the row.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is atrial fibrillation, judged from title or registry conditions;\n- **I3** - direct oral anticoagulant versus warfarin / vitamin K antagonist comparator;\n- **design** - randomised DOAC-vs-warfarin allocation; double-blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (e.g. mechanical heart valves, venous thromboembolism,\n  antiphospholipid syndrome, catheter ablation, cardioversion, device-procedure studies);\n- **X3** - wrong intervention/comparison (no direct oral anticoagulant versus\n  warfarin / vitamin K antagonist contrast);\n- **X5** - off-topic: a primary trial of another disease/topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports stroke or systemic\n> embolism, or gives a 2x2 table versus only an effect+CI, is recorded as target-result\n> status at extraction - never as an exclusion. A published effect + CI is a poolable\n> input when the fixed extractor can corroborate it from the abstract.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: UID searches for the four pivotal direct DOAC-vs-warfarin AF RCTs: RE-LY,\n  ROCKET AF, ARISTOTLE, and ENGAGE AF-TIMI 48.\n- ClinicalTrials.gov: condition \"atrial fibrillation\", intervention \"edoxaban warfarin\".\n- Comparator-reference seeding is disabled because the resolved 2022 IPD/NMA cites later\n  subgroup publications that share NCT IDs with the pivotal trials; the UID searches\n  intentionally preserve the primary trial abstracts as the extraction source.\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log ratio effects; **Paule-Mandel** tau^2; **HKSJ**\n95% CI on `t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a\nstudy only if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs\nmetafor 5.0.1 (<1e-6).\n\nThis topic is network-shaped in the literature, but this harness synthesis is explicitly\nthe direct pairwise DOAC-vs-warfarin comparison. No indirect treatment comparison or\nnetwork estimate is calculated by the harness.\n\n## Comparator (resolved; open-access confirmed)\nCarnicelli et al., *Circulation* 2022, \"Direct Oral Anticoagulants Versus Warfarin in\nPatients With Atrial Fibrillation: Patient-Level Network Meta-Analyses of Randomized\nClinical Trials With Interaction Testing by Age and Sex\" (PMID 34985309, PMCID\nPMC8800560, DOI 10.1161/CIRCULATIONAHA.121.056355; Unpaywall is_oa=true). It reports\nstandard-dose DOAC versus warfarin for stroke or systemic embolism as HR 0.81\n(95% CI 0.74-0.89), and reports major bleeding.\n\nRuff et al. 2014 in *Lancet* was checked because it is the classic direct trial-level\nmeta-analysis (PMID 24315724, DOI 10.1016/S0140-6736(13)62343-0), but Unpaywall reported\nis_oa=false, so it was not used as the comparator.\n\n## Controls\n- **Positive** - the search must recover and include RE-LY (PMID 19717844), ROCKET AF\n  (PMID 21830957), and ARISTOTLE (PMID 21870978).\n- **Negative** - RE-ALIGN, dabigatran versus warfarin in mechanical heart valves\n  (PMID 23991661), must be recovered and excluded as the wrong population.\n\n## Retrospective executable-screen amendment (2026-09-16)\n`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found two protocol\nphrases that the executable config did not enforce. The perioperative exclusion is\nmade executable for cardiac surgery / cardiac surgical populations, and ORGANON\nNCT02935855 is source-backed as non-randomized because the cached registry record\ndescribes consecutive patients already receiving anticoagulants, not a randomized\nDOAC-vs-warfarin allocation. This amendment changes screening only; it does not\nchange extraction or pooling.\n",
+    "target_endpoint_selection": {
+      "summary": "Target endpoint selector: EXACT_TARGET beats NEAR_MATCH; a near-match may be pooled only when no exact target is held. Within the same endpoint class, source-reported target-estimand effects beat registry effect estimates, which beat crude reconstructions. For multiple registered primaries in the same outcome family, choose the prespecified primary whose component set is closest to the canonical review definition; ties use registration order and alternatives render as sensitivity rows. Rule applied after results were already known in this lane, so the timing is disclosed.",
+      "results_known_at_rule_time": true
+    }
   },
   "search": {
     "n_records": 35,
@@ -278,7 +282,12 @@
         ],
         "matched_intervention": "rivaroxaban",
         "trial_family_id": "NCT00403767",
-        "publication_role": "primary"
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "registry_status": "COMPLETED",
+        "results_first_posted_date": "2012-07-17",
+        "completion_date": "2010-09-30",
+        "completeness_basis": "CT.gov status/results dates from local AACT snapshot"
       },
       {
         "id": "19717844",
@@ -292,7 +301,12 @@
         ],
         "matched_intervention": "dabigatran",
         "trial_family_id": "NCT00262600",
-        "publication_role": "primary"
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "registry_status": "COMPLETED",
+        "results_first_posted_date": "2011-02-10",
+        "completion_date": "2009-04-30",
+        "completeness_basis": "CT.gov status/results dates from local AACT snapshot"
       },
       {
         "id": "24251359",
@@ -306,7 +320,12 @@
         ],
         "matched_intervention": "edoxaban",
         "trial_family_id": "NCT00781391",
-        "publication_role": "primary"
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "registry_status": "COMPLETED",
+        "results_first_posted_date": "2015-03-25",
+        "completion_date": "2013-05-31",
+        "completeness_basis": "CT.gov status/results dates from local AACT snapshot"
       },
       {
         "id": "21870978",
@@ -320,7 +339,12 @@
         ],
         "matched_intervention": "apixaban",
         "trial_family_id": "NCT00412984",
-        "publication_role": "primary"
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "registry_status": "COMPLETED",
+        "results_first_posted_date": "2013-04-29",
+        "completion_date": "2011-05-25",
+        "completeness_basis": "CT.gov status/results dates from local AACT snapshot"
       },
       {
         "id": "23991661",
@@ -358,7 +382,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "START-PORTUGAL",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT03977363",
         "publication_role": "primary"
       },
       {
@@ -371,7 +400,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "ENSURE-AF",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT02072434",
         "publication_role": "primary"
       },
       {
@@ -384,7 +418,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT04121767",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT04121767",
         "publication_role": "primary"
       },
       {
@@ -397,7 +436,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "CLOSURE-AF",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT03463317",
         "publication_role": "primary"
       },
       {
@@ -411,8 +455,16 @@
           "UNRECORDED"
         ],
         "matched_intervention": "edoxaban",
-        "trial_family_id": "REC:NCT00504556",
-        "publication_role": "primary"
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+        "trial_family_id": "NCT00504556",
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "completeness_basis": "publication record / committed cache metadata"
       },
       {
         "id": "ENTICED-AF · NCT02561897",
@@ -424,7 +476,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "ENTICED-AF",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT02561897",
         "publication_role": "primary"
       },
       {
@@ -437,7 +494,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT03760874",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT03760874",
         "publication_role": "primary"
       },
       {
@@ -450,7 +512,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT03254147",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT03254147",
         "publication_role": "primary"
       },
       {
@@ -463,7 +530,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "BEST-AF",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT04099238",
         "publication_role": "primary"
       },
       {
@@ -476,7 +548,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT04878497",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT04878497",
         "publication_role": "primary"
       },
       {
@@ -489,7 +566,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT04047654",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT04047654",
         "publication_role": "primary"
       },
       {
@@ -502,7 +584,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "CORRAL-AF",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT04684212",
         "publication_role": "primary"
       },
       {
@@ -515,7 +602,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "TRIDUAL-PCI",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT04291287",
         "publication_role": "primary"
       },
       {
@@ -528,7 +620,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "ELIMINATE-AF",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT02942576",
         "publication_role": "primary"
       },
       {
@@ -541,21 +638,30 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "AFTER-CV",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT01924065",
         "publication_role": "primary"
       },
       {
         "id": "ORGANON · NCT02935855",
         "id_type": "nct",
-        "decision": "include",
-        "rule_id": "INCLUDE",
-        "reason": "eligible randomised controlled trial: intervention dabigatran, comparator warfarin, population non-valvular atrial fibrillation — P/I/C/design met.",
-        "span": "population “…ndiabetic Patients With nOn-valvular Atrial fibrillatioN (ORGANON) Diabetes ORGA…”; comparator “…an Rivaroxaban Edoxaban Warfarin Acenocumarole ORGANON”",
+        "decision": "exclude",
+        "rule_id": "X1",
+        "reason": "not a randomized controlled trial: ORGANON enrolled consecutive patients already receiving anticoagulants; no randomized DOAC-vs-warfarin allocation is demonstrated in the cached registry record.",
+        "span": "ORal anticoaGulants in diAbetic and Nondiabetic Patients With nOn-valvular Atrial fibrilla…",
         "found_by": [
           "UNRECORDED"
         ],
-        "matched_intervention": "dabigatran",
-        "trial_family_id": "ORGANON",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT02935855",
         "publication_role": "primary"
       },
       {
@@ -563,12 +669,13 @@
         "id_type": "nct",
         "decision": "exclude",
         "rule_id": "X-CONTRAST",
-        "reason": "CONTRAST_ABSENT: randomised START vs AVOID anticoagulation (start arm = DOAC or VKA; control = antiplatelet/nothing) — not a DOAC-vs-warfarin contrast (audit-confirmed non-contrast; evicted at eligibility, not pooled).",
+        "reason": "CONTRAST_ABSENT: Randomised START vs AVOID anticoagulation (Start arm = DOAC or VKA; control = antiplatelet/nothing) — not a DOAC-vs-warfarin contrast (audit-confirmed non-contrast; evicted at eligibility, not pooled).",
         "span": "Start or STop Anticoagulants Randomised Trial (SoSTART)",
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "SOSTART",
+        "contrast_rule": "CONTRAST_ABSENT",
+        "trial_family_id": "NCT03153150",
         "publication_role": "primary"
       },
       {
@@ -581,7 +688,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT03088072",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT03088072",
         "publication_role": "primary"
       },
       {
@@ -594,7 +706,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "ERTEMIS",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT05540587",
         "publication_role": "primary"
       },
       {
@@ -607,7 +724,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT02219984",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT02219984",
         "publication_role": "primary"
       },
       {
@@ -620,7 +742,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "PRISMA-AF",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT02611635",
         "publication_role": "primary"
       },
       {
@@ -633,7 +760,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "CHAOS",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT03558295",
         "publication_role": "primary"
       },
       {
@@ -646,7 +778,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "PAUSE-ER",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT04195113",
         "publication_role": "primary"
       },
       {
@@ -659,7 +796,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT05027061",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT05027061",
         "publication_role": "primary"
       },
       {
@@ -673,21 +815,33 @@
           "UNRECORDED"
         ],
         "matched_intervention": "DU-176b",
-        "trial_family_id": "REC:NCT00806624",
-        "publication_role": "primary"
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+        "trial_family_id": "NCT00806624",
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "completeness_basis": "publication record / committed cache metadata"
       },
       {
         "id": "NCT05006287",
         "id_type": "nct",
-        "decision": "include",
-        "rule_id": "INCLUDE",
-        "reason": "eligible randomised controlled trial: intervention NOAC, comparator warfarin, population atrial fibrillation — P/I/C/design met.",
-        "span": "population “…y After Cardiac Surgery Atrial Fibrillation”; comparator “…icoagulants Compared to Warfarin Early After Cardiac Sur…”",
+        "decision": "exclude",
+        "rule_id": "X2",
+        "reason": "wrong population: title/conditions mention 'cardiac surgery'.",
+        "span": "…to Warfarin Early After Cardiac Surgery Atrial Fibrillation",
         "found_by": [
           "UNRECORDED"
         ],
-        "matched_intervention": "NOAC",
-        "trial_family_id": "REC:NCT05006287",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT05006287",
         "publication_role": "primary"
       },
       {
@@ -701,8 +855,16 @@
           "UNRECORDED"
         ],
         "matched_intervention": "DU-176b",
-        "trial_family_id": "REC:NCT00829933",
-        "publication_role": "primary"
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+        "trial_family_id": "NCT00829933",
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "completeness_basis": "publication record / committed cache metadata"
       },
       {
         "id": "NCT06401616",
@@ -714,7 +876,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT06401616",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT06401616",
         "publication_role": "primary"
       },
       {
@@ -727,7 +894,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "ATIS-NVAF",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT03062319",
         "publication_role": "primary"
       }
     ],
@@ -741,17 +913,17 @@
       "disagreement_rate_pct": 8.6,
       "disagreements": [
         {
-          "id": "NCT03254147",
+          "id": "227734792",
           "screener1": "exclude",
           "screener2": "include"
         },
         {
-          "id": "NCT04878497",
+          "id": "227872907",
           "screener1": "exclude",
           "screener2": "include"
         },
         {
-          "id": "NCT02611635",
+          "id": "227493927",
           "screener1": "exclude",
           "screener2": "include"
         }
@@ -759,6 +931,94 @@
       "method": "two independently-implemented rule screeners (screener 2 judges from the full abstract body; screener 1 from title/registry-conditions). Adjudicator: screener 1.",
       "caveat": "the two rule sets share an author and the same eligibility criteria, so they are NOT statistically independent; this agreement overstates inter-rater reliability. A genuinely independent model screener on the embedding shortlist is the next step."
     }
+  },
+  "scope_identity": {
+    "slug": "noac-vs-warfarin-af-stroke",
+    "eligibility_scope": {
+      "type": "OPEN_PIC_DESIGN",
+      "basis": "topics/<slug>.json include + protocols/<slug>.md",
+      "population_terms": [
+        "atrial fibrillation",
+        "nonvalvular atrial fibrillation",
+        "non-valvular atrial fibrillation"
+      ],
+      "population_exclusions": [
+        "mechanical heart valve",
+        "mechanical heart valves",
+        "valvular heart disease",
+        "mitral stenosis",
+        "heart valve",
+        "venous thromboembolism",
+        "deep-vein thrombosis",
+        "deep vein thrombosis",
+        "pulmonary embolism",
+        "acute coronary",
+        "antiphospholipid",
+        "catheter ablation",
+        "ablation",
+        "cardioversion",
+        "device procedures",
+        "left atrial appendage",
+        "postoperative",
+        "perioperative",
+        "cardiac surgery",
+        "cardiac surgical"
+      ],
+      "intervention_terms": [
+        "dabigatran",
+        "rivaroxaban",
+        "apixaban",
+        "edoxaban",
+        "direct oral anticoagulant",
+        "direct oral anticoagulants",
+        "DOAC",
+        "DOACs",
+        "NOAC",
+        "NOACs",
+        "non-vitamin K antagonist oral anticoagulant",
+        "non-vitamin K antagonist oral anticoagulants",
+        "DU-176b",
+        "DU 176b",
+        "BIBR 1048",
+        "BIBR1048",
+        "BAY 59-7939",
+        "BMS-562247"
+      ],
+      "comparator_terms": [
+        "warfarin",
+        "vitamin K antagonist",
+        "vitamin k antagonist",
+        "VKA"
+      ],
+      "design_terms": [
+        "randomised controlled trial"
+      ],
+      "phase_terms": [
+        "acute"
+      ],
+      "outcome_reporting_is_eligibility": false,
+      "description": ""
+    },
+    "search_scope": {
+      "type": "PRE_IDENTIFIED_SET",
+      "retrieval_class": "KNOWN_ITEM_RETRIEVAL",
+      "retrieval_label": "KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH",
+      "query_count": 3,
+      "queries": [
+        "19717844[uid] OR 21830957[uid]",
+        "21870978[uid] OR 24251359[uid]",
+        "19717844[uid] OR 21830957[uid] || 21870978[uid] OR 24251359[uid]"
+      ],
+      "source_kinds": [
+        "LEGACY_UNRECORDED",
+        "PUBMED_PMID_ENUMERATION"
+      ],
+      "discovery_capable_source_count": 0,
+      "description": "retrieval can test only named PMIDs/titles/trial identifiers already supplied"
+    },
+    "verdict": "SCOPE_MISMATCH",
+    "reason": "open P/I/C/design eligibility was evaluated only inside a pre-identified retrieval set; the open eligibility universe was not tested",
+    "render_requirement": "N of the pre-identified set met eligibility; eligibility over the open scope was NOT tested (search class KNOWN_ITEM_RETRIEVAL)"
   },
   "outcomes": [
     {
@@ -769,19 +1029,47 @@
       "population": "intention-to-treat",
       "timepoint": "trial end",
       "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
+      "served_estimand": "HR",
+      "estimand_decision": {
+        "declared_estimand": "HR",
+        "decision": "time_to_first_event",
+        "target_scale": "HR",
+        "target_class": "FIRST_EVENT_RATIO",
+        "published_candidate_scales": [
+          "HR",
+          "RR"
+        ],
+        "served_scale_changed": false,
+        "reason": "published HR exists for the target outcome",
+        "rule": "prefer published HR; keep reconstruction only when no HR exists"
+      },
       "trials": [
         {
           "label": "21830957",
           "id": "PMID 21830957",
+          "source": "abstract source-reported HR (registered estimand): In the intention-to-treat analysis, the primary end point occurred in 269 patients in the rivaroxaban group (2.1% per year) and in 306 patients in the warfarin group (2.4% per year) (hazard ratio, 0.8",
+          "provenance": "abstract",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_endpoint_source_rank": "published_target_effect",
+          "target_endpoint_components": [
+            "stroke"
+          ],
+          "components": [
+            "stroke"
+          ],
+          "target_endpoint_extra_components": [],
+          "target_endpoint_missing_components": [],
+          "results_known_at_rule_time": true,
           "effect": 0.88,
           "ci_low": 0.74,
           "ci_high": 1.03,
           "scale": "HR",
-          "source": "abstract source-reported HR (registered estimand): In the intention-to-treat analysis, the primary end point occurred in 269 patients in the rivaroxaban group (2.1% per year) and in 306 patients in the warfarin group (2.4% per year) (hazard ratio, 0.8",
-          "provenance": "abstract",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
           "verified": "verified",
           "verify_basis": "effect present in committed source",
-          "derivation": "reported",
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
@@ -791,15 +1079,24 @@
               "evidence": []
             },
             "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [],
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              }
+            ],
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
           },
+          "dose_regimen": "standard_dose",
+          "analysis_set_literal": "ITT",
+          "endpoint_definition": "Stroke or systemic embolism",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "study_effect": {
             "effect_estimate": 0.88,
             "standard_error": 0.08435458448055697,
@@ -817,9 +1114,9 @@
               "span": "abstract source-reported HR (registered estimand): In the intention-to-treat analysis, the primary end point occurred in 269 patients in the rivaroxaban group (2.1% per year) and in 306 patients in the warfarin group (2.4% per year) (hazard ratio, 0.8"
             },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -833,7 +1130,6 @@
           "publication_role": "primary",
           "analysis_set": "per-protocol",
           "follow_up_window": "trial end",
-          "endpoint_definition": "Stroke or systemic embolism",
           "population_age": "not_stated",
           "intervention_ontology": {
             "intervention_class": null
@@ -864,7 +1160,10 @@
             "intervention_ontology": {
               "intervention_class": null
             }
-          }
+          },
+          "trial_id": "PMID 21830957",
+          "report_id": "PMID 21830957",
+          "outcome_effect_id": "noac-vs-warfarin-af-stroke::Stroke or systemic embolism::PMID 21830957::PMID 21830957"
         },
         {
           "label": "19717844",
@@ -876,9 +1175,19 @@
           "provenance": "pre_specified_dose",
           "dose": "dabigatran 150 mg (approved higher dose)",
           "source": "RE-LY, verbatim: '... in the group that received 150 mg of dabigatran (relative risk, 0.66; 95% CI, 0.53 to 0.82; P<0.001 for superiority)'. Approved-dose rule (protocol amendment 2026-09-12, post-hoc; the marketed dose, matching the standard-dose comparator): the 150 mg regimen is the marketed dose; the abstract's first-mentioned 110 mg arm (RR 0.91) is the lower dose and is not the review's pooled comparison.",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
+          "source_hierarchy_limitations": [
+            {
+              "code": "MIXED_BY_SOURCE_LIMIT",
+              "reason": "Outcome decision prefers published HR, but this row has no committed HR effect+CI; the row remains on the reconstructed/available scale and the pool is mixed by source limit.",
+              "citation": "SOURCE_NOT_RETRIEVED_FULL_TEXT_NEEDED"
+            }
+          ],
           "verified": "verified",
           "verify_basis": "effect present in committed source",
-          "derivation": "reported",
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
@@ -888,15 +1197,28 @@
               "evidence": []
             },
             "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [],
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              }
+            ],
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
           },
+          "dose_regimen": "standard_dose",
+          "components": [
+            "stroke any type",
+            "non-CNS systemic embolism"
+          ],
+          "analysis_set_literal": "ITT",
+          "endpoint_definition": "primary outcome was stroke or systemic embolism",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "study_effect": {
             "effect_estimate": 0.66,
             "standard_error": 0.11133554931483801,
@@ -914,9 +1236,9 @@
               "span": "RE-LY, verbatim: '... in the group that received 150 mg of dabigatran (relative risk, 0.66; 95% CI, 0.53 to 0.82; P<0.001 for superiority)'. Approved-dose rule (protocol amendment 2026-09-12, post-hoc; the marketed dose, matching the standard-dose comparator): the 150 mg regimen is the marketed dose; the abstract's first-mentioned 110 mg arm (RR 0.91) is the lower dose and is not the review's pooled comparison."
             },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -930,7 +1252,6 @@
           "publication_role": "primary",
           "analysis_set": "intention-to-treat",
           "follow_up_window": "trial end",
-          "endpoint_definition": "primary outcome was stroke or systemic embolism",
           "population_age": "not_stated",
           "intervention_ontology": {
             "intervention_class": null
@@ -961,7 +1282,10 @@
             "intervention_ontology": {
               "intervention_class": null
             }
-          }
+          },
+          "trial_id": "PMID 19717844",
+          "report_id": "PMID 19717844",
+          "outcome_effect_id": "noac-vs-warfarin-af-stroke::Stroke or systemic embolism::PMID 19717844::PMID 19717844"
         },
         {
           "label": "24251359",
@@ -973,9 +1297,12 @@
           "provenance": "pre_specified_dose",
           "dose": "edoxaban 60 mg (approved higher dose)",
           "source": "ENGAGE AF-TIMI 48, verbatim (intention-to-treat, matching the ITT basis of ROCKET-AF and ARISTOTLE in this pool): '... there was a trend favoring high-dose edoxaban versus warfarin (hazard ratio, 0.87; 97.5% CI, 0.73 to 1.04; P=0.08)'. Approved-dose rule (protocol amendment 2026-09-12, post-hoc; the marketed dose, matching the standard-dose comparator): the 60 mg higher-dose regimen is the marketed dose; the 30 mg low-dose arm is not pooled. [CI CONVERTED: source reports HR 0.87 with a 97.5% CI 0.73-1.04 (multiplicity-adjusted for the two edoxaban doses); converted to a 95% CI 0.745-1.016 (SE=0.079 from the 97.5% bounds, z=2.2414) so it pools on the same 95% basis as the other trials. Cycle 75 audit.]",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
           "verified": "verified",
           "verify_basis": "effect present in committed source",
-          "derivation": "reported",
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
@@ -990,15 +1317,28 @@
               ]
             },
             "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [],
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              }
+            ],
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
           },
+          "dose_regimen": "standard_dose",
+          "components": [
+            "stroke any type",
+            "non-CNS systemic embolism"
+          ],
+          "analysis_set_literal": "ITT",
+          "endpoint_definition": "Stroke or systemic embolism",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "study_effect": {
             "effect_estimate": 0.87,
             "standard_error": 0.07914543639731038,
@@ -1021,9 +1361,9 @@
               "span": "ENGAGE AF-TIMI 48, verbatim (intention-to-treat, matching the ITT basis of ROCKET-AF and ARISTOTLE in this pool): '... there was a trend favoring high-dose edoxaban versus warfarin (hazard ratio, 0.87; 97.5% CI, 0.73 to 1.04; P=0.08)'. Approved-dose rule (protocol amendment 2026-09-12, post-hoc; the marketed dose, matching the standard-dose comparator): the 60 mg higher-dose regimen is the marketed dose; the 30 mg low-dose arm is not pooled. [CI CONVERTED: source reports HR 0.87 with a 97.5% CI 0.73-1.04 (multiplicity-adjusted for the two edoxaban doses); converted to a 95% CI 0.745-1.016 (SE=0.079 from the 97.5% bounds, z=2.2414) so it pools on the same 95% basis as the other trials. Cycle 75 audit.]"
             },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -1037,7 +1377,6 @@
           "publication_role": "primary",
           "analysis_set": "intention-to-treat",
           "follow_up_window": "trial end",
-          "endpoint_definition": "Stroke or systemic embolism",
           "population_age": "not_stated",
           "intervention_ontology": {
             "intervention_class": null
@@ -1068,20 +1407,37 @@
             "intervention_ontology": {
               "intervention_class": null
             }
-          }
+          },
+          "trial_id": "PMID 24251359",
+          "report_id": "PMID 24251359",
+          "outcome_effect_id": "noac-vs-warfarin-af-stroke::Stroke or systemic embolism::PMID 24251359::PMID 24251359"
         },
         {
           "label": "21870978",
           "id": "PMID 21870978",
+          "source": "abstract source-reported HR (registered estimand): The rate of the primary outcome was 1.27% per year in the apixaban group, as compared with 1.60% per year in the warfarin group (hazard ratio with apixaban, 0.79; 95% confidence interval [CI], 0.66 to",
+          "provenance": "abstract",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_endpoint_source_rank": "published_target_effect",
+          "target_endpoint_components": [
+            "stroke"
+          ],
+          "components": [
+            "stroke"
+          ],
+          "target_endpoint_extra_components": [],
+          "target_endpoint_missing_components": [],
+          "results_known_at_rule_time": true,
           "effect": 0.79,
           "ci_low": 0.66,
           "ci_high": 0.95,
           "scale": "HR",
-          "source": "abstract source-reported HR (registered estimand): The rate of the primary outcome was 1.27% per year in the apixaban group, as compared with 1.60% per year in the warfarin group (hazard ratio with apixaban, 0.79; 95% confidence interval [CI], 0.66 to",
-          "provenance": "abstract",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
           "verified": "verified",
           "verify_basis": "effect present in committed source",
-          "derivation": "reported",
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
@@ -1091,15 +1447,24 @@
               "evidence": []
             },
             "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [],
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              }
+            ],
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
           },
+          "dose_regimen": "standard_dose",
+          "analysis_set_literal": "ITT",
+          "endpoint_definition": "primary outcome was ischemic or hemorrhagic stroke or systemic embolism",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "study_effect": {
             "effect_estimate": 0.79,
             "standard_error": 0.09291552101136885,
@@ -1117,9 +1482,9 @@
               "span": "abstract source-reported HR (registered estimand): The rate of the primary outcome was 1.27% per year in the apixaban group, as compared with 1.60% per year in the warfarin group (hazard ratio with apixaban, 0.79; 95% confidence interval [CI], 0.66 to"
             },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -1133,7 +1498,6 @@
           "publication_role": "primary",
           "analysis_set": "intention-to-treat",
           "follow_up_window": "trial end",
-          "endpoint_definition": "primary outcome was ischemic or hemorrhagic stroke or systemic embolism",
           "population_age": "not_stated",
           "intervention_ontology": {
             "intervention_class": null
@@ -1164,7 +1528,10 @@
             "intervention_ontology": {
               "intervention_class": null
             }
-          }
+          },
+          "trial_id": "PMID 21870978",
+          "report_id": "PMID 21870978",
+          "outcome_effect_id": "noac-vs-warfarin-af-stroke::Stroke or systemic embolism::PMID 21870978::PMID 21870978"
         }
       ],
       "declared_absent_trials": [
@@ -1173,28 +1540,27 @@
           "id": "NCT00504556",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "REC:NCT00504556",
+          "phase": null,
+          "status": null,
+          "primary_completion": null,
+          "completion": null,
+          "enrollment": null,
+          "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "trial_family_id": "NCT00504556",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "completeness_basis": "publication record / committed cache metadata",
           "reason_code": "SOURCE_NOT_RETRIEVED",
           "state": "SOURCE_NOT_RETRIEVED",
           "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
-          "input_set_version": "f4d1f64c27af580ccd3d630f6d4c19b5adf0daff30bc8a195547ff569dbfd181",
-          "claim_id": "c4174282f31cf214",
-          "depends_on": {
-            "input_set_version": "f4d1f64c27af580ccd3d630f6d4c19b5adf0daff30bc8a195547ff569dbfd181"
+          "trial_id": "NCT00504556",
+          "report_id": "NCT00504556",
+          "outcome_effect_id": "noac-vs-warfarin-af-stroke::Stroke or systemic embolism::NCT00504556::NCT00504556",
+          "reason_code_audit": {
+            "verdict": "NOT_VERIFIABLE",
+            "detail": "no held source",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
           },
-          "claim_kind": "membership_state"
-        },
-        {
-          "label": "ORGANON",
-          "id": "NCT02935855",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "ORGANON",
-          "publication_role": "primary",
-          "reason_code": "SOURCE_NOT_RETRIEVED",
-          "state": "SOURCE_NOT_RETRIEVED",
-          "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
           "input_set_version": "f4d1f64c27af580ccd3d630f6d4c19b5adf0daff30bc8a195547ff569dbfd181",
           "claim_id": "c4174282f31cf214",
           "depends_on": {
@@ -1207,28 +1573,27 @@
           "id": "NCT00806624",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "REC:NCT00806624",
+          "phase": null,
+          "status": null,
+          "primary_completion": null,
+          "completion": null,
+          "enrollment": null,
+          "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "trial_family_id": "NCT00806624",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "completeness_basis": "publication record / committed cache metadata",
           "reason_code": "SOURCE_NOT_RETRIEVED",
           "state": "SOURCE_NOT_RETRIEVED",
           "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
-          "input_set_version": "f4d1f64c27af580ccd3d630f6d4c19b5adf0daff30bc8a195547ff569dbfd181",
-          "claim_id": "c4174282f31cf214",
-          "depends_on": {
-            "input_set_version": "f4d1f64c27af580ccd3d630f6d4c19b5adf0daff30bc8a195547ff569dbfd181"
+          "trial_id": "NCT00806624",
+          "report_id": "NCT00806624",
+          "outcome_effect_id": "noac-vs-warfarin-af-stroke::Stroke or systemic embolism::NCT00806624::NCT00806624",
+          "reason_code_audit": {
+            "verdict": "NOT_VERIFIABLE",
+            "detail": "no held source",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
           },
-          "claim_kind": "membership_state"
-        },
-        {
-          "label": "NCT05006287",
-          "id": "NCT05006287",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "REC:NCT05006287",
-          "publication_role": "primary",
-          "reason_code": "SOURCE_NOT_RETRIEVED",
-          "state": "SOURCE_NOT_RETRIEVED",
-          "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
           "input_set_version": "f4d1f64c27af580ccd3d630f6d4c19b5adf0daff30bc8a195547ff569dbfd181",
           "claim_id": "c4174282f31cf214",
           "depends_on": {
@@ -1241,11 +1606,27 @@
           "id": "NCT00829933",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "REC:NCT00829933",
+          "phase": null,
+          "status": null,
+          "primary_completion": null,
+          "completion": null,
+          "enrollment": null,
+          "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "trial_family_id": "NCT00829933",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "completeness_basis": "publication record / committed cache metadata",
           "reason_code": "SOURCE_NOT_RETRIEVED",
           "state": "SOURCE_NOT_RETRIEVED",
           "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
+          "trial_id": "NCT00829933",
+          "report_id": "NCT00829933",
+          "outcome_effect_id": "noac-vs-warfarin-af-stroke::Stroke or systemic embolism::NCT00829933::NCT00829933",
+          "reason_code_audit": {
+            "verdict": "NOT_VERIFIABLE",
+            "detail": "no held source",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
+          },
           "input_set_version": "f4d1f64c27af580ccd3d630f6d4c19b5adf0daff30bc8a195547ff569dbfd181",
           "claim_id": "c4174282f31cf214",
           "depends_on": {
@@ -1263,14 +1644,12 @@
         ],
         "declared_absent": [
           "NCT00504556",
-          "NCT02935855",
           "NCT00806624",
-          "NCT05006287",
           "NCT00829933"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "14fa43fb69eeb181cb83ac28be9c1d7a43f567ac3994089021eec9ef62e09d62"
+        "input_set_version": "9751a2cf52f4200204b7045725ede965a1ab70b7dfb1be53277c0e63ccff1162"
       },
       "result": {
         "k": 4,
@@ -1335,12 +1714,65 @@
           "direction": "benefit",
           "significant_fixed": null
         },
+        "effect_label": "pooled first-event ratio (3 HR + 1 RR)",
         "input_set_version": "f4d1f64c27af580ccd3d630f6d4c19b5adf0daff30bc8a195547ff569dbfd181",
         "claim_id": "095989b3626c4ac6",
         "depends_on": {
           "input_set_version": "f4d1f64c27af580ccd3d630f6d4c19b5adf0daff30bc8a195547ff569dbfd181"
         },
         "claim_kind": "outcome_result"
+      },
+      "endpoint_canonical": {
+        "label": "STROKE_OR_SYSTEMIC_EMBOLISM",
+        "event_time": "TIME_TO_FIRST_EVENT",
+        "components": [
+          "NON_CNS_SYSTEMIC_EMBOLISM",
+          "STROKE_ANY_TYPE"
+        ],
+        "component_sets": [
+          {
+            "components": [
+              "NON_CNS_SYSTEMIC_EMBOLISM",
+              "STROKE_ANY_TYPE"
+            ],
+            "trials": [
+              "21830957",
+              "19717844",
+              "24251359",
+              "21870978"
+            ]
+          }
+        ],
+        "status": "HOMOGENEOUS"
+      },
+      "analysis_set_detail": {
+        "superclass": "RANDOMIZED_OR_FULL_ANALYSIS_SET",
+        "values": [
+          "ITT"
+        ],
+        "matched": true,
+        "per_trial": [
+          {
+            "trial": "21830957",
+            "value": "ITT",
+            "literal": "ITT"
+          },
+          {
+            "trial": "19717844",
+            "value": "ITT",
+            "literal": "ITT"
+          },
+          {
+            "trial": "24251359",
+            "value": "ITT",
+            "literal": "ITT"
+          },
+          {
+            "trial": "21870978",
+            "value": "ITT",
+            "literal": "ITT"
+          }
+        ]
       },
       "compat_key": {
         "effect_measure": [
@@ -1350,21 +1782,147 @@
         "event_process": [
           "FIRST_EVENT_RATIO"
         ],
-        "endpoint": "trial-defined Stroke or systemic embolism (definitions listed per trial)",
+        "endpoint": "STROKE_OR_SYSTEMIC_EMBOLISM",
         "follow_up_window": "trial end",
         "analysis_set": "mixed (ITT x3, per-protocol x1)",
+        "analysis_set_declared": "intention-to-treat",
         "randomised_contrast": {
           "verified": 4,
           "total": 4
         },
         "matched": true,
         "mismatches": [],
-        "dimension_matches": {
-          "analysis_set": false,
-          "endpoint": false
+        "endpoint_canonical": {
+          "label": "STROKE_OR_SYSTEMIC_EMBOLISM",
+          "event_time": "TIME_TO_FIRST_EVENT",
+          "components": [
+            "NON_CNS_SYSTEMIC_EMBOLISM",
+            "STROKE_ANY_TYPE"
+          ],
+          "component_sets": [
+            {
+              "components": [
+                "NON_CNS_SYSTEMIC_EMBOLISM",
+                "STROKE_ANY_TYPE"
+              ],
+              "trials": [
+                "21830957",
+                "19717844",
+                "24251359",
+                "21870978"
+              ]
+            }
+          ],
+          "status": "HOMOGENEOUS"
         },
-        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS",
-        "underlying_checked": true
+        "endpoint_canonical_status": "HOMOGENEOUS",
+        "analysis_set_superclass": "RANDOMIZED_OR_FULL_ANALYSIS_SET",
+        "analysis_set_detail": {
+          "superclass": "RANDOMIZED_OR_FULL_ANALYSIS_SET",
+          "values": [
+            "ITT"
+          ],
+          "matched": true,
+          "per_trial": [
+            {
+              "trial": "21830957",
+              "value": "ITT",
+              "literal": "ITT"
+            },
+            {
+              "trial": "19717844",
+              "value": "ITT",
+              "literal": "ITT"
+            },
+            {
+              "trial": "24251359",
+              "value": "ITT",
+              "literal": "ITT"
+            },
+            {
+              "trial": "21870978",
+              "value": "ITT",
+              "literal": "ITT"
+            }
+          ]
+        },
+        "effect_label": "pooled first-event ratio (3 HR + 1 RR)",
+        "limitations": [],
+        "dose_regimen": {
+          "values": [
+            "standard_dose"
+          ],
+          "matched": true,
+          "per_trial": [
+            {
+              "trial": "21830957",
+              "value": "standard_dose"
+            },
+            {
+              "trial": "19717844",
+              "value": "standard_dose"
+            },
+            {
+              "trial": "24251359",
+              "value": "standard_dose"
+            },
+            {
+              "trial": "21870978",
+              "value": "standard_dose"
+            }
+          ]
+        },
+        "dimension_matches": {
+          "analysis_set": false
+        },
+        "underlying_checked": true,
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS"
+      },
+      "compat_direction": {
+        "dimensions": [
+          {
+            "dimension": "endpoint_definition",
+            "label": "Endpoint definition",
+            "key_direction": "CONSISTENT",
+            "asserted_key_state": "homogeneous",
+            "rendered_warning_state": "not_asserted",
+            "underlying": {
+              "derivable": true,
+              "matched": true,
+              "values": [
+                "STROKE_OR_SYSTEMIC_EMBOLISM"
+              ],
+              "missing_trials": [],
+              "per_trial": [
+                {
+                  "trial": "21830957",
+                  "id": "PMID 21830957",
+                  "value": "STROKE_OR_SYSTEMIC_EMBOLISM",
+                  "basis": "primary outcome source span says stroke or systemic embolism"
+                },
+                {
+                  "trial": "19717844",
+                  "id": "PMID 19717844",
+                  "value": "STROKE_OR_SYSTEMIC_EMBOLISM",
+                  "basis": "primary outcome source span says stroke or systemic embolism"
+                },
+                {
+                  "trial": "24251359",
+                  "id": "PMID 24251359",
+                  "value": "STROKE_OR_SYSTEMIC_EMBOLISM",
+                  "basis": "primary outcome source span says stroke or systemic embolism"
+                },
+                {
+                  "trial": "21870978",
+                  "id": "PMID 21870978",
+                  "value": "STROKE_OR_SYSTEMIC_EMBOLISM",
+                  "basis": "primary outcome source span says stroke or systemic embolism"
+                }
+              ]
+            },
+            "n_trials": 4
+          }
+        ]
       },
       "recovery_recheck": {
         "hard_incompatible": false,
@@ -1381,8 +1939,7 @@
       "compat_underlying": {
         "status": "COMPAT_DIMENSION_HETEROGENEOUS",
         "dimensions": [
-          "analysis_set",
-          "endpoint"
+          "analysis_set"
         ],
         "per_trial": {
           "analysis_set": [
@@ -1414,36 +1971,6 @@
               "source": "study_effect.analysis_population",
               "span": "intention-to-treat"
             }
-          ],
-          "endpoint": [
-            {
-              "trial_id": "21830957",
-              "trial_label": "21830957",
-              "value": "Stroke or systemic embolism",
-              "source": "outcome.name",
-              "span": "Stroke or systemic embolism"
-            },
-            {
-              "trial_id": "19717844",
-              "trial_label": "19717844",
-              "value": "primary outcome was stroke or systemic embolism",
-              "source": "committed source text",
-              "span": "an unblinded fashion, adjusted-dose warfarin. The median duration of the follow-up period was 2.0 years. The primary outcome was stroke or systemic embolism. RESULTS: Rates of the primary outcome were 1.69% per year in the warfarin group, as compared with 1.53% per"
-            },
-            {
-              "trial_id": "24251359",
-              "trial_label": "24251359",
-              "value": "Stroke or systemic embolism",
-              "source": "outcome.name",
-              "span": "Stroke or systemic embolism"
-            },
-            {
-              "trial_id": "21870978",
-              "trial_label": "21870978",
-              "value": "primary outcome was ischemic or hemorrhagic stroke or systemic embolism",
-              "source": "committed source text",
-              "span": "0 to 3.0) in 18,201 patients with atrial fibrillation and at least one additional risk factor for stroke. The primary outcome was ischemic or hemorrhagic stroke or systemic embolism. The trial was designed to test for noninferiority, with key secondary objectives of testing for superiority"
-            }
           ]
         }
       }
@@ -1456,19 +1983,36 @@
       "population": null,
       "timepoint": null,
       "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
+      "served_estimand": "HR",
+      "estimand_decision": {
+        "declared_estimand": "HR",
+        "decision": "time_to_first_event",
+        "target_scale": "HR",
+        "target_class": "FIRST_EVENT_RATIO",
+        "published_candidate_scales": [
+          "HR",
+          "RR"
+        ],
+        "served_scale_changed": false,
+        "reason": "published HR exists for the target outcome",
+        "rule": "prefer published HR; keep reconstruction only when no HR exists"
+      },
       "trials": [
         {
-          "label": "24251359",
-          "id": "PMID 24251359",
-          "effect": 0.8,
-          "ci_low": 0.71,
-          "ci_high": 0.91,
+          "label": "21830957",
+          "id": "PMID 21830957",
+          "effect": 1.04,
+          "ci_low": 0.9,
+          "ci_high": 1.2,
           "scale": "HR",
-          "source": "abstract source-reported HR (registered estimand): The annualized rate of major bleeding was 3.43% with warfarin versus 2.75% with high-dose edoxaban (hazard ratio, 0.80; 95% CI, 0.71 to 0.91; P<0.001) and 1.61% with low-dose edoxaban (hazard ratio, 0",
-          "provenance": "abstract",
+          "provenance": "fulltext_verified",
+          "source": "ROCKET-AF (PMID 21830957) abstract: 'Major and nonmajor clinically relevant bleeding occurred in 1475 patients in the rivaroxaban group (14.9% per year) and in 1449 in the warfarin group (14.5% per year) (hazard ratio, 1.03; 95% CI, 0.96 to 1.11; P=0.44) ... There was no significant between-group difference in the risk of major bleeding'. Source-reported major-bleeding HR 1.04 (95% CI 0.90 to 1.20) is the audit-named harm row; used to recover the registered major-bleeding harm.",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
           "verified": "verified",
           "verify_basis": "effect present in committed source",
-          "derivation": "reported",
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
@@ -1478,11 +2022,267 @@
               "evidence": []
             },
             "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [],
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              },
+              {
+                "source": "trial reported estimate label",
+                "span": "HR 1.04 (95% CI 0.90 to 1.20"
+              }
+            ],
+            "published_alternative": {
+              "effect": 1.04,
+              "ci_low": 0.9,
+              "ci_high": 1.2,
+              "scale": "HR",
+              "adjusted": false,
+              "span": "HR 1.04 (95% CI 0.90 to 1.20"
+            },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
+              "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
+              "validity_critical": false
+            }
+          },
+          "study_effect": {
+            "effect_estimate": 1.04,
+            "standard_error": 0.07338963234043595,
+            "estimand": "HR",
+            "analysis_population": "UNKNOWN",
+            "randomisation_unit": "UNKNOWN",
+            "study_design": "UNKNOWN",
+            "estimator_method": "PUBLISHED_UNADJUSTED",
+            "correlation_handling": {
+              "method": "none",
+              "evidence": []
+            },
+            "source_provenance": {
+              "source": "fulltext_verified",
+              "span": "ROCKET-AF (PMID 21830957) abstract: 'Major and nonmajor clinically relevant bleeding occurred in 1475 patients in the rivaroxaban group (14.9% per year) and in 1449 in the warfarin group (14.5% per year) (hazard ratio, 1.03; 95% CI, 0.96 to 1.11; P=0.44) ... There was no significant between-group difference in the risk of major bleeding'. Source-reported major-bleeding HR 1.04 (95% CI 0.90 to 1.20) is the audit-named harm row; used to recover the registered major-bleeding harm."
+            },
+            "design_action": {
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
+              "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
+              "validity_critical": false
+            }
+          },
+          "effect_object": {
+            "reported_label": "HR",
+            "statistical_model": null,
+            "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+          },
+          "trial_family_id": "NCT00403767",
+          "publication_role": "primary",
+          "analysis_set": "per-protocol",
+          "follow_up_window": null,
+          "endpoint_definition": "Major bleeding",
+          "population_age": "not_stated",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "21830957",
+            "trial_label": "21830957",
+            "analysis_set": {
+              "value": "per-protocol",
+              "source": "committed source text",
+              "span": "eased risk for stroke to receive either rivaroxaban (at a daily dose of 20 mg) or dose-adjusted warfarin. The per-protocol, as-treated primary analysis was designed to determine whether rivaroxaban was noninferior to warfarin for th"
+            },
+            "follow_up_window": {
+              "value": null,
+              "source": "underivable",
+              "span": ""
+            },
+            "endpoint_definition": {
+              "value": "Major bleeding",
+              "source": "outcome.name",
+              "span": "Major bleeding"
+            },
+            "population_age": {
+              "value": "not_stated",
+              "source": "committed source text",
+              "span": ""
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          },
+          "trial_id": "PMID 21830957",
+          "report_id": "PMID 21830957",
+          "effect_source_id": "PMID 21830957",
+          "outcome_effect_id": "noac-vs-warfarin-af-stroke::Major bleeding::PMID 21830957::PMID 21830957",
+          "harm_absence_state": "EXTRACTED",
+          "harm_source_reported": true
+        },
+        {
+          "label": "19717844",
+          "id": "PMID 19717844",
+          "effect": 0.93,
+          "ci_low": 0.81,
+          "ci_high": 1.07,
+          "scale": "RR",
+          "provenance": "fulltext_verified",
+          "source": "RE-LY (PMID 19717844) abstract, approved-dose harm row: 'The rate of major bleeding was 3.36% per year in the warfarin group, as compared with ... 3.11% per year in the group receiving 150 mg of dabigatran (P=0.31).' Source-reported dose-specific RR 0.93 (95% CI 0.81 to 1.07) is the 150 mg major-bleeding effect named in the HM lane audit; used to recover the registered harm without changing the efficacy dose rule.",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
+          "source_hierarchy_limitations": [
+            {
+              "code": "MIXED_BY_SOURCE_LIMIT",
+              "reason": "Outcome decision prefers published HR, but this row has no committed HR effect+CI; the row remains on the reconstructed/available scale and the pool is mixed by source limit.",
+              "citation": "SOURCE_NOT_RETRIEVED_FULL_TEXT_NEEDED"
+            }
+          ],
+          "verified": "verified",
+          "verify_basis": "effect present in committed source",
+          "design": {
+            "unit_of_randomisation": "UNKNOWN",
+            "design": "UNKNOWN",
+            "estimator_source": "PUBLISHED_UNADJUSTED",
+            "correlation_handling": {
+              "method": "none",
+              "evidence": []
+            },
+            "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              },
+              {
+                "source": "trial reported estimate label",
+                "span": "RR 0.93 (95% CI 0.81 to 1.07"
+              }
+            ],
+            "published_alternative": {
+              "effect": 0.93,
+              "ci_low": 0.81,
+              "ci_high": 1.07,
+              "scale": "RR",
+              "adjusted": false,
+              "span": "RR 0.93 (95% CI 0.81 to 1.07"
+            },
+            "design_action": {
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
+              "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
+              "validity_critical": false
+            }
+          },
+          "study_effect": {
+            "effect_estimate": 0.93,
+            "standard_error": 0.0710165293814812,
+            "estimand": "HR",
+            "analysis_population": "UNKNOWN",
+            "randomisation_unit": "UNKNOWN",
+            "study_design": "UNKNOWN",
+            "estimator_method": "PUBLISHED_UNADJUSTED",
+            "correlation_handling": {
+              "method": "none",
+              "evidence": []
+            },
+            "source_provenance": {
+              "source": "fulltext_verified",
+              "span": "RE-LY (PMID 19717844) abstract, approved-dose harm row: 'The rate of major bleeding was 3.36% per year in the warfarin group, as compared with ... 3.11% per year in the group receiving 150 mg of dabigatran (P=0.31).' Source-reported dose-specific RR 0.93 (95% CI 0.81 to 1.07) is the 150 mg major-bleeding effect named in the HM lane audit; used to recover the registered harm without changing the efficacy dose rule."
+            },
+            "design_action": {
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
+              "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
+              "validity_critical": false
+            }
+          },
+          "effect_object": {
+            "reported_label": "RR",
+            "statistical_model": null,
+            "canonical_estimand": "RISK_RATIO"
+          },
+          "trial_family_id": "NCT00262600",
+          "publication_role": "primary",
+          "analysis_set": null,
+          "follow_up_window": null,
+          "endpoint_definition": "primary outcome was stroke or systemic embolism",
+          "population_age": "not_stated",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "19717844",
+            "trial_label": "19717844",
+            "analysis_set": {
+              "value": null,
+              "source": "underivable",
+              "span": ""
+            },
+            "follow_up_window": {
+              "value": null,
+              "source": "underivable",
+              "span": ""
+            },
+            "endpoint_definition": {
+              "value": "primary outcome was stroke or systemic embolism",
+              "source": "committed source text",
+              "span": "an unblinded fashion, adjusted-dose warfarin. The median duration of the follow-up period was 2.0 years. The primary outcome was stroke or systemic embolism. RESULTS: Rates of the primary outcome were 1.69% per year in the warfarin group, as compared with 1.53% per"
+            },
+            "population_age": {
+              "value": "not_stated",
+              "source": "committed source text",
+              "span": ""
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          },
+          "trial_id": "PMID 19717844",
+          "report_id": "PMID 19717844",
+          "effect_source_id": "PMID 19717844",
+          "outcome_effect_id": "noac-vs-warfarin-af-stroke::Major bleeding::PMID 19717844::PMID 19717844",
+          "harm_absence_state": "EXTRACTED",
+          "harm_source_reported": true
+        },
+        {
+          "label": "24251359",
+          "id": "PMID 24251359",
+          "effect": 0.8,
+          "ci_low": 0.71,
+          "ci_high": 0.91,
+          "scale": "HR",
+          "source": "abstract source-reported HR (registered estimand): The annualized rate of major bleeding was 3.43% with warfarin versus 2.75% with high-dose edoxaban (hazard ratio, 0.80; 95% CI, 0.71 to 0.91; P<0.001) and 1.61% with low-dose edoxaban (hazard ratio, 0",
+          "provenance": "abstract",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
+          "verified": "verified",
+          "verify_basis": "effect present in committed source",
+          "design": {
+            "unit_of_randomisation": "UNKNOWN",
+            "design": "UNKNOWN",
+            "estimator_source": "PUBLISHED_UNADJUSTED",
+            "correlation_handling": {
+              "method": "none",
+              "evidence": []
+            },
+            "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              }
+            ],
+            "design_action": {
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -1504,9 +2304,9 @@
               "span": "abstract source-reported HR (registered estimand): The annualized rate of major bleeding was 3.43% with warfarin versus 2.75% with high-dose edoxaban (hazard ratio, 0.80; 95% CI, 0.71 to 0.91; P<0.001) and 1.61% with low-dose edoxaban (hazard ratio, 0"
             },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -1551,7 +2351,12 @@
             "intervention_ontology": {
               "intervention_class": null
             }
-          }
+          },
+          "trial_id": "PMID 24251359",
+          "report_id": "PMID 24251359",
+          "outcome_effect_id": "noac-vs-warfarin-af-stroke::Major bleeding::PMID 24251359::PMID 24251359",
+          "harm_absence_state": "EXTRACTED",
+          "harm_source_reported": true
         },
         {
           "label": "21870978",
@@ -1562,9 +2367,12 @@
           "scale": "HR",
           "source": "abstract source-reported HR (registered estimand): The rate of major bleeding was 2.13% per year in the apixaban group, as compared with 3.09% per year in the warfarin group (hazard ratio, 0.69; 95% CI, 0.60 to 0.80; P<0.001), and the rates of death f",
           "provenance": "abstract",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
           "verified": "verified",
           "verify_basis": "effect present in committed source",
-          "derivation": "reported",
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
@@ -1574,11 +2382,16 @@
               "evidence": []
             },
             "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [],
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              }
+            ],
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -1600,9 +2413,9 @@
               "span": "abstract source-reported HR (registered estimand): The rate of major bleeding was 2.13% per year in the apixaban group, as compared with 3.09% per year in the warfarin group (hazard ratio, 0.69; 95% CI, 0.60 to 0.80; P<0.001), and the rates of death f"
             },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -1647,79 +2460,47 @@
             "intervention_ontology": {
               "intervention_class": null
             }
-          }
+          },
+          "trial_id": "PMID 21870978",
+          "report_id": "PMID 21870978",
+          "outcome_effect_id": "noac-vs-warfarin-af-stroke::Major bleeding::PMID 21870978::PMID 21870978",
+          "harm_absence_state": "EXTRACTED",
+          "harm_source_reported": true
         }
       ],
       "declared_absent_trials": [
-        {
-          "label": "21830957",
-          "id": "PMID 21830957",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "NCT00403767",
-          "publication_role": "primary",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"There was no significant between-group difference in the risk of major bleeding, although intracranial and fatal bleeding occurred less frequently in the rivaroxaban group.\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
-          "source_span": "There was no significant between-group difference in the risk of major bleeding, although intracranial and fatal bleeding occurred less frequently in the rivaroxaban group.",
-          "verbatim_span": "There was no significant between-group difference in the risk of major bleeding, although intracranial and fatal bleeding occurred less frequently in the rivaroxaban group.",
-          "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f",
-          "claim_id": "241e5c80cb304619",
-          "depends_on": {
-            "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f"
-          },
-          "claim_kind": "membership_state"
-        },
-        {
-          "label": "19717844",
-          "id": "PMID 19717844",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "NCT00262600",
-          "publication_role": "primary",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"The rate of major bleeding was 3.36% per year in the warfarin group, as compared with 2.71% per year in the group receiving 110 mg of dabigatran (P=0.003) and 3.11% per year in the group receiving 15...\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
-          "source_span": "The rate of major bleeding was 3.36% per year in the warfarin group, as compared with 2.71% per year in the group receiving 110 mg of dabigatran (P=0.003) and 3.11% per year in the group receiving 15...",
-          "verbatim_span": "The rate of major bleeding was 3.36% per year in the warfarin group, as compared with 2.71% per year in the group receiving 110 mg of dabigatran (P=0.003) and 3.11% per year in the group receiving 15...",
-          "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f",
-          "claim_id": "241e5c80cb304619",
-          "depends_on": {
-            "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f"
-          },
-          "claim_kind": "membership_state"
-        },
         {
           "label": "NCT00504556",
           "id": "NCT00504556",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "REC:NCT00504556",
+          "phase": null,
+          "status": null,
+          "primary_completion": null,
+          "completion": null,
+          "enrollment": null,
+          "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "trial_family_id": "NCT00504556",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "completeness_basis": "publication record / committed cache metadata",
           "reason_code": "SOURCE_NOT_RETRIEVED",
           "state": "SOURCE_NOT_RETRIEVED",
           "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
-          "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f",
-          "claim_id": "241e5c80cb304619",
-          "depends_on": {
-            "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f"
+          "trial_id": "NCT00504556",
+          "report_id": "NCT00504556",
+          "outcome_effect_id": "noac-vs-warfarin-af-stroke::Major bleeding::NCT00504556::NCT00504556",
+          "reason_code_audit": {
+            "verdict": "NOT_VERIFIABLE",
+            "detail": "no held source",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
           },
-          "claim_kind": "membership_state"
-        },
-        {
-          "label": "ORGANON",
-          "id": "NCT02935855",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "ORGANON",
-          "publication_role": "primary",
-          "reason_code": "SOURCE_NOT_RETRIEVED",
-          "state": "SOURCE_NOT_RETRIEVED",
-          "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
-          "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f",
-          "claim_id": "241e5c80cb304619",
+          "harm_absence_state": "NOT_RETRIEVED",
+          "harm_source_reported": false,
+          "input_set_version": "d3f9697e09957404ab53682cc2d70aec3bd4f6971f2a66ff0cc2c8738c47aba5",
+          "claim_id": "56084e342edee594",
           "depends_on": {
-            "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f"
+            "input_set_version": "d3f9697e09957404ab53682cc2d70aec3bd4f6971f2a66ff0cc2c8738c47aba5"
           },
           "claim_kind": "membership_state"
         },
@@ -1728,32 +2509,33 @@
           "id": "NCT00806624",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "REC:NCT00806624",
+          "phase": null,
+          "status": null,
+          "primary_completion": null,
+          "completion": null,
+          "enrollment": null,
+          "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "trial_family_id": "NCT00806624",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "completeness_basis": "publication record / committed cache metadata",
           "reason_code": "SOURCE_NOT_RETRIEVED",
           "state": "SOURCE_NOT_RETRIEVED",
           "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
-          "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f",
-          "claim_id": "241e5c80cb304619",
-          "depends_on": {
-            "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f"
+          "trial_id": "NCT00806624",
+          "report_id": "NCT00806624",
+          "outcome_effect_id": "noac-vs-warfarin-af-stroke::Major bleeding::NCT00806624::NCT00806624",
+          "reason_code_audit": {
+            "verdict": "NOT_VERIFIABLE",
+            "detail": "no held source",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
           },
-          "claim_kind": "membership_state"
-        },
-        {
-          "label": "NCT05006287",
-          "id": "NCT05006287",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "REC:NCT05006287",
-          "publication_role": "primary",
-          "reason_code": "SOURCE_NOT_RETRIEVED",
-          "state": "SOURCE_NOT_RETRIEVED",
-          "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
-          "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f",
-          "claim_id": "241e5c80cb304619",
+          "harm_absence_state": "NOT_RETRIEVED",
+          "harm_source_reported": false,
+          "input_set_version": "d3f9697e09957404ab53682cc2d70aec3bd4f6971f2a66ff0cc2c8738c47aba5",
+          "claim_id": "56084e342edee594",
           "depends_on": {
-            "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f"
+            "input_set_version": "d3f9697e09957404ab53682cc2d70aec3bd4f6971f2a66ff0cc2c8738c47aba5"
           },
           "claim_kind": "membership_state"
         },
@@ -1762,80 +2544,205 @@
           "id": "NCT00829933",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "REC:NCT00829933",
+          "phase": null,
+          "status": null,
+          "primary_completion": null,
+          "completion": null,
+          "enrollment": null,
+          "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "trial_family_id": "NCT00829933",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "completeness_basis": "publication record / committed cache metadata",
           "reason_code": "SOURCE_NOT_RETRIEVED",
           "state": "SOURCE_NOT_RETRIEVED",
           "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
-          "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f",
-          "claim_id": "241e5c80cb304619",
+          "trial_id": "NCT00829933",
+          "report_id": "NCT00829933",
+          "outcome_effect_id": "noac-vs-warfarin-af-stroke::Major bleeding::NCT00829933::NCT00829933",
+          "reason_code_audit": {
+            "verdict": "NOT_VERIFIABLE",
+            "detail": "no held source",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
+          },
+          "harm_absence_state": "NOT_RETRIEVED",
+          "harm_source_reported": false,
+          "input_set_version": "d3f9697e09957404ab53682cc2d70aec3bd4f6971f2a66ff0cc2c8738c47aba5",
+          "claim_id": "56084e342edee594",
           "depends_on": {
-            "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f"
+            "input_set_version": "d3f9697e09957404ab53682cc2d70aec3bd4f6971f2a66ff0cc2c8738c47aba5"
           },
           "claim_kind": "membership_state"
         }
       ],
       "membership": {
         "pooled": [
+          "PMID 21830957",
+          "PMID 19717844",
           "PMID 24251359",
           "PMID 21870978"
         ],
         "declared_absent": [
-          "PMID 21830957",
-          "PMID 19717844",
           "NCT00504556",
-          "NCT02935855",
           "NCT00806624",
-          "NCT05006287",
           "NCT00829933"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "db4047cfcfde7dfcb43696ae194e262b647e80adcc95009ddb2f6929f4508dc3"
+        "input_set_version": "afef10d9944f55e19910ac428b3ac6ce4a99aec5308e4e0ee5c9eaaff19e6cec"
       },
       "result": {
-        "present": false,
-        "state": "HARMS_INCOMPLETE",
-        "n_reporting_pool_trials": 4,
-        "n_pooled": 2,
-        "known_eligible_outcome_reports_unresolved": [
+        "k": 4,
+        "estimate": 0.8544,
+        "scale": "HR",
+        "ci_low": 0.6439,
+        "ci_high": 1.1336,
+        "tau2": 0.02665,
+        "Q": 18.14969,
+        "i2": 83.5,
+        "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
+        "pi_low": 0.4729,
+        "pi_high": 1.5436,
+        "estmeasure": {
+          "status": "compatible_labels",
+          "classes": [
+            "FIRST_EVENT_RATIO"
+          ],
+          "canonicals": [
+            "HAZARD_RATIO_FIRST_EVENT",
+            "RISK_RATIO"
+          ],
+          "labels": [
+            "HR",
+            "RR"
+          ]
+        },
+        "scale_mixed": [
+          "HR",
+          "RR"
+        ],
+        "leave_one_out": {
+          "min": 0.8013,
+          "max": 0.9148,
+          "most_influential": "21870978",
+          "per_trial": [
+            {
+              "dropped": "21830957",
+              "estimate": 0.8013
+            },
+            {
+              "dropped": "19717844",
+              "estimate": 0.8308
+            },
+            {
+              "dropped": "24251359",
+              "estimate": 0.874
+            },
+            {
+              "dropped": "21870978",
+              "estimate": 0.9148
+            }
+          ],
+          "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."
+        },
+        "claim": {
+          "present": true,
+          "significant": false,
+          "crosses_null": true,
+          "touches_null": false,
+          "null": 1.0,
+          "direction": "benefit",
+          "significant_fixed": null
+        },
+        "effect_label": "pooled first-event ratio (3 HR + 1 RR)",
+        "harm_reporting_trials_n": 4,
+        "harm_extracted_trials_n": 4,
+        "harm_registered_trials_n": 7,
+        "harm_reporting_trials": [
           {
-            "trial_id": "21830957",
-            "trial_label": "21830957",
-            "terms": [
-              "major bleeding",
-              "bleeding"
-            ],
-            "span": "ci, 0.74 to 1.03; p<0.001 for noninferiority; p=0.12 for superiority). major and nonmajor clinically relevant bleeding occurred in 1475 patients in the rivaroxaban group (14.9% per year) and in 1449 in the warfarin group (14.5%"
+            "id": "21830957",
+            "label": "21830957",
+            "state": "EXTRACTED",
+            "extracted": true
           },
           {
-            "trial_id": "19717844",
-            "trial_label": "19717844",
-            "terms": [
-              "major bleeding",
-              "bleeding"
-            ],
-            "span": "ceived 150 mg of dabigatran (relative risk, 0.66; 95% ci, 0.53 to 0.82; p<0.001 for superiority). the rate of major bleeding was 3.36% per year in the warfarin group, as compared with 2.71% per year in the group receiving 110 mg of da"
+            "id": "19717844",
+            "label": "19717844",
+            "state": "EXTRACTED",
+            "extracted": true
+          },
+          {
+            "id": "24251359",
+            "label": "24251359",
+            "state": "EXTRACTED",
+            "extracted": true
+          },
+          {
+            "id": "21870978",
+            "label": "21870978",
+            "state": "EXTRACTED",
+            "extracted": true
           }
         ],
-        "reason": "HARMS_INCOMPLETE: 2 known eligible outcome report(s) from primary-pool trials are unresolved; an isolated k=2 harm estimate is suppressed until those rows are extracted or typed-refused.",
-        "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f",
-        "claim_id": "425b1e5475e9e163",
+        "input_set_version": "d3f9697e09957404ab53682cc2d70aec3bd4f6971f2a66ff0cc2c8738c47aba5",
+        "claim_id": "5e897fc23c1f06c1",
         "depends_on": {
-          "input_set_version": "d4d1a54528f2bbb6bd24e112ed7dca2e8f74c5023ae79e7539898b59c012f49f"
+          "input_set_version": "d3f9697e09957404ab53682cc2d70aec3bd4f6971f2a66ff0cc2c8738c47aba5"
         },
         "claim_kind": "outcome_result"
+      },
+      "endpoint_canonical": {
+        "label": "MAJOR_BLEEDING",
+        "event_time": "TIME_TO_FIRST_EVENT",
+        "components": [],
+        "component_sets": [],
+        "status": "NOT_DECLARED"
+      },
+      "compat_key": {
+        "effect_measure": [
+          "HR",
+          "RR"
+        ],
+        "event_process": [
+          "FIRST_EVENT_RATIO"
+        ],
+        "endpoint": "trial-defined Major bleeding (definitions listed per trial)",
+        "follow_up_window": null,
+        "analysis_set": null,
+        "analysis_set_declared": null,
+        "randomised_contrast": {
+          "verified": 4,
+          "total": 4
+        },
+        "matched": true,
+        "mismatches": [],
+        "endpoint_canonical": {
+          "label": "MAJOR_BLEEDING",
+          "event_time": "TIME_TO_FIRST_EVENT",
+          "components": [],
+          "component_sets": [],
+          "status": "NOT_DECLARED"
+        },
+        "endpoint_canonical_status": "NOT_DECLARED",
+        "effect_label": "pooled first-event ratio (3 HR + 1 RR)",
+        "dimension_matches": {
+          "endpoint": false
+        },
+        "underlying_checked": true,
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS"
       },
       "recovery_recheck": {
         "hard_incompatible": false,
         "mismatches": [],
         "effect_measure_labels": [
-          "HR"
+          "HR",
+          "RR"
         ],
-        "k": 2,
+        "k": 4,
         "reconstructed_members": [],
-        "label_mix_small_k": false
+        "label_mix_small_k": true
       },
+      "recovery_disclosure": "Pooled trials report different effect-measure labels (HR + RR), combined as first-event relative ratios. This is an approximation, not an identity: a hazard ratio and a cumulative risk ratio are not the same number when events are common or follow-up differs. At this k a single influential trial can move the summary. Read the pooled effect as approximate.",
       "compat_underlying": {
         "status": "COMPAT_DIMENSION_HETEROGENEOUS",
         "dimensions": [
@@ -1843,6 +2750,20 @@
         ],
         "per_trial": {
           "endpoint": [
+            {
+              "trial_id": "21830957",
+              "trial_label": "21830957",
+              "value": "Major bleeding",
+              "source": "outcome.name",
+              "span": "Major bleeding"
+            },
+            {
+              "trial_id": "19717844",
+              "trial_label": "19717844",
+              "value": "primary outcome was stroke or systemic embolism",
+              "source": "committed source text",
+              "span": "an unblinded fashion, adjusted-dose warfarin. The median duration of the follow-up period was 2.0 years. The primary outcome was stroke or systemic embolism. RESULTS: Rates of the primary outcome were 1.69% per year in the warfarin group, as compared with 1.53% per"
+            },
             {
               "trial_id": "24251359",
               "trial_label": "24251359",
@@ -1859,31 +2780,6 @@
             }
           ]
         }
-      },
-      "harms_incomplete": {
-        "state": "HARMS_INCOMPLETE",
-        "n_reporting_pool_trials": 4,
-        "n_pooled": 2,
-        "unresolved": [
-          {
-            "trial_id": "21830957",
-            "trial_label": "21830957",
-            "terms": [
-              "major bleeding",
-              "bleeding"
-            ],
-            "span": "ci, 0.74 to 1.03; p<0.001 for noninferiority; p=0.12 for superiority). major and nonmajor clinically relevant bleeding occurred in 1475 patients in the rivaroxaban group (14.9% per year) and in 1449 in the warfarin group (14.5%"
-          },
-          {
-            "trial_id": "19717844",
-            "trial_label": "19717844",
-            "terms": [
-              "major bleeding",
-              "bleeding"
-            ],
-            "span": "ceived 150 mg of dabigatran (relative risk, 0.66; 95% ci, 0.53 to 0.82; p<0.001 for superiority). the rate of major bleeding was 3.36% per year in the warfarin group, as compared with 2.71% per year in the group receiving 110 mg of da"
-          }
-        ]
       }
     }
   ],
@@ -1939,12 +2835,57 @@
     },
     "overlap": {
       "ours_k": 4,
-      "theirs_k": "not stated in the comparator abstract/full text",
-      "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
+      "theirs_k": 4,
+      "shared_k": 4,
       "only_ours": [],
       "only_theirs": [],
-      "method": "publication-date + design identity (comparator trial list not extracted from source)",
-      "note": "Trials newer than the comparator (2022) cannot be in it (only-ours, verifiable by date). Exact shared count not asserted."
+      "method": "cached comparator text trial-set enumeration",
+      "note": "Comparator trial set was measured from cached comparator abstract/full text.",
+      "theirs_k_source": "ta from the COMBINE AF (A Collaboration Between Multiple Institutions to Better Investigate Non-Vitamin K Antagonist Oral Anticoagulant Use in Atrial Fibrillation) database, which includes all patients randomized in the 4 pivotal trials of DOACs versus warfarin in atrial fibrillation (RE-LY [Randomized Evaluation of Long-Term Anticoagulation Therapy], ROCKET AF [Rivaroxaban Once Daily Oral Direct Factor Xa Inhibi",
+      "shared_k_measurement": "MEASURED",
+      "shared_trials": [
+        "RE-LY",
+        "ROCKET AF",
+        "ARISTOTLE",
+        "ENGAGE AF-TIMI 48"
+      ]
+    },
+    "comparator_trial_set": {
+      "status": "MEASURED",
+      "measurement": "MEASURED",
+      "source_kind": "named prose",
+      "k": 4,
+      "trials": [
+        "RE-LY",
+        "ROCKET AF",
+        "ARISTOTLE",
+        "ENGAGE AF-TIMI 48"
+      ],
+      "source_snippet": "ta from the COMBINE AF (A Collaboration Between Multiple Institutions to Better Investigate Non-Vitamin K Antagonist Oral Anticoagulant Use in Atrial Fibrillation) database, which includes all patients randomized in the 4 pivotal trials of DOACs versus warfarin in atrial fibrillation (RE-LY [Randomized Evaluation of Long-Term Anticoagulation Therapy], ROCKET AF [Rivaroxaban Once Daily Oral Direct Factor Xa Inhibi",
+      "shared_k": 4,
+      "shared_trials": [
+        "RE-LY",
+        "ROCKET AF",
+        "ARISTOTLE",
+        "ENGAGE AF-TIMI 48"
+      ],
+      "only_ours": [],
+      "only_theirs": []
+    },
+    "quantity_match": {
+      "status": "SAME_SET_DIFFERENT_QUANTITY",
+      "note": "Same four AF trials; this page pools trial-level standard-dose estimates, while COMBINE-AF uses IPD stratified Cox treatment strategies."
+    },
+    "comparator_recency": {
+      "status": "NO_RECENCY_FLAG"
+    },
+    "treatment_strategy_match": {
+      "status": "MATCH",
+      "note": "standard-dose DOAC versus warfarin"
+    },
+    "outcome_match": {
+      "status": "MATCH",
+      "note": "stroke or systemic embolism"
     }
   },
   "estimand_exclusions": [],
@@ -2027,7 +2968,7 @@
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (NONFATAL_STROKE)",
+            "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (NONFATAL_STROKE); registered 'The Composite Event of Stroke/Non-CNS Systemic Embolism: Primary Efficacy (Non-Inferiority)'",
             "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
             "inputs": {
               "pooled_outcome": "Stroke or systemic embolism",
@@ -2133,7 +3074,36 @@
               "level": "not assessed"
             }
           ]
-        }
+        },
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       },
       "19717844": {
         "nct": "NCT00262600",
@@ -2202,7 +3172,7 @@
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (NONFATAL_STROKE)",
+            "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (NONFATAL_STROKE); registered 'Yearly Event Rate for Composite Endpoint of Stroke/SEE'",
             "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
             "inputs": {
               "pooled_outcome": "Stroke or systemic embolism",
@@ -2288,7 +3258,36 @@
               "level": "not assessed"
             }
           ]
-        }
+        },
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "not assessed"
+          }
+        ]
       },
       "24251359": {
         "nct": "NCT00781391",
@@ -2357,7 +3356,7 @@
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (NONFATAL_STROKE)",
+            "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (NONFATAL_STROKE); registered 'Compare Edoxaban to Warfarin for Composite of Stroke and Systemic Embolic Events (SEE).'",
             "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
             "inputs": {
               "pooled_outcome": "Stroke or systemic embolism",
@@ -2458,7 +3457,36 @@
               "level": "not assessed"
             }
           ]
-        }
+        },
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       },
       "21870978": {
         "nct": "NCT00412984",
@@ -2523,7 +3551,7 @@
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (NONFATAL_STROKE)",
+            "basis": "the pooled outcome matches the trial's pre-registered primary outcome by component set (NONFATAL_STROKE); registered 'Number of Participants With First Event of Ischemic/Unspecified Stroke, Hemorrhagic Stroke, or Systemic Embolism (SE) During the Intended Treatment Period'",
             "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
             "inputs": {
               "pooled_outcome": "Stroke or systemic embolism",
@@ -2649,7 +3677,36 @@
               "level": "not assessed"
             }
           ]
-        }
+        },
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     }
   },
@@ -2808,34 +3865,62 @@
     {
       "id": "PMID 21830957",
       "type": "industry",
-      "span": "oxaban group. (Funded by Johnson & Johnson and Bayer; ROCKET AF ClinicalTrials.gov number, NCT00403767.).",
+      "span": "(Funded by Johnson & Johnson and Bayer; ROCKET AF ClinicalTrials.gov number, NCT00403767.).",
       "source": "abstract",
-      "scanned": "abstract only"
+      "scanned": "abstract",
+      "funding_state": "INDUSTRY_SPONSORED"
     },
     {
       "id": "PMID 19717844",
-      "type": "not stated (abstract only — full text not retrieved)",
+      "type": "not stated (abstract only - full text not retrieved)",
       "span": "",
-      "source": "abstract only",
-      "scanned": "abstract only"
+      "source": "abstract",
+      "scanned": "abstract",
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
     },
     {
       "id": "PMID 24251359",
       "type": "industry",
-      "span": "cular causes. (Funded by Daiichi Sankyo Pharma Development; ENGAGE AF-TIMI 48 ClinicalTrials.gov number, NCT00781391.).",
+      "span": "(Funded by Daiichi Sankyo Pharma Development; ENGAGE AF-TIMI 48 ClinicalTrials.gov number, NCT00781391.).",
       "source": "abstract",
-      "scanned": "abstract only"
+      "scanned": "abstract",
+      "funding_state": "INDUSTRY_SPONSORED"
     },
     {
       "id": "PMID 21870978",
       "type": "industry",
-      "span": "er mortality. (Funded by Bristol-Myers Squibb and Pfizer; ARISTOTLE ClinicalTrials.gov number, NCT00412984.).",
+      "span": "(Funded by Bristol-Myers Squibb and Pfizer; ARISTOTLE ClinicalTrials.gov number, NCT00412984.).",
       "source": "abstract",
-      "scanned": "abstract only"
+      "scanned": "abstract",
+      "funding_state": "INDUSTRY_SPONSORED"
+    },
+    {
+      "id": "NCT00504556",
+      "type": "source not retrieved",
+      "span": "",
+      "source": "",
+      "scanned": "",
+      "funding_state": "SOURCE_NOT_RETRIEVED"
+    },
+    {
+      "id": "NCT00806624",
+      "type": "source not retrieved",
+      "span": "",
+      "source": "",
+      "scanned": "",
+      "funding_state": "SOURCE_NOT_RETRIEVED"
+    },
+    {
+      "id": "NCT00829933",
+      "type": "source not retrieved",
+      "span": "",
+      "source": "",
+      "scanned": "",
+      "funding_state": "SOURCE_NOT_RETRIEVED"
     }
   ],
   "rob_spancheck": {
-    "_doc": "RoB span-check: a cross-family (Fable) sample verified the model/registry-derived RoB2 domain ratings (randomization / blinding / assessor-blinding) against each trial abstract. Rebuilds RoB credibility with a number after a visible rendering break. Seed 20260912.",
+    "_doc": "Partial machine assessment span-check: a cross-family (Fable) sample verified the model/registry-derived partial machine domain ratings (randomization / blinding / assessor-blinding) against each trial abstract. Rebuilds registry-machine-signal-restricted credibility with a number after a visible rendering break. Seed 20260912.",
     "checker": "Fable (cross-family)",
     "n_sampled": 45,
     "seed": 20260912,
@@ -2852,7 +3937,14 @@
     "n_records_annotated": 40
   },
   "protocol_config": {
-    "divergences": [],
+    "divergences": [
+      {
+        "code": "ESTIMAND_PREFERENCE_UNDECLARED",
+        "dimension": "estimand_preference",
+        "prose": "protocol permits crude count reconstruction and published time-to-event effects",
+        "config": "no explicit preference"
+      }
+    ],
     "intervention_i_line": "a direct oral anticoagulant: dabigatran, rivaroxaban, apixaban, or edoxaban."
   },
   "identifier_scope": {
@@ -2864,9 +3956,7 @@
       "24251359": "edoxaban",
       "21870978": "apixaban",
       "NCT00504556": "edoxaban",
-      "ORGANON · NCT02935855": "dabigatran",
       "NCT00806624": "edoxaban",
-      "NCT05006287": "CLASS:NOAC",
       "NCT00829933": "edoxaban"
     },
     "unresolved": [],
@@ -2882,20 +3972,20 @@
       },
       {
         "code": "eligible_declared_absent",
-        "detail": "screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: REC:NCT00504556, ORGANON, REC:NCT00806624, REC:NCT05006287, REC:NCT00829933; the completeness claim cannot be current"
+        "detail": "screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT00504556, NCT00806624, NCT00829933; the completeness claim cannot be current"
       }
     ]
   },
   "compat_underlying": {
     "checked": true,
-    "n_pre_fix_asserted_not_underlying": 3,
+    "n_pre_fix_asserted_not_underlying": 2,
     "n_post_fix_asserted_not_underlying": 0,
     "pre_fix_violations": [
       {
         "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
         "outcome": "Stroke or systemic embolism",
         "dimension": "analysis_set",
-        "asserted": "intention-to-treat",
+        "asserted": "RANDOMIZED_OR_FULL_ANALYSIS_SET",
         "per_trial_values": [
           {
             "trial_id": "21830957",
@@ -2930,16 +4020,16 @@
       },
       {
         "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
-        "outcome": "Stroke or systemic embolism",
+        "outcome": "Major bleeding",
         "dimension": "endpoint",
-        "asserted": "composite",
+        "asserted": "MAJOR_BLEEDING",
         "per_trial_values": [
           {
             "trial_id": "21830957",
             "trial_label": "21830957",
-            "value": "Stroke or systemic embolism",
+            "value": "Major bleeding",
             "source": "outcome.name",
-            "span": "Stroke or systemic embolism"
+            "span": "Major bleeding"
           },
           {
             "trial_id": "19717844",
@@ -2948,29 +4038,6 @@
             "source": "committed source text",
             "span": "an unblinded fashion, adjusted-dose warfarin. The median duration of the follow-up period was 2.0 years. The primary outcome was stroke or systemic embolism. RESULTS: Rates of the primary outcome were 1.69% per year in the warfarin group, as compared with 1.53% per"
           },
-          {
-            "trial_id": "24251359",
-            "trial_label": "24251359",
-            "value": "Stroke or systemic embolism",
-            "source": "outcome.name",
-            "span": "Stroke or systemic embolism"
-          },
-          {
-            "trial_id": "21870978",
-            "trial_label": "21870978",
-            "value": "primary outcome was ischemic or hemorrhagic stroke or systemic embolism",
-            "source": "committed source text",
-            "span": "0 to 3.0) in 18,201 patients with atrial fibrillation and at least one additional risk factor for stroke. The primary outcome was ischemic or hemorrhagic stroke or systemic embolism. The trial was designed to test for noninferiority, with key secondary objectives of testing for superiority"
-          }
-        ],
-        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
-      },
-      {
-        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
-        "outcome": "Major bleeding",
-        "dimension": "endpoint",
-        "asserted": "single endpoint",
-        "per_trial_values": [
           {
             "trial_id": "24251359",
             "trial_label": "24251359",
@@ -2990,6 +4057,233 @@
       }
     ],
     "post_fix_violations": []
+  },
+  "reason_code_audit": {
+    "denominator_source": "declared_absent_trials reason_code/state rows on this page",
+    "N": 6,
+    "counts": {
+      "REASON_TRUE": 0,
+      "REASON_FALSE_VALUE_HELD": 0,
+      "REASON_WRONG_KIND": 0,
+      "NOT_VERIFIABLE": 6
+    },
+    "n_false_value_held": 0,
+    "n_not_verifiable": 6,
+    "by_code_kind": {
+      "SOURCE_NOT_RETRIEVED": {
+        "REASON_TRUE": 0,
+        "REASON_FALSE_VALUE_HELD": 0,
+        "REASON_WRONG_KIND": 0,
+        "NOT_VERIFIABLE": 6
+      }
+    },
+    "rows": [
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "outcome": "Stroke or systemic embolism",
+        "outcome_kind": "primary",
+        "trial_key": "NCT00504556",
+        "label": "NCT00504556",
+        "id": "NCT00504556",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "NOT_VERIFIABLE",
+        "detail": "no held source"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "outcome": "Stroke or systemic embolism",
+        "outcome_kind": "primary",
+        "trial_key": "NCT00806624",
+        "label": "NCT00806624",
+        "id": "NCT00806624",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "NOT_VERIFIABLE",
+        "detail": "no held source"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "outcome": "Stroke or systemic embolism",
+        "outcome_kind": "primary",
+        "trial_key": "NCT00829933",
+        "label": "NCT00829933",
+        "id": "NCT00829933",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "NOT_VERIFIABLE",
+        "detail": "no held source"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "outcome": "Major bleeding",
+        "outcome_kind": "harm",
+        "trial_key": "NCT00504556",
+        "label": "NCT00504556",
+        "id": "NCT00504556",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "NOT_VERIFIABLE",
+        "detail": "no held source"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "outcome": "Major bleeding",
+        "outcome_kind": "harm",
+        "trial_key": "NCT00806624",
+        "label": "NCT00806624",
+        "id": "NCT00806624",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "NOT_VERIFIABLE",
+        "detail": "no held source"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "outcome": "Major bleeding",
+        "outcome_kind": "harm",
+        "trial_key": "NCT00829933",
+        "label": "NCT00829933",
+        "id": "NCT00829933",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "NOT_VERIFIABLE",
+        "detail": "no held source"
+      }
+    ]
+  },
+  "unextracted_outcome_audit": {
+    "denominator_source": "included screening records x registered outcomes in this review",
+    "N": 14,
+    "counts": {
+      "EXTRACTED": 8,
+      "HELD_NOT_EXTRACTED": 0,
+      "NOT_IN_HELD_SOURCES": 6,
+      "ABSENT_BY_DESIGN": 0
+    },
+    "n_held_not_extracted": 0,
+    "by_outcome_kind": {
+      "primary": {
+        "EXTRACTED": 4,
+        "HELD_NOT_EXTRACTED": 0,
+        "NOT_IN_HELD_SOURCES": 3,
+        "ABSENT_BY_DESIGN": 0
+      },
+      "harm": {
+        "EXTRACTED": 4,
+        "HELD_NOT_EXTRACTED": 0,
+        "NOT_IN_HELD_SOURCES": 3,
+        "ABSENT_BY_DESIGN": 0
+      }
+    },
+    "rows": [
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "trial_key": "21830957",
+        "trial_label": "21830957",
+        "outcome": "Stroke or systemic embolism",
+        "outcome_kind": "primary",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "trial_key": "19717844",
+        "trial_label": "19717844",
+        "outcome": "Stroke or systemic embolism",
+        "outcome_kind": "primary",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "trial_key": "24251359",
+        "trial_label": "24251359",
+        "outcome": "Stroke or systemic embolism",
+        "outcome_kind": "primary",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "trial_key": "21870978",
+        "trial_label": "21870978",
+        "outcome": "Stroke or systemic embolism",
+        "outcome_kind": "primary",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "trial_key": "NCT00504556",
+        "trial_label": "NCT00504556",
+        "outcome": "Stroke or systemic embolism",
+        "outcome_kind": "primary",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "trial_key": "NCT00806624",
+        "trial_label": "NCT00806624",
+        "outcome": "Stroke or systemic embolism",
+        "outcome_kind": "primary",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "trial_key": "NCT00829933",
+        "trial_label": "NCT00829933",
+        "outcome": "Stroke or systemic embolism",
+        "outcome_kind": "primary",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "trial_key": "21830957",
+        "trial_label": "21830957",
+        "outcome": "Major bleeding",
+        "outcome_kind": "harm",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "trial_key": "19717844",
+        "trial_label": "19717844",
+        "outcome": "Major bleeding",
+        "outcome_kind": "harm",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "trial_key": "24251359",
+        "trial_label": "24251359",
+        "outcome": "Major bleeding",
+        "outcome_kind": "harm",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "trial_key": "21870978",
+        "trial_label": "21870978",
+        "outcome": "Major bleeding",
+        "outcome_kind": "harm",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "trial_key": "NCT00504556",
+        "trial_label": "NCT00504556",
+        "outcome": "Major bleeding",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "trial_key": "NCT00806624",
+        "trial_label": "NCT00806624",
+        "outcome": "Major bleeding",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "noac-vs-warfarin-af-stroke",
+        "trial_key": "NCT00829933",
+        "trial_label": "NCT00829933",
+        "outcome": "Major bleeding",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      }
+    ]
   },
   "rob_sensitivity": {
     "outcome": "Stroke or systemic embolism",
@@ -3049,6 +4343,9 @@
     },
     "drop_high_informative": false,
     "low_only_relation": "identical_to_full",
+    "low_only_kind": "bias_sensitivity",
+    "low_only_excluded_adverse": 0,
+    "low_only_excluded_unassessed": 0,
     "low_only_informative": false,
     "low_only_predicate": "same_trial_set"
   },
@@ -3141,8 +4438,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (PMID_ENUMERATION_explicit): search.retrieval.enumeration_only=true; no discovery-capable concept source ran</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: REC:NCT00504556, ORGANON, REC:NCT00806624, REC:NCT05006287, REC:NCT00829933; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "9c213eccdb080df2fb1853969f3c8f061047e9afe229d5f5f89ebfb1139bcf7c",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate:<ul><li>no genuine executed concept search (PMID_ENUMERATION_explicit): search.retrieval.enumeration_only=true; no discovery-capable concept source ran</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT00504556, NCT00806624, NCT00829933; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "b0b4a75a754564a1bd7c398fe042afc0c0a9942e2f58e8a439ea5d3878cb5cd4",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -3217,8 +4514,8 @@
         "/search/retrieval/snapshot",
         "/search/retrieval/sources"
       ],
-      "rendered_text": "<div class='banner'><p><strong>Snapshot:</strong> records_sha256 <code>dfacf3bf</code>; retrieved_utc 2026-09-11; mode LEGACY_UNRECORDED: a pre-ledger fetch; which query retrieved which record was not recorded; every record's found_by names this single source.</p><p>This page is a REPLAY of that snapshot: re-running from the protocol SHA regenerates it byte-for-byte. A live re-search is a separate, dated event (see Re-search below if present).</p></div>",
-      "text_sha256": "316b207c3b3ce3a0e58a1b77ecbbd87b76993e1bf5a2321e7f61e00edf7df502",
+      "rendered_text": "<div class='banner'><p><strong>Snapshot:</strong> records_sha256 <code>dfacf3bf</code>; retrieved_utc 2026-09-11; mode LEGACY_UNRECORDED: a pre-ledger fetch; which query retrieved which record was not recorded; every record's found_by names this single source.</p><p>This page replays the committed retrieval snapshot; it is not a claim that the protocol SHA alone regenerates the page byte-for-byte. A live re-search is a separate, dated event (see Re-search below if present).</p></div>",
+      "text_sha256": "a28b771113be4cbf2bee9c08684c2d0e8a89125fd422674fb592691bb61da76d",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -3306,30 +4603,6 @@
       }
     },
     {
-      "limitation_id": "topic:noac-vs-warfarin-af-stroke:harms:0:major-bleeding:result-absent",
-      "kind": "HARMS_INCOMPLETE",
-      "limitation_class": "VALIDITY_THREATENING",
-      "severity": "BLOCKS_CLAIM",
-      "claim_affected": "outcome result: Major bleeding",
-      "evidence_state": "PARTIAL",
-      "source_fields": [
-        "/harms/*/result/state",
-        "/harms/*/result/known_eligible_outcome_reports_unresolved"
-      ],
-      "rendered_text": "<div class='absent'><strong>HARMS_INCOMPLETE.</strong> HARMS_INCOMPLETE: 2 known eligible outcome report(s) from primary-pool trials are unresolved; an isolated k=2 harm estimate is suppressed until those rows are extracted or typed-refused. <span class='muted'>Known unresolved primary-pool trial(s): 21830957, 19717844</span></div>",
-      "text_sha256": "902823ca6cb7c93b6b9f2412cde921a377dd6c206dc757278b22e5355554e4c8",
-      "linked_decision": {
-        "action": "REFUSE",
-        "gate_id": "compat-check:harms-incomplete",
-        "decision_state": "isolated harms estimate is suppressed until known primary-pool reports are extracted or typed-refused"
-      },
-      "consumer": {
-        "gate_id": "compat_check.harms_incomplete",
-        "gate_input_path": "/harms/*/result/state",
-        "gate_verdict_at_build": "HARMS_INCOMPLETE: Major bleeding"
-      }
-    },
-    {
       "limitation_id": "topic:noac-vs-warfarin-af-stroke:riskofbias:rob-spancheck",
       "kind": "ROB_SPANCHECK",
       "limitation_class": "INFORMATIONAL",
@@ -3379,7 +4652,7 @@
       "consumer": {
         "gate_id": "compat.outcome_key",
         "gate_input_path": "/arm_contrast/trials",
-        "gate_verdict_at_build": "Stroke or systemic embolism: verified 4/4"
+        "gate_verdict_at_build": "Stroke or systemic embolism: verified 4/4; Major bleeding: verified 4/4"
       }
     },
     {
@@ -3392,8 +4665,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from a verbatim statement in the committed source (full text preferred, abstract fallback), including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>3 of 3 known</strong> (1 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 1 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Scanned</th><th>Verbatim statement</th></tr><tr><td>PMID 21830957</td><td>industry</td><td>abstract only</td><td>oxaban group. (Funded by Johnson &amp; Johnson and Bayer; ROCKET AF ClinicalTrials.gov number, NCT00403767.).</td></tr><tr><td>PMID 24251359</td><td>industry</td><td>abstract only</td><td>cular causes. (Funded by Daiichi Sankyo Pharma Development; ENGAGE AF-TIMI 48 ClinicalTrials.gov number, NCT00781391.).</td></tr><tr><td>PMID 21870978</td><td>industry</td><td>abstract only</td><td>er mortality. (Funded by Bristol-Myers Squibb and Pfizer; ARISTOTLE ClinicalTrials.gov number, NCT00412984.).</td></tr><tr><td>PMID 19717844</td><td>not stated (abstract only — full text not retrieved)</td><td>abstract only</td><td></td></tr></table></div>",
-      "text_sha256": "efe9512f1058358b7ab61a672e6bc37116a973224edc361677c17c1dff2425c4",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>3 of 3 known</strong> (4 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 21830957</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Johnson &amp; Johnson and Bayer; ROCKET AF ClinicalTrials.gov number, NCT00403767.).</td></tr><tr><td>PMID 24251359</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Daiichi Sankyo Pharma Development; ENGAGE AF-TIMI 48 ClinicalTrials.gov number, NCT00781391.).</td></tr><tr><td>PMID 21870978</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Bristol-Myers Squibb and Pfizer; ARISTOTLE ClinicalTrials.gov number, NCT00412984.).</td></tr><tr><td>PMID 19717844</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>NCT00504556</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT00806624</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT00829933</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr></table></div>",
+      "text_sha256": "47d1b3b4a1286e7fafb8213ca6e55a19266970cf78b7a5325bc4c315928a7078",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -3422,8 +4695,8 @@
         "/rob_sensitivity/drop_high",
         "/rob_sensitivity/low_only"
       ],
-      "rendered_text": "<div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> The primary outcome is re-pooled by risk-of-bias stratum with the identical estimator. <strong>4 of 4</strong> pooled trials have a risk-of-bias rating; no pooled trial is rated <em>high</em> risk (the registry-derived assessment does not reach 'high'), so the standard drop-high sensitivity is inert and the informative stratum is <em>low-only</em>. All pooled trials are low risk, so the low-only re-pool is the full pool; there is no coverage-driven k reduction in this stratum.<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr><tr><td>Full pool (all pooled trials)</td><td>k=4, HR 0.8069 [0.6611, 0.985]</td></tr><tr><td>Low risk of bias only</td><td>k=4, HR 0.8069 [0.6611, 0.985] <em>(all pooled trials are low risk; the re-pool is the full pool)</em></td></tr></table></div>",
-      "text_sha256": "8d3c622bd44f1d6dbf2a9ae062147fa1b50cfee41de0a63386851eaf140aff51",
+      "rendered_text": "<div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> The primary outcome is re-pooled by risk-of-bias stratum with the identical estimator. <strong>4 of 4</strong> pooled trials have a risk-of-bias rating; no pooled trial is rated <em>high</em> risk (the registry-derived assessment does not reach 'high'), so the standard drop-high sensitivity is inert and the informative stratum is <em>low-only</em>. Low-only kind: <code>bias_sensitivity</code> (0 adverse rating exclusion(s), 0 unassessed-domain exclusion(s)). All pooled trials are low risk, so the low-only re-pool is the full pool; there is no coverage-driven k reduction in this stratum.<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr><tr><td>Full pool (all pooled trials)</td><td>k=4, HR 0.8069 [0.6611, 0.985]</td></tr><tr><td>Low risk of bias only</td><td>k=4, HR 0.8069 [0.6611, 0.985] <em>(all pooled trials are low risk; the re-pool is the full pool)</em></td></tr></table></div>",
+      "text_sha256": "0b27c531cbc8df6064d295cc07ac804c8c9d7273f3741d0c726165143509deba",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -3451,8 +4724,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 0 downgrade(s)). The rating is capped below <em>high</em> because D3 (missing outcome data), a required risk-of-bias domain, is NOT ASSESSED for any pooled trial (no outcome-missingness source) &mdash; high certainty cannot be certified on a structurally-incomplete bias assessment. <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 4 of 4 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 4 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td>not downgraded</td><td>tau^2=0.00741; prediction interval not markedly wider than the CI</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.6611, 0.985]; excludes the null with a reasonably tight interval -&gt; precise</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (83 of ~227 completed unpublished, 37%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "3782951ef484a5231bc69c6852c1960d14a95664a7bfbb48770b6dc4a64dd00b",
+      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 0 downgrade(s)). The rating is capped below <em>high</em> because D3 (missing outcome data), a required risk-of-bias domain, is NOT ASSESSED for any pooled trial (no outcome-missingness source) &mdash; high certainty cannot be certified on a structurally-incomplete bias assessment. <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 4 of 4 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (registry-machine-signal-restricted signals, not a human risk-of-bias assessment) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency and imprecision are computed from committed fields; <strong>publication bias is NOT ASSESSED automatically</strong> because the available registry ghost census is descriptive until its denominator is PICO-scoped. <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 4 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td>not downgraded</td><td>tau^2=0.00741; prediction interval not markedly wider than the CI</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.6611, 0.985]; excludes the null with a reasonably tight interval -&gt; precise</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (83 of ~227 completed unpublished, 37%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "5192ee0859d95bdc1b14dd6cf890efa987269b8827dd4e01cd950b4503931f41",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -3529,10 +4802,80 @@
       }
     }
   ],
+  "propositions": {
+    "version": 1,
+    "objects": [
+      {
+        "kind": "publication_bias_state",
+        "surface": "grade/manuscript/reporting",
+        "source_path": "/grade/domains/publication_bias",
+        "assessed": false,
+        "state": "NOT_ASSESSED",
+        "claim_id": "785fa24e85d4d2bc"
+      },
+      {
+        "kind": "declared_equals_enforced",
+        "surface": "reporting/prisma_item_5",
+        "source_path": "/protocol_config/divergences",
+        "asserted_equal": false,
+        "divergence_count": 1,
+        "divergence_codes": [
+          "ESTIMAND_PREFERENCE_UNDECLARED"
+        ],
+        "claim_id": "2eb93d01c8ed8224"
+      },
+      {
+        "kind": "byte_reproducible",
+        "surface": "search/reporting/reproduction/manuscript",
+        "source_path": "/reproduction",
+        "asserts_protocol_sha_replay": false,
+        "asserts_committed_cache_replay": true,
+        "claim_id": "ffece3f8af6a0b03"
+      },
+      {
+        "kind": "pooled_count",
+        "surface": "overview/results/manuscript",
+        "source_path": "/outcomes/*[primary]/result/k",
+        "subject": "primary_effect_objects",
+        "count": 4,
+        "claim_id": "5cb7cb94b7a46f28"
+      },
+      {
+        "kind": "rated_count",
+        "surface": "riskofbias/manuscript",
+        "source_path": "/rob_sensitivity",
+        "rated": 4,
+        "total": 4,
+        "claim_id": "f3cfb5ce652671d4"
+      },
+      {
+        "kind": "retracted_count",
+        "surface": "riskofbias/integrity",
+        "source_path": "/integrity",
+        "pooled": 4,
+        "retracted": 0,
+        "claim_id": "03bfa63d09bd1b11"
+      }
+    ],
+    "scope_counts": {
+      "publication_bias_state": 1,
+      "declared_equals_enforced": 1,
+      "byte_reproducible": 1,
+      "pooled_count": 1,
+      "rated_count": 1,
+      "retracted_count": 1,
+      "search_found": 0,
+      "state_collapsed": 0
+    },
+    "not_in_scope": [
+      "verbatim source quotations",
+      "external comparator prose without a committed object row"
+    ]
+  },
   "reproduction": {
     "failures": 0,
     "protocol_sha": "876acb8be1d610715286042396952dccb50942e1",
-    "review_sha256": "f56433ed8383f5c00569de31fb0b223c3c1deef7b85480bc124d7b06ae02d39e",
+    "review_sha256": "ffb0f8086fbba765655c777aebb9665cb3914e3ca4d518e90478e4a46a9579ca",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -3548,14 +4891,14 @@
       "reason": "CLOSED to parity: ENGAGE-AF added + RE-LY switched to the approved 150 mg dose, via a documented pre-specified approved-dose rule (dabigatran 150 mg RR 0.66; edoxaban 60 mg ITT HR 0.87), both verified against source. Pooled RR 0.805 (0.658-0.984). Pairwise subset of the DOAC-vs-warfarin evidence; matches the comparable comparator k=4.",
       "parity_relation": {
         "relation": "IDENTICAL_SET",
-        "label": "INFERRED arithmetic replication -- same trials; agreement is not independent corroboration",
-        "inferred": true,
+        "label": "arithmetic replication -- same trials; agreement is not independent corroboration",
+        "inferred": false,
         "our_k": 4,
         "hand_our_k": 4,
         "hand_our_k_stale": false,
         "their_k": 4,
         "their_k_source": "comparable_comparator_k",
-        "shared_k": null,
+        "shared_k": 4,
         "only_ours_n": 0,
         "only_theirs_n": 0,
         "dominance": null,
@@ -3577,21 +4920,21 @@
       "conflict": 1
     },
     "claim_check": {
-      "claims_checked": 1,
+      "claims_checked": 2,
       "surfaces": [
         "outcome block",
         "overview",
         "manuscript"
       ],
       "scope_counts": {
-        "outcome_result": 1,
+        "outcome_result": 2,
         "strand_pool": 0,
         "rob_sensitivity": 3,
         "grade": 1
       },
       "scope": {
         "counts": {
-          "outcome_result": 1,
+          "outcome_result": 2,
           "strand_pool": 0,
           "rob_sensitivity": 3,
           "grade": 1
@@ -3610,7 +4953,34 @@
     },
     "proposition_check": {
       "checked": true,
-      "contradictions": []
+      "contradictions": [],
+      "legacy_contradictions": [],
+      "scope_counts": {
+        "publication_bias_state": 1,
+        "declared_equals_enforced": 1,
+        "byte_reproducible": 1,
+        "pooled_count": 1,
+        "rated_count": 1,
+        "retracted_count": 1,
+        "search_found": 0,
+        "state_collapsed": 0
+      },
+      "scope": {
+        "scope_counts": {
+          "publication_bias_state": 1,
+          "declared_equals_enforced": 1,
+          "byte_reproducible": 1,
+          "pooled_count": 1,
+          "rated_count": 1,
+          "retracted_count": 1,
+          "search_found": 0,
+          "state_collapsed": 0
+        },
+        "not_in_scope": [
+          "verbatim source quotations",
+          "external comparator prose without a committed object row"
+        ]
+      }
     },
     "claimgraph_check": {
       "violations": [],

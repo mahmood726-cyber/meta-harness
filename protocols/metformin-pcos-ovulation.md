@@ -67,3 +67,11 @@ metformin versus placebo/no treatment and gastrointestinal side effects OR 4.00
 - **Negative** - the Diabetes Prevention Program metformin trial in impaired glucose
   tolerance/type 2 diabetes prevention (PMID 11832527) must be recovered and EXCLUDED
   as wrong population/topic.
+
+## Retrospective executable-screen amendment (2026-09-16)
+`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that ovulation
+induction context and the gonadotrophin exclusion in the comparator review were
+not executable. The config now requires ovulation-induction / clomiphene context
+and excludes hMG / human menopausal gonadotrophin add-on designs. The PCOS title
+miss for PMID 19552097 is fixed mechanically in screening negation handling rather
+than by a record-specific override. This amendment changes screening only.

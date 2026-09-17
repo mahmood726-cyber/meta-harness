@@ -17,11 +17,19 @@ LOW_ONLY_IDENTICAL_TO_FULL = "identical_to_full"
 LOW_ONLY_FEWER_TRIALS = "fewer_trials"
 LOW_ONLY_EMPTY = "empty"
 LOW_ONLY_NOT_ASSESSABLE = "not_assessable"
+LOW_ONLY_BIAS_SENSITIVITY = "bias_sensitivity"
+LOW_ONLY_INFORMATION_AVAILABILITY = "information_availability_sensitivity"
+LOW_ONLY_MIXED = "mixed"
 LOW_ONLY_RELATIONS = {
     LOW_ONLY_IDENTICAL_TO_FULL,
     LOW_ONLY_FEWER_TRIALS,
     LOW_ONLY_EMPTY,
     LOW_ONLY_NOT_ASSESSABLE,
+}
+LOW_ONLY_KINDS = {
+    LOW_ONLY_BIAS_SENSITIVITY,
+    LOW_ONLY_INFORMATION_AVAILABILITY,
+    LOW_ONLY_MIXED,
 }
 
 
@@ -129,28 +137,59 @@ def low_only_relation_note_html(sens: dict | None) -> str:
 
 def low_only_relation_context_html(sens: dict | None) -> str:
     relation = relation_from_sensitivity(sens)
+    prefix = low_only_kind_context_html(sens)
     if relation == LOW_ONLY_IDENTICAL_TO_FULL:
-        return ("All pooled trials are low risk, so the low-only re-pool is the full pool; "
+        return (prefix + "All pooled trials are low risk, so the low-only re-pool is the full pool; "
                 "there is no coverage-driven k reduction in this stratum.")
     if relation == LOW_ONLY_FEWER_TRIALS:
-        return ("An unrated trial cannot be placed in a stratum, so a low-only pool with fewer trials "
+        return (prefix + "An unrated trial cannot be placed in a stratum, so a low-only pool with fewer trials "
                 "than the full pool reflects both risk of bias and assessment coverage &mdash; read the "
                 "widened interval with that caveat, not as instability of the effect.")
     if relation == LOW_ONLY_EMPTY:
-        return ("No pooled trial qualifies as low risk, so the low-only stratum is not estimable; "
+        return (prefix + "No pooled trial qualifies as low risk, so the low-only stratum is not estimable; "
                 "an empty subgroup is not agreement with the full pool.")
-    return "The low-risk-only relation to the full pool is not assessable from the stored object."
+    return prefix + "The low-risk-only relation to the full pool is not assessable from the stored object."
 
 
 def low_only_relation_context_text(sens: dict | None) -> str:
     relation = relation_from_sensitivity(sens)
+    prefix = low_only_kind_context_text(sens)
     if relation == LOW_ONLY_IDENTICAL_TO_FULL:
-        return "all pooled trials are low risk, so the re-pool is the full pool."
+        return prefix + "all pooled trials are low risk, so the re-pool is the full pool."
     if relation == LOW_ONLY_FEWER_TRIALS:
-        return "read the widened interval with the coverage caveat."
+        return prefix + "read the widened interval with the coverage caveat."
     if relation == LOW_ONLY_EMPTY:
-        return "a low-risk-only subpool was not estimable."
-    return "the low-risk-only relation to the full pool was not assessable."
+        return prefix + "a low-risk-only subpool was not estimable."
+    return prefix + "the low-risk-only relation to the full pool was not assessable."
+
+
+def _low_only_kind_from_counts(adverse: int, unassessed: int) -> str:
+    if adverse and unassessed:
+        return LOW_ONLY_MIXED
+    if unassessed and not adverse:
+        return LOW_ONLY_INFORMATION_AVAILABILITY
+    return LOW_ONLY_BIAS_SENSITIVITY
+
+
+def low_only_kind_context_html(sens: dict | None) -> str:
+    sens = sens or {}
+    kind = sens.get("low_only_kind")
+    if kind not in LOW_ONLY_KINDS:
+        return ""
+    adverse = int(sens.get("low_only_excluded_adverse") or 0)
+    unassessed = int(sens.get("low_only_excluded_unassessed") or 0)
+    return (f"Low-only kind: <code>{kind}</code> "
+            f"({adverse} adverse rating exclusion(s), {unassessed} unassessed-domain exclusion(s)). ")
+
+
+def low_only_kind_context_text(sens: dict | None) -> str:
+    sens = sens or {}
+    kind = sens.get("low_only_kind")
+    if kind not in LOW_ONLY_KINDS:
+        return ""
+    adverse = int(sens.get("low_only_excluded_adverse") or 0)
+    unassessed = int(sens.get("low_only_excluded_unassessed") or 0)
+    return f"low-only kind {kind} ({adverse} adverse rating exclusions, {unassessed} unassessed-domain exclusions); "
 
 
 def sensitivity(review):
@@ -169,6 +208,10 @@ def sensitivity(review):
 
     levels = {trial_key(t): _lvl(t) for t in trials}
     n_rated = sum(1 for v in levels.values() if v)
+    excluded_levels = [v for v in levels.values() if v != "low"]
+    excluded_adverse = sum(1 for v in excluded_levels if v in {"high", "some_concerns", "other"})
+    excluded_unassessed = sum(1 for v in excluded_levels if v is None)
+    low_only_kind = _low_only_kind_from_counts(excluded_adverse, excluded_unassessed)
     full = _pool(trials, estimand)
     drop_high = _pool([t for t in trials if _lvl(t) != "high"], estimand)
     low_only = _pool([t for t in trials if _lvl(t) == "low"], estimand)
@@ -185,6 +228,9 @@ def sensitivity(review):
            "full": full, "drop_high": drop_high, "low_only": low_only,
            "drop_high_informative": bool(drop_high and full and drop_high["k"] < full["k"] and drop_high["k"] >= 1),
            "low_only_relation": relation,
+           "low_only_kind": low_only_kind,
+           "low_only_excluded_adverse": excluded_adverse,
+           "low_only_excluded_unassessed": excluded_unassessed,
            "low_only_informative": relation == LOW_ONLY_FEWER_TRIALS,
            "low_only_predicate": low_only_predicate}
     # At k=2 the registered CI is refused (K2_SINGLE_DF) on the primary; the stratified re-pools carry

@@ -45,8 +45,38 @@ def test_reconstructed_cluster_crossover_needs_refusal():
     assert D.needs_design_refusal(trial)
     assert trial["design"]["design_action"]["action"] == "REFUSE"
     row = D.refusal_absence(trial)
-    assert row["state"] == "REFUSED_ON_EVIDENCE"
+    assert row["state"] == "ENGINE_CANNOT_CONSUME"
+    assert row["missing"] == "design_adjusted_effect|ICC"
     assert "typed design action REFUSE" in row["reason"]
+
+
+def test_reported_unadjusted_cluster_crossover_needs_refusal():
+    trial = {
+        "id": "PMID 26444692",
+        "label": "SPLIT",
+        "effect": 0.88,
+        "ci_low": 0.67,
+        "ci_high": 1.17,
+        "scale": "RR",
+        "source": "RR, 0.88 [95% CI, 0.67 to 1.17]",
+    }
+    rec = {"title": "SPLIT", "abstract": "Double-blind, cluster randomized, double-crossover trial"}
+    D.stamp_trial(trial, {"26444692": rec}, {}, "RR")
+    assert trial["design"]["estimator_source"] == "PUBLISHED_UNADJUSTED"
+    assert trial["design"]["design_action"]["action"] == "REFUSE"
+    assert D.needs_design_refusal(trial)
+
+
+def test_unknown_design_is_unproven_not_allow():
+    trial = {"id": "PMID 1", "label": "Unknown", "ai": 10, "n1i": 100, "ci": 12, "n2i": 100}
+    rec = {"title": "Unknown", "abstract": "A randomized trial reported the outcome."}
+    D.stamp_trial(trial, {"1": rec}, {}, "RR")
+    action = trial["design"]["design_action"]
+    assert trial["design"]["design"] == "UNKNOWN"
+    assert action["action"] == "DESIGN_UNPROVEN"
+    assert action["gate_id"] == "design-key:design-unproven"
+    assert "pooled through the parallel path" in action["decision_state"]
+    assert not D.needs_design_refusal(trial)
 
 
 def test_correlation_method_without_evidence_is_treated_as_none_and_refused():

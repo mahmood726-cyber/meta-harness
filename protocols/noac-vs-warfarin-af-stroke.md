@@ -88,3 +88,12 @@ is_oa=false, so it was not used as the comparator.
   (PMID 21830957), and ARISTOTLE (PMID 21870978).
 - **Negative** - RE-ALIGN, dabigatran versus warfarin in mechanical heart valves
   (PMID 23991661), must be recovered and excluded as the wrong population.
+
+## Retrospective executable-screen amendment (2026-09-16)
+`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found two protocol
+phrases that the executable config did not enforce. The perioperative exclusion is
+made executable for cardiac surgery / cardiac surgical populations, and ORGANON
+NCT02935855 is source-backed as non-randomized because the cached registry record
+describes consecutive patients already receiving anticoagulants, not a randomized
+DOAC-vs-warfarin allocation. This amendment changes screening only; it does not
+change extraction or pooling.

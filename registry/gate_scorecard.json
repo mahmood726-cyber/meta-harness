@@ -67,6 +67,116 @@
       },
       "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
       "evidence": [
+       "tests/test_propositions.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-propositions-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_propositions.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "object-backed proposition contradiction plants",
+     "when_utc": null,
+     "where": "harness/gate.py:check_propositions"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-propositions-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located in the evidence bundle, CI/server logs, commit messages, or commits.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_propositions"
+    }
+   ],
+   "gate_id": "gate.check_propositions",
+   "what_it_refuses": "Page-gate refusal when a rendered proposition assertion contradicts its backing object: publication-bias state, declared-vs-enforced eligibility, protocol-SHA byte replay, count or membership, search-found state, or state-label collapse.",
+   "where": "harness/gate.py:check_propositions"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_harms_recovery.py",
+       "tests/test_gate.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-harms-complete-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_harms_recovery.py",
+      "tests/test_gate.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "harm outcome/page plant where cached sources report harms but registered harm rows are absent or still have known reported outcomes not extracted",
+     "when_utc": null,
+     "where": "harness/gate.py:check_harms_complete"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-harms-complete-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "New HM gate in this lane; no dated production true/false refusal outside the plant/rebuilt-page evidence has been harvested yet.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_harms_complete"
+    }
+   ],
+   "gate_id": "gate.check_harms_complete",
+   "what_it_refuses": "A page where a registered harm outcome or no-harms registry state has source-reported harm evidence that remains not extracted; HARMS_INCOMPLETE is a gate refusal, not a publishable k=1 or declared-absent row.",
+   "where": "harness/gate.py:check_harms_complete"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
        "tests/test_claim_object.py"
       ],
       "verdict": "TRUE_POSITIVE",
@@ -591,6 +701,60 @@
    "gate_id": "gate.check_access_claim_supported",
    "what_it_refuses": "NOT_RUN-as-paywalled (audit 22): a review must not assert a full-text ACCESS OUTCOME — that full text was re-tested/confirmed, or is publisher-blocked / access-blocked / paywalled — when the PMC full-text adapter did not run.",
    "where": "harness/gate.py:check_access_claim_supported"
+  },
+  {
+   "gate_id": "gate.check_arm_object_contract",
+   "where": "harness/gate.py:check_arm_object_contract",
+   "what_it_refuses": "Page-gate refusal when a pooled trial fails the executable canonical arm-object contract.",
+   "events": [
+    {
+     "event_id": "gate-check-arm-object-contract-v1-plant-validations-1",
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "when_utc": null,
+     "where": "harness/gate.py:check_arm_object_contract",
+     "commit": null,
+     "what_refused": "pooled semaglutide-background trial plant rejected as TRIAL_FAILS_CONTRACT",
+     "evidence": [
+      "tests/test_arm_object.py"
+     ],
+     "adjudication": {
+      "verdict": "TRUE_POSITIVE",
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "when_utc": null,
+      "architecture_identity": "ef452eed03463100ca5dde595729cafeea789e45c674bbde76e45f6f31c162de",
+      "evidence": [
+       "tests/test_arm_object.py"
+      ]
+     }
+    },
+    {
+     "event_id": "gate-check-arm-object-contract-v1-unresolved-1",
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "when_utc": null,
+     "where": "harness/gate.py:check_arm_object_contract",
+     "commit": null,
+     "what_refused": "Only plant validation is recorded so far; no dated production true/false refusal has been adjudicated for this new gate.",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "adjudication": {
+      "verdict": "UNRESOLVED",
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "when_utc": null,
+      "architecture_identity": null,
+      "evidence": []
+     }
+    }
+   ]
   },
   {
    "events": [
@@ -1120,6 +1284,62 @@
    "gate_id": "gate.check_limb2",
    "what_it_refuses": "Page gate check_limb2.",
    "where": "harness/gate.py:check_limb2"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "Claude Opus 5 (session author)",
+       "kind": "author"
+      },
+      "architecture_identity": null,
+      "evidence": [
+       "tests/test_limitations.py",
+       "docs/evidence/design-key-2026-09-14/08-validity-threatening-classification.txt"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": "2026-09-15T01:44:00Z"
+     },
+     "commit": null,
+     "event_id": "gate-check-limitation-decision-links-plant-1",
+     "evidence": [
+      "tests/test_limitations.py",
+      "docs/evidence/design-key-2026-09-14/08-validity-threatening-classification.txt"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "a review whose VALIDITY_THREATENING limitation has no linked_decision",
+     "when_utc": "2026-09-15T01:44:00Z",
+     "where": "harness/gate.py:check_limitation_decision_links"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-limitation-decision-links-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "No dated production refusal observed yet; the gate entered with the design-key tranche.",
+     "when_utc": null,
+     "where": "harness/gate.py:check_limitation_decision_links"
+    }
+   ],
+   "gate_id": "gate.check_limitation_decision_links",
+   "what_it_refuses": "Review pages where a VALIDITY_THREATENING limitation object lacks a linked typed analytic decision (diagnostic-decision decoupling / disclosure-as-control).",
+   "where": "harness/gate.py:check_limitation_decision_links"
   },
   {
    "events": [
@@ -1988,6 +2208,86 @@
    "gate_id": "hook.pre_commit",
    "what_it_refuses": "Local git pre-commit hook refusal.",
    "where": ".githooks/pre-commit:hook"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "Codex lane Y (internal agent)",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": null,
+      "evidence": [
+       "tests/test_invalidation.py",
+       "docs/evidence/identifier-scope-2026-09-14/README.md"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": "2026-09-14T23:30:00Z"
+     },
+     "commit": null,
+     "event_id": "invalidation-identifier-scope-plant-1",
+     "evidence": [
+      "tests/test_invalidation.py",
+      "docs/evidence/identifier-scope-2026-09-14/README.md"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "identifier-scope single-agent-over-class and unresolved plants",
+     "when_utc": "2026-09-14T23:30:00Z",
+     "where": "harness/invalidation.py:identifier_scope/assess"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "invalidation-identifier_scope-identifier-scope-miss-1",
+     "evidence": [
+      "docs/evidence/identifier-scope-2026-09-14/README.md"
+     ],
+     "kind": "PRODUCTION",
+     "miss": true,
+     "source_list": "known_misses",
+     "what_got_through": "Spironolactone-hfref-mortality served under an agent-named identifier while pooling eplerenone MRA trials; recorded pessimistically as a production miss, not a refusal. Before this lane the invalidation object reported search-not-executed only and carried no identifier_scope reason.",
+     "what_refused": null,
+     "when_utc": "2026-09-14T23:30:00Z",
+     "where": "harness/invalidation.py:identifier_scope/assess"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "invalidation-identifier-scope-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "No dated production true refusal has been observed yet; the prefix false negative is recorded as a known miss.",
+     "when_utc": null,
+     "where": "harness/invalidation.py:identifier_scope/assess"
+    }
+   ],
+   "gate_id": "invalidation.identifier_scope",
+   "what_it_refuses": "An agent-named page identifier whose included intervention pool maps to a broader class, another declared agent, or an unresolved intervention declaration.",
+   "where": "harness/invalidation.py:identifier_scope/assess"
   },
   {
    "events": [
@@ -2942,6 +3242,38 @@
    "where": "scripts/verify_all.py:limb_reproduction"
   },
   {
+   "gate_id": "verify_all.limb_search_completeness",
+   "where": "scripts/verify_all.py:limb_search_completeness",
+   "what_it_refuses": "search completeness (search_v2 measurement current; every state explicit; no zero from an exit code)",
+   "events": [
+    {
+     "event_id": "verify-all-limb-search-completeness-plants-2026-09-15",
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "commit": null,
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_search_completeness",
+     "what_refused": "engine blob changed without re-publish; RAN_OK source with 0 records; topic RAN_OK with zero candidates; source errors folded into RAN_OK; RAN_ERROR without error text; register measured on another engine; unpublished number -- 9 plants in tests/test_search_completeness.py, the intact fixture passes with every state counted",
+     "evidence": [
+      "tests/test_search_completeness.py",
+      "harness/search_completeness.py"
+     ],
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "Claude Opus 5 (integrator), same author as the gate",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "9eaa40a7c6be6c60bde00f76a14b99a0161218ea04a1f27ad9557273f5d2c696",
+      "evidence": [
+       "tests/test_search_completeness.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     }
+    }
+   ]
+  },
+  {
    "events": [
     {
      "adjudication": {
@@ -3049,108 +3381,59 @@
     {
      "adjudication": {
       "adjudicated_by": {
-       "identity": "Codex lane Y (internal agent)",
+       "identity": "Codex GPT-5 (lane KM)",
        "kind": "internal_agent"
       },
-      "architecture_identity": null,
+      "architecture_identity": "eddfa1b76f20e847e1b3382d05e9b6d4198252725de77cef78ecce84c2be0795",
       "evidence": [
-       "tests/test_invalidation.py",
-       "docs/evidence/identifier-scope-2026-09-14/README.md"
+       "tests/test_known_missing_panel.py"
       ],
       "verdict": "TRUE_POSITIVE",
-      "when_utc": "2026-09-14T23:30:00Z"
+      "when_utc": null
      },
      "commit": null,
-     "event_id": "invalidation-identifier-scope-plant-1",
+     "event_id": "gate-check-known-missing-panel-plant-1",
      "evidence": [
-      "tests/test_invalidation.py",
-      "docs/evidence/identifier-scope-2026-09-14/README.md"
+      "tests/test_known_missing_panel.py",
+      "harness/known_missing.py",
+      "harness/gate.py"
      ],
      "kind": "PLANT",
      "source_list": "plant_validations",
-     "what_refused": "identifier-scope single-agent-over-class and unresolved plants",
-     "when_utc": "2026-09-14T23:30:00Z",
-     "where": "harness/invalidation.py:identifier_scope/assess"
-    },
-    {
-     "adjudication": {
-      "adjudicated_by": {
-       "identity": null,
-       "kind": null
-      },
-      "architecture_identity": null,
-      "evidence": [],
-      "verdict": "UNRESOLVED",
-      "when_utc": null
-     },
-     "commit": null,
-     "event_id": "invalidation-identifier_scope-identifier-scope-miss-1",
-     "evidence": [
-      "docs/evidence/identifier-scope-2026-09-14/README.md"
-     ],
-     "kind": "PRODUCTION",
-     "miss": true,
-     "source_list": "known_misses",
-     "what_got_through": "Spironolactone-hfref-mortality served under an agent-named identifier while pooling eplerenone MRA trials; recorded pessimistically as a production miss, not a refusal. Before this lane the invalidation object reported search-not-executed only and carried no identifier_scope reason.",
-     "what_refused": null,
-     "when_utc": "2026-09-14T23:30:00Z",
-     "where": "harness/invalidation.py:identifier_scope/assess"
-    },
-    {
-     "adjudication": {
-      "adjudicated_by": {
-       "identity": null,
-       "kind": null
-      },
-      "architecture_identity": null,
-      "evidence": [],
-      "verdict": "UNRESOLVED",
-      "when_utc": null
-     },
-     "commit": null,
-     "event_id": "invalidation-identifier-scope-unresolved-1",
-     "evidence": [
-      "GATE_GAPS.md"
-     ],
-     "kind": "PRODUCTION",
-     "source_list": "unresolved",
-     "status_gap": true,
-     "what_refused": "No dated production true refusal has been observed yet; the prefix false negative is recorded as a known miss.",
+     "what_refused": "pre-fix GLP-1 FLOW/FREEDOM-CVO named missing evidence and colchicine COCS/COPPS eligible-declared-absent evidence without a known_missing_sensitivity panel",
      "when_utc": null,
-     "where": "harness/invalidation.py:identifier_scope/assess"
+     "where": "harness/gate.py:check_known_missing_panel"
     }
    ],
-   "gate_id": "invalidation.identifier_scope",
-   "what_it_refuses": "An agent-named page identifier whose included intervention pool maps to a broader class, another declared agent, or an unresolved intervention declaration.",
-   "where": "harness/invalidation.py:identifier_scope/assess"
+   "gate_id": "gate.check_known_missing_panel",
+   "what_it_refuses": "Review pages that name eligible missing evidence but do not publish a dependency-stamped, source-backed known-missing sensitivity panel for the primary outcome.",
+   "where": "harness/gate.py:check_known_missing_panel"
   },
   {
    "events": [
     {
      "adjudication": {
       "adjudicated_by": {
-       "identity": "Claude Opus 5 (session author)",
-       "kind": "author"
+       "identity": "Codex CK2 lane",
+       "kind": "internal_agent"
       },
       "architecture_identity": null,
       "evidence": [
-       "tests/test_limitations.py",
-       "docs/evidence/design-key-2026-09-14/08-validity-threatening-classification.txt"
+       "tests/test_eligibility_chain.py"
       ],
       "verdict": "TRUE_POSITIVE",
-      "when_utc": "2026-09-15T01:44:00Z"
+      "when_utc": null
      },
      "commit": null,
-     "event_id": "gate-check-limitation-decision-links-plant-1",
+     "event_id": "gate-check-eligibility-chain-plant-2026-09-16",
      "evidence": [
-      "tests/test_limitations.py",
-      "docs/evidence/design-key-2026-09-14/08-validity-threatening-classification.txt"
+      "tests/test_eligibility_chain.py"
      ],
      "kind": "PLANT",
      "source_list": "plant_validations",
-     "what_refused": "a review whose VALIDITY_THREATENING limitation has no linked_decision",
-     "when_utc": "2026-09-15T01:44:00Z",
-     "where": "harness/gate.py:check_limitation_decision_links"
+     "what_refused": "protocol-config-trial eligibility-chain divergence plants covering missing masking, follow-up-window drift, analysis-set drift, state inconsistency, config-only rules, and false rendered prose predicates",
+     "when_utc": null,
+     "where": "harness/gate.py:check_eligibility_chain"
     },
     {
      "adjudication": {
@@ -3164,82 +3447,74 @@
       "when_utc": null
      },
      "commit": null,
-     "event_id": "gate-check-limitation-decision-links-unresolved-1",
+     "event_id": "gate-check-eligibility-chain-unresolved-2026-09-16",
      "evidence": [
       "GATE_GAPS.md"
      ],
      "kind": "PRODUCTION",
      "source_list": "unresolved",
      "status_gap": true,
-     "what_refused": "No dated production refusal observed yet; the gate entered with the design-key tranche.",
+     "what_refused": "No dated production true refusal has been observed yet; the gate entered with the CK2 eligibility-chain lane.",
      "when_utc": null,
-     "where": "harness/gate.py:check_limitation_decision_links"
+     "where": "harness/gate.py:check_eligibility_chain"
     }
    ],
-  "gate_id": "gate.check_limitation_decision_links",
-  "what_it_refuses": "Review pages where a VALIDITY_THREATENING limitation object lacks a linked typed analytic decision (diagnostic-decision decoupling / disclosure-as-control).",
-  "where": "harness/gate.py:check_limitation_decision_links"
- },
- {
-  "events": [
-   {
-    "adjudication": {
-     "adjudicated_by": {
-      "identity": "Codex GPT-5 (lane KM)",
-      "kind": "internal_agent"
-     },
-     "architecture_identity": "eddfa1b76f20e847e1b3382d05e9b6d4198252725de77cef78ecce84c2be0795",
-     "evidence": [
-      "tests/test_known_missing_panel.py"
-     ],
-     "verdict": "TRUE_POSITIVE",
-     "when_utc": null
-    },
-    "commit": null,
-    "event_id": "gate-check-known-missing-panel-plant-1",
-    "evidence": [
-     "tests/test_known_missing_panel.py",
-     "harness/known_missing.py",
-     "harness/gate.py"
-    ],
-    "kind": "PLANT",
-    "source_list": "plant_validations",
-    "what_refused": "pre-fix GLP-1 FLOW/FREEDOM-CVO named missing evidence and colchicine COCS/COPPS eligible-declared-absent evidence without a known_missing_sensitivity panel",
-    "when_utc": null,
-    "where": "harness/gate.py:check_known_missing_panel"
-   }
-  ],
-  "gate_id": "gate.check_known_missing_panel",
-  "what_it_refuses": "Review pages that name eligible missing evidence but do not publish a dependency-stamped, source-backed known-missing sensitivity panel for the primary outcome.",
-  "where": "harness/gate.py:check_known_missing_panel"
- },
- {
-  "gate_id": "verify_all.limb_search_completeness",
-  "where": "scripts/verify_all.py:limb_search_completeness",
-  "what_it_refuses": "search completeness (search_v2 measurement current; every state explicit; no zero from an exit code)",
+   "gate_id": "gate.check_eligibility_chain",
+   "what_it_refuses": "Review pages where protocol prose, executable eligibility config, rendered compatibility key, and pooled trial rows do not form one executable eligibility chain.",
+   "where": "harness/gate.py:check_eligibility_chain"
+  },
+  {
+   "gate_id": "gate.check_scope_identity",
+   "where": "harness/gate.py:check_scope_identity",
+   "what_it_refuses": "A page with open P/I/C/design eligibility and pre-identified retrieval may not claim the open scope was tested.",
    "events": [
     {
-     "event_id": "verify-all-limb-search-completeness-plants-2026-09-15",
+     "event_id": "gate-check-scope-identity-plant-2026-09-16",
      "kind": "PLANT",
      "source_list": "plant_validations",
      "commit": null,
      "when_utc": null,
-     "where": "scripts/verify_all.py:limb_search_completeness",
-     "what_refused": "engine blob changed without re-publish; RAN_OK source with 0 records; topic RAN_OK with zero candidates; source errors folded into RAN_OK; RAN_ERROR without error text; register measured on another engine; unpublished number -- 9 plants in tests/test_search_completeness.py, the intact fixture passes with every state counted",
+     "where": "harness/gate.py:check_scope_identity",
+     "what_refused": "pre-fix doac/noac pages whose protocols state open P/I/C/design eligibility while retrieval is KNOWN_ITEM_RETRIEVAL and the rendered HTML lacks the pre-identified-set scope qualification",
      "evidence": [
-      "tests/test_search_completeness.py",
-      "harness/search_completeness.py"
+      "tests/test_scope_identity.py",
+      "docs/scope_identity_sweep.json",
+      "docs/posthoc_amendment_sweep.json"
      ],
      "adjudication": {
       "adjudicated_by": {
-       "identity": "Claude Opus 5 (integrator), same author as the gate",
+       "identity": "Codex lane SE (internal agent)",
        "kind": "internal_agent"
       },
-      "architecture_identity": "9eaa40a7c6be6c60bde00f76a14b99a0161218ea04a1f27ad9557273f5d2c696",
+      "architecture_identity": null,
       "evidence": [
-       "tests/test_search_completeness.py"
+       "tests/test_scope_identity.py",
+       "docs/scope_identity_sweep.json"
       ],
       "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     }
+    },
+    {
+     "event_id": "gate-check-scope-identity-unresolved-2026-09-16",
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "commit": null,
+     "when_utc": null,
+     "where": "harness/gate.py:check_scope_identity",
+     "what_refused": "No dated production refusal has been observed yet; the lane plants the pre-fix committed pages and records the corpus sweep.",
+     "evidence": [
+      "docs/scope_identity_sweep.json"
+     ],
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
       "when_utc": null
      }
     }

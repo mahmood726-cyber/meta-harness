@@ -16,19 +16,27 @@ Dimensions:
   endpoint         : single endpoint vs composite -- a composite pools only a matching component set
   follow_up_window : the outcome's timepoint
   analysis_set     : ITT / mITT / per-protocol -- the analysis population
-  randomised_contrast : whether each pooled trial is a registry-confirmed randomised contrast of the
-                     intervention of interest (the AACT arm-label parser / arm-contrast layer), reported as verified/total
+  randomised_contrast : whether the AACT arm-label parser confirmed each pooled trial as a contrast
+                     of the intervention of interest, reported as verified/total
   prior_disease_stage : per-trial prior disease stage, disclosed when stated
   background_therapy  : per-trial background therapy, disclosed when stated
+  treatment_strategy  : per-trial question strand / strategy, disclosed when stated
+  dose_regimen        : per-trial dose stratum, disclosed when stated
+  run_in_enrichment   : per-trial active run-in enrichment, disclosed when stated
 """
 from collections import Counter
 
+from . import endpoint_canonical as endpoint_mod
 from . import extract
 from .membership import canonical_trial_key
 
 _DISCLOSED_DIMENSIONS = (
     ("prior_disease_stage", "prior disease stage"),
     ("background_therapy", "background therapy"),
+    ("treatment_strategy", "treatment strategy"),
+    ("clomifene_status", "clomifene status"),
+    ("dose_regimen", "dose regimen"),
+    ("run_in_enrichment", "run-in enrichment"),
 )
 
 
@@ -84,6 +92,9 @@ def outcome_key(o, core):
     em = res.get("estmeasure") or {}
     classes = em.get("classes") or ([_scale_class(res.get("scale"))] if res.get("scale") else [])
     is_composite = extract.declared_is_composite(o.get("name", "")) if hasattr(extract, "declared_is_composite") else None
+    endpoint = o.get("endpoint_canonical") or endpoint_mod.endpoint_canonical(o)
+    analysis_detail = o.get("analysis_set_detail") or endpoint_mod.analysis_set_superclass(o)
+    effect_label = res.get("effect_label") or endpoint_mod.effect_label(o)
     # randomised contrast: fraction of pooled trials the arm-contrast parser confirms as a contrast
     # of the intervention of interest. This is parser coverage, not a trial-validity property.
     ac = ((core.get("arm_contrast") or {}).get("trials")) or {}
@@ -121,10 +132,15 @@ def outcome_key(o, core):
     key = {
         "effect_measure": em.get("labels") or ([res.get("scale")] if res.get("scale") else []),
         "event_process": classes,
-        "endpoint": ("component-defined composite" if component_dim else
-                     ("composite" if is_composite else "single endpoint") if is_composite is not None else "unclassified"),
+        "endpoint": (
+            endpoint.get("label") if endpoint else
+            ("component-defined composite" if component_dim else
+            (("composite" if is_composite else "single endpoint") if is_composite is not None else "unclassified")
+            )
+        ),
         "follow_up_window": o.get("timepoint"),
-        "analysis_set": o.get("population"),
+        "analysis_set": (analysis_detail or {}).get("superclass") or o.get("population"),
+        "analysis_set_declared": o.get("population"),
         "randomised_contrast": {"verified": verified, "total": len(trials)},
         "matched": not mismatches,
         "mismatches": mismatches,
@@ -138,6 +154,14 @@ def outcome_key(o, core):
                 "detail": "pooled trials differ on composite components: " + "; ".join(component_dim["values"]),
                 "hard": False,
             })
+    if endpoint:
+        key["endpoint_canonical"] = endpoint
+        key["endpoint_canonical_status"] = endpoint.get("status")
+    if analysis_detail:
+        key["analysis_set_superclass"] = analysis_detail.get("superclass")
+        key["analysis_set_detail"] = analysis_detail
+    if effect_label:
+        key["effect_label"] = effect_label
     if has_disclosed_dimension:
         key["limitations"] = limitations
         key.update(dimensions)

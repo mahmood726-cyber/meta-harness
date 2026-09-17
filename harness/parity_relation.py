@@ -20,6 +20,7 @@ VOCABULARY = {
     "DISTINCT",
     "COMPARATOR_INVALID",
     "NOT_ENUMERABLE",
+    "PARITY_REFUTED_BY_N",
 }
 
 _NOT_VERIFIABLE = "not exactly verifiable"
@@ -70,6 +71,7 @@ def _relation_label(relation: str, inferred: bool, dominance=None) -> str:
         "DISTINCT": "distinct -- no shared trials",
         "COMPARATOR_INVALID": "comparator invalid -- not an RCT meta / not the same question",
         "NOT_ENUMERABLE": "not enumerable -- comparator trial list and k are not exposed",
+        "PARITY_REFUTED_BY_N": "participant-count refutation -- comparator n exceeds the sum of our shared trial n",
     }
     label = labels[relation]
     if relation == "DOMINANT_SUBSET" and dominance:
@@ -88,6 +90,8 @@ def compute(row: dict, review: Optional[dict] = None) -> dict:
     row = row or {}
     comp = (review or {}).get("comparator") or {}
     overlap = comp.get("overlap") or {}
+    truth = comp.get("truth") or {}
+    nrec = truth.get("participant_reconciliation") or {}
     scope = comp.get("scope") or {}
     reason = row.get("reason") or ""
     hand_status = row.get("status")
@@ -122,6 +126,32 @@ def compute(row: dict, review: Optional[dict] = None) -> dict:
     if overlap_k is not None and hand_norm in {"PARITY_EFFECTIVE"} and overlap_k > (their_k or -1):
         their_k = overlap_k
         their_k_source = "overlap.theirs_k"
+
+    if nrec.get("code") == "PARITY_REFUTED_BY_N":
+        relation = "PARITY_REFUTED_BY_N"
+        label = (
+            f"participant-count refutation -- comparator n {nrec.get('theirs_n')} exceeds "
+            f"our shared-trial n {nrec.get('ours_n')} by {nrec.get('excess')}; sets differ"
+        )
+        hand_disagrees = hand_norm in VOCABULARY and hand_norm != relation
+        if hand_norm and hand_norm not in VOCABULARY:
+            hand_disagrees = True
+        return {
+            "relation": relation,
+            "label": label,
+            "inferred": False,
+            "our_k": our_k,
+            "their_k": their_k,
+            "their_k_source": their_k_source if their_k is not None else None,
+            "shared_k": None,
+            "only_ours_n": len(overlap.get("only_ours") or []),
+            "only_theirs_n": len(overlap.get("only_theirs") or []),
+            "dominance": None,
+            "hand_status": hand_status,
+            "hand_status_normalized": hand_norm,
+            "hand_status_disagrees": hand_disagrees,
+            "participant_reconciliation": nrec,
+        }
 
     shared_raw = overlap.get("shared_k")
     shared_k = _as_int(shared_raw)

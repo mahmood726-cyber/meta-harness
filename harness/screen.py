@@ -8,7 +8,10 @@ target-result status, handled at extraction).
 from __future__ import annotations
 import re as _re
 
+from . import arm_object
 from . import lexicon
+from . import armcontrast
+from . import screen_entry
 
 # Token-boundary matcher cache: a bare-substring `in` test matched a screening term inside a
 # longer word, so 'rat' (population_none animal term) matched 'prepaRATion' / 'administRATion'
@@ -40,7 +43,7 @@ def _boundary_re(term: str):
 # "no withdrawal effects" and the population_none term 'withdrawal' matched. Cold-audit NEW class:
 # lexical matching creates false EXCLUSIONS via negated terms (the mirror of false inclusions).
 _NEGATION = _re.compile(
-    r"(?:\bno\b|\bnot\b|\bnon-?\b|\bwithout\b|\bfree of\b|\babsence of\b|\babsent\b|\bnever\b|"
+    r"(?:\bno\b|\bnot\b|\bwithout\b|\bfree of\b|\babsence of\b|\babsent\b|\bnever\b|"
     r"\block of\b|\black of\b|\bnegative for\b|\bnil\b)[\w\s,'\"()-]{0,18}$", _re.I)
 
 
@@ -208,11 +211,11 @@ def _is_rct(rec) -> bool:
         # not a true RCT, even if the pubtype says "Randomized Controlled Trial".
         if _QUASI.search((rec.get("abstract", "") or "") + " " + (rec.get("title", "") or "")):
             return False
-        if any("randomized controlled trial" in p for p in pts):
-            return True
         # A design/protocol/rationale paper by TITLE is not a completed RCT (even with RCT language).
         if _TITLE_RCT_NOT.search(rec.get("title", "") or ""):
             return False
+        if any("randomized controlled trial" in p for p in pts):
+            return True
         # A missing RCT pubtype is UNKNOWN, not NOT-AN-RCT: accept an explicit self-declaration in the
         # TITLE or in the ABSTRACT BODY (full text/abstract overrules incomplete metadata).
         return _title_says_rct(rec) or _body_says_rct(rec)
@@ -252,6 +255,11 @@ def _poptext(rec) -> str:
     return _poptext_raw(rec).lower()
 
 
+def _arm_object_screening_enabled(config) -> bool:
+    """Only topics with an executable arm-object declaration enforce the contract."""
+    return bool((config or {}).get("arm_object"))
+
+
 def _span(raw: str, term: str, width: int = 48) -> str:
     """Verbatim window (original case) around the first case-insensitive occurrence of `term` in
     `raw`. The span is a REAL substring of the record's own text, so a reviewer can confirm the rule
@@ -284,6 +292,67 @@ def _quote(raw: str, limit: int = 90) -> str:
     return (s[:limit] + "…") if len(s) > limit else s
 
 
+def _nct_id(rec) -> str | None:
+    rid = str(rec.get("id") or "").strip()
+    if rid.upper().startswith("NCT"):
+        return rid.upper()
+    nct = str(rec.get("nct") or "").strip()
+    return nct.upper() if nct.upper().startswith("NCT") else None
+
+
+def _manual_override(rec, inc):
+    keys = {str(rec.get("id") or ""), _nct_id(rec) or "", str(rec.get("acronym") or "")}
+    for row in inc.get("screen_overrides") or []:
+        if str(row.get("id") or row.get("key") or "") not in keys:
+            continue
+        decision = row.get("decision", "exclude")
+        rule = row.get("rule_id", "X-OVERRIDE")
+        reason = row.get("reason", "source-backed screening override")
+        span_term = row.get("span_term")
+        raw = _text_raw(rec)
+        span = _span(raw, span_term) if span_term else (row.get("span") or _quote(raw))
+        return decision, rule, reason, span
+    return None
+
+
+def _record_arm_interventions_background_only(rec, keywords) -> tuple[bool, str]:
+    """Fallback for CT.gov records whose arm-like intervention list shows background therapy.
+
+    AACT is preferred, but MIRO-CKD has no AACT design-group rows in this snapshot.
+    Its committed CT.gov interventions still expose the failure: every randomized arm
+    carries dapagliflozin while balcinrenone dose/placebo is what differs.
+    """
+    interventions = [str(x or "") for x in (rec.get("interventions") or []) if str(x or "").strip()]
+    if len(interventions) < 2:
+        return False, ""
+    folded = [lexicon.fold(x).lower() for x in interventions]
+    kws = [lexicon.fold(k).lower().strip() for k in (keywords or []) if str(k or "").strip()]
+    if not kws:
+        return False, ""
+
+    def has_interest(s):
+        return any(k and k in s for k in kws)
+
+    active = [s for s in folded if not armcontrast._PLACEBO.fullmatch(s.strip())]
+    if len(active) < 2 or not all(has_interest(s) for s in active):
+        return False, ""
+    return True, "; ".join(interventions)
+
+
+def _background_only_randomised_contrast(rec, keywords, arm_index) -> tuple[bool, str]:
+    nct = _nct_id(rec)
+    if nct:
+        status = armcontrast.background_only_inclusion(nct, keywords, arm_index)
+        if status is True:
+            _st, basis = armcontrast.contrast_status(nct, keywords, arm_index)
+            return True, basis
+    bg, basis = _record_arm_interventions_background_only(rec, keywords)
+    if bg:
+        return True, ("the intervention of interest appears in every structured CT.gov arm entry; "
+                      "the randomised difference is another intervention: " + basis)
+    return False, ""
+
+
 def describe_eligibility(inc: dict) -> str:
     """Render the eligibility statement FROM the structured include object that screen_record
     actually enforces, so the served/declared eligibility on the page cannot drift from the code
@@ -296,12 +365,15 @@ def describe_eligibility(inc: dict) -> str:
         clauses.append(f"population (in title/registry conditions) mentions one of {pa}")
     pn = inc.get("population_none")
     if pn:
-        clauses.append(f"and none of {pn}")
+        if inc.get("population_none_entry_condition_only"):
+            clauses.append(f"and none of {pn} as the entry condition when the required population is absent")
+        else:
+            clauses.append(f"and none of {pn}")
     ia = inc.get("intervention_any")
     if ia:
         loc = "named in title/conditions" if inc.get("intervention_in_title") else "present in the record"
         clauses.append(f"randomised intervention is one of {ia} ({loc})")
-    ca = inc.get("comparator_any")
+    ca = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
     if ca:
         clauses.append(f"a comparator among {ca}")
     if inc.get("design_double_blind"):
@@ -321,11 +393,13 @@ def screen_record(rec, inc, neg_pmids):
     raw_all = _text_raw(rec)
     raw_pop = _poptext_raw(rec)
     label = rec.get("acronym") or rec.get("id")
+    if over := _manual_override(rec, inc):
+        return over
     if not _is_rct(rec):
         pts = ", ".join(rec.get("pubtypes", [])) or "(no publication types)"
         return ("exclude", "X1", f"not a randomized controlled trial (record: {label}).",
                 f"publication types: {pts}")
-    bad = _has(poptext, inc.get("population_none"))
+    bad = None
     # NESTED-TERMINOLOGY guard (audit 16): an excluded phenotype term whose occurrence in the record's own
     # text is QUALIFIED into a DIFFERENT, included phenotype must not exclude it. "reduced ejection fraction"
     # (HFrEF, excluded) sits inside "mildly reduced ejection fraction" (HFmrEF, included); a bare-HFmrEF
@@ -346,6 +420,10 @@ def screen_record(rec, inc, neg_pmids):
     # abstract mention in a trial that is not actually OF the intervention cannot slip in.
     pop_haystack = _text(rec) if inc.get("prevention") else poptext
     pop_haystack_raw = _text_raw(rec) if inc.get("prevention") else raw_pop
+    bad = screen_entry.population_exclusion(pop_haystack, inc, _has, _all_occurrences_qualified)
+    if bad:
+        return ("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
+                _span(pop_haystack_raw, bad))
     population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
     popok = _has(pop_haystack, population_any)
     if population_any and not popok:
@@ -379,17 +457,30 @@ def screen_record(rec, inc, neg_pmids):
         return ("exclude", "X3", f"intervention is the wrong form: matches excluded '{bad_int}' "
                 f"(receptor agonist/analogue, combination, or measured-not-randomised).",
                 _span(itext_raw, bad_int))
-    comp = _has(text, inc.get("comparator_any"))
-    if inc.get("comparator_any") and not comp:
-        return ("exclude", "X3", f"no eligible comparator (none of {inc['comparator_any']}).",
+    comparator_any = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
+    comp = _has(text, comparator_any)
+    comp_override = screen_entry.comparator_override(rec, inc)
+    if comparator_any and not comp and not comp_override:
+        return ("exclude", "X3", f"no eligible comparator (none of {comparator_any}).",
                 f"examined: “{_quote(raw_all)}”")
+    comp_term = comp or (comp_override or {}).get("term")
     if inc.get("design_double_blind") and not _double_blind(rec, text):
         masking = rec.get("masking") or "(masking not stated)"
         return ("exclude", "X-DESIGN", f"not double-blind/placebo-controlled (record: {label}).",
                 f"no 'placebo'/'double-blind'/'masked' in text; registry masking = {masking}")
+    design_bad = _has(text, inc.get("design_none"))
+    if design_bad:
+        return ("exclude", "X-DESIGN", f"excluded design/context: record mentions '{design_bad}'.",
+                _span(raw_all, design_bad))
+    design_terms = inc.get("design_any")
+    design_ok = _has(text, design_terms)
+    if design_terms and not design_ok:
+        return ("exclude", "X-DESIGN",
+                f"required design/context absent: record does not mention any of {design_terms}.",
+                f"examined: â€œ{_quote(raw_all)}â€")
     # include: quote the actual matched population and comparator words
     pop_span = _span(pop_haystack_raw, popok) if popok else ""
-    comp_span = _span(raw_all, comp) if comp else ""
+    comp_span = _span(raw_all, comp_term) if comp_term else ""
     ev = "; ".join(s for s in (f"population “{pop_span}”" if pop_span else "",
                                f"comparator “{comp_span}”" if comp_span else "") if s)
     # Reason built from the ACTUAL matched terms of THIS record, never a fixed template: an external
@@ -400,7 +491,7 @@ def screen_record(rec, inc, neg_pmids):
                      else "randomised controlled trial")
     return ("include", "INCLUDE",
             f"eligible {design_clause}: intervention {matched_int or '(as configured)'}, "
-            f"comparator {comp or '(as configured)'}, population {popok or 'the target population'} "
+            f"comparator {comp_term or '(as configured)'}, population {popok or 'the target population'} "
             f"— P/I/C/design met.",
             ev or _quote(raw_pop))
 
@@ -429,14 +520,16 @@ def screen_record_2(rec, inc):
               or _title_says_rct(rec) or bool(_RANDOM_TEXT.search(rec.get("abstract", "") or "")))
     if not is_rct:
         return "exclude"
-    if _has(text, inc.get("population_none")):
+    if screen_entry.population_exclusion(text, inc, _has, _all_occurrences_qualified):
         return "exclude"
     population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
     if population_any and not _has(text, population_any):
         return "exclude"
     if inc.get("intervention_any") and not _has_intervention(text, inc["intervention_any"]):
         return "exclude"
-    if inc.get("comparator_any") and not _has(text, inc["comparator_any"]):
+    comparator_any = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
+    if (comparator_any and not _has(text, comparator_any)
+            and not screen_entry.comparator_override(rec, inc)):
         return "exclude"
     if inc.get("design_double_blind") and not _double_blind(rec, text):
         return "exclude"
@@ -482,6 +575,27 @@ def run_dual(all_recs: list, config: dict) -> dict:
                       "A genuinely independent model screener on the embedding shortlist is the next step."}
 
 
+def _source_case_basis(basis: str, rec: dict) -> str:
+    """Render curated lower-case basis terms with the source's drug-name casing."""
+
+    if not basis:
+        return basis
+    sources = [rec.get("title") or "", rec.get("acronym") or ""]
+    sources.extend(str(x) for x in (rec.get("arms") or []))
+    for item in rec.get("interventions") or []:
+        if isinstance(item, dict):
+            sources.append(str(item.get("name") or item.get("label") or ""))
+        else:
+            sources.append(str(item))
+    raw = " ".join(sources)
+    out = str(basis)
+    for token in sorted(set(_re.findall(r"\b[a-z][a-z0-9/-]{4,}\b", out)), key=len, reverse=True):
+        hit = _re.search(rf"(?<![A-Za-z0-9]){_re.escape(token)}(?![A-Za-z0-9])", raw, _re.I)
+        if hit and hit.group(0) != token:
+            out = _re.sub(rf"(?<![A-Za-z0-9]){_re.escape(token)}(?![A-Za-z0-9])", hit.group(0), out)
+    return out
+
+
 def run(all_recs: list, config: dict) -> dict:
     inc = config.get("include", {})
     neg = set(config.get("negative_control_pmids", []))
@@ -495,20 +609,27 @@ def run(all_recs: list, config: dict) -> dict:
     # ELIGIBILITY (not admitted then disclosed after pooling) with reason code X-CONTRAST. Matches on
     # raw id / NCT / acronym so a registry-only record is caught. Confirmed-only (never unverified).
     evict = config.get("contrast_evictions") or []
+    contrast_keywords = config.get("intervention_terms") or inc.get("intervention_any") or []
+    arm_ncts = sorted({_nct_id(r) for r in all_recs if _nct_id(r)})
+    arm_index = {}
+    if contrast_keywords and arm_ncts:
+        try:
+            arm_index = armcontrast.build_arm_index(arm_ncts)
+        except Exception:
+            arm_index = {}
     decisions = []
     for rec in all_recs:
         rid = str(rec.get("id"))
-        _ekeys = {str(rec.get("id")), str(rec.get("nct") or ""), str(rec.get("acronym") or "")}
-        _ehit = next((e for e in evict
-                      if str(e.get("key")) in _ekeys
-                      or any(str(a) in _ekeys for a in (e.get("alt") or []))), None)
+        _ehit = screen_entry.contrast_eviction(rec, config)
         if _ehit:
+            basis = _source_case_basis(str(_ehit.get("basis") or ""), rec)
             decisions.append({"id": rec["id"], "id_type": rec["id_type"],
                               "label": rec.get("acronym") or "", "decision": "exclude",
                               "rule_id": "X-CONTRAST",
-                              "reason": f"CONTRAST_ABSENT: {_ehit.get('basis')} (audit-confirmed non-contrast; "
+                              "reason": f"CONTRAST_ABSENT: {basis} (audit-confirmed non-contrast; "
                                         f"evicted at eligibility, not pooled).",
-                              "span": (rec.get("title") or "")[:120]})
+                              "span": (rec.get("title") or "")[:120],
+                              "contrast_rule": _ehit.get("contrast_rule") or "CONTRAST_ABSENT"})
             continue
         if rid in companions:
             c = companions[rid]
@@ -521,13 +642,35 @@ def run(all_recs: list, config: dict) -> dict:
                               "span": (rec.get("title") or "")[:120]})
             continue
         decision, rule, reason, span = screen_record(rec, inc, neg)
+        arm_obj = None
+        hidden = []
+        arm_refusal = None
+        if decision == "include":
+            bg, basis = _background_only_randomised_contrast(rec, contrast_keywords, arm_index)
+            if bg:
+                decision, rule = "exclude", "X-CONTRAST"
+                reason = "CONTRAST_ABSENT: " + basis
+                span = _span(_text_raw(rec), matched_intervention(rec, inc) or (contrast_keywords[0] if contrast_keywords else ""))
+        if decision == "include" and _arm_object_screening_enabled(config):
+            arm_obj, arm_refusal = arm_object.screen_refusal(rec, config)
+            hidden = arm_object.hidden_eligible_contrasts(arm_obj, config)
+            if arm_refusal:
+                decision = "exclude"
+                rule = arm_refusal["rule_id"]
+                reason = arm_refusal["reason"]
+                span = arm_refusal["span"]
         row = {"id": rec["id"], "id_type": rec["id_type"],
                "label": rec.get("acronym") or "", "decision": decision,
                "rule_id": rule, "reason": reason, "span": span}
+        if arm_obj is not None and (arm_refusal or hidden or config.get("arm_object")):
+            row["arm_object"] = arm_obj
+        if hidden:
+            row["arm_object_hidden_eligible_contrast"] = hidden
         if decision == "include":
             mi = matched_intervention(rec, inc)
             if mi:
                 row["matched_intervention"] = mi
+        screen_entry.annotate_decision(row, rec, config)
         decisions.append(row)
     by_id = {d["id"]: d for d in decisions}
     pos = config.get("positive_control_pmids", [])

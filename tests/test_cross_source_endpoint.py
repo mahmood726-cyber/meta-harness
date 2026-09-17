@@ -78,10 +78,9 @@ def test_prefix_fourier_corroboration_plant_refuses_endpoint_mismatch():
         registry_measure_type="COUNT_OF_PARTICIPANTS",
         pooled_scale="HR",
     )
-    assert verdict["endpoint_match"] == "DIFFERENT_ENDPOINT"
-    assert "0.666" in verdict["endpoint_match_reason"]
-    assert "0.85" in verdict["endpoint_match_reason"]
-    assert registry_title in verdict["endpoint_match_reason"]
+    assert verdict["endpoint_match"] == "SECOND_SOURCE_DIFFERENT_ENDPOINT"
+    assert verdict["identity"]["component_match"] is False
+    assert "component set is not available" in verdict["endpoint_match_reason"]
 
     old_html = _git_show("docs/reviews/pcsk9-mace/index.html")
     assert "CT.gov RR 0.666" in old_html
@@ -93,12 +92,13 @@ def test_rebuilt_fourier_row_is_different_measure_not_corroboration():
     row = _fourier_row(core)
     cs = row["cross_source"]
 
-    assert cs["endpoint_match"] == "DIFFERENT_ENDPOINT"
+    assert cs["endpoint_match"] == "SECOND_SOURCE_DIFFERENT_MEASURE"
     assert cs["corroborates_endpoint"] is False
     assert cs["registry_measure_type"] == "KM_ESTIMATE"
+    assert cs["identity"]["measure_type"] == "KM estimate ratio"
 
     html = render_page(dict(core, reproduction={"failures": 0}))
-    anchor = html.index("registry reports a DIFFERENT measure: Time to Cardiovascular Death")
+    anchor = html.index("SECOND_SOURCE_DIFFERENT_MEASURE")
     snippet = html[anchor:anchor + 700]
     assert "✓ corroborated" not in snippet
     assert "KM_ESTIMATE" in snippet
@@ -106,13 +106,13 @@ def test_rebuilt_fourier_row_is_different_measure_not_corroboration():
 
 def test_synthetic_same_endpoint_control_is_counted():
     cs = _cross_source(
-        {"effect": 0.8, "scale": "HR"},
+        {"ai": 80, "n1i": 1000, "ci": 100, "n2i": 1000},
         "NCT1",
         {"NCT1": [_om(80, 1000, 100, 1000)]},
         {"name": "All-cause mortality", "keywords": ["all-cause mortality", "mortality"]},
         ["drug"],
         ["placebo"],
     )
-    assert cs["endpoint_match"] == "SAME_ENDPOINT"
+    assert cs["endpoint_match"] == "IDENTICAL_ENDPOINT"
     assert cs["corroborates_endpoint"] is True
     assert cs["ctgov_rr"] == 0.8

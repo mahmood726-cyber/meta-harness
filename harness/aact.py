@@ -106,6 +106,44 @@ def nct_to_pmids(ncts, types=OWN_PUB_TYPES, root: str | None = None) -> dict[str
     return out
 
 
+def sponsor_records(ncts, root: str | None = None) -> dict[str, dict[str, list[dict[str, str]]]]:
+    """Registry sponsor/collaborator/responsible-party rows for NCTs from the local AACT snapshot.
+
+    This is a disclosure source, not an eligibility gate: if AACT is unavailable or a row is absent, the
+    caller gets an empty list and must not infer funding silence from that.
+    """
+    want = {str(n).strip().upper() for n in ncts if n}
+    out: dict[str, dict[str, list[dict[str, str]]]] = {
+        n: {"sponsors": [], "responsible_parties": []} for n in want
+    }
+    if not want:
+        return out
+    p = _table("sponsors", root)
+    if p:
+        for r in _iter_rows(p):
+            nct = (r.get("nct_id") or "").upper()
+            if nct in want:
+                out[nct]["sponsors"].append({
+                    "agency_class": r.get("agency_class") or "",
+                    "lead_or_collaborator": r.get("lead_or_collaborator") or "",
+                    "name": r.get("name") or "",
+                })
+    p = _table("responsible_parties", root)
+    if p:
+        for r in _iter_rows(p):
+            nct = (r.get("nct_id") or "").upper()
+            if nct in want:
+                out[nct]["responsible_parties"].append({
+                    "responsible_party_type": r.get("responsible_party_type") or "",
+                    "name": r.get("name") or "",
+                    "title": r.get("title") or "",
+                    "organization": r.get("organization") or "",
+                    "affiliation": r.get("affiliation") or "",
+                    "old_name_title": r.get("old_name_title") or "",
+                })
+    return out
+
+
 def _nct_set_for_term(table: str, col: str, term: str, root: str | None = None) -> set[str]:
     p = _table(table, root)
     tl = (term or "").lower()
@@ -264,7 +302,7 @@ def summed_arms(pmid, interv_terms, comp_terms, outcome_terms, root: str | None 
 
 def attrition(ncts, root: str | None = None) -> dict[str, dict]:
     """Per-NCT participant-flow attrition from AACT milestones (Overall Study STARTED vs COMPLETED,
-    per result group) — the machine-available signal for RoB2 D3 (missing outcome data). Returns
+    per result group) — the machine-available signal for D3 (missing outcome data). Returns
     {nct: {"overall_pct": float, "differential_pct": float, "groups": [(started, completed), ...]}}.
     Overall = 1 - sum(completed)/sum(started); differential = spread of per-group attrition. Only the
     availability axis is machine-derivable; whether missingness depends on the outcome stays human."""

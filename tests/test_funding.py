@@ -4,10 +4,34 @@ An industry/public marker classifies only when it sits in the FUNDING sentence, 
 unrelated sentence does not mislabel the trial."""
 import os
 import sys
+import json
+import subprocess
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from harness import funding  # noqa: E402
 from harness import error_library as EL  # noqa: E402
+
+ROOT = Path(__file__).resolve().parents[1]
+BASE = "ad5e7c66"
+
+
+def _git_show_json(path):
+    raw = subprocess.check_output(["git", "show", f"{BASE}:{path}"], cwd=ROOT, text=True, encoding="utf-8")
+    return json.loads(raw)
+
+
+def _cache_records(slug):
+    return json.loads((ROOT / "cache" / slug / "records.json").read_text(encoding="utf-8"))
+
+
+def _rec_by_id(records):
+    return {str(row["id"]): row for row in (records.get("records") or []) + (records.get("ctgov") or [])}
+
+
+def _rescan(slug, review):
+    records = _cache_records(slug)
+    return funding.scan_pooled(review, _rec_by_id(records), records.get("fulltext_by_pmid") or {})
 
 
 def test_industry_funding_detected_from_statement():
@@ -15,6 +39,20 @@ def test_industry_funding_detected_from_statement():
     d = funding.detect(txt)
     assert d and d["type"] == "industry"
     assert "Novo Nordisk" in d["span"]
+    assert d["status"] == "stated_in_held_text"
+    assert d["sponsor_class"] == "industry"
+    assert "Novo Nordisk" in d["sponsors"]
+
+
+def test_roles_are_source_backed_not_affiliation_inferred():
+    txt = (
+        "Funding: Pfizer sponsored, designed and performed the study, collected and analysed "
+        "the data, and wrote the first draft. The authors included Pfizer employees."
+    )
+    d = funding.detect(txt)
+    assert d["sponsor_class"] == "industry"
+    assert {"design", "conduct", "data_collection", "analysis", "manuscript_writing"}.issubset(set(d["role"]))
+    assert d.get("industry_authors_present") is True
 
 
 def test_public_funding_detected():
@@ -32,6 +70,63 @@ def test_mixed_funding():
 def test_no_statement_returns_none():
     assert funding.detect("A randomized trial of drug X versus placebo in adults. The primary outcome was met.") is None
     assert funding.detect("") is None
+
+
+def test_registry_sponsor_second_source_recovers_abstract_silence():
+    review = {"outcomes": [{"primary": True, "trials": [{"id": "PMID 1", "source": "NCT12345678"}]}]}
+    rec = {"1": {"title": "Silent trial", "abstract": "No funding sentence.", "nct": "NCT12345678"}}
+    registry = {
+        "NCT12345678": {
+            "sponsors": [
+                {"agency_class": "INDUSTRY", "lead_or_collaborator": "lead", "name": "Boehringer Ingelheim"}
+            ],
+            "responsible_parties": [{"responsible_party_type": "SPONSOR", "organization": "Boehringer Ingelheim"}],
+        }
+    }
+    out = funding.scan_pooled(review, rec, registry_by_nct=registry)
+    assert out[0]["status"] == "stated_in_registry"
+    assert out[0]["sponsor_class"] == "industry"
+    assert out[0]["source_id"] == "registry:NCT12345678"
+    assert "Boehringer Ingelheim" in out[0]["basis_span"]
+
+
+def test_registry_vs_abstract_disagreement_keeps_both_sources_renderable():
+    review = {"outcomes": [{"primary": True, "trials": [{"id": "PMID 1", "label": "T1"}]}]}
+    rec = {"1": {"title": "T", "abstract": "Funding: National Institutes of Health.", "nct": "NCT12345678"}}
+    registry = {
+        "NCT12345678": {
+            "sponsors": [
+                {"agency_class": "INDUSTRY", "lead_or_collaborator": "lead", "name": "Janssen Research & Development"}
+            ],
+            "responsible_parties": [],
+        }
+    }
+    row = funding.scan_pooled(review, rec, registry_by_nct=registry)[0]
+    assert row["source_disagreement"] is True
+    assert row["sponsor_class"] == "mixed"
+    assert {src["source_id"] for src in row["sources"]} == {"abstract:PMID 1", "registry:NCT12345678"}
+
+
+def test_prefix_j_emphasis_unknown_funding_row_is_recovered_from_registry():
+    review = _git_show_json("docs/reviews/spironolactone-hfref-mortality/review.json")
+    old = next(row for row in review["funding"] if row["id"] == "PMID 28824029")
+    assert old["type"].startswith("not stated")
+    after = _rescan("spironolactone-hfref-mortality", review)
+    recovered = {row["id"]: row for row in funding.unknown_but_recovered(review["funding"], after)}
+    assert recovered["PMID 28824029"]["sponsor_class"] == "industry"
+    assert recovered["PMID 28824029"]["source_id"] == "registry:NCT01115855"
+    assert any("Pfizer" in sponsor or "Viatris" in sponsor for sponsor in recovered["PMID 28824029"]["sponsors"])
+
+
+def test_prefix_rely_unknown_funding_row_is_recovered_from_registry():
+    review = _git_show_json("docs/reviews/noac-vs-warfarin-af-stroke/review.json")
+    old = next(row for row in review["funding"] if row["id"] == "PMID 19717844")
+    assert old["type"].startswith("not stated")
+    after = _rescan("noac-vs-warfarin-af-stroke", review)
+    recovered = {row["id"]: row for row in funding.unknown_but_recovered(review["funding"], after)}
+    assert recovered["PMID 19717844"]["sponsor_class"] == "industry"
+    assert recovered["PMID 19717844"]["source_id"] == "registry:NCT00262600"
+    assert "Boehringer Ingelheim" in recovered["PMID 19717844"]["sponsors"]
 
 
 def test_company_outside_funding_sentence_does_not_classify_as_industry():
@@ -61,6 +156,8 @@ def test_scan_depth_distinguishes_fulltext_silence_from_abstract_only():
     ft = {"5": "Full text with methods and results but no funding or COI statement anywhere."}
     out = funding.scan_pooled(review, rec, ft)
     assert out[0]["type"] == "not stated (full text scanned)" and out[0]["scanned"] == "full text"
+    assert out[0]["status"] == "none_stated_in_held_text"
+    assert out[0]["sponsor_class"] == "none_stated_in_held_text"
     # no full text -> abstract-only label
     out2 = funding.scan_pooled(review, rec)
     assert out2[0]["type"].startswith("not stated (abstract only") and out2[0]["scanned"] == "abstract only"
@@ -85,6 +182,7 @@ def test_funding_pointer_to_supplement_is_not_silence():
     txt = "Methods... Funding details are provided in the Supplementary Appendix."
     d = funding.detect(txt)
     assert d is not None and "supplement" in d["type"].lower()
+    assert d["status"] == "in_source_not_held"
 
 
 def test_scan_pooled_prefers_full_text():

@@ -31,10 +31,24 @@ def parse_prose(md_text):
     """Extract {estimand, population, design_masking} from a prose protocol. Conservative: returns
     None for a field it cannot locate (so a missing field is 'not stated', never a false match)."""
     t = md_text or ""
-    out = {"estimand": None, "population": None, "design_masking": None}
+    out = {"estimand": None, "estimand_preference": None, "population": None, "design_masking": None}
     m = re.search(r"\*\*Estimand[:*]*\*\*\s*[-:–]\s*([^\n.]+)", t, re.I)
     if m:
-        out["estimand"] = _canon_estimand(m.group(1))
+        estimand_line = m.group(1)
+        out["estimand"] = _canon_estimand(estimand_line)
+        folded = _fold_for_prose(estimand_line)
+        permits_counts = any(x in folded for x in (
+            "when arm counts", "arm counts are extractable", "risk ratio", "rr"
+        ))
+        permits_published_tte = any(x in folded for x in (
+            "published hr", "published hazard", "hazard ratio", "hr rr", "hr or rr"
+        ))
+        explicit_preference = any(x in folded for x in (
+            "prefer hazard", "prefer published", "cumulative risk as primary",
+            "cumulative risk estimand", "risk ratio preferred"
+        ))
+        if permits_counts and permits_published_tte and not explicit_preference:
+            out["estimand_preference"] = "UNDECLARED"
     m = re.search(r"\*\*Population[:*]*\*\*\s*[-:–]\s*([^\n.]+)", t, re.I)
     if m:
         p = m.group(1).lower()
@@ -180,6 +194,11 @@ def compare(slug, md_text, config):
     if prose["estimand"] and ce and prose["estimand"] != ce:
         div.append({"code": "ESTIMAND_DIVERGENCE", "dimension": "estimand",
                     "prose": prose["estimand"], "config": ce})
+    if prose.get("estimand_preference") == "UNDECLARED":
+        div.append({"code": "ESTIMAND_PREFERENCE_UNDECLARED",
+                    "dimension": "estimand_preference",
+                    "prose": "protocol permits crude count reconstruction and published time-to-event effects",
+                    "config": "no explicit preference"})
     cp = ((config.get("primary_outcome") or {}).get("population") or "").lower()
     if prose["population"]:
         cpc = "intention-to-treat" if ("intention" in cp or "itt" in cp) else (
@@ -187,13 +206,34 @@ def compare(slug, md_text, config):
         if cpc and cpc != prose["population"]:
             div.append({"code": "POPULATION_DIVERGENCE", "dimension": "analysis_set",
                         "prose": prose["population"], "config": cpc})
-    # design masking AND/OR fidelity: config encodes AND (design_double_blind True AND a comparator
-    # requirement). If the prose says OR, the eligibility is silently widened in one source.
+    # design masking AND/OR fidelity: the executable screen treats design_double_blind as
+    # double-blind OR placebo-controlled. If the prose says AND, the config is wider.
     inc = config.get("include") or {}
-    cfg_and = bool(inc.get("design_double_blind")) and bool(inc.get("comparator_any"))
-    if prose["design_masking"] == "OR" and cfg_and:
+    cfg_or = bool(inc.get("design_double_blind"))
+    if prose["design_masking"] == "AND" and cfg_or:
         div.append({"code": "DESIGN_MASKING_ANDOR", "dimension": "design",
-                    "prose": "double-blind OR placebo-controlled",
-                    "config": "double-blind AND placebo-controlled"})
+                    "prose": "double-blind AND placebo-controlled",
+                    "config": "double-blind OR placebo-controlled"})
+    include_text = _fold_for_prose(" ".join(inc.get("population_any") or []))
+    md_folded = _fold_for_prose(md_text)
+    if "broad cardiovascular outcome trial" in md_folded and "broad cardiovascular outcome" not in include_text:
+        div.append({"code": "POPULATION_SCOPE_DIVERGENCE", "dimension": "population",
+                    "prose": "broad cardiovascular outcome trials",
+                    "config": ", ".join(inc.get("population_any") or [])})
+    needs_ovulation_context = (
+        "ovulation induction subfertility context" in md_folded
+        or "undergoing ovulation induction" in md_folded
+        or "subfertility context" in md_folded
+    )
+    if needs_ovulation_context and not any(x in include_text for x in ("ovulation", "subfertility")):
+        div.append({"code": "POPULATION_CONTEXT_DIVERGENCE", "dimension": "population",
+                    "prose": "PCOS in an ovulation-induction/subfertility context",
+                    "config": ", ".join(inc.get("population_any") or [])})
     div.extend(_intervention_declaration_divergences(md_text, config))
     return div
+
+
+def typed_criteria(md_text):
+    """Return typed protocol criteria for consumers that need executable contracts."""
+    from . import eligibility_chain
+    return eligibility_chain.protocol_criteria(md_text)

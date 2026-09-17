@@ -32,8 +32,12 @@ from .registration import protocol_sha as _registration_sha
 from . import registration as _registration
 from .synth import method_text as _method_text
 from .limitations import publication_gate_refusals
+from . import arm_object
 from . import claimgraph
 from . import compat_check as _compat_check
+from . import propositions
+from . import eligibility_chain
+from . import scope_identity as scope_identity_mod
 
 REQUIRED_MANIFEST = ("slug", "declared_method", "served_method", "protocol_sha",
                      "generator", "review_sha256", "html_sha256")
@@ -455,6 +459,61 @@ def check_claimgraph(review_dir):
     return []
 
 
+def check_propositions(review_dir):
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1: no review.json to check propositions"]
+    try:
+        rev = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for propositions: {exc}"]
+    violations = propositions.check_propositions(rev)
+    if violations:
+        return ["L1: proposition violations remain (assertion sentence contradicts backing object): "
+                + json.dumps(violations[:6], ensure_ascii=False)]
+    return []
+
+
+def check_eligibility_chain(review_dir):
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1: no review.json to check eligibility chain"]
+    try:
+        rev = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for eligibility chain: {exc}"]
+    violations = [v for v in eligibility_chain.check_review(rev)
+                  if v.get("code") in eligibility_chain.HARD_CODES]
+    if violations:
+        return ["L1: executable eligibility-chain violation(s) remain: "
+                + json.dumps(violations[:6], ensure_ascii=False)]
+    return []
+
+
+def check_harms_complete(review_dir):
+    """HM gate: a rebuilt harm panel that knows source-reported harms are unresolved must refuse."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return []
+    try:
+        rev = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for harms completeness: {exc}"]
+    bad = []
+    hstate = rev.get("harms_registry_state") or {}
+    if hstate.get("state") == "KNOWN_REPORTED_NOT_YET_EXTRACTED":
+        bad.append(f"unregistered harm outcomes: {hstate.get('reason')}")
+    for outcome in rev.get("outcomes", []) or []:
+        if outcome.get("kind") != "harm":
+            continue
+        result = outcome.get("result") or {}
+        if result.get("harms_incomplete"):
+            bad.append(f"{outcome.get('name')}: {result.get('reason')}")
+    if bad:
+        return ["L1: HARMS_INCOMPLETE -- " + "; ".join(bad[:6])]
+    return []
+
+
 def check_no_double_counted_trial(review_dir):
     """Unit-of-analysis: no trial may be pooled more than once WITHIN an outcome (multi-arm shared-control
     double-counting, ME-25). The harness contributes one effect per trial and the multi-arm guard refuses
@@ -763,6 +822,53 @@ def check_population_identity(review_dir):
     return reasons
 
 
+def check_arm_object_contract(review_dir):
+    """A pooled trial must still satisfy the canonical arm object.
+
+    Screening is supposed to remove arm-object refusals before extraction.  This
+    gate catches stale pages or hand-edited pools where a refused trial survived.
+    """
+    slug = os.path.basename(os.path.normpath(review_dir))
+    cfg_p = os.path.join(ROOT, "topics", f"{slug}.json")
+    rec_p = os.path.join(ROOT, "cache", slug, "records.json")
+    rev_p = os.path.join(review_dir, "review.json")
+    if not (os.path.exists(cfg_p) and os.path.exists(rec_p) and os.path.exists(rev_p)):
+        return []
+    try:
+        cfg = json.load(open(cfg_p, encoding="utf-8"))
+        cache = json.load(open(rec_p, encoding="utf-8"))
+        rev = json.load(open(rev_p, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read arm-object contract inputs ({exc})"]
+    recs = {}
+    for rec in list(cache.get("records") or []) + list(cache.get("ctgov") or []):
+        for key in (rec.get("id"), rec.get("nct"), rec.get("acronym")):
+            if key:
+                recs[str(key).replace("PMID ", "").strip()] = rec
+    reasons = []
+    seen = set()
+    for outcome in rev.get("outcomes", []) or []:
+        for trial in outcome.get("trials", []) or []:
+            keys = [
+                str(trial.get("id") or "").replace("PMID ", "").strip(),
+                str(trial.get("label") or "").replace("PMID ", "").strip(),
+            ]
+            rec = next((recs.get(k) for k in keys if k and recs.get(k)), None)
+            if not rec:
+                continue
+            rid = str(rec.get("id"))
+            if rid in seen:
+                continue
+            seen.add(rid)
+            obj, refusal = arm_object.screen_refusal(rec, cfg)
+            if refusal:
+                reasons.append(
+                    f"TRIAL_FAILS_CONTRACT: pooled trial {rid} in outcome {outcome.get('name')!r} "
+                    f"would be refused by the arm object as {refusal['rule_id']} ({refusal['reason']})"
+                )
+    return reasons
+
+
 def check_preregistration_not_build(review_dir):
     """A page that CLAIMS prospective registration (reproduction.preregistration.prospective) must cite a
     PROTOCOL-ONLY commit — one that contains no fetched cache, extracted review, blind pages or index. A
@@ -863,6 +969,18 @@ def check_compat_key_underlying(review_dir):
             f"({'; '.join(bits)}) -- relabel the dimension mixed/trial-defined and list per-trial values"]
 
 
+def check_scope_identity(review_dir, html):
+    """A page with open P/I/C/design eligibility and pre-identified retrieval may not claim the open scope was tested."""
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1(scope_identity): no review.json to check eligibility/search scope identity"]
+    try:
+        rev = json.load(open(p, encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"L1(scope_identity): cannot read review.json: {exc}"]
+    return scope_identity_mod.gate_reasons(rev, html, root=ROOT)
+
+
 def gate_page(review_dir):
     """Return (ok: bool, reasons: list[str]). ok == True only if both limbs pass."""
     try:
@@ -881,6 +999,9 @@ def gate_page(review_dir):
                + check_fetch_complete(review_dir)
                + check_access_claim_supported(review_dir)
                + check_claimgraph(review_dir)
+               + check_propositions(review_dir)
+               + check_eligibility_chain(review_dir)
+               + check_harms_complete(review_dir)
                + check_parity_our_k(review_dir)
                + check_no_double_counted_trial(review_dir)
                + check_pivotal_present(manifest)
@@ -890,8 +1011,10 @@ def gate_page(review_dir):
                + check_duplicate_publication(review_dir, manifest)
                + check_prespecification_in_protocol(review_dir)
                + check_population_identity(review_dir)
+               + check_arm_object_contract(review_dir)
                + check_method_matches_scale(review_dir)
                + check_compat_key_underlying(review_dir)
+               + check_scope_identity(review_dir, html)
                + check_preregistration_not_build(review_dir)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons

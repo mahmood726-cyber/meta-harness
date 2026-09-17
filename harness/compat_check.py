@@ -395,6 +395,10 @@ def check(
             asserted = ck.get(key_name)
             if asserted in (None, "") or _is_unasserted_value(dim, asserted, ck):
                 continue
+            if dim == "endpoint":
+                endpoint = ck.get("endpoint_canonical") or outcome.get("endpoint_canonical") or {}
+                if endpoint.get("status") == "HOMOGENEOUS" and asserted == endpoint.get("label"):
+                    continue
             derived_key = _DIM_TO_DERIVED[dim]
             per_trial = []
             underivable = []
@@ -479,17 +483,23 @@ def _fix_compat_key(outcome: dict[str, Any], violations: list[dict[str, Any]]) -
         elif dim == "follow_up_window":
             ck["follow_up_window"] = _summarize_follow(vals)
         elif dim == "endpoint":
+            endpoint = ck.get("endpoint_canonical") or outcome.get("endpoint_canonical") or {}
+            if endpoint.get("status") == "HOMOGENEOUS" and endpoint.get("label"):
+                ck["endpoint"] = endpoint["label"]
+                dim_matches[dim] = True
+                continue
             ck["endpoint"] = _summarize_endpoint(outcome)
         dim_matches[dim] = False
         per_trial_table[dim] = viol.get("per_trial_values") or []
     ck["dimension_matches"] = dim_matches
-    ck["limitation_code"] = HETEROGENEOUS
     ck["underlying_checked"] = True
-    outcome["compat_underlying"] = {
-        "status": HETEROGENEOUS,
-        "dimensions": sorted(by_dim),
-        "per_trial": per_trial_table,
-    }
+    if per_trial_table:
+        ck["limitation_code"] = HETEROGENEOUS
+        outcome["compat_underlying"] = {
+            "status": HETEROGENEOUS,
+            "dimensions": sorted(per_trial_table),
+            "per_trial": per_trial_table,
+        }
 
 
 def _attach_trial_dimensions(

@@ -8,7 +8,11 @@
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['cardiovascular disease', 'atherosclerotic cardiovascular disease', 'acute coronary syndrome', 'coronary disease', 'coronary heart disease', 'cardiovascular risk', 'myocardial infarction', 'peripheral artery disease', 'ascvd']; and none of ['heart failure', 'kidney disease', 'chronic kidney disease', 'venous thromboembolism']; randomised intervention is one of ['evolocumab', 'alirocumab', 'PCSK9 inhibitor', 'PCSK9 inhibitors', 'PCSK9 inhibition'] (named in title/conditions); a comparator among ['placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
-    "text": "# Protocol - PCSK9 inhibitors for major adverse cardiovascular events\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with established ASCVD or title/registry-supported high ASCVD risk.\n- **I** - PCSK9 inhibitor monoclonal antibody therapy: evolocumab or alirocumab.\n- **C** - placebo.\n- **O (primary)** - major adverse cardiovascular events (MACE), as defined by each trial.\n- **O (harms)** - injection-site reactions and adverse events leading to discontinuation.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio (HR), PCSK9 inhibitor vs placebo, using published\n  trial effect estimates with 95% confidence intervals when arm-level event-time\n  data are not available in the abstract.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - longest reported trial follow-up for the primary MACE endpoint.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is adults with established ASCVD or title/registry-supported\n  high ASCVD risk;\n- **I3** - evolocumab or alirocumab compared with placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or secondary\n  analysis not indexed as a primary randomised trial record);\n- **X2** - wrong population by title/registry conditions (e.g. kidney disease,\n  chronic kidney disease, heart failure, or venous thromboembolism);\n- **X3** - wrong intervention/comparison (no evolocumab/alirocumab-vs-placebo\n  contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports MACE, or gives\n> arm counts vs only an effect+CI, is recorded as target-result status at extraction,\n> never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: title-level searches for the primary FOURIER and ODYSSEY OUTCOMES reports.\n  Comparator-reference seeding is disabled for this topic because later secondary\n  publications share the same trial NCTs and can supersede the primary outcome\n  reports in the harness deduplication step.\n- ClinicalTrials.gov: condition \"ASCVD\", intervention \"alirocumab\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(HR); **Paule-Mandel** tau^2; **HKSJ** 95% CI\non `t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. Trial HRs and 95% CIs are transformed to log\nscale by the harness. DerSimonian-Laird forbidden. Engine validated vs metafor\n5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nXiang et al., *Frontiers in Cardiovascular Medicine* 2022, \"Effect of alirocumab\nand evolocumab on all-cause mortality and major cardiovascular events: A\nmeta-analysis focusing on the number needed to treat\" (PMID 36531722, DOI\n10.3389/fcvm.2022.1016802; Unpaywall is_oa=true; PubMed Central available as\nPMC9755489). It reports pooled MACE RR 0.83 (95% CI 0.79-0.87) in patients with\nestablished ASCVD.\n\n## Controls\n- **Positive** - the search must recover and include the canonical large\n  double-blind placebo-controlled outcome trials FOURIER (PMID 28304224) and\n  ODYSSEY OUTCOMES (PMID 30403574).\n- **Negative** - FIDELIO-DKD (finerenone in chronic kidney disease and type 2\n  diabetes; PMID 33264825) must be recovered and EXCLUDED as wrong population and\n  wrong intervention for this topic.\n\n## Amendment 2026-09-16 (external-audit recovery; co-primary endpoint rule)\n**Status: retrospective external-audit recovery before extraction/rebuild.** This\namendment does not make the retrieval systematic and does not rename the pinned\nslug/URL. The page remains STALE for `search_not_executed`: the added records are\nhand-named audit recoveries, not evidence that the original search ran.\n\n- **Added hand-named records.** VESALIUS-CV (PMID 41211925), ODYSSEY LONG TERM\n  (PMID 25773378), and GLAGOV (PMID 27846344) are added through `extra_pmids`\n  with `discovery_capable=false`, source kind `EXTRA_PMIDS`, on the external audit\n  query text `external audit topic 15 (Mahmood, 2026-09-16): VESALIUS-CV;\n  ODYSSEY LONG TERM; GLAGOV`.\n- **Co-primary endpoint rule.** When a trial registers more than one primary MACE\n  definition, pool the prespecified co-primary endpoint whose component set is\n  closest to canonical 3-point MACE: cardiovascular/coronary-heart-disease death,\n  myocardial infarction, and stroke. If component-set closeness is tied, use the\n  co-primary listed first in the registration/publication.\n- **Rule disclosure.** VESALIUS-CV reports both co-primary results in its abstract,\n  so both the 3-point HR 0.75 (95% CI 0.65 to 0.86) and the 4-point HR 0.81\n  (95% CI 0.73 to 0.89) were known when this rule was written. The rule is justified\n  only by component-set closeness to canonical 3-point MACE, never by which result\n  is larger or more precise.\n- **Sensitivity requirement.** The alternative VESALIUS-CV co-primary endpoint is\n  always rendered as a sensitivity row when the selected co-primary is pooled; it is\n  not hidden.\n- **Outcome-layer discipline.** ODYSSEY LONG TERM and GLAGOV screen in on\n  P/I/C/design if the record text supports those axes. ODYSSEY LONG TERM reports a\n  post-hoc MACE analysis and is typed `outcome_post_hoc_not_pooled`; GLAGOV reports\n  surrogate atheroma-volume outcomes and no MACE result and is typed\n  `outcome_not_reported`. Neither is pooled.\n"
+    "text": "# Protocol - PCSK9 inhibitors for major adverse cardiovascular events\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with established ASCVD or title/registry-supported high ASCVD risk.\n- **I** - PCSK9 inhibitor monoclonal antibody therapy: evolocumab or alirocumab.\n- **C** - placebo.\n- **O (primary)** - major adverse cardiovascular events (MACE), as defined by each trial.\n- **O (harms)** - injection-site reactions and adverse events leading to discontinuation.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio (HR), PCSK9 inhibitor vs placebo, using published\n  trial effect estimates with 95% confidence intervals when arm-level event-time\n  data are not available in the abstract.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - longest reported trial follow-up for the primary MACE endpoint.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is adults with established ASCVD or title/registry-supported\n  high ASCVD risk;\n- **I3** - evolocumab or alirocumab compared with placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or secondary\n  analysis not indexed as a primary randomised trial record);\n- **X2** - wrong population by title/registry conditions (e.g. kidney disease,\n  chronic kidney disease, heart failure, or venous thromboembolism);\n- **X3** - wrong intervention/comparison (no evolocumab/alirocumab-vs-placebo\n  contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative control).\n\n> **Eligibility is NOT on the outcome axis.** Whether a trial reports MACE, or gives\n> arm counts vs only an effect+CI, is recorded as target-result status at extraction,\n> never as an exclusion. A published effect + 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/<slug>/records.json; screening replays offline)\n- PubMed: title-level searches for the primary FOURIER and ODYSSEY OUTCOMES reports.\n  Comparator-reference seeding is disabled for this topic because later secondary\n  publications share the same trial NCTs and can supersede the primary outcome\n  reports in the harness deduplication step.\n- ClinicalTrials.gov: condition \"ASCVD\", intervention \"alirocumab\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(HR); **Paule-Mandel** tau^2; **HKSJ** 95% CI\non `t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. Trial HRs and 95% CIs are transformed to log\nscale by the harness. DerSimonian-Laird forbidden. Engine validated vs metafor\n5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nXiang et al., *Frontiers in Cardiovascular Medicine* 2022, \"Effect of alirocumab\nand evolocumab on all-cause mortality and major cardiovascular events: A\nmeta-analysis focusing on the number needed to treat\" (PMID 36531722, DOI\n10.3389/fcvm.2022.1016802; Unpaywall is_oa=true; PubMed Central available as\nPMC9755489). It reports pooled MACE RR 0.83 (95% CI 0.79-0.87) in patients with\nestablished ASCVD.\n\n## Controls\n- **Positive** - the search must recover and include the canonical large\n  double-blind placebo-controlled outcome trials FOURIER (PMID 28304224) and\n  ODYSSEY OUTCOMES (PMID 30403574).\n- **Negative** - FIDELIO-DKD (finerenone in chronic kidney disease and type 2\n  diabetes; PMID 33264825) must be recovered and EXCLUDED as wrong population and\n  wrong intervention for this topic.\n\n## Amendment 2026-09-16 (external-audit recovery; co-primary endpoint rule)\n**Status: retrospective external-audit recovery before extraction/rebuild.** This\namendment does not make the retrieval systematic and does not rename the pinned\nslug/URL. The page remains STALE for `search_not_executed`: the added records are\nhand-named audit recoveries, not evidence that the original search ran.\n\n- **Added hand-named records.** VESALIUS-CV (PMID 41211925), ODYSSEY LONG TERM\n  (PMID 25773378), and GLAGOV (PMID 27846344) are added through `extra_pmids`\n  with `discovery_capable=false`, source kind `EXTRA_PMIDS`, on the external audit\n  query text `external audit topic 15 (Mahmood, 2026-09-16): VESALIUS-CV;\n  ODYSSEY LONG TERM; GLAGOV`.\n- **Co-primary endpoint rule.** When a trial registers more than one primary MACE\n  definition, pool the prespecified co-primary endpoint whose component set is\n  closest to canonical 3-point MACE: cardiovascular/coronary-heart-disease death,\n  myocardial infarction, and stroke. If component-set closeness is tied, use the\n  co-primary listed first in the registration/publication.\n- **Rule disclosure.** VESALIUS-CV reports both co-primary results in its abstract,\n  so both the 3-point HR 0.75 (95% CI 0.65 to 0.86) and the 4-point HR 0.81\n  (95% CI 0.73 to 0.89) were known when this rule was written. The rule is justified\n  only by component-set closeness to canonical 3-point MACE, never by which result\n  is larger or more precise.\n- **Sensitivity requirement.** The alternative VESALIUS-CV co-primary endpoint is\n  always rendered as a sensitivity row when the selected co-primary is pooled; it is\n  not hidden.\n- **Outcome-layer discipline.** ODYSSEY LONG TERM and GLAGOV screen in on\n  P/I/C/design if the record text supports those axes. ODYSSEY LONG TERM reports a\n  post-hoc MACE analysis and is typed `outcome_post_hoc_not_pooled`; GLAGOV reports\n  surrogate atheroma-volume outcomes and no MACE result and is typed\n  `outcome_not_reported`. Neither is pooled.\n",
+    "target_endpoint_selection": {
+      "summary": "Target endpoint selector: EXACT_TARGET beats NEAR_MATCH; a near-match may be pooled only when no exact target is held. Within the same endpoint class, source-reported target-estimand effects beat registry effect estimates, which beat crude reconstructions. For multiple registered primaries in the same outcome family, choose the prespecified primary whose component set is closest to the canonical review definition; ties use registration order and alternatives render as sensitivity rows. Rule applied after results were already known in this lane, so the timing is disclosed.",
+      "results_known_at_rule_time": true
+    }
   },
   "search": {
     "n_records": 12,
@@ -274,7 +278,12 @@
         ],
         "matched_intervention": "evolocumab",
         "trial_family_id": "NCT01764633",
-        "publication_role": "primary"
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "registry_status": "COMPLETED",
+        "results_first_posted_date": "2018-02-15",
+        "completion_date": "2016-11-11",
+        "completeness_basis": "CT.gov status/results dates from local AACT snapshot"
       },
       {
         "id": "30403574",
@@ -288,15 +297,20 @@
         ],
         "matched_intervention": "alirocumab",
         "trial_family_id": "NCT01663402",
-        "publication_role": "primary"
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "registry_status": "COMPLETED",
+        "results_first_posted_date": "2019-03-18",
+        "completion_date": "2018-01-23",
+        "completeness_basis": "CT.gov status/results dates from local AACT snapshot"
       },
       {
         "id": "33264825",
         "id_type": "pmid",
         "decision": "exclude",
         "rule_id": "X2",
-        "reason": "wrong population: title/conditions mention 'kidney disease'.",
-        "span": "…f Finerenone on Chronic Kidney Disease Outcomes in Type 2 Diab…",
+        "reason": "wrong population: title/conditions mention 'heart failure'.",
+        "span": "…or hospitalization for heart failure. RESULTS: During a medi…",
         "found_by": [
           "legacy_unrecorded#1"
         ],
@@ -328,7 +342,12 @@
         ],
         "matched_intervention": "evolocumab",
         "trial_family_id": "NCT03872401",
-        "publication_role": "primary"
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "registry_status": "COMPLETED",
+        "results_first_posted_date": "2026-06-25",
+        "completion_date": "2025-07-25",
+        "completeness_basis": "CT.gov status/results dates from local AACT snapshot"
       },
       {
         "id": "25773378",
@@ -342,7 +361,12 @@
         ],
         "matched_intervention": "alirocumab",
         "trial_family_id": "NCT01507831",
-        "publication_role": "primary"
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "registry_status": "COMPLETED",
+        "results_first_posted_date": "2015-12-22",
+        "completion_date": "2014-11-30",
+        "completeness_basis": "CT.gov status/results dates from local AACT snapshot"
       },
       {
         "id": "27846344",
@@ -356,7 +380,12 @@
         ],
         "matched_intervention": "evolocumab",
         "trial_family_id": "NCT01813422",
-        "publication_role": "primary"
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "registry_status": "COMPLETED",
+        "results_first_posted_date": "2018-01-04",
+        "completion_date": "2016-07-29",
+        "completeness_basis": "CT.gov status/results dates from local AACT snapshot"
       },
       {
         "id": "STaRT · NCT06858332",
@@ -368,7 +397,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "START",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT06858332",
         "publication_role": "primary"
       },
       {
@@ -381,7 +415,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "OPTIMUS-IMPACT",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT07615179",
         "publication_role": "primary"
       },
       {
@@ -394,7 +433,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "PCSK9-DUO",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT07581808",
         "publication_role": "primary"
       }
     ],
@@ -411,6 +455,71 @@
       "caveat": "the two rule sets share an author and the same eligibility criteria, so they are NOT statistically independent; this agreement overstates inter-rater reliability. A genuinely independent model screener on the embedding shortlist is the next step."
     }
   },
+  "scope_identity": {
+    "slug": "pcsk9-mace",
+    "eligibility_scope": {
+      "type": "OPEN_PIC_DESIGN",
+      "basis": "topics/<slug>.json include + protocols/<slug>.md",
+      "population_terms": [
+        "cardiovascular disease",
+        "atherosclerotic cardiovascular disease",
+        "acute coronary syndrome",
+        "coronary disease",
+        "coronary heart disease",
+        "cardiovascular risk",
+        "myocardial infarction",
+        "peripheral artery disease",
+        "ascvd"
+      ],
+      "population_exclusions": [
+        "heart failure",
+        "kidney disease",
+        "chronic kidney disease",
+        "venous thromboembolism"
+      ],
+      "intervention_terms": [
+        "evolocumab",
+        "alirocumab",
+        "PCSK9 inhibitor",
+        "PCSK9 inhibitors",
+        "PCSK9 inhibition"
+      ],
+      "comparator_terms": [
+        "placebo"
+      ],
+      "design_terms": [
+        "randomised controlled trial",
+        "double blind"
+      ],
+      "phase_terms": [
+        "acute"
+      ],
+      "outcome_reporting_is_eligibility": false,
+      "description": ""
+    },
+    "search_scope": {
+      "type": "PRE_IDENTIFIED_SET",
+      "retrieval_class": "TITLE_SEEDED_RETRIEVAL",
+      "retrieval_label": "TITLE-SEEDED RETRIEVAL — DISCOVERY-BIASED, NOT A SYSTEMATIC SEARCH",
+      "query_count": 4,
+      "queries": [
+        "Evolocumab[Title] AND Clinical Outcomes[Title] AND Cardiovascular Disease[Title] AND 2017:2017[pdat]",
+        "Alirocumab[Title] AND Cardiovascular Outcomes[Title] AND Acute Coronary Syndrome[Title] AND 2018:2018[pdat]",
+        "Evolocumab[Title] AND Clinical Outcomes[Title] AND Cardiovascular Disease[Title] AND 2017:2017[pdat] || Alirocumab[Title] AND Cardiovascular Outcomes[Title] AND Acute Coronary Syndrome[Title] AND 2018:2018[pdat]",
+        "external audit topic 15 (Mahmood, 2026-09-16): VESALIUS-CV; ODYSSEY LONG TERM; GLAGOV"
+      ],
+      "source_kinds": [
+        "EXTRA_PMIDS",
+        "LEGACY_UNRECORDED",
+        "PUBMED_LEGACY_QUERY"
+      ],
+      "discovery_capable_source_count": 2,
+      "description": "retrieval can test only named PMIDs/titles/trial identifiers already supplied"
+    },
+    "verdict": "SCOPE_MISMATCH",
+    "reason": "open P/I/C/design eligibility was evaluated only inside a pre-identified retrieval set; the open eligibility universe was not tested",
+    "render_requirement": "N of the pre-identified set met eligibility; eligibility over the open scope was NOT tested (search class TITLE_SEEDED_RETRIEVAL)"
+  },
   "outcomes": [
     {
       "name": "Major adverse cardiovascular events",
@@ -420,39 +529,158 @@
       "population": "intention-to-treat",
       "timepoint": "longest reported trial follow-up",
       "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
+      "served_estimand": "HR",
+      "estimand_decision": {
+        "declared_estimand": "HR",
+        "decision": "time_to_first_event",
+        "target_scale": "HR",
+        "target_class": "FIRST_EVENT_RATIO",
+        "published_candidate_scales": [
+          "HR"
+        ],
+        "served_scale_changed": false,
+        "reason": "published HR exists for the target outcome",
+        "rule": "prefer published HR; keep reconstruction only when no HR exists"
+      },
       "trials": [
         {
           "label": "28304224",
           "id": "PMID 28304224",
-          "effect": 0.85,
-          "ci_low": 0.79,
-          "ci_high": 0.92,
+          "source": "ClinicalTrials.gov results (structured target endpoint): outcome 'Time to Cardiovascular Death, Myocardial Infarction, or Stroke' HR 0.8 (95% CI 0.73 to 0.88)",
+          "provenance": "ctgov_results",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_endpoint_source_rank": "registry_published_effect",
+          "target_endpoint_components": [
+            "cardiovascular death",
+            "myocardial infarction",
+            "stroke"
+          ],
+          "components": [
+            "cardiovascular death",
+            "myocardial infarction",
+            "stroke"
+          ],
+          "target_endpoint_extra_components": [],
+          "target_endpoint_missing_components": [],
+          "results_known_at_rule_time": true,
+          "effect": 0.8,
+          "ci_low": 0.73,
+          "ci_high": 0.88,
           "scale": "HR",
-          "source": "abstract source-reported HR (registered estimand): Relative to placebo, evolocumab treatment significantly reduced the risk of the primary end point (1344 patients [9.8%] vs. 1563 patients [11.3%]; hazard ratio, 0.85; 95% confidence interval [CI], 0.7",
-          "provenance": "abstract",
+          "registry_title": "Time to Cardiovascular Death, Myocardial Infarction, or Stroke",
+          "registry_type": "SECONDARY",
+          "registry_measure_type": "KM_ESTIMATE",
+          "registry_timeframe": "Events that occurred from randomization to the last confirmed survival status date; the median duration of follow-up was 26 months. KM estimates at 6, 12, 18, 24, 30 and 36 months are reported.",
+          "target_endpoint_alternatives": [
+            {
+              "candidate_id": "ctgov:2",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "Time to Cardiovascular Death",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "EXACT_TARGET",
+              "source_rank_kind": "registry_published_effect"
+            },
+            {
+              "candidate_id": "abstract:published_target_effect:0",
+              "source_type": "abstract",
+              "source_kind": "published_target_effect",
+              "target_endpoint_class": "NEAR_MATCH",
+              "extra_components": [
+                "coronary revascularization",
+                "unstable angina"
+              ],
+              "source_rank_kind": "published_target_effect"
+            },
+            {
+              "candidate_id": "ctgov:0",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "Time to Cardiovascular Death, Myocardial Infarction, Hospitalization for Unstable Angina, Stroke, or Coronary Revascularization",
+              "registry_type": "PRIMARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "extra_components": [
+                "coronary revascularization",
+                "unstable angina"
+              ],
+              "source_rank_kind": "registry_published_effect"
+            },
+            {
+              "candidate_id": "ctgov:4",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "Time to First Myocardial Infarction",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "missing_components": [
+                "cardiovascular death"
+              ],
+              "source_rank_kind": "registry_published_effect"
+            },
+            {
+              "candidate_id": "ctgov:5",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "Time to First Stroke",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "missing_components": [
+                "cardiovascular death"
+              ],
+              "source_rank_kind": "registry_published_effect"
+            },
+            {
+              "candidate_id": "ctgov:8",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "Time to First Ischemic Fatal or Non-Fatal Stroke or Transient Ischemic Attack",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "missing_components": [
+                "cardiovascular death",
+                "myocardial infarction"
+              ],
+              "source_rank_kind": "registry_published_effect"
+            }
+          ],
           "cross_source": {
-            "ctgov_rr": 0.881,
-            "ctgov_source": "ClinicalTrials.gov results (structured): outcome 'Time to Cardiovascular Death, Myocardial Infarction, Hospitalization for Unstabl' KM_ESTIMATE 2.74 (Evolocumab) vs 3.11 (Placebo); denominators 13784 vs 13780",
-            "registry_title": "Time to Cardiovascular Death, Myocardial Infarction, Hospitalization for Unstable Angina, Stroke, or Coronary Revascularization",
-            "registry_type": "PRIMARY",
+            "ctgov_rr": 0.887,
+            "ctgov_source": "ClinicalTrials.gov results (structured): outcome 'Time to Cardiovascular Death, Myocardial Infarction, or Stroke' KM_ESTIMATE 1.65 (Evolocumab) vs 1.86 (Placebo); denominators 13784 vs 13780",
+            "registry_title": "Time to Cardiovascular Death, Myocardial Infarction, or Stroke",
+            "registry_description": "All deaths and potential endpoint events were adjudicated by an independent external CEC led by the TIMI Study Group, using standardized definitions based on the \"Standardized Definitions for Cardiovascular and Stroke End Point Events in Clinical Trials and the Third Universal Definition of Myocardial Infarction\". Time to cardiovascular death, myocardial infarction, or stroke was defined as the time from randomization to the first occurrence of any component of the composite endpoint and was analyzed using Kaplan-Meier (KM) survival analysis. KM estimates of the percentage of participants with an event are reported. Participants with no event were censored based on last non-fatal potential endpoint collection date.",
+            "registry_type": "SECONDARY",
             "registry_param_type": "NUMBER",
             "registry_measure_type": "KM_ESTIMATE",
             "registry_timeframe": "Events that occurred from randomization to the last confirmed survival status date; the median duration of follow-up was 26 months. KM estimates at 6, 12, 18, 24, 30 and 36 months are reported.",
             "registry_selected_timepoint": "KM estimate at 6 months",
             "registry_population": "All randomized participants; The number of participants entered at each time point represents the number of participants at risk.",
-            "registry_implied_effect": 0.881029,
-            "pooled_effect_for_endpoint_match": 0.85,
+            "registry_implied_effect": 0.887097,
+            "pooled_effect_for_endpoint_match": 0.8,
             "pooled_scale_for_endpoint_match": "HR",
             "endpoint_match_tolerance_log": 0.12,
-            "endpoint_match": "DIFFERENT_ENDPOINT",
-            "endpoint_match_reason": "registry title matches but the selected measure is a KM/timepoint estimate (KM estimate at 6 months), not the pooled HR endpoint: Time to Cardiovascular Death, Myocardial Infarction, Hospitalization for Unstable Angina, Stroke, or Coronary Revascularization",
+            "registry_intervention_value": 1.65,
+            "registry_comparator_value": 1.86,
+            "identity": {
+              "title_match": true,
+              "component_match": true,
+              "measure_type": "KM estimate ratio",
+              "population_match": true,
+              "verdict": "SECOND_SOURCE_DIFFERENT_MEASURE"
+            },
+            "second_source_verdict": "SECOND_SOURCE_DIFFERENT_MEASURE",
+            "endpoint_match": "SECOND_SOURCE_DIFFERENT_MEASURE",
+            "endpoint_match_reason": "registry value is a Kaplan-Meier estimate ratio, not a risk ratio (KM estimate at 6 months): Time to Cardiovascular Death, Myocardial Infarction, or Stroke",
+            "registry_effect_label": "CT.gov KM estimate ratio",
             "agree": null,
             "corroborates_endpoint": false,
-            "note": "registry reports a DIFFERENT measure: Time to Cardiovascular Death, Myocardial Infarction, Hospitalization for Unstable Angina, Stroke, or Coronary Revascularization — registry title matches but the selected measure is a KM/timepoint estimate (KM estimate at 6 months), not the pooled HR endpoint: Time to Cardiovascular Death, Myocardial Infarction, Hospitalization for Unstable Angina, Stroke, or Coronary Revascularization"
+            "note": "SECOND_SOURCE_DIFFERENT_MEASURE: registry value is a Kaplan-Meier estimate ratio, not a risk ratio (KM estimate at 6 months): Time to Cardiovascular Death, Myocardial Infarction, or Stroke"
           },
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
           "verified": "verified",
           "verify_basis": "effect present in committed source",
-          "derivation": "reported",
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
@@ -462,25 +690,36 @@
               "evidence": []
             },
             "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [],
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              },
+              {
+                "source": "trial reported estimate label",
+                "span": "HR 0.8 (95% CI 0.73 to 0.88"
+              }
+            ],
+            "published_alternative": {
+              "effect": 0.8,
+              "ci_low": 0.73,
+              "ci_high": 0.88,
+              "scale": "HR",
+              "adjusted": false,
+              "span": "HR 0.8 (95% CI 0.73 to 0.88"
+            },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
           },
-          "components": [
-            "CV_DEATH",
-            "MI",
-            "STROKE",
-            "UA_HOSP",
-            "CORONARY_REVASCULARIZATION"
-          ],
+          "endpoint_definition": "FOURIER: 5-point primary (adds unstable angina, revascularization).; DISCLOSED (composite-heterogeneity note)",
           "study_effect": {
-            "effect_estimate": 0.85,
-            "standard_error": 0.03886314385969921,
+            "effect_estimate": 0.8,
+            "standard_error": 0.04767367533380211,
             "estimand": "HR",
             "analysis_population": "intention-to-treat",
             "randomisation_unit": "UNKNOWN",
@@ -491,13 +730,13 @@
               "evidence": []
             },
             "source_provenance": {
-              "source": "abstract",
-              "span": "abstract source-reported HR (registered estimand): Relative to placebo, evolocumab treatment significantly reduced the risk of the primary end point (1344 patients [9.8%] vs. 1563 patients [11.3%]; hazard ratio, 0.85; 95% confidence interval [CI], 0.7"
+              "source": "ctgov_results",
+              "span": "ClinicalTrials.gov results (structured target endpoint): outcome 'Time to Cardiovascular Death, Myocardial Infarction, or Stroke' HR 0.8 (95% CI 0.73 to 0.88)"
             },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -511,7 +750,6 @@
           "publication_role": "primary",
           "analysis_set": "intention-to-treat",
           "follow_up_window": "longest reported trial follow-up",
-          "endpoint_definition": "FOURIER: 5-point primary (adds unstable angina, revascularization).; DISCLOSED (composite-heterogeneity note)",
           "population_age": "not_stated",
           "intervention_ontology": {
             "intervention_class": null
@@ -542,21 +780,96 @@
             "intervention_ontology": {
               "intervention_class": null
             }
-          }
+          },
+          "trial_id": "PMID 28304224",
+          "report_id": "PMID 28304224",
+          "outcome_effect_id": "pcsk9-mace::Major adverse cardiovascular events::PMID 28304224::PMID 28304224"
         },
         {
           "label": "30403574",
           "id": "PMID 30403574",
+          "source": "abstract source-reported HR (registered estimand): A composite primary end-point event occurred in 903 patients (9.5%) in the alirocumab group and in 1052 patients (11.1%) in the placebo group (hazard ratio, 0.85; 95% confidence interval [CI], 0.78 to",
+          "provenance": "abstract",
+          "target_endpoint_class": "NEAR_MATCH",
+          "target_endpoint_source_rank": "published_target_effect",
+          "target_endpoint_components": [
+            "coronary heart disease death",
+            "myocardial infarction",
+            "stroke",
+            "unstable angina"
+          ],
+          "components": [
+            "coronary heart disease death",
+            "myocardial infarction",
+            "stroke",
+            "unstable angina"
+          ],
+          "target_endpoint_extra_components": [
+            "unstable angina"
+          ],
+          "target_endpoint_missing_components": [],
+          "results_known_at_rule_time": true,
+          "near_match_reason": "extra components: unstable angina",
           "effect": 0.85,
           "ci_low": 0.78,
           "ci_high": 0.93,
           "scale": "HR",
-          "source": "abstract source-reported HR (registered estimand): A composite primary end-point event occurred in 903 patients (9.5%) in the alirocumab group and in 1052 patients (11.1%) in the placebo group (hazard ratio, 0.85; 95% confidence interval [CI], 0.78 to",
-          "provenance": "abstract",
+          "target_endpoint_alternatives": [
+            {
+              "candidate_id": "ctgov:0",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "Time to First Occurrence of Major Adverse Cardiovascular Event (MACE); Percentage of Observed Participants With Outcome Measure Events During the Study",
+              "registry_type": "PRIMARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "extra_components": [
+                "unstable angina"
+              ],
+              "source_rank_kind": "registry_published_effect"
+            },
+            {
+              "candidate_id": "ctgov:2",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "Time to First Occurrence of Any Major Coronary Heart Disease Event; Percentage of Observed Participants With Outcome Measure Events During the Study",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "missing_components": [
+                "stroke"
+              ],
+              "source_rank_kind": "registry_published_effect"
+            },
+            {
+              "candidate_id": "ctgov:3",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "Time to First Occurrence of Any Cardiovascular Event; Percentage of Observed Participants With Outcome Measure Events During the Study",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "missing_components": [
+                "myocardial infarction",
+                "stroke"
+              ],
+              "source_rank_kind": "registry_published_effect"
+            },
+            {
+              "candidate_id": "ctgov:4",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "Time to First Occurrence of All-Cause Mortality, Non-Fatal Myocardial Infarction, Non-Fatal Ischemic Stroke; Percentage of Observed Participants With Outcome Measure Events During the Study",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "missing_components": [
+                "cardiovascular death"
+              ],
+              "source_rank_kind": "registry_published_effect"
+            }
+          ],
           "cross_source": {
             "ctgov_rr": 0.856,
             "ctgov_source": "ClinicalTrials.gov results (structured): outcome 'Time to First Occurrence of Major Adverse Cardiovascular Event (MACE); Percentag' PERCENTAGE 9.5 (Alirocumab 75 mg Q2W/Up ) vs 11.1 (Placebo); denominators 9462 vs 9462",
             "registry_title": "Time to First Occurrence of Major Adverse Cardiovascular Event (MACE); Percentage of Observed Participants With Outcome Measure Events During the Study",
+            "registry_description": "All MACE positively adjudicated by Clinical Events Committee (CEC) in a blinded fashion, were used in the analysis of the composite cardiovascular (CV) outcome measure comprised of Coronary Heart Disease (CHD) death, non-fatal Myocardial Infarction (MI), fatal and non-fatal ischemic stroke (IS), or unstable angina (UA) requiring hospitalization. Kaplan Meier plots of the cumulative incidence rate by treatment groups were used to depict the first occurrence of MACE over time. Percentage of observed participants with outcome measure events during the study were reported.",
             "registry_type": "PRIMARY",
             "registry_param_type": "NUMBER",
             "registry_measure_type": "PERCENTAGE",
@@ -567,15 +880,29 @@
             "pooled_effect_for_endpoint_match": 0.85,
             "pooled_scale_for_endpoint_match": "HR",
             "endpoint_match_tolerance_log": 0.12,
-            "endpoint_match": "SAME_ENDPOINT",
-            "endpoint_match_reason": "registry title, population/timepoint metadata, and numeric value match the pooled endpoint within log tolerance 0.12. pooled HR is compared with a registry proportion ratio only because the values agree within log tolerance 0.12; this is corroboration, not replacement.",
+            "registry_intervention_value": 9.5,
+            "registry_comparator_value": 11.1,
+            "identity": {
+              "title_match": true,
+              "component_match": true,
+              "measure_type": "percentage ratio",
+              "population_match": true,
+              "verdict": "SECOND_SOURCE_DIFFERENT_MEASURE"
+            },
+            "second_source_verdict": "SECOND_SOURCE_DIFFERENT_MEASURE",
+            "endpoint_match": "SECOND_SOURCE_DIFFERENT_MEASURE",
+            "endpoint_match_reason": "registry value is a percentage ratio, not a risk ratio (From randomization up to 64 months): Time to First Occurrence of Major Adverse Cardiovascular Event (MACE); Percentage of Observed Participants With Outcome Measure Events During the Study",
+            "registry_effect_label": "CT.gov percentage ratio",
             "agree": null,
-            "corroborates_endpoint": true,
-            "note": "independently corroborated by CT.gov structured results; registry title, population/timepoint metadata, and numeric value match the pooled endpoint within log tolerance 0.12. pooled HR is compared with a registry proportion ratio only because the values agree within log tolerance 0.12; this is corroboration, not replacement."
+            "corroborates_endpoint": false,
+            "note": "SECOND_SOURCE_DIFFERENT_MEASURE: registry value is a percentage ratio, not a risk ratio (From randomization up to 64 months): Time to First Occurrence of Major Adverse Cardiovascular Event (MACE); Percentage of Observed Participants With Outcome Measure Events During the Study"
           },
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
           "verified": "verified",
           "verify_basis": "effect present in committed source",
-          "derivation": "reported",
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
@@ -585,21 +912,21 @@
               "evidence": []
             },
             "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [],
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              }
+            ],
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
           },
-          "components": [
-            "CHD_DEATH",
-            "MI",
-            "ISCHEMIC_STROKE",
-            "UA_HOSP"
-          ],
+          "endpoint_definition": "ODYSSEY: 4-point primary (adds unstable angina requiring hospitalization).; DISCLOSED (composite-heterogeneity note)",
           "study_effect": {
             "effect_estimate": 0.85,
             "standard_error": 0.044870892488603716,
@@ -617,9 +944,9 @@
               "span": "abstract source-reported HR (registered estimand): A composite primary end-point event occurred in 903 patients (9.5%) in the alirocumab group and in 1052 patients (11.1%) in the placebo group (hazard ratio, 0.85; 95% confidence interval [CI], 0.78 to"
             },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -633,7 +960,6 @@
           "publication_role": "primary",
           "analysis_set": "intention-to-treat",
           "follow_up_window": "longest reported trial follow-up",
-          "endpoint_definition": "ODYSSEY: 4-point primary (adds unstable angina requiring hospitalization).; DISCLOSED (composite-heterogeneity note)",
           "population_age": "not_stated",
           "intervention_ontology": {
             "intervention_class": null
@@ -664,7 +990,10 @@
             "intervention_ontology": {
               "intervention_class": null
             }
-          }
+          },
+          "trial_id": "PMID 30403574",
+          "report_id": "PMID 30403574",
+          "outcome_effect_id": "pcsk9-mace::Major adverse cardiovascular events::PMID 30403574::PMID 30403574"
         },
         {
           "label": "41211925",
@@ -690,9 +1019,12 @@
             "rule": "Alternative prespecified co-primary endpoint rendered because both VESALIUS co-primary results were known when the component-set rule was written; selection is justified only by component set."
           },
           "source": "VESALIUS-CV (PMID 41211925) abstract: A total of 12,257 patients were randomly assigned to receive evolocumab (6129 patients) or placebo (6128) and were included in the efficacy analyses. A 3-point MACE event occurred in 336 patients (5-year Kaplan-Meier estimate, 6.2%) in the evolocumab group, as compared with 443 (8.0%) in the placebo group (hazard ratio, 0.75; 95% confidence interval [CI], 0.65 to 0.86; P<0.001). A 4-point MACE event occurred in 747 patients (5-year Kaplan-Meier estimate, 13.4%) in the evolocumab group, as compared with 907 (16.2%) in the placebo group (hazard ratio, 0.81; 95% CI, 0.73 to 0.89; P<0.001).",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
           "verified": "verified",
           "verify_basis": "effect present in committed source",
-          "derivation": "reported",
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
@@ -702,11 +1034,16 @@
               "evidence": []
             },
             "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [],
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              }
+            ],
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -733,9 +1070,9 @@
               "span": "VESALIUS-CV (PMID 41211925) abstract: A total of 12,257 patients were randomly assigned to receive evolocumab (6129 patients) or placebo (6128) and were included in the efficacy analyses. A 3-point MACE event occurred in 336 patients (5-year Kaplan-Meier estimate, 6.2%) in the evolocumab group, as compared with 443 (8.0%) in the placebo group (hazard ratio, 0.75; 95% confidence interval [CI], 0.65 to 0.86; P<0.001). A 4-point MACE event occurred in 747 patients (5-year Kaplan-Meier estimate, 13.4%) in the evolocumab group, as compared with 907 (16.2%) in the placebo group (hazard ratio, 0.81; 95% CI, 0.73 to 0.89; P<0.001)."
             },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -780,7 +1117,11 @@
             "intervention_ontology": {
               "intervention_class": null
             }
-          }
+          },
+          "trial_id": "PMID 41211925",
+          "report_id": "PMID 41211925",
+          "effect_source_id": "PMID 41211925",
+          "outcome_effect_id": "pcsk9-mace::Major adverse cardiovascular events::PMID 41211925::PMID 41211925"
         }
       ],
       "declared_absent_trials": [
@@ -803,11 +1144,28 @@
           "reason": "MACE effect is explicitly post hoc; eligibility is P/I/C/design, but a post-hoc outcome is not pooled as the prespecified topic outcome.",
           "trial_family_id": "NCT01507831",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2015-12-22",
+          "completion_date": "2014-11-30",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
           "state_basis": "outcome_post_hoc_not_pooled: source span: \"ODYSSEY LONG TERM (PMID 25773378) abstract: In a post hoc analysis, the rate of major adverse cardiovascular events (death from coronary heart disease, nonfatal myocardial infarction, fatal or nonfat...\"; MACE effect is explicitly post hoc; eligibility is P/I/C/design, but a post-hoc outcome is not pooled as the prespecified topic outcome.",
-          "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e",
-          "claim_id": "1b1b463d6553b7c8",
+          "trial_id": "PMID 25773378",
+          "report_id": "PMID 25773378",
+          "outcome_effect_id": "pcsk9-mace::Major adverse cardiovascular events::PMID 25773378::PMID 25773378",
+          "reason_code_audit": {
+            "verdict": "REASON_FALSE_VALUE_HELD",
+            "detail": "REASON_FALSE_VALUE_HELD(abstract:25773378, \"In a post hoc analysis, the rate of major adverse cardiovascular events (death from coronary heart disease, nonfatal myocardial infarction, fatal or nonfatal ischemic stroke, or unstable angina requiring hospitalization) was lower with ali...\")",
+            "stated_reason_code": "outcome_post_hoc_not_pooled",
+            "source_id": "abstract:25773378",
+            "source_kind": "abstract",
+            "source_span": "In a post hoc analysis, the rate of major adverse cardiovascular events (death from coronary heart disease, nonfatal myocardial infarction, fatal or nonfatal ischemic stroke, or unstable angina requiring hospitalization) was lower with ali...",
+            "source_contains": "In a post hoc analysis, the rate of major adverse cardiovascular events (death from coronary heart disease, nonfatal myocardial infarction, fatal or nonfatal ischemic stroke, or unstable angina requiring hospitalization) was lower with ali..."
+          },
+          "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff",
+          "claim_id": "850434a5988f42a3",
           "depends_on": {
-            "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e"
+            "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff"
           },
           "claim_kind": "membership_state"
         },
@@ -822,11 +1180,24 @@
           "reason": "GLAGOV primary efficacy measure is percent atheroma volume by IVUS; the abstract reports no MACE effect.",
           "trial_family_id": "NCT01813422",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2018-01-04",
+          "completion_date": "2016-07-29",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
           "state_basis": "outcome_not_reported: source span: \"GLAGOV (PMID 27846344) abstract: The primary efficacy measure was the nominal change in percent atheroma volume (PAV) from baseline to week 78, measured by serial intravascular ultrasonography (IVUS)...\"; GLAGOV primary efficacy measure is percent atheroma volume by IVUS; the abstract reports no MACE effect.",
-          "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e",
-          "claim_id": "1b1b463d6553b7c8",
+          "trial_id": "PMID 27846344",
+          "report_id": "PMID 27846344",
+          "outcome_effect_id": "pcsk9-mace::Major adverse cardiovascular events::PMID 27846344::PMID 27846344",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "outcome_not_reported"
+          },
+          "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff",
+          "claim_id": "850434a5988f42a3",
           "depends_on": {
-            "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e"
+            "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff"
           },
           "claim_kind": "membership_state"
         }
@@ -848,16 +1219,16 @@
       },
       "result": {
         "k": 3,
-        "estimate": 0.83,
+        "estimate": 0.8106,
         "scale": "HR",
-        "ci_low": 0.7147,
-        "ci_high": 0.9638,
-        "tau2": 0.00124,
-        "Q": 2.62684,
-        "i2": 23.9,
+        "ci_low": 0.7032,
+        "ci_high": 0.9344,
+        "tau2": 0.00057,
+        "Q": 2.37296,
+        "i2": 15.7,
         "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
-        "pi_low": 0.6708,
-        "pi_high": 1.0269,
+        "pi_low": 0.6804,
+        "pi_high": 0.9658,
         "co_primary_sensitivities": [
           {
             "trial": "41211925",
@@ -870,16 +1241,16 @@
             "rule": "Alternative prespecified co-primary endpoint rendered because both VESALIUS co-primary results were known when the component-set rule was written; selection is justified only by component set.",
             "pool": {
               "k": 3,
-              "estimate": 0.8397,
+              "estimate": 0.8213,
               "scale": "HR",
-              "ci_low": 0.7528,
-              "ci_high": 0.9367,
+              "ci_low": 0.7299,
+              "ci_high": 0.9243,
               "tau2": 0.0,
-              "Q": 0.67958,
+              "Q": 0.96485,
               "i2": 0.0,
               "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
-              "pi_low": 0.7528,
-              "pi_high": 0.9367,
+              "pi_low": 0.7299,
+              "pi_high": 0.9243,
               "pi_note": "tau^2 estimated as 0, so the prediction interval coincides with the confidence interval (no between-study heterogeneity detected)."
             }
           }
@@ -898,9 +1269,9 @@
         },
         "composite_heterogeneity": "pooled trials use each trial's OWN primary composite; component sets differ across trials (varying extra components across trials: revascularization, unstable angina) — the pooled estimate mixes composite definitions (disclosed, not adjusted)",
         "leave_one_out": {
-          "min": 0.8083,
-          "max": 0.85,
-          "most_influential": "28304224",
+          "min": 0.7842,
+          "max": 0.8261,
+          "most_influential": "30403574",
           "per_trial": [
             {
               "dropped": "28304224",
@@ -908,11 +1279,11 @@
             },
             {
               "dropped": "30403574",
-              "estimate": 0.81
+              "estimate": 0.7842
             },
             {
               "dropped": "41211925",
-              "estimate": 0.85
+              "estimate": 0.8261
             }
           ],
           "note": "each row drops one trial and re-pools; a stable estimate across drops = no single trial drives it."
@@ -926,12 +1297,51 @@
           "direction": "benefit",
           "significant_fixed": null
         },
-        "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e",
-        "claim_id": "93335824c1873e21",
+        "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff",
+        "claim_id": "fa1e1be98343d803",
         "depends_on": {
-          "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e"
+          "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff"
         },
         "claim_kind": "outcome_result"
+      },
+      "endpoint_canonical": {
+        "label": "TRIAL_DEFINED_MAJOR_CORONARY_CARDIOVASCULAR_COMPOSITE",
+        "event_time": "TIME_TO_FIRST_EVENT",
+        "components": [
+          "CARDIOVASCULAR_DEATH",
+          "MYOCARDIAL_INFARCTION",
+          "STROKE"
+        ],
+        "component_sets": [
+          {
+            "components": [
+              "CARDIOVASCULAR_DEATH",
+              "MYOCARDIAL_INFARCTION",
+              "STROKE"
+            ],
+            "trials": [
+              "28304224"
+            ]
+          },
+          {
+            "components": [
+              "MYOCARDIAL_INFARCTION",
+              "STROKE"
+            ],
+            "trials": [
+              "30403574"
+            ]
+          },
+          {
+            "components": [
+              "STROKE"
+            ],
+            "trials": [
+              "41211925"
+            ]
+          }
+        ],
+        "status": "HETEROGENEOUS"
       },
       "compat_key": {
         "effect_measure": [
@@ -943,6 +1353,7 @@
         "endpoint": "trial-defined Major adverse cardiovascular events (definitions listed per trial)",
         "follow_up_window": "longest reported trial follow-up",
         "analysis_set": "intention-to-treat",
+        "analysis_set_declared": "intention-to-treat",
         "randomised_contrast": {
           "verified": 2,
           "total": 3
@@ -951,19 +1362,19 @@
         "mismatches": [],
         "endpoint_components": {
           "values": [
+            "CARDIOVASCULAR_DEATH | MYOCARDIAL_INFARCTION | STROKE",
             "CHD_DEATH | MI | ISCHEMIC_STROKE",
-            "CHD_DEATH | MI | ISCHEMIC_STROKE | UA_HOSP",
-            "CV_DEATH | MI | STROKE | UA_HOSP | CORONARY_REVASCULARIZATION"
+            "CORONARY_HEART_DISEASE_DEATH | MYOCARDIAL_INFARCTION | STROKE | UNSTABLE_ANGINA"
           ],
           "matched": false,
           "per_trial": [
             {
               "trial": "28304224",
-              "value": "CV_DEATH | MI | STROKE | UA_HOSP | CORONARY_REVASCULARIZATION"
+              "value": "CARDIOVASCULAR_DEATH | MYOCARDIAL_INFARCTION | STROKE"
             },
             {
               "trial": "30403574",
-              "value": "CHD_DEATH | MI | ISCHEMIC_STROKE | UA_HOSP"
+              "value": "CORONARY_HEART_DISEASE_DEATH | MYOCARDIAL_INFARCTION | STROKE | UNSTABLE_ANGINA"
             },
             {
               "trial": "41211925",
@@ -971,19 +1382,101 @@
             }
           ]
         },
+        "endpoint_canonical": {
+          "label": "TRIAL_DEFINED_MAJOR_CORONARY_CARDIOVASCULAR_COMPOSITE",
+          "event_time": "TIME_TO_FIRST_EVENT",
+          "components": [
+            "CARDIOVASCULAR_DEATH",
+            "MYOCARDIAL_INFARCTION",
+            "STROKE"
+          ],
+          "component_sets": [
+            {
+              "components": [
+                "CARDIOVASCULAR_DEATH",
+                "MYOCARDIAL_INFARCTION",
+                "STROKE"
+              ],
+              "trials": [
+                "28304224"
+              ]
+            },
+            {
+              "components": [
+                "MYOCARDIAL_INFARCTION",
+                "STROKE"
+              ],
+              "trials": [
+                "30403574"
+              ]
+            },
+            {
+              "components": [
+                "STROKE"
+              ],
+              "trials": [
+                "41211925"
+              ]
+            }
+          ],
+          "status": "HETEROGENEOUS"
+        },
+        "endpoint_canonical_status": "HETEROGENEOUS",
         "limitations": [
           {
             "code": "COMPAT_DIMENSION_HETEROGENEOUS",
             "dimension": "endpoint_components",
-            "detail": "pooled trials differ on composite components: CHD_DEATH | MI | ISCHEMIC_STROKE; CHD_DEATH | MI | ISCHEMIC_STROKE | UA_HOSP; CV_DEATH | MI | STROKE | UA_HOSP | CORONARY_REVASCULARIZATION",
+            "detail": "pooled trials differ on composite components: CARDIOVASCULAR_DEATH | MYOCARDIAL_INFARCTION | STROKE; CHD_DEATH | MI | ISCHEMIC_STROKE; CORONARY_HEART_DISEASE_DEATH | MYOCARDIAL_INFARCTION | STROKE | UNSTABLE_ANGINA",
             "hard": false
           }
         ],
         "dimension_matches": {
           "endpoint": false
         },
-        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS",
-        "underlying_checked": true
+        "underlying_checked": true,
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS"
+      },
+      "compat_direction": {
+        "dimensions": [
+          {
+            "dimension": "endpoint_definition",
+            "label": "Endpoint definition",
+            "key_direction": "ASSERTED_HOMOGENEOUS_UNDERLYING_HETEROGENEOUS",
+            "asserted_key_state": "homogeneous",
+            "rendered_warning_state": "heterogeneous",
+            "underlying": {
+              "derivable": true,
+              "matched": false,
+              "values": [
+                "CHD_DEATH | MI | STROKE",
+                "CHD_DEATH | MI | STROKE | UNSTABLE_ANGINA_HOSPITALIZATION",
+                "CV_DEATH | MI | STROKE"
+              ],
+              "missing_trials": [],
+              "per_trial": [
+                {
+                  "trial": "28304224",
+                  "id": "PMID 28304224",
+                  "value": "CV_DEATH | MI | STROKE",
+                  "basis": "canonicalized from trial components"
+                },
+                {
+                  "trial": "30403574",
+                  "id": "PMID 30403574",
+                  "value": "CHD_DEATH | MI | STROKE | UNSTABLE_ANGINA_HOSPITALIZATION",
+                  "basis": "canonicalized from trial components"
+                },
+                {
+                  "trial": "41211925",
+                  "id": "PMID 41211925",
+                  "value": "CHD_DEATH | MI | STROKE",
+                  "basis": "canonicalized from trial components"
+                }
+              ]
+            },
+            "n_trials": 3
+          }
+        ]
       },
       "recovery_recheck": {
         "hard_incompatible": false,
@@ -1035,6 +1528,17 @@
       "population": null,
       "timepoint": null,
       "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
+      "served_estimand": "RR",
+      "estimand_decision": {
+        "declared_estimand": "RR",
+        "decision": "cumulative_risk_at_trial_end",
+        "target_scale": "RR",
+        "target_class": "FIRST_EVENT_RATIO",
+        "published_candidate_scales": [],
+        "served_scale_changed": false,
+        "reason": "declared cumulative risk-ratio estimand",
+        "rule": "prefer published RR; otherwise reconstruct RR from counts consistently"
+      },
       "trials": [],
       "declared_absent_trials": [
         {
@@ -1044,6 +1548,11 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
           "trial_family_id": "NCT01764633",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2018-02-15",
+          "completion_date": "2016-11-11",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
           "pooled_in_strands": [
             "Strict 3-point MACE (CV/CHD death, MI, stroke)"
           ],
@@ -1052,6 +1561,18 @@
           "state": "OUTCOME_NOT_IN_SOURCE",
           "source_span": "There was no significant difference between the study groups with regard to adverse events (including new-onset diabetes and neurocognitive events), with the exception of injection-site reactions, wh...",
           "verbatim_span": "There was no significant difference between the study groups with regard to adverse events (including new-onset diabetes and neurocognitive events), with the exception of injection-site reactions, wh...",
+          "trial_id": "PMID 28304224",
+          "report_id": "PMID 28304224",
+          "outcome_effect_id": "pcsk9-mace::Injection-site reactions::PMID 28304224::PMID 28304224",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+          },
+          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_source_reported": true,
+          "harm_source_span": "There was no significant difference between the study groups with regard to adverse events (including new-onset diabetes and neurocognitive events), with the exception of injection-site reactions, which were more common with evolocumab (2.1% vs. 1.6%).",
+          "harm_source_signal": "numeric_signal",
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "9d33997661ecf5c3",
           "depends_on": {
@@ -1066,11 +1587,28 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
           "trial_family_id": "NCT01663402",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2019-03-18",
+          "completion_date": "2018-01-23",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
           "reason_code": "OUTCOME_NOT_IN_SOURCE",
           "state": "OUTCOME_NOT_IN_SOURCE",
           "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"The incidence of adverse events was similar in the two groups, with the exception of local injection-site reactions (3.8% in the alirocumab group vs. 2.1% in the placebo group).\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
           "source_span": "The incidence of adverse events was similar in the two groups, with the exception of local injection-site reactions (3.8% in the alirocumab group vs. 2.1% in the placebo group).",
           "verbatim_span": "The incidence of adverse events was similar in the two groups, with the exception of local injection-site reactions (3.8% in the alirocumab group vs. 2.1% in the placebo group).",
+          "trial_id": "PMID 30403574",
+          "report_id": "PMID 30403574",
+          "outcome_effect_id": "pcsk9-mace::Injection-site reactions::PMID 30403574::PMID 30403574",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+          },
+          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_source_reported": true,
+          "harm_source_span": "The incidence of adverse events was similar in the two groups, with the exception of local injection-site reactions (3.8% in the alirocumab group vs. 2.1% in the placebo group).",
+          "harm_source_signal": "numeric_signal",
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "9d33997661ecf5c3",
           "depends_on": {
@@ -1085,6 +1623,11 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
           "trial_family_id": "NCT03872401",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2026-06-25",
+          "completion_date": "2025-07-25",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
           "pooled_in_strands": [
             "Strict 3-point MACE (CV/CHD death, MI, stroke)"
           ],
@@ -1093,6 +1636,16 @@
           "state": "OUTCOME_NOT_IN_SOURCE",
           "source_span": "The proprotein convertase subtilisin-kexin type 9 (PCSK9) inhibitor evolocumab reduces the risk of major adverse cardiovascular events (MACE) among patients with a previous myocardial infarction, str...",
           "verbatim_span": "The proprotein convertase subtilisin-kexin type 9 (PCSK9) inhibitor evolocumab reduces the risk of major adverse cardiovascular events (MACE) among patients with a previous myocardial infarction, str...",
+          "trial_id": "PMID 41211925",
+          "report_id": "PMID 41211925",
+          "outcome_effect_id": "pcsk9-mace::Injection-site reactions::PMID 41211925::PMID 41211925",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+          },
+          "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
+          "harm_source_reported": false,
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "9d33997661ecf5c3",
           "depends_on": {
@@ -1107,11 +1660,28 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
           "trial_family_id": "NCT01507831",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2015-12-22",
+          "completion_date": "2014-11-30",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
           "reason_code": "OUTCOME_NOT_IN_SOURCE",
           "state": "OUTCOME_NOT_IN_SOURCE",
           "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"The alirocumab group, as compared with the placebo group, had higher rates of injection-site reactions (5.9% vs. 4.2%), myalgia (5.4% vs. 2.9%), neurocognitive events (1.2% vs. 0.5%), and ophthalmolo...\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
           "source_span": "The alirocumab group, as compared with the placebo group, had higher rates of injection-site reactions (5.9% vs. 4.2%), myalgia (5.4% vs. 2.9%), neurocognitive events (1.2% vs. 0.5%), and ophthalmolo...",
           "verbatim_span": "The alirocumab group, as compared with the placebo group, had higher rates of injection-site reactions (5.9% vs. 4.2%), myalgia (5.4% vs. 2.9%), neurocognitive events (1.2% vs. 0.5%), and ophthalmolo...",
+          "trial_id": "PMID 25773378",
+          "report_id": "PMID 25773378",
+          "outcome_effect_id": "pcsk9-mace::Injection-site reactions::PMID 25773378::PMID 25773378",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+          },
+          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_source_reported": true,
+          "harm_source_span": "The alirocumab group, as compared with the placebo group, had higher rates of injection-site reactions (5.9% vs. 4.2%), myalgia (5.4% vs. 2.9%), neurocognitive events (1.2% vs. 0.5%), and ophthalmologic events (2.9% vs. 1.9%).",
+          "harm_source_signal": "numeric_signal",
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "9d33997661ecf5c3",
           "depends_on": {
@@ -1126,11 +1696,26 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
           "trial_family_id": "NCT01813422",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2018-01-04",
+          "completion_date": "2016-07-29",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
           "reason_code": "OUTCOME_NOT_IN_SOURCE",
           "state": "OUTCOME_NOT_IN_SOURCE",
           "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"Reducing levels of low-density lipoprotein cholesterol (LDL-C) with intensive statin therapy reduces progression of coronary atherosclerosis in proportion to achieved LDL-C levels. Proprotein convert...\"; no sentence matching the outcome terms was found",
           "source_span": "Reducing levels of low-density lipoprotein cholesterol (LDL-C) with intensive statin therapy reduces progression of coronary atherosclerosis in proportion to achieved LDL-C levels. Proprotein convert...",
           "verbatim_span": "Reducing levels of low-density lipoprotein cholesterol (LDL-C) with intensive statin therapy reduces progression of coronary atherosclerosis in proportion to achieved LDL-C levels. Proprotein convert...",
+          "trial_id": "PMID 27846344",
+          "report_id": "PMID 27846344",
+          "outcome_effect_id": "pcsk9-mace::Injection-site reactions::PMID 27846344::PMID 27846344",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+          },
+          "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
+          "harm_source_reported": false,
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "9d33997661ecf5c3",
           "depends_on": {
@@ -1175,7 +1760,51 @@
             "span": "er baseline level. the incidence of adverse events was similar in the two groups, with the exception of local injection-site reactions (3.8% in the alirocumab group vs. 2.1% in the placebo group). conclusions: among patients who had a previous"
           }
         ],
-        "reason": "HARMS_INCOMPLETE: 2 known eligible outcome report(s) from primary-pool trials are unresolved; an isolated k=0 harm estimate is suppressed until those rows are extracted or typed-refused.",
+        "reason": "HARMS_INCOMPLETE -- 3 known reported outcome(s) unresolved (28304224, 30403574, 25773378) among 3 source-reporting trial(s); extracted k=0. The page must not render this as harm absence.",
+        "harm_reporting_trials_n": 3,
+        "harm_extracted_trials_n": 0,
+        "harm_registered_trials_n": 5,
+        "harm_reporting_trials": [
+          {
+            "id": "28304224",
+            "label": "28304224",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "There was no significant difference between the study groups with regard to adverse events (including new-onset diabetes and neurocognitive events), with the exception of injection-site reactions, which were more common with evolocumab (2.1% vs. 1.6%)."
+          },
+          {
+            "id": "30403574",
+            "label": "30403574",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "The incidence of adverse events was similar in the two groups, with the exception of local injection-site reactions (3.8% in the alirocumab group vs. 2.1% in the placebo group)."
+          },
+          {
+            "id": "25773378",
+            "label": "25773378",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "The alirocumab group, as compared with the placebo group, had higher rates of injection-site reactions (5.9% vs. 4.2%), myalgia (5.4% vs. 2.9%), neurocognitive events (1.2% vs. 0.5%), and ophthalmologic events (2.9% vs. 1.9%)."
+          }
+        ],
+        "harms_incomplete": true,
+        "known_reported_not_yet_extracted": [
+          {
+            "id": "28304224",
+            "label": "28304224",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "There was no significant difference between the study groups with regard to adverse events (including new-onset diabetes and neurocognitive events), with the exception of injection-site reactions, which were more common with evolocumab (2.1% vs. 1.6%)."
+          },
+          {
+            "id": "30403574",
+            "label": "30403574",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "The incidence of adverse events was similar in the two groups, with the exception of local injection-site reactions (3.8% in the alirocumab group vs. 2.1% in the placebo group)."
+          },
+          {
+            "id": "25773378",
+            "label": "25773378",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "The alirocumab group, as compared with the placebo group, had higher rates of injection-site reactions (5.9% vs. 4.2%), myalgia (5.4% vs. 2.9%), neurocognitive events (1.2% vs. 0.5%), and ophthalmologic events (2.9% vs. 1.9%)."
+          }
+        ],
         "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         "claim_id": "f987b0c75aaf37e9",
         "depends_on": {
@@ -1215,6 +1844,17 @@
       "population": null,
       "timepoint": null,
       "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
+      "served_estimand": "RR",
+      "estimand_decision": {
+        "declared_estimand": "RR",
+        "decision": "cumulative_risk_at_trial_end",
+        "target_scale": "RR",
+        "target_class": "FIRST_EVENT_RATIO",
+        "published_candidate_scales": [],
+        "served_scale_changed": false,
+        "reason": "declared cumulative risk-ratio estimand",
+        "rule": "prefer published RR; otherwise reconstruct RR from counts consistently"
+      },
       "trials": [],
       "declared_absent_trials": [
         {
@@ -1224,6 +1864,11 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
           "trial_family_id": "NCT01764633",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2018-02-15",
+          "completion_date": "2016-11-11",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
           "pooled_in_strands": [
             "Strict 3-point MACE (CV/CHD death, MI, stroke)"
           ],
@@ -1232,6 +1877,18 @@
           "state": "OUTCOME_NOT_IN_SOURCE",
           "source_span": "There was no significant difference between the study groups with regard to adverse events (including new-onset diabetes and neurocognitive events), with the exception of injection-site reactions, wh...",
           "verbatim_span": "There was no significant difference between the study groups with regard to adverse events (including new-onset diabetes and neurocognitive events), with the exception of injection-site reactions, wh...",
+          "trial_id": "PMID 28304224",
+          "report_id": "PMID 28304224",
+          "outcome_effect_id": "pcsk9-mace::Adverse events leading to discontinuation::PMID 28304224::PMID 28304224",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+          },
+          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_source_reported": true,
+          "harm_source_span": "There was no significant difference between the study groups with regard to adverse events (including new-onset diabetes and neurocognitive events), with the exception of injection-site reactions, which were more common with evolocumab (2.1% vs. 1.6%).",
+          "harm_source_signal": "numeric_signal",
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "480ce4073193b55a",
           "depends_on": {
@@ -1246,11 +1903,28 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
           "trial_family_id": "NCT01663402",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2019-03-18",
+          "completion_date": "2018-01-23",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
           "reason_code": "OUTCOME_NOT_IN_SOURCE",
           "state": "OUTCOME_NOT_IN_SOURCE",
           "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"The incidence of adverse events was similar in the two groups, with the exception of local injection-site reactions (3.8% in the alirocumab group vs. 2.1% in the placebo group).\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
           "source_span": "The incidence of adverse events was similar in the two groups, with the exception of local injection-site reactions (3.8% in the alirocumab group vs. 2.1% in the placebo group).",
           "verbatim_span": "The incidence of adverse events was similar in the two groups, with the exception of local injection-site reactions (3.8% in the alirocumab group vs. 2.1% in the placebo group).",
+          "trial_id": "PMID 30403574",
+          "report_id": "PMID 30403574",
+          "outcome_effect_id": "pcsk9-mace::Adverse events leading to discontinuation::PMID 30403574::PMID 30403574",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+          },
+          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_source_reported": true,
+          "harm_source_span": "The incidence of adverse events was similar in the two groups, with the exception of local injection-site reactions (3.8% in the alirocumab group vs. 2.1% in the placebo group).",
+          "harm_source_signal": "numeric_signal",
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "480ce4073193b55a",
           "depends_on": {
@@ -1265,6 +1939,11 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
           "trial_family_id": "NCT03872401",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2026-06-25",
+          "completion_date": "2025-07-25",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
           "pooled_in_strands": [
             "Strict 3-point MACE (CV/CHD death, MI, stroke)"
           ],
@@ -1273,6 +1952,16 @@
           "state": "OUTCOME_NOT_IN_SOURCE",
           "source_span": "The proprotein convertase subtilisin-kexin type 9 (PCSK9) inhibitor evolocumab reduces the risk of major adverse cardiovascular events (MACE) among patients with a previous myocardial infarction, str...",
           "verbatim_span": "The proprotein convertase subtilisin-kexin type 9 (PCSK9) inhibitor evolocumab reduces the risk of major adverse cardiovascular events (MACE) among patients with a previous myocardial infarction, str...",
+          "trial_id": "PMID 41211925",
+          "report_id": "PMID 41211925",
+          "outcome_effect_id": "pcsk9-mace::Adverse events leading to discontinuation::PMID 41211925::PMID 41211925",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+          },
+          "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
+          "harm_source_reported": false,
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "480ce4073193b55a",
           "depends_on": {
@@ -1287,11 +1976,28 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
           "trial_family_id": "NCT01507831",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2015-12-22",
+          "completion_date": "2014-11-30",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
           "reason_code": "OUTCOME_NOT_IN_SOURCE",
           "state": "OUTCOME_NOT_IN_SOURCE",
           "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"Alirocumab, a monoclonal antibody that inhibits proprotein convertase subtilisin-kexin type 9 (PCSK9), has been shown to reduce low-density lipoprotein (LDL) cholesterol levels in patients who are re...\"; no sentence matching the outcome terms was found",
           "source_span": "Alirocumab, a monoclonal antibody that inhibits proprotein convertase subtilisin-kexin type 9 (PCSK9), has been shown to reduce low-density lipoprotein (LDL) cholesterol levels in patients who are re...",
           "verbatim_span": "Alirocumab, a monoclonal antibody that inhibits proprotein convertase subtilisin-kexin type 9 (PCSK9), has been shown to reduce low-density lipoprotein (LDL) cholesterol levels in patients who are re...",
+          "trial_id": "PMID 25773378",
+          "report_id": "PMID 25773378",
+          "outcome_effect_id": "pcsk9-mace::Adverse events leading to discontinuation::PMID 25773378::PMID 25773378",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+          },
+          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_source_reported": true,
+          "harm_source_span": "We conducted a randomized trial involving 2341 patients at high risk for cardiovascular events who had LDL cholesterol levels of 70 mg per deciliter (1.8 mmol per liter) or more and were receiving treatment with statins at the maximum tolerated dose (the highest dose associated with an acceptable si",
+          "harm_source_signal": "term_signal",
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "480ce4073193b55a",
           "depends_on": {
@@ -1306,11 +2012,26 @@
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
           "trial_family_id": "NCT01813422",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2018-01-04",
+          "completion_date": "2016-07-29",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
           "reason_code": "OUTCOME_NOT_IN_SOURCE",
           "state": "OUTCOME_NOT_IN_SOURCE",
           "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"Reducing levels of low-density lipoprotein cholesterol (LDL-C) with intensive statin therapy reduces progression of coronary atherosclerosis in proportion to achieved LDL-C levels. Proprotein convert...\"; no sentence matching the outcome terms was found",
           "source_span": "Reducing levels of low-density lipoprotein cholesterol (LDL-C) with intensive statin therapy reduces progression of coronary atherosclerosis in proportion to achieved LDL-C levels. Proprotein convert...",
           "verbatim_span": "Reducing levels of low-density lipoprotein cholesterol (LDL-C) with intensive statin therapy reduces progression of coronary atherosclerosis in proportion to achieved LDL-C levels. Proprotein convert...",
+          "trial_id": "PMID 27846344",
+          "report_id": "PMID 27846344",
+          "outcome_effect_id": "pcsk9-mace::Adverse events leading to discontinuation::PMID 27846344::PMID 27846344",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+          },
+          "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
+          "harm_source_reported": false,
           "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
           "claim_id": "480ce4073193b55a",
           "depends_on": {
@@ -1339,7 +2060,7 @@
           "28304224",
           "30403574"
         ],
-        "reason": "REPORTED but not extractable as a pooled value: 28304224, 30403574 mention this outcome in the committed abstract, but without arm counts or an effect+CI in an extractable form (e.g. a bare percentage with no denominator). This outcome is NOT absent — it is reported-but-not-poolable from the committed source; full-text acquisition would recover the countable form.",
+        "reason": "HARMS_INCOMPLETE -- 3 known reported outcome(s) unresolved (28304224, 30403574, 25773378) among 3 source-reporting trial(s); extracted k=0. The page must not render this as harm absence.",
         "claim": {
           "present": false,
           "significant": false,
@@ -1348,6 +2069,50 @@
           "null": null,
           "direction": null
         },
+        "harm_reporting_trials_n": 3,
+        "harm_extracted_trials_n": 0,
+        "harm_registered_trials_n": 5,
+        "harm_reporting_trials": [
+          {
+            "id": "28304224",
+            "label": "28304224",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "There was no significant difference between the study groups with regard to adverse events (including new-onset diabetes and neurocognitive events), with the exception of injection-site reactions, which were more common with evolocumab (2.1% vs. 1.6%)."
+          },
+          {
+            "id": "30403574",
+            "label": "30403574",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "The incidence of adverse events was similar in the two groups, with the exception of local injection-site reactions (3.8% in the alirocumab group vs. 2.1% in the placebo group)."
+          },
+          {
+            "id": "25773378",
+            "label": "25773378",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "We conducted a randomized trial involving 2341 patients at high risk for cardiovascular events who had LDL cholesterol levels of 70 mg per deciliter (1.8 mmol per liter) or more and were receiving treatment with statins at the maximum tolerated dose (the highest dose associated with an acceptable si"
+          }
+        ],
+        "harms_incomplete": true,
+        "known_reported_not_yet_extracted": [
+          {
+            "id": "28304224",
+            "label": "28304224",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "There was no significant difference between the study groups with regard to adverse events (including new-onset diabetes and neurocognitive events), with the exception of injection-site reactions, which were more common with evolocumab (2.1% vs. 1.6%)."
+          },
+          {
+            "id": "30403574",
+            "label": "30403574",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "The incidence of adverse events was similar in the two groups, with the exception of local injection-site reactions (3.8% in the alirocumab group vs. 2.1% in the placebo group)."
+          },
+          {
+            "id": "25773378",
+            "label": "25773378",
+            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "span": "We conducted a randomized trial involving 2341 patients at high risk for cardiovascular events who had LDL cholesterol levels of 70 mg per deciliter (1.8 mmol per liter) or more and were receiving treatment with statins at the maximum tolerated dose (the highest dose associated with an acceptable si"
+          }
+        ],
         "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         "claim_id": "cacb0a29d37375e4",
         "depends_on": {
@@ -1385,11 +2150,13 @@
     ],
     "scope": {
       "topic_is_class": true,
-      "comparator_is_class": false,
+      "comparator_is_class": true,
       "intervention_level_match": true,
       "population_match": true,
       "scope_valid": true,
-      "note": "same-question comparator (matching intervention level and population)"
+      "note": "same-question comparator (matching intervention level and population)",
+      "comparator_agent_scope": "class-level",
+      "comparator_agent_scope_sentence": "Frontiers in Cardiovascular Medicine 2297-055X Frontiers Media SA PMC9755489 PMC9755489.1 9755489 9755489 36531722 10.3389/fcvm.2022.1016802 1 Cardiovascular Medicine Systematic Review Effect of alirocumab and evolocumab on all-cause mortality and major cardiovascular events: A meta-analysis focusing on the number needed to treat Wang Hong-Fei 1 2 Mao Yu-Cheng 1 2 Xu Xin-Yi 3 4 Zhao Si-Yu 1 2 Han Dan-Dan 1 2 Ge Shi-Yao 1 2 Song Kai 1 2 Geng Chang 1 2 Tian Qing-Bao 1 2 * 1 Department of Epidemiology and Statistics, School of Public Health, Hebei Medical University , Shijiazhuang , China 2 Hebei Province Key Laboratory of Environment and Human Health , Shijiazhuang , China 3 Postdoctoral Research Station in Basic Medicine, Hebei Medical University , Shijiazhuang , China 4 School of Nursing, Hebei Medical University , Shijiazhuang , China Edited by: Yansheng Feng, The University of Texas Health Science Center at San Antonio, United States Reviewed by: Federica Fogacci, University of Bologna, Italy; Aleksey M."
     },
     "overlap": {
       "ours_k": 3,
@@ -1402,6 +2169,66 @@
       "only_theirs": [],
       "method": "publication-date + design identity (comparator trial list not extracted from source)",
       "note": "Trials newer than the comparator (2022) cannot be in it (only-ours, verifiable by date). Exact shared count not asserted."
+    },
+    "truth": {
+      "agent_scope": {
+        "comparator_agent_scope": "class-level",
+        "sentence": "Frontiers in Cardiovascular Medicine 2297-055X Frontiers Media SA PMC9755489 PMC9755489.1 9755489 9755489 36531722 10.3389/fcvm.2022.1016802 1 Cardiovascular Medicine Systematic Review Effect of alirocumab and evolocumab on all-cause mortality and major cardiovascular events: A meta-analysis focusing on the number needed to treat Wang Hong-Fei 1 2 Mao Yu-Cheng 1 2 Xu Xin-Yi 3 4 Zhao Si-Yu 1 2 Han Dan-Dan 1 2 Ge Shi-Yao 1 2 Song Kai 1 2 Geng Chang 1 2 Tian Qing-Bao 1 2 * 1 Department of Epidemiology and Statistics, School of Public Health, Hebei Medical University , Shijiazhuang , China 2 Hebei Province Key Laboratory of Environment and Human Health , Shijiazhuang , China 3 Postdoctoral Research Station in Basic Medicine, Hebei Medical University , Shijiazhuang , China 4 School of Nursing, Hebei Medical University , Shijiazhuang , China Edited by: Yansheng Feng, The University of Texas Health Science Center at San Antonio, United States Reviewed by: Federica Fogacci, University of Bologna, Italy; Aleksey M.",
+        "span": "Frontiers in Cardiovascular Medicine 2297-055X Frontiers Media SA PMC9755489 PMC9755489.1 9755489 9755489 36531722 10.3389/fcvm.2022.1016802 1 Cardiovascular Medicine Systematic Review Effect of alirocumab and evolocumab on all-cause mortality and major cardiovascular events: A meta-analysis focusing on the number needed to treat Wang Hong-Fei 1 2 Mao Yu-Cheng 1 2 Xu Xin-Yi 3 4 Zhao Si-Yu 1 2 Han Dan-Dan 1 2 Ge Shi-Yao 1 2 Song Kai 1 2 Geng Chang 1 2 Tian Qing-Bao 1 2 * 1 Department of Epidemiology and Statistics, School of Public Health, Hebei Medical University , Shijiazhuang , China 2 Hebei Province Key Laboratory of Environment and Human Health , Shijiazhuang , China 3 Postdoctoral Research Station in Basic Medicine, Hebei Medical University , Shijiazhuang , China 4 School of Nursing, Hebei Medical University , Shijiazhuang , China Edited by: Yansheng Feng, The University of Texas Health Science Center at San Antonio, United States Reviewed by: Federica Fogacci, University of Bologna, Italy; Aleksey M.",
+        "status": "FOUND"
+      },
+      "participant_reconciliation": {
+        "code": "NOT_ASSESSED"
+      },
+      "completeness": {
+        "code": "NOT_ASSESSED"
+      },
+      "recency": {
+        "code": "COMPARATOR_PREDATES_KNOWN_TRIAL",
+        "predates": [
+          {
+            "trial": "VESALIUS-CV",
+            "trial_date": "2025-11",
+            "comparator_year": 2022,
+            "code": "COMPARATOR_PREDATES_KNOWN_TRIAL(VESALIUS-CV)",
+            "basis": "lane instruction; committed search-v2 candidates contain VESALIUS-CV records"
+          }
+        ]
+      },
+      "rendered_comparator_value_spans": [
+        {
+          "field": "reported[0].estimate",
+          "value": 0.83,
+          "status": "FOUND",
+          "span": "e were 53,486 patients with established ASCVD. The effect of PCSK9 inhibitors on MACE was statistically significant (RR 0.83, 95% CI 0.79–0.87) ( Supplementary Figure 3 ), and the corresponding NNT was 36 (NNTB 29 to NNTB 47). When alirocumab a",
+          "start": 15154,
+          "end": 15158
+        },
+        {
+          "field": "reported[0].ci_low",
+          "value": 0.79,
+          "status": "FOUND",
+          "span": "patients with established ASCVD. The effect of PCSK9 inhibitors on MACE was statistically significant (RR 0.83, 95% CI 0.79–0.87) ( Supplementary Figure 3 ), and the corresponding NNT was 36 (NNTB 29 to NNTB 47). When alirocumab and evolocumab",
+          "start": 15167,
+          "end": 15171
+        },
+        {
+          "field": "reported[0].ci_high",
+          "value": 0.87,
+          "status": "FOUND",
+          "span": "ents with established ASCVD. The effect of PCSK9 inhibitors on MACE was statistically significant (RR 0.83, 95% CI 0.79–0.87) ( Supplementary Figure 3 ), and the corresponding NNT was 36 (NNTB 29 to NNTB 47). When alirocumab and evolocumab anal",
+          "start": 15172,
+          "end": 15176
+        },
+        {
+          "field": "overlap.theirs_k",
+          "value": 12,
+          "status": "FOUND",
+          "span": "as submitted to Atherosclerosis and Vascular Medicine, a section of the journal Frontiers in Cardiovascular Medicine 02 12 2022 2022 9 400309 1016802 11 8 2022 21 11 2022 01 01 2022 17 12 2022 19 12 2022 Copyright © 2022 Wang, Mao, Xu, Zhao,",
+          "start": 1348,
+          "end": 1350
+        }
+      ]
     }
   },
   "estimand_exclusions": [],
@@ -1484,7 +2311,7 @@
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting",
+            "basis": "prespecified secondary outcome, registered 'Time to Cardiovascular Death, Myocardial Infarction, or Stroke'",
             "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
             "inputs": {
               "pooled_outcome": "Major adverse cardiovascular events",
@@ -1589,7 +2416,36 @@
               "level": "not assessed"
             }
           ]
-        }
+        },
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       },
       "30403574": {
         "nct": "NCT01663402",
@@ -1654,7 +2510,7 @@
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting",
+            "basis": "prespecified secondary outcome, registered 'Time to Coronary Heart Disease Death; Percentage of Observed Participants With Outcome Measure Events During the Study'",
             "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
             "inputs": {
               "pooled_outcome": "Major adverse cardiovascular events",
@@ -1775,7 +2631,36 @@
               "level": "not assessed"
             }
           ]
-        }
+        },
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       },
       "41211925": {
         "nct": "NCT03872401",
@@ -1840,7 +2725,7 @@
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting",
+            "basis": "prespecified secondary outcome, registered 'Number of Participants Who Experienced Cardiovascular Death, MI, or Ischemic Stroke'",
             "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
             "inputs": {
               "pooled_outcome": "Major adverse cardiovascular events",
@@ -1960,7 +2845,36 @@
               "level": "not assessed"
             }
           ]
-        }
+        },
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     }
   },
@@ -2083,23 +2997,42 @@
     {
       "id": "PMID 28304224",
       "type": "industry",
-      "span": "rent targets. (Funded by Amgen; FOURIER ClinicalTrials.gov number, NCT01764633 .).",
+      "span": "(Funded by Amgen; FOURIER ClinicalTrials.gov number, NCT01764633 .).",
       "source": "abstract",
-      "scanned": "abstract only"
+      "scanned": "abstract",
+      "funding_state": "INDUSTRY_SPONSORED"
     },
     {
       "id": "PMID 30403574",
       "type": "industry",
-      "span": "ived placebo. (Funded by Sanofi and Regeneron Pharmaceuticals; ODYSSEY OUTCOMES ClinicalTrials.gov number, NCT01663402 .).",
+      "span": "(Funded by Sanofi and Regeneron Pharmaceuticals; ODYSSEY OUTCOMES ClinicalTrials.gov number, NCT01663402 .).",
       "source": "abstract",
-      "scanned": "abstract only"
+      "scanned": "abstract",
+      "funding_state": "INDUSTRY_SPONSORED"
     },
     {
       "id": "PMID 41211925",
       "type": "industry",
-      "span": "on or stroke. (Funded by Amgen; VESALIUS-CV ClinicalTrials.gov number, NCT03872401.).",
+      "span": "(Funded by Amgen; VESALIUS-CV ClinicalTrials.gov number, NCT03872401.).",
       "source": "abstract",
-      "scanned": "abstract only"
+      "scanned": "abstract",
+      "funding_state": "INDUSTRY_SPONSORED"
+    },
+    {
+      "id": "PMID 25773378",
+      "type": "industry",
+      "span": "(Funded by Sanofi and Regeneron Pharmaceuticals; ODYSSEY LONG TERM ClinicalTrials.gov number, NCT01507831.).",
+      "source": "abstract",
+      "scanned": "abstract",
+      "funding_state": "INDUSTRY_SPONSORED"
+    },
+    {
+      "id": "PMID 27846344",
+      "type": "not stated (abstract only - full text not retrieved)",
+      "span": "",
+      "source": "abstract",
+      "scanned": "abstract",
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
     }
   ],
   "definition_audit": {
@@ -2117,7 +3050,7 @@
     }
   },
   "rob_spancheck": {
-    "_doc": "RoB span-check: a cross-family (Fable) sample verified the model/registry-derived RoB2 domain ratings (randomization / blinding / assessor-blinding) against each trial abstract. Rebuilds RoB credibility with a number after a visible rendering break. Seed 20260912.",
+    "_doc": "Partial machine assessment span-check: a cross-family (Fable) sample verified the model/registry-derived partial machine domain ratings (randomization / blinding / assessor-blinding) against each trial abstract. Rebuilds registry-machine-signal-restricted credibility with a number after a visible rendering break. Seed 20260912.",
     "checker": "Fable (cross-family)",
     "n_sampled": 45,
     "seed": 20260912,
@@ -2220,7 +3153,14 @@
     ]
   },
   "protocol_config": {
-    "divergences": [],
+    "divergences": [
+      {
+        "code": "DESIGN_MASKING_ANDOR",
+        "dimension": "design",
+        "prose": "double-blind AND placebo-controlled",
+        "config": "double-blind OR placebo-controlled"
+      }
+    ],
     "intervention_i_line": "pcsk9 inhibitor monoclonal antibody therapy: evolocumab or alirocumab."
   },
   "identifier_scope": {
@@ -2259,7 +3199,7 @@
         "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
         "outcome": "Major adverse cardiovascular events",
         "dimension": "endpoint",
-        "asserted": "component-defined composite",
+        "asserted": "TRIAL_DEFINED_MAJOR_CORONARY_CARDIOVASCULAR_COMPOSITE",
         "per_trial_values": [
           {
             "trial_id": "28304224",
@@ -2288,6 +3228,326 @@
     ],
     "post_fix_violations": []
   },
+  "reason_code_audit": {
+    "denominator_source": "declared_absent_trials reason_code/state rows on this page",
+    "N": 12,
+    "counts": {
+      "REASON_TRUE": 11,
+      "REASON_FALSE_VALUE_HELD": 1,
+      "REASON_WRONG_KIND": 0,
+      "NOT_VERIFIABLE": 0
+    },
+    "n_false_value_held": 1,
+    "n_not_verifiable": 0,
+    "by_code_kind": {
+      "outcome_post_hoc_not_pooled": {
+        "REASON_TRUE": 0,
+        "REASON_FALSE_VALUE_HELD": 1,
+        "REASON_WRONG_KIND": 0,
+        "NOT_VERIFIABLE": 0
+      },
+      "outcome_not_reported": {
+        "REASON_TRUE": 1,
+        "REASON_FALSE_VALUE_HELD": 0,
+        "REASON_WRONG_KIND": 0,
+        "NOT_VERIFIABLE": 0
+      },
+      "OUTCOME_NOT_IN_SOURCE": {
+        "REASON_TRUE": 10,
+        "REASON_FALSE_VALUE_HELD": 0,
+        "REASON_WRONG_KIND": 0,
+        "NOT_VERIFIABLE": 0
+      }
+    },
+    "rows": [
+      {
+        "slug": "pcsk9-mace",
+        "outcome": "Major adverse cardiovascular events",
+        "outcome_kind": "primary",
+        "trial_key": "25773378",
+        "label": "25773378",
+        "id": "PMID 25773378",
+        "stated_reason_code": "outcome_post_hoc_not_pooled",
+        "verdict": "REASON_FALSE_VALUE_HELD",
+        "detail": "REASON_FALSE_VALUE_HELD(abstract:25773378, \"In a post hoc analysis, the rate of major adverse cardiovascular events (death from coronary heart disease, nonfatal myocardial infarction, fatal or nonfatal ischemic stroke, or unstable angina requiring hospitalization) was lower with ali...\")",
+        "source_id": "abstract:25773378",
+        "source_kind": "abstract",
+        "source_span": "In a post hoc analysis, the rate of major adverse cardiovascular events (death from coronary heart disease, nonfatal myocardial infarction, fatal or nonfatal ischemic stroke, or unstable angina requiring hospitalization) was lower with ali...",
+        "source_contains": "In a post hoc analysis, the rate of major adverse cardiovascular events (death from coronary heart disease, nonfatal myocardial infarction, fatal or nonfatal ischemic stroke, or unstable angina requiring hospitalization) was lower with ali..."
+      },
+      {
+        "slug": "pcsk9-mace",
+        "outcome": "Major adverse cardiovascular events",
+        "outcome_kind": "primary",
+        "trial_key": "27846344",
+        "label": "27846344",
+        "id": "PMID 27846344",
+        "stated_reason_code": "outcome_not_reported",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "outcome": "Injection-site reactions",
+        "outcome_kind": "harm",
+        "trial_key": "28304224",
+        "label": "28304224",
+        "id": "PMID 28304224",
+        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "outcome": "Injection-site reactions",
+        "outcome_kind": "harm",
+        "trial_key": "30403574",
+        "label": "30403574",
+        "id": "PMID 30403574",
+        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "outcome": "Injection-site reactions",
+        "outcome_kind": "harm",
+        "trial_key": "41211925",
+        "label": "41211925",
+        "id": "PMID 41211925",
+        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "outcome": "Injection-site reactions",
+        "outcome_kind": "harm",
+        "trial_key": "25773378",
+        "label": "25773378",
+        "id": "PMID 25773378",
+        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "outcome": "Injection-site reactions",
+        "outcome_kind": "harm",
+        "trial_key": "27846344",
+        "label": "27846344",
+        "id": "PMID 27846344",
+        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "outcome": "Adverse events leading to discontinuation",
+        "outcome_kind": "harm",
+        "trial_key": "28304224",
+        "label": "28304224",
+        "id": "PMID 28304224",
+        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "outcome": "Adverse events leading to discontinuation",
+        "outcome_kind": "harm",
+        "trial_key": "30403574",
+        "label": "30403574",
+        "id": "PMID 30403574",
+        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "outcome": "Adverse events leading to discontinuation",
+        "outcome_kind": "harm",
+        "trial_key": "41211925",
+        "label": "41211925",
+        "id": "PMID 41211925",
+        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "outcome": "Adverse events leading to discontinuation",
+        "outcome_kind": "harm",
+        "trial_key": "25773378",
+        "label": "25773378",
+        "id": "PMID 25773378",
+        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "outcome": "Adverse events leading to discontinuation",
+        "outcome_kind": "harm",
+        "trial_key": "27846344",
+        "label": "27846344",
+        "id": "PMID 27846344",
+        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      }
+    ]
+  },
+  "unextracted_outcome_audit": {
+    "denominator_source": "included screening records x registered outcomes in this review",
+    "N": 15,
+    "counts": {
+      "EXTRACTED": 3,
+      "HELD_NOT_EXTRACTED": 1,
+      "NOT_IN_HELD_SOURCES": 11,
+      "ABSENT_BY_DESIGN": 0
+    },
+    "n_held_not_extracted": 1,
+    "by_outcome_kind": {
+      "primary": {
+        "EXTRACTED": 3,
+        "HELD_NOT_EXTRACTED": 1,
+        "NOT_IN_HELD_SOURCES": 1,
+        "ABSENT_BY_DESIGN": 0
+      },
+      "harm": {
+        "EXTRACTED": 0,
+        "HELD_NOT_EXTRACTED": 0,
+        "NOT_IN_HELD_SOURCES": 10,
+        "ABSENT_BY_DESIGN": 0
+      }
+    },
+    "rows": [
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "28304224",
+        "trial_label": "28304224",
+        "outcome": "Major adverse cardiovascular events",
+        "outcome_kind": "primary",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "30403574",
+        "trial_label": "30403574",
+        "outcome": "Major adverse cardiovascular events",
+        "outcome_kind": "primary",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "41211925",
+        "trial_label": "41211925",
+        "outcome": "Major adverse cardiovascular events",
+        "outcome_kind": "primary",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "25773378",
+        "trial_label": "25773378",
+        "outcome": "Major adverse cardiovascular events",
+        "outcome_kind": "primary",
+        "status": "HELD_NOT_EXTRACTED",
+        "source_id": "abstract:25773378",
+        "source_kind": "abstract",
+        "source_span": "In a post hoc analysis, the rate of major adverse cardiovascular events (death from coronary heart disease, nonfatal myocardial infarction, fatal or nonfatal ischemic stroke, or unstable angina requiring hospitalization) was lower with ali..."
+      },
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "27846344",
+        "trial_label": "27846344",
+        "outcome": "Major adverse cardiovascular events",
+        "outcome_kind": "primary",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "28304224",
+        "trial_label": "28304224",
+        "outcome": "Injection-site reactions",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "30403574",
+        "trial_label": "30403574",
+        "outcome": "Injection-site reactions",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "41211925",
+        "trial_label": "41211925",
+        "outcome": "Injection-site reactions",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "25773378",
+        "trial_label": "25773378",
+        "outcome": "Injection-site reactions",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "27846344",
+        "trial_label": "27846344",
+        "outcome": "Injection-site reactions",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "28304224",
+        "trial_label": "28304224",
+        "outcome": "Adverse events leading to discontinuation",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "30403574",
+        "trial_label": "30403574",
+        "outcome": "Adverse events leading to discontinuation",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "41211925",
+        "trial_label": "41211925",
+        "outcome": "Adverse events leading to discontinuation",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "25773378",
+        "trial_label": "25773378",
+        "outcome": "Adverse events leading to discontinuation",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "trial_key": "27846344",
+        "trial_label": "27846344",
+        "outcome": "Adverse events leading to discontinuation",
+        "outcome_kind": "harm",
+        "status": "NOT_IN_HELD_SOURCES"
+      }
+    ]
+  },
   "rob_sensitivity": {
     "outcome": "Major adverse cardiovascular events",
     "estimand": "HR",
@@ -2296,55 +3556,58 @@
       "30403574": "low",
       "41211925": "low"
     },
-    "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e",
+    "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff",
     "n_trials": 3,
     "n_rob_rated": 3,
     "rob_covered": true,
     "any_high": false,
     "full": {
       "k": 3,
-      "estimate": 0.83,
+      "estimate": 0.8106,
       "scale": "HR",
-      "ci_low": 0.7147,
-      "ci_high": 0.9638,
-      "tau2": 0.00124,
-      "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e",
-      "claim_id": "64241622d8e9299d",
+      "ci_low": 0.7032,
+      "ci_high": 0.9344,
+      "tau2": 0.00057,
+      "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff",
+      "claim_id": "743453d6fbc7a750",
       "depends_on": {
-        "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e"
+        "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff"
       },
       "claim_kind": "rob_sensitivity.full"
     },
     "drop_high": {
       "k": 3,
-      "estimate": 0.83,
+      "estimate": 0.8106,
       "scale": "HR",
-      "ci_low": 0.7147,
-      "ci_high": 0.9638,
-      "tau2": 0.00124,
-      "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e",
-      "claim_id": "be940f7159dd675f",
+      "ci_low": 0.7032,
+      "ci_high": 0.9344,
+      "tau2": 0.00057,
+      "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff",
+      "claim_id": "834d3a898b40d441",
       "depends_on": {
-        "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e"
+        "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff"
       },
       "claim_kind": "rob_sensitivity.drop_high"
     },
     "low_only": {
       "k": 3,
-      "estimate": 0.83,
+      "estimate": 0.8106,
       "scale": "HR",
-      "ci_low": 0.7147,
-      "ci_high": 0.9638,
-      "tau2": 0.00124,
-      "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e",
-      "claim_id": "1e8c7522cbae6fc5",
+      "ci_low": 0.7032,
+      "ci_high": 0.9344,
+      "tau2": 0.00057,
+      "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff",
+      "claim_id": "e3b78f681221fd5a",
       "depends_on": {
-        "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e"
+        "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff"
       },
       "claim_kind": "rob_sensitivity.low_only"
     },
     "drop_high_informative": false,
     "low_only_relation": "identical_to_full",
+    "low_only_kind": "bias_sensitivity",
+    "low_only_excluded_adverse": 0,
+    "low_only_excluded_unassessed": 0,
     "low_only_informative": false,
     "low_only_predicate": "same_trial_set"
   },
@@ -2365,13 +3628,13 @@
         "downgrade": 0,
         "not_estimable": false,
         "assessed": true,
-        "basis": "tau^2=0.00124; prediction interval not markedly wider than the CI"
+        "basis": "tau^2=0.00057; prediction interval not markedly wider than the CI"
       },
       "imprecision": {
         "downgrade": 0,
         "crosses_null": false,
         "assessed": true,
-        "basis": "95% CI [0.7147, 0.9638]; excludes the null with a reasonably tight interval -> precise"
+        "basis": "95% CI [0.7032, 0.9344]; excludes the null with a reasonably tight interval -> precise"
       },
       "publication_bias": {
         "downgrade": 0,
@@ -2400,10 +3663,10 @@
     ],
     "rob_basis": "machine-assessed domains only; D3 unassessed on 3 of 3 trial(s)",
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
-    "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e",
-    "claim_id": "f81d5086f107a05b",
+    "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff",
+    "claim_id": "c22b059471d8a5cd",
     "depends_on": {
-      "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e"
+      "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff"
     },
     "claim_kind": "grade"
   },
@@ -2411,16 +3674,16 @@
     "objects": [
       {
         "kind": "rob_sensitivity_prose",
-        "claim_id": "7abefa7ed9d2d8b2",
+        "claim_id": "de924ce979a10227",
         "depends_on": {
-          "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e"
+          "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff"
         }
       },
       {
         "kind": "manuscript_result_sentence",
-        "claim_id": "736557aabc96c258",
+        "claim_id": "4c7d4b0fce7c4c9f",
         "depends_on": {
-          "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e"
+          "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff"
         }
       }
     ]
@@ -2513,8 +3776,8 @@
         "/search/retrieval/snapshot",
         "/search/retrieval/sources"
       ],
-      "rendered_text": "<div class='banner'><p><strong>Snapshot:</strong> records_sha256 <code>2804ee5b</code>; retrieved_utc 2026-09-16; mode LEGACY_UNRECORDED_PLUS_EXTRA_PMIDS.</p><p>This page is a REPLAY of that snapshot: re-running from the protocol SHA regenerates it byte-for-byte. A live re-search is a separate, dated event (see Re-search below if present).</p></div>",
-      "text_sha256": "4f358e3b73c8b8faa71f71b26311c0684c518b99afe483d56d605cf1a44769b8",
+      "rendered_text": "<div class='banner'><p><strong>Snapshot:</strong> records_sha256 <code>2804ee5b</code>; retrieved_utc 2026-09-16; mode LEGACY_UNRECORDED_PLUS_EXTRA_PMIDS.</p><p>This page replays the committed retrieval snapshot; it is not a claim that the protocol SHA alone regenerates the page byte-for-byte. A live re-search is a separate, dated event (see Re-search below if present).</p></div>",
+      "text_sha256": "2043e2a3fc6585b7bb5acbfbc5befac9576d961d46528d2aed422cdab442b0d8",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2617,8 +3880,8 @@
         "/harms/*/result/state",
         "/harms/*/result/known_eligible_outcome_reports_unresolved"
       ],
-      "rendered_text": "<div class='absent'><strong>HARMS_INCOMPLETE.</strong> HARMS_INCOMPLETE: 2 known eligible outcome report(s) from primary-pool trials are unresolved; an isolated k=0 harm estimate is suppressed until those rows are extracted or typed-refused. <span class='muted'>Known unresolved primary-pool trial(s): 28304224, 30403574</span></div>",
-      "text_sha256": "92cff8047c6251aff07e46d6c541d081946ee9e411d727dd6c39b07d0018f75e",
+      "rendered_text": "<div class='absent'><strong>HARMS_INCOMPLETE.</strong> HARMS_INCOMPLETE -- 3 known reported outcome(s) unresolved (28304224, 30403574, 25773378) among 3 source-reporting trial(s); extracted k=0. The page must not render this as harm absence. <span class='muted'>Known unresolved primary-pool trial(s): 28304224, 30403574</span></div>",
+      "text_sha256": "843a117c575f929d1d1c03164fdf94cbd9a76747450272c270a7f2f58e9e58b4",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "compat-check:harms-incomplete",
@@ -2641,8 +3904,8 @@
         "/outcomes/*/result/present",
         "/outcomes/*/result/reason"
       ],
-      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> REPORTED but not extractable as a pooled value: 28304224, 30403574 mention this outcome in the committed abstract, but without arm counts or an effect+CI in an extractable form (e.g. a bare percentage with no denominator). This outcome is NOT absent — it is reported-but-not-poolable from the committed source; full-text acquisition would recover the countable form.</div>",
-      "text_sha256": "246d0b4d0ace3018da556db56e927b7f11428b4ca118a61a6444bd03092cef36",
+      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> HARMS_INCOMPLETE -- 3 known reported outcome(s) unresolved (28304224, 30403574, 25773378) among 3 source-reporting trial(s); extracted k=0. The page must not render this as harm absence.</div>",
+      "text_sha256": "a60ce66a11d7f111dd704120b8e7d4e6ae24e7c85e63825b1dcbfb1a0aa4ddda",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2718,12 +3981,12 @@
       "limitation_class": "INFORMATIONAL",
       "severity": "QUALIFIES_CLAIM",
       "claim_affected": "funding and conflict-of-interest adjustment",
-      "evidence_state": "RECORDED",
+      "evidence_state": "PARTIAL",
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from a verbatim statement in the committed source (full text preferred, abstract fallback), including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>3 of 3 known</strong> (0 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Scanned</th><th>Verbatim statement</th></tr><tr><td>PMID 28304224</td><td>industry</td><td>abstract only</td><td>rent targets. (Funded by Amgen; FOURIER ClinicalTrials.gov number, NCT01764633 .).</td></tr><tr><td>PMID 30403574</td><td>industry</td><td>abstract only</td><td>ived placebo. (Funded by Sanofi and Regeneron Pharmaceuticals; ODYSSEY OUTCOMES ClinicalTrials.gov number, NCT01663402 .).</td></tr><tr><td>PMID 41211925</td><td>industry</td><td>abstract only</td><td>on or stroke. (Funded by Amgen; VESALIUS-CV ClinicalTrials.gov number, NCT03872401.).</td></tr></table></div>",
-      "text_sha256": "2968de54a7c90f5b26bdec20f45ef3638b164243e06b9de26305c23ab3fc65ec",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>4 of 4 known</strong> (1 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 28304224</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Amgen; FOURIER ClinicalTrials.gov number, NCT01764633 .).</td></tr><tr><td>PMID 30403574</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Sanofi and Regeneron Pharmaceuticals; ODYSSEY OUTCOMES ClinicalTrials.gov number, NCT01663402 .).</td></tr><tr><td>PMID 41211925</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Amgen; VESALIUS-CV ClinicalTrials.gov number, NCT03872401.).</td></tr><tr><td>PMID 25773378</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Sanofi and Regeneron Pharmaceuticals; ODYSSEY LONG TERM ClinicalTrials.gov number, NCT01507831.).</td></tr><tr><td>PMID 27846344</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
+      "text_sha256": "4530afa367f0e55246a068c3500eeebafb14a9f33ec7c11e901fb3aed977161c",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2735,9 +3998,9 @@
       "unwired_acknowledged": {
         "signed_by": "Codex lane AD",
         "date": "2026-09-15",
-        "reason": "Funding and conflict-of-interest are disclosed for interpretation; the harness does not estimate a per-trial funding adjustment and no analytic gate consumes the recorded state.",
+        "reason": "Funding and conflict-of-interest are disclosed for interpretation; the harness does not estimate a per-trial funding adjustment and no analytic gate consumes the partial state.",
         "tranche": "TRANCHE-hazard-consumers",
-        "ack_id": "HC-FUNDING_COI-RECORDED"
+        "ack_id": "HC-FUNDING_COI-PARTIAL"
       }
     },
     {
@@ -2752,8 +4015,8 @@
         "/rob_sensitivity/drop_high",
         "/rob_sensitivity/low_only"
       ],
-      "rendered_text": "<div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> The primary outcome is re-pooled by risk-of-bias stratum with the identical estimator. <strong>3 of 3</strong> pooled trials have a risk-of-bias rating; no pooled trial is rated <em>high</em> risk (the registry-derived assessment does not reach 'high'), so the standard drop-high sensitivity is inert and the informative stratum is <em>low-only</em>. All pooled trials are low risk, so the low-only re-pool is the full pool; there is no coverage-driven k reduction in this stratum.<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr><tr><td>Full pool (all pooled trials)</td><td>k=3, HR 0.83 [0.7147, 0.9638]</td></tr><tr><td>Low risk of bias only</td><td>k=3, HR 0.83 [0.7147, 0.9638] <em>(all pooled trials are low risk; the re-pool is the full pool)</em></td></tr></table></div>",
-      "text_sha256": "6c9f771b695cb3bc316762c473bcba3f9a94081c02ee1a156a4cdfa6ac0df682",
+      "rendered_text": "<div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> The primary outcome is re-pooled by risk-of-bias stratum with the identical estimator. <strong>3 of 3</strong> pooled trials have a risk-of-bias rating; no pooled trial is rated <em>high</em> risk (the registry-derived assessment does not reach 'high'), so the standard drop-high sensitivity is inert and the informative stratum is <em>low-only</em>. Low-only kind: <code>bias_sensitivity</code> (0 adverse rating exclusion(s), 0 unassessed-domain exclusion(s)). All pooled trials are low risk, so the low-only re-pool is the full pool; there is no coverage-driven k reduction in this stratum.<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr><tr><td>Full pool (all pooled trials)</td><td>k=3, HR 0.8106 [0.7032, 0.9344]</td></tr><tr><td>Low risk of bias only</td><td>k=3, HR 0.8106 [0.7032, 0.9344] <em>(all pooled trials are low risk; the re-pool is the full pool)</em></td></tr></table></div>",
+      "text_sha256": "353328084fa6e1cc8fb735d4af0b5fb18d71b9db0d8bee3e519c3657b326f73c",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2781,8 +4044,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 0 downgrade(s)). The rating is capped below <em>high</em> because D3 (missing outcome data), a required risk-of-bias domain, is NOT ASSESSED for any pooled trial (no outcome-missingness source) &mdash; high certainty cannot be certified on a structurally-incomplete bias assessment. <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 3 of 3 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 3 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td>not downgraded</td><td>tau^2=0.00124; prediction interval not markedly wider than the CI</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.7147, 0.9638]; excludes the null with a reasonably tight interval -&gt; precise</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (4 of ~32 completed unpublished, 12%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "5b93a94cad04c39fe768b03ccea3e2f29a4fec6a6c7b1754129a473a5affc49d",
+      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 0 downgrade(s)). The rating is capped below <em>high</em> because D3 (missing outcome data), a required risk-of-bias domain, is NOT ASSESSED for any pooled trial (no outcome-missingness source) &mdash; high certainty cannot be certified on a structurally-incomplete bias assessment. <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 3 of 3 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (registry-machine-signal-restricted signals, not a human risk-of-bias assessment) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency and imprecision are computed from committed fields; <strong>publication bias is NOT ASSESSED automatically</strong> because the available registry ghost census is descriptive until its denominator is PICO-scoped. <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 3 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td>not downgraded</td><td>tau^2=0.00057; prediction interval not markedly wider than the CI</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.7032, 0.9344]; excludes the null with a reasonably tight interval -&gt; precise</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (4 of ~32 completed unpublished, 12%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "a709aeaf0e7d7ff1a67c267641575bb5b752fff6dd40bf832a2512ae18be4834",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2859,10 +4122,80 @@
       }
     }
   ],
+  "propositions": {
+    "version": 1,
+    "objects": [
+      {
+        "kind": "publication_bias_state",
+        "surface": "grade/manuscript/reporting",
+        "source_path": "/grade/domains/publication_bias",
+        "assessed": false,
+        "state": "NOT_ASSESSED",
+        "claim_id": "785fa24e85d4d2bc"
+      },
+      {
+        "kind": "declared_equals_enforced",
+        "surface": "reporting/prisma_item_5",
+        "source_path": "/protocol_config/divergences",
+        "asserted_equal": false,
+        "divergence_count": 1,
+        "divergence_codes": [
+          "DESIGN_MASKING_ANDOR"
+        ],
+        "claim_id": "2eb93d01c8ed8224"
+      },
+      {
+        "kind": "byte_reproducible",
+        "surface": "search/reporting/reproduction/manuscript",
+        "source_path": "/reproduction",
+        "asserts_protocol_sha_replay": false,
+        "asserts_committed_cache_replay": true,
+        "claim_id": "ffece3f8af6a0b03"
+      },
+      {
+        "kind": "pooled_count",
+        "surface": "overview/results/manuscript",
+        "source_path": "/outcomes/*[primary]/result/k",
+        "subject": "primary_effect_objects",
+        "count": 3,
+        "claim_id": "5cb7cb94b7a46f28"
+      },
+      {
+        "kind": "rated_count",
+        "surface": "riskofbias/manuscript",
+        "source_path": "/rob_sensitivity",
+        "rated": 3,
+        "total": 3,
+        "claim_id": "f3cfb5ce652671d4"
+      },
+      {
+        "kind": "retracted_count",
+        "surface": "riskofbias/integrity",
+        "source_path": "/integrity",
+        "pooled": 3,
+        "retracted": 0,
+        "claim_id": "03bfa63d09bd1b11"
+      }
+    ],
+    "scope_counts": {
+      "publication_bias_state": 1,
+      "declared_equals_enforced": 1,
+      "byte_reproducible": 1,
+      "pooled_count": 1,
+      "rated_count": 1,
+      "retracted_count": 1,
+      "search_found": 0,
+      "state_collapsed": 0
+    },
+    "not_in_scope": [
+      "verbatim source quotations",
+      "external comparator prose without a committed object row"
+    ]
+  },
   "reproduction": {
     "failures": 0,
     "protocol_sha": "dd2403f56a1025c011e6d6a601d25817aab3c9e7",
-    "review_sha256": "08d3dbf5e2fd45f41025c8985fa775b5fc542908f40e68c8b50520ea082bf68c",
+    "review_sha256": "d28fb1c03ebe9e6c140647050d831ad4d81476ac861a7936060491252f09407d",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -2912,10 +4245,10 @@
       },
       "hand_our_k": 2,
       "hand_our_k_stale": true,
-      "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e",
-      "claim_id": "1869f3400d780c1d",
+      "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff",
+      "claim_id": "82c4e1a0274212b2",
       "depends_on": {
-        "input_set_version": "bbb5030495fdb1dbba5b56e554f52390b01f80f61bfcf905f3afe07a3b0f7a3e"
+        "input_set_version": "a35d5fe02d5cea9ae2d8992ab092095bc13c8c65d0997f56909aa21e004082ff"
       },
       "claim_kind": "parity"
     },
@@ -2959,7 +4292,34 @@
     },
     "proposition_check": {
       "checked": true,
-      "contradictions": []
+      "contradictions": [],
+      "legacy_contradictions": [],
+      "scope_counts": {
+        "publication_bias_state": 1,
+        "declared_equals_enforced": 1,
+        "byte_reproducible": 1,
+        "pooled_count": 1,
+        "rated_count": 1,
+        "retracted_count": 1,
+        "search_found": 0,
+        "state_collapsed": 0
+      },
+      "scope": {
+        "scope_counts": {
+          "publication_bias_state": 1,
+          "declared_equals_enforced": 1,
+          "byte_reproducible": 1,
+          "pooled_count": 1,
+          "rated_count": 1,
+          "retracted_count": 1,
+          "search_found": 0,
+          "state_collapsed": 0
+        },
+        "not_in_scope": [
+          "verbatim source quotations",
+          "external comparator prose without a committed object row"
+        ]
+      }
     },
     "claimgraph_check": {
       "violations": [],

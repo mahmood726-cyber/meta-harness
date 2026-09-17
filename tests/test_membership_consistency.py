@@ -38,19 +38,24 @@ def test_prefix_esketamine_plant_fires_three_membership_violations():
     assert "TRANSFORM-1" in violations[2]["conflicts"][0]["sentence"]
 
 
-def test_rebuilt_esketamine_membership_is_consistent_and_stale_parity_unrendered():
+def test_rebuilt_esketamine_membership_is_consistent_and_parity_row_current():
     review = json.load(open(
         os.path.join(ROOT, "docs", "reviews", "esketamine-trd-madrs", "review.json"),
         encoding="utf-8",
     ))
     assert membership.consistency_violations(review) == []
     parity = (review.get("reproduction") or {}).get("parity") or {}
-    assert parity.get("membership_status") == "STALE_VS_MEMBERSHIP"
+    assert parity.get("membership_status") is None
+    assert parity.get("our_k") == 4
+    assert parity.get("comparable_comparator_k") == 4
+    assert (parity.get("parity_relation") or {}).get("relation") == "IDENTICAL_SET"
     html = open(
         os.path.join(ROOT, "docs", "reviews", "esketamine-trd-madrs", "index.html"),
         encoding="utf-8",
     ).read()
-    assert "STALE_VS_MEMBERSHIP" in html
+    assert "STALE_VS_MEMBERSHIP" not in html
+    assert "Our pooled <em>k</em> = <strong>4</strong> vs the comparator <em>k</em> = <strong>4</strong>" in html
+    assert "We pool 2" not in html
     assert "The 2 gap trials (TRANSFORM-1 and the phase-2 dose-finding)" not in html
 
 
@@ -76,4 +81,3 @@ def test_synthetic_agreeing_membership_control_passes():
         "reproduction": {"parity": {"our_k": 1, "reason": "Same-scope comparator agreement."}},
     }
     assert membership.consistency_violations(review) == []
-

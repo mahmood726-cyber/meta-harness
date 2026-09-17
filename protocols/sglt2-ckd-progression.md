@@ -71,3 +71,12 @@ CKD progression HR 0.62 (95% CI 0.57-0.68) across 10 randomized trials.
   36331190).
 - **Negative** - DAPA-HF (dapagliflozin, placebo-controlled, but HFrEF rather than
   CKD; PMID 31535829) must be recovered and EXCLUDED as wrong population.
+
+## Retrospective executable-screen amendment (2026-09-16)
+`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found one vocabulary
+miss and one sparse-registry comparator miss. The executable population terms now
+recognize plural "Chronic Kidney Diseases"; DIAMOND NCT03190694 is source-backed
+as eligible for P/I/C/design despite the committed registry intervention list
+omitting the placebo/crossover comparator label. This amendment changes screening
+only; short duration, proteinuria/mGFR, or outcome incompatibility remains an
+extraction/compatibility question, not a screening exclusion.

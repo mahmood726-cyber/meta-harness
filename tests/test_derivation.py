@@ -32,4 +32,8 @@ def test_every_pooled_trial_has_a_derivation():
         for o in d.get("outcomes", []):
             for t in o.get("trials", []):
                 if any(t.get(k) is not None for k in ("ai", "mean1", "e1i", "effect")):
-                    assert t.get("derivation") in ("reported", "reconstructed"), (f, t.get("id"))
+                    derivation = t.get("derivation")
+                    assert derivation == "reported" or str(derivation).startswith("reconstructed"), (
+                        f,
+                        t.get("id"),
+                    )

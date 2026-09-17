@@ -262,7 +262,8 @@ def render(review, neutral: bool = False) -> str:
         reg_phrase = (f"prospectively registered: the protocol was committed in a protocol-only commit "
                       f"(registration SHA {_e(_pre_sha)}) before synthesis")
         reg_methods = (f"The protocol (protocol-only commit {_e(_pre_sha)}) was committed before any "
-                       f"synthesis ran; the build replays from SHA {_e(_build_sha)}.")
+                       f"synthesis ran; deterministic replay is from the committed cache, and "
+                       f"protocol-SHA byte-for-byte replay is not currently claimed.")
     else:
         reg_phrase = (f"NOT prospectively registered in this repository: the protocol first "
                       f"entered the repository inside a build commit (SHA {_e(_build_sha)}), so precedence of "
@@ -332,6 +333,13 @@ def render(review, neutral: bool = False) -> str:
         result_sentence = (f"Pooling {_k_phrase(prim)} gave {scale} {est} (95% CI {lo} to {hi}), "
                            f"random-effects (Paule-Mandel with a Hartung-Knapp interval).{pi}")
 
+    _pub = (g.get("domains") or {}).get("publication_bias") or {}
+    _pub_certainty_phrase = (
+        "publication bias not assessed automatically; any registry ghost census is descriptive until "
+        "PICO-scoped"
+        if _pub.get("assessed") is False else
+        "publication bias assessed from the trial registry"
+    )
     abstract = (
         "<h4>Abstract</h4>"
         f"<p><strong>Question.</strong> {_e(q)}</p>"
@@ -349,9 +357,9 @@ def render(review, neutral: bool = False) -> str:
         + (f"Overall GRADE certainty is <strong>not rateable</strong>: {_e(g.get('not_rateable_reason'))} "
            "No downgrade count or overall certainty is reported for an incoherent effect object."
            if _grade_not_rateable else
-           (f"Partial GRADE certainty was <strong>{_e(cert)}</strong> "
-            f"(from {g.get('downgrades', 0)} downgrade(s); publication bias assessed from the trial registry, "
-            f"indirectness left to human judgement)." if cert else "Certainty was reported as signals."))
+            (f"Partial GRADE certainty was <strong>{_e(cert)}</strong> "
+             f"(from {g.get('downgrades', 0)} downgrade(s); {_pub_certainty_phrase}, "
+             f"indirectness left to human judgement)." if cert else "Certainty was reported as signals."))
         + "</p>"
     )
 
@@ -359,7 +367,8 @@ def render(review, neutral: bool = False) -> str:
     methods = (
         "<h4>Methods</h4>"
         "<p>This manuscript is generated deterministically from the review object; every number below is "
-        "interpolated from a committed field and is reproducible from the protocol commit. "
+        "interpolated from a committed field. Deterministic replay is from the committed cache; "
+        "protocol-commit byte reproduction is not claimed. "
         f"{reg_methods} Eligibility is by population, intervention, "
         "comparator and design only — never on whether a trial reported the outcome (non-reporters are "
         "declared absent, not screened out). Two independently implemented rule screeners ran with "

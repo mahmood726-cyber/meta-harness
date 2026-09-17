@@ -79,3 +79,10 @@ first for CVOT scope, but Unpaywall reported the article closed access.
   30415602).
 - **Negative** - FIDELIO-DKD (finerenone in CKD and type 2 diabetes, PMID
   33264825) must be recovered and EXCLUDED as wrong intervention.
+
+## Retrospective executable-screen amendment (2026-09-16)
+`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that the
+protocol's broad cardiovascular-outcome-trial scope was not executable. The config
+now requires cardiovascular-outcome / cardiovascular-events / MACE wording, so
+short glycaemic or imaging-marker diabetes trials are not included merely because
+they are randomized SGLT2 placebo trials. This amendment changes screening only.

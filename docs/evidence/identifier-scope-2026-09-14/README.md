@@ -1,6 +1,6 @@
 # Identifier Scope Evidence (2026-09-14)
 
-**Fix state (orthogonal fields rule): LANDED / NONE / CORPUS / STALE** - generated from TRANCHE-identifier-scope; stale dependencies: harness/gate_scorecard.py, harness/invalidation.py, harness/page.py, +4 more
+**Fix state (orthogonal fields rule): LANDED / NONE / CORPUS / STALE** - generated from TRANCHE-identifier-scope; stale dependencies: harness/gate_scorecard.py, harness/invalidation.py, harness/page.py, +5 more
 
 Base commit: `4a2283e9f6bca55101bc918bd5319a963ca7e4ec`.
 

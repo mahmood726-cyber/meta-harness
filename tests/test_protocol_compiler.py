@@ -17,11 +17,18 @@ def test_estimand_agreement_clean():
 
 
 def test_design_masking_and_or_divergence():
-    md = "The trial is double-blind or placebo-controlled."
+    md = "The trial is double-blind and placebo-controlled."
     cfg = {"primary_outcome": {"estimand": "RR"},
            "include": {"design_double_blind": True, "comparator_any": ["placebo"]}}
     div = PC.compare("x", md, cfg)
     assert any(d["code"] == "DESIGN_MASKING_ANDOR" for d in div)
+
+
+def test_design_masking_or_agreement_clean():
+    md = "The trial is double-blind or placebo-controlled."
+    cfg = {"primary_outcome": {"estimand": "RR"},
+           "include": {"design_double_blind": True, "comparator_any": ["placebo"]}}
+    assert [d for d in PC.compare("x", md, cfg) if d["code"] == "DESIGN_MASKING_ANDOR"] == []
 
 
 def test_population_divergence():

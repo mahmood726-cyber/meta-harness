@@ -66,3 +66,11 @@ safety outcomes.
 - **Negative** - CORP recurrent pericarditis (PMID 21873705), a double-blind
   placebo colchicine trial from another topic/disease, must be recovered and
   excluded as the wrong population.
+
+## Retrospective executable-screen amendment (2026-09-16)
+`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that duplicate
+secondary/economic analyses of already-pooled colchicine cardiovascular trials
+were being treated as independent eligible trials. The config now excludes
+cost-effectiveness / cost-utility analyses and secondary/subgroup analyses such as
+LoDoCo2 prior-ACS subgroup reports. This amendment changes screening only; primary
+trial reports remain eligible.

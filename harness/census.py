@@ -29,6 +29,7 @@ from . import claimgraph
 from . import compat
 from . import membership
 from . import proposition
+from . import propositions
 from . import parity_relation
 from .synth import CI_PROVENANCE
 
@@ -154,6 +155,7 @@ def build_review_dir(
 ) -> dict:
     """Assemble a publishable review directory. Returns the manifest dict."""
     os.makedirs(out_dir, exist_ok=True)
+    review_core_obj = propositions.attach(review_core_obj)
     core_sha = review_sha256(review_core_obj)  # excludes 'reproduction' by construction
 
     # Level A self-check while building: rendering the core twice is byte-stable.
@@ -214,7 +216,15 @@ def build_review_dir(
     # still renders an estimate, a record BOTH eligible and excluded, a current-headline claim on an
     # invalidated topic, a preregistration-precedence claim it cannot support). Object-derived; fail closed.
     _pbad = proposition.contradictions(review_core_obj)
-    reproduction["proposition_check"] = {"checked": True, "contradictions": _pbad}
+    _prop_doc = propositions.check_document(review_core_obj)
+    _pbad = _pbad + (_prop_doc.get("contradictions") or [])
+    reproduction["proposition_check"] = {
+        "checked": True,
+        "contradictions": _pbad,
+        "legacy_contradictions": proposition.contradictions(review_core_obj),
+        "scope_counts": _prop_doc.get("scope_counts") or {},
+        "scope": _prop_doc.get("scope") or {},
+    }
     if _pbad:
         raise ValueError("PROPOSITION CONTRADICTION (build refused): a categorical/membership or "
                          "methodological proposition and its negation are asserted at once -> " + json.dumps(_pbad))

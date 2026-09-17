@@ -104,11 +104,22 @@ def test_real_review_reproduces_and_passes_full_gate():
     # outside the repo (no docs/reviews present).
     import os as _os
     root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
-    d = _os.path.join(root, "docs", "reviews", "probiotics-aad-prevention")
+    d = _os.path.join(root, "docs", "reviews", "noac-vs-warfarin-af-stroke")
     if not _os.path.isdir(d):
         return
     ok, reasons = gate_page(d)
     assert ok, f"real committed review must pass the full gate, got: {reasons}"
+
+
+def test_real_review_harms_incomplete_refuses_full_gate():
+    import os as _os
+    root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    d = _os.path.join(root, "docs", "reviews", "probiotics-aad-prevention")
+    if not _os.path.isdir(d):
+        return
+    ok, reasons = gate_page(d)
+    assert not ok, "HM debt must refuse a real committed review"
+    assert "HARMS_INCOMPLETE" in " | ".join(reasons)
 
 
 # --- Limb 1 refusals ----------------------------------------------------------

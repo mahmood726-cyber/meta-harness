@@ -8,16 +8,18 @@ major-to-critical.
 """
 from __future__ import annotations
 
+import json
 import math
+import os
 import re
 from typing import Any
 
-from . import unit_of_analysis
+from . import estmeasure, unit_of_analysis
 
 
 UNSUPPORTED_RECONSTRUCTED = {"CLUSTER", "CROSSOVER", "CLUSTER_CROSSOVER", "STEPPED_WEDGE"}
 ADJUSTMENT_KINDS = {"ICC_DESIGN_EFFECT", "PAIRED_ANALYSIS", "PUBLISHED_ADJUSTED_SUBSTITUTED"}
-ACTION_VALUES = ("ALLOW", "ALLOW_WITH_LABEL", "ADJUST", "MANUAL_REVIEW", "REFUSE")
+ACTION_VALUES = ("ALLOW", "ALLOW_WITH_LABEL", "ADJUST", "MANUAL_REVIEW", "REFUSE", "DESIGN_UNPROVEN")
 BLOCKING_ACTIONS = {"MANUAL_REVIEW", "REFUSE"}
 CORRELATION_METHODS = {
     "published_model",
@@ -71,6 +73,7 @@ _NO_INTERACTION_RE = re.compile(
     r"\bno\s+significant\s+interaction\b.{0,120}?\b(?:P|p)\s*[=<>]\s*\.?\d+",
     re.I,
 )
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def _pid(trial: dict[str, Any]) -> str:
@@ -92,6 +95,18 @@ def registry_designs(records: dict[str, Any]) -> dict[str, dict[str, Any]]:
         nct = str(row.get("nct_id") or row.get("id") or "").upper()
         if nct:
             out.setdefault(nct, {}).update(row)
+    slug = records.get("slug")
+    if slug:
+        path = os.path.join(ROOT, "cache", str(slug), "registry_designs.json")
+        try:
+            cached = json.load(open(path, encoding="utf-8"))
+        except (OSError, ValueError):
+            cached = {}
+        if isinstance(cached, dict):
+            for nct, row in cached.items():
+                key = str(nct or "").upper()
+                if key and isinstance(row, dict):
+                    out.setdefault(key, {}).update(row)
     return out
 
 
@@ -101,6 +116,202 @@ def derivation_for_trial(trial: dict[str, Any]) -> str | None:
     if trial.get("effect") is not None:
         return "reported"
     return None
+
+
+def _is_reconstructed_derivation(value: Any) -> bool:
+    return str(value or "").startswith("reconstructed")
+
+
+_RECONSTRUCTED_FIELDS = (
+    "ai", "mean1", "e1i",
+)
+
+
+def _source_span(text: Any, limit: int = 200) -> str:
+    span = re.sub(r"\s+", " ", str(text or "")).strip()
+    return span if len(span) <= limit else span[:limit - 3] + "..."
+
+
+def _candidate_derivation(candidate: dict[str, Any]) -> str | None:
+    if candidate.get("derivation"):
+        return str(candidate.get("derivation"))
+    if any(candidate.get(k) is not None for k in _RECONSTRUCTED_FIELDS):
+        return "reconstructed"
+    if candidate.get("effect") is not None:
+        return "reported"
+    return None
+
+
+def _is_reported_effect(candidate: dict[str, Any]) -> bool:
+    return (
+        candidate.get("effect") is not None
+        and candidate.get("ci_low") is not None
+        and candidate.get("ci_high") is not None
+        and candidate.get("scale")
+    )
+
+
+def _declared_estimand_class(declared_estimand: str | None) -> str:
+    text = str(declared_estimand or "").upper()
+    tokens = [t for t in re.split(r"[^A-Z0-9]+", text) if t]
+    if not tokens:
+        tokens = [text] if text else []
+    classes = {
+        estmeasure.compatibility_class(estmeasure.classify(token).get("canonical_estimand"))
+        for token in tokens
+    }
+    classes.discard("OTHER")
+    if len(classes) == 1:
+        return next(iter(classes))
+    return "OTHER"
+
+
+def _candidate_estimand_class(candidate: dict[str, Any]) -> str:
+    return estmeasure.compatibility_class(
+        estmeasure.classify(candidate.get("scale"), candidate.get("source", "")).get("canonical_estimand")
+    )
+
+
+def _same_candidate(a: dict[str, Any], b: dict[str, Any]) -> bool:
+    if _is_reported_effect(a) and _is_reported_effect(b):
+        return tuple(a.get(k) for k in ("effect", "ci_low", "ci_high", "scale")) == tuple(
+            b.get(k) for k in ("effect", "ci_low", "ci_high", "scale")
+        )
+    if a.get("ai") is not None and b.get("ai") is not None:
+        return tuple(a.get(k) for k in ("ai", "n1i", "ci", "n2i")) == tuple(
+            b.get(k) for k in ("ai", "n1i", "ci", "n2i")
+        )
+    keys = (
+        "effect", "ci_low", "ci_high", "scale",
+        "ai", "n1i", "ci", "n2i",
+        "e1i", "t1i", "e2i", "t2i",
+        "mean1", "sd1", "nc1", "mean2", "sd2", "nc2",
+        "provenance", "source",
+    )
+    return tuple(a.get(k) for k in keys) == tuple(b.get(k) for k in keys)
+
+
+def _crude_rr(candidate: dict[str, Any]) -> float | None:
+    ai, n1i, ci, n2i = (candidate.get(k) for k in ("ai", "n1i", "ci", "n2i"))
+    if None in (ai, n1i, ci, n2i) or not n1i or not n2i or not ci:
+        return None
+    return (float(ai) / float(n1i)) / (float(ci) / float(n2i))
+
+
+def _candidate_summary(candidate: dict[str, Any], chosen: dict[str, Any], declared_class: str) -> dict[str, Any]:
+    derivation = _candidate_derivation(candidate) or "unknown"
+    row: dict[str, Any] = {
+        "derivation": derivation,
+        "provenance": candidate.get("provenance"),
+        "source_span": _source_span(candidate.get("source")),
+    }
+    if _is_reported_effect(candidate):
+        cclass = _candidate_estimand_class(candidate)
+        row.update({
+            "effect": candidate.get("effect"),
+            "ci_low": candidate.get("ci_low"),
+            "ci_high": candidate.get("ci_high"),
+            "scale": candidate.get("scale"),
+            "estimand_class": cclass,
+        })
+        if cclass != declared_class:
+            row["not_selected_reason"] = "NOT_TARGET_CLASS"
+            row["not_selected_detail"] = f"{cclass}!={declared_class}"
+        elif not _same_candidate(candidate, chosen):
+            row["not_selected_reason"] = "source_hierarchy_lower_precedence"
+    elif candidate.get("ai") is not None:
+        row.update({
+            "ai": candidate.get("ai"),
+            "n1i": candidate.get("n1i"),
+            "ci": candidate.get("ci"),
+            "n2i": candidate.get("n2i"),
+            "implied_rr": _crude_rr(candidate),
+        })
+        if not _same_candidate(candidate, chosen):
+            row["not_selected_reason"] = "source_hierarchy_lower_precedence"
+    elif candidate.get("e1i") is not None:
+        row.update({
+            "e1i": candidate.get("e1i"),
+            "t1i": candidate.get("t1i"),
+            "e2i": candidate.get("e2i"),
+            "t2i": candidate.get("t2i"),
+            "scale": candidate.get("measure") or "IRR",
+        })
+    elif candidate.get("mean1") is not None:
+        row.update({
+            "mean1": candidate.get("mean1"),
+            "sd1": candidate.get("sd1"),
+            "nc1": candidate.get("nc1"),
+            "mean2": candidate.get("mean2"),
+            "sd2": candidate.get("sd2"),
+            "nc2": candidate.get("nc2"),
+            "scale": "MD",
+        })
+    return {k: v for k, v in row.items() if v is not None}
+
+
+def select_estimator_by_source_hierarchy(
+    selected: dict[str, Any],
+    candidates: list[dict[str, Any]] | None,
+    declared_estimand: str | None,
+) -> dict[str, Any]:
+    """Select the trial-outcome estimator by the declared source hierarchy.
+
+    For a trial x outcome, a source-reported effect plus 95% CI from committed bytes
+    (cached abstract, cached full text, CT.gov results cache, or committed verified
+    effect) whose estimand compatibility class matches the outcome's declared
+    estimand class is selected over any count, rate, or continuous reconstruction.
+    HR and RR share the FIRST_EVENT_RATIO class, so a published HR can be preferred
+    over a reconstructed RR for a time-to-first-event outcome. OR is its own class.
+    Published effects from a different class, such as OR or RATE for a
+    FIRST_EVENT_RATIO outcome, remain disclosed alternatives and do not weaken the
+    estimand gate.
+    """
+
+    current = dict(selected)
+    current["derivation"] = _candidate_derivation(current) or current.get("derivation") or "unknown"
+    pool = [current]
+    for cand in candidates or []:
+        if cand and not any(_same_candidate(cand, existing) for existing in pool):
+            cc = dict(cand)
+            cc["derivation"] = _candidate_derivation(cc) or cc.get("derivation") or "unknown"
+            pool.append(cc)
+
+    declared_class = _declared_estimand_class(declared_estimand)
+    published_target = [
+        cand for cand in pool
+        if _is_reported_effect(cand) and _candidate_estimand_class(cand) == declared_class
+    ]
+    current_is_reconstructed = _is_reconstructed_derivation(current.get("derivation"))
+    if current_is_reconstructed and published_target:
+        chosen = dict(published_target[0])
+        rule = "PUBLISHED_EFFECT_TARGET_CLASS"
+    else:
+        chosen = current
+        if current.get("derivation") == "reported":
+            rule = "KEEP_REPORTED_EFFECT"
+        elif any(_is_reported_effect(cand) for cand in pool[1:]):
+            rule = "KEEP_RECONSTRUCTION_EFFECT_CLASS_MISMATCH"
+        elif current_is_reconstructed:
+            rule = "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT"
+        else:
+            rule = "KEEP_CURRENT_ESTIMATOR"
+
+    for key in ("label", "id"):
+        if current.get(key) is not None:
+            chosen[key] = current[key]
+    chosen["derivation"] = _candidate_derivation(chosen) or chosen.get("derivation") or "unknown"
+    chosen["selection_rule"] = rule
+    chosen["selected_estimator"] = (
+        "published_effect_ci" if chosen.get("derivation") == "reported"
+        else "reconstructed"
+    )
+    chosen["alternatives"] = [
+        _candidate_summary(cand, chosen, declared_class)
+        for cand in pool
+        if not _same_candidate(cand, chosen)
+    ]
+    return chosen
 
 
 def _se_provenance(trial: dict[str, Any]) -> str:
@@ -244,7 +455,7 @@ def decision_for_trial(trial: dict[str, Any], declared_estimand: str | None = No
     alt = d.get("published_alternative")
     derivation = trial.get("derivation") or derivation_for_trial(trial) or "UNKNOWN"
 
-    if alt and alt.get("adjusted") and derivation == "reconstructed":
+    if alt and alt.get("adjusted") and _is_reconstructed_derivation(derivation):
         if _same_declared_estimand(alt, declared_estimand):
             return _decision(
                 "REFUSE",
@@ -263,7 +474,7 @@ def decision_for_trial(trial: dict[str, Any], declared_estimand: str | None = No
             validity_critical=True,
         )
 
-    if derivation == "reconstructed" and design in {"CLUSTER", "CLUSTER_CROSSOVER"} and corr["method"] == "none":
+    if design in {"CLUSTER", "CLUSTER_CROSSOVER"} and corr["method"] == "none":
         return _decision(
             "REFUSE",
             gate_id="design-key:cluster-unadjusted-se",
@@ -271,7 +482,7 @@ def decision_for_trial(trial: dict[str, Any], declared_estimand: str | None = No
             reason="cluster design + SE not design-adjusted",
             validity_critical=True,
         )
-    if derivation == "reconstructed" and design == "CROSSOVER" and corr["method"] not in {"paired_effect", "published_model", "published_adjusted_SE"}:
+    if _is_reconstructed_derivation(derivation) and design == "CROSSOVER" and corr["method"] not in {"paired_effect", "published_model", "published_adjusted_SE"}:
         return _decision(
             "REFUSE",
             gate_id="design-key:crossover-correlation-unknown",
@@ -279,7 +490,7 @@ def decision_for_trial(trial: dict[str, Any], declared_estimand: str | None = No
             reason="crossover + within-person correlation unknown",
             validity_critical=True,
         )
-    if derivation == "reconstructed" and design == "STEPPED_WEDGE" and corr["method"] not in {"published_model", "reconstructed_with_ICC"}:
+    if _is_reconstructed_derivation(derivation) and design == "STEPPED_WEDGE" and corr["method"] not in {"published_model", "reconstructed_with_ICC"}:
         return _decision(
             "REFUSE",
             gate_id="design-key:stepped-wedge-no-model",
@@ -294,7 +505,7 @@ def decision_for_trial(trial: dict[str, Any], declared_estimand: str | None = No
             decision_state="factorial marginal contrast labelled, not refused",
             reason="factorial + valid marginal effect + acceptable interaction",
         )
-    if derivation == "reconstructed" and corr["method"] in {"reconstructed_with_ICC", "paired_effect"}:
+    if _is_reconstructed_derivation(derivation) and corr["method"] in {"reconstructed_with_ICC", "paired_effect"}:
         return _decision(
             "ADJUST",
             gate_id="design-key:adjusted-correlation",
@@ -302,13 +513,13 @@ def decision_for_trial(trial: dict[str, Any], declared_estimand: str | None = No
             reason=f"{corr['method']} evidence present",
         )
     if design == "UNKNOWN" or unit == "UNKNOWN":
-        # Not observed is not parallel. The effect is pooled through the parallel-group path, but the
-        # decision says so out loud: the design was not established from committed evidence, and the
-        # variance is correct only if the trial was individually randomised (29 of 32 topics today).
+        # Not observed is not parallel. The effect may still travel through the parallel-group path,
+        # but the design key must not call that an allow state.
         return _decision(
-            "ALLOW_WITH_LABEL",
-            gate_id="design-key:design-not-observed",
-            decision_state="design not observed; pooled through the parallel path under that label",
+            "DESIGN_UNPROVEN",
+            gate_id="design-key:design-unproven",
+            decision_state=("design not established from committed evidence; pooled through the parallel path "
+                            "on an assumption the harness could not verify"),
             reason="no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
         )
     return _decision(
@@ -360,9 +571,10 @@ def key_for_trial(trial: dict[str, Any], rec: dict[str, Any] | None = None,
     else:
         design, unit = "UNKNOWN", "UNKNOWN"
 
-    derivation = derivation_for_trial(trial)
-    if derivation:
-        trial["derivation"] = derivation
+    detected_derivation = derivation_for_trial(trial)
+    derivation = trial.get("derivation") or detected_derivation
+    if detected_derivation and not trial.get("derivation"):
+        trial["derivation"] = detected_derivation
     alt = _published_alternative(trial.get("source") or "")
     interaction = _interaction_evidence(text + " " + str(trial.get("source") or ""))
     estimator_source = "RECONSTRUCTED"
@@ -468,9 +680,17 @@ def refusal_absence(trial: dict[str, Any]) -> dict[str, Any]:
     row = {
         "label": trial.get("label"),
         "id": trial.get("id"),
-        "absent_kind": "refused_on_evidence",
-        "state": "REFUSED_ON_EVIDENCE",
-        "reason": refusal_reason(trial),
+        "absent_kind": "engine_cannot_consume",
+        "state": "ENGINE_CANNOT_CONSUME",
+        "reason_code": "ENGINE_CANNOT_CONSUME",
+        "missing": "design_adjusted_effect|ICC",
+        "reason": (
+            "ENGINE_CANNOT_CONSUME("
+            f"design={str((trial.get('design') or {}).get('design') or 'UNKNOWN').lower()}, "
+            "missing=design_adjusted_effect|ICC): "
+            + refusal_reason(trial)
+        ),
+        "state_basis": "ENGINE_CANNOT_CONSUME: design-adjusted effect or ICC design effect is not held",
         "design": trial.get("design"),
     }
     if (trial.get("design") or {}).get("design_action"):
