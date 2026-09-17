@@ -76,6 +76,51 @@ def components(text):
     return sorted(found)
 
 
+def held_axis(f, root=None):
+    """Validate a document-bound axis, including a field in a held JSON record.
+
+    No whitespace repair, acronym expansion, or unlocated-span fallback.
+    Values are curated source interpretations; this checks their provenance.
+    """
+    root = Path(root or Path(__file__).resolve().parents[1]).resolve()
+    basis = f.get('basis') or {}
+    path = basis.get('document_path') or basis.get('source')
+    try:
+        p = (root / path).resolve()
+        if not p.is_relative_to(root):
+            raise ValueError('outside repository')
+        raw = p.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != basis.get('document_sha256'):
+            return field(absence_code='AXIS_DOCUMENT_DIGEST_MISMATCH')
+        text = raw.decode('utf-8')
+        if 'json_path' in basis:
+            text = json.loads(text)
+            for key in basis['json_path']:
+                text = text[key]
+        if not isinstance(text, str) or not basis.get('span') or basis['span'] not in text:
+            return field(absence_code='UNLOCATED_AXIS_SPAN')
+        return copy.deepcopy(f)
+    except (OSError, ValueError, TypeError, KeyError, IndexError):
+        return field(absence_code='INVALID_AXIS_DOCUMENT')
+
+
+def registered_axes(row):
+    """Exact effect/source-scoped evidence; never match solely on a trial ID."""
+    root = Path(__file__).resolve().parents[1]
+    key = str(row.get('id') or '').replace('PMID ', '')
+    for path in sorted((root / 'cache').glob('*/axis_evidence.json')):
+        entry = json.loads(path.read_text(encoding='utf-8')).get('rows', {}).get(key)
+        if not entry:
+            continue
+        selector = entry['effect_selector']
+        if (selector['source_sha256'] != hashlib.sha256(str(row.get('source') or '').encode('utf-8')).hexdigest()
+                or any(row.get(k) != selector[k] for k in ('effect', 'ci_low', 'ci_high', 'scale', 'document_sha256'))):
+            continue
+        return {a: held_axis(f, root) if known(f) else copy.deepcopy(f)
+                for a, f in entry['axes'].items()}
+    return {}
+
+
 def build_effect(row, record=None) -> EffectType:
     record = record or {}
     axes = {a: field(absence_code="UNSTATED" if row.get(a) == "unstated" else "NO_ROW_EVIDENCE") for a in AXES}
@@ -175,6 +220,14 @@ def build_effect(row, record=None) -> EffectType:
                 raise ValueError("Held document digest mismatch")
             value["document_sha256"] = digest
         axes["report"] = field(value, span=report["span"], source=report.get("document_path") or report.get("source"))
+    # Apply curated document-bound fields after legacy extraction, so an UNKNOWN
+    # or failed span cannot be silently filled from another endpoint in the abstract.
+    axes.update(registered_axes(row))
+    for axis, f in (row.get('effect_type_evidence') or {}).items():
+        basis = f.get('basis') or {}
+        if axis in axes and (basis.get('document_path') or
+                             str(basis.get('source') or '').endswith(('.json', '.txt', '.xml'))):
+            axes[axis] = held_axis(f)
     for axis, f in axes.items():
         if known(f) and not axis_known(axis, f):
             axes[axis] = field(absence_code="INVALID_AXIS_VALUE")

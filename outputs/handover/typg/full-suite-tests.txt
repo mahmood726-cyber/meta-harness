@@ -1,0 +1,87 @@
+........................................................................ [  7%]
+........................................................................ [ 15%]
+......................................................F................. [ 23%]
+........................................................................ [ 31%]
+..............................F...........................F............. [ 38%]
+............................F.F......................................... [ 46%]
+........................................................................ [ 54%]
+..........................................F............................. [ 62%]
+......F................................................................. [ 70%]
+........................................................................ [ 77%]
+........................................................................ [ 85%]
+................................................................F....F.. [ 93%]
+..........................F..................................            [100%]
+================================== FAILURES ===================================
+______________________ test_current_glp1_baseline_plant _______________________
+tests\test_effect_type.py:74: in test_current_glp1_baseline_plant
+    assert len(outcome["trials"]) == 8
+E   AssertionError: assert 10 == 8
+E    +  where 10 = len([{'alternatives': [], 'analysis_set': 'intention-to-treat', 'censoring': 'UNKNOWN', 'ci_high': 1.11, ...}, {'alternati...99, ...}, {'alternatives': [], 'analysis_set': 'intention-to-treat', 'censoring': 'UNKNOWN', 'ci_high': 0.9, ...}, ...])
+__________________________ test_real_store_validates __________________________
+tests\test_fixstate.py:457: in test_real_store_validates
+    assert ok, "\n".join(reasons)
+E   AssertionError: docs/fix_ledger.json is stale; run python scripts/render_fix_ledger.py
+E   assert False
+___________________ test_valid_page_passes_non_replay_limbs ___________________
+tests\test_gate.py:98: in test_valid_page_passes_non_replay_limbs
+    assert not reasons, f"valid page should pass non-replay limbs, got: {reasons}"
+E   AssertionError: valid page should pass non-replay limbs, got: ['L1: live census reproduced 1 failure(s): typed claim registry covers served prose and validates its objects']
+E   assert not ['L1: live census reproduced 1 failure(s): typed claim registry covers served prose and validates its objects']
+__________________________ test_real_registry_passes __________________________
+tests\test_gate_scorecard.py:356: in test_real_registry_passes
+    assert ok, "\n".join(reasons)
+E   AssertionError: registry/gate_scorecard.json missing entry for enumerated gate gate.check_effect_types
+E     registry/gate_scorecard.json missing entry for enumerated gate gate.check_typed_renderings
+E   assert False
+_______________ test_glp1_elixa_located_and_primary_membership ________________
+tests\test_glp1_lane.py:45: in test_glp1_elixa_located_and_primary_membership
+    assert primary['k'] == 8 + len(members & {'26630143', '38785209'})
+E   AssertionError: assert 7 == (8 + 1)
+E    +  where 1 = len(({'26630143', '27295427', '27633186', '28910237', '31185157', '31189511', ...} & {'26630143', '38785209'}))
+__ test_legacy_absent_banner_blocks_match_limitation_objects_for_all_reviews __
+tests\test_limitations_legacy_compare.py:49: in test_legacy_absent_banner_blocks_match_limitation_objects_for_all_reviews
+    assert not review.get("claimgraph"), review["slug"]
+E   AssertionError: balanced-crystalloids-vs-saline-mortality
+E   assert not {'objects': [{'claim_id': 'a29165ecd31799dd', 'depends_on': {'input_set_version': 'b6c7145842a2d8ea1b8c83b26799692a4bb..._version': 'b6c7145842a2d8ea1b8c83b26799692a4bb8428a12358195beba01e4cb46a9d2'}, 'kind': 'manuscript_result_sentence'}]}
+E    +  where {'objects': [{'claim_id': 'a29165ecd31799dd', 'depends_on': {'input_set_version': 'b6c7145842a2d8ea1b8c83b26799692a4bb..._version': 'b6c7145842a2d8ea1b8c83b26799692a4bb8428a12358195beba01e4cb46a9d2'}, 'kind': 'manuscript_result_sentence'}]} = <built-in method get of dict object at 0x000001EA032F0E00>('claimgraph')
+E    +    where <built-in method get of dict object at 0x000001EA032F0E00> = {'arm_contrast': {'current_pooled_trial_ids': ['34375394', '35041780'], 'metric_label': 'parser-confirmed contrast', '... for this build; refused trials remain screened-in eligible records but are named exclusions, not pooled counts.', ...}.get
+_____________ test_override_audit_covers_every_committed_override _____________
+tests\test_override_audit.py:34: in test_override_audit_covers_every_committed_override
+    assert not missing, "override(s) missing from audit: " + repr(missing)
+E   AssertionError: override(s) missing from audit: [('esketamine-trd-madrs', 'verified_arms.json', 'NCT02417064', 'Observed-case Day-28 raw change-score MADRS MD'), ('sglt2-ckd-progression', 'verified_effects.json', '32970396', 'Trial-defined primary cardiorenal composite'), ('sglt2-ckd-progression', 'verified_effects.json', '36331190', 'Trial-defined primary cardiorenal composite')]
+E   assert not [('esketamine-trd-madrs', 'verified_arms.json', 'NCT02417064', 'Observed-case Day-28 raw change-score MADRS MD'), ('sg...osite'), ('sglt2-ckd-progression', 'verified_effects.json', '36331190', 'Trial-defined primary cardiorenal composite')]
+______________ test_manuscript_limb_passes_on_every_live_review _______________
+tests\test_stage_additions.py:192: in test_manuscript_limb_passes_on_every_live_review
+    assert gate.check_manuscript_numbers(d) == [], f"{slug}: manuscript limb should pass"
+E   AssertionError: balanced-crystalloids-vs-saline-mortality: manuscript limb should pass
+E   assert ['PAPER: manu...ct_numerals)'] == []
+E     
+E     Left contains one more item: "PAPER: manuscript prose contains numerals not derived from the review object: ['27'] (every manuscript number must be object-derived — see manuscript.object_numerals)"
+E     Use -v to get more diff
+_________ test_error_rate_is_fresh_against_current_pooled_population __________
+tests\test_stage_additions.py:271: in test_error_rate_is_fresh_against_current_pooled_population
+    assert not uncensused, (f"pooled numbers not in the error-rate census sample: {uncensused[:5]} — "
+E   AssertionError: pooled numbers not in the error-rate census sample: ['glp1-ra-mace-t2d::3-point major adverse cardiovascular events::26630143', 'glp1-ra-mace-t2d::3-point major adverse cardiovascular events::FLOW'] — re-run scripts/error_rate_compare.py + error_rate_pass2.py and rebuild the sample
+E   assert not ['glp1-ra-mace-t2d::3-point major adverse cardiovascular events::26630143', 'glp1-ra-mace-t2d::3-point major adverse cardiovascular events::FLOW']
+________________________ test_glp1_rebuild_membership _________________________
+tests\test_ty2_protocol_binding.py:24: in test_glp1_rebuild_membership
+    assert pools == {'CONVENTIONAL_GLP1RA': 10, 'GLP1RA_ANY_DELIVERY': 11}, pools
+E   AssertionError: {'CONVENTIONAL_GLP1RA': 7, 'GLP1RA_ANY_DELIVERY': 8}
+E   assert {'CONVENTIONA..._DELIVERY': 8} == {'CONVENTIONA...DELIVERY': 11}
+E     
+E     Differing items:
+E     {'GLP1RA_ANY_DELIVERY': 8} != {'GLP1RA_ANY_DELIVERY': 11}
+E     {'CONVENTIONAL_GLP1RA': 7} != {'CONVENTIONAL_GLP1RA': 10}
+E     Use -v to get more diff
+=========================== short test summary info ===========================
+FAILED tests/test_effect_type.py::test_current_glp1_baseline_plant - Assertio...
+FAILED tests/test_fixstate.py::test_real_store_validates - AssertionError: do...
+FAILED tests/test_gate.py::test_valid_page_passes_non_replay_limbs - Assertio...
+FAILED tests/test_gate_scorecard.py::test_real_registry_passes - AssertionErr...
+FAILED tests/test_glp1_lane.py::test_glp1_elixa_located_and_primary_membership
+FAILED tests/test_limitations_legacy_compare.py::test_legacy_absent_banner_blocks_match_limitation_objects_for_all_reviews
+FAILED tests/test_override_audit.py::test_override_audit_covers_every_committed_override
+FAILED tests/test_stage_additions.py::test_manuscript_limb_passes_on_every_live_review
+FAILED tests/test_stage_additions.py::test_error_rate_is_fresh_against_current_pooled_population
+FAILED tests/test_ty2_protocol_binding.py::test_glp1_rebuild_membership - Ass...
+10 failed, 915 passed in 692.27s (0:11:32)
