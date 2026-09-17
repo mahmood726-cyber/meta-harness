@@ -179,3 +179,8 @@ Either way FLOW is decided by the declared rule (under A it is in; under B it is
 | Named-missing register, audits, proof board, cost ledger | YES on `handover-2026-09-16` | YES (`ee32d78f` and this commit) | n/a |
 
 **Limb gap, named (MEASURED):** the `reproduction` limb proves *determinism*, not *provenance*. It replays the page from `cache/<slug>/` and compares `review_sha256`; `verified_effects.json` rows carry a prose `source` sentence and no document digest, and no limb locates a span in held bytes. A number typed into `verified_effects.json` with a plausible sentence replays byte-identically and passes. Consequence: an uncommitted model call or an unheld PDF would NOT make the limb fail -- it cannot see them. Closing this is the FACT object in CGX (`document_sha256` + locatable span, `UNVERIFIED_FACT` refused at the gate); the plant is a typed number with no held span, which must be REFUSED before CGX is accepted.
+
+## 17 Sep 08:35 — landing 3 in progress; ST harvested
+- IN lane finished (tokens 1,844,025; 869 tests; 32/32 reproduce; 16 of 32 primary result objects moved, listed in the landing-3 commit message). Patch applied code+cache-only onto `4ee33453` with zero conflicts; all 32 pages regenerating once on the merged tree; hook next.
+- ST lane finished (tokens 546,003; patch sha `bcb2951b87b75bfd`, 25 files) — STAREE was already pooled; the lane built `population_basis` as a compat dimension and amended `protocols/statins-primary-prevention-elderly.md` → protocol-anchor class → lands as its own two-commit pair AFTER landing 3, not folded in.
+- Foundation wave (FN, CGX, TY) launches on the landing-3 commit the moment the hook accepts it; GS follows when a slot frees.
