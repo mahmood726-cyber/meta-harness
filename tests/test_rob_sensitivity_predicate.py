@@ -91,7 +91,7 @@ def _current_html(slug: str) -> str:
 
 def _low_only_cell(rendered_html: str) -> str:
     match = re.search(
-        r"<tr><td>Low risk of bias only</td><td>(.*?)</td></tr>",
+        r"<tr><t[dh](?: scope=\"row\")?>Low risk of bias only</t[dh]><td>(.*?)</td></tr>",
         rendered_html,
         flags=re.DOTALL,
     )
@@ -119,9 +119,14 @@ def predicate_is_true(sens: dict, rendered_html: str) -> bool:
 
 def relation_sentence_is_rendered(sens: dict, rendered_html: str) -> bool:
     cell = _low_only_cell(rendered_html)
+    typed_state = re.search(r'<span data-claim-id="risk-sensitivity-state".*?</span>',
+                           rendered_html, flags=re.DOTALL)
+    if typed_state:
+        cell = html.unescape(re.sub(r'<[^>]+>', '', typed_state.group(0))).lower()
     relation = rs.relation_from_sensitivity(sens)
     if relation == rs.LOW_ONLY_IDENTICAL_TO_FULL:
-        return "all pooled trials are low risk; the re-pool is the full pool" in cell
+        return ("all pooled trials are low risk; the re-pool is the full pool" in cell
+                or "all pooled trials are low risk on assessed domains; the re-pool is the full pool" in cell)
     if relation == rs.LOW_ONLY_FEWER_TRIALS:
         return "fewer trials than the full pool" in cell
     if relation == rs.LOW_ONLY_EMPTY:
@@ -218,14 +223,17 @@ def _review_with_sens(sens: dict) -> dict:
     }
 
 
-def test_synthetic_fewer_trials_sentence_survives_and_renderers_agree():
+def test_page_uses_per_item_states_instead_of_stale_sensitivity_totals():
     cases = [
         (_sens(3, 2), "fewer trials than the full pool"),
         (_sens(2, 2), "all pooled trials are low risk; the re-pool is the full pool"),
     ]
     for sens, expected_phrase in cases:
-        page_cell = _low_only_cell(page._riskofbias(_review_with_sens(sens), neutral=False))
+        rendered = page._riskofbias(_review_with_sens(sens), neutral=False)
         limitations_cell = _low_only_cell(limitations._rob_sensitivity_block(sens))
-        assert expected_phrase in page_cell
+        # This fixture holds only one low-rated trial, regardless of the stale
+        # synthetic full_k/low_k summaries. The migrated page uses that row.
+        assert '1 of 1 rows retained' in rendered
+        assert 'All pooled trials are low risk on assessed domains' in rendered
+        assert 'UNRENDERABLE' in rendered  # no source effect exists in this fixture
         assert expected_phrase in limitations_cell
-        assert page_cell == limitations_cell

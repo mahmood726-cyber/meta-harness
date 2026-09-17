@@ -35,6 +35,7 @@ from .limitations import publication_gate_refusals
 from . import arm_object
 from . import claimgraph
 from . import compat_check as _compat_check
+from . import effect_type as _effect_type
 from . import propositions
 from . import eligibility_chain
 from . import scope_identity as scope_identity_mod
@@ -266,10 +267,19 @@ def check_pooled_verified(review_dir):
     except (OSError, ValueError) as exc:
         return [f"L1: cannot read review.json: {exc}"]
     bad = []
+    provenance_bad = []
+    from pathlib import Path
+    directory = Path(review_dir).resolve()
+    root = next((p for p in directory.parents if (p / "cache").is_dir()), claimgraph.ROOT)
     for o in rev.get("outcomes", []) or []:
         for t in o.get("trials", []) or []:
+            status = claimgraph.verify_fact(t, root)
+            if not status["verified"]:
+                provenance_bad.append(f"UNVERIFIED_FACT {t.get('id')} in {o.get('name')!r}: {status['reason']}")
             if t.get("verified") not in ("verified", "verified_handchecked"):
                 bad.append(f"{t.get('id')} in {o.get('name')!r} (status={t.get('verified')!r})")
+    if provenance_bad:
+        return ["L1: " + reason for reason in provenance_bad]
     if bad:
         return [f"L1: pooled number(s) not verified against the committed source span — a page must not "
                 f"pool a number whose digits are not located in its source: {'; '.join(bad[:6])}"]
@@ -452,11 +462,24 @@ def check_claimgraph(review_dir):
         rev = json.load(open(p, encoding="utf-8"))
     except (OSError, ValueError) as exc:
         return [f"L1: cannot read review.json for claimgraph: {exc}"]
-    violations = claimgraph.check(rev)
+    violations = claimgraph.check(rev) + claimgraph.certainty_violations(rev)
     if violations:
         return ["L1: claimgraph violations remain (stale dependent result-bearing object): "
                 + json.dumps(violations[:6], ensure_ascii=False)]
     return []
+
+
+def check_typed_renderings(review_dir):
+    from pathlib import Path
+    directory = Path(review_dir)
+    try:
+        rev = json.loads((directory / "review.json").read_text(encoding="utf-8"))
+        rendered = (directory / "index.html").read_text(encoding="utf-8")
+        graph = claimgraph.review_graph(rev)
+        scan = claimgraph.scan_rendered(rendered, graph)
+    except (OSError, ValueError, TypeError) as exc:
+        return [f"L1: typed rendering registry cannot be verified: {exc}"]
+    return [f"L1: {v['code']} {v['claim_id']}: {v['detail']}" for v in scan['violations'] + graph.check() + claimgraph.legacy_scope_violations(rev, rendered)]
 
 
 def check_propositions(review_dir):
@@ -981,6 +1004,39 @@ def check_scope_identity(review_dir, html):
     return scope_identity_mod.gate_reasons(rev, html, root=ROOT)
 
 
+def check_statistical_layers(review_dir):
+    """Re-derive objects and exact rendered tables; stale/mutated prose is refused."""
+    from pathlib import Path
+    from . import statistical_layers, grade as grade_mod
+    directory = Path(review_dir)
+    try:
+        review = json.loads((directory / 'review.json').read_text(encoding='utf-8'))
+        html = (directory / 'index.html').read_text(encoding='utf-8')
+        if review.get('grade'):
+            grade_mod.validate_arithmetic(review['grade'])
+        expected = statistical_layers.build(review, Path(ROOT))
+        reasons = []
+        if review.get('statistical_layers') != expected:
+            reasons.append('GS: statistical layer objects missing or not re-derivable')
+        wanted = statistical_layers.render(expected)
+        import re
+        sections = re.findall(r'<div id="gs-statistical-layers">.*?</section></div>', html, re.S)
+        if sections != [wanted]:
+            reasons.append('GS: REFUSED envelope/fragility rendering not generated from re-derived objects')
+        outside = html.replace(wanted, '')
+        from html import unescape
+        visible = unescape(re.sub(r'<[^>]+>', ' ', outside))
+        if re.search(r'fragility\s*:|across\s+\d+\s+computable specifications', visible, re.I):
+            reasons.append('GS: REFUSED unbound envelope/fragility sentence outside object rendering')
+        for name, obj in expected.items():
+            cache = Path(ROOT) / 'cache' / review['slug'] / (name + '.json')
+            if not cache.exists() or json.loads(cache.read_text(encoding='utf-8')) != obj:
+                reasons.append(f'GS: {name} cache missing or differs from re-derived object')
+        return reasons
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return [f'GS: REFUSED {exc}']
+
+
 def gate_page(review_dir):
     """Return (ok: bool, reasons: list[str]). ok == True only if both limbs pass."""
     try:
@@ -992,6 +1048,7 @@ def gate_page(review_dir):
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
                + check_known_missing_panel(review_dir)
+               + check_statistical_layers(review_dir)
                + check_limitation_decision_links(review_dir)
                + check_pooled_verified(review_dir)
                + check_rob_rederivable(review_dir)
@@ -999,6 +1056,7 @@ def gate_page(review_dir):
                + check_fetch_complete(review_dir)
                + check_access_claim_supported(review_dir)
                + check_claimgraph(review_dir)
+               + check_typed_renderings(review_dir)
                + check_propositions(review_dir)
                + check_eligibility_chain(review_dir)
                + check_harms_complete(review_dir)
@@ -1014,10 +1072,20 @@ def gate_page(review_dir):
                + check_arm_object_contract(review_dir)
                + check_method_matches_scale(review_dir)
                + check_compat_key_underlying(review_dir)
+               + check_effect_types(review_dir)
                + check_scope_identity(review_dir, html)
                + check_preregistration_not_build(review_dir)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons
+
+
+def check_effect_types(review_dir):
+    try:
+        with open(os.path.join(review_dir, "review.json"), encoding="utf-8") as f:
+            review = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1(effect_type): cannot read review.json: {exc}"]
+    return ["L1(effect_type): " + reason for reason in _effect_type.check_review(review)]
 
 
 def main(argv):

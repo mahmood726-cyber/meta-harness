@@ -60,7 +60,7 @@ def _sentences(text: str):
 # sentence matching only these does not evidence a SPECIFIC harm outcome. A specific harm outcome
 # ("gastrointestinal adverse effects", keywords [gastrointestinal, diarrh, adverse effect, adverse
 # event]) must be selected on its DISCRIMINATING keyword (gastrointestinal/diarrh), never on the bare
-# "adverse events occurred in N ..." sentence (that count is ANY-AE, not GI — colchicine-postop-af
+# "adverse events occurred in N ..." sentence (that count is ANY-AE, not GI — postoperative af
 # 25172965). "serious"/"severe"/"major" adverse ARE discriminating (they scope severity) so are NOT
 # generic. Primary/efficacy outcomes carry no generic-harm keyword, so their selection is unchanged
 # (this never touches the generic "primary outcome" anchor).
@@ -105,7 +105,7 @@ def _kw_in_sentence(k, sl):
     if " " in kl:
         return any(v in slf for v in lexicon.mort_variants(kl))
     # ABBREVIATION expansion (curated) is HELD OUT of the extraction matcher: its own corpus-wide
-    # before/after moved colchicine-postop-af 0.67->0.77 because 'af' whole-token re-selected a
+    # before/after moved postoperative af 0.67->0.77 because 'af' whole-token re-selected a
     # different sentence and END-AF (27502857) mis-bound its 63-patient TOTAL as an arm count -- the
     # ELIXA over-broadening class. lexicon.abbrev_variants stays available for query-building (where a
     # broader recall net is wanted and no number is bound), but extraction must not silently rebind a
@@ -491,7 +491,7 @@ def composite_component_mismatch(outcome_name: str, source_span: str) -> str:
 
     Returns a reason string if a mismatch is detected, else ''. Conservative: fires ONLY for an explicit
     'N-point' / 'N point' MACE outcome whose source composite clause names an extra-component keyword.
-    (Caught first by cross-family QA on TECOS in dpp4-mace-t2d, which every internal gate had passed.)"""
+    (Caught first by cross-family QA on TECOS in dpp4 cardiovascular, which every internal gate had passed.)"""
     name = (outcome_name or "").lower()
     m = re.search(r"(\d+)[\s-]?point", name) or (("three" in name) and type("x", (), {"group": lambda s, i: "3"})())
     if not m:

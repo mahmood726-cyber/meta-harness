@@ -112,8 +112,8 @@ def matched_intervention(rec, inc) -> str | None:
     """
     if not inc.get("intervention_any"):
         return None
-    anchor = inc.get("intervention_in_title") and rec["id_type"] == "pmid"
-    itext = _poptext(rec) if anchor else _text(rec)
+    anchor = inc.get("intervention_in_title") and rec["id_type"] == "pmid" and not inc.get("title_independent")
+    itext = _poptext(rec) if anchor else _eligibility_text_raw(rec, inc).lower()
     return _has_intervention(itext, inc["intervention_any"])
 
 
@@ -244,6 +244,21 @@ def _text(rec) -> str:
     return _text_raw(rec).lower()
 
 
+def _eligibility_text_raw(rec, inc):
+    text = _text_raw(rec)
+    if inc.get("title_independent"):
+        def spans(value):
+            if isinstance(value, dict):
+                if value.get("span") and value.get("value") not in (None, "UNKNOWN"):
+                    return [str(value["span"])]
+                return [s for v in value.values() for s in spans(v)]
+            if isinstance(value, list):
+                return [s for v in value for s in spans(v)]
+            return []
+        text += " " + " ".join(spans(rec.get("arm_object") or {}))
+    return text.strip()
+
+
 def _poptext_raw(rec) -> str:
     # Population is judged from the TITLE and registry conditions, NOT an incidental
     # mention in the abstract body (e.g. "colchicine is beneficial in ... pericarditis").
@@ -362,7 +377,8 @@ def describe_eligibility(inc: dict) -> str:
     clauses = ["a randomised controlled trial"]
     pa = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
     if pa:
-        clauses.append(f"population (in title/registry conditions) mentions one of {pa}")
+        where = "title/registry conditions/abstract/arm evidence" if inc.get("title_independent") else "title/registry conditions"
+        clauses.append(f"population (in {where}) mentions one of {pa}")
     pn = inc.get("population_none")
     if pn:
         if inc.get("population_none_entry_condition_only"):
@@ -388,9 +404,9 @@ def describe_eligibility(inc: dict) -> str:
 def screen_record(rec, inc, neg_pmids):
     """Return (decision, rule_id, reason, span). `span` is a VERBATIM excerpt of the record's own
     text evidencing the decision (a real substring), so every decision is checkable against source."""
-    text = _text(rec)
+    text = _eligibility_text_raw(rec, inc).lower()
     poptext = _poptext(rec)
-    raw_all = _text_raw(rec)
+    raw_all = _eligibility_text_raw(rec, inc)
     raw_pop = _poptext_raw(rec)
     label = rec.get("acronym") or rec.get("id")
     if over := _manual_override(rec, inc):
@@ -418,8 +434,9 @@ def screen_record(rec, inc, neg_pmids):
     # `prevention` a positive population signal in the STRUCTURED conditions or ABSTRACT overrides a
     # negative title signal. The intervention-in-title anchor below still applies, so an incidental
     # abstract mention in a trial that is not actually OF the intervention cannot slip in.
-    pop_haystack = _text(rec) if inc.get("prevention") else poptext
-    pop_haystack_raw = _text_raw(rec) if inc.get("prevention") else raw_pop
+    fallback = inc.get("prevention") or inc.get("title_independent")
+    pop_haystack = text if fallback else poptext
+    pop_haystack_raw = raw_all if fallback else raw_pop
     bad = screen_entry.population_exclusion(pop_haystack, inc, _has, _all_occurrences_qualified)
     if bad:
         return ("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
@@ -427,16 +444,16 @@ def screen_record(rec, inc, neg_pmids):
     population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
     popok = _has(pop_haystack, population_any)
     if population_any and not popok:
-        _where = "title/conditions/abstract" if inc.get("prevention") else "title/conditions"
+        _where = "title/conditions/abstract/arm evidence" if fallback else "title/conditions"
         return ("exclude", "X2",
                 f"population not on-topic: {_where} do not mention any of {population_any}"
-                + ("" if inc.get("prevention") else " (an incidental abstract mention does not qualify)") + ".",
+                + ("" if fallback else " (an incidental abstract mention does not qualify)") + ".",
                 f"examined {_where}: “{_quote(pop_haystack_raw)}”")
     # Title-anchoring for the intervention exists to reject INCIDENTAL abstract mentions in PMID
     # records; for a CT.gov (nct) record the STRUCTURED interventions field is reliable and must be
     # used (else an edoxaban AF trial whose title is "A Study to Assess..." is wrongly X3-excluded
     # though its interventions field says Edoxaban). So anchor only for PMID records.
-    anchor = inc.get("intervention_in_title") and rec["id_type"] == "pmid"
+    anchor = inc.get("intervention_in_title") and rec["id_type"] == "pmid" and not inc.get("title_independent")
     itext = _poptext(rec) if anchor else text
     itext_raw = raw_pop if anchor else raw_all
     matched_int = matched_intervention(rec, inc)

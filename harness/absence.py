@@ -280,6 +280,11 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
         return {"reason_code": code, "state": code,
                 "state_basis": _basis(code, span, reason),
                 "source_span": span, "verbatim_span": span}
+    verdict = row.get("unification") or {}
+    if verdict.get("status") in {"REFUSE", "UNKNOWN_FAILS_CLOSED"}:
+        return {"state": "EFFECT_TYPE_REFUSED", "reason_code": "EFFECT_TYPE_REFUSED",
+                "reason": verdict["reason"],
+                "state_basis": _basis("EFFECT_TYPE_REFUSED", detail="effect_type.unify: " + verdict["reason"])}
     if row.get("state") in (OUTCOME_POST_HOC_NOT_POOLED, OUTCOME_NOT_REPORTED):
         code = row.get("state")
         span = row.get("source_span") or row.get("verbatim_span") or row.get("source") or reason or ""

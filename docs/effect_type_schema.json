@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Effect type and external coercion contracts",
+  "$defs": {
+    "axis": {
+      "type": "object",
+      "required": [
+        "value",
+        "basis"
+      ],
+      "properties": {
+        "value": {},
+        "basis": {
+          "type": "object",
+          "oneOf": [
+            {
+              "required": [
+                "span",
+                "source"
+              ]
+            },
+            {
+              "required": [
+                "rule_id"
+              ]
+            },
+            {
+              "required": [
+                "absence_code"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "EffectType": {
+      "type": "object",
+      "required": [
+        "effect_type_id",
+        "trial",
+        "axes",
+        "known_axes",
+        "unknown_axes"
+      ],
+      "properties": {
+        "axes": {
+          "type": "object",
+          "required": [
+            "population",
+            "randomised_contrast",
+            "analysis_set",
+            "endpoint_components",
+            "first_or_recurrent",
+            "time_origin",
+            "follow_up",
+            "censoring",
+            "effect_measure",
+            "adjustment",
+            "estimator",
+            "report"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "population": {
+              "$ref": "#/$defs/axis"
+            },
+            "randomised_contrast": {
+              "$ref": "#/$defs/axis"
+            },
+            "analysis_set": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/axis"
+                },
+                {
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "ITT",
+                        "PP",
+                        "UNKNOWN",
+                        "mITT",
+                        "on-treatment"
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "endpoint_components": {
+              "$ref": "#/$defs/axis"
+            },
+            "first_or_recurrent": {
+              "$ref": "#/$defs/axis"
+            },
+            "time_origin": {
+              "$ref": "#/$defs/axis"
+            },
+            "follow_up": {
+              "$ref": "#/$defs/axis"
+            },
+            "censoring": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/axis"
+                },
+                {
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "UNKNOWN",
+                        "end-of-study",
+                        "end-of-treatment",
+                        "on-study",
+                        "on-treatment"
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "effect_measure": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/axis"
+                },
+                {
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "HR",
+                        "MD",
+                        "OR",
+                        "RD",
+                        "RR",
+                        "SMD",
+                        "UNKNOWN"
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "adjustment": {
+              "$ref": "#/$defs/axis"
+            },
+            "estimator": {
+              "$ref": "#/$defs/axis"
+            },
+            "report": {
+              "$ref": "#/$defs/axis"
+            }
+          }
+        }
+      }
+    },
+    "coercion": {
+      "type": "object",
+      "required": [
+        "coercion_id",
+        "who",
+        "why",
+        "evidence_spans",
+        "date",
+        "consequence",
+        "signed_by",
+        "axis",
+        "from",
+        "to"
+      ],
+      "properties": {
+        "coercion_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "who": {
+          "type": "string",
+          "minLength": 1
+        },
+        "why": {
+          "type": "string",
+          "minLength": 1
+        },
+        "consequence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signed_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "axis": {
+          "enum": [
+            "population",
+            "randomised_contrast",
+            "analysis_set",
+            "endpoint_components",
+            "first_or_recurrent",
+            "time_origin",
+            "follow_up",
+            "censoring",
+            "effect_measure",
+            "adjustment",
+            "estimator",
+            "report"
+          ]
+        },
+        "evidence_spans": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "source",
+              "span"
+            ],
+            "properties": {
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "span": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "from": {},
+        "to": {},
+        "effect_type_id": {
+          "type": "string"
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "required": [
+        "binding_axes",
+        "axes"
+      ],
+      "properties": {
+        "binding_axes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "population",
+              "randomised_contrast",
+              "analysis_set",
+              "endpoint_components",
+              "first_or_recurrent",
+              "time_origin",
+              "follow_up",
+              "censoring",
+              "effect_measure",
+              "adjustment",
+              "estimator",
+              "report"
+            ]
+          }
+        },
+        "axes": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

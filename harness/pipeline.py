@@ -9,6 +9,8 @@ disclosure-as-control. Class PROCESS, direction optimistic, severity
 major-to-critical.
 """
 from __future__ import annotations
+
+from .topic_registry import topic_id
 import json
 import os
 import re
@@ -33,6 +35,7 @@ from . import invalidation as invalidation_mod
 from . import known_missing as known_missing_mod
 from . import missing_effect as missing_effect_mod
 from . import compat as compat_mod
+from . import effect_type as effect_type_mod
 from . import compat_check as compat_check_mod
 from . import compat_direction as compat_direction_mod
 from . import recovery_recheck as recovery_recheck_mod
@@ -997,13 +1000,25 @@ def _apply_trial_annotations(spec, trials):
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
                    locate_judgments=None, verified_effects=None, dose_selection=None,
-                   registry_designs=None, k2_anchor_config=None, eligibility_contract=None):
+                   registry_designs=None, k2_anchor_config=None, effect_coercions=(), effect_protocol_text="",
+                   strand_rule=None, eligibility_contract=None):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     dose_selection = dose_selection or {}
+    from . import verified_source
     verified_arms = _verified_for_outcome(verified_arms, spec.get("name"))
     verified_effects = _verified_for_outcome(verified_effects, spec.get("name"))
     trials, absent = [], []
+    refused_verified = {key: reason for key, row in (verified_effects or {}).items()
+                        if row.get('outcome') == spec.get('name')
+                        and (reason := verified_source.refusal(row))}
+    for d in included:
+        if d['id'] in refused_verified:
+            absent.append({'label': d.get('label') or d['id'],
+                           'id': f"PMID {d['id']}" if d['id_type'] == 'pmid' else d['id'],
+                           'absent_kind': 'refused_on_evidence',
+                           'reason': 'UNLOCATED_VERIFIED_SOURCE: ' + refused_verified[d['id']]})
+    included = [d for d in included if d['id'] not in refused_verified]
     candidate_index = {}
     all_effect_candidates = []
     for d in included:
@@ -1104,7 +1119,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "provenance": ve_over.get("provenance", "fulltext_verified"),
                            **({"alternative_co_primary": ve_over.get("alternative_co_primary")}
                               if ve_over.get("alternative_co_primary") else {}),
-                           "source": ve_over.get("source", "hand-verified endpoint correction (override)")})
+                           "source": ve_over.get("source", "hand-verified endpoint correction (override)"),
+                           **verified_source.metadata(ve_over)})
             continue
         nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
         target_pick = target_endpoint_mod.select_target_endpoint(
@@ -1225,7 +1241,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             trials.append({"label": label, "id": idstr, "effect": ve["effect"],
                            "ci_low": ve.get("ci_low"), "ci_high": ve.get("ci_high"),
                            "scale": ve.get("scale", "HR"), "provenance": "fulltext_verified",
-                           "source": ve.get("source", "full-text-verified effect+CI")})
+                           "source": ve.get("source", "full-text-verified effect+CI"),
+                           **verified_source.metadata(ve)})
             continue
         absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
     if eligibility_contract:
@@ -1346,6 +1363,27 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             row.update(meta)
     _apply_trial_annotations(spec, trials)
     for t in trials:
+        if t.get("mean1") is not None:
+            reconstructed_scale = "MD"
+        elif t.get("ai") is not None:
+            reconstructed_scale = "OR" if str(selector_estimand).upper() == "OR" else "RR"
+        else:
+            reconstructed_scale = None
+        if reconstructed_scale:
+            t.setdefault("effect_type_evidence", {})["effect_measure"] = {
+                "value": reconstructed_scale,
+                "basis": {"rule_id": "harness.synth:Study.yi_vi:" + reconstructed_scale}}
+    effect_target = effect_type_mod.protocol_target(spec, effect_protocol_text)
+    trials, type_refusals, effect_types = effect_type_mod.type_rows(
+        trials, effect_target, rec_by_id, effect_coercions)
+    strand_candidates = trials + type_refusals
+    if strand_rule is not None:
+        from .strands import selected
+        trials = [row for row in trials if selected(row, strand_rule)]
+        type_refusals = [row for row in type_refusals if selected(row, strand_rule)]
+        effect_types = [row for row in effect_types if selected({'id': row['trial']}, strand_rule)]
+    absent.extend(type_refusals)
+    for t in trials:
         if t.get("cross_source"):
             _refresh_cross_source_identity(t["cross_source"], spec, t.get("components"))
     out = {"name": spec["name"], "kind": kind, "primary": bool(spec.get("primary")),
@@ -1353,6 +1391,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
            "timepoint": spec.get("timepoint"), "method": METHOD,
            "served_estimand": selector_estimand, "estimand_decision": estimand_decision,
            "trials": trials, "declared_absent_trials": absent}
+    out.update(effect_types=effect_types, effect_type_target=effect_target,
+               effect_type_refusals=type_refusals, coercions=list(effect_coercions))
+    if strand_rule is not None:
+        out['strand_candidates'] = strand_candidates
     if spec.get("component_compat_key"):
         out["component_compat_key"] = True
     if design_refusals:
@@ -1529,11 +1571,12 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # definition audit). Object-derived from the pooled trials' committed source spans.
         _ch_srcs = []
         for t in trials:
-            _pid = str(t.get("id", "")).replace("PMID ", "").strip() or str(t.get("label", ""))
-            _ab = (rec_by_id.get(_pid) or rec_by_id.get(t.get("label")) or {}).get("abstract", "")
             _ch_srcs.append({
-                "source": (_ab or "") + " " + (t.get("source", "") or ""),
-                "endpoint_definition": t.get("endpoint_definition"),
+                "source": t.get("source", "") or "",
+                "endpoint_definition": next((" | ".join(e["axes"]["endpoint_components"]["value"])
+                    for e in effect_types if e["effect_type_id"] == t.get("effect_type_id")
+                    and isinstance(e["axes"]["endpoint_components"].get("value"), list)),
+                    t.get("endpoint_definition")),
             })
         _ch = extract.composite_heterogeneity(spec.get("name", ""), _ch_srcs)
         if _ch:
@@ -1591,6 +1634,12 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             out["result"] = {"present": False,
                              "reason": "no included trial reported this outcome with a percentage-corroborated "
                                        "count or an effect+CI in its abstract"}
+    if type_refusals:
+        out["effect_type_counts"] = {"candidate_rows": len(effect_types), "accepted_rows": len(trials),
+                                     "refused_rows": len(type_refusals)}
+        if not trials:
+            out["result"] = {"present": False, "k": 0,
+                             "reason": "; ".join(t["reason"] for t in type_refusals)}
     if out.get("design_refusals"):
         out["design_consumption"] = design_variance.consumption_summary(out)
         if isinstance(out.get("result"), dict):
@@ -1679,6 +1728,21 @@ def _retrieval_summary(ledger):
     }
 
 
+def independent_search_obligations(config, ledger):
+    """Compare declared databases with executed ledger entries, never cache presence."""
+    rows = []
+    for database, kinds in config.get('independent_search_obligations', {}).items():
+        sources = [s for s in (ledger or {}).get('sources', []) if s.get('kind') in kinds]
+        met = any(s.get('discovery_capable') and s.get('state') in {'RAN_OK', 'RAN_ZERO'}
+                  for s in sources)
+        rows.append({'database': database, 'status': 'MET' if met else 'UNMET',
+                     'execution_states': sorted({s.get('state', 'NOT_RUN') for s in sources}) or ['NOT_RUN'],
+                     'source_ids': [s['source_id'] for s in sources],
+                     'discovery_capable': any(s.get('discovery_capable') for s in sources)})
+    return {'status': 'MET' if rows and all(r['status'] == 'MET' for r in rows) else 'UNMET',
+            'basis': 'committed retrieval ledger', 'databases': rows}
+
+
 def _source_status(slug, config, records, merged, ledger=None):
     """Four-state (RAN_OK / RAN_ZERO / RAN_ERROR / NOT_RUN) per search source, so a reader can see
     which adapters ran, which returned nothing, and which were not attempted for this topic. Prefers
@@ -1706,8 +1770,45 @@ def _source_status(slug, config, records, merged, ledger=None):
     }
 
 
+def strand_members(rows, declaration, strand=None):
+    """Select a declared strand by its membership object, independent of topic.
+
+    Selection never adds rows, fills evidence, or changes eligibility. Missing or
+    ambiguous strand declarations fail closed instead of broadening a pool.
+    """
+    name = strand or declaration.get('primary_strand')
+    matches = [s for s in declaration.get('strands', [])
+               if (s.get('strand') or s.get('name')) == name]
+    if not name or len(matches) != 1:
+        raise ValueError('Missing or ambiguous declared strand: ' + str(name))
+    members = matches[0].get('members')
+    if not isinstance(members, list):
+        raise ValueError('Strand members must be a list')
+    keys = [claimgraph_mod.trial_key(m) for m in members]
+    if any(not key for key in keys) or len(set(keys)) != len(keys):
+        raise ValueError('Invalid or duplicate strand member identifier')
+    return [row for row in rows if claimgraph_mod.trial_key(row) in set(keys)]
+
+
+def primary_strand_declaration(slug):
+    from pathlib import Path
+    declarations = []
+    for path in sorted((Path(ROOT) / 'docs').glob('*_strands.json')):
+        doc = json.loads(path.read_text(encoding='utf-8'))
+        if doc.get('slug') == slug and doc.get('primary_strand'):
+            declarations.append(doc)
+    if len(declarations) > 1:
+        raise ValueError('Multiple primary strand declarations for ' + slug)
+    return declarations[0] if declarations else None
+
+
 @aact_cache.cache_only_build
 def build_review_core(slug, config, records, protocol_sha):
+    from . import strands as strands_mod
+    if config.get('strands'):
+        records = dict(records, records=list(records['records']))
+        have = {r['id'] for r in records['records']}
+        records['records'] += [r for r in config.get('strand_supplemental_records', []) if r['id'] not in have]
     merged = _dedup(records, config.get("pivotal_trials"))
     retrieval_ledger = _load_retrieval_ledger(slug)
     retrieval_records = (retrieval_ledger.get("records") or {}) if retrieval_ledger else {}
@@ -1734,6 +1835,8 @@ def build_review_core(slug, config, records, protocol_sha):
             config = dict(config, companion_reports=_existing)
     except (OSError, ValueError):
         pass
+    from . import trial_family as trial_family_mod
+    family_nodes = trial_family_mod.prepare(ROOT, slug, list(records.get('records') or []) + list(records.get('ctgov') or []), config, retrieval_ledger)
     scr = screen.run(merged, config)
     rec_by_id = {r["id"]: r for r in merged}
     included = [d for d in scr["decisions"] if d["decision"] == "include"]
@@ -1755,13 +1858,23 @@ def build_review_core(slug, config, records, protocol_sha):
     if config.get("eligibility_chain_enforced"):
         with open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8") as f:
             eligibility_contract = eligibility_chain_mod.compile_contract(slug, config, f.read())
-    outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp,
+    effect_coercions = effect_type_mod.load_coercions(
+        os.path.join(ROOT, "cache", slug, "coercions.json"))
+    effect_protocol_text = _read_text("protocols", slug + ".md")
+    strand_declaration = None if config.get('strands') else primary_strand_declaration(slug)
+    primary_declaration = next((d for d in strands_mod.declarations(config) if d['primary']), None) if config.get('strands') else None
+    outcomes = [_build_outcome(spec, kind,
+                               (strand_members(included, strand_declaration)
+                                if strand_declaration and spec.get('primary') else included),
+                               rec_by_id, interv, comp, cgr, ftbp,
                                outcome_judgments=ojudg, verified_arms=varms, locate_judgments=ljudg,
                                verified_effects=veffs, dose_selection=dsel,
                                registry_designs=registry_designs,
                                k2_anchor_config=config.get("k2_direction_conflict_anchor"),
-                               eligibility_contract=eligibility_contract)
+                               eligibility_contract=eligibility_contract, effect_coercions=effect_coercions, effect_protocol_text=effect_protocol_text,
+                               strand_rule=primary_declaration if spec.get('primary') else None)
                 for spec, kind in _outcome_specs(config)]
+    effect_type_mod.persist(os.path.join(ROOT, "cache", slug, "effect_types.json"), outcomes)
     primary = outcomes[0]
 
     comp_rec = rec_by_id.get(config.get("comparator_pmid")) or {}
@@ -1816,7 +1929,8 @@ def build_review_core(slug, config, records, protocol_sha):
                              f"verifiable by date). Exact shared count not asserted.")},
     }
     if slug in comparator_second_pass.PROFILES:
-        comparator = comparator_second_pass.apply(slug, config, records, comp_rec, comparator)
+        comparator = comparator_second_pass.apply(slug, config, records, comp_rec, comparator,
+                                                  pooled_rows=primary["trials"])
     if slug in comparator_truth.PAGE_ANNOTATION_SLUGS:
         _comp_text = comparator_truth.load_cached_comparator_text(
             ROOT, slug, comparator.get("pmid"), (comp_full or comp_abstract)
@@ -1903,6 +2017,8 @@ def build_review_core(slug, config, records, protocol_sha):
                    "sources": [{"name": "PubMed", "queries": records.get("pubmed_queries", [])},
                                {"name": "ClinicalTrials.gov", "queries": [json.dumps(records.get("ctgov_query"))]}],
                    "retrieval_class": retrieval_class,
+                   **({'amended_obligations': independent_search_obligations(config, retrieval_ledger)}
+                      if config.get('independent_search_obligations') else {}),
                    "source_status": source_status,
                    **({"retrieval": _retrieval_summary(retrieval_ledger)} if retrieval_ledger else {}),
                    **({"recall": _rc} if (_rc := _load_recall(slug)) else {}),
@@ -1936,6 +2052,7 @@ def build_review_core(slug, config, records, protocol_sha):
         **({"rob_spancheck": _rsc} if (_rsc := _load_rob_spancheck()) else {}),
     }
     identity_mod.annotate_review(review, merged, config.get("companion_reports") or [])
+    trial_family_mod.attach_review(review, family_nodes)
     _annotate_completeness(review, rec_by_id)
     # CANONICAL CLAIM: one derivation of significance / null-crossing / direction per result,
     # attached to every outcome (primary, secondary, harms) and every transcribed comparator claim,
@@ -1952,7 +2069,24 @@ def build_review_core(slug, config, records, protocol_sha):
                 _r["claim"] = claim_mod.derive(_r)
     # DECLARED STRANDS are result-bearing objects for this topic, not index-only prose.
     # Attach them before invalidation so strand members count as pooled membership.
-    claimgraph_mod.attach_strands(review, ROOT)
+    if config.get('strands'):
+        candidates = {claimgraph_mod._norm_id(r.get('id')): dict(r) for r in primary['strand_candidates']}
+        for key, values in (veffs or {}).items():
+            for row in values if isinstance(values, list) else [values]:
+                if row.get('outcome') == primary['name'] and key not in candidates:
+                    candidates[key] = dict(row, id='PMID ' + key, label=rec_by_id.get(key, {}).get('acronym') or key)
+        family_by_report = {r['report_id']: f['family_id'] for f in family_nodes for r in f['reports']}
+        for key, row in candidates.items():
+            if key in family_by_report:
+                row['family_id'] = family_by_report[key]
+        review['strands'] = strands_mod.build(config, list(candidates.values()), primary['effect_type_target'],
+                                              scr['decisions'], rec_by_id, effect_coercions)
+        primary_pool = next(s for s in review['strands']['strands'] if s['primary'])
+        if {claimgraph_mod.trial_key(r) for r in primary_pool['members']} != {claimgraph_mod.trial_key(r) for r in primary['trials']}:
+            raise ValueError('Primary strand differs from primary outcome membership')
+        effect_type_mod.persist(os.path.join(ROOT, 'cache', slug, 'effect_types.json'), outcomes, review['strands'])
+    else:
+        claimgraph_mod.attach_strands(review, ROOT)
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config before invalidation, because identifier-scope needs the PICO I-line quote for its reason.
     _protocol_i_line = ""
@@ -1984,6 +2118,11 @@ def build_review_core(slug, config, records, protocol_sha):
     # source that errored). Poisons the dependent outputs -- the page renders a STALE banner and the
     # index counts STALE topics -- so a known-incomplete/unproven result cannot read as current.
     _inv_sig = _invalidation_signals(slug)
+    if config.get('strands'):
+        pooled = strands_mod._report_keys(review['strands'])
+        aliases = {r.get('acronym'): str(r['id']) for r in merged if r.get('acronym')}
+        _inv_sig['known_eligible_missing'] = [r for r in _inv_sig.get('known_eligible_missing', [])
+            if aliases.get(r.get('trial'), r.get('trial')) not in pooled]
     # Identity crosswalk (read-only session #1, NAMED_BUT_UNBOUND): resolve a record's identifiers so a
     # trial screened-in under one id (NCT) but pooled under another (PMID) is not falsely counted
     # eligible-not-pooled. Built from the merged records' own nct field; verified 0 cross-space cases
@@ -2071,7 +2210,7 @@ def build_review_core(slug, config, records, protocol_sha):
     _src_map = reason_audit_mod.sources_by_trial(slug, records, ROOT)
     reason_audit_mod.annotate_review(slug, review, _spec_by_name, _src_map)
     unextracted_mod.annotate_review(slug, review, _spec_by_name, _src_map)
-    if slug == "colchicine-postop-af" or config.get("eligibility_chain_enforced"):
+    if slug == (topic_id('postoperative_af')) or config.get("eligibility_chain_enforced"):
         try:
             _md = open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8").read()
             eligibility_chain_mod.apply_admissions(review, config, records, _md)
@@ -2116,6 +2255,8 @@ def build_review_core(slug, config, records, protocol_sha):
         review.setdefault("protocol", {})["target_endpoint_selection"] = (
             target_endpoint_mod.protocol_rule_object()
         )
+    if config.get('strands') and review.get('grade'):
+        review['grade']['certainty'] = claimgraph_mod.certainty_object(review['grade'])['value']
     claimgraph_mod.stamp_review(review)
     _cg_bad = claimgraph_mod.check(review)
     if _cg_bad:
@@ -2125,6 +2266,12 @@ def build_review_core(slug, config, records, protocol_sha):
     _prop_bad = propositions_mod.check_propositions(review)
     if _prop_bad:
         raise ValueError("PROPOSITION CONTRADICTION (build refused): " + json.dumps(_prop_bad))
+    from . import statistical_layers
+    review['statistical_layers'] = statistical_layers.build(review)
+    for name, obj in review['statistical_layers'].items():
+        with open(os.path.join(ROOT, 'cache', slug, name + '.json'), 'w', encoding='utf-8', newline='\n') as handle:
+            json.dump(obj, handle, ensure_ascii=False, indent=2)
+            handle.write('\n')
     return review
 
 

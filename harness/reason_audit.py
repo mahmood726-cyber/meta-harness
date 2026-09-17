@@ -174,6 +174,10 @@ def sources_by_trial(
 
 
 def _candidate_sentences(text: str, keywords: list[str], outcome_name: str | None) -> list[str]:
+    if re.search(r"MACE|major adverse cardiovascular", outcome_name or "", re.I):
+        # A kidney composite or CV-death HR does not evidence the MACE endpoint.
+        return [norm_space(s) for s in extract._sentences(_plain(text))
+                if re.search(r"\bMACE\b|major (?:adverse )?cardiovascular events", s, re.I)]
     candidates = absence._candidate_sentences(text, keywords, outcome_name)  # audit-only reuse
     if candidates:
         return candidates
@@ -290,6 +294,11 @@ def audit_reason_row(
 ) -> dict[str, Any]:
     spec = spec or {}
     code = absence.normalize_code(row.get("reason_code") or row.get("state") or "")
+    verdict = row.get("unification") or {}
+    if verdict.get("status") in {"REFUSE", "UNKNOWN_FAILS_CLOSED"}:
+        return {"verdict": REASON_TRUE, "detail": verdict["reason"],
+                "stated_reason_code": code, "binding_axis": verdict.get("axis_name"),
+                "effect_type_id": row.get("effect_type_id"), "unification": verdict}
     if not sources:
         return {
             "verdict": NOT_VERIFIABLE,

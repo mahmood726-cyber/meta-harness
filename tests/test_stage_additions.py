@@ -54,7 +54,9 @@ def test_grade_present_and_valid_for_every_primary():
         assert g, f"{slug}: no grade"
         # 'not_rateable' is a valid state (audit 21 #5): an estimand-incompatible / incoherent pool
         # yields domain signals but NO overall certainty category, with a reason.
-        assert g["certainty"] in ("high", "moderate", "low", "very_low", "not_rateable"), slug
+        assert g["certainty"] in ("high", "moderate", "low", "very_low", "not_rateable", "provisional"), slug
+        if g['certainty'] == 'provisional':
+            assert any(d.get('assessed') is False for d in g['domains'].values())
         if g["certainty"] == "not_rateable":
             assert g.get("not_rateable_reason"), f"{slug}: not_rateable without a reason"
             continue

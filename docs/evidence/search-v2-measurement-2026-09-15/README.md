@@ -1,6 +1,6 @@
 # Search v2 measurement (2026-09-15)
 
-**Fix state (orthogonal fields rule): LANDED / NONE / CORPUS / STALE** - generated from MEASURE-search-v2-recall-2026-09-15; stale dependencies: docs/evidence/CAPTIONS.json, docs/search_recall_regression_corpus.json, harness/pipeline.py, +1 more
+**Fix state (orthogonal fields rule): LANDED / NONE / CORPUS / STALE** - generated from MEASURE-search-v2-recall-2026-09-15; stale dependencies: docs/evidence/CAPTIONS.json, docs/search_recall_regression_corpus.json, harness/pipeline.py, +2 more
 
 3 runs of the engine on the same sealed benchmark, scored by the same scorer. Run 1 (lane S3) is kept
 exactly as sealed; every later run follows the guard protocol (docs/evidence/search-v2-guard-2026-09-15/PROTOCOL.md,

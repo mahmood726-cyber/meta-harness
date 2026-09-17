@@ -13,6 +13,8 @@ than elink.
 """
 from __future__ import annotations
 
+from .topic_registry import topic_id
+
 import json
 import os
 import re
@@ -403,7 +405,7 @@ def omega3_demo(progress=None) -> dict:
     all_pmids = _dedupe(all_pmids)
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    cache_path = os.path.join(root, "cache", "omega3-cardiovascular-events", "records.json")
+    cache_path = os.path.join(root, "cache", (topic_id('omega3_cardiovascular')), "records.json")
     existing_pmids = _existing_cache_pmids(cache_path)
     delta_pmids = [pmid for pmid in all_pmids if pmid not in existing_pmids]
     if progress:

@@ -33,11 +33,12 @@ def test_absent_everywhere_returns_none():
     assert extract.comparator_effect(ABSTRACT, FULLTEXT, ["mortality", "death"]) is None
 
 
-def _one_trial(abstract, estimand="RR"):
+def _one_trial(abstract, estimand="RR", protocol=""):
     spec = {"name": "Death", "keywords": ["death"], "estimand": estimand, "primary": True}
     included = [{"id": "1", "id_type": "pmid", "label": "SYNTH"}]
     recs = {"1": {"id": "1", "abstract": abstract}}
-    return _build_outcome(spec, "efficacy", included, recs, ["drug"], ["placebo"])
+    return _build_outcome(spec, "efficacy", included, recs, ["drug"], ["placebo"],
+                          effect_protocol_text=protocol)
 
 
 def test_published_target_effect_beats_reconstructed_counts():
@@ -50,11 +51,22 @@ def test_published_target_effect_beats_reconstructed_counts():
     assert pre_fix.get("ai") == 20 and pre_fix.get("effect") is None
 
     out = _one_trial(abstract, estimand="RR")
+    # A configured estimand alone is not a protocol binding declaration.
     trial = out["trials"][0]
+    assert out['effect_type_target']['binding_axes'] == []
+    assert trial['unification']['status'] == 'MATCH'
     assert trial["effect"] == 0.80
     assert trial["scale"] == "HR"
     assert trial["selection_rule"] == "PUBLISHED_EFFECT_TARGET_CLASS"
     assert trial["alternatives"][0]["ai"] == 20
+    # The same selected source effect must be refused when RR is explicitly
+    # binding in the protocol; selection and compatibility remain independent.
+    protocol = '```effect-type-binding\n' + json.dumps({
+        'schema_version': 1, 'outcomes': {'Death': {'effect_measure': 'RR'}}}) + '\n```'
+    bound = _one_trial(abstract, estimand='RR', protocol=protocol)
+    assert bound['trials'] == []
+    verdict = bound['effect_type_refusals'][0]['unification']
+    assert verdict['status'] == 'REFUSE' and verdict['axis'] == 9
 
 
 def test_counts_remain_when_no_published_effect_exists():

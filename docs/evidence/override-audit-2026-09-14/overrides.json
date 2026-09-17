@@ -3151,5 +3151,262 @@
     "stated_reason": "Registry separates diabetic, unspecified and related ketoacidosis preferred terms and safety populations. These rows do not establish a deduplicated trial-defined ketoacidosis aggregate; categories cannot be summed.",
     "judgement": "Registry separates diabetic, unspecified and related ketoacidosis preferred terms and safety populations. These rows do not establish a deduplicated trial-defined ketoacidosis aggregate; categories cannot be summed.",
     "rule_group": "IN3 held-source endpoint and population adjudication"
+  },
+  {
+    "topic": "sglt2-ckd-progression",
+    "file": "verified_effects.json",
+    "trial": "32970396",
+    "outcome": "Trial-defined major kidney / cardiorenal composite (components differ by trial)",
+    "override_replaces": "Count-derived RR from 197/2152 vs 312/2152.",
+    "override_with": "Reported kidney-composite HR 0.61 (95% CI 0.51-0.72).",
+    "stated_reason": "DAPA-CKD (PMID 32970396) abstract: primary composite (sustained >=50% eGFR decline, ESKD, or renal/CV death) 197/2152 dapagliflozin vs 312/2152 placebo (hazard ratio, 0.61; 95% CI, 0.51 to 0.72; P<0.001). SCALE CORRECTION (override): the CT.gov/abstract count extractor pooled a count-derived RR into the HR pool; the trial reports the kidney-composite HR 0.61 directly.",
+    "source_committed": true,
+    "source_committed_evidence": "cache/sglt2-ckd-progression/records.json",
+    "rule_group": "Effect-measure and scale compatibility",
+    "general_rule": "A reported HR for a kidney-composite time-to-event endpoint beats a count-derived RR.",
+    "harness_module": "harness.estmeasure; harness.compat",
+    "judgement": "General harness rule: scale coherence should be automatic across HR-family kidney outcome pools.",
+    "one_off_fact": false
+  },
+  {
+    "topic": "sglt2-ckd-progression",
+    "file": "verified_effects.json",
+    "trial": "36331190",
+    "outcome": "Trial-defined major kidney / cardiorenal composite (components differ by trial)",
+    "override_replaces": "Count-derived RR from EMPA-KIDNEY event counts.",
+    "override_with": "Reported kidney-composite HR 0.72 (95% CI 0.64-0.82).",
+    "stated_reason": "EMPA-KIDNEY (PMID 36331190) abstract: primary composite (kidney disease progression or CV death) in empagliflozin vs 558/3305 (16.9%) placebo (hazard ratio, 0.72; 95% CI, 0.64 to 0.82; P<0.001). SCALE CORRECTION (override): pool the reported kidney-composite HR, not the count-derived RR.",
+    "source_committed": true,
+    "source_committed_evidence": "cache/sglt2-ckd-progression/records.json; cache/sglt2-ckd-progression/ft_36331190.txt",
+    "rule_group": "Effect-measure and scale compatibility",
+    "general_rule": "Use the reported HR when the target endpoint is analyzed as time to event.",
+    "harness_module": "harness.estmeasure; harness.compat",
+    "judgement": "General harness rule: reported time-to-event scale must control the pooled estimand.",
+    "one_off_fact": false
+  },
+  {
+    "topic": "esketamine-trd-madrs",
+    "file": "verified_arms.json",
+    "trial": "NCT02417064",
+    "outcome": "Change in MADRS",
+    "override_replaces": "CT.gov single-pair or refusal path for a 3-arm dose trial with shared placebo.",
+    "override_with": "Combined esketamine arms: mean -18.91, SD 13.95, n=209 vs placebo mean -14.8, SD 15.07, n=108.",
+    "stated_reason": "TRANSFORM-1 (NCT02417064) committed CT.gov MADRS Day-28 (MMRM) per-arm change scores: intranasal esketamine 56 mg + oral AD -19.0 (SD 13.86, n=111); 84 mg + oral AD -18.8 (SD 14.12, n=98); oral AD + intranasal placebo -14.8 (SD 15.07, n=108). MULTI-ARM COMBINATION (Cochrane RevMan 6.5.2.10): the two intranasal esketamine dose arms are combined against the SHARED placebo to avoid double-counting it: combined esketamine mean -18.91, SD 13.95, n=209 (weighted mean of -19.0/-18.8; pooled SD from (n1-1)s1^2+(n2-1)s2^2 + n1*n2/(n1+n2)*(m1-m2)^2 over N-1). Both dose arms are INTRANASAL (route matches the protocol intranasal PICO). vs placebo -14.8 (SD 15.07, n=108). MD = -4.11.",
+    "source_committed": true,
+    "source_committed_evidence": "cache/esketamine-trd-madrs/records.json",
+    "rule_group": "Multi-arm unit-of-analysis handling",
+    "general_rule": "Multiple eligible dose arms sharing a comparator should be combined by the standard formula before pooling continuous outcomes.",
+    "harness_module": "harness.ctgov_results; harness.unit_of_analysis",
+    "judgement": "General harness rule: RevMan-style multi-arm combination should be automated for any continuous multi-dose trial.",
+    "one_off_fact": false
+  },
+  {
+    "topic": "glp1-ra-mace-t2d",
+    "file": "verified_effects.json",
+    "trial": "31185157",
+    "outcome": "3-point major adverse cardiovascular events",
+    "source_committed": true,
+    "source_committed_evidence": "cache/glp1-ra-mace-t2d/records.json",
+    "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+    "span_offset": 490,
+    "override_with": {
+      "effect": 0.79,
+      "ci_low": 0.57,
+      "ci_high": 1.11,
+      "scale": "HR"
+    },
+    "judgement": "B-prime source hierarchy: exact declared 3-point MACE row; digits, bounds, digest and span verified offline. FLOW censoring UNKNOWN retained.",
+    "rule_group": "Document-bound target endpoint",
+    "harness_module": "harness.verified_source"
+  },
+  {
+    "topic": "glp1-ra-mace-t2d",
+    "file": "verified_effects.json",
+    "trial": "27633186",
+    "outcome": "3-point major adverse cardiovascular events",
+    "source_committed": true,
+    "source_committed_evidence": "cache/glp1-ra-mace-t2d/records.json",
+    "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+    "span_offset": 3540,
+    "override_with": {
+      "effect": 0.74,
+      "ci_low": 0.58,
+      "ci_high": 0.95,
+      "scale": "HR"
+    },
+    "judgement": "B-prime source hierarchy: exact declared 3-point MACE row; digits, bounds, digest and span verified offline. FLOW censoring UNKNOWN retained.",
+    "rule_group": "Document-bound target endpoint",
+    "harness_module": "harness.verified_source"
+  },
+  {
+    "topic": "glp1-ra-mace-t2d",
+    "file": "verified_effects.json",
+    "trial": "27295427",
+    "outcome": "3-point major adverse cardiovascular events",
+    "source_committed": true,
+    "source_committed_evidence": "cache/glp1-ra-mace-t2d/records.json",
+    "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+    "span_offset": 6358,
+    "override_with": {
+      "effect": 0.87,
+      "ci_low": 0.78,
+      "ci_high": 0.97,
+      "scale": "HR"
+    },
+    "judgement": "B-prime source hierarchy: exact declared 3-point MACE row; digits, bounds, digest and span verified offline. FLOW censoring UNKNOWN retained.",
+    "rule_group": "Document-bound target endpoint",
+    "harness_module": "harness.verified_source"
+  },
+  {
+    "topic": "glp1-ra-mace-t2d",
+    "file": "verified_effects.json",
+    "trial": "34215025",
+    "outcome": "3-point major adverse cardiovascular events",
+    "source_committed": true,
+    "source_committed_evidence": "cache/glp1-ra-mace-t2d/records.json",
+    "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+    "span_offset": 9116,
+    "override_with": {
+      "effect": 0.73,
+      "ci_low": 0.58,
+      "ci_high": 0.92,
+      "scale": "HR"
+    },
+    "judgement": "B-prime source hierarchy: exact declared 3-point MACE row; digits, bounds, digest and span verified offline. FLOW censoring UNKNOWN retained.",
+    "rule_group": "Document-bound target endpoint",
+    "harness_module": "harness.verified_source"
+  },
+  {
+    "topic": "glp1-ra-mace-t2d",
+    "file": "verified_effects.json",
+    "trial": "31189511",
+    "outcome": "3-point major adverse cardiovascular events",
+    "source_committed": true,
+    "source_committed_evidence": "cache/glp1-ra-mace-t2d/records.json",
+    "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+    "span_offset": 12203,
+    "override_with": {
+      "effect": 0.88,
+      "ci_low": 0.79,
+      "ci_high": 0.99,
+      "scale": "HR"
+    },
+    "judgement": "B-prime source hierarchy: exact declared 3-point MACE row; digits, bounds, digest and span verified offline. FLOW censoring UNKNOWN retained.",
+    "rule_group": "Document-bound target endpoint",
+    "harness_module": "harness.verified_source"
+  },
+  {
+    "topic": "glp1-ra-mace-t2d",
+    "file": "verified_effects.json",
+    "trial": "30291013",
+    "outcome": "3-point major adverse cardiovascular events",
+    "source_committed": true,
+    "source_committed_evidence": "cache/glp1-ra-mace-t2d/records.json",
+    "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+    "span_offset": 15322,
+    "override_with": {
+      "effect": 0.78,
+      "ci_low": 0.68,
+      "ci_high": 0.9,
+      "scale": "HR"
+    },
+    "judgement": "B-prime source hierarchy: exact declared 3-point MACE row; digits, bounds, digest and span verified offline. FLOW censoring UNKNOWN retained.",
+    "rule_group": "Document-bound target endpoint",
+    "harness_module": "harness.verified_source"
+  },
+  {
+    "topic": "glp1-ra-mace-t2d",
+    "file": "verified_effects.json",
+    "trial": "28910237",
+    "outcome": "3-point major adverse cardiovascular events",
+    "source_committed": true,
+    "source_committed_evidence": "cache/glp1-ra-mace-t2d/records.json",
+    "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+    "span_offset": 19146,
+    "override_with": {
+      "effect": 0.91,
+      "ci_low": 0.83,
+      "ci_high": 1.0,
+      "scale": "HR"
+    },
+    "judgement": "B-prime source hierarchy: exact declared 3-point MACE row; digits, bounds, digest and span verified offline. FLOW censoring UNKNOWN retained.",
+    "rule_group": "Document-bound target endpoint",
+    "harness_module": "harness.verified_source"
+  },
+  {
+    "topic": "glp1-ra-mace-t2d",
+    "file": "verified_effects.json",
+    "trial": "40162642",
+    "outcome": "3-point major adverse cardiovascular events",
+    "source_committed": true,
+    "source_committed_evidence": "cache/glp1-ra-mace-t2d/records.json",
+    "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+    "span_offset": 28424,
+    "override_with": {
+      "effect": 0.86,
+      "ci_low": 0.77,
+      "ci_high": 0.96,
+      "scale": "HR"
+    },
+    "judgement": "B-prime source hierarchy: exact declared 3-point MACE row; digits, bounds, digest and span verified offline. FLOW censoring UNKNOWN retained.",
+    "rule_group": "Document-bound target endpoint",
+    "harness_module": "harness.verified_source"
+  },
+  {
+    "topic": "glp1-ra-mace-t2d",
+    "file": "verified_effects.json",
+    "trial": "26630143",
+    "outcome": "3-point major adverse cardiovascular events",
+    "source_committed": true,
+    "source_committed_evidence": "outputs/handover/glp1_regulatory/held/208471Orig1s000StatR.pdf",
+    "document_sha256": "cf2b3ef92247b85e7be7c3b56c3cc4fc0af007b3950acee95eea9c995653db38",
+    "span_offset": 47847,
+    "override_with": {
+      "effect": 1.02,
+      "ci_low": 0.887,
+      "ci_high": 1.172,
+      "scale": "HR"
+    },
+    "judgement": "B-prime source hierarchy: exact declared 3-point MACE row; digits, bounds, digest and span verified offline. FLOW censoring UNKNOWN retained.",
+    "rule_group": "Document-bound target endpoint",
+    "harness_module": "harness.verified_source"
+  },
+  {
+    "topic": "glp1-ra-mace-t2d",
+    "file": "verified_effects.json",
+    "trial": "34873344",
+    "outcome": "3-point major adverse cardiovascular events",
+    "source_committed": true,
+    "source_committed_evidence": "outputs/handover/glp1_regulatory/held/fda_media_172242_ITCA650.pdf",
+    "document_sha256": "719362393b2029c2d4a081ab1bc69647034b2168efe686808d419f16177f0103",
+    "span_offset": 157878,
+    "override_with": {
+      "effect": 1.24,
+      "ci_low": 0.9,
+      "ci_high": 1.7,
+      "scale": "HR"
+    },
+    "judgement": "B-prime source hierarchy: exact declared 3-point MACE row; digits, bounds, digest and span verified offline. FLOW censoring UNKNOWN retained.",
+    "rule_group": "Document-bound target endpoint",
+    "harness_module": "harness.verified_source"
+  },
+  {
+    "topic": "glp1-ra-mace-t2d",
+    "file": "verified_effects.json",
+    "trial": "38785209",
+    "outcome": "3-point major adverse cardiovascular events",
+    "source_committed": true,
+    "source_committed_evidence": "outputs/search_v2/lanes/R3/lane_r3/raw/058-pubmed-glp1-ra-mace-t2d-flow-efetch.xml",
+    "document_sha256": "2fc31abdf24b1a27d1ee79dd424b3faac680c376e1c86b819c0d0f1bd6c89e40",
+    "span_offset": 3249,
+    "override_with": {
+      "effect": 0.82,
+      "ci_low": 0.68,
+      "ci_high": 0.98,
+      "scale": "HR"
+    },
+    "judgement": "B-prime source hierarchy: exact declared 3-point MACE row; digits, bounds, digest and span verified offline. FLOW censoring UNKNOWN retained.",
+    "rule_group": "Document-bound target endpoint",
+    "harness_module": "harness.verified_source"
   }
 ]

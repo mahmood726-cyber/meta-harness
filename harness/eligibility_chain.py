@@ -8,6 +8,8 @@ sources disagree.
 """
 from __future__ import annotations
 
+from .topic_registry import topic_id
+
 COMPAT_AXES = {"analysis_set", "follow_up_window"}
 
 
@@ -411,7 +413,7 @@ def _trial_failures(outcome: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _prose_predicates(review: dict[str, Any]) -> list[dict[str, Any]]:
-    if review.get("slug") != "colchicine-postop-af":
+    if review.get("slug") != (topic_id('postoperative_af')):
         return []
     out = []
     records = (review.get("screening") or {}).get("records") or []
@@ -438,7 +440,7 @@ def _prose_predicates(review: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _state_inconsistencies(review: dict[str, Any]) -> list[dict[str, Any]]:
-    if review.get("slug") != "colchicine-postop-af":
+    if review.get("slug") != (topic_id('postoperative_af')):
         return []
     out = []
     z_screen = None
@@ -498,7 +500,7 @@ def apply_admissions(
             dict(trial_id=t.get("id"), dimension=dim, **cell)
             for t in outcome.get("trials") or []
             for dim, cell in (t.get("admission") or {}).items() if dim in COMPAT_AXES]
-        if contract.get("slug") == "colchicine-postop-af" or review.get("slug") == "colchicine-postop-af":
+        if contract.get("slug") == topic_id('postoperative_af') or review.get("slug") == topic_id('postoperative_af'):
             strict = [t for t in outcome.get("trials") or []
                       if all(c.get("strict_verdict", c.get("verdict")) != "FAIL"
                              for c in (t.get("admission") or {}).values())]

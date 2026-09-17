@@ -7,6 +7,8 @@ primary pool is never modified here.
 """
 from __future__ import annotations
 
+from .topic_registry import topic_id
+
 from . import claimgraph as _claimgraph
 import re
 from typing import Any
@@ -24,7 +26,7 @@ def _primary(review: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def _clean_id(value: Any) -> str:
-    return str(value or "").replace("PMID ", "").strip()
+    return str(value or "").split("·")[-1].replace("PMID ", "").strip()
 
 
 def _record_for(row: dict[str, Any], rec_by_id: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -137,6 +139,16 @@ def _source_value(slug: str, outcome: dict[str, Any], row: dict[str, Any],
         "missing_class": NOT_IN_COMMITTED_SOURCE,
     }
     reason = str(row.get("reason") or row.get("note") or "")
+    refusal = next((t for t in outcome.get("effect_type_refusals", [])
+                    if _clean_id(t.get("id")) == key), None)
+    if refusal:
+        verdict = refusal.get("unification") or {}
+        out.update(value_status="HELD_VALUE_TYPE_REFUSED", missing_class="EFFECT_TYPE_REFUSED",
+                   verify_basis=verdict.get("reason"), unification=verdict,
+                   source_ref=refusal.get("document_path") or f"cache/{slug}/records.json#{key}.abstract",
+                   source_span=refusal.get("source"),
+                   held_refused_effect={k: refusal.get(k) for k in ("effect", "ci_low", "ci_high", "scale")})
+        return out
     if "four-point" in reason.lower() or "4-point" in reason.lower():
         out["value_status"] = IN_SOURCE_DIFFERENT_ESTIMAND
         out["missing_class"] = NOT_IN_COMMITTED_SOURCE
@@ -144,7 +156,7 @@ def _source_value(slug: str, outcome: dict[str, Any], row: dict[str, Any],
         out["verify_basis"] = "committed object names only a different estimand; no target-estimand value was used"
         return out
 
-    if slug == "colchicine-postop-af" and key == "36286314":
+    if slug == (topic_id('postoperative_af')) and key == "36286314":
         m = re.search(
             r"final analysis included (?P<total>\d+) study subjects: (?P<n1>\d+) in the colchicine group "
             r"and (?P<n2>\d+) in the placebo group\. POAF was observed in (?P<ai>\d+).*? vs\. (?P<ci>\d+)",
@@ -160,13 +172,13 @@ def _source_value(slug: str, outcome: dict[str, Any], row: dict[str, Any],
                 "ci": int(m.group("ci")),
                 "n2i": int(m.group("n2")),
                 "scale": outcome.get("estimand") or "RR",
-                "source_ref": "cache/colchicine-postop-af/records.json#36286314.abstract",
+                "source_ref": ('cache/' + topic_id('postoperative_af') + '/records.json#36286314.abstract'),
                 "source_span": _span(text, "final analysis included", "POAF was observed"),
                 "verify_basis": "arm counts present in committed abstract",
             })
             return out
 
-    if slug == "colchicine-postop-af" and key == "22090167":
+    if slug == (topic_id('postoperative_af')) and key == "22090167":
         if "12.0% versus 22.0%" in text and "336 patients" in text:
             out.update({
                 "value_status": IN_COMMITTED_SOURCE,
@@ -176,7 +188,7 @@ def _source_value(slug: str, outcome: dict[str, Any], row: dict[str, Any],
                 "ci": 37,
                 "n2i": 167,
                 "scale": outcome.get("estimand") or "RR",
-                "source_ref": "cache/colchicine-postop-af/records.json#22090167.abstract",
+                "source_ref": ('cache/' + topic_id('postoperative_af') + '/records.json#22090167.abstract'),
                 "source_span": _span(text, "336 patients", "12.0% versus 22.0%"),
                 "verify_basis": "counts reconstructed from committed abstract percentages and total substudy denominator",
             })
@@ -201,8 +213,19 @@ def _missing_candidates(review: dict[str, Any], signals: dict[str, Any]) -> list
     }
     out: list[dict[str, Any]] = []
     seen: set[str] = set()
+    aliases = {}
+    for key, scr in screen.items():
+        family = scr.get("trial_family_id") or key
+        for alias in (key, family, str(scr.get("id") or "").split("·")[0].strip()):
+            aliases[alias] = key
+    # Prefer the detailed held refusal/absence row to a named signal.
+    declared = primary.get("declared_absent_trials") or []
+    declared_keys = {_clean_id(x.get("id")) for x in declared}
     for x in signals.get("known_eligible_missing") or []:
         key = str(x.get("trial") or "").strip()
+        key = aliases.get(key, key)
+        if key in declared_keys:
+            continue
         if key and key not in seen:
             seen.add(key)
             out.append({
@@ -212,9 +235,10 @@ def _missing_candidates(review: dict[str, Any], signals: dict[str, Any]) -> list
             })
     for x in primary.get("declared_absent_trials") or []:
         key = _clean_id(x.get("id")) or str(x.get("label") or "")
-        if not key or key in seen:
+        identity = (screen.get(key) or {}).get("trial_family_id") or key
+        if not key or identity in seen:
             continue
-        seen.add(key)
+        seen.add(identity)
         scr = screen.get(key) or {}
         out.append({
             **x,
@@ -229,7 +253,7 @@ def build(review: dict[str, Any], signals: dict[str, Any],
     if not primary:
         return
     absent_ids = {_clean_id(t.get("id")) for t in (primary.get("declared_absent_trials") or [])}
-    colchicine_plant = review.get("slug") == "colchicine-postop-af" and {"36286314", "22090167"} <= absent_ids
+    colchicine_plant = review.get("slug") == (topic_id('postoperative_af')) and {"36286314", "22090167"} <= absent_ids
     if not signals.get("known_eligible_missing") and not colchicine_plant:
         return
     candidates = _missing_candidates(review, signals)
@@ -273,7 +297,7 @@ def build(review: dict[str, Any], signals: dict[str, Any],
         "label": "SENSITIVITY",
         "rows": rows,
     }
-    if review.get("slug") == "glp1-ra-mace-t2d":
+    if review.get("slug") == (topic_id('incretin_cardiovascular')):
         panel["components"] = "CV_DEATH | NONFATAL_MI | NONFATAL_STROKE"
     if computable and base_studies:
         combined_studies = base_studies + [_study_from_trial(r, scale) for r in computable]

@@ -9,6 +9,57 @@ design masking -- so the two sources can fail APART. Divergences are reported wi
 divergence is a defect to resolve or a dated amendment to declare, never silently widened.
 """
 import re
+import json
+
+
+def binding_declaration(md_text, spec):
+    """Compile the optional effect-type JSON block; malformed policy fails closed.
+
+    Outcome names scope declarations; omitted outcomes and omitted axes impose
+    no type constraint. Target values are protocol evidence, never row evidence.
+    """
+    from .effect_type import AXES, axis_known, field
+    marker = '```effect-type-binding'
+    if marker not in md_text:
+        return {'binding_axes': [], 'axes': {},
+                'disclosure': 'No binding declaration for this outcome; all axes are non-binding.'}
+    if md_text.count(marker) != 1:
+        raise ValueError('Expected one effect-type-binding block')
+    tail = md_text.split(marker, 1)[1]
+    if not tail.startswith('\n') or '\n```' not in tail:
+        raise ValueError('Malformed effect-type-binding block')
+    raw = tail.split('\n```', 1)[0].strip()
+    def unique_pairs(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate binding declaration key: ' + key)
+            result[key] = value
+        return result
+    doc = json.loads(raw, object_pairs_hook=unique_pairs)
+    if (not isinstance(doc, dict) or set(doc) != {'schema_version', 'outcomes'}
+            or type(doc['schema_version']) is not int or doc['schema_version'] != 1
+            or not isinstance(doc['outcomes'], dict)):
+        raise ValueError('Invalid effect-type-binding schema')
+    targets = {}
+    for name, values in doc['outcomes'].items():
+        if not name.strip() or not isinstance(values, dict):
+            raise ValueError('Invalid binding outcome')
+        axes = {}
+        for axis, value in values.items():
+            f = field(value, span=raw, source='protocol:effect-type-binding')
+            if axis not in AXES or not axis_known(axis, f):
+                raise ValueError('Invalid binding axis or target: ' + axis)
+            if axis == 'endpoint_components' and (not isinstance(value, list)
+                    or not value or any(not isinstance(v, str) or not v.strip() for v in value)):
+                raise ValueError('Endpoint components must be a nonempty string list')
+            axes[axis] = f
+        targets[name] = axes
+    axes = targets.get(spec.get('name'), {})
+    return {'binding_axes': list(axes), 'axes': axes,
+            'disclosure': ('Protocol-declared binding axes: ' + ', '.join(axes) +
+                           '. All remaining axes are non-binding.' if axes else
+                           'No binding declaration for this outcome; all axes are non-binding.')}
 
 _ESTIMAND_CANON = {"hr": "HR", "hazard ratio": "HR", "rr": "RR", "risk ratio": "RR",
                    "or": "OR", "odds ratio": "OR", "md": "MD", "mean difference": "MD",

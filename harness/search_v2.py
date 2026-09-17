@@ -5,6 +5,8 @@ dated snapshots, and replays from those snapshots without network access.
 """
 from __future__ import annotations
 
+from .topic_registry import topic_id
+
 import argparse
 import base64
 import copy
@@ -50,17 +52,17 @@ COCHRANE_EPMC_RCT_FILTER = (
 )
 
 DEVELOPMENT_TOPICS = [
-    "balanced-crystalloids-vs-saline-mortality",
-    "colchicine-recurrent-pericarditis",
-    "corticosteroids-covid19-mortality",
-    "doac-vte-recurrence",
-    "dpp4-mace-t2d",
-    "glp1-ra-mace-t2d",
-    "melatonin-primary-insomnia-sol",
-    "metformin-pcos-ovulation",
-    "probiotics-aad-prevention",
-    "semaglutide-obesity-mace",
-    "sglt2-ckd-progression",
+    (topic_id('fluid_resuscitation')),
+    (topic_id('recurrent_pericarditis')),
+    (topic_id('covid_steroids')),
+    (topic_id('vte_anticoagulation')),
+    (topic_id('dpp4_cardiovascular')),
+    (topic_id('incretin_cardiovascular')),
+    (topic_id('melatonin_insomnia')),
+    (topic_id('metformin_ovulation')),
+    (topic_id('probiotics_antibiotics')),
+    (topic_id('obesity_cardiovascular')),
+    (topic_id('sglt2_renal')),
 ]
 
 _NCT_RE = re.compile(r"\bNCT\d{8}\b", re.IGNORECASE)
@@ -1433,7 +1435,7 @@ def _candidate_payload(run_rows: dict[str, dict], run_date: str) -> dict:
 
 
 def _historical_probiotics_counts() -> dict:
-    cfg = _load_json(os.path.join("topics", "probiotics-aad-prevention.json"))
+    cfg = _load_json(os.path.join("topics", (topic_id('probiotics_antibiotics') + '.json')))
     return {"historical_hand_written_queries": len(cfg.get("pubmed_queries") or [])}
 
 
@@ -1517,7 +1519,7 @@ def write_development_evidence(run_rows: dict[str, dict], run_date: str, replay:
     cross_lines = ["SEARCH V2 CROSS-LINK AND CITATION COUNTS", f"date={run_date}"]
     for slug, row in run_rows.items():
         cross_lines.extend(_crosslink_lines(slug, row))
-    probiotics = run_rows.get("probiotics-aad-prevention")
+    probiotics = run_rows.get((topic_id('probiotics_antibiotics')))
     if probiotics:
         cross_lines.append("## probiotics historical hand-written comparison")
         cross_lines.append(json.dumps({

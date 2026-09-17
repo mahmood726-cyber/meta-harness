@@ -75,9 +75,11 @@ def _terms(spec: dict[str, Any]) -> list[str]:
             more.add("ketoacidosis")
         if "amputation" in term:
             more.add("amputation")
-        if "adverse event" in term:
+        if term in {"adverse event", "adverse events"}:
             more.update({"adverse event", "adverse events", "side effect", "side effects"})
     out.extend(sorted(more))
+    if str(spec.get("name") or "").lower() not in {"adverse event", "adverse events", "registered harms"}:
+        out = [t for t in out if t not in {"adverse event", "adverse events", "side effect", "side effects"}]
     return sorted(set(out), key=len, reverse=True)
 
 
@@ -96,11 +98,17 @@ def reporting_signal(text: str | None, spec: dict[str, Any]) -> dict[str, Any] |
     for sent in extract._sentences(extract._norm(text)):
         if not _matches(sent, terms):
             continue
+        name = str(spec.get("name") or "").lower()
+        if ("discontinu" in name or "withdraw" in name) and ("adverse" in name or "side effect" in name):
+            # Both the action and its harm-related cause must be in this sentence.
+            if not (re.search(r"discontinu|withdraw|withdrew", sent, re.I)
+                    and re.search(r"adverse (?:event|effect)|side effect|toxicity", sent, re.I)):
+                continue
         compact = re.sub(r"\s+", " ", sent).strip()
         if _EFFECT_OR_COMPARISON.search(compact):
-            return {"reported": True, "kind": "numeric_signal", "span": compact[:300]}
+            return {"reported": True, "kind": "numeric_signal", "span": compact}
         # Even non-numeric harm reporting is not outcome absence. It remains extraction debt.
-        return {"reported": True, "kind": "term_signal", "span": compact[:300]}
+        return {"reported": True, "kind": "term_signal", "span": compact}
     return None
 
 
@@ -128,7 +136,7 @@ def _hm_state_for_absent(row: dict[str, Any], spec: dict[str, Any],
         state = NOT_RETRIEVED
     elif sig and code in (absence.OUTCOME_NOT_IN_SOURCE, "NO_OUTCOME_DATA_IN_SOURCE", None, ""):
         state = KNOWN_REPORTED_NOT_YET_EXTRACTED
-    elif code in (absence.EXTRACTION_NOT_PERFORMED, absence.COUNTS_PRESENT_NOT_CORROBORATED):
+    elif sig and code in (absence.EXTRACTION_NOT_PERFORMED, absence.COUNTS_PRESENT_NOT_CORROBORATED):
         state = KNOWN_REPORTED_NOT_YET_EXTRACTED
     elif code in _INCOMPATIBLE_CODES:
         state = RETRIEVED_INCOMPATIBLE_STRUCTURE
@@ -143,6 +151,8 @@ def _hm_state_for_absent(row: dict[str, Any], spec: dict[str, Any],
         out["harm_source_signal"] = sig["kind"]
     else:
         out["harm_source_reported"] = state in _REPORTED_STATES
+        out["harm_source_span"] = text
+        out["harm_source_signal"] = "SEARCHED_OUTCOME_NOT_FOUND"
     return out
 
 

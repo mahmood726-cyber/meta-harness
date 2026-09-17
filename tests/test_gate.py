@@ -84,31 +84,29 @@ def _refuses(d, needle):
 
 # --- the happy path: a correctly built page passes both limbs -----------------
 
-def test_valid_page_passes_non_replay_limbs():
-    # The synthetic fixture has no committed topic/cache, so the Level-B replay limb cannot
-    # run against it (correctly: a page with no reproducible pipeline is not publishable).
-    # Here we assert the fixture satisfies every OTHER limb; full reproduction is tested
-    # against a real committed review below.
+def test_unverified_fixture_refuses_live_census():
+    # CGX requires committed document provenance even for otherwise well-formed
+    # pages. This synthetic fixture deliberately has only source='pub'.
     from harness.gate import check_limb1, check_limb2, check_primary_result, _load
     with tempfile.TemporaryDirectory() as tmp:
         d = _build(tmp)
         manifest, html, rep = _load(d)
         reasons = (check_limb1(d, manifest, html, rep)
                    + check_primary_result(d) + check_limb2(manifest, html))
-        assert not reasons, f"valid page should pass non-replay limbs, got: {reasons}"
+        assert reasons == ['L1: live census reproduced 1 failure(s): typed claim registry covers served prose and validates its objects']
 
 
-def test_real_review_reproduces_and_passes_full_gate():
-    # A real committed page must pass the WHOLE gate including Level-B replay (the pipeline
-    # re-run from committed cache regenerates the committed numbers). Skips only if run
-    # outside the repo (no docs/reviews present).
+def test_legacy_untyped_review_refuses_full_gate():
+    # TY deliberately does not rebuild served pages. A legacy pool without
+    # row types must refuse until the integrator rebuilds it under the target.
     import os as _os
     root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
     d = _os.path.join(root, "docs", "reviews", "noac-vs-warfarin-af-stroke")
     if not _os.path.isdir(d):
         return
     ok, reasons = gate_page(d)
-    assert ok, f"real committed review must pass the full gate, got: {reasons}"
+    assert not ok
+    assert any("L1(effect_type): EFFECT_TYPE_REFUSED" in r for r in reasons), reasons
 
 
 def test_synthetic_harms_incomplete_refuses_full_gate():

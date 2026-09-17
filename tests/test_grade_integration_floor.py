@@ -38,7 +38,9 @@ def test_unassessable_imprecision_counts_as_conservative_downgrade_never_raises_
     order = ["high", "moderate", "low", "very_low"]
     assert refused["domains"]["imprecision"].get("not_assessable_automatically") is True
     assert "imprecision" in refused.get("conservative_downgrades_pending_human_judgement", [])
-    assert order.index(refused["certainty"]) >= order.index(served["certainty"]), (served["certainty"], refused["certainty"])
+    assert refused['certainty'] == served['certainty'] == 'provisional'
+    assert 'imprecision' in refused['unassessed_domains']
+    assert order.index(refused['arithmetic_certainty_if_all_domains_assessed']) >= order.index(served['arithmetic_certainty_if_all_domains_assessed'])
 
 
 def test_rob_sensitivity_object_survives_k2_ci_refusal_with_refused_cis():

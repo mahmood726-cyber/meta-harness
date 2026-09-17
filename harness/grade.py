@@ -7,7 +7,7 @@ of RCTs is HIGH; each downgrade is justified from a committed field.
 Domains:
   risk_of_bias   : from rob2 overall levels of the primary-outcome pooled trials + coverage.
                    any 'high' -> down 1; else 'some concerns' in >=half -> down 1; incomplete coverage
-                   caps the rating (cannot be 'high certainty' if RoB is unassessed for pooled trials).
+                   leaves the rating provisional if coverage is incomplete.
   inconsistency  : from tau2 / the I2 implied by the pool. k<2 -> not estimable (single trial: no
                    inconsistency, but see imprecision). tau2 large relative to effect / wide PI -> down 1.
   imprecision    : from k, total N (optimal information size) and whether the 95% CI crosses the null
@@ -18,10 +18,11 @@ Domains:
   indirectness   : NOT auto-rated (population/intervention/outcome directness is a judgement) -> labelled.
 
 Returns a dict {domains:{...}, start, downgrades, certainty, basis}. certainty in
-{high, moderate, low, very_low}. Object-derived: every number traces to a committed field, so the
+{high, moderate, low, very_low, provisional, not_rateable}. Object-derived: every number traces to a committed field, so the
 anti-drift prose guard stays satisfied when rendered like _error_coverage_section.
 """
 from __future__ import annotations
+
 
 from . import k2 as k2_mod
 
@@ -56,8 +57,8 @@ def _rob_domain(review):
     rob = (review.get("rob2") or {}).get("trials") or {}
     # Join by the trial identity (PMID/NCT), never the display label: acronym labels (SOUL, PHILO,
     # CLEAR SYNERGY) are rated in rob2 under their PMID and were invisible here (integration 2026-09-16).
-    from .claimgraph import trial_key as _tk
-    levels = [_norm_overall((rob.get(_tk(t)) or rob.get(str(t.get("label"))) or {}).get("overall")) for t in trials]
+    from .claimgraph import lookup_trial
+    levels = [_norm_overall((lookup_trial(rob,t) or rob.get(str(t.get("label"))) or {}).get("overall")) for t in trials]
     n = len(levels)
     rated = [x for x in levels if x]
     n_rated = len(rated)
@@ -85,7 +86,7 @@ def _rob_domain(review):
     coverage_incomplete = n_rated < n
     if coverage_incomplete and n_rated > 0:
         basis += (f"; risk-of-bias signal available for only {n_rated} of {n} pooled trials "
-                  f"(registry-derived), so the rating is capped")
+                  f"(registry-derived), so overall certainty remains provisional")
     return {"downgrade": down, "coverage_incomplete": coverage_incomplete, "assessed": assessed,
             "n_trials": n, "n_rated": n_rated, "n_high": n_high, "n_some": n_some, "basis": basis}
 
@@ -261,7 +262,64 @@ def _pubbias_domain(ghost):
 CERT = ["high", "moderate", "low", "very_low"]
 
 
+def arithmetic_certainty(obj):
+    start = CERT.index(obj.get('start', 'high').replace(' ', '_').lower())
+    index = max(0, min(3, start + obj.get('downgrades', 0) - obj.get('upgrades', 0)))
+    return CERT[index]
+
+
+def validate_arithmetic(obj):
+    """Refuse a categorical certainty that does not follow its stated arithmetic."""
+    certainty = obj.get('certainty')
+    for name in ('downgrades', 'upgrades'):
+        value = obj.get(name, 0)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise ValueError('REFUSED: invalid ' + name)
+    domains = obj.get('domains')
+    if domains and sum(d.get('downgrade', 0) for d in domains.values()) != obj.get('downgrades', 0):
+        raise ValueError('REFUSED: domain sum differs from stated downgrades')
+    if certainty == 'provisional':
+        if not obj.get('unassessed_domains'):
+            raise ValueError('REFUSED: provisional requires named unassessed domains')
+        return
+    if certainty == 'not_rateable' and obj.get('not_rateable_reason'):
+        return
+    if domains and any(d.get('assessed') is not True for d in domains.values()):
+        raise ValueError('REFUSED: unassessed domains require provisional certainty')
+    if certainty != arithmetic_certainty(obj):
+        raise ValueError('REFUSED: certainty differs from start - downgrades + upgrades')
+
+
 def grade(review, ghost=None):
+    obj = _domain_assessment(review, ghost)
+    if not obj:
+        return obj
+    domains = obj['domains']
+    unassessed = [name for name, d in domains.items() if d.get('assessed') is not True]
+    rob = domains.get('risk_of_bias', {})
+    if rob.get('coverage_incomplete'):
+        unassessed.append('risk_of_bias: incomplete trial coverage')
+    for key, row in ((review.get('rob2') or {}).get('trials') or {}).items():
+        for name, domain in (row.get('domains') or {}).items():
+            if domain.get('level') in {'not assessed', 'not_assessable'}:
+                unassessed.append('risk_of_bias: ' + name)
+    obj['unassessed_domains'] = sorted(set(unassessed))
+    obj['upgrades'] = 0
+    obj['arithmetic_certainty_if_all_domains_assessed'] = arithmetic_certainty(obj)
+    obj['arithmetic_rule'] = 'high(3) - downgrades + upgrades, bounded to 0..3; any unassessed domain means provisional'
+    if obj['certainty'] != 'not_rateable':
+        obj['certainty'] = 'provisional' if unassessed else arithmetic_certainty(obj)
+    for key in list(obj):
+        if key.startswith('certainty_capped'):
+            del obj[key]
+    obj['imprecision_basis'] = {'quantity': 'observed-evidence confidence interval',
+                              'prediction_interval_used_for_imprecision': False,
+                              'basis': domains['imprecision']['basis']}
+    validate_arithmetic(obj)
+    return obj
+
+
+def _domain_assessment(review, ghost=None):
     """Compute a partial GRADE from the review object (+ optional ghost census)."""
     prim = next((o for o in review.get("outcomes", []) if o.get("primary")), None)
     if not prim or not prim.get("result"):
@@ -274,7 +332,7 @@ def grade(review, ghost=None):
     pub = _pubbias_domain(ghost)
     _rob2_trials = (review.get("rob2") or {}).get("trials") or {}
     prim_trials = (prim or {}).get("trials", []) or []
-    d3_levels = [((_rob2_trials.get(str(t.get("label"))) or {}).get("domains") or {}).get("D3_missing_outcome_data", {}).get("level")
+    d3_levels = [(_rob_entry(_rob2_trials, t).get("domains") or {}).get("D3_missing_outcome_data", {}).get("level")
                  for t in prim_trials]
     d3_unassessed_n = sum(1 for lv in d3_levels if lv == "not assessed")
     rob_basis = (f"machine-assessed domains only; D3 unassessed on {d3_unassessed_n} "
@@ -312,53 +370,7 @@ def grade(review, ghost=None):
             dom["basis"] = (dom.get("basis") or "") + " | counted as ONE conservative downgrade pending human judgement (a check that could not run cannot raise certainty)"
             conservative.append(name)
     downgrades = rob["downgrade"] + inc["downgrade"] + imp["downgrade"] + pub["downgrade"]
-    idx = min(downgrades, 3)  # high -> moderate -> low -> very_low
-    # RoB coverage incompleteness caps at 'moderate' (cannot certify high on unassessed bias)
-    if rob.get("coverage_incomplete") and idx == 0:
-        idx = 1
-        capped = True
-    else:
-        capped = False
-    # A single trial cannot mechanically reach 'high': consistency is not estimable (k=1) and the
-    # optimal information size cannot be confirmed from one trial, so cap at 'moderate'. This still
-    # lets a large, precise single RCT (e.g. SELECT) rise to moderate rather than being wrongly pushed
-    # to low by an automatic single-trial imprecision downgrade (the external-audit fix).
-    single_trial_capped = False
-    if (res.get("k") or 0) <= 1 and idx == 0:
-        idx = 1
-        single_trial_capped = True
-    # D3-UNASSESSED CAP (audits 20/21): D3 (missing outcome data) is a required bias domain, and the
-    # harness has no outcome-missingness evidence source, so it is permanently NOT ASSESSED for every
-    # pooled trial. A body of evidence whose bias assessment is structurally incomplete on a required
-    # domain cannot be certified HIGH certainty -- cap at moderate, with the named reason, until an
-    # outcome-missingness source (AACT milestones / publication flow) makes D3 assessable. Data-driven:
-    # if D3 is ever assessed for a pooled trial, the cap lifts automatically.
-    _rob2_trials = (review.get("rob2") or {}).get("trials") or {}
-    prim_trials = (prim or {}).get("trials", []) or []
-    from .claimgraph import trial_key as _tk2
-    d3_levels = [((_rob2_trials.get(_tk2(t)) or _rob2_trials.get(str(t.get("label"))) or {}).get("domains") or {}).get("D3_missing_outcome_data", {}).get("level")
-                 for t in prim_trials]
-    d3_all_unassessed = bool(d3_levels) and all(lv == "not assessed" for lv in d3_levels)
-    d3_capped = False
-    if d3_all_unassessed and idx == 0:
-        idx = 1
-        d3_capped = True
-    # NOT_ASSESSED != NOT_DOWNGRADED (external audit, STATE root system item 2). A GRADE domain that was
-    # not assessed contributes downgrade=0 to the sum, which is arithmetically identical to a domain that
-    # WAS assessed and found clean -- so an unassessed domain silently reads as favourable and could let a
-    # body of evidence be certified HIGH without publication bias or indirectness ever being evaluated.
-    # `UNASSESSED NEVER COUNTS AS FAVOURABLE`: any unassessed domain caps certainty below HIGH (you cannot
-    # certify the top rating on a domain you did not look at). Indirectness is structurally never
-    # machine-assessed here, so this partial GRADE's honest ceiling is MODERATE until a human rates it --
-    # the ceiling is now ENFORCED, not left to coincide with an incidental downgrade. Data-driven: if a
-    # domain becomes assessable, it stops capping automatically.
-    _dm = {"risk_of_bias": rob, "inconsistency": inc, "imprecision": imp,
-           "publication_bias": pub, "indirectness": {"assessed": False}}
-    unassessed = [name for name, d in _dm.items() if not d.get("assessed", True)]
-    unassessed_cap = False
-    if unassessed and idx == 0:
-        idx = 1
-        unassessed_cap = True
+    idx = min(downgrades, 3)  # explicit lower bound of the four-category scale
     return {
         "start": "high",
         "domains": {
@@ -373,11 +385,6 @@ def grade(review, ghost=None):
         "downgrades": downgrades,
         "conservative_downgrades_pending_human_judgement": conservative,
         "certainty": CERT[idx],
-        "certainty_capped_by_rob_coverage": capped,
-        "certainty_capped_single_trial": single_trial_capped,
-        "certainty_capped_d3_unassessed": d3_capped,
-        "certainty_capped_unassessed_domain": unassessed_cap,
-        "unassessed_domains": unassessed,
         "rob_basis": rob_basis,
         "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication "
                  "bias are computed from committed fields; indirectness is left to human judgement.",

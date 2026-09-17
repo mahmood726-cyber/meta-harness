@@ -100,7 +100,11 @@ def test_rendered_search_provenance_contains_heading_status_and_retraction():
     html = render_page(_review(rc))
 
     assert SEARCH_PROVENANCE_HEADING in html
-    assert "The registry-first (AACT) adapter status for this topic is <strong>RAN_ERROR</strong>" in html
+    from bs4 import BeautifulSoup
+    spans = BeautifulSoup(html, 'html.parser').select('[data-claim-class="TRANSFORMATION"]')
+    assert any("Recorded search provenance:" in span.get_text()
+               and "The registry-first (AACT) adapter status for this topic is RAN_ERROR" in span.get_text()
+               for span in spans)
     assert RETRIEVAL_RETRACTION in html
 
 

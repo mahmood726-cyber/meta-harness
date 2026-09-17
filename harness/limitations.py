@@ -701,7 +701,8 @@ def _grade_block(grade: dict[str, Any]) -> str:
             mark = "human judgement" if value.get("not_auto_rated") else "<strong>NOT ASSESSED</strong>"
         else:
             mark = "&minus;1" if downgrade == 1 else f"&minus;{downgrade}" if downgrade else "not downgraded"
-        rows.append(f"<tr><td>{_e(label)}</td><td>{mark}</td><td>{_e(value.get('basis',''))}</td></tr>")
+        rows.append(f"<tr><th scope='row'>{_e(label)}</th><td colspan='2'>"
+                    + claimgraph.grade_render(grade, 'grade-domain-' + key) + "</td></tr>")
     cap = (
         " The rating is capped below <em>high</em> because risk of bias is not assessed for every "
         "pooled trial." if grade.get("certainty_capped_by_rob_coverage") else ""
@@ -748,9 +749,8 @@ def _grade_block(grade: dict[str, Any]) -> str:
     )
     return (
         "<div class='absent'><strong>Overall certainty (provisional): "
-        f"{_e(grade.get('certainty','').replace('_',' '))}</strong> "
-        f"(starting from <em>high</em> for randomized trials, {grade.get('downgrades',0)} "
-        f"downgrade(s)).{cap}"
+        f"{claimgraph.certainty_render({'grade': grade})}</strong> "
+        f"{claimgraph.grade_render(grade, 'grade-downgrades')} {cap}"
         "<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias "
         f"{rob_phrase} (registry-machine-signal-restricted signals, not a human risk-of-bias assessment) "
         "and indirectness is not auto-rated, "

@@ -105,14 +105,17 @@ def limb_reproduction():
     return (PASS if rc == 0 else REFUSED), _append_target(target_line, tail)
 
 
-def limb_gate_every_page():
+def limb_gate_every_page(slug=None):
     paths = _target_review_objects()
+    if slug is not None:
+        paths = [p for p in paths if os.path.basename(os.path.dirname(p)) == slug]
     target_line, err = _target("verify_all.limb_gate_every_page", paths)
     if err:
         return NOEXEC, target_line
     from harness.gate import gate_page
     dirs = sorted(d for d in glob.glob(os.path.join(ROOT, "docs", "reviews", "*"))
-                  if os.path.isfile(os.path.join(d, "review.json")))
+                  if os.path.isfile(os.path.join(d, "review.json"))
+                  and (slug is None or os.path.basename(d) == slug))
     if not dirs:
         return NOEXEC, _append_target(target_line, "no docs/reviews/*/review.json found -- nothing gated is a refusal, not a pass")
     bad = []

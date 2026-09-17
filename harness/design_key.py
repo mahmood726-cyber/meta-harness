@@ -579,7 +579,15 @@ def key_for_trial(trial: dict[str, Any], rec: dict[str, Any] | None = None,
     interaction = _interaction_evidence(text + " " + str(trial.get("source") or ""))
     estimator_source = "RECONSTRUCTED"
     if derivation == "reported":
-        estimator_source = "PUBLISHED_ADJUSTED" if "adjust" in (trial.get("source") or "").lower() else "PUBLISHED_UNADJUSTED"
+        from .effect_type import build_effect, known
+        axes = build_effect(trial, rec)["axes"]
+        adjustment, estimator = axes["adjustment"], axes["estimator"]
+        estimator_source = "ADJUSTMENT_UNKNOWN"
+        if (known(adjustment) and known(estimator)
+                and adjustment.get("basis", {}).get("span")
+                and estimator.get("basis", {}).get("span")):
+            estimator_source = ("PUBLISHED_UNADJUSTED" if str(adjustment["value"]).upper() in
+                                {"UNADJUSTED", "NONE", "TREATMENT_ONLY"} else "PUBLISHED_ADJUSTED")
     if alt:
         basis.append({"source": "trial reported estimate label", "span": alt["span"]})
 

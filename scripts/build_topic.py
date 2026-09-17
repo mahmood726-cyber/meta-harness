@@ -67,27 +67,32 @@ def main(slug, now):
     review_dir = os.path.join(ROOT, "docs", "reviews", slug)
     manifest = build_review_dir(core, manifest_meta, review_dir, protocol_sha, from_cache=True)
 
-    comp_core = build_comparator_core(slug, config, records)
     tok_h, tok_c = _token(slug, "harness"), _token(slug, "comparator")
     ours_final = dict(core, reproduction={"failures": 0, "protocol_sha": protocol_sha,
                                           "review_sha256": manifest["review_sha256"], "from_cache": True,
                                           "preregistration": _reg.preregistration_sha(slug)})
-    _write(os.path.join(ROOT, "docs", "m", tok_h, "index.html"), render_page(ours_final, neutral=True))
-    _write(os.path.join(ROOT, "docs", "m", tok_c, "index.html"), render_page(comp_core, neutral=True))
-    _write(os.path.join(ROOT, "registry", "blind_map.json"), json.dumps(
-        {"slug": slug, "pages": {tok_h: {"role": "harness", "url": f"docs/m/{tok_h}/"},
-                                 tok_c: {"role": "comparator", "url": f"docs/m/{tok_c}/"}}}, indent=2))
-    write_index(os.path.join(ROOT, "docs"))
+    if not config.get("canonical_only"):
+        comp_core = build_comparator_core(slug, config, records)
+        _write(os.path.join(ROOT, "docs", "m", tok_h, "index.html"), render_page(ours_final, neutral=True))
+        _write(os.path.join(ROOT, "docs", "m", tok_c, "index.html"), render_page(comp_core, neutral=True))
+        _write(os.path.join(ROOT, "registry", "blind_map.json"), json.dumps(
+            {"slug": slug, "pages": {tok_h: {"role": "harness", "url": f"docs/m/{tok_h}/"},
+                                     tok_c: {"role": "comparator", "url": f"docs/m/{tok_c}/"}}}, indent=2))
+        write_index(os.path.join(ROOT, "docs"))
+    if config.get('strand_output'):
+        _write(os.path.join(ROOT, 'docs', config['strand_output']),
+               json.dumps(core['strands'], ensure_ascii=False, indent=2) + '\n')
 
     r = prim.get("result", {})
     print(f"protocol_sha={protocol_sha}")
-    print(f"PRIMARY: {prim['name']}  k={r.get('k')}  RR={r.get('estimate')} "
+    print(f"PRIMARY: {prim['name']}  k={r.get('k')}  {r.get('scale')}={r.get('estimate')} "
           f"({r.get('ci_low')}-{r.get('ci_high')})  tau2={r.get('tau2')}")
     print(f"included trials: {[t['label'] for t in prim.get('trials', [])]}")
     print(f"declared-absent trials: {[t['label'] for t in prim.get('declared_absent_trials', [])]}")
     print(f"comparator OA={core['comparator']['open_access']} k={core['comparator']['overlap']['theirs_k']}")
     print(f"canonical: docs/reviews/{slug}/index.html")
-    print(f"blind: docs/m/{tok_h}/  docs/m/{tok_c}/")
+    if not config.get("canonical_only"):
+        print(f"blind: docs/m/{tok_h}/  docs/m/{tok_c}/")
 
 
 if __name__ == "__main__":

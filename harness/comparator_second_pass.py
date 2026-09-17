@@ -6,7 +6,11 @@ named phrase, table row, or contrast that supports them.
 """
 from __future__ import annotations
 
+from .topic_registry import topic_id
+
 import re
+import json
+from pathlib import Path
 from copy import deepcopy
 
 NOT_EXPOSED = "not exactly verifiable (comparator trial table not machine-exposed)"
@@ -36,7 +40,7 @@ def _snippet(text: str, term: str, radius: int = 180) -> str:
 
 
 PROFILES = {
-    "noac-vs-warfarin-af-stroke": {
+    (topic_id('af_anticoagulation')): {
         "trial_set": {
             "source_kind": "named prose",
             "trials": [
@@ -55,7 +59,7 @@ PROFILES = {
         "treatment_strategy_match": {"status": "MATCH", "note": "standard-dose DOAC versus warfarin"},
         "outcome_match": {"status": "MATCH", "note": "stroke or systemic embolism"},
     },
-    "esketamine-trd-madrs": {
+    (topic_id('esketamine_depression')): {
         "trial_set": {
             "source_kind": "Table 2 coded trial rows",
             "trials": [
@@ -74,7 +78,7 @@ PROFILES = {
         "treatment_strategy_match": {"status": "MATCH", "note": "intranasal esketamine plus oral antidepressant versus placebo spray plus oral antidepressant"},
         "outcome_match": {"status": "MATCH", "note": "MADRS change at day 28 acute induction"},
     },
-    "doac-vte-recurrence": {
+    (topic_id('vte_anticoagulation')): {
         "trial_set": {
             "source_kind": "count plus phase/program description",
             "count_terms": ["6 phase 3 trials", "dabigatran etexilate", "rivaroxaban", "apixaban", "edoxaban"],
@@ -88,21 +92,21 @@ PROFILES = {
         "treatment_strategy_match": {"status": "MATCH", "note": "phase III acute VTE DOAC versus VKA programmes"},
         "outcome_match": {"status": "NEAR_MATCH", "note": "recurrent VTE composite; trial definitions differ on VTE-related death"},
     },
-    "colchicine-secondary-cv-prevention": {
+    (topic_id('secondary_cv_prevention')): {
         "comparator_recency": {
             "status": "COMPARATOR_PREDATES_POOLED_TRIAL(CLEAR SYNERGY)",
             "note": "Comparator searched trials published before 2022-04-20; CLEAR SYNERGY is a later pooled trial.",
             "required_terms": ["published before 2022.4.20"],
         },
     },
-    "omega3-cardiovascular-events": {
+    (topic_id('omega3_cardiovascular')): {
         "comparator_recency": {
             "status": "COMPARATOR_PREDATES_POOLED_TRIAL(OMEGA-REMODEL)",
             "note": "Comparator search ran to September 2020; OMEGA-REMODEL is a later pooled/decomposed trial.",
             "required_terms": ["until September 2020"],
         },
     },
-    "glp1-ra-mace-t2d": {
+    (topic_id('incretin_cardiovascular')): {
         "trial_set": {
             "source_kind": "named table rows",
             "trials": [
@@ -116,10 +120,6 @@ PROFILES = {
                 {"name": "AMPLITUDE-O", "aliases": ["AMPLITUDE-O"]},
             ],
             "source_term": "Characteristics of trials and patients are reported",
-            "shared_k": 7,
-            "shared_trials": ["LEADER", "SUSTAIN-6", "EXSCEL", "HARMONY Outcomes", "REWIND", "PIONEER 6", "AMPLITUDE-O"],
-            "only_ours": ["SOUL"],
-            "only_theirs": ["ELIXA"],
         },
         "comparator_recency": {
             "status": "COMPARATOR_PREDATES_POOLED_TRIAL(SOUL)",
@@ -133,7 +133,7 @@ PROFILES = {
         },
         "treatment_strategy_match": {"status": "MATCH", "note": "GLP-1 receptor agonist CVOTs versus placebo"},
     },
-    "sglt2-primary-prevention-hf": {
+    (topic_id('sglt2_primary_prevention')): {
         "trial_set": {
             "source_kind": "Table 1 rows",
             "row_terms": ["Zinman", "Radholm", "McMurray", "Cannon", "Wiviott", "Kosiborod", "Isreb", "Packer"],
@@ -150,7 +150,7 @@ PROFILES = {
         "outcome_match": {"status": "MATCH", "note": "heart-failure hospitalization"},
         "treatment_strategy_match": {"status": "MATCH", "note": "SGLT2 inhibitor versus placebo"},
     },
-    "sglt2-ckd-progression": {
+    (topic_id('sglt2_renal')): {
         "trial_set": {
             "source_kind": "consortium count",
             "count_terms": ["SMART-C", "10 randomized trials"],
@@ -166,7 +166,7 @@ PROFILES = {
         },
         "outcome_match": {"status": "DIFFERENT_QUANTITY", "note": "pure-kidney CKD progression in SMART-C versus this page's trial-defined cardiorenal composite handling"},
     },
-    "metformin-pcos-ovulation": {
+    (topic_id('metformin_ovulation')): {
         "reported_overrides": [
             {
                 "outcome": "Ovulation rate",
@@ -319,11 +319,33 @@ def analyze(slug: str, config: dict, records: dict, comp_rec: dict) -> dict:
     }
 
 
-def apply(slug: str, config: dict, records: dict, comp_rec: dict, comparator: dict) -> dict:
+def apply(slug: str, config: dict, records: dict, comp_rec: dict, comparator: dict,
+          pooled_rows=None) -> dict:
     out = deepcopy(comparator)
     text = comparator_text(config, records, comp_rec)
     result = analyze(slug, config, records, comp_rec)
     trial_set = result["comparator_trial_set"]
+    if slug == topic_id('incretin_cardiovascular'):
+        # Trial identity is held in the evidence register; membership is always
+        # the live selected pool. No overlap list is a profile constant.
+        path = Path(__file__).resolve().parents[1] / 'cache' / slug / 'axis_evidence.json'
+        identities = json.loads(path.read_text(encoding='utf-8'))['rows']
+        aliases = {a.casefold(): t['name'] for t in PROFILES[slug]['trial_set']['trials']
+                   for a in [t['name']] + t['aliases']}
+        ours = set()
+        for row in pooled_rows or []:
+            key = str(row.get('id') or '').replace('PMID ', '')
+            name = identities.get(key, {}).get('trial')
+            if not name:
+                raise ValueError('Unresolved comparator trial identity: ' + key)
+            ours.add(aliases.get(name.casefold(), name))
+        if pooled_rows is not None and trial_set.get('status') == 'MEASURED':
+            theirs = set(trial_set['trials'])
+            trial_set.update(shared_k=len(ours & theirs), shared_trials=sorted(ours & theirs),
+                             only_ours=sorted(ours - theirs), only_theirs=sorted(theirs - ours))
+        else:
+            for key in ('shared_k', 'shared_trials', 'only_ours', 'only_theirs'):
+                trial_set.pop(key, None)
     out["comparator_trial_set"] = trial_set
     out["quantity_match"] = result["quantity_match"]
     out["comparator_recency"] = result["comparator_recency"]
@@ -335,6 +357,8 @@ def apply(slug: str, config: dict, records: dict, comp_rec: dict, comparator: di
         out["scope"] = {**(out.get("scope") or {}), **scope_override}
 
     ov = dict(out.get("overlap") or {})
+    if pooled_rows is not None:
+        ov['ours_k'] = len(pooled_rows)
     if trial_set.get("k") is not None:
         ov["theirs_k"] = trial_set["k"]
         ov["theirs_k_source"] = trial_set.get("source_snippet") or trial_set.get("source_kind")

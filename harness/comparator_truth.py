@@ -5,6 +5,8 @@ with source spans. They do not change pooled trials or extraction decisions.
 """
 from __future__ import annotations
 
+from .topic_registry import topic_id
+
 import os
 import re
 from typing import Any, Iterable
@@ -18,12 +20,12 @@ _ONLY_TWO = re.compile(r"Only\s+two\s+of\s+the\s+four\s+citations\s+reported\s+r
 
 
 KNOWN_ELIGIBLE_BY_SLUG = {
-    "spironolactone-hfref-mortality": [
+    (topic_id('spironolactone_heart_failure')): [
         {"name": "RALES", "aliases": ["RALES"]},
         {"name": "EMPHASIS-HF", "aliases": ["EMPHASIS-HF", "EMPHASIS HF"]},
         {"name": "J-EMPHASIS-HF", "aliases": ["J-EMPHASIS-HF", "J-EMPHASIS"]},
     ],
-    "finerenone-ckd-t2d-renal": [
+    (topic_id('finerenone_renal')): [
         {"name": "FIDELIO-DKD", "aliases": ["FIDELIO-DKD", "FIDELIO-CDK", "Bakris et al., 2020"]},
         {"name": "FIGARO-DKD", "aliases": ["FIGARO-DKD", "FIRAGO-DKD", "Pitt et al., 2021"]},
     ],
@@ -31,16 +33,16 @@ KNOWN_ELIGIBLE_BY_SLUG = {
 
 PAGE_ANNOTATION_SLUGS = frozenset(
     {
-        "sglt2-hfref-hosp-cvdeath",
-        "pcsk9-mace",
-        "spironolactone-hfref-mortality",
-        "finerenone-ckd-t2d-renal",
+        (topic_id('sglt2_heart_failure')),
+        (topic_id('pcsk9_cardiovascular')),
+        (topic_id('spironolactone_heart_failure')),
+        (topic_id('finerenone_renal')),
     }
 )
 
 
 NAMED_TRIALS_BY_SLUG = {
-    "pcsk9-mace": [
+    (topic_id('pcsk9_cardiovascular')): [
         {
             "name": "VESALIUS-CV",
             "date": "2025-11",
@@ -374,7 +376,7 @@ def assess_review(slug: str, review: dict[str, Any], config: dict[str, Any] | No
         "recency": recency_vs_named_trials(comp.get("year"), NAMED_TRIALS_BY_SLUG.get(slug, [])),
     }
 
-    if slug == "sglt2-hfref-hosp-cvdeath":
+    if slug == (topic_id('sglt2_heart_failure')):
         theirs_n = _extract_lvef40_n(text)
         nrec = participant_reconciliation(theirs_n, primary_trials)
         nrec["theirs_n_span"] = theirs_n
@@ -382,7 +384,7 @@ def assess_review(slug: str, review: dict[str, Any], config: dict[str, Any] | No
 
     known = KNOWN_ELIGIBLE_BY_SLUG.get(slug)
     if known:
-        expected = 2 if slug == "finerenone-ckd-t2d-renal" else None
+        expected = 2 if slug == (topic_id('finerenone_renal')) else None
         truth["completeness"] = completeness_vs_known_eligible(text, known, expected_count=expected)
 
     shell = {"comparator": {**comp, "truth": truth}}

@@ -53,10 +53,17 @@ def test_pooled_verified_limb_refuses_an_unverified_number():
                              "trials": [{"id": "PMID 1", "verified": "not-yet"}]}]}
     _json.dump(rev_bad, open(_os.path.join(d, "review.json"), "w", encoding="utf-8"))
     reasons = gate.check_pooled_verified(d)
-    assert reasons and "not verified" in reasons[0]
-    # all-verified passes
+    assert reasons and "UNVERIFIED_FACT" in reasons[0]
+    # A status label alone is not evidence under the CGX contract.
     rev_ok = {"outcomes": [{"name": "Primary", "primary": True, "result": {"k": 1},
                             "trials": [{"id": "PMID 1", "verified": "verified"}]}]}
+    _json.dump(rev_ok, open(_os.path.join(d, "review.json"), "w", encoding="utf-8"))
+    assert gate.check_pooled_verified(d)
+    from harness import claimgraph
+    sources = _json.loads((claimgraph.ROOT / 'outputs/handover/glp1_regulatory/regulatory_sources_glp1.json').read_text(encoding='utf-8'))
+    source = sources['sources'][0]
+    rev_ok['outcomes'][0]['trials'] = [claimgraph.regulatory_fact(source, source['decisions'][0])]
+    rev_ok['outcomes'][0]['trials'][0]['verified'] = 'verified'
     _json.dump(rev_ok, open(_os.path.join(d, "review.json"), "w", encoding="utf-8"))
     assert gate.check_pooled_verified(d) == []
 

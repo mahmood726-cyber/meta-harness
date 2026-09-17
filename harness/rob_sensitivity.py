@@ -9,7 +9,7 @@ n_rob_rated. The Study construction and pooled-scale selection are identical to 
 test asserts the 'full' re-pool reproduces the shipped primary result (so this cannot drift from it)."""
 from __future__ import annotations
 
-from .claimgraph import _stamp, input_set_version, trial_key
+from .claimgraph import _stamp, input_set_version, trial_key, lookup_trial
 from .membership import canonical_trial_key, lookup_by_trial_key, outcome_membership  # noqa: F401
 from .synth import Study, pool
 
@@ -204,7 +204,7 @@ def sensitivity(review):
     pooled_keys = membership.get("pooled") or [str(t.get("id")) for t in trials]
 
     def _lvl(t):
-        return _norm((rob.get(trial_key(t)) or {}).get("overall"))
+        return _norm(lookup_trial(rob, t).get("overall"))
 
     levels = {trial_key(t): _lvl(t) for t in trials}
     n_rated = sum(1 for v in levels.values() if v)
