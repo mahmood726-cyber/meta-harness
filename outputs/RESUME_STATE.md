@@ -1,4 +1,4 @@
-# RESUME_STATE — meta-harness glp1 programme (refreshed 2026-09-17 20:35 local; refresh on every landing or lane finish)
+# RESUME_STATE — meta-harness glp1 programme (refreshed 2026-09-17 21:17 local; refresh on every landing or lane finish)
 
 Every claim is marked MEASURED (read from git/ls-remote/disk at the time stamp), INFERRED, or CLAIMED. A restarting session should trust `git ls-remote https://github.com/mahmood726-cyber/meta-harness.git <ref>` over anything here.
 
@@ -42,13 +42,13 @@ Local-only SHAs at 20:31: NONE that matter (every WIP base above is on GitHub). 
 | 5 | source ladder (OUTCOME_NOT_IN_SOURCE not terminal) | PARTIAL: harms items climbed (153/153 resolved, on main); ELIXA 3-point recovered from the held FDA StatR (level 2) on the candidate; FLOW/AMPLITUDE-O/Harmony refused on typed axes (censoring/components not in held text) | main (harms) / candidate (ELIXA) |
 | 6 | dark-evidence ledger | BUILT in FN (714 cells, 14 known) — NOT SERVED | landing4-candidate |
 | 7 | robustness envelope / fragility / decomposer | BUILT (GS 193,839) — computes on the candidate; NOT SERVED | landing4-candidate |
-| 8 | evidence certificate (release hash bundle) | NOT STARTED as a single object; manifest carries commit_sha + review_sha256 only | — |
+| 8 | evidence certificate (release hash bundle) | BUILT (CERT 146,987 tok; `docs/reviews/<slug>/CERTIFICATE.json` with release_sha256; reproduce refuses a mutated held document; plants pre-fix; 10/11 on its tree) — lands as its own commit after E | C:\mh-r-CERT (172 files) |
 | 9 | every defect → regression test proven pre-fix | DONE for: FACT plant, HM plants, FIX1's nine audit findings, STR, TY2, TYPG; weak (module-absent) for TY/GS/FN(partial) | candidate |
-Served-page corrections demanded by the external audit (GRADE label withdrawn; RoB → not assessed + low-only sensitivity suppressed; heterogeneity STALE): IN FLIGHT — lane FIX2 on 3cf73885 (launched 20:29). This lands FIRST, as its own commit; acceptance = glp1 review_sha256 ≠ ab6707c202c8ab5c and the three defects gone on FETCHED bytes.
+Served-page corrections (GRADE provisional; RoB NOT ASSESSED + low-only re-pool suppressed; heterogeneity STALE): FIX2 DONE (200,126 tok; plants fired pre-fix; 10/11 on its tree), integrated into C:\mh-int with 125 ratchet acks signed; commit E IN THE HOOK since 21:16 (`scratchpad/commit12.log`, chain `land9.sh` armed: push → CI by SHA → <sha>:main → served manifest). Acceptance: glp1 review_sha256 c51114c1 → 63f1acef16041eeb on FETCHED bytes. This lands FIRST, as its own commit; acceptance = glp1 review_sha256 ≠ ab6707c202c8ab5c and the three defects gone on FETCHED bytes.
 
 ## 4. Lanes (tokens from each lane's `lane.log` tail; artefact = `C:\mh-r-<LANE>\LANE-<LANE>-REPORT.md`; MEASURED)
 IN 1,844,025 (18:37→00:17) · ST 546,003 · HM1 287,557 · HM2 261,333 · HM3 243,729 · CGX 159,012 · TY 142,503 · IN2 361,450 · GL 568,507 (09:57→11:00) · FN 327,201 · TYP1 198,920 · CGX2 170,723 · TY2 158,240 · TYP2 320,986 · TYP3 192,807 · IN3 326,123 (bad-base attempt 163,365 discarded) · TYPG 163,054 · GS 193,839 · CGX3A 182,766 · CGX3B 242,627 · CGX3C 252,346 · STR 213,980 · FNC 232,838 · PM 399,662 · CGX4 246,482 · AUD 160,867 (hostile audit: 9 confirmed) · FIX1 327,539 · IN5 182,865 · IN4 a1 80,159 / a2 168,647 (my over-strict rules) / a3 517,683 (18:39→20:22). Total ≈ 9.84 M.
-IN FLIGHT: **IN6** (`C:\mh-r-IN6`, base 60c5cd67, brief `outputs/handover/lanes/LANE-IN6.md`) — landing-4 candidate: every integration-caused refusal, leaving the retrieved_utc decision untouched. **FIX2** (`C:\mh-r-FIX2`, base 3cf73885, brief `outputs/handover/lanes/LANE-FIX2.md`) — the three served-page corrections.
+IN FLIGHT: **IN6** (`C:\mh-r-IN6`, base 60c5cd67, brief `outputs/handover/lanes/LANE-IN6.md`) — landing-4 candidate: every integration-caused refusal, leaving the retrieved_utc decision untouched. FIX2 and CERT finished (harvested; clones kept until served). Retry clones IN4.attempt1/2, CGX3B.badbase, CGX3A.old/.badbase, IN3.badbase, TY2.badbase reaped 21:10 (their two never-pushed SHAs preserved as refs/lanes/superseded/*).
 Relaunch (from any shell, after removing/renaming the old clone): `sh C:/mh-int/scripts/codex_lane.sh IN6 60c5cd67074beff328a745952ab31a17c0195ba7 <scratchpad>/lanes/LANE-IN6.launch.md "outputs/handover"` and `sh C:/mh-int/scripts/codex_lane.sh FIX2 3cf73885ffc83f6fcc4db273c6510a5416cdcde0 <scratchpad>/lanes/LANE-FIX2.launch.md "outputs/handover"` — the launcher runs `codex exec … < /dev/null`.
 Harvest a finished lane: `cd C:\mh-r-<L>; git status --short --untracked-files=all` → copy each listed file into the target clone; verify by FILE COUNT and named key files; never trust `git apply` "0 conflicts".
 
@@ -67,7 +67,7 @@ Harvest a finished lane: `cd C:\mh-r-<L>; git status --short --untracked-files=a
 - Never two lanes on one worktree; never kill by pattern (taskkill by `lane.winpid`).
 - `git apply --3way` "0 conflicts" is NOT success — verify by file count; transplant working trees by copy.
 - A landing that claims to change a review must show the review_sha256 changed (manifest commit_sha is a container property).
-- Disk (MEASURED 20:31): C: 22 GB free; ~450 MB per lane clone; reap `*.badbase`/`*.attempt*`/`*.old` clones after checking their SHAs by URL.
+- Disk (MEASURED 21:10): C: 24 GB free; ~450 MB per lane clone; reap `*.badbase`/`*.attempt*`/`*.old` clones after checking their SHAs by URL.
 
 ## 7. Timing (MEASURED durations; INFERRED estimate)
 MEASURED: lanes take 45–105 min wall-clock (GL 63 min; FIX1 62; IN4 a3 103; HM lanes ~50; IN 5 h 40 was the 19-lane integration). A hook run = 40–75 min; CI = 8–15 min; Pages deploy = 12 min; one landing ≈ 1.5–2 h from commit to served bytes.
