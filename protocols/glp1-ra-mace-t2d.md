@@ -90,3 +90,24 @@ outcome trials.
 - **Risk of bias.** Full outcome-specific RoB 2 on the primary result (effect of assignment): five domains, signalling questions, information sources (protocol, statistical analysis plan, registry record, primary publication and supplement), adjudication method (two assessors, disagreements recorded, not silently resolved), and a planned sensitivity analysis restricted to low-risk-of-bias trials. Registry-derived machine signals are rendered as `machine signal consistent with low risk; formal RoB 2 not assessed` until the sources above have been read; they are never rendered as RoB 2 judgements.
 - **GRADE.** Prespecified across all five domains (risk of bias, inconsistency, imprecision, indirectness, publication bias). **No certainty category is issued while any domain is unassessed**; the page renders `GRADE provisional -- not yet fully assessable` instead. Imprecision reflects whether the confidence interval permits materially different clinical conclusions, not a mechanical significance test; a prediction interval approaching 1 is not by itself grounds for downgrading.
 - **Pre-specified list (intervention agents).** liraglutide; semaglutide (subcutaneous and oral); dulaglutide; albiglutide; efpeglenatide; exenatide (immediate- and extended-release; ITCA 650 continuous subcutaneous delivery on the `GLP1RA_ANY_DELIVERY` strand); lixisenatide.
+
+## Retrospective executable clarification — 2026-09-17
+
+This states which existing B-prime rules bind effect-type unification; it changes no clinical rule. Endpoint components (3-point MACE), effect measure (HR, pooled on the log scale), and timepoint/censoring (end of randomised follow-up) are binding. Analysis set, adjustment, estimator, time origin, and follow-up length are disclosed, not binding. All other axes are non-binding. Unknown evidence remains UNKNOWN with its absence code; a missing binding value cannot be filled from this target.
+
+```effect-type-binding
+{
+  "schema_version": 1,
+  "outcomes": {
+    "3-point major adverse cardiovascular events": {
+      "endpoint_components": [
+        "CV_DEATH",
+        "NONFATAL_MI",
+        "NONFATAL_STROKE"
+      ],
+      "effect_measure": "HR",
+      "censoring": "end-of-study"
+    }
+  }
+}
+```

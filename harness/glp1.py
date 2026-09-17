@@ -152,18 +152,28 @@ def strands(primary, verified):
     from .verified_source import refusal
     if refusal(freedom):
         raise ValueError('FREEDOM source refused')
+    from . import effect_type
+    extra, refused, types = effect_type.type_rows(
+        [freedom], primary['effect_type_target'],
+        coercions=primary.get('coercions', []))
     doc = {'slug': SLUG, 'primary_strand': 'CONVENTIONAL_GLP1RA',
            'why_primary': 'Retrospective B-prime class-boundary decision: conventional delivery is primary; continuous subcutaneous ITCA 650 is admitted alongside on GLP1RA_ANY_DELIVERY.',
            'strands': [], 'sensitivity_values': [sensitivity()]}
     for name, members in [('CONVENTIONAL_GLP1RA', conventional),
-                          ('GLP1RA_ANY_DELIVERY', conventional + [freedom])]:
-        r = pool([Study(label=m['trial'], effect=m['effect'], ci_low=m['ci_low'],
-                        ci_high=m['ci_high'], measure='HR') for m in members], scale='HR')
-        result = {k: getattr(r, k) for k in ('k', 'estimate', 'ci_low', 'ci_high', 'tau2',
-                                           'pi_low', 'pi_high', 'ci_provenance')}
-        result.update(effect=r.estimate, crosses_null=r.ci_low <= 1 <= r.ci_high)
+                          ('GLP1RA_ANY_DELIVERY', conventional + extra)]:
+        result = None
+        if members:
+            r = pool([Study(label=m['trial'], effect=m['effect'], ci_low=m['ci_low'],
+                            ci_high=m['ci_high'], measure='HR') for m in members], scale='HR')
+            result = {k: getattr(r, k) for k in ('k', 'estimate', 'ci_low', 'ci_high', 'tau2',
+                                               'pi_low', 'pi_high', 'ci_provenance')}
+            result.update(effect=r.estimate, crosses_null=r.ci_low <= 1 <= r.ci_high)
         doc['strands'].append(dict(strand=name, name=name, effect_measure='HR',
-            event_process='FIRST_EVENT_RATIO', k=len(members), members=members, pool=result))
+            event_process='FIRST_EVENT_RATIO', k=len(members), members=members, pool=result,
+            status='POOLED' if members else 'EFFECT_TYPE_REFUSED',
+            reason=None if members else 'No candidate satisfies the declared binding axes.'))
+    doc['additional_effect_types'] = types
+    doc['additional_type_refusals'] = refused
     return doc
 
 
@@ -213,13 +223,14 @@ def render(review):
     display = copy.deepcopy(doc)
     for strand in display['strands']:
         strand['pool'] = {k: round(v, 5 if k == 'tau2' else 4) if isinstance(v, float) else v
-                          for k, v in strand['pool'].items()}
+                          for k, v in (strand['pool'] or {}).items()}
     out = ['<div class="banner"><h3>B-prime: delivery strands and source provenance</h3>',
            '<p>' + rendered_claims['glp1-primary-rule'] + '</p>',
            render_strands_section(doc), '<p>' + rendered_claims['glp1-flow-caveat'] + '</p>',
            '<h4>End-of-treatment sensitivity value (never pooled)</h4>',
            '<p>' + rendered_claims['glp1-freedom-sensitivity'] + '</p>',
-           '<h4>Additional any-delivery member</h4><p>' + rendered_claims['glp1-freedom-fact'] + '</p>',
+           '<h4>Additional any-delivery member</h4><p>' + rendered_claims.get('glp1-freedom-fact',
+               'Refused by declared binding axes; see typed evidence below.') + '</p>',
            '<h4>Eligibility and target-result status</h4><table><tr><th>Record</th><th>P/I/C/design eligibility</th><th>Target-result status</th><th>Reason</th></tr>']
     for row in doc['eligibility']:
         out.append('<tr>' + ''.join('<td>' + escape(str(row.get(k) or '')) + '</td>'
@@ -232,7 +243,15 @@ def render(review):
                    (m['pmid'], m['source_level'], m['document_ref'], m['document_sha256'][:16],
                     f"{'yes' if ok else 'no'} / {m['span_offset']}", m['censoring'],
                     m['analysis_set'], m['timepoint'])) + '</tr>')
-    flow = next(m for m in doc['strands'][-1]['members'] if m['pmid'] == '38785209')
-    out.append('</table><details><summary>FLOW endpoint identity: AACT design_outcomes NCT03819153 (level 3)</summary><pre>' +
+    flow = next((m for m in doc['strands'][-1]['members'] if m['pmid'] == '38785209'), None)
+    out.append('</table>')
+    if flow:
+        out.append('<details><summary>FLOW endpoint identity: AACT design_outcomes NCT03819153 (level 3)</summary><pre>' +
                escape(json.dumps(flow['endpoint_identity'], ensure_ascii=False, indent=2, sort_keys=True)) + '</pre></details></div>')
+    else:
+        out.append('</div>')
+    from .page import typed_effects_html
+    primary = next(o for o in review['outcomes'] if o.get('primary'))
+    out.append(typed_effects_html({'effect_types': doc.get('additional_effect_types', []),
+                                 'effect_type_target': primary.get('effect_type_target', {})}))
     return ''.join(out)

@@ -246,28 +246,12 @@ def protocol_target(spec, protocol_text=""):
 
     Legacy timepoint prose is not silently mapped to a censoring policy.
     """
-    if "effect_type_target" in spec:
+    # Explicit in-memory targets support low-level callers/tests. A real protocol
+    # always takes precedence; config defaults cannot override its declaration.
+    if not protocol_text and "effect_type_target" in spec:
         return copy.deepcopy(spec["effect_type_target"])
-    axes = {}
-    analysis = endpoint_canonical._normal_analysis_literal(spec.get("population"))
-    if analysis in {"ITT", "mITT", "PP", "on-treatment"}:
-        axes["analysis_set"] = field(analysis, rule_id="protocol:outcome.population")
-    if spec.get("estimand") in {"HR", "RR", "OR", "RD", "MD", "SMD"}:
-        axes["effect_measure"] = field(spec["estimand"], rule_id="protocol:outcome.estimand")
-    if spec.get("canonical_components"):
-        axes["endpoint_components"] = field(spec["canonical_components"], rule_id="protocol:outcome.canonical_components")
-    # Exact amendment declarations; never infer these from a topic/trial name.
-    if spec.get("primary") and "**log-HRs only**" in protocol_text:
-        axes["effect_measure"] = field("HR", span="**log-HRs only**", source="protocol:Effect measure")
-    endpoint = "time to first** occurrence of cardiovascular death, nonfatal myocardial infarction or nonfatal stroke"
-    if spec.get("primary") and endpoint in protocol_text:
-        axes["endpoint_components"] = field(["CV_DEATH", "NONFATAL_MI", "NONFATAL_STROKE"], span=endpoint, source="protocol:Estimand")
-        axes["first_or_recurrent"] = field("first", span=endpoint, source="protocol:Estimand")
-    timepoint = "at the end of randomised, blinded follow-up"
-    if spec.get("primary") and timepoint in protocol_text:
-        axes["censoring"] = field("end-of-study", span=timepoint, source="protocol:Timepoint")
-    return {"binding_axes": list(axes), "axes": axes,
-            "disclosure": "Only explicit machine-readable declarations compiled; no additional binding policy inferred."}
+    from .protocol_compiler import binding_declaration
+    return binding_declaration(protocol_text, spec)
 
 
 def type_rows(rows, target, records=None, coercions=()):

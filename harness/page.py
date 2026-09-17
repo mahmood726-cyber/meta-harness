@@ -1515,7 +1515,12 @@ def typed_effects_html(o):
                        f"{_e(c['consequence'])}; {_e(c['who'])}; {_e(c['date'])}; signed by {_e(c['signed_by'])}. "
                        + " ".join(f"{_e(s['source'])}: {_e(s['span'])}" for s in c["evidence_spans"]) + "</li>"
                        for c in o.get("coercions", []))
+    policy = o.get('effect_type_target') or {}
+    disclosure = policy.get('disclosure') or (
+        'Binding axes: ' + ', '.join(policy.get('binding_axes', []))
+        if policy.get('binding_axes') else 'No binding declaration; all axes are non-binding.')
     return ("<section class='typed-effects'><h4>Typed effects</h4><p>Candidate rows, including type refusals.</p>"
+            + '<p>' + _e(disclosure) + '</p>'
             + "<table>" + head + "".join(rows) + "</table><ul>" + verdicts + "</ul>"
             + "<h4>Coercion register</h4>" + ("<ul>" + register + "</ul>" if register else "<p>No declared coercions.</p>") + "</section>")
 

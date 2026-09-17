@@ -1724,6 +1724,38 @@ def _source_status(slug, config, records, merged, ledger=None):
     }
 
 
+def strand_members(rows, declaration, strand=None):
+    """Select a declared strand by its membership object, independent of topic.
+
+    Selection never adds rows, fills evidence, or changes eligibility. Missing or
+    ambiguous strand declarations fail closed instead of broadening a pool.
+    """
+    name = strand or declaration.get('primary_strand')
+    matches = [s for s in declaration.get('strands', [])
+               if (s.get('strand') or s.get('name')) == name]
+    if not name or len(matches) != 1:
+        raise ValueError('Missing or ambiguous declared strand: ' + str(name))
+    members = matches[0].get('members')
+    if not isinstance(members, list):
+        raise ValueError('Strand members must be a list')
+    keys = [claimgraph_mod.trial_key(m) for m in members]
+    if any(not key for key in keys) or len(set(keys)) != len(keys):
+        raise ValueError('Invalid or duplicate strand member identifier')
+    return [row for row in rows if claimgraph_mod.trial_key(row) in set(keys)]
+
+
+def primary_strand_declaration(slug):
+    from pathlib import Path
+    declarations = []
+    for path in sorted((Path(ROOT) / 'docs').glob('*_strands.json')):
+        doc = json.loads(path.read_text(encoding='utf-8'))
+        if doc.get('slug') == slug and doc.get('primary_strand'):
+            declarations.append(doc)
+    if len(declarations) > 1:
+        raise ValueError('Multiple primary strand declarations for ' + slug)
+    return declarations[0] if declarations else None
+
+
 def build_review_core(slug, config, records, protocol_sha):
     if slug == 'glp1-ra-mace-t2d':
         from . import glp1
@@ -1774,9 +1806,10 @@ def build_review_core(slug, config, records, protocol_sha):
     effect_coercions = effect_type_mod.load_coercions(
         os.path.join(ROOT, "cache", slug, "coercions.json"))
     effect_protocol_text = _read_text("protocols", slug + ".md")
+    strand_declaration = primary_strand_declaration(slug)
     outcomes = [_build_outcome(spec, kind,
-                               [d for d in included if not (slug == 'glp1-ra-mace-t2d'
-                                and spec.get('name') == config['primary_outcome']['name'] and d['id'] == '34873344')],
+                               (strand_members(included, strand_declaration)
+                                if strand_declaration and spec.get('primary') else included),
                                rec_by_id, interv, comp, cgr, ftbp,
                                outcome_judgments=ojudg, verified_arms=varms, locate_judgments=ljudg,
                                verified_effects=veffs, dose_selection=dsel,
