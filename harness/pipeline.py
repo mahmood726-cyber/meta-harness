@@ -800,36 +800,19 @@ def _load_definition_audit(slug):
     return rows or None
 
 
+def _verified_for_outcome(data, outcome):
+    from .verified_inputs import for_outcome
+    return for_outcome(data, outcome)
+
+
 def _load_verified_arms(slug):
-    """Committed hand-verified structured arm-level counts (cache/<slug>/verified_arms.json):
-    {pmid: {outcome, ai, n1i, ci, n2i, source}}. The bottom of the source hierarchy — a number a
-    human verified against a structured source (AACT) and the published rate, for a trial whose
-    abstract/single-NCT/full-text did not yield it. Absent => none."""
-    p = os.path.join(ROOT, "cache", slug, "verified_arms.json")
-    if not os.path.exists(p):
-        return None
-    try:
-        return json.load(open(p, encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
+    from .verified_inputs import load
+    return load(slug, cache_root=os.path.join(ROOT, "cache"))["verified_arms.json"] or None
 
 
 def _load_verified_effects(slug):
-    """Committed full-text-verified EFFECT entries (cache/<slug>/verified_effects.json):
-    {pmid: {outcome, effect, ci_low, ci_high, scale, source, verification}}. The effect analogue of
-    verified_arms — for a trial whose declared-outcome effect+CI lives ONLY in the full text (not the
-    abstract, not a single-NCT registry row) and cannot be reduced to unambiguous per-arm counts
-    (e.g. CONFIRM-HF's HF-hospitalisation HR 0.39 (0.19-0.82), Table 2 of PMC4359359 — the % arm
-    denominators are the analysis population, not the randomised n, so counts would be inferred; the
-    reported HR is unambiguous). `source` carries the VERBATIM span so verify.verify_pooled checks the
-    effect's digits against the committed bytes. Absent => none."""
-    p = os.path.join(ROOT, "cache", slug, "verified_effects.json")
-    if not os.path.exists(p):
-        return None
-    try:
-        return json.load(open(p, encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
+    from .verified_inputs import load
+    return load(slug, cache_root=os.path.join(ROOT, "cache"))["verified_effects.json"] or None
 
 
 def _load_dose_selection(slug):
@@ -1014,10 +997,12 @@ def _apply_trial_annotations(spec, trials):
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
                    locate_judgments=None, verified_effects=None, dose_selection=None,
-                   registry_designs=None, k2_anchor_config=None):
+                   registry_designs=None, k2_anchor_config=None, eligibility_contract=None):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     dose_selection = dose_selection or {}
+    verified_arms = _verified_for_outcome(verified_arms, spec.get("name"))
+    verified_effects = _verified_for_outcome(verified_effects, spec.get("name"))
     trials, absent = [], []
     candidate_index = {}
     all_effect_candidates = []
@@ -1068,14 +1053,24 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # value is NOT in the committed source (so no override number exists) — refuse rather than pool the
         # wrong endpoint. STEP-12 (42575111): the abstract's "141 of 161" is OVERALL adverse events, not the
         # gastrointestinal-specific count our harm outcome names (the abstract gives no GI-specific count).
-        _abs_over = (verified_effects or {}).get(d["id"]) or (verified_arms or {}).get(d["id"])
+        _abs_over = next((entry for entry in (
+            (verified_effects or {}).get(d["id"]), (verified_arms or {}).get(d["id"]))
+            if entry and entry.get("override") and entry.get("absent")), None)
         if (_abs_over and _abs_over.get("override") and _abs_over.get("absent")
                 and _abs_over.get("outcome") == spec.get("name")):
             absent.append({"label": label, "id": idstr, "absent_kind": "adjudicated_absent",
                            "state": _abs_over.get("state"),  # override may pin the ontology state; else defaulted below
-                           "reason_code": _abs_over.get("reason_code") or _abs_over.get("state"),
-                           "source_span": _abs_over.get("source", ""),
-                           "verbatim_span": _abs_over.get("source", ""),
+                           "reason_code": (_abs_over.get("reason_code") or _abs_over.get("state")
+                                           or _abs_over.get("provenance")),
+                           "source_adjudicated": bool(_abs_over.get("source_span")),
+                           "document_sha256": _abs_over.get("document_sha256"),
+                           "typed_refusal": bool(_abs_over.get("source_span") and _abs_over.get("provenance")),
+                           "refusal_provenance": _abs_over.get("provenance"),
+                           "source_span": _abs_over.get("source_span") or "",
+                           "verbatim_span": _abs_over.get("source_span") or "",
+                           "source": _abs_over.get("source", ""),
+                           "document_ref": _abs_over.get("document_ref"),
+                           "source_level": _abs_over.get("source_level"),
                            **({"published_alternative": _abs_over.get("published_alternative")}
                               if _abs_over.get("published_alternative") else {}),
                            "reason": _abs_over.get("reason", "declared absent (override): the committed source "
@@ -1085,7 +1080,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if (va_over and va_over.get("override") and va_over.get("outcome") == spec.get("name")
                 and all(va_over.get(k) is not None for k in ("ai", "n1i", "ci", "n2i"))):
             trials.append({"label": label, "id": idstr, "ai": va_over["ai"], "n1i": va_over["n1i"],
-                           "ci": va_over["ci"], "n2i": va_over["n2i"], "provenance": "aact_verified",
+                           "ci": va_over["ci"], "n2i": va_over["n2i"], "provenance": va_over.get("provenance", "aact_verified"),
+                           **{k: va_over[k] for k in ("document_ref", "document_sha256", "source_level") if k in va_over},
                            "source": va_over.get("source", "hand-verified arm-count correction (override)")})
             continue
         # CONTINUOUS override (mean/SD/n), incl. multi-arm combination: beats the automated CT.gov path,
@@ -1231,6 +1227,28 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "source": ve.get("source", "full-text-verified effect+CI")})
             continue
         absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
+    if eligibility_contract:
+        kept = []
+        for trial in trials:
+            pid = trial["id"].replace("PMID ", "")
+            admission = eligibility_chain_mod.admission_record(
+                trial, rec_by_id.get(pid), spec, eligibility_contract)
+            failed = [dim for dim, cell in admission.items()
+                      if cell.get("verdict") == "FAIL" and dim not in eligibility_chain_mod.COMPAT_AXES]
+            if not failed:
+                kept.append(trial)
+                continue
+            span = (rec_by_id.get(pid) or {}).get("abstract") or trial.get("source", "")
+            absent.append({"id": trial["id"], "label": trial["label"],
+                           "absent_kind": "adjudicated_absent", "state": "REFUSED_ON_EVIDENCE",
+                           "reason_code": "REFUSED_ON_EVIDENCE", "source_span": span,
+                           "verbatim_span": span, "admission": admission,
+                           "eligibility_refusal_code": "TRIAL_FAILS_CONTRACT",
+                           "eligibility_chain_rationale": ", ".join(failed),
+                           "reason": "Protocol eligibility contract not satisfied: " + "; ".join(
+                               f"{dim}={admission[dim]['trial_value']} (requires {admission[dim]['contract_value']})"
+                               for dim in failed)})
+        trials = kept
     # ESTIMAND-CONSISTENCY GUARD (continuous topics): a mean-difference topic must pool ONLY continuous
     # per-arm mean/SD data. If the source hierarchy fell through to a COUNT/proportion or a ratio effect
     # for a trial (e.g. a multi-arm trial whose continuous MADRS was refused, then a "% with >=50% response"
@@ -1731,11 +1749,16 @@ def build_review_core(slug, config, records, protocol_sha):
     dsel = _load_dose_selection(slug)
     ljudg = locate.load(slug) if config.get("locate_gate") else None
     registry_designs = design_key.registry_designs(records)
+    eligibility_contract = None
+    if config.get("eligibility_chain_enforced"):
+        with open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8") as f:
+            eligibility_contract = eligibility_chain_mod.compile_contract(slug, config, f.read())
     outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp,
                                outcome_judgments=ojudg, verified_arms=varms, locate_judgments=ljudg,
                                verified_effects=veffs, dose_selection=dsel,
                                registry_designs=registry_designs,
-                               k2_anchor_config=config.get("k2_direction_conflict_anchor"))
+                               k2_anchor_config=config.get("k2_direction_conflict_anchor"),
+                               eligibility_contract=eligibility_contract)
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 

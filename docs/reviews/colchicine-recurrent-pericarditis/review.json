@@ -1105,8 +1105,8 @@
               "validity_critical": false
             }
           },
-          "background_therapy": "conventional_anti_inflammatory_therapy",
           "prior_disease_stage": "multiple_recurrences",
+          "background_therapy": "conventional_anti_inflammatory_therapy",
           "study_effect": {
             "effect_estimate": 0.49,
             "standard_error": 0.25417136422062925,
@@ -1214,8 +1214,8 @@
               "validity_critical": false
             }
           },
-          "background_therapy": "conventional_anti_inflammatory_therapy",
           "prior_disease_stage": "first_recurrence",
+          "background_therapy": "conventional_anti_inflammatory_therapy",
           "study_effect": {
             "effect_estimate": 0.44,
             "standard_error": 0.25373491119977665,
@@ -1293,8 +1293,15 @@
           "absent_kind": "adjudicated_absent",
           "state": "OUTCOME_NOT_IN_SOURCE",
           "reason_code": "OUTCOME_NOT_IN_SOURCE",
+          "source_adjudicated": false,
+          "document_sha256": null,
+          "typed_refusal": false,
+          "refusal_provenance": "SOURCE_NOT_RETRIEVED",
           "source_span": "BACKGROUND: Colchicine is effective for the treatment of recurrent pericarditis.",
           "verbatim_span": "BACKGROUND: Colchicine is effective for the treatment of recurrent pericarditis.",
+          "source": "",
+          "document_ref": null,
+          "source_level": null,
           "reason": "ELIGIBLE under the registered broad PICO (population is pericarditis — ACUTE first episode OR recurrent — treated to prevent recurrence; the protocol was deliberately revised from a recurrent-only draft), so ICAP is NOT refused for population. It is not POOLED because its recurrence-specific outcome is not extractable from an accessible source: the ICAP abstract (NEJM 2013, PMID 23992557) reports only the composite primary “incessant OR recurrent pericarditis” (20/120 vs 45/120), a DIFFERENT endpoint from our “recurrent pericarditis” outcome; the pure-recurrence component (reported as 11/120 vs 25/120 in the full text per an external audit) is full-text-only and the NEJM full text is NOT open-access (no PMC/EPMC, Europe PMC isOpenAccess=N), so we cannot verify it against a committed source span and do not pool an unverifiable number. Were it poolable it would give k=3, RR ~0.474, excluding the null — consistent with a later randomised-evidence meta (RR 0.48, 0.36–0.63) and with our k=2 point estimate. Recorded as not-extracted (full text not retrievable), not a population refusal.",
           "trial_family_id": "NCT00128453",
           "publication_role": "primary",
@@ -2063,7 +2070,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
+      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
       "served_estimand": "RR",
       "estimand_decision": {
         "declared_estimand": "RR",
@@ -2075,192 +2082,349 @@
         "reason": "declared cumulative risk-ratio estimand",
         "rule": "prefer published RR; otherwise reconstruct RR from counts consistently"
       },
-      "trials": [],
-      "declared_absent_trials": [
+      "trials": [
         {
           "label": "24694983",
           "id": "PMID 24694983",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "ai": 9,
+          "n1i": 120,
+          "ci": 9,
+          "n2i": 120,
+          "provenance": "abstract_verified",
+          "document_ref": "cache/colchicine-recurrent-pericarditis/records.json#PMID-24694983",
+          "document_sha256": "69b0f26fee0d411d6b88904e8ce95d43a6a1ab97bec06a48089326c456d32d78",
+          "source_level": 1,
+          "source": "BACKGROUND: Colchicine is effective for the treatment of acute pericarditis and first recurrences. However, conclusive data are lacking for the efficacy and safety of colchicine for treatment of multiple recurrences of pericarditis. METHODS: We did this multicentre, double-blind trial at four general hospitals in northern Italy. Adult patients with multiple recurrences of pericarditis (≥two) were randomly assigned (1:1) to placebo or colchicine (0·5 mg twice daily for 6 months for patients weighing more than 70 kg or 0·5 mg once daily for patients weighing 70 kg or less) in addition to conventional anti-inflammatory treatment with aspirin, ibuprofen, or indometacin. Permuted block randomisation (size four) was done with a central computer-based automated sequence. Patients and all investigators were masked to treatment allocation. The primary outcome was recurrent pericarditis in the intention-to-treat population. This trial is registered with ClinicalTrials.gov, number NCT00235079. FINDINGS: 240 patients were enrolled and 120 were assigned to each group. The proportion of patients who had recurrent pericarditis was 26 (21·6%) of 120 in the colchicine group and 51 (42·5%) of 120 in the placebo group (relative risk 0·49; 95% CI 0·24-0·65; p=0·0009; number needed to treat 5). Adverse effects and discontinuation of study drug occurred in much the same proportions in each group. The most common adverse events were gastrointestinal intolerance (nine patients in the colchicine group vs nine in the placebo group) and hepatotoxicity (three vs one). No serious adverse events were reported. INTERPRETATION: Colchicine added to conventional anti-inflammatory treatment significantly reduced the rate of subsequent recurrences of pericarditis in patients with multiple recurrences. Taken together with results from other randomised controlled trials, these findings suggest that colchicine should be probably regarded as a first-line treatment for either acute or recurrent pericarditis in the absence of contraindications or specific indications. FUNDING: Azienda Sanitaria 3 of Torino (now ASLTO2).",
+          "derivation": "reconstructed",
+          "selection_rule": "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT",
+          "selected_estimator": "reconstructed",
+          "alternatives": [],
+          "verified": "verified",
+          "verify_basis": "arm counts present in committed source",
+          "design": {
+            "unit_of_randomisation": "UNKNOWN",
+            "design": "UNKNOWN",
+            "estimator_source": "RECONSTRUCTED",
+            "correlation_handling": {
+              "method": "none",
+              "evidence": []
+            },
+            "se_provenance": "synth.Study.yi_vi:2x2:RR",
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              }
+            ],
+            "design_action": {
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
+              "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
+              "validity_critical": false
+            }
+          },
+          "study_effect": {
+            "effect_estimate": 1.0,
+            "standard_error": 0.45338235029118146,
+            "estimand": "RR",
+            "analysis_population": "UNKNOWN",
+            "randomisation_unit": "UNKNOWN",
+            "study_design": "UNKNOWN",
+            "estimator_method": "RECONSTRUCTED",
+            "correlation_handling": {
+              "method": "none",
+              "evidence": []
+            },
+            "source_provenance": {
+              "source": "abstract_verified",
+              "span": "BACKGROUND: Colchicine is effective for the treatment of acute pericarditis and first recurrences. However, conclusive data are lacking for the efficacy and safety of colchicine for treatment of multiple recurrences of pericarditis. METHODS: We did this multicentre, double-blind trial at four general hospitals in northern Italy. Adult patients with multiple recurrences of pericarditis (≥two) were randomly assigned (1:1) to placebo or colchicine (0·5 mg twice daily for 6 months for patients weighing more than 70 kg or 0·5 mg once daily for patients weighing 70 kg or less) in addition to conventional anti-inflammatory treatment with aspirin, ibuprofen, or indometacin. Permuted block randomisation (size four) was done with a central computer-based automated sequence. Patients and all investigators were masked to treatment allocation. The primary outcome was recurrent pericarditis in the intention-to-treat population. This trial is registered with ClinicalTrials.gov, number NCT00235079. FINDINGS: 240 patients were enrolled and 120 were assigned to each group. The proportion of patients who had recurrent pericarditis was 26 (21·6%) of 120 in the colchicine group and 51 (42·5%) of 120 in the placebo group (relative risk 0·49; 95% CI 0·24-0·65; p=0·0009; number needed to treat 5). Adverse effects and discontinuation of study drug occurred in much the same proportions in each group. The most common adverse events were gastrointestinal intolerance (nine patients in the colchicine group vs nine in the placebo group) and hepatotoxicity (three vs one). No serious adverse events were reported. INTERPRETATION: Colchicine added to conventional anti-inflammatory treatment significantly reduced the rate of subsequent recurrences of pericarditis in patients with multiple recurrences. Taken together with results from other randomised controlled trials, these findings suggest that colchicine should be probably regarded as a first-line treatment for either acute or recurrent pericarditis in the absence of contraindications or specific indications. FUNDING: Azienda Sanitaria 3 of Torino (now ASLTO2)."
+            },
+            "design_action": {
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
+              "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
+              "validity_critical": false
+            }
+          },
+          "effect_object": {
+            "reported_label": "RR",
+            "statistical_model": null,
+            "canonical_estimand": "RISK_RATIO"
+          },
           "trial_family_id": "NCT00235079",
           "publication_role": "primary",
-          "completeness_state": "eligible+completed+results_available",
-          "registry_status": "COMPLETED",
-          "completion_date": "2011-12-31",
-          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"Adverse effects and discontinuation of study drug occurred in much the same proportions in each group.\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
-          "source_span": "Adverse effects and discontinuation of study drug occurred in much the same proportions in each group.",
-          "verbatim_span": "Adverse effects and discontinuation of study drug occurred in much the same proportions in each group.",
+          "analysis_set": "intention-to-treat",
+          "follow_up_window": null,
+          "endpoint_definition": "primary outcome was recurrent pericarditis in the intention-to-treat population",
+          "population_age": "adult",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "24694983",
+            "trial_label": "24694983",
+            "analysis_set": {
+              "value": "intention-to-treat",
+              "source": "committed source text",
+              "span": "all investigators were masked to treatment allocation. The primary outcome was recurrent pericarditis in the intention-to-treat population. This trial is registered with ClinicalTrials.gov, number NCT00235079. FINDINGS: 240 patients were"
+            },
+            "follow_up_window": {
+              "value": null,
+              "source": "underivable",
+              "span": ""
+            },
+            "endpoint_definition": {
+              "value": "primary outcome was recurrent pericarditis in the intention-to-treat population",
+              "source": "committed source text",
+              "span": "al computer-based automated sequence. Patients and all investigators were masked to treatment allocation. The primary outcome was recurrent pericarditis in the intention-to-treat population. This trial is registered with ClinicalTrials.gov, number NCT00235079. FINDINGS: 240 patients were enrolled a"
+            },
+            "population_age": {
+              "value": "adult",
+              "source": "committed source text",
+              "span": "ricarditis. METHODS: We did this multicentre, double-blind trial at four general hospitals in northern Italy. Adult patients with multiple recurrences of pericarditis (≥two) were randomly assigned (1:1) to placebo or colchici"
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          },
           "trial_id": "PMID 24694983",
           "report_id": "PMID 24694983",
           "outcome_effect_id": "colchicine-recurrent-pericarditis::Adverse events (gastrointestinal)::PMID 24694983::PMID 24694983",
-          "reason_code_audit": {
-            "verdict": "REASON_TRUE",
-            "detail": "value absent from every held source inspected; code is consistent",
-            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
-          },
-          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-          "harm_source_reported": true,
-          "harm_source_span": "Adverse effects and discontinuation of study drug occurred in much the same proportions in each group.",
-          "harm_source_signal": "term_signal",
-          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-          "claim_id": "c6d1d62f69cd7cb4",
-          "depends_on": {
-            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-          },
-          "claim_kind": "membership_state"
-        },
+          "consumer_consistency_state": "EXTRACTED_RECONSTRUCTION_WHILE_PUBLISHED_EXISTS",
+          "source_warning": "source span also reports an effect estimate with confidence interval; row keeps the existing reconstruction and is flagged for human review",
+          "harm_absence_state": "EXTRACTED",
+          "harm_source_reported": true
+        }
+      ],
+      "declared_absent_trials": [
         {
           "label": "23992557",
           "id": "PMID 23992557",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "absent_kind": "adjudicated_absent",
+          "state": "REFUSED_ON_EVIDENCE",
+          "reason_code": "REFUSED_ON_EVIDENCE",
+          "source_adjudicated": true,
+          "document_sha256": "69b0f26fee0d411d6b88904e8ce95d43a6a1ab97bec06a48089326c456d32d78",
+          "typed_refusal": true,
+          "refusal_provenance": "REFUSED_ON_EVIDENCE",
+          "source_span": "BACKGROUND: Colchicine is effective for the treatment of recurrent pericarditis. However, conclusive data are lacking regarding the use of colchicine during a first attack of acute pericarditis and in the prevention of recurrent symptoms. METHODS: In a multicenter, double-blind trial, eligible adults with acute pericarditis were randomly assigned to receive either colchicine (at a dose of 0.5 mg twice daily for 3 months for patients weighing >70 kg or 0.5 mg once daily for patients weighing ≤70 kg) or placebo in addition to conventional antiinflammatory therapy with aspirin or ibuprofen. The primary study outcome was incessant or recurrent pericarditis. RESULTS: A total of 240 patients were enrolled, and 120 were randomly assigned to each of the two study groups. The primary outcome occurred in 20 patients (16.7%) in the colchicine group and 45 patients (37.5%) in the placebo group (relative risk reduction in the colchicine group, 0.56; 95% confidence interval, 0.30 to 0.72; number needed to treat, 4; P<0.001). Colchicine reduced the rate of symptom persistence at 72 hours (19.2% vs. 40.0%, P=0.001), the number of recurrences per patient (0.21 vs. 0.52, P=0.001), and the hospitalization rate (5.0% vs. 14.2%, P=0.02). Colchicine also improved the remission rate at 1 week (85.0% vs. 58.3%, P<0.001). Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups. No serious adverse events were observed. CONCLUSIONS: In patients with acute pericarditis, colchicine, when added to conventional antiinflammatory therapy, significantly reduced the rate of incessant or recurrent pericarditis. (Funded by former Azienda Sanitaria Locale 3 of Turin [now Azienda Sanitaria Locale 2] and Acarpia; ICAP ClinicalTrials.gov number, NCT00128453.).",
+          "verbatim_span": "BACKGROUND: Colchicine is effective for the treatment of recurrent pericarditis. However, conclusive data are lacking regarding the use of colchicine during a first attack of acute pericarditis and in the prevention of recurrent symptoms. METHODS: In a multicenter, double-blind trial, eligible adults with acute pericarditis were randomly assigned to receive either colchicine (at a dose of 0.5 mg twice daily for 3 months for patients weighing >70 kg or 0.5 mg once daily for patients weighing ≤70 kg) or placebo in addition to conventional antiinflammatory therapy with aspirin or ibuprofen. The primary study outcome was incessant or recurrent pericarditis. RESULTS: A total of 240 patients were enrolled, and 120 were randomly assigned to each of the two study groups. The primary outcome occurred in 20 patients (16.7%) in the colchicine group and 45 patients (37.5%) in the placebo group (relative risk reduction in the colchicine group, 0.56; 95% confidence interval, 0.30 to 0.72; number needed to treat, 4; P<0.001). Colchicine reduced the rate of symptom persistence at 72 hours (19.2% vs. 40.0%, P=0.001), the number of recurrences per patient (0.21 vs. 0.52, P=0.001), and the hospitalization rate (5.0% vs. 14.2%, P=0.02). Colchicine also improved the remission rate at 1 week (85.0% vs. 58.3%, P<0.001). Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups. No serious adverse events were observed. CONCLUSIONS: In patients with acute pericarditis, colchicine, when added to conventional antiinflammatory therapy, significantly reduced the rate of incessant or recurrent pericarditis. (Funded by former Azienda Sanitaria Locale 3 of Turin [now Azienda Sanitaria Locale 2] and Acarpia; ICAP ClinicalTrials.gov number, NCT00128453.).",
+          "source": "BACKGROUND: Colchicine is effective for the treatment of recurrent pericarditis. However, conclusive data are lacking regarding the use of colchicine during a first attack of acute pericarditis and in the prevention of recurrent symptoms. METHODS: In a multicenter, double-blind trial, eligible adults with acute pericarditis were randomly assigned to receive either colchicine (at a dose of 0.5 mg twice daily for 3 months for patients weighing >70 kg or 0.5 mg once daily for patients weighing ≤70 kg) or placebo in addition to conventional antiinflammatory therapy with aspirin or ibuprofen. The primary study outcome was incessant or recurrent pericarditis. RESULTS: A total of 240 patients were enrolled, and 120 were randomly assigned to each of the two study groups. The primary outcome occurred in 20 patients (16.7%) in the colchicine group and 45 patients (37.5%) in the placebo group (relative risk reduction in the colchicine group, 0.56; 95% confidence interval, 0.30 to 0.72; number needed to treat, 4; P<0.001). Colchicine reduced the rate of symptom persistence at 72 hours (19.2% vs. 40.0%, P=0.001), the number of recurrences per patient (0.21 vs. 0.52, P=0.001), and the hospitalization rate (5.0% vs. 14.2%, P=0.02). Colchicine also improved the remission rate at 1 week (85.0% vs. 58.3%, P<0.001). Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups. No serious adverse events were observed. CONCLUSIONS: In patients with acute pericarditis, colchicine, when added to conventional antiinflammatory therapy, significantly reduced the rate of incessant or recurrent pericarditis. (Funded by former Azienda Sanitaria Locale 3 of Turin [now Azienda Sanitaria Locale 2] and Acarpia; ICAP ClinicalTrials.gov number, NCT00128453.).",
+          "document_ref": "cache/colchicine-recurrent-pericarditis/records.json#PMID-23992557",
+          "source_level": 1,
+          "reason": "The abstract describes similar overall adverse-effect rates but gives no gastrointestinal-specific count or effect with confidence interval; no linked results rows are held in the local AACT snapshot.",
           "trial_family_id": "NCT00128453",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
           "registry_status": "COMPLETED",
           "completion_date": "2012-06-30",
           "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups.\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
-          "source_span": "Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups.",
-          "verbatim_span": "Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups.",
+          "state_basis": "REFUSED_ON_EVIDENCE: source span: \"BACKGROUND: Colchicine is effective for the treatment of recurrent pericarditis. However, conclusive data are lacking regarding the use of colchicine during a first attack of acute pericarditis and i...\"; The abstract describes similar overall adverse-effect rates but gives no gastrointestinal-specific count or effect with confidence interval; no linked results rows are held in the local AACT snapshot.",
           "trial_id": "PMID 23992557",
           "report_id": "PMID 23992557",
           "outcome_effect_id": "colchicine-recurrent-pericarditis::Adverse events (gastrointestinal)::PMID 23992557::PMID 23992557",
           "reason_code_audit": {
-            "verdict": "REASON_TRUE",
-            "detail": "value absent from every held source inspected; code is consistent",
-            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+            "verdict": "REASON_WRONG_KIND",
+            "detail": "value absent from held source, but the code names a value-present/refusal cause",
+            "stated_reason_code": "REFUSED_ON_EVIDENCE"
           },
-          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_absence_state": "RETRIEVED_REFUSED_WITH_REASON",
           "harm_source_reported": true,
           "harm_source_span": "Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups.",
           "harm_source_signal": "term_signal",
-          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-          "claim_id": "c6d1d62f69cd7cb4",
+          "input_set_version": "63e45942db995af25aeddb13bcaf824d9b13fde9b6b0ef5e15c5d2402937dd46",
+          "claim_id": "eb96de4ef65c2483",
           "depends_on": {
-            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            "input_set_version": "63e45942db995af25aeddb13bcaf824d9b13fde9b6b0ef5e15c5d2402937dd46"
           },
           "claim_kind": "membership_state"
         },
         {
           "label": "21873705",
           "id": "PMID 21873705",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "absent_kind": "adjudicated_absent",
+          "state": "REFUSED_ON_EVIDENCE",
+          "reason_code": "REFUSED_ON_EVIDENCE",
+          "source_adjudicated": true,
+          "document_sha256": "69b0f26fee0d411d6b88904e8ce95d43a6a1ab97bec06a48089326c456d32d78",
+          "typed_refusal": true,
+          "refusal_provenance": "REFUSED_ON_EVIDENCE",
+          "source_span": "BACKGROUND: Recurrence is the most common complication of pericarditis, affecting 10% to 50% of patients. OBJECTIVE: To evaluate the efficacy and safety of colchicine for the secondary prevention of recurrent pericarditis. DESIGN: Prospective, randomized, double-blind, placebo-controlled multicenter trial. (ClinicalTrials.gov registration number: NCT00128414) SETTING: 4 general hospitals in urban areas of Italy. PATIENTS: 120 patients with a first recurrence of pericarditis. INTERVENTION: In addition to conventional treatment, patients were randomly assigned to receive either placebo or colchicine, 1.0 to 2.0 mg on the first day followed by a maintenance dose of 0.5 to 1.0 mg/d, for 6 months. MEASUREMENTS: The primary study end point was the recurrence rate at 18 months. Secondary end points were symptom persistence at 72 hours, remission rate at 1 week, number of recurrences, time to first recurrence, disease-related hospitalization, cardiac tamponade, and rate of constrictive pericarditis. RESULTS: At 18 months, the recurrence rate was 24% in the colchicine group and 55% in the placebo group (absolute risk reduction, 0.31 [95% CI, 0.13 to 0.46]; relative risk reduction, 0.56 [CI, 0.27 to 0.73]; number needed to treat, 3 [CI, 2 to 7]). Colchicine reduced the persistence of symptoms at 72 hours (absolute risk reduction, 0.30 [CI, 0.13 to 0.45]; relative risk reduction, 0.56 [CI, 0.27 to 0.74]) and mean number of recurrences, increased the remission rate at 1 week, and prolonged the time to subsequent recurrence. The study groups had similar rates of side effects and drug withdrawal. LIMITATION: Multiple recurrences and neoplastic or bacterial causes were excluded. CONCLUSION: Colchicine is safe and effective for secondary prevention of recurrent pericarditis.",
+          "verbatim_span": "BACKGROUND: Recurrence is the most common complication of pericarditis, affecting 10% to 50% of patients. OBJECTIVE: To evaluate the efficacy and safety of colchicine for the secondary prevention of recurrent pericarditis. DESIGN: Prospective, randomized, double-blind, placebo-controlled multicenter trial. (ClinicalTrials.gov registration number: NCT00128414) SETTING: 4 general hospitals in urban areas of Italy. PATIENTS: 120 patients with a first recurrence of pericarditis. INTERVENTION: In addition to conventional treatment, patients were randomly assigned to receive either placebo or colchicine, 1.0 to 2.0 mg on the first day followed by a maintenance dose of 0.5 to 1.0 mg/d, for 6 months. MEASUREMENTS: The primary study end point was the recurrence rate at 18 months. Secondary end points were symptom persistence at 72 hours, remission rate at 1 week, number of recurrences, time to first recurrence, disease-related hospitalization, cardiac tamponade, and rate of constrictive pericarditis. RESULTS: At 18 months, the recurrence rate was 24% in the colchicine group and 55% in the placebo group (absolute risk reduction, 0.31 [95% CI, 0.13 to 0.46]; relative risk reduction, 0.56 [CI, 0.27 to 0.73]; number needed to treat, 3 [CI, 2 to 7]). Colchicine reduced the persistence of symptoms at 72 hours (absolute risk reduction, 0.30 [CI, 0.13 to 0.45]; relative risk reduction, 0.56 [CI, 0.27 to 0.74]) and mean number of recurrences, increased the remission rate at 1 week, and prolonged the time to subsequent recurrence. The study groups had similar rates of side effects and drug withdrawal. LIMITATION: Multiple recurrences and neoplastic or bacterial causes were excluded. CONCLUSION: Colchicine is safe and effective for secondary prevention of recurrent pericarditis.",
+          "source": "BACKGROUND: Recurrence is the most common complication of pericarditis, affecting 10% to 50% of patients. OBJECTIVE: To evaluate the efficacy and safety of colchicine for the secondary prevention of recurrent pericarditis. DESIGN: Prospective, randomized, double-blind, placebo-controlled multicenter trial. (ClinicalTrials.gov registration number: NCT00128414) SETTING: 4 general hospitals in urban areas of Italy. PATIENTS: 120 patients with a first recurrence of pericarditis. INTERVENTION: In addition to conventional treatment, patients were randomly assigned to receive either placebo or colchicine, 1.0 to 2.0 mg on the first day followed by a maintenance dose of 0.5 to 1.0 mg/d, for 6 months. MEASUREMENTS: The primary study end point was the recurrence rate at 18 months. Secondary end points were symptom persistence at 72 hours, remission rate at 1 week, number of recurrences, time to first recurrence, disease-related hospitalization, cardiac tamponade, and rate of constrictive pericarditis. RESULTS: At 18 months, the recurrence rate was 24% in the colchicine group and 55% in the placebo group (absolute risk reduction, 0.31 [95% CI, 0.13 to 0.46]; relative risk reduction, 0.56 [CI, 0.27 to 0.73]; number needed to treat, 3 [CI, 2 to 7]). Colchicine reduced the persistence of symptoms at 72 hours (absolute risk reduction, 0.30 [CI, 0.13 to 0.45]; relative risk reduction, 0.56 [CI, 0.27 to 0.74]) and mean number of recurrences, increased the remission rate at 1 week, and prolonged the time to subsequent recurrence. The study groups had similar rates of side effects and drug withdrawal. LIMITATION: Multiple recurrences and neoplastic or bacterial causes were excluded. CONCLUSION: Colchicine is safe and effective for secondary prevention of recurrent pericarditis.",
+          "document_ref": "cache/colchicine-recurrent-pericarditis/records.json#PMID-21873705",
+          "source_level": 1,
+          "reason": "The abstract describes similar overall adverse-effect rates but gives no gastrointestinal-specific count or effect with confidence interval; no linked results rows are held in the local AACT snapshot.",
           "trial_family_id": "NCT00128414",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
           "registry_status": "COMPLETED",
           "completion_date": "2010-10-31",
           "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"The study groups had similar rates of side effects and drug withdrawal.\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
-          "source_span": "The study groups had similar rates of side effects and drug withdrawal.",
-          "verbatim_span": "The study groups had similar rates of side effects and drug withdrawal.",
+          "state_basis": "REFUSED_ON_EVIDENCE: source span: \"BACKGROUND: Recurrence is the most common complication of pericarditis, affecting 10% to 50% of patients. OBJECTIVE: To evaluate the efficacy and safety of colchicine for the secondary prevention of...\"; The abstract describes similar overall adverse-effect rates but gives no gastrointestinal-specific count or effect with confidence interval; no linked results rows are held in the local AACT snapshot.",
           "trial_id": "PMID 21873705",
           "report_id": "PMID 21873705",
           "outcome_effect_id": "colchicine-recurrent-pericarditis::Adverse events (gastrointestinal)::PMID 21873705::PMID 21873705",
           "reason_code_audit": {
-            "verdict": "REASON_TRUE",
-            "detail": "value absent from every held source inspected; code is consistent",
-            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+            "verdict": "REASON_WRONG_KIND",
+            "detail": "value absent from held source, but the code names a value-present/refusal cause",
+            "stated_reason_code": "REFUSED_ON_EVIDENCE"
           },
-          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_absence_state": "RETRIEVED_REFUSED_WITH_REASON",
           "harm_source_reported": true,
           "harm_source_span": "The study groups had similar rates of side effects and drug withdrawal.",
           "harm_source_signal": "term_signal",
-          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-          "claim_id": "c6d1d62f69cd7cb4",
+          "input_set_version": "63e45942db995af25aeddb13bcaf824d9b13fde9b6b0ef5e15c5d2402937dd46",
+          "claim_id": "eb96de4ef65c2483",
           "depends_on": {
-            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            "input_set_version": "63e45942db995af25aeddb13bcaf824d9b13fde9b6b0ef5e15c5d2402937dd46"
           },
           "claim_kind": "membership_state"
         }
       ],
       "membership": {
-        "pooled": [],
+        "pooled": [
+          "PMID 24694983"
+        ],
         "declared_absent": [
-          "PMID 24694983",
           "PMID 23992557",
           "PMID 21873705"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "2da1584885a2b32796fac506ca033d9bae1801834088c5e98c67731aa62dd79a"
+        "input_set_version": "3a2338c2dee21a208b9006b918d3209b11cb2f6463f773d05e8ad48d34fe3f6e"
       },
       "result": {
-        "present": false,
-        "reported_not_extracted": true,
-        "reported_by": [
-          "24694983",
-          "23992557",
-          "21873705"
-        ],
-        "reason": "HARMS_INCOMPLETE -- 3 known reported outcome(s) unresolved (24694983, 23992557, 21873705) among 3 source-reporting trial(s); extracted k=0. The page must not render this as harm absence.",
+        "k": 1,
+        "estimate": 1.0,
+        "scale": "RR",
+        "ci_low": 0.4112,
+        "ci_high": 2.4318,
+        "Q": 0.0,
+        "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
+        "pi_note": "prediction interval undefined for k=1",
+        "estmeasure": {
+          "status": "homogeneous",
+          "classes": [
+            "FIRST_EVENT_RATIO"
+          ],
+          "canonicals": [
+            "RISK_RATIO"
+          ],
+          "labels": [
+            "RR"
+          ]
+        },
+        "leave_one_out": {
+          "note": "not assessable at k=1 (leave-one-out needs k>=3)"
+        },
         "claim": {
-          "present": false,
+          "present": true,
           "significant": false,
-          "crosses_null": null,
-          "touches_null": null,
-          "null": null,
-          "direction": null
+          "crosses_null": true,
+          "touches_null": false,
+          "null": 1.0,
+          "direction": "none",
+          "significant_fixed": null
         },
         "harm_reporting_trials_n": 3,
-        "harm_extracted_trials_n": 0,
+        "harm_extracted_trials_n": 1,
         "harm_registered_trials_n": 3,
         "harm_reporting_trials": [
           {
             "id": "24694983",
             "label": "24694983",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-            "span": "Adverse effects and discontinuation of study drug occurred in much the same proportions in each group."
+            "state": "EXTRACTED",
+            "extracted": true
           },
           {
             "id": "23992557",
             "label": "23992557",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "state": "RETRIEVED_REFUSED_WITH_REASON",
             "span": "Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups."
           },
           {
             "id": "21873705",
             "label": "21873705",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "state": "RETRIEVED_REFUSED_WITH_REASON",
             "span": "The study groups had similar rates of side effects and drug withdrawal."
           }
         ],
-        "harms_incomplete": true,
-        "known_reported_not_yet_extracted": [
-          {
-            "id": "24694983",
-            "label": "24694983",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-            "span": "Adverse effects and discontinuation of study drug occurred in much the same proportions in each group."
-          },
-          {
-            "id": "23992557",
-            "label": "23992557",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-            "span": "Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups."
-          },
-          {
-            "id": "21873705",
-            "label": "21873705",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-            "span": "The study groups had similar rates of side effects and drug withdrawal."
-          }
-        ],
-        "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-        "claim_id": "d5e8e77c5c5ca702",
+        "input_set_version": "63e45942db995af25aeddb13bcaf824d9b13fde9b6b0ef5e15c5d2402937dd46",
+        "claim_id": "ef4c1af6f0a2163d",
         "depends_on": {
-          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          "input_set_version": "63e45942db995af25aeddb13bcaf824d9b13fde9b6b0ef5e15c5d2402937dd46"
         },
         "claim_kind": "outcome_result"
+      },
+      "endpoint_canonical": {
+        "label": "ADVERSE_EVENTS_GASTROINTESTINAL",
+        "event_time": "TIME_TO_FIRST_EVENT",
+        "components": [],
+        "component_sets": [],
+        "status": "NOT_DECLARED"
+      },
+      "compat_key": {
+        "effect_measure": [
+          "RR"
+        ],
+        "event_process": [
+          "FIRST_EVENT_RATIO"
+        ],
+        "endpoint": "trial-defined Adverse events (gastrointestinal) (definitions listed per trial)",
+        "follow_up_window": null,
+        "analysis_set": null,
+        "analysis_set_declared": null,
+        "randomised_contrast": {
+          "verified": 1,
+          "total": 1
+        },
+        "matched": true,
+        "mismatches": [],
+        "endpoint_canonical": {
+          "label": "ADVERSE_EVENTS_GASTROINTESTINAL",
+          "event_time": "TIME_TO_FIRST_EVENT",
+          "components": [],
+          "component_sets": [],
+          "status": "NOT_DECLARED"
+        },
+        "endpoint_canonical_status": "NOT_DECLARED",
+        "dimension_matches": {
+          "endpoint": false
+        },
+        "underlying_checked": true,
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS"
+      },
+      "recovery_recheck": {
+        "hard_incompatible": false,
+        "mismatches": [],
+        "effect_measure_labels": [
+          "RR"
+        ],
+        "k": 1,
+        "reconstructed_members": [
+          "24694983"
+        ],
+        "label_mix_small_k": false
+      },
+      "compat_underlying": {
+        "status": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "dimensions": [
+          "endpoint"
+        ],
+        "per_trial": {
+          "endpoint": [
+            {
+              "trial_id": "24694983",
+              "trial_label": "24694983",
+              "value": "primary outcome was recurrent pericarditis in the intention-to-treat population",
+              "source": "committed source text",
+              "span": "al computer-based automated sequence. Patients and all investigators were masked to treatment allocation. The primary outcome was recurrent pericarditis in the intention-to-treat population. This trial is registered with ClinicalTrials.gov, number NCT00235079. FINDINGS: 240 patients were enrolled a"
+            }
+          ]
+        }
       }
     },
     {
@@ -2287,28 +2451,35 @@
         {
           "label": "24694983",
           "id": "PMID 24694983",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "absent_kind": "adjudicated_absent",
+          "state": "REFUSED_ON_EVIDENCE",
+          "reason_code": "REFUSED_ON_EVIDENCE",
+          "source_adjudicated": true,
+          "document_sha256": "69b0f26fee0d411d6b88904e8ce95d43a6a1ab97bec06a48089326c456d32d78",
+          "typed_refusal": true,
+          "refusal_provenance": "REFUSED_ON_EVIDENCE",
+          "source_span": "BACKGROUND: Colchicine is effective for the treatment of acute pericarditis and first recurrences. However, conclusive data are lacking for the efficacy and safety of colchicine for treatment of multiple recurrences of pericarditis. METHODS: We did this multicentre, double-blind trial at four general hospitals in northern Italy. Adult patients with multiple recurrences of pericarditis (≥two) were randomly assigned (1:1) to placebo or colchicine (0·5 mg twice daily for 6 months for patients weighing more than 70 kg or 0·5 mg once daily for patients weighing 70 kg or less) in addition to conventional anti-inflammatory treatment with aspirin, ibuprofen, or indometacin. Permuted block randomisation (size four) was done with a central computer-based automated sequence. Patients and all investigators were masked to treatment allocation. The primary outcome was recurrent pericarditis in the intention-to-treat population. This trial is registered with ClinicalTrials.gov, number NCT00235079. FINDINGS: 240 patients were enrolled and 120 were assigned to each group. The proportion of patients who had recurrent pericarditis was 26 (21·6%) of 120 in the colchicine group and 51 (42·5%) of 120 in the placebo group (relative risk 0·49; 95% CI 0·24-0·65; p=0·0009; number needed to treat 5). Adverse effects and discontinuation of study drug occurred in much the same proportions in each group. The most common adverse events were gastrointestinal intolerance (nine patients in the colchicine group vs nine in the placebo group) and hepatotoxicity (three vs one). No serious adverse events were reported. INTERPRETATION: Colchicine added to conventional anti-inflammatory treatment significantly reduced the rate of subsequent recurrences of pericarditis in patients with multiple recurrences. Taken together with results from other randomised controlled trials, these findings suggest that colchicine should be probably regarded as a first-line treatment for either acute or recurrent pericarditis in the absence of contraindications or specific indications. FUNDING: Azienda Sanitaria 3 of Torino (now ASLTO2).",
+          "verbatim_span": "BACKGROUND: Colchicine is effective for the treatment of acute pericarditis and first recurrences. However, conclusive data are lacking for the efficacy and safety of colchicine for treatment of multiple recurrences of pericarditis. METHODS: We did this multicentre, double-blind trial at four general hospitals in northern Italy. Adult patients with multiple recurrences of pericarditis (≥two) were randomly assigned (1:1) to placebo or colchicine (0·5 mg twice daily for 6 months for patients weighing more than 70 kg or 0·5 mg once daily for patients weighing 70 kg or less) in addition to conventional anti-inflammatory treatment with aspirin, ibuprofen, or indometacin. Permuted block randomisation (size four) was done with a central computer-based automated sequence. Patients and all investigators were masked to treatment allocation. The primary outcome was recurrent pericarditis in the intention-to-treat population. This trial is registered with ClinicalTrials.gov, number NCT00235079. FINDINGS: 240 patients were enrolled and 120 were assigned to each group. The proportion of patients who had recurrent pericarditis was 26 (21·6%) of 120 in the colchicine group and 51 (42·5%) of 120 in the placebo group (relative risk 0·49; 95% CI 0·24-0·65; p=0·0009; number needed to treat 5). Adverse effects and discontinuation of study drug occurred in much the same proportions in each group. The most common adverse events were gastrointestinal intolerance (nine patients in the colchicine group vs nine in the placebo group) and hepatotoxicity (three vs one). No serious adverse events were reported. INTERPRETATION: Colchicine added to conventional anti-inflammatory treatment significantly reduced the rate of subsequent recurrences of pericarditis in patients with multiple recurrences. Taken together with results from other randomised controlled trials, these findings suggest that colchicine should be probably regarded as a first-line treatment for either acute or recurrent pericarditis in the absence of contraindications or specific indications. FUNDING: Azienda Sanitaria 3 of Torino (now ASLTO2).",
+          "source": "BACKGROUND: Colchicine is effective for the treatment of acute pericarditis and first recurrences. However, conclusive data are lacking for the efficacy and safety of colchicine for treatment of multiple recurrences of pericarditis. METHODS: We did this multicentre, double-blind trial at four general hospitals in northern Italy. Adult patients with multiple recurrences of pericarditis (≥two) were randomly assigned (1:1) to placebo or colchicine (0·5 mg twice daily for 6 months for patients weighing more than 70 kg or 0·5 mg once daily for patients weighing 70 kg or less) in addition to conventional anti-inflammatory treatment with aspirin, ibuprofen, or indometacin. Permuted block randomisation (size four) was done with a central computer-based automated sequence. Patients and all investigators were masked to treatment allocation. The primary outcome was recurrent pericarditis in the intention-to-treat population. This trial is registered with ClinicalTrials.gov, number NCT00235079. FINDINGS: 240 patients were enrolled and 120 were assigned to each group. The proportion of patients who had recurrent pericarditis was 26 (21·6%) of 120 in the colchicine group and 51 (42·5%) of 120 in the placebo group (relative risk 0·49; 95% CI 0·24-0·65; p=0·0009; number needed to treat 5). Adverse effects and discontinuation of study drug occurred in much the same proportions in each group. The most common adverse events were gastrointestinal intolerance (nine patients in the colchicine group vs nine in the placebo group) and hepatotoxicity (three vs one). No serious adverse events were reported. INTERPRETATION: Colchicine added to conventional anti-inflammatory treatment significantly reduced the rate of subsequent recurrences of pericarditis in patients with multiple recurrences. Taken together with results from other randomised controlled trials, these findings suggest that colchicine should be probably regarded as a first-line treatment for either acute or recurrent pericarditis in the absence of contraindications or specific indications. FUNDING: Azienda Sanitaria 3 of Torino (now ASLTO2).",
+          "document_ref": "cache/colchicine-recurrent-pericarditis/records.json#PMID-24694983",
+          "source_level": 1,
+          "reason": "The abstract describes similar study-drug discontinuation or withdrawal rates but provides no discontinuation count or effect with confidence interval; no linked results rows are held in the local AACT snapshot.",
           "trial_family_id": "NCT00235079",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
           "registry_status": "COMPLETED",
           "completion_date": "2011-12-31",
           "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"Adverse effects and discontinuation of study drug occurred in much the same proportions in each group.\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
-          "source_span": "Adverse effects and discontinuation of study drug occurred in much the same proportions in each group.",
-          "verbatim_span": "Adverse effects and discontinuation of study drug occurred in much the same proportions in each group.",
+          "state_basis": "REFUSED_ON_EVIDENCE: source span: \"BACKGROUND: Colchicine is effective for the treatment of acute pericarditis and first recurrences. However, conclusive data are lacking for the efficacy and safety of colchicine for treatment of mult...\"; The abstract describes similar study-drug discontinuation or withdrawal rates but provides no discontinuation count or effect with confidence interval; no linked results rows are held in the local AACT snapshot.",
           "trial_id": "PMID 24694983",
           "report_id": "PMID 24694983",
           "outcome_effect_id": "colchicine-recurrent-pericarditis::Treatment discontinuation::PMID 24694983::PMID 24694983",
           "reason_code_audit": {
-            "verdict": "REASON_TRUE",
-            "detail": "value absent from every held source inspected; code is consistent",
-            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+            "verdict": "REASON_WRONG_KIND",
+            "detail": "value absent from held source, but the code names a value-present/refusal cause",
+            "stated_reason_code": "REFUSED_ON_EVIDENCE"
           },
-          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_absence_state": "RETRIEVED_REFUSED_WITH_REASON",
           "harm_source_reported": true,
           "harm_source_span": "Adverse effects and discontinuation of study drug occurred in much the same proportions in each group.",
           "harm_source_signal": "term_signal",
@@ -2322,28 +2493,35 @@
         {
           "label": "23992557",
           "id": "PMID 23992557",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "absent_kind": "adjudicated_absent",
+          "state": "REFUSED_ON_EVIDENCE",
+          "reason_code": "REFUSED_ON_EVIDENCE",
+          "source_adjudicated": true,
+          "document_sha256": "69b0f26fee0d411d6b88904e8ce95d43a6a1ab97bec06a48089326c456d32d78",
+          "typed_refusal": true,
+          "refusal_provenance": "REFUSED_ON_EVIDENCE",
+          "source_span": "BACKGROUND: Colchicine is effective for the treatment of recurrent pericarditis. However, conclusive data are lacking regarding the use of colchicine during a first attack of acute pericarditis and in the prevention of recurrent symptoms. METHODS: In a multicenter, double-blind trial, eligible adults with acute pericarditis were randomly assigned to receive either colchicine (at a dose of 0.5 mg twice daily for 3 months for patients weighing >70 kg or 0.5 mg once daily for patients weighing ≤70 kg) or placebo in addition to conventional antiinflammatory therapy with aspirin or ibuprofen. The primary study outcome was incessant or recurrent pericarditis. RESULTS: A total of 240 patients were enrolled, and 120 were randomly assigned to each of the two study groups. The primary outcome occurred in 20 patients (16.7%) in the colchicine group and 45 patients (37.5%) in the placebo group (relative risk reduction in the colchicine group, 0.56; 95% confidence interval, 0.30 to 0.72; number needed to treat, 4; P<0.001). Colchicine reduced the rate of symptom persistence at 72 hours (19.2% vs. 40.0%, P=0.001), the number of recurrences per patient (0.21 vs. 0.52, P=0.001), and the hospitalization rate (5.0% vs. 14.2%, P=0.02). Colchicine also improved the remission rate at 1 week (85.0% vs. 58.3%, P<0.001). Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups. No serious adverse events were observed. CONCLUSIONS: In patients with acute pericarditis, colchicine, when added to conventional antiinflammatory therapy, significantly reduced the rate of incessant or recurrent pericarditis. (Funded by former Azienda Sanitaria Locale 3 of Turin [now Azienda Sanitaria Locale 2] and Acarpia; ICAP ClinicalTrials.gov number, NCT00128453.).",
+          "verbatim_span": "BACKGROUND: Colchicine is effective for the treatment of recurrent pericarditis. However, conclusive data are lacking regarding the use of colchicine during a first attack of acute pericarditis and in the prevention of recurrent symptoms. METHODS: In a multicenter, double-blind trial, eligible adults with acute pericarditis were randomly assigned to receive either colchicine (at a dose of 0.5 mg twice daily for 3 months for patients weighing >70 kg or 0.5 mg once daily for patients weighing ≤70 kg) or placebo in addition to conventional antiinflammatory therapy with aspirin or ibuprofen. The primary study outcome was incessant or recurrent pericarditis. RESULTS: A total of 240 patients were enrolled, and 120 were randomly assigned to each of the two study groups. The primary outcome occurred in 20 patients (16.7%) in the colchicine group and 45 patients (37.5%) in the placebo group (relative risk reduction in the colchicine group, 0.56; 95% confidence interval, 0.30 to 0.72; number needed to treat, 4; P<0.001). Colchicine reduced the rate of symptom persistence at 72 hours (19.2% vs. 40.0%, P=0.001), the number of recurrences per patient (0.21 vs. 0.52, P=0.001), and the hospitalization rate (5.0% vs. 14.2%, P=0.02). Colchicine also improved the remission rate at 1 week (85.0% vs. 58.3%, P<0.001). Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups. No serious adverse events were observed. CONCLUSIONS: In patients with acute pericarditis, colchicine, when added to conventional antiinflammatory therapy, significantly reduced the rate of incessant or recurrent pericarditis. (Funded by former Azienda Sanitaria Locale 3 of Turin [now Azienda Sanitaria Locale 2] and Acarpia; ICAP ClinicalTrials.gov number, NCT00128453.).",
+          "source": "BACKGROUND: Colchicine is effective for the treatment of recurrent pericarditis. However, conclusive data are lacking regarding the use of colchicine during a first attack of acute pericarditis and in the prevention of recurrent symptoms. METHODS: In a multicenter, double-blind trial, eligible adults with acute pericarditis were randomly assigned to receive either colchicine (at a dose of 0.5 mg twice daily for 3 months for patients weighing >70 kg or 0.5 mg once daily for patients weighing ≤70 kg) or placebo in addition to conventional antiinflammatory therapy with aspirin or ibuprofen. The primary study outcome was incessant or recurrent pericarditis. RESULTS: A total of 240 patients were enrolled, and 120 were randomly assigned to each of the two study groups. The primary outcome occurred in 20 patients (16.7%) in the colchicine group and 45 patients (37.5%) in the placebo group (relative risk reduction in the colchicine group, 0.56; 95% confidence interval, 0.30 to 0.72; number needed to treat, 4; P<0.001). Colchicine reduced the rate of symptom persistence at 72 hours (19.2% vs. 40.0%, P=0.001), the number of recurrences per patient (0.21 vs. 0.52, P=0.001), and the hospitalization rate (5.0% vs. 14.2%, P=0.02). Colchicine also improved the remission rate at 1 week (85.0% vs. 58.3%, P<0.001). Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups. No serious adverse events were observed. CONCLUSIONS: In patients with acute pericarditis, colchicine, when added to conventional antiinflammatory therapy, significantly reduced the rate of incessant or recurrent pericarditis. (Funded by former Azienda Sanitaria Locale 3 of Turin [now Azienda Sanitaria Locale 2] and Acarpia; ICAP ClinicalTrials.gov number, NCT00128453.).",
+          "document_ref": "cache/colchicine-recurrent-pericarditis/records.json#PMID-23992557",
+          "source_level": 1,
+          "reason": "The abstract describes similar study-drug discontinuation or withdrawal rates but provides no discontinuation count or effect with confidence interval; no linked results rows are held in the local AACT snapshot.",
           "trial_family_id": "NCT00128453",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
           "registry_status": "COMPLETED",
           "completion_date": "2012-06-30",
           "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups.\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
-          "source_span": "Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups.",
-          "verbatim_span": "Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups.",
+          "state_basis": "REFUSED_ON_EVIDENCE: source span: \"BACKGROUND: Colchicine is effective for the treatment of recurrent pericarditis. However, conclusive data are lacking regarding the use of colchicine during a first attack of acute pericarditis and i...\"; The abstract describes similar study-drug discontinuation or withdrawal rates but provides no discontinuation count or effect with confidence interval; no linked results rows are held in the local AACT snapshot.",
           "trial_id": "PMID 23992557",
           "report_id": "PMID 23992557",
           "outcome_effect_id": "colchicine-recurrent-pericarditis::Treatment discontinuation::PMID 23992557::PMID 23992557",
           "reason_code_audit": {
-            "verdict": "REASON_TRUE",
-            "detail": "value absent from every held source inspected; code is consistent",
-            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+            "verdict": "REASON_WRONG_KIND",
+            "detail": "value absent from held source, but the code names a value-present/refusal cause",
+            "stated_reason_code": "REFUSED_ON_EVIDENCE"
           },
-          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_absence_state": "RETRIEVED_REFUSED_WITH_REASON",
           "harm_source_reported": true,
           "harm_source_span": "Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups.",
           "harm_source_signal": "term_signal",
@@ -2357,28 +2535,35 @@
         {
           "label": "21873705",
           "id": "PMID 21873705",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "absent_kind": "adjudicated_absent",
+          "state": "REFUSED_ON_EVIDENCE",
+          "reason_code": "REFUSED_ON_EVIDENCE",
+          "source_adjudicated": true,
+          "document_sha256": "69b0f26fee0d411d6b88904e8ce95d43a6a1ab97bec06a48089326c456d32d78",
+          "typed_refusal": true,
+          "refusal_provenance": "REFUSED_ON_EVIDENCE",
+          "source_span": "BACKGROUND: Recurrence is the most common complication of pericarditis, affecting 10% to 50% of patients. OBJECTIVE: To evaluate the efficacy and safety of colchicine for the secondary prevention of recurrent pericarditis. DESIGN: Prospective, randomized, double-blind, placebo-controlled multicenter trial. (ClinicalTrials.gov registration number: NCT00128414) SETTING: 4 general hospitals in urban areas of Italy. PATIENTS: 120 patients with a first recurrence of pericarditis. INTERVENTION: In addition to conventional treatment, patients were randomly assigned to receive either placebo or colchicine, 1.0 to 2.0 mg on the first day followed by a maintenance dose of 0.5 to 1.0 mg/d, for 6 months. MEASUREMENTS: The primary study end point was the recurrence rate at 18 months. Secondary end points were symptom persistence at 72 hours, remission rate at 1 week, number of recurrences, time to first recurrence, disease-related hospitalization, cardiac tamponade, and rate of constrictive pericarditis. RESULTS: At 18 months, the recurrence rate was 24% in the colchicine group and 55% in the placebo group (absolute risk reduction, 0.31 [95% CI, 0.13 to 0.46]; relative risk reduction, 0.56 [CI, 0.27 to 0.73]; number needed to treat, 3 [CI, 2 to 7]). Colchicine reduced the persistence of symptoms at 72 hours (absolute risk reduction, 0.30 [CI, 0.13 to 0.45]; relative risk reduction, 0.56 [CI, 0.27 to 0.74]) and mean number of recurrences, increased the remission rate at 1 week, and prolonged the time to subsequent recurrence. The study groups had similar rates of side effects and drug withdrawal. LIMITATION: Multiple recurrences and neoplastic or bacterial causes were excluded. CONCLUSION: Colchicine is safe and effective for secondary prevention of recurrent pericarditis.",
+          "verbatim_span": "BACKGROUND: Recurrence is the most common complication of pericarditis, affecting 10% to 50% of patients. OBJECTIVE: To evaluate the efficacy and safety of colchicine for the secondary prevention of recurrent pericarditis. DESIGN: Prospective, randomized, double-blind, placebo-controlled multicenter trial. (ClinicalTrials.gov registration number: NCT00128414) SETTING: 4 general hospitals in urban areas of Italy. PATIENTS: 120 patients with a first recurrence of pericarditis. INTERVENTION: In addition to conventional treatment, patients were randomly assigned to receive either placebo or colchicine, 1.0 to 2.0 mg on the first day followed by a maintenance dose of 0.5 to 1.0 mg/d, for 6 months. MEASUREMENTS: The primary study end point was the recurrence rate at 18 months. Secondary end points were symptom persistence at 72 hours, remission rate at 1 week, number of recurrences, time to first recurrence, disease-related hospitalization, cardiac tamponade, and rate of constrictive pericarditis. RESULTS: At 18 months, the recurrence rate was 24% in the colchicine group and 55% in the placebo group (absolute risk reduction, 0.31 [95% CI, 0.13 to 0.46]; relative risk reduction, 0.56 [CI, 0.27 to 0.73]; number needed to treat, 3 [CI, 2 to 7]). Colchicine reduced the persistence of symptoms at 72 hours (absolute risk reduction, 0.30 [CI, 0.13 to 0.45]; relative risk reduction, 0.56 [CI, 0.27 to 0.74]) and mean number of recurrences, increased the remission rate at 1 week, and prolonged the time to subsequent recurrence. The study groups had similar rates of side effects and drug withdrawal. LIMITATION: Multiple recurrences and neoplastic or bacterial causes were excluded. CONCLUSION: Colchicine is safe and effective for secondary prevention of recurrent pericarditis.",
+          "source": "BACKGROUND: Recurrence is the most common complication of pericarditis, affecting 10% to 50% of patients. OBJECTIVE: To evaluate the efficacy and safety of colchicine for the secondary prevention of recurrent pericarditis. DESIGN: Prospective, randomized, double-blind, placebo-controlled multicenter trial. (ClinicalTrials.gov registration number: NCT00128414) SETTING: 4 general hospitals in urban areas of Italy. PATIENTS: 120 patients with a first recurrence of pericarditis. INTERVENTION: In addition to conventional treatment, patients were randomly assigned to receive either placebo or colchicine, 1.0 to 2.0 mg on the first day followed by a maintenance dose of 0.5 to 1.0 mg/d, for 6 months. MEASUREMENTS: The primary study end point was the recurrence rate at 18 months. Secondary end points were symptom persistence at 72 hours, remission rate at 1 week, number of recurrences, time to first recurrence, disease-related hospitalization, cardiac tamponade, and rate of constrictive pericarditis. RESULTS: At 18 months, the recurrence rate was 24% in the colchicine group and 55% in the placebo group (absolute risk reduction, 0.31 [95% CI, 0.13 to 0.46]; relative risk reduction, 0.56 [CI, 0.27 to 0.73]; number needed to treat, 3 [CI, 2 to 7]). Colchicine reduced the persistence of symptoms at 72 hours (absolute risk reduction, 0.30 [CI, 0.13 to 0.45]; relative risk reduction, 0.56 [CI, 0.27 to 0.74]) and mean number of recurrences, increased the remission rate at 1 week, and prolonged the time to subsequent recurrence. The study groups had similar rates of side effects and drug withdrawal. LIMITATION: Multiple recurrences and neoplastic or bacterial causes were excluded. CONCLUSION: Colchicine is safe and effective for secondary prevention of recurrent pericarditis.",
+          "document_ref": "cache/colchicine-recurrent-pericarditis/records.json#PMID-21873705",
+          "source_level": 1,
+          "reason": "The abstract describes similar study-drug discontinuation or withdrawal rates but provides no discontinuation count or effect with confidence interval; no linked results rows are held in the local AACT snapshot.",
           "trial_family_id": "NCT00128414",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
           "registry_status": "COMPLETED",
           "completion_date": "2010-10-31",
           "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"The study groups had similar rates of side effects and drug withdrawal.\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
-          "source_span": "The study groups had similar rates of side effects and drug withdrawal.",
-          "verbatim_span": "The study groups had similar rates of side effects and drug withdrawal.",
+          "state_basis": "REFUSED_ON_EVIDENCE: source span: \"BACKGROUND: Recurrence is the most common complication of pericarditis, affecting 10% to 50% of patients. OBJECTIVE: To evaluate the efficacy and safety of colchicine for the secondary prevention of...\"; The abstract describes similar study-drug discontinuation or withdrawal rates but provides no discontinuation count or effect with confidence interval; no linked results rows are held in the local AACT snapshot.",
           "trial_id": "PMID 21873705",
           "report_id": "PMID 21873705",
           "outcome_effect_id": "colchicine-recurrent-pericarditis::Treatment discontinuation::PMID 21873705::PMID 21873705",
           "reason_code_audit": {
-            "verdict": "REASON_TRUE",
-            "detail": "value absent from every held source inspected; code is consistent",
-            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+            "verdict": "REASON_WRONG_KIND",
+            "detail": "value absent from held source, but the code names a value-present/refusal cause",
+            "stated_reason_code": "REFUSED_ON_EVIDENCE"
           },
-          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_absence_state": "RETRIEVED_REFUSED_WITH_REASON",
           "harm_source_reported": true,
           "harm_source_span": "The study groups had similar rates of side effects and drug withdrawal.",
           "harm_source_signal": "term_signal",
@@ -2409,7 +2594,7 @@
           "23992557",
           "21873705"
         ],
-        "reason": "HARMS_INCOMPLETE -- 3 known reported outcome(s) unresolved (24694983, 23992557, 21873705) among 3 source-reporting trial(s); extracted k=0. The page must not render this as harm absence.",
+        "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=RETRIEVED_REFUSED_WITH_REASON",
         "claim": {
           "present": false,
           "significant": false,
@@ -2425,40 +2610,19 @@
           {
             "id": "24694983",
             "label": "24694983",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "state": "RETRIEVED_REFUSED_WITH_REASON",
             "span": "Adverse effects and discontinuation of study drug occurred in much the same proportions in each group."
           },
           {
             "id": "23992557",
             "label": "23992557",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "state": "RETRIEVED_REFUSED_WITH_REASON",
             "span": "Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups."
           },
           {
             "id": "21873705",
             "label": "21873705",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-            "span": "The study groups had similar rates of side effects and drug withdrawal."
-          }
-        ],
-        "harms_incomplete": true,
-        "known_reported_not_yet_extracted": [
-          {
-            "id": "24694983",
-            "label": "24694983",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-            "span": "Adverse effects and discontinuation of study drug occurred in much the same proportions in each group."
-          },
-          {
-            "id": "23992557",
-            "label": "23992557",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-            "span": "Overall adverse effects and rates of study-drug discontinuation were similar in the two study groups."
-          },
-          {
-            "id": "21873705",
-            "label": "21873705",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "state": "RETRIEVED_REFUSED_WITH_REASON",
             "span": "The study groups had similar rates of side effects and drug withdrawal."
           }
         ],
@@ -3047,7 +3211,7 @@
   },
   "compat_underlying": {
     "checked": true,
-    "n_pre_fix_asserted_not_underlying": 3,
+    "n_pre_fix_asserted_not_underlying": 4,
     "n_post_fix_asserted_not_underlying": 0,
     "pre_fix_violations": [
       {
@@ -3111,26 +3275,48 @@
           }
         ],
         "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
+      },
+      {
+        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
+        "outcome": "Adverse events (gastrointestinal)",
+        "dimension": "endpoint",
+        "asserted": "ADVERSE_EVENTS_GASTROINTESTINAL",
+        "per_trial_values": [
+          {
+            "trial_id": "24694983",
+            "trial_label": "24694983",
+            "value": "primary outcome was recurrent pericarditis in the intention-to-treat population",
+            "source": "committed source text",
+            "span": "al computer-based automated sequence. Patients and all investigators were masked to treatment allocation. The primary outcome was recurrent pericarditis in the intention-to-treat population. This trial is registered with ClinicalTrials.gov, number NCT00235079. FINDINGS: 240 patients were enrolled a"
+          }
+        ],
+        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
       }
     ],
     "post_fix_violations": []
   },
   "reason_code_audit": {
     "denominator_source": "declared_absent_trials reason_code/state rows on this page",
-    "N": 12,
+    "N": 11,
     "counts": {
-      "REASON_TRUE": 11,
+      "REASON_TRUE": 5,
       "REASON_FALSE_VALUE_HELD": 0,
-      "REASON_WRONG_KIND": 1,
+      "REASON_WRONG_KIND": 6,
       "NOT_VERIFIABLE": 0
     },
     "n_false_value_held": 0,
     "n_not_verifiable": 0,
     "by_code_kind": {
       "OUTCOME_NOT_IN_SOURCE": {
-        "REASON_TRUE": 11,
+        "REASON_TRUE": 5,
         "REASON_FALSE_VALUE_HELD": 0,
         "REASON_WRONG_KIND": 1,
+        "NOT_VERIFIABLE": 0
+      },
+      "REFUSED_ON_EVIDENCE": {
+        "REASON_TRUE": 0,
+        "REASON_FALSE_VALUE_HELD": 0,
+        "REASON_WRONG_KIND": 5,
         "NOT_VERIFIABLE": 0
       }
     },
@@ -3205,23 +3391,12 @@
         "slug": "colchicine-recurrent-pericarditis",
         "outcome": "Adverse events (gastrointestinal)",
         "outcome_kind": "harm",
-        "trial_key": "24694983",
-        "label": "24694983",
-        "id": "PMID 24694983",
-        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
-        "verdict": "REASON_TRUE",
-        "detail": "value absent from every held source inspected; code is consistent"
-      },
-      {
-        "slug": "colchicine-recurrent-pericarditis",
-        "outcome": "Adverse events (gastrointestinal)",
-        "outcome_kind": "harm",
         "trial_key": "23992557",
         "label": "23992557",
         "id": "PMID 23992557",
-        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
-        "verdict": "REASON_TRUE",
-        "detail": "value absent from every held source inspected; code is consistent"
+        "stated_reason_code": "REFUSED_ON_EVIDENCE",
+        "verdict": "REASON_WRONG_KIND",
+        "detail": "value absent from held source, but the code names a value-present/refusal cause"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -3230,9 +3405,9 @@
         "trial_key": "21873705",
         "label": "21873705",
         "id": "PMID 21873705",
-        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
-        "verdict": "REASON_TRUE",
-        "detail": "value absent from every held source inspected; code is consistent"
+        "stated_reason_code": "REFUSED_ON_EVIDENCE",
+        "verdict": "REASON_WRONG_KIND",
+        "detail": "value absent from held source, but the code names a value-present/refusal cause"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -3241,9 +3416,9 @@
         "trial_key": "24694983",
         "label": "24694983",
         "id": "PMID 24694983",
-        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
-        "verdict": "REASON_TRUE",
-        "detail": "value absent from every held source inspected; code is consistent"
+        "stated_reason_code": "REFUSED_ON_EVIDENCE",
+        "verdict": "REASON_WRONG_KIND",
+        "detail": "value absent from held source, but the code names a value-present/refusal cause"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -3252,9 +3427,9 @@
         "trial_key": "23992557",
         "label": "23992557",
         "id": "PMID 23992557",
-        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
-        "verdict": "REASON_TRUE",
-        "detail": "value absent from every held source inspected; code is consistent"
+        "stated_reason_code": "REFUSED_ON_EVIDENCE",
+        "verdict": "REASON_WRONG_KIND",
+        "detail": "value absent from held source, but the code names a value-present/refusal cause"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -3263,9 +3438,9 @@
         "trial_key": "21873705",
         "label": "21873705",
         "id": "PMID 21873705",
-        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
-        "verdict": "REASON_TRUE",
-        "detail": "value absent from every held source inspected; code is consistent"
+        "stated_reason_code": "REFUSED_ON_EVIDENCE",
+        "verdict": "REASON_WRONG_KIND",
+        "detail": "value absent from held source, but the code names a value-present/refusal cause"
       }
     ]
   },
@@ -3273,10 +3448,10 @@
     "denominator_source": "included screening records x registered outcomes in this review",
     "N": 15,
     "counts": {
-      "EXTRACTED": 3,
+      "EXTRACTED": 4,
       "HELD_NOT_EXTRACTED": 0,
-      "NOT_IN_HELD_SOURCES": 12,
-      "ABSENT_BY_DESIGN": 0
+      "NOT_IN_HELD_SOURCES": 6,
+      "ABSENT_BY_DESIGN": 5
     },
     "n_held_not_extracted": 0,
     "by_outcome_kind": {
@@ -3293,10 +3468,10 @@
         "ABSENT_BY_DESIGN": 0
       },
       "harm": {
-        "EXTRACTED": 0,
+        "EXTRACTED": 1,
         "HELD_NOT_EXTRACTED": 0,
-        "NOT_IN_HELD_SOURCES": 6,
-        "ABSENT_BY_DESIGN": 0
+        "NOT_IN_HELD_SOURCES": 0,
+        "ABSENT_BY_DESIGN": 5
       }
     },
     "rows": [
@@ -3378,7 +3553,7 @@
         "trial_label": "24694983",
         "outcome": "Adverse events (gastrointestinal)",
         "outcome_kind": "harm",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "EXTRACTED"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -3386,7 +3561,8 @@
         "trial_label": "23992557",
         "outcome": "Adverse events (gastrointestinal)",
         "outcome_kind": "harm",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "ABSENT_BY_DESIGN",
+        "reason_code": "REFUSED_ON_EVIDENCE"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -3394,7 +3570,8 @@
         "trial_label": "21873705",
         "outcome": "Adverse events (gastrointestinal)",
         "outcome_kind": "harm",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "ABSENT_BY_DESIGN",
+        "reason_code": "REFUSED_ON_EVIDENCE"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -3402,7 +3579,8 @@
         "trial_label": "24694983",
         "outcome": "Treatment discontinuation",
         "outcome_kind": "harm",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "ABSENT_BY_DESIGN",
+        "reason_code": "REFUSED_ON_EVIDENCE"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -3410,7 +3588,8 @@
         "trial_label": "23992557",
         "outcome": "Treatment discontinuation",
         "outcome_kind": "harm",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "ABSENT_BY_DESIGN",
+        "reason_code": "REFUSED_ON_EVIDENCE"
       },
       {
         "slug": "colchicine-recurrent-pericarditis",
@@ -3418,7 +3597,8 @@
         "trial_label": "21873705",
         "outcome": "Treatment discontinuation",
         "outcome_kind": "harm",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "ABSENT_BY_DESIGN",
+        "reason_code": "REFUSED_ON_EVIDENCE"
       }
     ]
   },
@@ -3825,35 +4005,6 @@
       }
     },
     {
-      "limitation_id": "topic:colchicine-recurrent-pericarditis:harms:0:adverse-events-gastrointestinal:result-absent",
-      "kind": "DECLARED_ABSENT_SECTION",
-      "limitation_class": "INFORMATIONAL",
-      "severity": "BLOCKS_CLAIM",
-      "claim_affected": "outcome result: Adverse events (gastrointestinal)",
-      "evidence_state": "DECLARED_ABSENT",
-      "source_fields": [
-        "/outcomes/*/result/present",
-        "/outcomes/*/result/reason"
-      ],
-      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> HARMS_INCOMPLETE -- 3 known reported outcome(s) unresolved (24694983, 23992557, 21873705) among 3 source-reporting trial(s); extracted k=0. The page must not render this as harm absence.</div>",
-      "text_sha256": "29baaad42d6cf4922897508a82024c326b4508becab8ffa7c3fd6d850ffb64ff",
-      "linked_decision": {
-        "action": "ALLOW_WITH_LABEL",
-        "gate_id": "limitation:labelled-validity-threat",
-        "decision_state": "validity threat is explicitly labelled on the affected claim"
-      },
-      "consumer": null,
-      "unwired": true,
-      "unwired_reason": "section/outcome absence is visible scoping evidence; no single analytic gate consumes all such sections",
-      "unwired_acknowledged": {
-        "signed_by": "Codex lane AD",
-        "date": "2026-09-15",
-        "reason": "Declared section or outcome absence is already the visible scoped result; no single analytic gate consumes every such absence object.",
-        "tranche": "TRANCHE-hazard-consumers",
-        "ack_id": "HC-DECLARED_ABSENT_SECTION-DECLARED_ABSENT"
-      }
-    },
-    {
       "limitation_id": "topic:colchicine-recurrent-pericarditis:harms:1:treatment-discontinuation:result-absent",
       "kind": "DECLARED_ABSENT_SECTION",
       "limitation_class": "INFORMATIONAL",
@@ -3864,8 +4015,8 @@
         "/outcomes/*/result/present",
         "/outcomes/*/result/reason"
       ],
-      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> HARMS_INCOMPLETE -- 3 known reported outcome(s) unresolved (24694983, 23992557, 21873705) among 3 source-reporting trial(s); extracted k=0. The page must not render this as harm absence.</div>",
-      "text_sha256": "29baaad42d6cf4922897508a82024c326b4508becab8ffa7c3fd6d850ffb64ff",
+      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=RETRIEVED_REFUSED_WITH_REASON</div>",
+      "text_sha256": "3580d69d37a1761656482d3dc296c104f6b8c94bf1702c437da944485ad21a3d",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -3932,7 +4083,7 @@
       "consumer": {
         "gate_id": "compat.outcome_key",
         "gate_input_path": "/arm_contrast/trials",
-        "gate_verdict_at_build": "Recurrent pericarditis: verified 2/2; Symptom persistence at 72 hours: verified 1/1"
+        "gate_verdict_at_build": "Recurrent pericarditis: verified 2/2; Symptom persistence at 72 hours: verified 1/1; Adverse events (gastrointestinal): verified 1/1"
       }
     },
     {
@@ -4155,7 +4306,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "34023da4e35f9094f846361cefb31c8a6655e678",
-    "review_sha256": "a7dd4d92687a54c22d17c034cb2649fdbc5180ef2748d058333513f914ab55e6",
+    "review_sha256": "f670eb33254cd9a9dbb92a7cb09489a82a1e48d7785f6badd3b760075e03d6d8",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -4289,21 +4440,21 @@
       "conflict": 2
     },
     "claim_check": {
-      "claims_checked": 1,
+      "claims_checked": 2,
       "surfaces": [
         "outcome block",
         "overview",
         "manuscript"
       ],
       "scope_counts": {
-        "outcome_result": 1,
+        "outcome_result": 2,
         "strand_pool": 0,
         "rob_sensitivity": 3,
         "grade": 1
       },
       "scope": {
         "counts": {
-          "outcome_result": 1,
+          "outcome_result": 2,
           "strand_pool": 0,
           "rob_sensitivity": 3,
           "grade": 1

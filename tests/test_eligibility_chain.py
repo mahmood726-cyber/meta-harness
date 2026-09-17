@@ -86,7 +86,7 @@ def test_prefix_zarpelon_has_two_rationales_but_current_vocab_reaches_single_des
     records = _git_json(f"cache/{SLUG}/records.json")
     rec = next(r for r in records["records"] if str(r.get("id")) == "27223641")
     decision = screen.screen_record(rec, current_cfg["include"], set())
-    assert decision[0] == "include"
+    assert decision[0] == "exclude"
     single = EC.single_rationale_for_record(rec, current_cfg, _git_text(f"protocols/{SLUG}.md"))
     assert single["single_rationale"] == "design_masking"
 
@@ -160,6 +160,9 @@ def test_additional_protocol_config_divergence_plants():
     ]
     for slug, dim in cases:
         cfg = _current_json(f"topics/{slug}.json")
+        if slug == SLUG:
+            # Preserve the missing-rule plant after HM2 makes the live rule executable.
+            cfg["include"]["design_double_blind"] = False
         proto = open(os.path.join(ROOT, "protocols", f"{slug}.md"), encoding="utf-8").read()
         contract = EC.compile_contract(slug, cfg, proto)
         assert any(d["code"] == "PROTOCOL_CONFIG_DIVERGENCE" and d["dimension"] == dim

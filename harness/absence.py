@@ -48,6 +48,7 @@ POPULATION_MISMATCH = "POPULATION_MISMATCH"
 SOURCE_NOT_RETRIEVED = "SOURCE_NOT_RETRIEVED"
 EXTRACTION_NOT_PERFORMED = "EXTRACTION_NOT_PERFORMED"
 REFUSED_ON_EVIDENCE = "REFUSED_ON_EVIDENCE"
+SIGNAL_SPURIOUS = "SIGNAL_SPURIOUS"
 OUTCOME_POST_HOC_NOT_POOLED = "outcome_post_hoc_not_pooled"
 OUTCOME_NOT_REPORTED = "outcome_not_reported"
 RETRIEVED_INCOMPATIBLE_STRUCTURE = "RETRIEVED_INCOMPATIBLE_STRUCTURE"
@@ -264,6 +265,21 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
     poolable. It never changes extraction order and never makes a non-pooled value poolable.
     """
     row = row or {}
+    # All lane adjudications require a recognized reason and an exact held span.
+    code = row.get("refusal_provenance") or row.get("reason_code") or row.get("state")
+    span = row.get("source_span") or row.get("verbatim_span")
+    allowed = {REFUSED_ON_EVIDENCE, SIGNAL_SPURIOUS, MULTI_ARM_UNRESOLVED,
+               TIMEPOINT_MISMATCH, POPULATION_MISMATCH,
+               EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH}
+    if row.get("typed_refusal") or ((row.get("absent_kind") == "adjudicated_absent" or row.get("source_adjudicated")) and span and code in allowed):
+        if code not in allowed or not reason or not span:
+            raise ValueError("Typed refusal requires a recognized code, reason and held verbatim span")
+        if not any(span in text for text in (abstract or "", fulltext or "")):
+            from .verified_inputs import validate_referenced_span
+            validate_referenced_span(row)
+        return {"reason_code": code, "state": code,
+                "state_basis": _basis(code, span, reason),
+                "source_span": span, "verbatim_span": span}
     if row.get("state") in (OUTCOME_POST_HOC_NOT_POOLED, OUTCOME_NOT_REPORTED):
         code = row.get("state")
         span = row.get("source_span") or row.get("verbatim_span") or row.get("source") or reason or ""

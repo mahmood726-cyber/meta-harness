@@ -19,10 +19,20 @@ def _norm(text: str) -> str:
 
 def _digits_in(text: str, *vals) -> bool:
     s = _norm(text)
+    # Published prose can spell small integer counts (e.g. "Eighteen of 245").
+    # This is lexical normalization only; never derive a count from a percentage.
+    words = ("zero one two three four five six seven eight nine ten eleven twelve "
+             "thirteen fourteen fifteen sixteen seventeen eighteen nineteen").split()
+    for number, word in enumerate(words):
+        s = re.sub(r"\b" + word + r"\b", str(number), s, flags=re.I)
     for v in vals:
         if v is None:
             continue
-        if not re.search(rf"(?<!\d){int(v)}(?!\d)", s):
+        words = {0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five",
+                 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten"}
+        word = words.get(int(v)) if v == int(v) else None
+        if not re.search(rf"(?<!\d){int(v)}(?!\d)", s) and not (
+                word and re.search(rf"\b{word}\b", s, re.I)):
             return False
     return True
 

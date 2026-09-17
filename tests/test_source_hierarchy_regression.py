@@ -63,7 +63,16 @@ def test_colchicine_or_is_non_target_alternative_under_rr_outcome():
     assert pre_row["ai"] == 13 and pre_row.get("effect") is None
 
     post = _primary(_load("docs/reviews/colchicine-postop-af/review.json"))
-    row = next(t for t in post["trials"] if "32720823" in t["id"])
+    refused = next(t for t in post["declared_absent_trials"] if "32720823" in t["id"])
+    assert refused["eligibility_refusal_code"] == "TRIAL_FAILS_CONTRACT"
+    assert refused["admission"]["analysis_set"]["verdict"] == "FAIL"
+    # Exercise source hierarchy independently of the now-enforced admission rule.
+    cfg = _load("topics/colchicine-postop-af.json")
+    rec = _record(_load("cache/colchicine-postop-af/records.json"), "32720823")
+    extracted = _build_outcome(cfg["primary_outcome"], "efficacy",
+        [{"id": "32720823", "id_type": "pmid"}], {"32720823": rec},
+        cfg["intervention_terms"], cfg["comparator_terms"])
+    row = extracted["trials"][0]
     assert row["ai"] == 13 and row["n1i"] == 81
     assert row["ci"] == 13 and row["n2i"] == 71
     assert row.get("effect") is None

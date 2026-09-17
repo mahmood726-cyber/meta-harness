@@ -8,6 +8,9 @@ sources disagree.
 """
 from __future__ import annotations
 
+COMPAT_AXES = {"analysis_set", "follow_up_window"}
+
+
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 import re
@@ -376,6 +379,14 @@ def admission_record(
         "contract_value": "topic endpoint definition",
         "verdict": "DESCRIPTIVE",
     }
+    for dim in COMPAT_AXES:
+        cell = out[dim]
+        cell["axis"] = "compatibility"
+        cell["strict_verdict"] = cell["verdict"]
+        if cell["trial_value"] == "not_stated":
+            cell["verdict"] = "UNKNOWN"
+        cell["finding_code"] = ("COMPAT_UNKNOWN" if cell["verdict"] == "UNKNOWN" else
+                                "COMPAT_MISMATCH" if cell["verdict"] == "FAIL" else "COMPAT_MATCH")
     return out
 
 
@@ -384,7 +395,7 @@ def _trial_failures(outcome: dict[str, Any]) -> list[dict[str, Any]]:
     for trial in outcome.get("trials") or []:
         admission = trial.get("admission") or {}
         for dim, row in admission.items():
-            if row.get("verdict") == "FAIL":
+            if row.get("verdict") == "FAIL" and dim not in COMPAT_AXES:
                 out.append({
                     "code": "TRIAL_FAILS_CONTRACT",
                     "dimension": dim,
@@ -483,6 +494,20 @@ def apply_admissions(
                 row["state_basis"] = (
                     "REFUSED_ON_EVIDENCE: " + (design.get("span") or row["reason"])
                 )
+        outcome["contract_compatibility"] = [
+            dict(trial_id=t.get("id"), dimension=dim, **cell)
+            for t in outcome.get("trials") or []
+            for dim, cell in (t.get("admission") or {}).items() if dim in COMPAT_AXES]
+        if contract.get("slug") == "colchicine-postop-af" or review.get("slug") == "colchicine-postop-af":
+            strict = [t for t in outcome.get("trials") or []
+                      if all(c.get("strict_verdict", c.get("verdict")) != "FAIL"
+                             for c in (t.get("admission") or {}).values())]
+            outcome["strict_contract_sensitivity"] = {
+                "k": len(strict), "trial_ids": [t.get("id") for t in strict],
+                "present": False if len(strict) < 2 else None,
+                "amendment": protocol_text.partition('## Amendment — 17 Sep 2026')[2].strip(),
+                "reason": "Strict reading treats analysis set and follow-up window as eligibility criteria; retrospective compatibility-axis reading retains them as visible findings.",
+                "compat_axis_k": len(outcome.get("trials") or [])}
         violations.extend(_trial_failures(outcome))
         _derive_key_from_admissions(outcome)
     violations.extend(_state_inconsistencies(review))
@@ -516,6 +541,19 @@ def _dimension_from_admissions(outcome: dict[str, Any], dim: str) -> dict[str, A
 
 
 def _derive_key_from_admissions(outcome: dict[str, Any]) -> None:
+    candidates = []
+    for trial in list(outcome.get("trials") or []) + list(outcome.get("declared_absent_trials") or []):
+        cell = (trial.get("admission") or {}).get("analysis_set")
+        if cell:
+            candidates.append({"trial_id": trial.get("id"), "value": cell.get("trial_value"),
+                               "verdict": cell.get("verdict"), "span": cell.get("span")})
+    if candidates:
+        values = {str(row["value"]) for row in candidates}
+        outcome["admission_analysis_sets"] = {
+            "label": "mixed / trial-defined" if len(values) > 1 or "not_stated" in values else next(iter(values)),
+            "scope": "screened-in candidate rows, including protocol refusals; not a pooled compatibility claim",
+            "per_trial": candidates,
+        }
     if not outcome.get("trials"):
         return
     ck = outcome.get("compat_key") or {}
@@ -523,6 +561,12 @@ def _derive_key_from_admissions(outcome: dict[str, Any]) -> None:
         d = _dimension_from_admissions(outcome, dim)
         if d:
             ck[dim] = d
+            # The dictionary remains the admission audit; compatibility checking
+            # must not interpret a mixed dictionary as an assertion of uniformity.
+            if not d["matched"] or "not_stated" in d["values"]:
+                ck.setdefault("dimension_matches", {})[dim] = False
+                ck.setdefault("trial_defined_dimensions", {})[dim] = {
+                    "label": "mixed / trial-defined", "per_trial": d["per_trial"]}
             if not d["matched"]:
                 ck.setdefault("limitations", []).append({
                     "code": "COMPAT_DIMENSION_HETEROGENEOUS",
@@ -572,7 +616,7 @@ def single_rationale_for_record(rec: dict[str, Any], config: dict[str, Any], pro
     trial = {"id": f"PMID {rec.get('id')}", "label": str(rec.get("id")), "source": rec.get("abstract", "")}
     adm = admission_record(trial, rec, {"name": "eligibility"}, contract)
     for dim, row in adm.items():
-        if row.get("verdict") == "FAIL":
+        if row.get("verdict") == "FAIL" and dim not in COMPAT_AXES:
             return {"trial": rec.get("id"), "single_rationale": dim, "admission": row}
     inc = config.get("include") or {}
     decision = screen.screen_record(rec, inc, set())

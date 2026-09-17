@@ -7,8 +7,11 @@ Local + deterministic; flags for human confirmation. Writes scratchpad/override_
 import json, os, sys, io, re, glob
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+from harness.verified_inputs import entries, load, runtime
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 OUT = os.path.join(ROOT, "scratchpad", "override_audit.json")
+os.makedirs(os.path.dirname(OUT), exist_ok=True)
 json.dump({"status": "STARTED"}, open(OUT, "w", encoding="utf-8"))
 
 _EFFECT = re.compile(r"\b(?:RR|OR|HR|IRR|rate ratio|risk ratio|hazard ratio|odds ratio)\b[^.]{0,40}?\d+\.\d+", re.I)
@@ -29,7 +32,8 @@ for f in glob.glob(os.path.join(ROOT, "cache", "*", "verified_arms.json")) + \
          glob.glob(os.path.join(ROOT, "cache", "*", "verified_effects.json")):
     slug = f.split(os.sep)[-2]
     ab = abstracts(slug)
-    for pmid, e in json.load(open(f, encoding="utf-8")).items():
+    values = load(slug)[os.path.basename(f)]
+    for pmid, e in ((pid, entry) for pid, value in values.items() for raw in entries(value) for entry in [runtime(raw)]):
         if not (isinstance(e, dict) and e.get("override")):
             continue
         forces = "ABSENT" if e.get("absent") else ("effect" if e.get("effect") is not None else

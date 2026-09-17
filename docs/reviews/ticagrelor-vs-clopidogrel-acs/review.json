@@ -1385,7 +1385,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "served_estimand": "HR",
       "estimand_decision": {
         "declared_estimand": "RR",
@@ -1526,124 +1526,255 @@
           "outcome_effect_id": "ticagrelor-vs-clopidogrel-acs::Major bleeding::PMID 19717846::PMID 19717846",
           "harm_absence_state": "EXTRACTED",
           "harm_source_reported": true
+        },
+        {
+          "label": "PHILO",
+          "id": "PMID 26376600",
+          "effect": 1.54,
+          "ci_low": 0.94,
+          "ci_high": 2.53,
+          "scale": "HR",
+          "provenance": "fulltext_verified",
+          "source": "Primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bleeding occurred in 10.3% of ticagrelor-treated patients and in 6.8% of clopidogrel-treated patients (hazard ratio (HR), 1.54; 95% confidence interval (CI): 0.94-2.53); the composite primary efficacy endpoint occurred in 9.0% and in 6.3% of ticagrelor- and clopidogrel-treated patients, respectively (HR, 1.47; 95% CI: 0.88-2.44). ",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
+          "verified": "verified",
+          "verify_basis": "effect present in committed source",
+          "design": {
+            "unit_of_randomisation": "UNKNOWN",
+            "design": "UNKNOWN",
+            "estimator_source": "PUBLISHED_UNADJUSTED",
+            "correlation_handling": {
+              "method": "none",
+              "evidence": []
+            },
+            "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              }
+            ],
+            "design_action": {
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
+              "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
+              "validity_critical": false
+            }
+          },
+          "study_effect": {
+            "effect_estimate": 1.54,
+            "standard_error": 0.25257982143224494,
+            "estimand": "HR",
+            "analysis_population": "UNKNOWN",
+            "randomisation_unit": "UNKNOWN",
+            "study_design": "UNKNOWN",
+            "estimator_method": "PUBLISHED_UNADJUSTED",
+            "correlation_handling": {
+              "method": "none",
+              "evidence": []
+            },
+            "source_provenance": {
+              "source": "fulltext_verified",
+              "span": "Primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bleeding occurred in 10.3% of ticagrelor-treated patients and in 6.8% of clopidogrel-treated patients (hazard ratio (HR), 1.54; 95% confidence interval (CI): 0.94-2.53); the composite primary efficacy endpoint occurred in 9.0% and in 6.3% of ticagrelor- and clopidogrel-treated patients, respectively (HR, 1.47; 95% CI: 0.88-2.44). "
+            },
+            "design_action": {
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
+              "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
+              "validity_critical": false
+            }
+          },
+          "effect_object": {
+            "reported_label": "HR",
+            "statistical_model": null,
+            "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+          },
+          "trial_family_id": "PHILO",
+          "publication_role": "primary",
+          "analysis_set": null,
+          "follow_up_window": null,
+          "endpoint_definition": "Major bleeding",
+          "population_age": "not_stated",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "26376600",
+            "trial_label": "PHILO",
+            "analysis_set": {
+              "value": null,
+              "source": "underivable",
+              "span": ""
+            },
+            "follow_up_window": {
+              "value": null,
+              "source": "underivable",
+              "span": ""
+            },
+            "endpoint_definition": {
+              "value": "Major bleeding",
+              "source": "outcome.name",
+              "span": "Major bleeding"
+            },
+            "population_age": {
+              "value": "not_stated",
+              "source": "committed source text",
+              "span": ""
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          },
+          "trial_id": "PMID 26376600",
+          "report_id": "PMID 26376600",
+          "outcome_effect_id": "ticagrelor-vs-clopidogrel-acs::Major bleeding::PMID 26376600::PMID 26376600",
+          "harm_absence_state": "EXTRACTED",
+          "harm_source_reported": true
         }
       ],
       "declared_absent_trials": [
         {
           "label": "17980250",
           "id": "PMID 17980250",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "absent_kind": "adjudicated_absent",
+          "state": "MULTI_ARM_UNRESOLVED",
+          "reason_code": "MULTI_ARM_UNRESOLVED",
+          "source_adjudicated": true,
+          "document_sha256": null,
+          "typed_refusal": true,
+          "refusal_provenance": "MULTI_ARM_UNRESOLVED",
+          "source_span": "RESULTS: The primary end point, the Kaplan-Meier rate of major or minor bleeding through 4 weeks, was 8.1% in the clopidogrel group, 9.8% in the AZD6140 90-mg group, and 8.0% in the AZD6140 180-mg group (p = 0.43 and p = 0.96, respectively, vs. clopidogrel); the major bleeding rates were 6.9%, 7.1%, and 5.1%, respectively (p = 0.91 and p = 0.35, respectively, vs. clopidogrel). ",
+          "verbatim_span": "RESULTS: The primary end point, the Kaplan-Meier rate of major or minor bleeding through 4 weeks, was 8.1% in the clopidogrel group, 9.8% in the AZD6140 90-mg group, and 8.0% in the AZD6140 180-mg group (p = 0.43 and p = 0.96, respectively, vs. clopidogrel); the major bleeding rates were 6.9%, 7.1%, and 5.1%, respectively (p = 0.91 and p = 0.35, respectively, vs. clopidogrel). ",
+          "source": "RESULTS: The primary end point, the Kaplan-Meier rate of major or minor bleeding through 4 weeks, was 8.1% in the clopidogrel group, 9.8% in the AZD6140 90-mg group, and 8.0% in the AZD6140 180-mg group (p = 0.43 and p = 0.96, respectively, vs. clopidogrel); the major bleeding rates were 6.9%, 7.1%, and 5.1%, respectively (p = 0.91 and p = 0.35, respectively, vs. clopidogrel). ",
+          "document_ref": "cache/ticagrelor-vs-clopidogrel-acs/records.json",
+          "source_level": 1,
+          "reason": "The source reports Kaplan-Meier major-bleeding percentages for two ticagrelor doses and one clopidogrel arm, without harm event counts or a dose-specific ratio effect and confidence interval.",
           "trial_family_id": "PMID:17980250",
           "publication_role": "primary",
           "completeness_state": "eligible+completed+results_available",
           "completeness_basis": "publication record / committed cache metadata",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"RESULTS: The primary end point, the Kaplan-Meier rate of major or minor bleeding through 4 weeks, was 8.1% in the clopidogrel group, 9.8% in the AZD6140 90-mg group, and 8.0% in the AZD6140 180-mg gr...\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
-          "source_span": "RESULTS: The primary end point, the Kaplan-Meier rate of major or minor bleeding through 4 weeks, was 8.1% in the clopidogrel group, 9.8% in the AZD6140 90-mg group, and 8.0% in the AZD6140 180-mg gr...",
-          "verbatim_span": "RESULTS: The primary end point, the Kaplan-Meier rate of major or minor bleeding through 4 weeks, was 8.1% in the clopidogrel group, 9.8% in the AZD6140 90-mg group, and 8.0% in the AZD6140 180-mg gr...",
+          "state_basis": "MULTI_ARM_UNRESOLVED: source span: \"RESULTS: The primary end point, the Kaplan-Meier rate of major or minor bleeding through 4 weeks, was 8.1% in the clopidogrel group, 9.8% in the AZD6140 90-mg group, and 8.0% in the AZD6140 180-mg gr...\"; The source reports Kaplan-Meier major-bleeding percentages for two ticagrelor doses and one clopidogrel arm, without harm event counts or a dose-specific ratio effect and confidence interval.",
           "trial_id": "PMID 17980250",
           "report_id": "PMID 17980250",
           "outcome_effect_id": "ticagrelor-vs-clopidogrel-acs::Major bleeding::PMID 17980250::PMID 17980250",
           "reason_code_audit": {
             "verdict": "REASON_TRUE",
             "detail": "value absent from every held source inspected; code is consistent",
-            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+            "stated_reason_code": "MULTI_ARM_UNRESOLVED"
           },
-          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_absence_state": "RETRIEVED_INCOMPATIBLE_STRUCTURE",
           "harm_source_reported": true,
           "harm_source_span": "RESULTS: The primary end point, the Kaplan-Meier rate of major or minor bleeding through 4 weeks, was 8.1% in the clopidogrel group, 9.8% in the AZD6140 90-mg group, and 8.0% in the AZD6140 180-mg group (p = 0.43 and p = 0.96, respectively, vs. clopidogrel); the major bleeding rates were 6.9%, 7.1%,",
           "harm_source_signal": "numeric_signal",
-          "input_set_version": "be24a761405398a7b5c4e27f6dae2feb35293a24bd053a50f9b2c1ee5ef756bc",
-          "claim_id": "ff491eb54be714fd",
+          "input_set_version": "7cd39a9125e72f2b9c9320235d9f52d73712233e3708c5f764866da12c422757",
+          "claim_id": "7722ac2ba2083ec5",
           "depends_on": {
-            "input_set_version": "be24a761405398a7b5c4e27f6dae2feb35293a24bd053a50f9b2c1ee5ef756bc"
-          },
-          "claim_kind": "membership_state"
-        },
-        {
-          "label": "PHILO",
-          "id": "PMID 26376600",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "PHILO",
-          "publication_role": "primary",
-          "completeness_state": "eligible+completed+results_available",
-          "registry_status": "COMPLETED",
-          "results_first_posted_date": "2014-05-02",
-          "completion_date": "2012-07-31",
-          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
-          "reason_code": "EXTRACTION_NOT_PERFORMED",
-          "state": "EXTRACTION_NOT_PERFORMED",
-          "state_basis": "EXTRACTION_NOT_PERFORMED: source span: \"bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bleeding occurred in 10.3% of ticagrelor-tr...\"; effect=HR 1.54 [0.94, 2.53], class=FIRST_EVENT_RATIO, declared_class=FIRST_EVENT_RATIO",
-          "source_span": "bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bleeding occurred in 10.3% of ticagrelor-tr...",
-          "verbatim_span": "bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bleeding occurred in 10.3% of ticagrelor-tr...",
-          "observed_effect": {
-            "effect": 1.54,
-            "ci_low": 0.94,
-            "ci_high": 2.53,
-            "scale": "HR",
-            "class": "FIRST_EVENT_RATIO",
-            "span": "bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bleeding occurred in 10.3% of ticagrelor-tr..."
-          },
-          "declared_class": "FIRST_EVENT_RATIO",
-          "trial_id": "PMID 26376600",
-          "report_id": "PMID 26376600",
-          "outcome_effect_id": "ticagrelor-vs-clopidogrel-acs::Major bleeding::PMID 26376600::PMID 26376600",
-          "reason_code_audit": {
-            "verdict": "REASON_FALSE_VALUE_HELD",
-            "detail": "REASON_FALSE_VALUE_HELD(abstract:26376600, \"Primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bl...\")",
-            "stated_reason_code": "EXTRACTION_NOT_PERFORMED",
-            "source_id": "abstract:26376600",
-            "source_kind": "abstract",
-            "source_span": "Primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bl...",
-            "source_contains": "Primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bl..."
-          },
-          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-          "harm_source_reported": true,
-          "harm_source_span": "Primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bleeding occurred in 10.3% of ticagrelor-treated patients and i",
-          "harm_source_signal": "numeric_signal",
-          "input_set_version": "be24a761405398a7b5c4e27f6dae2feb35293a24bd053a50f9b2c1ee5ef756bc",
-          "claim_id": "ff491eb54be714fd",
-          "depends_on": {
-            "input_set_version": "be24a761405398a7b5c4e27f6dae2feb35293a24bd053a50f9b2c1ee5ef756bc"
+            "input_set_version": "7cd39a9125e72f2b9c9320235d9f52d73712233e3708c5f764866da12c422757"
           },
           "claim_kind": "membership_state"
         }
       ],
       "membership": {
         "pooled": [
-          "PMID 19717846"
+          "PMID 19717846",
+          "PMID 26376600"
         ],
         "declared_absent": [
-          "PMID 17980250",
-          "PMID 26376600"
+          "PMID 17980250"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "03f0d88ee9b43475450392b8ed1b62fa30ea6bbb67e3d35710ed0376088425fc"
+        "input_set_version": "a643846509c3651474d2647f0d834ec99895d680ad4447e70e628b4f1aa4f087"
       },
       "result": {
-        "present": false,
-        "state": "HARMS_INCOMPLETE",
-        "n_reporting_pool_trials": 2,
-        "n_pooled": 1,
-        "known_eligible_outcome_reports_unresolved": [
-          {
-            "trial_id": "26376600",
-            "trial_label": "PHILO",
-            "terms": [
-              "major bleeding",
-              "bleeding event",
-              "bleeding"
-            ],
-            "span": "ized within 24 h of symptom onset. primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, res"
-          }
+        "k": 2,
+        "estimate": 1.1658,
+        "scale": "HR",
+        "ci_low": null,
+        "ci_high": null,
+        "tau2": 0.04845,
+        "Q": 2.47502,
+        "i2": 59.6,
+        "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
+        "pi_note": "prediction interval not estimated (k=2): it requires a t-quantile on a single degree of freedom and is not reliable at k=2 (Cochrane) — see the common-effect sensitivity CI instead.",
+        "ci_low_fixed": 0.957,
+        "ci_high_fixed": 1.1325,
+        "estimate_fixed": 1.041,
+        "fixed_note": "common-effect sensitivity (z-based; not the registered interval): this uses inverse-variance common-effect weights and a normal quantile, not the registered PM/HKSJ interval.",
+        "estmeasure": {
+          "status": "compatible_labels",
+          "classes": [
+            "FIRST_EVENT_RATIO"
+          ],
+          "canonicals": [
+            "HAZARD_RATIO_FIRST_EVENT",
+            "RISK_RATIO"
+          ],
+          "labels": [
+            "HR",
+            "RR"
+          ]
+        },
+        "scale_mixed": [
+          "HR",
+          "RR"
         ],
-        "reason": "HARMS_INCOMPLETE -- 2 known reported outcome(s) unresolved (17980250, PHILO) among 3 source-reporting trial(s); extracted k=1. The page must not render this as harm absence.",
+        "k2_trial_diagnostics": {
+          "conflict": false,
+          "reasons": [],
+          "trials": [
+            {
+              "label": "19717846",
+              "id": "PMID 19717846",
+              "effect": 1.029,
+              "ci_low": 0.9447,
+              "ci_high": 1.1207,
+              "scale": "HR"
+            },
+            {
+              "label": "PHILO",
+              "id": "PMID 26376600",
+              "effect": 1.54,
+              "ci_low": 0.94,
+              "ci_high": 2.53,
+              "scale": "HR"
+            }
+          ]
+        },
+        "pooled_ci_refused": {
+          "code": "K2_SINGLE_DF",
+          "detail": "Registered PM/HKSJ uses t(1)=12.71 at k=2; the interval is not served as a pooled confidence interval because a single degree of freedom is not reliable here."
+        },
+        "ci_hksj_unserved": {
+          "ci_low": 0.1091,
+          "ci_high": 12.4578,
+          "method": "PM tau^2 + HKSJ on t(1)",
+          "note": "computed for auditability only; not served as the registered interval at k=2"
+        },
+        "fixed_heterogeneity_caveat": "heterogeneity caveat: tau^2=0.04845 and I^2=59.6% exceed the material threshold (tau^2 > 0 and I^2 > 25%), so the common-effect interval assumes one common effect and is not a robustness sensitivity to the registered random-effects model.",
+        "leave_one_out": {
+          "note": "not assessable at k=2 (leave-one-out needs k>=3)"
+        },
+        "claim": {
+          "present": false,
+          "pooled_claim": false,
+          "state": "NO_POOLED_CLAIM_K2",
+          "refusal_code": "K2_SINGLE_DF",
+          "significant": false,
+          "crosses_null": null,
+          "touches_null": null,
+          "null": 1.0,
+          "direction": null,
+          "basis": "no significance/null-crossing claim is emitted for a refused k=2 HKSJ CI"
+        },
+        "effect_label": "pooled first-event ratio (1 HR + 1 RR)",
         "harm_reporting_trials_n": 3,
-        "harm_extracted_trials_n": 1,
+        "harm_extracted_trials_n": 2,
         "harm_registered_trials_n": 3,
         "harm_reporting_trials": [
           {
@@ -1653,37 +1784,22 @@
             "extracted": true
           },
           {
-            "id": "17980250",
-            "label": "17980250",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-            "span": "RESULTS: The primary end point, the Kaplan-Meier rate of major or minor bleeding through 4 weeks, was 8.1% in the clopidogrel group, 9.8% in the AZD6140 90-mg group, and 8.0% in the AZD6140 180-mg group (p = 0.43 and p = 0.96, respectively, vs. clopidogrel); the major bleeding rates were 6.9%, 7.1%,"
-          },
-          {
             "id": "26376600",
             "label": "PHILO",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-            "span": "Primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bleeding occurred in 10.3% of ticagrelor-treated patients and i"
-          }
-        ],
-        "harms_incomplete": true,
-        "known_reported_not_yet_extracted": [
+            "state": "EXTRACTED",
+            "extracted": true
+          },
           {
             "id": "17980250",
             "label": "17980250",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "state": "RETRIEVED_INCOMPATIBLE_STRUCTURE",
             "span": "RESULTS: The primary end point, the Kaplan-Meier rate of major or minor bleeding through 4 weeks, was 8.1% in the clopidogrel group, 9.8% in the AZD6140 90-mg group, and 8.0% in the AZD6140 180-mg group (p = 0.43 and p = 0.96, respectively, vs. clopidogrel); the major bleeding rates were 6.9%, 7.1%,"
-          },
-          {
-            "id": "26376600",
-            "label": "PHILO",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-            "span": "Primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bleeding occurred in 10.3% of ticagrelor-treated patients and i"
           }
         ],
-        "input_set_version": "be24a761405398a7b5c4e27f6dae2feb35293a24bd053a50f9b2c1ee5ef756bc",
-        "claim_id": "9aa0bdc17fd55c7a",
+        "input_set_version": "7cd39a9125e72f2b9c9320235d9f52d73712233e3708c5f764866da12c422757",
+        "claim_id": "343ac5e78238d002",
         "depends_on": {
-          "input_set_version": "be24a761405398a7b5c4e27f6dae2feb35293a24bd053a50f9b2c1ee5ef756bc"
+          "input_set_version": "7cd39a9125e72f2b9c9320235d9f52d73712233e3708c5f764866da12c422757"
         },
         "claim_kind": "outcome_result"
       },
@@ -1694,18 +1810,53 @@
         "component_sets": [],
         "status": "NOT_DECLARED"
       },
+      "compat_key": {
+        "effect_measure": [
+          "HR",
+          "RR"
+        ],
+        "event_process": [
+          "FIRST_EVENT_RATIO"
+        ],
+        "endpoint": "trial-defined Major bleeding (definitions listed per trial)",
+        "follow_up_window": null,
+        "analysis_set": null,
+        "analysis_set_declared": null,
+        "randomised_contrast": {
+          "verified": 2,
+          "total": 2
+        },
+        "matched": true,
+        "mismatches": [],
+        "endpoint_canonical": {
+          "label": "MAJOR_BLEEDING",
+          "event_time": "TIME_TO_FIRST_EVENT",
+          "components": [],
+          "component_sets": [],
+          "status": "NOT_DECLARED"
+        },
+        "endpoint_canonical_status": "NOT_DECLARED",
+        "effect_label": "pooled first-event ratio (1 HR + 1 RR)",
+        "dimension_matches": {
+          "endpoint": false
+        },
+        "underlying_checked": true,
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS"
+      },
       "recovery_recheck": {
         "hard_incompatible": false,
         "mismatches": [],
         "effect_measure_labels": [
+          "HR",
           "RR"
         ],
-        "k": 1,
+        "k": 2,
         "reconstructed_members": [
           "19717846"
         ],
-        "label_mix_small_k": false
+        "label_mix_small_k": true
       },
+      "recovery_disclosure": "Pooled trials report different effect-measure labels (HR + RR), combined as first-event relative ratios. This is an approximation, not an identity: a hazard ratio and a cumulative risk ratio are not the same number when events are common or follow-up differs. One contributing effect is reconstructed from raw arm counts (19717846); at this k a single influential trial can move the summary and widen the interval. Read the pooled effect as approximate.",
       "compat_underlying": {
         "status": "COMPAT_DIMENSION_HETEROGENEOUS",
         "dimensions": [
@@ -1719,26 +1870,16 @@
               "value": "Major bleeding",
               "source": "outcome.name",
               "span": "Major bleeding"
+            },
+            {
+              "trial_id": "26376600",
+              "trial_label": "PHILO",
+              "value": "Major bleeding",
+              "source": "outcome.name",
+              "span": "Major bleeding"
             }
           ]
         }
-      },
-      "harms_incomplete": {
-        "state": "HARMS_INCOMPLETE",
-        "n_reporting_pool_trials": 2,
-        "n_pooled": 1,
-        "unresolved": [
-          {
-            "trial_id": "26376600",
-            "trial_label": "PHILO",
-            "terms": [
-              "major bleeding",
-              "bleeding event",
-              "bleeding"
-            ],
-            "span": "ized within 24 h of symptom onset. primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, res"
-          }
-        ]
       }
     },
     {
@@ -2538,6 +2679,13 @@
             "value": "Major bleeding",
             "source": "outcome.name",
             "span": "Major bleeding"
+          },
+          {
+            "trial_id": "26376600",
+            "trial_label": "PHILO",
+            "value": "Major bleeding",
+            "source": "outcome.name",
+            "span": "Major bleeding"
           }
         ],
         "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
@@ -2547,25 +2695,25 @@
   },
   "reason_code_audit": {
     "denominator_source": "declared_absent_trials reason_code/state rows on this page",
-    "N": 6,
+    "N": 5,
     "counts": {
       "REASON_TRUE": 5,
-      "REASON_FALSE_VALUE_HELD": 1,
+      "REASON_FALSE_VALUE_HELD": 0,
       "REASON_WRONG_KIND": 0,
       "NOT_VERIFIABLE": 0
     },
-    "n_false_value_held": 1,
+    "n_false_value_held": 0,
     "n_not_verifiable": 0,
     "by_code_kind": {
       "OUTCOME_NOT_IN_SOURCE": {
-        "REASON_TRUE": 5,
+        "REASON_TRUE": 4,
         "REASON_FALSE_VALUE_HELD": 0,
         "REASON_WRONG_KIND": 0,
         "NOT_VERIFIABLE": 0
       },
-      "EXTRACTION_NOT_PERFORMED": {
-        "REASON_TRUE": 0,
-        "REASON_FALSE_VALUE_HELD": 1,
+      "MULTI_ARM_UNRESOLVED": {
+        "REASON_TRUE": 1,
+        "REASON_FALSE_VALUE_HELD": 0,
         "REASON_WRONG_KIND": 0,
         "NOT_VERIFIABLE": 0
       }
@@ -2589,24 +2737,9 @@
         "trial_key": "17980250",
         "label": "17980250",
         "id": "PMID 17980250",
-        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
+        "stated_reason_code": "MULTI_ARM_UNRESOLVED",
         "verdict": "REASON_TRUE",
         "detail": "value absent from every held source inspected; code is consistent"
-      },
-      {
-        "slug": "ticagrelor-vs-clopidogrel-acs",
-        "outcome": "Major bleeding",
-        "outcome_kind": "harm",
-        "trial_key": "26376600",
-        "label": "PHILO",
-        "id": "PMID 26376600",
-        "stated_reason_code": "EXTRACTION_NOT_PERFORMED",
-        "verdict": "REASON_FALSE_VALUE_HELD",
-        "detail": "REASON_FALSE_VALUE_HELD(abstract:26376600, \"Primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bl...\")",
-        "source_id": "abstract:26376600",
-        "source_kind": "abstract",
-        "source_span": "Primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bl...",
-        "source_contains": "Primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bl..."
       },
       {
         "slug": "ticagrelor-vs-clopidogrel-acs",
@@ -2647,12 +2780,12 @@
     "denominator_source": "included screening records x registered outcomes in this review",
     "N": 9,
     "counts": {
-      "EXTRACTED": 3,
-      "HELD_NOT_EXTRACTED": 1,
-      "NOT_IN_HELD_SOURCES": 5,
-      "ABSENT_BY_DESIGN": 0
+      "EXTRACTED": 4,
+      "HELD_NOT_EXTRACTED": 0,
+      "NOT_IN_HELD_SOURCES": 4,
+      "ABSENT_BY_DESIGN": 1
     },
-    "n_held_not_extracted": 1,
+    "n_held_not_extracted": 0,
     "by_outcome_kind": {
       "primary": {
         "EXTRACTED": 2,
@@ -2661,10 +2794,10 @@
         "ABSENT_BY_DESIGN": 0
       },
       "harm": {
-        "EXTRACTED": 1,
-        "HELD_NOT_EXTRACTED": 1,
-        "NOT_IN_HELD_SOURCES": 4,
-        "ABSENT_BY_DESIGN": 0
+        "EXTRACTED": 2,
+        "HELD_NOT_EXTRACTED": 0,
+        "NOT_IN_HELD_SOURCES": 3,
+        "ABSENT_BY_DESIGN": 1
       }
     },
     "rows": [
@@ -2706,7 +2839,8 @@
         "trial_label": "17980250",
         "outcome": "Major bleeding",
         "outcome_kind": "harm",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "ABSENT_BY_DESIGN",
+        "reason_code": "MULTI_ARM_UNRESOLVED"
       },
       {
         "slug": "ticagrelor-vs-clopidogrel-acs",
@@ -2714,10 +2848,7 @@
         "trial_label": "PHILO · 26376600",
         "outcome": "Major bleeding",
         "outcome_kind": "harm",
-        "status": "HELD_NOT_EXTRACTED",
-        "source_id": "abstract:26376600",
-        "source_kind": "abstract",
-        "source_span": "Primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bl..."
+        "status": "EXTRACTED"
       },
       {
         "slug": "ticagrelor-vs-clopidogrel-acs",
@@ -2847,7 +2978,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/invalidation/stale",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent, no_checkable_claim"
+        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
       }
     },
     {
@@ -2871,7 +3002,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/retrieval_auditable",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent, no_checkable_claim"
+        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
       }
     },
     {
@@ -2975,7 +3106,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval/enumeration_only",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent, no_checkable_claim"
+        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
       }
     },
     {
@@ -2999,7 +3130,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/retrieval_auditable",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent, no_checkable_claim"
+        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
       }
     },
     {
@@ -3022,7 +3153,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/search_provenance",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent, no_checkable_claim"
+        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
       }
     },
     {
@@ -3050,27 +3181,32 @@
       }
     },
     {
-      "limitation_id": "topic:ticagrelor-vs-clopidogrel-acs:harms:0:major-bleeding:result-absent",
-      "kind": "HARMS_INCOMPLETE",
-      "limitation_class": "VALIDITY_THREATENING",
-      "severity": "BLOCKS_CLAIM",
-      "claim_affected": "outcome result: Major bleeding",
-      "evidence_state": "PARTIAL",
+      "limitation_id": "topic:ticagrelor-vs-clopidogrel-acs:harms:0:major-bleeding:k2-ci-refused",
+      "kind": "GRADE_CERTAINTY",
+      "limitation_class": "INFORMATIONAL",
+      "severity": "QUALIFIES_CLAIM",
+      "claim_affected": "pooled confidence interval: Major bleeding",
+      "evidence_state": "NOT_ASSESSED",
       "source_fields": [
-        "/harms/*/result/state",
-        "/harms/*/result/known_eligible_outcome_reports_unresolved"
+        "/outcomes/*/result/pooled_ci_refused",
+        "/outcomes/*/result/ci_hksj_unserved"
       ],
-      "rendered_text": "<div class='absent'><strong>HARMS_INCOMPLETE.</strong> HARMS_INCOMPLETE -- 2 known reported outcome(s) unresolved (17980250, PHILO) among 3 source-reporting trial(s); extracted k=1. The page must not render this as harm absence. <span class='muted'>Known unresolved primary-pool trial(s): 26376600</span></div>",
-      "text_sha256": "a39e54ed287424f7c59e6988def1f6a9a91ee99e01abf37728dafc56ba13ecc5",
+      "rendered_text": "<div class='absent'><strong>Registered pooled CI REFUSED at k=2.</strong> Registered PM/HKSJ uses t(1)=12.71 at k=2; the interval is not served as a pooled confidence interval because a single degree of freedom is not reliable here. The point estimate may be displayed, but no pooled significance/null-crossing claim is emitted.</div>",
+      "text_sha256": "c8be08262b22a7e90b1d5d8aa29b9b0712078cd1d52b1bd802603c41097ddf9a",
       "linked_decision": {
-        "action": "REFUSE",
-        "gate_id": "compat-check:harms-incomplete",
-        "decision_state": "isolated harms estimate is suppressed until known primary-pool reports are extracted or typed-refused"
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
       },
-      "consumer": {
-        "gate_id": "compat_check.harms_incomplete",
-        "gate_input_path": "/harms/*/result/state",
-        "gate_verdict_at_build": "HARMS_INCOMPLETE: Major bleeding"
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "GRADE certainty is a downstream label; no publication gate consumes it",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "GRADE certainty is a downstream label rather than a publication gate; no executable analytic gate changes on the not-assessed certainty state.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-GRADE_CERTAINTY-NOT_ASSESSED"
       }
     },
     {
@@ -3152,7 +3288,7 @@
       "consumer": {
         "gate_id": "compat.outcome_key",
         "gate_input_path": "/arm_contrast/trials",
-        "gate_verdict_at_build": "Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke: verified 2/2"
+        "gate_verdict_at_build": "Major adverse cardiovascular events: cardiovascular death, myocardial infarction, or stroke: verified 2/2; Major bleeding: verified 2/2"
       }
     },
     {
@@ -3291,7 +3427,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/outcomes/*/result/claim",
-        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent, no_checkable_claim"
+        "gate_verdict_at_build": "STALE: search_not_executed, eligible_declared_absent"
       }
     },
     {
@@ -3387,7 +3523,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "3fb64a1e01434eb6ee9ea8a764a84c749270dfff",
-    "review_sha256": "6326807b5e80366ee9c3d54a17415cdebc5deeaf533332055a5c9771cb66e9fd",
+    "review_sha256": "59db36c1ed84006d76dadee5b05af92d6d4921ca9e134c42b61c1cf20c928bf4",
     "from_cache": true,
     "preregistration": {
       "prospective": false,

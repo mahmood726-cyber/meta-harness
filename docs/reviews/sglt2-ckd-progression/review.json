@@ -4,7 +4,7 @@
   "question": "In adults with chronic kidney disease, do SGLT2 inhibitors reduce trial-defined primary cardiorenal composite events versus placebo? (Double-blind placebo-controlled RCTs.)",
   "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
   "protocol": {
-    "sha": "38478f5e060a9d63bcb073cb652d0e6f70d27c58",
+    "sha": "f6f7b14c820bdadd258122ac0bb54c7e4d2a989a",
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['chronic kidney disease', 'kidney disease', 'CKD', 'nephropathy', 'chronic kidney diseases']; and none of ['heart failure', 'reduced ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFrEF', 'myocardial infarction', 'post-myocardial infarction', 'pericarditis', 'atrial fibrillation']; randomised intervention is one of ['SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'sodium glucose cotransporter 2', 'sodium glucose co-transporter 2', 'dapagliflozin', 'canagliflozin', 'empagliflozin'] (named in title/conditions); a comparator among ['placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
@@ -2410,17 +2410,17 @@
               "validity_critical": false
             }
           },
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "sustained >=50% eGFR decline",
             "end-stage kidney disease",
             "renal death",
             "cardiovascular death"
           ],
-          "analysis_set_literal": "ITT",
-          "endpoint_definition": "primary outcome was a composite of a sustained decline in the estimated GFR of at least 50%, end-stage kidney disease, or death from renal or cardiovascular causes",
-          "prior_disease_stage": "chronic_kidney_disease",
           "background_therapy": "standard_care",
+          "analysis_set_literal": "ITT",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
+          "prior_disease_stage": "chronic_kidney_disease",
+          "endpoint_definition": "primary outcome was a composite of a sustained decline in the estimated GFR of at least 50%, end-stage kidney disease, or death from renal or cardiovascular causes",
           "study_effect": {
             "effect_estimate": 0.61,
             "standard_error": 0.08797112829924103,
@@ -2551,17 +2551,17 @@
               "validity_critical": false
             }
           },
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "end-stage kidney disease",
             "doubling of serum creatinine",
             "renal death",
             "cardiovascular death"
           ],
-          "analysis_set_literal": "ITT",
-          "endpoint_definition": "primary outcome was a composite of end-stage kidney disease (dialysis, transplantation, or a sustained estimated GFR of <15 ml per minute per 1",
-          "prior_disease_stage": "chronic_kidney_disease",
           "background_therapy": "standard_care",
+          "analysis_set_literal": "ITT",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
+          "prior_disease_stage": "chronic_kidney_disease",
+          "endpoint_definition": "primary outcome was a composite of end-stage kidney disease (dialysis, transplantation, or a sustained estimated GFR of <15 ml per minute per 1",
           "study_effect": {
             "effect_estimate": 0.7,
             "standard_error": 0.08397649292412455,
@@ -2668,7 +2668,6 @@
               "validity_critical": false
             }
           },
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "end-stage kidney disease",
             "sustained eGFR <10 ml/min/1.73 m2",
@@ -2676,10 +2675,11 @@
             "renal death",
             "cardiovascular death"
           ],
-          "analysis_set_literal": "ITT",
-          "endpoint_definition": "primary outcome was a composite of progression of kidney disease (defined as end-stage kidney disease, a sustained decrease in eGFR to <10 ml per minute per 1",
-          "prior_disease_stage": "chronic_kidney_disease",
           "background_therapy": "standard_care",
+          "analysis_set_literal": "ITT",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
+          "prior_disease_stage": "chronic_kidney_disease",
+          "endpoint_definition": "primary outcome was a composite of progression of kidney disease (defined as end-stage kidney disease, a sustained decrease in eGFR to <10 ml per minute per 1",
           "study_effect": {
             "effect_estimate": 0.72,
             "standard_error": 0.06322467296835074,
@@ -3938,19 +3938,141 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
-      "served_estimand": "RR",
+      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "served_estimand": "HR",
       "estimand_decision": {
         "declared_estimand": "RR",
-        "decision": "cumulative_risk_at_trial_end",
-        "target_scale": "RR",
+        "decision": "time_to_first_event",
+        "target_scale": "HR",
         "target_class": "FIRST_EVENT_RATIO",
-        "published_candidate_scales": [],
-        "served_scale_changed": false,
-        "reason": "declared cumulative risk-ratio estimand",
-        "rule": "prefer published RR; otherwise reconstruct RR from counts consistently"
+        "published_candidate_scales": [
+          "HR"
+        ],
+        "served_scale_changed": true,
+        "reason": "published HR exists for the target outcome",
+        "rule": "prefer published HR; keep reconstruction only when no HR exists"
       },
-      "trials": [],
+      "trials": [
+        {
+          "label": "36331190",
+          "id": "PMID 36331190",
+          "effect": 1.43,
+          "ci_low": 0.8,
+          "ci_high": 2.57,
+          "scale": "HR",
+          "provenance": "fulltext_verified",
+          "source": "<table-wrap position=\"float\" id=\"T2\" orientation=\"landscape\"><label>Table 2</label><caption><title>Primary, Secondary, Tertiary and Safety Outcomes</title></caption><table frame=\"box\" rules=\"groups\"><thead><tr><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"top\" colspan=\"3\" rowspan=\"1\">Empagliflozin<break/>(N=3304)</th><th align=\"center\" valign=\"top\" colspan=\"3\" rowspan=\"1\">Placebo<break/>(N=3305)</th><th align=\"center\" valign=\"bottom\" rowspan=\"2\" colspan=\"1\">Hazard ratio<break/>(95% CI)</th><th align=\"center\" valign=\"bottom\" rowspan=\"2\" colspan=\"1\">P value</th></tr><tr><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"top\" colspan=\"2\" rowspan=\"1\">N (%)</th><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Events per 100 person-years</th><th align=\"center\" valign=\"top\" colspan=\"2\" rowspan=\"1\">N (%)</th><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Events per 100 person-years</th></tr></thead><tbody><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">\n<bold>Primary outcome: Kidney disease progression or death from cardiovascular causes</bold>\n</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">432</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(13.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">6.85</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">558</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(16.9%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">8.96</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.72 (0.64-0.82)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">&lt;0.001</td></tr><tr><td align=\"left\" valign=\"top\" colspan=\"9\" rowspan=\"1\">\n<bold>Key secondary outcomes</bold>\n</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Hospitalization for heart failure or death from cardiovascular causes</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">131</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.0%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.04</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">152</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.37</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.84 (0.67-1.07)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.15</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">All-cause hospitalization<sup>¶</sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">24.8</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">29.2</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.86 (0.78-0.95)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.003</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Death from any cause</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">148</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.5%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.28</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">167</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(5.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.58</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.87 (0.70-1.08)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.21</td></tr><tr><td align=\"left\" valign=\"top\" colspan=\"9\" rowspan=\"1\">\n<bold>Other secondary outcomes</bold>\n</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Kidney disease progression</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">384</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(11.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">6.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">504</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(15.2%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">8.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.71 (0.62-0.81)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Death from cardiovascular causes</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">59</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(1.8%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.91</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">69</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.06</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.84 (0.60-1.19)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">End-stage kidney disease or death from cardiovascular causes</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">163</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.9%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.54</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">217</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(6.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">3.40</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.73 (0.59-0.89)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" colspan=\"9\" rowspan=\"1\">\n<bold>Safety outcomes</bold>\n</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious urinary tract infection</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">52</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(1.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.81</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">54</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(1.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.84</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.94 (0.64-1.37)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious genital infection</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(&lt;0.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.02</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(&lt;0.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.02</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious hyperkalemia</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">92</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.8%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.44</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">109</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(3.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.72</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.83 (0.63-1.09)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious acute kidney injury</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">107</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(3.2%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.67</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">135</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.11</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.78 (0.60-1.00)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious dehydration</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">30</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.9%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.46</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">24</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.7%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.37</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.25 (0.73-2.14)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Liver injury</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">13</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.4%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.20</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">12</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.4%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.19</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.09 (0.50-2.38)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Ketoacidosis<sup><xref rid=\"TFN9\" ref-type=\"table-fn\">§</xref></sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">6</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.2%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.0%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.02</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Lower limb amputation</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">28</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.8%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.43</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">19</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.29</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.43 (0.80-2.57)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Bone fracture</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">133</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.0%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">123</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(3.7%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.93</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.08 (0.84-1.38)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Severe hypoglycemia<sup><xref rid=\"TFN10\" ref-type=\"table-fn\">#</xref></sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">77</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.20</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">77</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.21</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.00 (0.73-1.37)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Symptomatic dehydration<sup><xref rid=\"TFN11\" ref-type=\"table-fn\">*</xref></sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">83</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.5%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.30</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">76</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.19</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.10 (0.81-1.51)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr></tbody></table><table-wrap-foot><fn id=\"TFN6\"><p id=\"P41\">Figures are number of participants with event (%) and events per 100 person-years. Analysis of all-cause hospitalizations includes first and subsequent events so only rates are shown (1611 hospitalizations among 960 participants occurred in the empagliflozin group versus 1895 hospitalizations among 1035 participants in the placebo group). Key secondary outcomes were prespecified to be adjusted for multiple testing using the Hochberg “step-up” procedure with a family-wise error rate of 0.029.</p></fn><fn id=\"TFN7\"><label>†</label><p id=\"P42\">End-stage kidney disease, defined as start of maintenance dialysis or receipt of a kidney transplant.</p></fn><fn id=\"TFN8\"><label>‡</label><p id=\"P43\">Sustained defined as present on two consecutive scheduled study follow-up visits or last scheduled follow-up visit prior to death or final follow-up (or withdrawal of consent). Estimated GFR measurements based on central laboratory measurements, wherever available.</p></fn><fn id=\"TFN9\"><label>§</label><p id=\"P44\">Includes one event of ketoacidosis in a participant without diabetes at baseline</p></fn><fn id=\"TFN10\"><label>#</label><p id=\"P45\">Defined as low blood sugar causing severe cognitive impairment which requires assistance from another person for recovery.</p></fn><fn id=\"TFN11\"><label>*</label><p id=\"P46\">Defined as whether or not a participant has experienced symptoms they attribute to dehydration, such as feeling faint or fainting.</p></fn></table-wrap-foot></table-wrap>",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
+          "verified": "verified",
+          "verify_basis": "effect present in committed source",
+          "design": {
+            "unit_of_randomisation": "UNKNOWN",
+            "design": "UNKNOWN",
+            "estimator_source": "PUBLISHED_ADJUSTED",
+            "correlation_handling": {
+              "method": "published_model",
+              "evidence": [
+                {
+                  "source": "trial reported adjusted estimate",
+                  "span": "<table-wrap position=\"float\" id=\"T2\" orientation=\"landscape\"><label>Table 2</label><caption><title>Primary, Secondary, Tertiary and Safety Outcomes</title></caption><table frame=\"box\" rules=\"groups\"><thead><tr><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"top\" colspan=\"3\" rowspan=\"1\">Empagliflozin<break/>(N=3304)</th><th align=\"center\" valign=\"top\" colspan=\"3\" rowspan=\"1\">Placebo<break/>(N=3305)</th><th align=\"center\" valign=\"bottom\" rowspan=\"2\" colspan=\"1\">Hazard ratio<break/>(95% CI)</th><th align=\"center\" valign=\"bottom\" rowspan=\"2\" colspan=\"1\">P value</th></tr><tr><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"top\" colspan=\"2\" rowspan=\"1\">N (%)</th><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Events per 100 person-years</th><th align=\"center\" valign=\"top\" colspan=\"2\" rowspan=\"1\">N (%)</th><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Events per 100 person-years</th></tr></thead><tbody><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">\n<bold>Primary outcome: Kidney disease progression or death from cardiovascular causes</bold>\n</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">432</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(13.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">6.85</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">558</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(16.9%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">8.96</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.72 (0.64-0.82)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">&lt;0.001</td></tr><tr><td align=\"left\" valign=\"top\" colspan=\"9\" rowspan=\"1\">\n<bold>Key secondary outcomes</bold>\n</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Hospitalization for heart failure or death from cardiovascular causes</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">131</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.0%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.04</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">152</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.37</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.84 (0.67-1.07)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.15</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">All-cause hospitalization<sup>¶</sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">24.8</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">29.2</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.86 (0.78-0.95)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.003</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Death from any cause</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">148</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.5%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.28</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">167</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(5.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.58</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.87 (0.70-1.08)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.21</td></tr><tr><td align=\"left\" valign=\"top\" colspan=\"9\" rowspan=\"1\">\n<bold>Other secondary outcomes</bold>\n</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Kidney disease progression</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">384</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(11.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">6.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">504</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(15.2%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">8.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.71 (0.62-0.81)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Death from cardiovascular causes</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">59</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(1.8%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.91</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">69</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.06</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.84 (0.60-1.19)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">End-stage kidney disease or death from cardiovascular causes</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">163</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.9%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.54</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">217</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(6.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">3.40</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.73 (0.59-0.89)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" colspan=\"9\" rowspan=\"1\">\n<bold>Safety outcomes</bold>\n</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious urinary tract infection</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">52</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(1.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.81</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">54</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(1.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.84</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.94 (0.64-1.37)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious genital infection</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(&lt;0.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.02</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(&lt;0.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.02</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious hyperkalemia</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">92</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.8%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.44</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">109</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(3.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.72</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.83 (0.63-1.09)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious acute kidney injury</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">107</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(3.2%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.67</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">135</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.11</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.78 (0.60-1.00)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious dehydration</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">30</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.9%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.46</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">24</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.7%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.37</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.25 (0.73-2.14)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Liver injury</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">13</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.4%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.20</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">12</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.4%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.19</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.09 (0.50-2.38)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Ketoacidosis<sup><xref rid=\"TFN9\" ref-type=\"table-fn\">§</xref></sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">6</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.2%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.0%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.02</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Lower limb amputation</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">28</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.8%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.43</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">19</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.29</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.43 (0.80-2.57)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Bone fracture</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">133</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.0%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">123</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(3.7%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.93</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.08 (0.84-1.38)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Severe hypoglycemia<sup><xref rid=\"TFN10\" ref-type=\"table-fn\">#</xref></sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">77</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.20</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">77</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.21</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.00 (0.73-1.37)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Symptomatic dehydration<sup><xref rid=\"TFN11\" ref-type=\"table-fn\">*</xref></sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">83</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.5%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.30</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">76</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.19</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.10 (0.81-1.51)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr></tbody></table><table-wrap-foot><fn id=\"TFN6\"><p id=\"P41\">Figures are number of participants with event (%) and events per 100 person-years. Analysis of all-cause hospitalizations includes first and subsequent events so only rates are shown (1611 hospitalizations among 960 participants occurred in the empagliflozin group versus 1895 hospitalizations among 1035 participants in the placebo group). Key secondary outcomes were prespecified to be adjusted for multiple testing using the Hochberg “step-up” procedure with a family-wise error rate of 0.029.</p></fn><fn id=\"TFN7\"><label>†</label><p id=\"P42\">End-stage kidney disease, defined as start of maintenance dialysis or receipt of a kidney transplant.</p></fn><fn id=\"TFN8\"><label>‡</label><p id=\"P43\">Sustained defined as present on two consecutive scheduled study follow-up visits or last scheduled follow-up visit prior to death or final follow-up (or withdrawal of consent). Estimated GFR measurements based on central laboratory measurements, wherever available.</p></fn><fn id=\"TFN9\"><label>§</label><p id=\"P44\">Includes one event of ketoacidosis in a participant without diabetes at baseline</p></fn><fn id=\"TFN10\"><label>#</label><p id=\"P45\">Defined as low blood sugar causing severe cognitive impairment which requires assistance from another person for recovery.</p></fn><fn id=\"TFN11\"><label>*</label><p id=\"P46\">Defined as whether or not a participant has experienced symptoms they attribute to dehydration, such as feeling faint or fainting.</p></fn></table-wrap-foot></table-wrap>"
+                }
+              ]
+            },
+            "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              }
+            ],
+            "design_action": {
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
+              "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
+              "validity_critical": false
+            }
+          },
+          "study_effect": {
+            "effect_estimate": 1.43,
+            "standard_error": 0.29772216719972283,
+            "estimand": "HR",
+            "analysis_population": "UNKNOWN",
+            "randomisation_unit": "UNKNOWN",
+            "study_design": "UNKNOWN",
+            "estimator_method": "PUBLISHED_ADJUSTED",
+            "correlation_handling": {
+              "method": "published_model",
+              "evidence": [
+                {
+                  "source": "trial reported adjusted estimate",
+                  "span": "<table-wrap position=\"float\" id=\"T2\" orientation=\"landscape\"><label>Table 2</label><caption><title>Primary, Secondary, Tertiary and Safety Outcomes</title></caption><table frame=\"box\" rules=\"groups\"><thead><tr><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"top\" colspan=\"3\" rowspan=\"1\">Empagliflozin<break/>(N=3304)</th><th align=\"center\" valign=\"top\" colspan=\"3\" rowspan=\"1\">Placebo<break/>(N=3305)</th><th align=\"center\" valign=\"bottom\" rowspan=\"2\" colspan=\"1\">Hazard ratio<break/>(95% CI)</th><th align=\"center\" valign=\"bottom\" rowspan=\"2\" colspan=\"1\">P value</th></tr><tr><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"top\" colspan=\"2\" rowspan=\"1\">N (%)</th><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Events per 100 person-years</th><th align=\"center\" valign=\"top\" colspan=\"2\" rowspan=\"1\">N (%)</th><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Events per 100 person-years</th></tr></thead><tbody><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">\n<bold>Primary outcome: Kidney disease progression or death from cardiovascular causes</bold>\n</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">432</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(13.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">6.85</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">558</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(16.9%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">8.96</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.72 (0.64-0.82)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">&lt;0.001</td></tr><tr><td align=\"left\" valign=\"top\" colspan=\"9\" rowspan=\"1\">\n<bold>Key secondary outcomes</bold>\n</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Hospitalization for heart failure or death from cardiovascular causes</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">131</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.0%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.04</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">152</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.37</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.84 (0.67-1.07)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.15</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">All-cause hospitalization<sup>¶</sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">24.8</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">29.2</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.86 (0.78-0.95)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.003</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Death from any cause</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">148</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.5%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.28</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">167</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(5.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.58</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.87 (0.70-1.08)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.21</td></tr><tr><td align=\"left\" valign=\"top\" colspan=\"9\" rowspan=\"1\">\n<bold>Other secondary outcomes</bold>\n</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Kidney disease progression</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">384</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(11.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">6.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">504</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(15.2%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">8.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.71 (0.62-0.81)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Death from cardiovascular causes</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">59</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(1.8%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.91</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">69</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.06</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.84 (0.60-1.19)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">End-stage kidney disease or death from cardiovascular causes</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">163</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.9%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.54</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">217</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(6.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">3.40</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.73 (0.59-0.89)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" colspan=\"9\" rowspan=\"1\">\n<bold>Safety outcomes</bold>\n</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious urinary tract infection</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">52</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(1.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.81</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">54</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(1.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.84</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.94 (0.64-1.37)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious genital infection</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(&lt;0.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.02</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(&lt;0.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.02</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious hyperkalemia</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">92</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.8%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.44</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">109</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(3.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.72</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.83 (0.63-1.09)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious acute kidney injury</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">107</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(3.2%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.67</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">135</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.11</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.78 (0.60-1.00)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious dehydration</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">30</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.9%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.46</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">24</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.7%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.37</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.25 (0.73-2.14)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Liver injury</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">13</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.4%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.20</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">12</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.4%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.19</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.09 (0.50-2.38)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Ketoacidosis<sup><xref rid=\"TFN9\" ref-type=\"table-fn\">§</xref></sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">6</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.2%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.0%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.02</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Lower limb amputation</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">28</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.8%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.43</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">19</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.29</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.43 (0.80-2.57)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Bone fracture</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">133</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.0%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">123</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(3.7%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.93</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.08 (0.84-1.38)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Severe hypoglycemia<sup><xref rid=\"TFN10\" ref-type=\"table-fn\">#</xref></sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">77</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.20</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">77</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.21</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.00 (0.73-1.37)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Symptomatic dehydration<sup><xref rid=\"TFN11\" ref-type=\"table-fn\">*</xref></sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">83</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.5%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.30</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">76</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.19</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.10 (0.81-1.51)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr></tbody></table><table-wrap-foot><fn id=\"TFN6\"><p id=\"P41\">Figures are number of participants with event (%) and events per 100 person-years. Analysis of all-cause hospitalizations includes first and subsequent events so only rates are shown (1611 hospitalizations among 960 participants occurred in the empagliflozin group versus 1895 hospitalizations among 1035 participants in the placebo group). Key secondary outcomes were prespecified to be adjusted for multiple testing using the Hochberg “step-up” procedure with a family-wise error rate of 0.029.</p></fn><fn id=\"TFN7\"><label>†</label><p id=\"P42\">End-stage kidney disease, defined as start of maintenance dialysis or receipt of a kidney transplant.</p></fn><fn id=\"TFN8\"><label>‡</label><p id=\"P43\">Sustained defined as present on two consecutive scheduled study follow-up visits or last scheduled follow-up visit prior to death or final follow-up (or withdrawal of consent). Estimated GFR measurements based on central laboratory measurements, wherever available.</p></fn><fn id=\"TFN9\"><label>§</label><p id=\"P44\">Includes one event of ketoacidosis in a participant without diabetes at baseline</p></fn><fn id=\"TFN10\"><label>#</label><p id=\"P45\">Defined as low blood sugar causing severe cognitive impairment which requires assistance from another person for recovery.</p></fn><fn id=\"TFN11\"><label>*</label><p id=\"P46\">Defined as whether or not a participant has experienced symptoms they attribute to dehydration, such as feeling faint or fainting.</p></fn></table-wrap-foot></table-wrap>"
+                }
+              ]
+            },
+            "source_provenance": {
+              "source": "fulltext_verified",
+              "span": "<table-wrap position=\"float\" id=\"T2\" orientation=\"landscape\"><label>Table 2</label><caption><title>Primary, Secondary, Tertiary and Safety Outcomes</title></caption><table frame=\"box\" rules=\"groups\"><thead><tr><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"top\" colspan=\"3\" rowspan=\"1\">Empagliflozin<break/>(N=3304)</th><th align=\"center\" valign=\"top\" colspan=\"3\" rowspan=\"1\">Placebo<break/>(N=3305)</th><th align=\"center\" valign=\"bottom\" rowspan=\"2\" colspan=\"1\">Hazard ratio<break/>(95% CI)</th><th align=\"center\" valign=\"bottom\" rowspan=\"2\" colspan=\"1\">P value</th></tr><tr><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><th align=\"center\" valign=\"top\" colspan=\"2\" rowspan=\"1\">N (%)</th><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Events per 100 person-years</th><th align=\"center\" valign=\"top\" colspan=\"2\" rowspan=\"1\">N (%)</th><th align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Events per 100 person-years</th></tr></thead><tbody><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">\n<bold>Primary outcome: Kidney disease progression or death from cardiovascular causes</bold>\n</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">432</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(13.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">6.85</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">558</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(16.9%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">8.96</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.72 (0.64-0.82)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">&lt;0.001</td></tr><tr><td align=\"left\" valign=\"top\" colspan=\"9\" rowspan=\"1\">\n<bold>Key secondary outcomes</bold>\n</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Hospitalization for heart failure or death from cardiovascular causes</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">131</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.0%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.04</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">152</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.37</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.84 (0.67-1.07)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.15</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">All-cause hospitalization<sup>¶</sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">24.8</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">29.2</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.86 (0.78-0.95)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.003</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Death from any cause</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">148</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.5%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.28</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">167</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(5.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.58</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.87 (0.70-1.08)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.21</td></tr><tr><td align=\"left\" valign=\"top\" colspan=\"9\" rowspan=\"1\">\n<bold>Other secondary outcomes</bold>\n</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Kidney disease progression</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">384</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(11.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">6.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">504</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(15.2%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">8.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.71 (0.62-0.81)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Death from cardiovascular causes</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">59</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(1.8%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.91</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">69</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.06</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.84 (0.60-1.19)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">End-stage kidney disease or death from cardiovascular causes</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">163</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.9%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.54</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">217</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(6.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">3.40</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.73 (0.59-0.89)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" colspan=\"9\" rowspan=\"1\">\n<bold>Safety outcomes</bold>\n</td></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious urinary tract infection</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">52</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(1.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.81</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">54</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(1.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.84</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.94 (0.64-1.37)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious genital infection</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(&lt;0.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.02</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(&lt;0.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.02</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious hyperkalemia</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">92</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.8%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.44</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">109</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(3.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.72</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.83 (0.63-1.09)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious acute kidney injury</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">107</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(3.2%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.67</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">135</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.1%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.11</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.78 (0.60-1.00)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Serious dehydration</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">30</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.9%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.46</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">24</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.7%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.37</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.25 (0.73-2.14)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Liver injury</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">13</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.4%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.20</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">12</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.4%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.19</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.09 (0.50-2.38)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Ketoacidosis<sup><xref rid=\"TFN9\" ref-type=\"table-fn\">§</xref></sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">6</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.2%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.0%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.02</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Lower limb amputation</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">28</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.8%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.43</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">19</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(0.6%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">0.29</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.43 (0.80-2.57)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Bone fracture</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">133</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(4.0%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">2.09</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">123</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(3.7%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.93</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.08 (0.84-1.38)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Severe hypoglycemia<sup><xref rid=\"TFN10\" ref-type=\"table-fn\">#</xref></sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">77</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.20</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">77</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.21</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.00 (0.73-1.37)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr><tr><td align=\"left\" valign=\"top\" rowspan=\"1\" colspan=\"1\">Symptomatic dehydration<sup><xref rid=\"TFN11\" ref-type=\"table-fn\">*</xref></sup></td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">83</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.5%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.30</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">76</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">(2.3%)</td><td align=\"center\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.19</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\">1.10 (0.81-1.51)</td><td align=\"right\" valign=\"top\" rowspan=\"1\" colspan=\"1\"/></tr></tbody></table><table-wrap-foot><fn id=\"TFN6\"><p id=\"P41\">Figures are number of participants with event (%) and events per 100 person-years. Analysis of all-cause hospitalizations includes first and subsequent events so only rates are shown (1611 hospitalizations among 960 participants occurred in the empagliflozin group versus 1895 hospitalizations among 1035 participants in the placebo group). Key secondary outcomes were prespecified to be adjusted for multiple testing using the Hochberg “step-up” procedure with a family-wise error rate of 0.029.</p></fn><fn id=\"TFN7\"><label>†</label><p id=\"P42\">End-stage kidney disease, defined as start of maintenance dialysis or receipt of a kidney transplant.</p></fn><fn id=\"TFN8\"><label>‡</label><p id=\"P43\">Sustained defined as present on two consecutive scheduled study follow-up visits or last scheduled follow-up visit prior to death or final follow-up (or withdrawal of consent). Estimated GFR measurements based on central laboratory measurements, wherever available.</p></fn><fn id=\"TFN9\"><label>§</label><p id=\"P44\">Includes one event of ketoacidosis in a participant without diabetes at baseline</p></fn><fn id=\"TFN10\"><label>#</label><p id=\"P45\">Defined as low blood sugar causing severe cognitive impairment which requires assistance from another person for recovery.</p></fn><fn id=\"TFN11\"><label>*</label><p id=\"P46\">Defined as whether or not a participant has experienced symptoms they attribute to dehydration, such as feeling faint or fainting.</p></fn></table-wrap-foot></table-wrap>"
+            },
+            "design_action": {
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
+              "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
+              "validity_critical": false
+            }
+          },
+          "effect_object": {
+            "reported_label": "HR",
+            "statistical_model": "rate / person-time",
+            "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+          },
+          "trial_family_id": "NCT03594110",
+          "publication_role": "primary",
+          "analysis_set": null,
+          "follow_up_window": null,
+          "endpoint_definition": "primary outcome was a composite of progression of kidney disease (defined as end-stage kidney disease, a sustained decrease in eGFR to <10 ml per minute per 1",
+          "population_age": "not_stated",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "36331190",
+            "trial_label": "36331190",
+            "analysis_set": {
+              "value": null,
+              "source": "underivable",
+              "span": ""
+            },
+            "follow_up_window": {
+              "value": null,
+              "source": "underivable",
+              "span": ""
+            },
+            "endpoint_definition": {
+              "value": "primary outcome was a composite of progression of kidney disease (defined as end-stage kidney disease, a sustained decrease in eGFR to <10 ml per minute per 1",
+              "source": "committed source text",
+              "span": "ast 200. Patients were randomly assigned to receive empagliflozin (10 mg once daily) or matching placebo. The primary outcome was a composite of progression of kidney disease (defined as end-stage kidney disease, a sustained decrease in eGFR to <10 ml per minute per 1.73 m2, a sustained decrease in eGFR of ≥40% from baseline, or death from renal causes) or death from cardiova"
+            },
+            "population_age": {
+              "value": "not_stated",
+              "source": "committed source text",
+              "span": ""
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          },
+          "trial_id": "PMID 36331190",
+          "report_id": "PMID 36331190",
+          "outcome_effect_id": "sglt2-ckd-progression::Lower-limb amputation::PMID 36331190::PMID 36331190",
+          "harm_absence_state": "EXTRACTED",
+          "harm_source_reported": true
+        }
+      ],
       "declared_absent_trials": [
         {
           "label": "32970396",
@@ -3983,10 +4105,10 @@
           },
           "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
           "harm_source_reported": false,
-          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-          "claim_id": "27a61b63c4863d68",
+          "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22",
+          "claim_id": "b48b3e9a2afe996e",
           "depends_on": {
-            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22"
           },
           "claim_kind": "membership_state"
         },
@@ -3994,7 +4116,18 @@
           "label": "30990260",
           "id": "PMID 30990260",
           "absent_kind": "pooled_in_strand",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
+          "state": "REFUSED_ON_EVIDENCE",
+          "reason_code": "REFUSED_ON_EVIDENCE",
+          "source_adjudicated": true,
+          "document_sha256": null,
+          "typed_refusal": true,
+          "refusal_provenance": "REFUSED_ON_EVIDENCE",
+          "source_span": "There were no significant differences in rates of amputation or fracture.",
+          "verbatim_span": "There were no significant differences in rates of amputation or fracture.",
+          "source": "There were no significant differences in rates of amputation or fracture.",
+          "document_ref": "cache/sglt2-ckd-progression/records.json",
+          "source_level": 1,
+          "reason": "The source reports no significant amputation difference without counts or a ratio interval, and the AACT amputation-stump-pain term is not an amputation endpoint.",
           "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
           "trial_family_id": "NCT02065791",
           "publication_role": "primary",
@@ -4006,79 +4139,23 @@
           "pooled_in_strands": [
             "kidney_only"
           ],
-          "state_basis": "OUTCOME_NOT_IN_SOURCE: source span: \"There were no significant differences in rates of amputation or fracture.\"; outcome sentence has no poolable effect+CI or corroborated arm counts",
-          "reason_code": "OUTCOME_NOT_IN_SOURCE",
-          "state": "OUTCOME_NOT_IN_SOURCE",
-          "source_span": "There were no significant differences in rates of amputation or fracture.",
-          "verbatim_span": "There were no significant differences in rates of amputation or fracture.",
+          "state_basis": "REFUSED_ON_EVIDENCE: source span: \"There were no significant differences in rates of amputation or fracture.\"; The source reports no significant amputation difference without counts or a ratio interval, and the AACT amputation-stump-pain term is not an amputation endpoint.",
           "trial_id": "PMID 30990260",
           "report_id": "PMID 30990260",
           "outcome_effect_id": "sglt2-ckd-progression::Lower-limb amputation::PMID 30990260::PMID 30990260",
           "reason_code_audit": {
-            "verdict": "REASON_TRUE",
-            "detail": "value absent from every held source inspected; code is consistent",
-            "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
+            "verdict": "REASON_WRONG_KIND",
+            "detail": "value absent from held source, but the code names a value-present/refusal cause",
+            "stated_reason_code": "REFUSED_ON_EVIDENCE"
           },
-          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+          "harm_absence_state": "RETRIEVED_REFUSED_WITH_REASON",
           "harm_source_reported": true,
           "harm_source_span": "There were no significant differences in rates of amputation or fracture.",
           "harm_source_signal": "term_signal",
-          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-          "claim_id": "27a61b63c4863d68",
+          "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22",
+          "claim_id": "b48b3e9a2afe996e",
           "depends_on": {
-            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-          },
-          "claim_kind": "membership_state"
-        },
-        {
-          "label": "36331190",
-          "id": "PMID 36331190",
-          "absent_kind": "pooled_in_strand",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
-          "trial_family_id": "NCT03594110",
-          "publication_role": "primary",
-          "completeness_state": "eligible+completed+results_available",
-          "registry_status": "COMPLETED",
-          "results_first_posted_date": "2023-07-27",
-          "completion_date": "2024-07-02",
-          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
-          "pooled_in_strands": [
-            "kidney_only"
-          ],
-          "state_basis": "EXTRACTION_NOT_PERFORMED: source span: \"in the placebo group ( hazard ratio, 0.72; 95% CI 0.64 to 0.82; P&lt;0.001), with consistent results in those with or without diabetes and across the range of eGFR studied.\"; effect=HR 0.72 [0.64, 0.82], class=FIRST_EVENT_RATIO, declared_class=FIRST_EVENT_RATIO",
-          "reason_code": "EXTRACTION_NOT_PERFORMED",
-          "state": "EXTRACTION_NOT_PERFORMED",
-          "source_span": "in the placebo group ( hazard ratio, 0.72; 95% CI 0.64 to 0.82; P&lt;0.001), with consistent results in those with or without diabetes and across the range of eGFR studied.",
-          "verbatim_span": "in the placebo group ( hazard ratio, 0.72; 95% CI 0.64 to 0.82; P&lt;0.001), with consistent results in those with or without diabetes and across the range of eGFR studied.",
-          "observed_effect": {
-            "effect": 0.72,
-            "ci_low": 0.64,
-            "ci_high": 0.82,
-            "scale": "HR",
-            "class": "FIRST_EVENT_RATIO",
-            "span": "in the placebo group ( hazard ratio, 0.72; 95% CI 0.64 to 0.82; P&lt;0.001), with consistent results in those with or without diabetes and across the range of eGFR studied."
-          },
-          "declared_class": "FIRST_EVENT_RATIO",
-          "trial_id": "PMID 36331190",
-          "report_id": "PMID 36331190",
-          "outcome_effect_id": "sglt2-ckd-progression::Lower-limb amputation::PMID 36331190::PMID 36331190",
-          "reason_code_audit": {
-            "verdict": "REASON_FALSE_VALUE_HELD",
-            "detail": "REASON_FALSE_VALUE_HELD(fulltext:36331190, \"Results During a median of 2.0 years follow-up, a primary outcome event occurred in 432 of 3304 patients (13.1%) in the empagliflozin group and in 558 of 3305 patients (16.9%) in the placebo group (hazard ratio, 0.72; 95% CI 0.64 to 0.82;...\")",
-            "stated_reason_code": "EXTRACTION_NOT_PERFORMED",
-            "source_id": "fulltext:36331190",
-            "source_kind": "fulltext",
-            "source_span": "Results During a median of 2.0 years follow-up, a primary outcome event occurred in 432 of 3304 patients (13.1%) in the empagliflozin group and in 558 of 3305 patients (16.9%) in the placebo group (hazard ratio, 0.72; 95% CI 0.64 to 0.82;...",
-            "source_contains": "Results During a median of 2.0 years follow-up, a primary outcome event occurred in 432 of 3304 patients (13.1%) in the empagliflozin group and in 558 of 3305 patients (16.9%) in the placebo group (hazard ratio, 0.72; 95% CI 0.64 to 0.82;...",
-            "value_text": "432 of 3304"
-          },
-          "harm_absence_state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-          "harm_source_reported": true,
-          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-          "claim_id": "27a61b63c4863d68",
-          "depends_on": {
-            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22"
           },
           "claim_kind": "membership_state"
         },
@@ -4110,10 +4187,10 @@
           },
           "harm_absence_state": "NOT_RETRIEVED",
           "harm_source_reported": false,
-          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-          "claim_id": "27a61b63c4863d68",
+          "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22",
+          "claim_id": "b48b3e9a2afe996e",
           "depends_on": {
-            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22"
           },
           "claim_kind": "membership_state"
         },
@@ -4145,10 +4222,10 @@
           },
           "harm_absence_state": "NOT_RETRIEVED",
           "harm_source_reported": false,
-          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-          "claim_id": "27a61b63c4863d68",
+          "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22",
+          "claim_id": "b48b3e9a2afe996e",
           "depends_on": {
-            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22"
           },
           "claim_kind": "membership_state"
         },
@@ -4180,10 +4257,10 @@
           },
           "harm_absence_state": "NOT_RETRIEVED",
           "harm_source_reported": false,
-          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-          "claim_id": "27a61b63c4863d68",
+          "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22",
+          "claim_id": "b48b3e9a2afe996e",
           "depends_on": {
-            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22"
           },
           "claim_kind": "membership_state"
         },
@@ -4215,10 +4292,10 @@
           },
           "harm_absence_state": "NOT_RETRIEVED",
           "harm_source_reported": false,
-          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-          "claim_id": "27a61b63c4863d68",
+          "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22",
+          "claim_id": "b48b3e9a2afe996e",
           "depends_on": {
-            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22"
           },
           "claim_kind": "membership_state"
         },
@@ -4250,10 +4327,10 @@
           },
           "harm_absence_state": "NOT_RETRIEVED",
           "harm_source_reported": false,
-          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-          "claim_id": "27a61b63c4863d68",
+          "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22",
+          "claim_id": "b48b3e9a2afe996e",
           "depends_on": {
-            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22"
           },
           "claim_kind": "membership_state"
         },
@@ -4284,20 +4361,21 @@
           },
           "harm_absence_state": "NOT_RETRIEVED",
           "harm_source_reported": false,
-          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-          "claim_id": "27a61b63c4863d68",
+          "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22",
+          "claim_id": "b48b3e9a2afe996e",
           "depends_on": {
-            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22"
           },
           "claim_kind": "membership_state"
         }
       ],
       "membership": {
-        "pooled": [],
+        "pooled": [
+          "PMID 36331190"
+        ],
         "declared_absent": [
           "PMID 32970396",
           "PMID 30990260",
-          "PMID 36331190",
           "NCT05735197",
           "NCT07344922",
           "NCT07060417",
@@ -4307,61 +4385,130 @@
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "efb1ba86ef3b78564d101370da2fa739710d9ab66407d8603f4688a5ce5f070f"
+        "input_set_version": "3ec5f59faa54500d71b465f9dbc7ae17c694d5fb0c94c69c5207dafaa63c659e"
       },
       "result": {
-        "present": false,
-        "reported_not_extracted": true,
-        "reported_by": [
-          "30990260"
-        ],
-        "reason": "HARMS_INCOMPLETE -- 2 known reported outcome(s) unresolved (30990260, 36331190) among 2 source-reporting trial(s); extracted k=0. The page must not render this as harm absence.",
+        "k": 1,
+        "estimate": 1.43,
+        "scale": "HR",
+        "ci_low": 0.8,
+        "ci_high": 2.57,
+        "Q": 0.0,
+        "ci_provenance": "source-reported-CI:k=1-verbatim",
+        "ci_note": "k=1: point estimate and 95% CI are the single trial's reported values, verbatim.",
+        "pi_note": "prediction interval undefined for k=1",
+        "estmeasure": {
+          "status": "homogeneous",
+          "classes": [
+            "FIRST_EVENT_RATIO"
+          ],
+          "canonicals": [
+            "HAZARD_RATIO_FIRST_EVENT"
+          ],
+          "labels": [
+            "HR"
+          ]
+        },
+        "leave_one_out": {
+          "note": "not assessable at k=1 (leave-one-out needs k>=3)"
+        },
         "claim": {
-          "present": false,
+          "present": true,
           "significant": false,
-          "crosses_null": null,
-          "touches_null": null,
-          "null": null,
-          "direction": null
+          "crosses_null": true,
+          "touches_null": false,
+          "null": 1.0,
+          "direction": "harm",
+          "significant_fixed": null
         },
         "harm_reporting_trials_n": 2,
-        "harm_extracted_trials_n": 0,
+        "harm_extracted_trials_n": 1,
         "harm_registered_trials_n": 9,
         "harm_reporting_trials": [
           {
-            "id": "30990260",
-            "label": "30990260",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-            "span": "There were no significant differences in rates of amputation or fracture."
-          },
-          {
             "id": "36331190",
             "label": "36331190",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-            "span": "in the placebo group ( hazard ratio, 0.72; 95% CI 0.64 to 0.82; P&lt;0.001), with consistent results in those with or without diabetes and across the range of eGFR studied."
-          }
-        ],
-        "harms_incomplete": true,
-        "known_reported_not_yet_extracted": [
+            "state": "EXTRACTED",
+            "extracted": true
+          },
           {
             "id": "30990260",
             "label": "30990260",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+            "state": "RETRIEVED_REFUSED_WITH_REASON",
             "span": "There were no significant differences in rates of amputation or fracture."
-          },
-          {
-            "id": "36331190",
-            "label": "36331190",
-            "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
-            "span": "in the placebo group ( hazard ratio, 0.72; 95% CI 0.64 to 0.82; P&lt;0.001), with consistent results in those with or without diabetes and across the range of eGFR studied."
           }
         ],
-        "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-        "claim_id": "94a418d534634027",
+        "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22",
+        "claim_id": "29d4f649af577531",
         "depends_on": {
-          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          "input_set_version": "414155d1222fbf648e55a76a1523738a4605601f35ff79476d2c1d435fdcfc22"
         },
         "claim_kind": "outcome_result"
+      },
+      "endpoint_canonical": {
+        "label": "TRIAL_DEFINED_PRIMARY_CARDIORENAL_COMPOSITE",
+        "event_time": "TIME_TO_FIRST_EVENT",
+        "components": [],
+        "component_sets": [],
+        "status": "NOT_DECLARED"
+      },
+      "compat_key": {
+        "effect_measure": [
+          "HR"
+        ],
+        "event_process": [
+          "FIRST_EVENT_RATIO"
+        ],
+        "endpoint": "trial-defined Lower-limb amputation (definitions listed per trial)",
+        "follow_up_window": null,
+        "analysis_set": null,
+        "analysis_set_declared": null,
+        "randomised_contrast": {
+          "verified": 1,
+          "total": 1
+        },
+        "matched": true,
+        "mismatches": [],
+        "endpoint_canonical": {
+          "label": "TRIAL_DEFINED_PRIMARY_CARDIORENAL_COMPOSITE",
+          "event_time": "TIME_TO_FIRST_EVENT",
+          "components": [],
+          "component_sets": [],
+          "status": "NOT_DECLARED"
+        },
+        "endpoint_canonical_status": "NOT_DECLARED",
+        "dimension_matches": {
+          "endpoint": false
+        },
+        "underlying_checked": true,
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS"
+      },
+      "recovery_recheck": {
+        "hard_incompatible": false,
+        "mismatches": [],
+        "effect_measure_labels": [
+          "HR"
+        ],
+        "k": 1,
+        "reconstructed_members": [],
+        "label_mix_small_k": false
+      },
+      "compat_underlying": {
+        "status": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "dimensions": [
+          "endpoint"
+        ],
+        "per_trial": {
+          "endpoint": [
+            {
+              "trial_id": "36331190",
+              "trial_label": "36331190",
+              "value": "primary outcome was a composite of progression of kidney disease (defined as end-stage kidney disease, a sustained decrease in eGFR to <10 ml per minute per 1",
+              "source": "committed source text",
+              "span": "ast 200. Patients were randomly assigned to receive empagliflozin (10 mg once daily) or matching placebo. The primary outcome was a composite of progression of kidney disease (defined as end-stage kidney disease, a sustained decrease in eGFR to <10 ml per minute per 1.73 m2, a sustained decrease in eGFR of ≥40% from baseline, or death from renal causes) or death from cardiova"
+            }
+          ]
+        }
       }
     }
   ],
@@ -5407,7 +5554,7 @@
   },
   "compat_underlying": {
     "checked": true,
-    "n_pre_fix_asserted_not_underlying": 4,
+    "n_pre_fix_asserted_not_underlying": 5,
     "n_post_fix_asserted_not_underlying": 0,
     "pre_fix_violations": [
       {
@@ -5515,20 +5662,36 @@
           }
         ],
         "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
+      },
+      {
+        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
+        "outcome": "Lower-limb amputation",
+        "dimension": "endpoint",
+        "asserted": "TRIAL_DEFINED_PRIMARY_CARDIORENAL_COMPOSITE",
+        "per_trial_values": [
+          {
+            "trial_id": "36331190",
+            "trial_label": "36331190",
+            "value": "primary outcome was a composite of progression of kidney disease (defined as end-stage kidney disease, a sustained decrease in eGFR to <10 ml per minute per 1",
+            "source": "committed source text",
+            "span": "ast 200. Patients were randomly assigned to receive empagliflozin (10 mg once daily) or matching placebo. The primary outcome was a composite of progression of kidney disease (defined as end-stage kidney disease, a sustained decrease in eGFR to <10 ml per minute per 1.73 m2, a sustained decrease in eGFR of ≥40% from baseline, or death from renal causes) or death from cardiova"
+          }
+        ],
+        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
       }
     ],
     "post_fix_violations": []
   },
   "reason_code_audit": {
     "denominator_source": "declared_absent_trials reason_code/state rows on this page",
-    "N": 23,
+    "N": 22,
     "counts": {
-      "REASON_TRUE": 4,
-      "REASON_FALSE_VALUE_HELD": 1,
-      "REASON_WRONG_KIND": 0,
+      "REASON_TRUE": 3,
+      "REASON_FALSE_VALUE_HELD": 0,
+      "REASON_WRONG_KIND": 1,
       "NOT_VERIFIABLE": 18
     },
-    "n_false_value_held": 1,
+    "n_false_value_held": 0,
     "n_not_verifiable": 18,
     "by_code_kind": {
       "SOURCE_NOT_RETRIEVED": {
@@ -5538,15 +5701,15 @@
         "NOT_VERIFIABLE": 18
       },
       "OUTCOME_NOT_IN_SOURCE": {
-        "REASON_TRUE": 4,
+        "REASON_TRUE": 3,
         "REASON_FALSE_VALUE_HELD": 0,
         "REASON_WRONG_KIND": 0,
         "NOT_VERIFIABLE": 0
       },
-      "EXTRACTION_NOT_PERFORMED": {
+      "REFUSED_ON_EVIDENCE": {
         "REASON_TRUE": 0,
-        "REASON_FALSE_VALUE_HELD": 1,
-        "REASON_WRONG_KIND": 0,
+        "REASON_FALSE_VALUE_HELD": 0,
+        "REASON_WRONG_KIND": 1,
         "NOT_VERIFIABLE": 0
       }
     },
@@ -5723,25 +5886,9 @@
         "trial_key": "30990260",
         "label": "30990260",
         "id": "PMID 30990260",
-        "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
-        "verdict": "REASON_TRUE",
-        "detail": "value absent from every held source inspected; code is consistent"
-      },
-      {
-        "slug": "sglt2-ckd-progression",
-        "outcome": "Lower-limb amputation",
-        "outcome_kind": "harm",
-        "trial_key": "36331190",
-        "label": "36331190",
-        "id": "PMID 36331190",
-        "stated_reason_code": "EXTRACTION_NOT_PERFORMED",
-        "verdict": "REASON_FALSE_VALUE_HELD",
-        "detail": "REASON_FALSE_VALUE_HELD(fulltext:36331190, \"Results During a median of 2.0 years follow-up, a primary outcome event occurred in 432 of 3304 patients (13.1%) in the empagliflozin group and in 558 of 3305 patients (16.9%) in the placebo group (hazard ratio, 0.72; 95% CI 0.64 to 0.82;...\")",
-        "source_id": "fulltext:36331190",
-        "source_kind": "fulltext",
-        "source_span": "Results During a median of 2.0 years follow-up, a primary outcome event occurred in 432 of 3304 patients (13.1%) in the empagliflozin group and in 558 of 3305 patients (16.9%) in the placebo group (hazard ratio, 0.72; 95% CI 0.64 to 0.82;...",
-        "source_contains": "Results During a median of 2.0 years follow-up, a primary outcome event occurred in 432 of 3304 patients (13.1%) in the empagliflozin group and in 558 of 3305 patients (16.9%) in the placebo group (hazard ratio, 0.72; 95% CI 0.64 to 0.82;...",
-        "value_text": "432 of 3304"
+        "stated_reason_code": "REFUSED_ON_EVIDENCE",
+        "verdict": "REASON_WRONG_KIND",
+        "detail": "value absent from held source, but the code names a value-present/refusal cause"
       },
       {
         "slug": "sglt2-ckd-progression",
@@ -5815,12 +5962,12 @@
     "denominator_source": "included screening records x registered outcomes in this review",
     "N": 27,
     "counts": {
-      "EXTRACTED": 4,
-      "HELD_NOT_EXTRACTED": 1,
-      "NOT_IN_HELD_SOURCES": 22,
-      "ABSENT_BY_DESIGN": 0
+      "EXTRACTED": 5,
+      "HELD_NOT_EXTRACTED": 0,
+      "NOT_IN_HELD_SOURCES": 21,
+      "ABSENT_BY_DESIGN": 1
     },
-    "n_held_not_extracted": 1,
+    "n_held_not_extracted": 0,
     "by_outcome_kind": {
       "primary": {
         "EXTRACTED": 3,
@@ -5829,10 +5976,10 @@
         "ABSENT_BY_DESIGN": 0
       },
       "harm": {
-        "EXTRACTED": 1,
-        "HELD_NOT_EXTRACTED": 1,
-        "NOT_IN_HELD_SOURCES": 16,
-        "ABSENT_BY_DESIGN": 0
+        "EXTRACTED": 2,
+        "HELD_NOT_EXTRACTED": 0,
+        "NOT_IN_HELD_SOURCES": 15,
+        "ABSENT_BY_DESIGN": 1
       }
     },
     "rows": [
@@ -5994,7 +6141,8 @@
         "trial_label": "30990260",
         "outcome": "Lower-limb amputation",
         "outcome_kind": "harm",
-        "status": "NOT_IN_HELD_SOURCES"
+        "status": "ABSENT_BY_DESIGN",
+        "reason_code": "REFUSED_ON_EVIDENCE"
       },
       {
         "slug": "sglt2-ckd-progression",
@@ -6002,11 +6150,7 @@
         "trial_label": "36331190",
         "outcome": "Lower-limb amputation",
         "outcome_kind": "harm",
-        "status": "HELD_NOT_EXTRACTED",
-        "source_id": "fulltext:36331190",
-        "source_kind": "fulltext",
-        "source_span": "Results During a median of 2.0 years follow-up, a primary outcome event occurred in 432 of 3304 patients (13.1%) in the empagliflozin group and in 558 of 3305 patients (16.9%) in the placebo group (hazard ratio, 0.72; 95% CI 0.64 to 0.82;...",
-        "value_text": "432 of 3304"
+        "status": "EXTRACTED"
       },
       {
         "slug": "sglt2-ckd-progression",
@@ -6403,35 +6547,6 @@
       }
     },
     {
-      "limitation_id": "topic:sglt2-ckd-progression:harms:1:lower-limb-amputation:result-absent",
-      "kind": "DECLARED_ABSENT_SECTION",
-      "limitation_class": "INFORMATIONAL",
-      "severity": "BLOCKS_CLAIM",
-      "claim_affected": "outcome result: Lower-limb amputation",
-      "evidence_state": "DECLARED_ABSENT",
-      "source_fields": [
-        "/outcomes/*/result/present",
-        "/outcomes/*/result/reason"
-      ],
-      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> HARMS_INCOMPLETE -- 2 known reported outcome(s) unresolved (30990260, 36331190) among 2 source-reporting trial(s); extracted k=0. The page must not render this as harm absence.</div>",
-      "text_sha256": "3c685da95598138923f91fea6e0861c5ba767d9de42922f4c1e259af8a41613d",
-      "linked_decision": {
-        "action": "ALLOW_WITH_LABEL",
-        "gate_id": "limitation:labelled-validity-threat",
-        "decision_state": "validity threat is explicitly labelled on the affected claim"
-      },
-      "consumer": null,
-      "unwired": true,
-      "unwired_reason": "section/outcome absence is visible scoping evidence; no single analytic gate consumes all such sections",
-      "unwired_acknowledged": {
-        "signed_by": "Codex lane AD",
-        "date": "2026-09-15",
-        "reason": "Declared section or outcome absence is already the visible scoped result; no single analytic gate consumes every such absence object.",
-        "tranche": "TRANCHE-hazard-consumers",
-        "ack_id": "HC-DECLARED_ABSENT_SECTION-DECLARED_ABSENT"
-      }
-    },
-    {
       "limitation_id": "topic:sglt2-ckd-progression:riskofbias:rob-spancheck",
       "kind": "ROB_SPANCHECK",
       "limitation_class": "INFORMATIONAL",
@@ -6481,7 +6596,7 @@
       "consumer": {
         "gate_id": "compat.outcome_key",
         "gate_input_path": "/arm_contrast/trials",
-        "gate_verdict_at_build": "Trial-defined primary cardiorenal composite: verified 3/3; Diabetic ketoacidosis: verified 1/1"
+        "gate_verdict_at_build": "Trial-defined primary cardiorenal composite: verified 3/3; Diabetic ketoacidosis: verified 1/1; Lower-limb amputation: verified 1/1"
       }
     },
     {
@@ -6704,14 +6819,14 @@
   },
   "reproduction": {
     "failures": 0,
-    "protocol_sha": "38478f5e060a9d63bcb073cb652d0e6f70d27c58",
-    "review_sha256": "86874029b6e1a90936535d940312f271684463e739fe7cfaaf6605f1ffefd87b",
+    "protocol_sha": "f6f7b14c820bdadd258122ac0bb54c7e4d2a989a",
+    "review_sha256": "ae9b756e6d572bc34724a6646a269b7ec944aa0272c24572c6192ed5d2a80eb2",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
       "sha": null,
       "kind": "no protocol-only commit -- protocol first committed inside a build",
-      "build_sha": "38478f5e060a9d63bcb073cb652d0e6f70d27c58"
+      "build_sha": "f6f7b14c820bdadd258122ac0bb54c7e4d2a989a"
     },
     "parity": {
       "slug": "sglt2-ckd-progression",
@@ -6750,21 +6865,21 @@
       "conflict": 0
     },
     "claim_check": {
-      "claims_checked": 3,
+      "claims_checked": 4,
       "surfaces": [
         "outcome block",
         "overview",
         "manuscript"
       ],
       "scope_counts": {
-        "outcome_result": 2,
+        "outcome_result": 3,
         "strand_pool": 1,
         "rob_sensitivity": 3,
         "grade": 1
       },
       "scope": {
         "counts": {
-          "outcome_result": 2,
+          "outcome_result": 3,
           "strand_pool": 1,
           "rob_sensitivity": 3,
           "grade": 1

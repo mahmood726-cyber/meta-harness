@@ -1423,6 +1423,10 @@ def _trial_inputs(o):
                        + ("; adjusted" if alt.get("adjusted") else "; not labelled adjusted") + ".")
         code = t.get("reason_code") or t.get("state")
         span = t.get("source_span") or t.get("verbatim_span")
+        # Raw evidence stays byte-verbatim in review.json; HTML displays normal
+        # prose whitespace, including spans transcribed from held PDF text.
+        if span:
+            span = " ".join(span.split())
         reason_detail = _e(t.get("reason"))
         if code:
             reason_detail += f"<br><code>{_e(code)}</code>"
@@ -1449,6 +1453,8 @@ def _trial_inputs(o):
             if t.get("harm_source_span"):
                 reason_detail += f"<br><span class='muted'>harm span: {_e(t.get('harm_source_span'))}</span>"
         absent_label = _HARM_ABSENCE_STATE_LABEL.get(hm) or _absent_label(t.get('reason'), t.get('state'))
+        if code == "SIGNAL_SPURIOUS":
+            absent_label = "HM: spurious signal -- source span is not about this harm"
         absent_rows.append(f"<tr><td>{_e(t.get('label'))}</td><td>{_id_cell(t)}</td>"
                            f"<td class='absent-cell'>{_e(absent_label)}</td>"
                            f"<td>{reason_detail}{alt_txt}</td></tr>")
@@ -1665,6 +1671,32 @@ def _outcome_block(o, show_inputs=True):
             body += ("<p class='note'>k is as reported by the source; the individual trials "
                      "behind it were not machine-extracted from the transcription, so this "
                      "count cannot be audited on this page.</p>")
+    findings = o.get("contract_compatibility") or []
+    if findings:
+        body += ("<h5>Protocol compatibility findings (not eligibility exclusions)</h5>"
+                 "<table class='arms'><tr><th>Trial</th><th>Axis</th><th>Observed</th><th>Contract</th><th>Finding</th></tr>"
+                 + "".join(f"<tr><td>{_e(x.get('trial_id'))}</td><td>{_e(x.get('dimension'))}</td>"
+                           f"<td>{_e(x.get('trial_value'))}</td><td>{_e(x.get('contract_value'))}</td>"
+                           f"<td>{_e(x.get('verdict'))}: {_e(x.get('finding_code'))}</td></tr>" for x in findings)
+                 + "</table>")
+    strict = o.get("strict_contract_sensitivity")
+    if strict:
+        body += ("<h5>Retrospective protocol reading sensitivity — 17 Sep 2026</h5>"
+                 "<table class='arms'><tr><th>Reading</th><th>Trials</th><th>Result</th></tr>"
+                 f"<tr><td>Strict contract sensitivity</td><td>k={strict['k']}</td>"
+                 f"<td>{'No pooled result (fewer than two trials)' if strict['k'] < 2 else 'See per-trial contract findings'}</td></tr>"
+                 f"<tr><td>Compatibility-axis reading</td><td>k={strict['compat_axis_k']}</td>"
+                 "<td>Outcome result above; compatibility findings retained</td></tr></table>"
+                 f"<p>{_e(strict['reason'])} Both readings were known when the amendment was written.</p>"
+                 f"<p>{_e(strict.get('amendment', ''))}</p>")
+    admission_sets = o.get("admission_analysis_sets") or {}
+    if admission_sets:
+        body += (f"<p class='note'>Candidate analysis sets: {_e(admission_sets.get('label'))}. "
+                 f"{_e(admission_sets.get('scope'))}.</p><table class='arms'>"
+                 "<tr><th>Trial</th><th>Analysis set</th><th>Contract verdict</th></tr>"
+                 + "".join(f"<tr><td>{_e(t.get('trial_id'))}</td><td>{_e(t.get('value'))}</td>"
+                           f"<td>{_e(t.get('verdict'))}</td></tr>" for t in admission_sets.get("per_trial") or [])
+                 + "</table>")
     n_pool = len(o.get("trials") or [])
     n_abs = len(o.get("declared_absent_trials") or [])
     if show_inputs and (n_pool or n_abs):

@@ -190,16 +190,25 @@ def _candidate_keys(row: dict[str, Any]) -> set[str]:
 
 def enrich_from_cache(root: str, slug: str, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Copy verified effect fields from cache/<slug>/verified_effects.json into matching rows."""
-    effects = _load_json(os.path.join(root, "cache", slug, "verified_effects.json"))
+    from .verified_inputs import load
+    effects = load(slug, cache_root=os.path.join(root, "cache"))["verified_effects.json"]
     if not effects:
         return rows or []
+    primary_name = (_load_json(os.path.join(root, "topics", slug + ".json"))
+                    .get("primary_outcome") or {}).get("name")
     out = []
     for row in rows or []:
         item = dict(row)
         hit = None
         for key in _candidate_keys(row):
-            if isinstance(effects.get(key), dict):
-                hit = effects[key]
+            from .verified_inputs import entries
+            candidates = entries(effects.get(key))
+            target = row.get("outcome") or primary_name
+            if target:
+                # Never borrow an unrelated harm effect, including singleton inputs.
+                candidates = [e for e in candidates if e.get("outcome") == target]
+            if len(candidates) == 1:
+                hit = candidates[0]
                 break
         if hit and hit.get("effect") is not None:
             for key in ("effect", "ci_low", "ci_high", "scale", "source", "verification"):

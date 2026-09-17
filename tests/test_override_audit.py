@@ -8,9 +8,14 @@ AUDIT = ROOT / "docs" / "evidence" / "override-audit-2026-09-14" / "overrides.js
 def _override_rows_in_cache():
     rows = []
     for path in sorted((ROOT / "cache").glob("*/verified_effects.json")) + sorted((ROOT / "cache").glob("*/verified_arms.json")):
-        data = json.loads(path.read_text(encoding="utf-8"))
+        from harness.verified_inputs import load, runtime
+        data = load(path.parent.name)[path.name]
         for trial, entry in data.items():
-            if isinstance(entry, dict) and entry.get("override") is True:
+            from harness.verified_inputs import entries
+            for raw in entries(entry):
+                entry = runtime(raw)
+                if entry.get("override") is not True:
+                    continue
                 rows.append({
                     "topic": path.parent.name,
                     "file": path.name,

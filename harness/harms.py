@@ -35,6 +35,7 @@ _INCOMPATIBLE_CODES = {
 
 _REFUSAL_CODES = {
     absence.REFUSED_ON_EVIDENCE,
+    absence.SIGNAL_SPURIOUS,
 }
 
 _EFFECT_OR_COMPARISON = re.compile(
@@ -137,7 +138,7 @@ def _hm_state_for_absent(row: dict[str, Any], spec: dict[str, Any],
         state = RETRIEVED_OUTCOME_NOT_REPORTED
     out = {"harm_absence_state": state}
     if sig:
-        out["harm_source_reported"] = True
+        out["harm_source_reported"] = code != absence.SIGNAL_SPURIOUS
         out["harm_source_span"] = sig["span"]
         out["harm_source_signal"] = sig["kind"]
     else:
@@ -176,7 +177,7 @@ def annotate_outcome(outcome: dict[str, Any], spec: dict[str, Any], included: li
         row.update(ann)
         key = _id_key(row.get("id") or row.get("label"))
         states[key] = ann["harm_absence_state"]
-        if ann["harm_absence_state"] in _REPORTED_STATES:
+        if ann["harm_absence_state"] in _REPORTED_STATES and ann["harm_source_reported"]:
             item = {
                 "id": key,
                 "label": row.get("label"),

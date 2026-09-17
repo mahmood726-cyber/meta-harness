@@ -78,8 +78,13 @@ def main(argv):
             continue
         recs = {r["id"]: r for r in json.load(open(os.path.join(ROOT, "cache", slug, "records.json"),
                                                    encoding="utf-8"))["records"]}
-        entries = json.load(open(vp, encoding="utf-8"))
-        for pid, v in entries.items():
+        from harness.verified_inputs import load, entries as input_entries
+        values = load(slug)['verified_arms.json']
+        for pid, v in ((pid, v) for pid, value in values.items() for v in input_entries(value)):
+            if v.get('provenance') != 'aact_verified' or v.get('kind') != 'extracted_counts':
+                out[f"{slug}/{pid}/{v['outcome']}"] = {'status': 'NOT_AACT_SOURCE',
+                    'reason': 'Held-source validation uses verified_inputs.load; this audit only rederives AACT inputs.'}
+                continue
             # registrations named in the entry's source text (NCT ids) — the committed input.
             ncts = sorted(set(re.findall(r"NCT\d{8}", v.get("source", ""))))
             cfg = json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8"))
