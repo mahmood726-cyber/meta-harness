@@ -32,3 +32,6 @@ Do not touch: `harness/synth.py`, pooling membership of any page (families are a
 
 ## Cannot-build-today, say so if hit
 EudraCT / ISRCTN / jRCT identities can be resolved only from ids already present in held records or the AACT `id_information` table (no network); families anchored only on such ids are flagged `IDENTITY_FROM_HELD_TEXT`.
+
+## Base (17 Sep 2026)
+The landing-3 commit named in LANE_BASE.txt beside this file (record `git rev-parse HEAD`). Eligibility on P/I/C/design ONLY -- never on whether a trial reported the outcome; `target_result_status` is a separate per-outcome cell in the ledger. A published effect + CI is a poolable input; 2x2 counts are not required. Write `tests/test_trial_family.py` plants FIRST and paste their pre-fix failing output verbatim into the report before building.
