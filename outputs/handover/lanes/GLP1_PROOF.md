@@ -256,3 +256,5 @@ MEASURED: with an EMPTY `AACT_DIR` the local replay of tocilizumab fails the sam
 
 ## 17 Sep 19:34 — LANDING 3 ON MAIN: `3cf73885ffc83f6fcc4db273c6510a5416cdcde0`
 Chain: A `04902ecf` (19 lanes + harms 153/153 + design gate; CI refused: AACT dependence) → B `bb375447` (8 anchors) → C `55b457f5` (IN5: replay from committed cache; CI 10/11) → D `3cf73885` (pinned HM3 fixture + caption + evidence index; hook 11/11; CI 35258477805 success) → `ls-remote main = 3cf73885`. Served manifest poll running; byte proof from a clean clone to follow.
+
+## 17 Sep 19:50 — LANDING 3 SERVED: manifest commit_sha 3cf73885 (12 min after main); 32 of 32 review pages byte-identical to a clean clone at 3cf73885. Served glp1 (195,407 bytes, measured on fetched bytes): B-prime + RETROSPECTIVE present; HARMS_INCOMPLETE 0, REFUSED_ON_EVIDENCE 33; primary still the legacy k=8 pool (0.856); `1.24` 0, `0.887` 0 — the FDA values reach the page only with landing 4 (IN4 attempt 3 running on 55b457f5 → will be rebased onto 3cf73885 at integration).
