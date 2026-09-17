@@ -63,7 +63,7 @@ def _patient_share(text: str):
 
 def _relation_label(relation: str, inferred: bool, dominance=None) -> str:
     labels = {
-        "IDENTICAL_SET": "arithmetic replication -- same trials; agreement is not independent corroboration",
+        "IDENTICAL_SET": "arithmetic agreement -- same trials; overlapping inputs do not constitute an independent evidence set",
         "DOMINANT_SUBSET": "dominant-trial subset -- ours is contained in the comparator",
         "SUBSET": "subset -- ours is contained in the comparator",
         "SUPERSET": "superset -- the comparator trial set is contained in ours",

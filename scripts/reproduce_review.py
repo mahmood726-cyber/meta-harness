@@ -98,6 +98,12 @@ def reproduce(slug):
     if cg_bad:
         reasons.append("claimgraph violations remain: " + json.dumps(cg_bad))
     final = dict(core, reproduction=repro)
+    from harness import certificate
+    try:
+        repro["certificate"] = certificate.compute(slug, final, protocol_sha)
+        reasons.extend(certificate.verify(d, final, protocol_sha))
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        reasons.append(f"CERTIFICATE.json release_sha256 could not be recomputed: {exc}")
     if sha256_text(render_page(final)) != sha256_text(served):
         reasons.append("served index.html does not byte-match a re-render from the replayed core")
     return (not reasons), reasons
@@ -119,8 +125,12 @@ def _fresh_clone_check():
                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             a = open(os.path.join(ROOT, "docs", "reviews", slug, "index.html"), encoding="utf-8").read()
             b = open(os.path.join(tmp, "docs", "reviews", slug, "index.html"), encoding="utf-8").read()
-            ok = sha256_text(a) == sha256_text(b)
+            from harness import certificate
+            certificate_reasons = certificate.verify(os.path.join(ROOT, "docs", "reviews", slug))
+            ok = sha256_text(a) == sha256_text(b) and not certificate_reasons
             print(f"  {'OK ' if ok else 'DIFF'} {slug}")
+            for reason in certificate_reasons:
+                print(f"    {reason}")
             if not ok:
                 bad.append(slug)
         return bad

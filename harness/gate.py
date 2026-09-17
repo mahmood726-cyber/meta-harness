@@ -1116,6 +1116,27 @@ def check_stale_heterogeneity_surfaces(review_dir):
     if stale_heterogeneity(rev) not in soup.get_text(" ", strip=True):
         reasons.append("stale_heterogeneity_surfaces: missing membership reason")
     return sorted(set(reasons))
+def check_certificate(review_dir):
+    """Require a certificate whose listed inputs still yield the saved release identity."""
+    from .certificate import verify as verify_certificate
+    return verify_certificate(review_dir)
+def check_no_independent_corroboration_claim(review_dir, html):
+    from . import comparator_panel
+    try:
+        with open(os.path.join(review_dir, "review.json"), encoding="utf-8") as f:
+            review = json.load(f)
+        reasons = comparator_panel.gate_reasons(review, html)
+        slug = os.path.basename(os.path.normpath(review_dir))
+        source = os.path.join(ROOT, "cache", slug, "comparators.json")
+        if os.path.exists(source):
+            expected = comparator_panel.attach(slug, review, ROOT)
+            if review.get("comparator_panel") != expected:
+                reasons.append("COMPARATOR_PANEL: page panel differs from held source panel")
+        elif review.get("slug") and review.get("comparator_panel"):
+            reasons.append("COMPARATOR_PANEL: registered source panel missing")
+        return reasons
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return [f"COMPARATOR_PANEL: cannot validate: {exc}"]
 
 
 def gate_page(review_dir):
@@ -1128,6 +1149,7 @@ def gate_page(review_dir):
                + check_certainty_surfaces_agree(review_dir)
                + check_rob_sensitivity_surfaces(review_dir)
                + check_stale_heterogeneity_surfaces(review_dir)
+               + check_certificate(review_dir)
                + check_cache_tracked(manifest)
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
@@ -1155,6 +1177,7 @@ def gate_page(review_dir):
                + check_method_matches_scale(review_dir)
                + check_compat_key_underlying(review_dir)
                + check_scope_identity(review_dir, html)
+               + check_no_independent_corroboration_claim(review_dir, html)
                + check_preregistration_not_build(review_dir)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons

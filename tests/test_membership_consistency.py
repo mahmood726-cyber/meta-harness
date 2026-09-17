@@ -54,7 +54,9 @@ def test_rebuilt_esketamine_membership_is_consistent_and_parity_row_current():
         encoding="utf-8",
     ).read()
     assert "STALE_VS_MEMBERSHIP" not in html
-    assert "Our pooled <em>k</em> = <strong>4</strong> vs the comparator <em>k</em> = <strong>4</strong>" in html
+    assert "Comparator panel" in html
+    assert "Trial set NOT ENUMERATED; overlap unknown." in html
+    assert "Our pooled <em>k</em> = <strong>4</strong> vs the comparator <em>k</em> = <strong>4</strong>" not in html
     assert "We pool 2" not in html
     assert "The 2 gap trials (TRANSFORM-1 and the phase-2 dose-finding)" not in html
 

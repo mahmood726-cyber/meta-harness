@@ -1883,7 +1883,7 @@ def _comparator(r, neutral):
         ("Open access", c.get("open_access")),
         ("URL", c.get("url")),
     ])
-    for rep in c.get("reported", []) or []:
+    for rep in ([] if r.get("comparator_panel") else c.get("reported", []) or []):
         body += f"<p>{_e(rep.get('outcome'))}: {_num(rep.get('estimate'))} ({rep.get('scale')}), 95% CI {_num(rep.get('ci_low'))}–{_num(rep.get('ci_high'))}</p>"
     sc = c.get("scope") or {}
     if sc:
@@ -1914,6 +1914,15 @@ def _comparator(r, neutral):
         # excused as scope. Sourced from the topic config; shown verbatim beside the uniform verdict.
         if r.get("comparator_scope_note"):
             body += f"<p><strong>Comparator resolution.</strong> {_e(r.get('comparator_scope_note'))}</p>"
+    if r.get("comparator_panel"):
+        from .comparator_panel import render
+        # Preserve explicit absence disclosures required by the standing page gate.
+        # Numeric legacy overlap snapshots remain suppressed; the panel owns the counts.
+        for key in ("theirs_k", "shared_k"):
+            missing = (c.get("overlap") or {}).get(key)
+            if isinstance(missing, str) and missing.startswith(("not stated", "not exactly verifiable")):
+                body += f"<p>Legacy comparator extraction, {_e(key)}: {_e(missing)}.</p>"
+        return body + render(r)
     body += _comparator_truth_block(c)
     ov = c.get("overlap") or {}
     body += "<h4>Trial-set overlap (an identical estimate on an identical set is arithmetic, not corroboration)</h4>"
@@ -2033,7 +2042,7 @@ def _reproduction(r, neutral):
     # vs the COMPARABLE same-scope comparator k, with a named reason for any difference — including
     # where the comparator's extra trials are out-of-scope, double-counted substudies, observational,
     # or non-prespecified for the outcome.
-    if pa := rep.get("parity"):
+    if (pa := rep.get("parity")) and not r.get("comparator_panel"):
         body += "<h4>Parity with the published comparator</h4>"
         if pa.get("unrenderable"):
             # A parity row whose prose names a trial set that is no longer the pool renders as the
@@ -2621,6 +2630,7 @@ document.querySelectorAll('nav button').forEach(function(b){b.classList.toggle('
 
 
 def render_page(review: dict, neutral: bool = False) -> str:
+    from .certificate import render as render_certificate
     tabs_spec = [(tid, lbl) for tid, lbl in TABS if not (neutral and tid in NEUTRAL_DROP)]
     nav = "".join(f'<button data-t="{tid}" onclick="show(\'{tid}\')">{_e(lbl)}</button>' for tid, lbl in tabs_spec)
     body = ("<div class='absent'><strong>AACT_NOT_MEASURED</strong>: registry inputs have not "
@@ -2629,6 +2639,8 @@ def render_page(review: dict, neutral: bool = False) -> str:
     for tid, lbl in tabs_spec:
         body += (f'<section class="tab" id="tab-{tid}">'
                  f'<h3 class="tabname">{_e(lbl)}</h3>{_R[tid](review, neutral)}</section>')
+    if not neutral:
+        body = render_certificate((review.get("reproduction") or {}).get("certificate")) + body
     title = _e(review.get("title") or review.get("slug"))
     sub = ("Meta-analysis" if neutral else
            "Reproducible meta-analysis harness — auditability, not authority")

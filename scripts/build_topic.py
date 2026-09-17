@@ -65,7 +65,7 @@ def main(slug, now):
                      "comparator": {k: core["comparator"][k] for k in
                                     ("name", "year", "journal", "pmid", "doi", "url", "open_access", "overlap")}}
     review_dir = os.path.join(ROOT, "docs", "reviews", slug)
-    manifest = build_review_dir(core, manifest_meta, review_dir, protocol_sha, from_cache=True)
+    manifest = build_review_dir(core, manifest_meta, review_dir, protocol_sha, from_cache=True, certify=True)
 
     comp_core = build_comparator_core(slug, config, records)
     tok_h, tok_c = _token(slug, "harness"), _token(slug, "comparator")

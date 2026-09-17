@@ -2125,6 +2125,8 @@ def build_review_core(slug, config, records, protocol_sha):
     _prop_bad = propositions_mod.check_propositions(review)
     if _prop_bad:
         raise ValueError("PROPOSITION CONTRADICTION (build refused): " + json.dumps(_prop_bad))
+    from . import comparator_panel
+    review["comparator_panel"] = comparator_panel.attach(slug, review, ROOT)
     return review
 
 

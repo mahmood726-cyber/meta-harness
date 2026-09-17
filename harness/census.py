@@ -152,6 +152,7 @@ def build_review_dir(
     out_dir: str,
     protocol_sha: str,
     from_cache: bool = False,
+    certify: bool = False,
 ) -> dict:
     """Assemble a publishable review directory. Returns the manifest dict."""
     os.makedirs(out_dir, exist_ok=True)
@@ -253,6 +254,12 @@ def build_review_dir(
                          "canonical engine (INFERENCE_LAYER_BYPASS) -> " + json.dumps(_ipbad))
     final_review = dict(review_core_obj)
     final_review["reproduction"] = reproduction
+    if certify:
+        from . import certificate
+        cert = certificate.compute(manifest_meta["slug"], final_review, protocol_sha)
+        reproduction["certificate"] = cert
+        with open(os.path.join(out_dir, "CERTIFICATE.json"), "w", encoding="utf-8", newline="") as f:
+            f.write(json.dumps(cert, ensure_ascii=False, indent=2) + "\n")
     html = render_page(final_review)
     html_sha = sha256_text(html)
 

@@ -52,7 +52,7 @@ def test_PLANT_prefix_invalid_comparator_scope_refused():
 def test_PLANT_identical_trial_set_is_replication(slug):
     rel = parity_relation.compute(_prefix_parity_row(slug), _prefix_review(slug))
     assert rel["relation"] == "IDENTICAL_SET"
-    assert "arithmetic replication" in rel["label"]
+    assert "arithmetic agreement" in rel["label"]
 
 
 def test_PLANT_prefix_external_agreement_said_agrees_for_same_set():
