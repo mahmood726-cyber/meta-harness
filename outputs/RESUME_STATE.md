@@ -1,4 +1,4 @@
-# RESUME_STATE — meta-harness glp1 programme (refreshed 2026-09-17 23:15 local; refresh on every landing or lane finish)
+# RESUME_STATE — meta-harness glp1 programme (refreshed 2026-09-18 00:02 local; refresh on every landing or lane finish)
 
 Every claim is marked MEASURED (read from git/ls-remote/disk at the time stamp), INFERRED, or CLAIMED. A restarting session should trust `git ls-remote https://github.com/mahmood726-cyber/meta-harness.git <ref>` over anything here.
 
@@ -78,3 +78,9 @@ INFERRED: (a) served-page corrections (FIX2 → my integration + ratchet acks �
 - HRM (301,473 tok): item 10/12 shape right but re-labelled typed refusals as unresolved (27 pages refused) — NOT integrated; HRM2 running on 3cf73885 to redo without the semantic change.
 - IN6 still running on the landing-4 candidate (log 70+ MB).
 - Next landing (F): CERT + CMP (+ HRM2 when green) onto 0f98038c via transplant, retraction proof, ratchet acks, hook, chain.
+
+## 9. 00:02 additions
+- Commit F (CERT + CMP onto E; gate scorecard registry merged by gate_id; ratchet 9 acks) IN THE HOOK since 00:00 (`scratchpad/commit13.log`, chain `land10.sh`). Attempt 1 refused on the scorecard registry (CMP's copy lacked E's and CERT's entries) — fixed at source.
+- HRM2 DONE (114,420 tok; `C:\mh-r-HRM2`, 204 files): harms synthesis suppressed 46 of 61 with ledgers kept, adjustment labels UNRESOLVED 95/95, gate 32/32 incl. check_harms_complete → commit G after F.
+- IN6 still running on the landing-4 candidate (log 114 MB, report being written).
+- C: free 24 GB.
