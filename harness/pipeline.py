@@ -14,7 +14,7 @@ import os
 import re
 
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
-from . import aact
+from . import aact_cache
 from . import screen_entry
 from . import comparator_second_pass
 from . import source_hierarchy as source_hierarchy_mod
@@ -868,7 +868,7 @@ def _completeness_for_record(rec, dates):
 
 def _annotate_completeness(review, rec_by_id):
     ncts = [screen._nct_id(r) for r in rec_by_id.values()]
-    dates = aact.study_dates([n for n in ncts if n]) if any(ncts) else {}
+    dates = aact_cache.values("study_dates") if any(ncts) else {}
 
     def annotate(item):
         rec = rec_by_id.get(_clean_record_id(item.get("id")))
@@ -1706,6 +1706,7 @@ def _source_status(slug, config, records, merged, ledger=None):
     }
 
 
+@aact_cache.cache_only_build
 def build_review_core(slug, config, records, protocol_sha):
     merged = _dedup(records, config.get("pivotal_trials"))
     retrieval_ledger = _load_retrieval_ledger(slug)

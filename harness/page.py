@@ -2729,7 +2729,9 @@ document.querySelectorAll('nav button').forEach(function(b){b.classList.toggle('
 def render_page(review: dict, neutral: bool = False) -> str:
     tabs_spec = [(tid, lbl) for tid, lbl in TABS if not (neutral and tid in NEUTRAL_DROP)]
     nav = "".join(f'<button data-t="{tid}" onclick="show(\'{tid}\')">{_e(lbl)}</button>' for tid, lbl in tabs_spec)
-    body = ""
+    body = ("<div class='absent'><strong>AACT_NOT_MEASURED</strong>: registry inputs have not "
+            "been measured into a valid per-topic cache; registry dates, sponsors and arm "
+            "contrasts are unavailable.</div>" if review.get("aact_status") == "AACT_NOT_MEASURED" else "")
     for tid, lbl in tabs_spec:
         body += (f'<section class="tab" id="tab-{tid}">'
                  f'<h3 class="tabname">{_e(lbl)}</h3>{_R[tid](review, neutral)}</section>')

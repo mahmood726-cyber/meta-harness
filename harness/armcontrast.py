@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import re
 
-from harness import aact
+from harness import aact, aact_cache
 
 # A control/placebo arm is not an active intervention; collapsing it to nothing prevents a
 # "placebo for dapagliflozin" arm from leaking 'dapagliflozin' into the control side.
@@ -32,6 +32,13 @@ def _norm_intv(name: str | None) -> str | None:
 
 
 def build_arm_index(ncts) -> dict:
+    """Replay measured contrasts only; no snapshot discovery, even outside a build."""
+    cached = aact_cache.values("arm_index")
+    return {n: (set(cached[n][0]), set(cached[n][1]))
+            for n in sorted({str(n).upper() for n in ncts if n}) if n in cached}
+
+
+def measure_arm_index(ncts) -> dict:
     """Three AACT scans total (not per-trial): {NCT: (common, differing)} where `common` are active
     interventions present in EVERY arm (background) and `differing` are those in some-but-not-all arms
     (the randomised contrast). A trial with <2 arms or no linked active interventions is omitted (unknown)."""

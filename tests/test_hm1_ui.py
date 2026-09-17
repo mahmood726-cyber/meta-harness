@@ -4,6 +4,8 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import threading
 
+import pytest
+pytest.importorskip("playwright", reason="browser E2E; not installed in CI")
 from playwright.sync_api import sync_playwright
 
 

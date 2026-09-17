@@ -5,6 +5,8 @@ import json
 import os
 from pathlib import Path
 import threading
+import pytest
+pytest.importorskip("playwright", reason="browser E2E; not installed in CI")
 from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[1]

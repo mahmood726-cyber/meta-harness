@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from . import aact
+from . import aact_cache
 
 STATUS_STATED = "stated_in_held_text"
 STATUS_REGISTRY = "stated_in_registry"
@@ -393,7 +393,7 @@ def scan_pooled(
         if nct:
             ncts.append(nct)
     if registry_by_nct is None:
-        registry_by_nct = aact.sponsor_records(ncts)
+        registry_by_nct = aact_cache.values("sponsors", review.get("slug"))
 
     out = []
     for trial in trials:

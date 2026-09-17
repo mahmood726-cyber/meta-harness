@@ -55,7 +55,7 @@ def main(argv):
         s for s in sorted(os.listdir(f"{ROOT}/docs/reviews")) if os.path.exists(f"{ROOT}/docs/reviews/{s}/review.json")]
     topics = {s: pooled(s) for s in slugs}
     allnct = {n for d in topics.values() for n in d.values() if n}
-    index = armcontrast.build_arm_index(allnct)  # ONE AACT scan for the whole batch
+    index = armcontrast.measure_arm_index(allnct)  # Explicit measure-time snapshot read
     for slug, d in topics.items():
         kws = keywords(slug)
         trials = {}

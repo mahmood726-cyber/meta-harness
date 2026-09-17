@@ -9,8 +9,7 @@ from functools import lru_cache
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from harness import aact, rob2  # noqa: E402
-from scripts.rob2_build import _derived_ncts_by_pmid  # noqa: E402
+from harness import rob2  # noqa: E402
 
 BASE_REF = "ad5e7c66"
 
@@ -41,46 +40,22 @@ def _read_json(*parts: str) -> dict:
 @lru_cache(maxsize=1)
 def _case_index() -> dict[tuple[str, str], dict]:
     cases = {}
-    pmids = {pid for pids in TARGETS.values() for pid in pids if pid.isdigit()}
-    linked = _derived_ncts_by_pmid(pmids)
-    all_ncts: set[str] = set()
     for slug, pids in TARGETS.items():
         review = _git_json(f"docs/reviews/{slug}/review.json")
-        records = {str(r.get("id")): r for r in _read_json("cache", slug, "records.json").get("records", [])}
+        measured = _read_json("cache", slug, "rob2.json")["trials"]
         primary = next(o for o in review.get("outcomes", []) if o.get("primary"))
         trials = {str(t.get("id", "")).replace("PMID ", ""): t for t in primary.get("trials", [])}
         for pid in pids:
             trial = trials[pid]
-            ncts = []
-            nct = (records.get(pid) or {}).get("nct") or (pid if pid.startswith("NCT") else None)
-            if nct:
-                ncts.append(nct.upper())
-            for linked_nct in linked.get(pid, []):
-                if linked_nct not in ncts:
-                    ncts.append(linked_nct)
-            all_ncts.update(ncts)
             stored = review["rob2"]["trials"][pid]["domains"]["D5_selective_reporting"]
-            cases[(slug, pid)] = {"pooled": primary["name"], "ncts": ncts, "stored": stored, "trial": trial}
-
-    primaries = {nct: [] for nct in all_ncts}
-    secondaries = {nct: [] for nct in all_ncts}
-    for row in aact._iter_rows(aact._table("design_outcomes")):
-        nct = (row.get("nct_id") or "").upper()
-        if nct not in all_ncts:
-            continue
-        outcome = {
-            "measure": row.get("measure") or "",
-            "title": row.get("title") or "",
-            "description": row.get("description") or "",
-        }
-        outcome_type = (row.get("outcome_type") or "").lower()
-        if outcome_type == "primary":
-            primaries[nct].append(outcome)
-        elif outcome_type == "secondary":
-            secondaries[nct].append(outcome)
-    for case in cases.values():
-        case["primaries"] = [out for nct in case["ncts"] for out in primaries.get(nct, [])]
-        case["secondaries"] = [out for nct in case["ncts"] for out in secondaries.get(nct, [])]
+            # Re-run the rule from measured registry inputs, not its saved verdict
+            # and not an off-tree snapshot. Assertions below remain unchanged.
+            inputs = measured[pid]["domains"]["D5_selective_reporting"]["inputs"]
+            cases[(slug, pid)] = {
+                "pooled": primary["name"], "stored": stored, "trial": trial,
+                "primaries": inputs["registered_primary_outcomes"],
+                "secondaries": inputs["registered_secondary_outcomes"],
+            }
     return cases
 
 

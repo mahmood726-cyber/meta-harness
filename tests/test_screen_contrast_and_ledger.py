@@ -3,7 +3,7 @@ import json
 import subprocess
 from pathlib import Path
 
-from harness import aact, invalidation, pipeline, screen
+from harness import aact_cache, invalidation, pipeline, screen
 
 
 BASE = "aa8ed28a"
@@ -96,7 +96,7 @@ def test_genuine_drug_vs_placebo_record_stays_include():
 def test_completeness_states_gate_eligible_declared_absent():
     records = _json("cache/sglt2-ckd-progression/records.json")
     recs = {r.get("id"): r for r in pipeline._dedup(records)}
-    dates = aact.study_dates(["NCT07060417", "NCT03190694"])
+    dates = aact_cache.load("sglt2-ckd-progression")["values"]["study_dates"]
     assert pipeline._completeness_for_record(recs["NCT07060417"], dates)["completeness_state"] == "eligible+not_yet_recruiting"
     assert pipeline._completeness_for_record(recs["NCT03190694"], dates)["completeness_state"] == "eligible+completed+results_available"
 
