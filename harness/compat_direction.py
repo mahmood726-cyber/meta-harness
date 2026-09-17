@@ -7,6 +7,8 @@ module records that direction per page and dimension without changing pooling de
 """
 from __future__ import annotations
 
+from .topic_registry import topic_id
+
 from collections import Counter
 import re
 from typing import Any
@@ -42,7 +44,7 @@ _HETEROGENEOUS = "heterogeneous"
 _NOT_ASSERTED = "not_asserted"
 
 _SOURCE_FACTS: dict[str, dict[str, dict[str, dict[str, str]]]] = {
-    "balanced-crystalloids-vs-saline-mortality": {
+    (topic_id('fluid_resuscitation')): {
         "35041780": {
             "follow_up_window": {
                 "value": "90_DAY_MORTALITY",
@@ -56,7 +58,7 @@ _SOURCE_FACTS: dict[str, dict[str, dict[str, dict[str, str]]]] = {
             }
         },
     },
-    "colchicine-postop-af": {
+    (topic_id('postoperative_af')): {
         "42132185": {
             "endpoint_definition": {
                 "value": "POAF_5_MIN",
@@ -114,7 +116,7 @@ _SOURCE_FACTS: dict[str, dict[str, dict[str, dict[str, str]]]] = {
             },
         },
     },
-    "doac-vte-recurrence": {
+    (topic_id('vte_anticoagulation')): {
         "24344086": {
             "endpoint_definition": {
                 "value": "SYMPTOMATIC_RECURRENT_VTE",
@@ -161,7 +163,7 @@ _SOURCE_FACTS: dict[str, dict[str, dict[str, dict[str, str]]]] = {
             "analysis_set": {"value": "INTENTION_TO_TREAT", "basis": "protocol population line"},
         },
     },
-    "finerenone-ckd-t2d-renal": {
+    (topic_id('finerenone_renal')): {
         "33264825": {
             "endpoint_definition": {
                 "value": "KIDNEY_FAILURE | SUSTAINED_EGFR_DECLINE_GE_40_PERCENT | RENAL_DEATH",
@@ -175,7 +177,7 @@ _SOURCE_FACTS: dict[str, dict[str, dict[str, dict[str, str]]]] = {
             }
         },
     },
-    "noac-vs-warfarin-af-stroke": {
+    (topic_id('af_anticoagulation')): {
         "21830957": {
             "endpoint_definition": {
                 "value": "STROKE_OR_SYSTEMIC_EMBOLISM",
@@ -201,7 +203,7 @@ _SOURCE_FACTS: dict[str, dict[str, dict[str, dict[str, str]]]] = {
             }
         },
     },
-    "semaglutide-obesity-weight": {
+    (topic_id('obesity_weight')): {
         "33625476": {
             "background_lifestyle_intensity": {
                 "value": "INTENSIVE_BEHAVIORAL_THERAPY_30_VISITS_LOW_CALORIE_DIET",
@@ -226,12 +228,12 @@ _DIMENSION_LABELS = {
 }
 
 _FACT_OUTCOME_TERMS = {
-    "balanced-crystalloids-vs-saline-mortality": ("mortality",),
-    "colchicine-postop-af": ("atrial fibrillation",),
-    "doac-vte-recurrence": ("recurrent",),
-    "finerenone-ckd-t2d-renal": ("kidney",),
-    "noac-vs-warfarin-af-stroke": ("stroke",),
-    "semaglutide-obesity-weight": ("body weight",),
+    (topic_id('fluid_resuscitation')): ("mortality",),
+    (topic_id('postoperative_af')): ("atrial fibrillation",),
+    (topic_id('vte_anticoagulation')): ("recurrent",),
+    (topic_id('finerenone_renal')): ("kidney",),
+    (topic_id('af_anticoagulation')): ("stroke",),
+    (topic_id('obesity_weight')): ("body weight",),
 }
 
 
@@ -276,7 +278,7 @@ def _candidate_dimensions(outcome: dict[str, Any], review: dict[str, Any]) -> li
     if _has_fact(slug, outcome, trials, "analysis_set") or any(t.get("analysis_set") for t in trials):
         dims.append("analysis_set")
     em = (outcome.get("result") or {}).get("estmeasure") or {}
-    if slug == "spironolactone-hfref-mortality" or any(t.get("effect_model_class") for t in trials):
+    if slug == (topic_id('spironolactone_heart_failure')) or any(t.get("effect_model_class") for t in trials):
         dims.append("effect_model_class")
     if _has_fact(slug, outcome, trials, "background_lifestyle_intensity") or any(
         t.get("background_lifestyle_intensity") for t in trials

@@ -39,7 +39,7 @@ def test_all_registered_spans_locate_and_only_binding_axes_are_curated():
 
 
 def test_evidence_cannot_transfer_to_another_effect_or_document():
-    from harness import glp1
+    from scripts import glp1_sources as glp1
     row = dict(glp1.entries()['27295427'], id='PMID 27295427')
     assert ty.registered_axes(row)['censoring']['value'] == 'end-of-study'
     changed = dict(row, source=row['source'] + ' altered')
@@ -51,7 +51,7 @@ def test_evidence_cannot_transfer_to_another_effect_or_document():
 
 
 def test_flow_does_not_borrow_component_censoring():
-    from harness import glp1
+    from scripts import glp1_sources as glp1
     row = dict(glp1.entries()['38785209'], id='PMID 38785209')
     e = ty.build_effect(row)
     assert ty.known(e['axes']['endpoint_components'])

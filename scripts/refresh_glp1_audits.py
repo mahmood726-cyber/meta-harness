@@ -5,7 +5,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness import glp1, rob2, claimgraph
+from scripts import glp1_sources as glp1
+from harness import rob2, claimgraph
 
 
 def load(path):

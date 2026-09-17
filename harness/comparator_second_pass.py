@@ -6,6 +6,8 @@ named phrase, table row, or contrast that supports them.
 """
 from __future__ import annotations
 
+from .topic_registry import topic_id
+
 import re
 from copy import deepcopy
 
@@ -36,7 +38,7 @@ def _snippet(text: str, term: str, radius: int = 180) -> str:
 
 
 PROFILES = {
-    "noac-vs-warfarin-af-stroke": {
+    (topic_id('af_anticoagulation')): {
         "trial_set": {
             "source_kind": "named prose",
             "trials": [
@@ -55,7 +57,7 @@ PROFILES = {
         "treatment_strategy_match": {"status": "MATCH", "note": "standard-dose DOAC versus warfarin"},
         "outcome_match": {"status": "MATCH", "note": "stroke or systemic embolism"},
     },
-    "esketamine-trd-madrs": {
+    (topic_id('esketamine_depression')): {
         "trial_set": {
             "source_kind": "Table 2 coded trial rows",
             "trials": [
@@ -74,7 +76,7 @@ PROFILES = {
         "treatment_strategy_match": {"status": "MATCH", "note": "intranasal esketamine plus oral antidepressant versus placebo spray plus oral antidepressant"},
         "outcome_match": {"status": "MATCH", "note": "MADRS change at day 28 acute induction"},
     },
-    "doac-vte-recurrence": {
+    (topic_id('vte_anticoagulation')): {
         "trial_set": {
             "source_kind": "count plus phase/program description",
             "count_terms": ["6 phase 3 trials", "dabigatran etexilate", "rivaroxaban", "apixaban", "edoxaban"],
@@ -88,21 +90,21 @@ PROFILES = {
         "treatment_strategy_match": {"status": "MATCH", "note": "phase III acute VTE DOAC versus VKA programmes"},
         "outcome_match": {"status": "NEAR_MATCH", "note": "recurrent VTE composite; trial definitions differ on VTE-related death"},
     },
-    "colchicine-secondary-cv-prevention": {
+    (topic_id('secondary_cv_prevention')): {
         "comparator_recency": {
             "status": "COMPARATOR_PREDATES_POOLED_TRIAL(CLEAR SYNERGY)",
             "note": "Comparator searched trials published before 2022-04-20; CLEAR SYNERGY is a later pooled trial.",
             "required_terms": ["published before 2022.4.20"],
         },
     },
-    "omega3-cardiovascular-events": {
+    (topic_id('omega3_cardiovascular')): {
         "comparator_recency": {
             "status": "COMPARATOR_PREDATES_POOLED_TRIAL(OMEGA-REMODEL)",
             "note": "Comparator search ran to September 2020; OMEGA-REMODEL is a later pooled/decomposed trial.",
             "required_terms": ["until September 2020"],
         },
     },
-    "glp1-ra-mace-t2d": {
+    (topic_id('incretin_cardiovascular')): {
         "trial_set": {
             "source_kind": "named table rows",
             "trials": [
@@ -133,7 +135,7 @@ PROFILES = {
         },
         "treatment_strategy_match": {"status": "MATCH", "note": "GLP-1 receptor agonist CVOTs versus placebo"},
     },
-    "sglt2-primary-prevention-hf": {
+    (topic_id('sglt2_primary_prevention')): {
         "trial_set": {
             "source_kind": "Table 1 rows",
             "row_terms": ["Zinman", "Radholm", "McMurray", "Cannon", "Wiviott", "Kosiborod", "Isreb", "Packer"],
@@ -150,7 +152,7 @@ PROFILES = {
         "outcome_match": {"status": "MATCH", "note": "heart-failure hospitalization"},
         "treatment_strategy_match": {"status": "MATCH", "note": "SGLT2 inhibitor versus placebo"},
     },
-    "sglt2-ckd-progression": {
+    (topic_id('sglt2_renal')): {
         "trial_set": {
             "source_kind": "consortium count",
             "count_terms": ["SMART-C", "10 randomized trials"],
@@ -166,7 +168,7 @@ PROFILES = {
         },
         "outcome_match": {"status": "DIFFERENT_QUANTITY", "note": "pure-kidney CKD progression in SMART-C versus this page's trial-defined cardiorenal composite handling"},
     },
-    "metformin-pcos-ovulation": {
+    (topic_id('metformin_ovulation')): {
         "reported_overrides": [
             {
                 "outcome": "Ovulation rate",

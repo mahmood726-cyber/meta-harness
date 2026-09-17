@@ -14,7 +14,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness import glp1, effect_type as ty
+from scripts import glp1_sources as glp1
+from harness import effect_type as ty
 
 
 def read(path):

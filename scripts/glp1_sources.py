@@ -9,8 +9,8 @@ import json
 import re
 import xml.etree.ElementTree as ET
 
-from . import claimgraph, extract
-from .synth import Study, pool
+from harness import claimgraph, extract
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SLUG = 'glp1-ra-mace-t2d'
@@ -144,114 +144,3 @@ def sensitivity():
     assert claimgraph.verify_fact(row)['verified']
     return row
 
-
-def strands(primary, verified):
-    conventional = [dict(t, pmid=claimgraph.trial_key(t), trial=t['label'])
-                    for t in primary['trials']]
-    freedom = dict(verified['34873344'], pmid='34873344', id='PMID 34873344', trial='FREEDOM-CVO')
-    from .verified_source import refusal
-    if refusal(freedom):
-        raise ValueError('FREEDOM source refused')
-    from . import effect_type
-    extra, refused, types = effect_type.type_rows(
-        [freedom], primary['effect_type_target'],
-        coercions=primary.get('coercions', []))
-    doc = {'slug': SLUG, 'primary_strand': 'CONVENTIONAL_GLP1RA',
-           'why_primary': 'Retrospective B-prime class-boundary decision: conventional delivery is primary; continuous subcutaneous ITCA 650 is admitted alongside on GLP1RA_ANY_DELIVERY.',
-           'strands': [], 'sensitivity_values': [sensitivity()]}
-    for name, members in [('CONVENTIONAL_GLP1RA', conventional),
-                          ('GLP1RA_ANY_DELIVERY', conventional + extra)]:
-        result = None
-        if members:
-            r = pool([Study(label=m['trial'], effect=m['effect'], ci_low=m['ci_low'],
-                            ci_high=m['ci_high'], measure='HR') for m in members], scale='HR')
-            result = {k: getattr(r, k) for k in ('k', 'estimate', 'ci_low', 'ci_high', 'tau2',
-                                               'pi_low', 'pi_high', 'ci_provenance')}
-            result.update(effect=r.estimate, crosses_null=r.ci_low <= 1 <= r.ci_high)
-        doc['strands'].append(dict(strand=name, name=name, effect_measure='HR',
-            event_process='FIRST_EVENT_RATIO', k=len(members), members=members, pool=result,
-            status='POOLED' if members else 'EFFECT_TYPE_REFUSED',
-            reason=None if members else 'No candidate satisfies the declared binding axes.'))
-    doc['additional_effect_types'] = types
-    doc['additional_type_refusals'] = refused
-    return doc
-
-
-def annotate(review):
-    """Expose eligibility independently of target-result availability."""
-    if review.get('grade'):
-        review['grade']['certainty'] = claimgraph.certainty_object(review['grade'])['value']
-    doc = review['strands']
-    pooled = claimgraph.strand_member_keys(doc)
-    rows = []
-    for row in review['screening']['records']:
-        pmid = claimgraph.trial_key(row)
-        eligible = row['decision'] == 'include'
-        rows.append({'id': pmid, 'eligibility': 'ELIGIBLE' if eligible else 'RETRIEVED_AND_REFUSED',
-                     'reason_code': row.get('rule_id'),
-                     'reason': row.get('reason'), 'evidence': row.get('span'),
-                     'target_result_status': 'REPORTED_3POINT' if pmid in pooled else
-                         ('NOT_REPORTED_IN_HELD_SOURCES' if eligible else 'NOT_APPLICABLE')})
-    doc['eligibility'] = rows
-    objects = [dict(claim_id='glp1-primary-rule', **{'class': 'JUDGEMENT'},
-                    text=doc['why_primary'], adjudication='RULE',
-                    basis={'rule_id': 'protocols/glp1-ra-mace-t2d.md: retrospective B-prime amendment'}),
-               dict(claim_id='glp1-flow-caveat', **{'class': 'INTERPRETATION'},
-                    text='FLOW endpoint identity is resolved at level 3. Its abstract does not bind censoring: UNKNOWN. Pooling here does not establish that the abstract and registry use the same censoring rule.',
-                    alternatives=['An on-treatment interpretation would be incompatible with the declared on-study estimand and would require excluding FLOW.'])]
-    for row in doc['sensitivity_values']:
-        objects.append(dict(claim_id='glp1-freedom-sensitivity', **{'class': 'FACT'}, row=row))
-    for row in doc['strands'][-1]['members']:
-        if row['pmid'] == '34873344':
-            objects.append(dict(claim_id='glp1-freedom-fact', **{'class': 'FACT'}, row=row))
-    review.setdefault('claimgraph', {})['typed_objects'] = objects
-
-
-def resolve_missing(review, signals):
-    pooled = claimgraph.strand_member_keys(review['strands'])
-    names = {'FLOW': '38785209', 'FREEDOM-CVO': '34873344', 'ELIXA': '26630143'}
-    signals['known_eligible_missing'] = [r for r in signals.get('known_eligible_missing', [])
-        if names.get(r.get('trial'), r.get('trial')) not in pooled]
-
-
-def render(review):
-    from html import escape
-    from .page import render_strands_section
-    graph = claimgraph.review_graph(review)
-    rendered_claims = graph.render_all()
-    doc = review['strands']
-    display = copy.deepcopy(doc)
-    for strand in display['strands']:
-        strand['pool'] = {k: round(v, 5 if k == 'tau2' else 4) if isinstance(v, float) else v
-                          for k, v in (strand['pool'] or {}).items()}
-    out = ['<div class="banner"><h3>B-prime: delivery strands and source provenance</h3>',
-           '<p>' + rendered_claims['glp1-primary-rule'] + '</p>',
-           render_strands_section(doc), '<p>' + rendered_claims['glp1-flow-caveat'] + '</p>',
-           '<h4>End-of-treatment sensitivity value (never pooled)</h4>',
-           '<p>' + rendered_claims['glp1-freedom-sensitivity'] + '</p>',
-           '<h4>Additional any-delivery member</h4><p>' + rendered_claims.get('glp1-freedom-fact',
-               'Refused by declared binding axes; see typed evidence below.') + '</p>',
-           '<h4>Eligibility and target-result status</h4><table><tr><th>Record</th><th>P/I/C/design eligibility</th><th>Target-result status</th><th>Reason</th></tr>']
-    for row in doc['eligibility']:
-        out.append('<tr>' + ''.join('<td>' + escape(str(row.get(k) or '')) + '</td>'
-                   for k in ('id', 'eligibility', 'target_result_status')) +
-                   '<td>' + escape(str(row['reason_code']) + ': ' + str(row['reason'])) + '</td></tr>')
-    out.append('</table><h4>Provenance: union of pooled strand members</h4><table><tr><th>PMID</th><th>Source level</th><th>Document</th><th>SHA-256 prefix</th><th>Span located / character offset</th><th>Censoring</th><th>Analysis set</th><th>Timepoint</th></tr>')
-    for m in doc['strands'][-1]['members']:
-        ok = claimgraph.verify_fact(m)['verified']
-        out.append('<tr>' + ''.join('<td>' + escape(str(v)) + '</td>' for v in
-                   (m['pmid'], m['source_level'], m['document_ref'], m['document_sha256'][:16],
-                    f"{'yes' if ok else 'no'} / {m['span_offset']}", m['censoring'],
-                    m['analysis_set'], m['timepoint'])) + '</tr>')
-    flow = next((m for m in doc['strands'][-1]['members'] if m['pmid'] == '38785209'), None)
-    out.append('</table>')
-    if flow:
-        out.append('<details><summary>FLOW endpoint identity: AACT design_outcomes NCT03819153 (level 3)</summary><pre>' +
-               escape(json.dumps(flow['endpoint_identity'], ensure_ascii=False, indent=2, sort_keys=True)) + '</pre></details></div>')
-    else:
-        out.append('</div>')
-    from .page import typed_effects_html
-    primary = next(o for o in review['outcomes'] if o.get('primary'))
-    out.append(typed_effects_html({'effect_types': doc.get('additional_effect_types', []),
-                                 'effect_type_target': primary.get('effect_type_target', {})}))
-    return ''.join(out)

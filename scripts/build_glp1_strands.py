@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.glp1 import entries, SLUG
+from scripts.glp1_sources import entries, SLUG
 
 if __name__ == '__main__':
     rows = entries()

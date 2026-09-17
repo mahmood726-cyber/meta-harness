@@ -9,6 +9,8 @@ disclosure-as-control. Class PROCESS, direction optimistic, severity
 major-to-critical.
 """
 from __future__ import annotations
+
+from .topic_registry import topic_id
 import json
 import os
 import re
@@ -1015,7 +1017,8 @@ def _apply_trial_annotations(spec, trials):
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
                    locate_judgments=None, verified_effects=None, dose_selection=None,
-                   registry_designs=None, k2_anchor_config=None, effect_coercions=(), effect_protocol_text=""):
+                   registry_designs=None, k2_anchor_config=None, effect_coercions=(), effect_protocol_text="",
+                   strand_rule=None):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     dose_selection = dose_selection or {}
@@ -1354,6 +1357,12 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     effect_target = effect_type_mod.protocol_target(spec, effect_protocol_text)
     trials, type_refusals, effect_types = effect_type_mod.type_rows(
         trials, effect_target, rec_by_id, effect_coercions)
+    strand_candidates = trials + type_refusals
+    if strand_rule is not None:
+        from .strands import selected
+        trials = [row for row in trials if selected(row, strand_rule)]
+        type_refusals = [row for row in type_refusals if selected(row, strand_rule)]
+        effect_types = [row for row in effect_types if selected({'id': row['trial']}, strand_rule)]
     absent.extend(type_refusals)
     for t in trials:
         if t.get("cross_source"):
@@ -1365,6 +1374,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
            "trials": trials, "declared_absent_trials": absent}
     out.update(effect_types=effect_types, effect_type_target=effect_target,
                effect_type_refusals=type_refusals, coercions=list(effect_coercions))
+    if strand_rule is not None:
+        out['strand_candidates'] = strand_candidates
     if spec.get("component_compat_key"):
         out["component_compat_key"] = True
     if design_refusals:
@@ -1757,9 +1768,11 @@ def primary_strand_declaration(slug):
 
 
 def build_review_core(slug, config, records, protocol_sha):
-    if slug == 'glp1-ra-mace-t2d':
-        from . import glp1
-        records = glp1.augment(records)
+    from . import strands as strands_mod
+    if config.get('strands'):
+        records = dict(records, records=list(records['records']))
+        have = {r['id'] for r in records['records']}
+        records['records'] += [r for r in config.get('strand_supplemental_records', []) if r['id'] not in have]
     merged = _dedup(records, config.get("pivotal_trials"))
     retrieval_ledger = _load_retrieval_ledger(slug)
     retrieval_records = (retrieval_ledger.get("records") or {}) if retrieval_ledger else {}
@@ -1806,7 +1819,8 @@ def build_review_core(slug, config, records, protocol_sha):
     effect_coercions = effect_type_mod.load_coercions(
         os.path.join(ROOT, "cache", slug, "coercions.json"))
     effect_protocol_text = _read_text("protocols", slug + ".md")
-    strand_declaration = primary_strand_declaration(slug)
+    strand_declaration = None if config.get('strands') else primary_strand_declaration(slug)
+    primary_declaration = next((d for d in strands_mod.declarations(config) if d['primary']), None) if config.get('strands') else None
     outcomes = [_build_outcome(spec, kind,
                                (strand_members(included, strand_declaration)
                                 if strand_declaration and spec.get('primary') else included),
@@ -1815,7 +1829,8 @@ def build_review_core(slug, config, records, protocol_sha):
                                verified_effects=veffs, dose_selection=dsel,
                                registry_designs=registry_designs,
                                k2_anchor_config=config.get("k2_direction_conflict_anchor"),
-                               effect_coercions=effect_coercions, effect_protocol_text=effect_protocol_text)
+                               effect_coercions=effect_coercions, effect_protocol_text=effect_protocol_text,
+                               strand_rule=primary_declaration if spec.get('primary') else None)
                 for spec, kind in _outcome_specs(config)]
     effect_type_mod.persist(os.path.join(ROOT, "cache", slug, "effect_types.json"), outcomes)
     primary = outcomes[0]
@@ -2008,8 +2023,17 @@ def build_review_core(slug, config, records, protocol_sha):
                 _r["claim"] = claim_mod.derive(_r)
     # DECLARED STRANDS are result-bearing objects for this topic, not index-only prose.
     # Attach them before invalidation so strand members count as pooled membership.
-    if slug == 'glp1-ra-mace-t2d':
-        review['strands'] = glp1.strands(primary, veffs)
+    if config.get('strands'):
+        candidates = {claimgraph_mod.trial_key(r): r for r in primary['strand_candidates']}
+        for key, row in veffs.items():
+            if row.get('outcome') == primary['name'] and key not in candidates:
+                candidates[key] = dict(row, id='PMID ' + key, label=rec_by_id.get(key, {}).get('acronym') or key)
+        review['strands'] = strands_mod.build(config, list(candidates.values()), primary['effect_type_target'],
+                                              scr['decisions'], rec_by_id, effect_coercions)
+        primary_pool = next(s for s in review['strands']['strands'] if s['primary'])
+        if {claimgraph_mod.trial_key(r) for r in primary_pool['members']} != {claimgraph_mod.trial_key(r) for r in primary['trials']}:
+            raise ValueError('Primary strand differs from primary outcome membership')
+        effect_type_mod.persist(os.path.join(ROOT, 'cache', slug, 'effect_types.json'), outcomes, review['strands'])
     else:
         claimgraph_mod.attach_strands(review, ROOT)
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
@@ -2043,8 +2067,11 @@ def build_review_core(slug, config, records, protocol_sha):
     # source that errored). Poisons the dependent outputs -- the page renders a STALE banner and the
     # index counts STALE topics -- so a known-incomplete/unproven result cannot read as current.
     _inv_sig = _invalidation_signals(slug)
-    if slug == 'glp1-ra-mace-t2d':
-        glp1.resolve_missing(review, _inv_sig)
+    if config.get('strands'):
+        pooled = claimgraph_mod.strand_member_keys(review['strands'])
+        aliases = {r.get('acronym'): str(r['id']) for r in merged if r.get('acronym')}
+        _inv_sig['known_eligible_missing'] = [r for r in _inv_sig.get('known_eligible_missing', [])
+            if aliases.get(r.get('trial'), r.get('trial')) not in pooled]
     # Identity crosswalk (read-only session #1, NAMED_BUT_UNBOUND): resolve a record's identifiers so a
     # trial screened-in under one id (NCT) but pooled under another (PMID) is not falsely counted
     # eligible-not-pooled. Built from the merged records' own nct field; verified 0 cross-space cases
@@ -2132,7 +2159,7 @@ def build_review_core(slug, config, records, protocol_sha):
     _src_map = reason_audit_mod.sources_by_trial(slug, records, ROOT)
     reason_audit_mod.annotate_review(slug, review, _spec_by_name, _src_map)
     unextracted_mod.annotate_review(slug, review, _spec_by_name, _src_map)
-    if slug == "colchicine-postop-af" or config.get("eligibility_chain_enforced"):
+    if slug == (topic_id('postoperative_af')) or config.get("eligibility_chain_enforced"):
         try:
             _md = open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8").read()
             eligibility_chain_mod.apply_admissions(review, config, records, _md)
@@ -2177,8 +2204,8 @@ def build_review_core(slug, config, records, protocol_sha):
         review.setdefault("protocol", {})["target_endpoint_selection"] = (
             target_endpoint_mod.protocol_rule_object()
         )
-    if slug == 'glp1-ra-mace-t2d':
-        glp1.annotate(review)
+    if config.get('strands') and review.get('grade'):
+        review['grade']['certainty'] = claimgraph_mod.certainty_object(review['grade'])['value']
     claimgraph_mod.stamp_review(review)
     _cg_bad = claimgraph_mod.check(review)
     if _cg_bad:

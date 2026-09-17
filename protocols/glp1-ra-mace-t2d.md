@@ -72,6 +72,15 @@ outcome trials.
   rule.
 
 ## Amendment 2026-09-16 (eligibility, estimand, effect measure, timepoint, screening, search, comparator, harms, RoB 2, GRADE -- "B-prime")
+
+Executable strand declarations (delivery boundaries only; all members must also
+pass P/I/C/design eligibility, held-source verification and binding effect axes):
+`CONVENTIONAL_GLP1RA` is primary and excludes PMID 34873344 (FREEDOM-CVO,
+continuous delivery); `GLP1RA_ANY_DELIVERY` is non-primary and has no delivery
+exclusions. These correspond to `membership_rule.exclude_ids: ["34873344"]`
+and `membership_rule.exclude_ids: []` in the topic JSON. Neither declaration
+overrides a refused binding axis. End-of-treatment sensitivity values are never
+pool candidates. Refused rows remain visible with their axis and reason.
 **Status: RETROSPECTIVE.** Registered under Mahmood's authority ("fix all in reproducible harness", 16 Sep 2026, via Dispatch) after an independent protocol audit of registration commit `4091958ce4af7f1ca9ed4c30e1021672b0c21223` found that the registered eligibility (a broad GLP-1 review; eligibility explicitly not on the outcome axis) and the registered search (exact-title sweeps for eight named cardiovascular outcome trials) define two different reviews. This amendment is appended before the page is rebuilt against it and does not rename the pinned slug/URL. **Both alternative answers were known when this rule was written**, and are disclosed below; that disclosure is the point of the RETROSPECTIVE label.
 
 - **Question.** Among adults with type 2 diabetes, what is the effect of GLP-1 receptor agonist therapy versus placebo on time to first adjudicated 3-point MACE?

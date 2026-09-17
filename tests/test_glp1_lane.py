@@ -42,7 +42,10 @@ def test_glp1_elixa_located_and_primary_membership():
     assert primary is not None, 'CONVENTIONAL_GLP1RA strand is absent on base'
     members = {m['pmid'] for m in primary['members']}
     assert '26630143' in members
-    assert primary['k'] == 8 + len(members & {'26630143', '38785209'})
+    assert primary['k'] == len(members)
+    assert not members & {'38785209', '34215025', '30291013', '34873344'}
+    assert {r['pmid']: r['axis'] for r in primary['refused']} == {
+        '38785209': 'censoring', '34215025': 'censoring', '30291013': 'endpoint_components'}
 
 
 def test_glp1_freedom_sensitivity_never_pooled():

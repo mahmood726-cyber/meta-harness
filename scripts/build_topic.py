@@ -79,8 +79,8 @@ def main(slug, now):
             {"slug": slug, "pages": {tok_h: {"role": "harness", "url": f"docs/m/{tok_h}/"},
                                      tok_c: {"role": "comparator", "url": f"docs/m/{tok_c}/"}}}, indent=2))
         write_index(os.path.join(ROOT, "docs"))
-    if slug == 'glp1-ra-mace-t2d':
-        _write(os.path.join(ROOT, 'docs', 'glp1_strands.json'),
+    if config.get('strand_output'):
+        _write(os.path.join(ROOT, 'docs', config['strand_output']),
                json.dumps(core['strands'], ensure_ascii=False, indent=2) + '\n')
 
     r = prim.get("result", {})

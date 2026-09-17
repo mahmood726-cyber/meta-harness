@@ -7,6 +7,8 @@ primary pool is never modified here.
 """
 from __future__ import annotations
 
+from .topic_registry import topic_id
+
 from . import claimgraph as _claimgraph
 import re
 from typing import Any
@@ -144,7 +146,7 @@ def _source_value(slug: str, outcome: dict[str, Any], row: dict[str, Any],
         out["verify_basis"] = "committed object names only a different estimand; no target-estimand value was used"
         return out
 
-    if slug == "colchicine-postop-af" and key == "36286314":
+    if slug == (topic_id('postoperative_af')) and key == "36286314":
         m = re.search(
             r"final analysis included (?P<total>\d+) study subjects: (?P<n1>\d+) in the colchicine group "
             r"and (?P<n2>\d+) in the placebo group\. POAF was observed in (?P<ai>\d+).*? vs\. (?P<ci>\d+)",
@@ -160,13 +162,13 @@ def _source_value(slug: str, outcome: dict[str, Any], row: dict[str, Any],
                 "ci": int(m.group("ci")),
                 "n2i": int(m.group("n2")),
                 "scale": outcome.get("estimand") or "RR",
-                "source_ref": "cache/colchicine-postop-af/records.json#36286314.abstract",
+                "source_ref": ('cache/' + topic_id('postoperative_af') + '/records.json#36286314.abstract'),
                 "source_span": _span(text, "final analysis included", "POAF was observed"),
                 "verify_basis": "arm counts present in committed abstract",
             })
             return out
 
-    if slug == "colchicine-postop-af" and key == "22090167":
+    if slug == (topic_id('postoperative_af')) and key == "22090167":
         if "12.0% versus 22.0%" in text and "336 patients" in text:
             out.update({
                 "value_status": IN_COMMITTED_SOURCE,
@@ -176,7 +178,7 @@ def _source_value(slug: str, outcome: dict[str, Any], row: dict[str, Any],
                 "ci": 37,
                 "n2i": 167,
                 "scale": outcome.get("estimand") or "RR",
-                "source_ref": "cache/colchicine-postop-af/records.json#22090167.abstract",
+                "source_ref": ('cache/' + topic_id('postoperative_af') + '/records.json#22090167.abstract'),
                 "source_span": _span(text, "336 patients", "12.0% versus 22.0%"),
                 "verify_basis": "counts reconstructed from committed abstract percentages and total substudy denominator",
             })
@@ -229,7 +231,7 @@ def build(review: dict[str, Any], signals: dict[str, Any],
     if not primary:
         return
     absent_ids = {_clean_id(t.get("id")) for t in (primary.get("declared_absent_trials") or [])}
-    colchicine_plant = review.get("slug") == "colchicine-postop-af" and {"36286314", "22090167"} <= absent_ids
+    colchicine_plant = review.get("slug") == (topic_id('postoperative_af')) and {"36286314", "22090167"} <= absent_ids
     if not signals.get("known_eligible_missing") and not colchicine_plant:
         return
     candidates = _missing_candidates(review, signals)
@@ -273,7 +275,7 @@ def build(review: dict[str, Any], signals: dict[str, Any],
         "label": "SENSITIVITY",
         "rows": rows,
     }
-    if review.get("slug") == "glp1-ra-mace-t2d":
+    if review.get("slug") == (topic_id('incretin_cardiovascular')):
         panel["components"] = "CV_DEATH | NONFATAL_MI | NONFATAL_STROKE"
     if computable and base_studies:
         combined_studies = base_studies + [_study_from_trial(r, scale) for r in computable]

@@ -7,6 +7,8 @@ open eligibility universe was tested.
 """
 from __future__ import annotations
 
+from .topic_registry import topic_id
+
 import json
 import os
 import re
@@ -30,7 +32,7 @@ NOAC_REQUIRED_RENDER = (
 )
 
 REACH_MISSES = {
-    "doac-vte-recurrence": [
+    (topic_id('vte_anticoagulation')): [
         {
             "row_type": "REACH_MISS",
             "trial": "Botticelli-DVT",
@@ -53,7 +55,7 @@ REACH_MISSES = {
             "reason": "audit-named eligible acute DVT DOAC-vs-VKA dose-ranging trial absent from retrieval ledger",
         },
     ],
-    "noac-vs-warfarin-af-stroke": [
+    (topic_id('af_anticoagulation')): [
         {
             "row_type": "REACH_MISS",
             "trial": "J-ROCKET AF",
@@ -76,7 +78,7 @@ REACH_MISSES = {
             "reason": "audit-named dabigatran AF dose-ranging trial absent from retrieval ledger",
         },
     ],
-    "metformin-pcos-ovulation": [
+    (topic_id('metformin_ovulation')): [
         {
             "row_type": "REACH_MISS",
             "trial": "Nestler 1998",
@@ -85,7 +87,7 @@ REACH_MISSES = {
             "reason": "audit-named eligible PCOS metformin trial absent from retrieval ledger",
         },
     ],
-    "colchicine-postop-af": [
+    (topic_id('postoperative_af')): [
         {
             "row_type": "REACH_MISS",
             "trial": "Sarzaeem 2014",
@@ -481,9 +483,9 @@ def _git_log_for_protocol(root: Path, slug: str) -> list[str]:
 
 
 def _short_changed(slug: str, label: str | None, body: str) -> str:
-    if slug == "noac-vs-warfarin-af-stroke":
+    if slug == (topic_id('af_anticoagulation')):
         return "dose/analysis selection rule changed the estimand to standard-dose DOAC-vs-warfarin"
-    if slug == "spironolactone-hfref-mortality":
+    if slug == (topic_id('spironolactone_heart_failure')):
         return "identifier scope widened from single-agent spironolactone to steroidal MRA class"
     clean = re.sub(r"\s+", " ", body).strip()
     return label or clean[:220]
@@ -559,7 +561,7 @@ def posthoc_amendment_sweep(root: str | os.PathLike[str] | None = None) -> dict[
                 "changed": _short_changed(slug, label, body),
                 "git_log_protocol": _git_log_for_protocol(base, slug),
             }
-            if slug == "noac-vs-warfarin-af-stroke":
+            if slug == (topic_id('af_anticoagulation')):
                 row["required_render"] = NOAC_REQUIRED_RENDER
                 row["standard_dose_result"] = _standard_dose_result(review)
                 row["all_dose_alternative"] = _noac_lower_dose_status(cache)

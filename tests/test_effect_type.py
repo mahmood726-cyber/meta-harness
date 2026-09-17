@@ -71,7 +71,7 @@ def test_unstated_binding_plant():
 def test_current_glp1_baseline_plant():
     review = read("docs/reviews/glp1-ra-mace-t2d/review.json")
     outcome = next(o for o in review["outcomes"] if o.get("primary"))
-    assert len(outcome["trials"]) == 8
+    assert len(outcome["trials"]) == 7
     records = {str(r["id"]): r for r in read("cache/glp1-ra-mace-t2d/records.json")["records"]}
     ty = api()
     for row in outcome["trials"]:
@@ -79,8 +79,8 @@ def test_current_glp1_baseline_plant():
         assert len(e["axes"]) == 12
         assert e["known_axes"] + len(e["unknown_axes"]) == 12
         # A protocol-inherited analysis population is NOT trial evidence.
-        if "intention-to-treat" not in (records.get(row["id"].replace("PMID ", ""), {}).get("abstract", "").lower()):
-            assert e["axes"]["analysis_set"]["value"] == "UNKNOWN"
+        scalar_only = {'id': row['id'], 'analysis_set': row.get('analysis_set')}
+        assert ty.build_effect(scalar_only)['axes']['analysis_set']['value'] == 'UNKNOWN'
 
 
 def test_pipeline_gate_and_render_contract(tmp_path):

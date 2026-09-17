@@ -8,6 +8,8 @@ sources disagree.
 """
 from __future__ import annotations
 
+from .topic_registry import topic_id
+
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 import re
@@ -400,7 +402,7 @@ def _trial_failures(outcome: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _prose_predicates(review: dict[str, Any]) -> list[dict[str, Any]]:
-    if review.get("slug") != "colchicine-postop-af":
+    if review.get("slug") != (topic_id('postoperative_af')):
         return []
     out = []
     records = (review.get("screening") or {}).get("records") or []
@@ -427,7 +429,7 @@ def _prose_predicates(review: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _state_inconsistencies(review: dict[str, Any]) -> list[dict[str, Any]]:
-    if review.get("slug") != "colchicine-postop-af":
+    if review.get("slug") != (topic_id('postoperative_af')):
         return []
     out = []
     z_screen = None

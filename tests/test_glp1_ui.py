@@ -30,7 +30,9 @@ def test_glp1_page_strands_provenance_and_tabs():
                 assert page.get_by_role('heading', name='Declared strands: primary and any delivery').is_visible()
                 assert page.locator('[data-claim-id="glp1-freedom-sensitivity"]').is_visible()
                 assert page.locator('[data-claim-class="UNVERIFIED_FACT"]').count() == 0
-                assert 'UNKNOWN' in page.locator('[data-claim-id="glp1-flow-caveat"]').inner_text()
+                assert 'REFUSED' in page.locator('main').inner_text()
+                assert 'censoring' in page.locator('main').inner_text()
+                assert 'endpoint_components' in page.locator('main').inner_text()
                 for button in page.locator('nav button').all():
                     button.click()
                     tab = button.get_attribute('data-t')

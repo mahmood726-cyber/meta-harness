@@ -6,6 +6,8 @@ into an auditable object.  It does not change pooling arithmetic.
 """
 from __future__ import annotations
 
+from .topic_registry import topic_id
+
 from collections import Counter, defaultdict
 import json
 import os
@@ -57,7 +59,7 @@ def _is_metformin(slug: str | None, o: dict[str, Any]) -> bool:
 
 def _is_hf_hospitalization(slug: str | None, o: dict[str, Any]) -> bool:
     text = " ".join([slug or "", o.get("name") or ""]).lower()
-    return "sglt2-primary-prevention-hf" in text or "hospitalization for heart failure" in text
+    return (topic_id('sglt2_primary_prevention')) in text or "hospitalization for heart failure" in text
 
 
 def _map_sglt2_component(c: str) -> str | None:
@@ -326,7 +328,7 @@ def diagnose(
     ck = compat_key or o.get("compat_key") or {}
     ec = o.get("endpoint_canonical") or endpoint_canonical(o, slug)
 
-    if _is_sglt2_ckd(slug, o) and _kidney_only_claim(o) and (_has_cv_death(ec) or slug == "sglt2-ckd-progression"):
+    if _is_sglt2_ckd(slug, o) and _kidney_only_claim(o) and (_has_cv_death(ec) or slug == (topic_id('sglt2_renal'))):
         violations.append({
             "code": "KEY_OVER_CLAIMS",
             "dimension": "endpoint",

@@ -13,6 +13,8 @@ which page is the harness's). Both the harness page and the comparator benchmark
 rendered by this same function so a judge cannot tell them apart by structure.
 """
 from __future__ import annotations
+
+from .topic_registry import topic_id
 import collections
 import html
 import json
@@ -908,7 +910,7 @@ def _search(r, neutral):
                  "was never in the known set is not in the denominator, so a high value does <strong>not</strong> "
                  "mean the search is complete ? external audits found eligible trials (J-EMPHASIS-HF, an "
                  "eplerenone trial, for the MRA topic published under the identifier "
-                 "spironolactone-hfref-mortality, PHILO for ticagrelor) entirely absent precisely because they were never in "
+                 '' + topic_id('spironolactone_heart_failure') + ', PHILO for ticagrelor) entirely absent precisely because they were never in '
                  "a known set. True recall needs an INDEPENDENTLY-GENERATED reference universe (concept query "
                  "+ registry enumeration, not the seed list); that rebuild is in progress. Recovery is also "
                  "search REACH, not inclusion — whether a recovered trial is eligible/poolable is the screen's "
@@ -1505,7 +1507,10 @@ def typed_effects_html(o):
             b = f["basis"]
             cls = ("span" if b.get("span") else "rule") if known(f) else "UNKNOWN"
             basis = b.get("span") or b.get("rule_id") or b.get("absence_code")
-            cells.append(f'<td class="{cls}">{_e(f["value"])}<br>{cls}: {_e(basis)}<br>{_e(b.get("source"))}</td>')
+            value = f['value']
+            if isinstance(value, dict):
+                value = json.dumps(value, ensure_ascii=False, sort_keys=True)
+            cells.append(f'<td class="{cls}">{_e(value)}<br>{cls}: {_e(basis)}<br>{_e(b.get("source"))}</td>')
         rows.append(f"<tr><th>{n}. {_e(axis)}</th>{''.join(cells)}</tr>")
     verdicts = "".join(f"<li>{_e(e['trial'])}: {_e(e.get('unification', {}).get('status'))} — "
                        f"{_e(e.get('unification', {}).get('reason', ''))} "
@@ -2745,9 +2750,9 @@ def render_page(review: dict, neutral: bool = False) -> str:
     tabs_spec = [(tid, lbl) for tid, lbl in TABS if not (neutral and tid in NEUTRAL_DROP)]
     nav = "".join(f'<button data-t="{tid}" onclick="show(\'{tid}\')">{_e(lbl)}</button>' for tid, lbl in tabs_spec)
     body = ""
-    if review.get('slug') == 'glp1-ra-mace-t2d' and review.get('strands'):
-        from .glp1 import render as render_glp1
-        body = render_glp1(review)
+    if (review.get('strands') or {}).get('generated_from_declarations'):
+        from .strands import render as render_strands
+        body = render_strands(review)
     for tid, lbl in tabs_spec:
         body += (f'<section class="tab" id="tab-{tid}">'
                  f'<h3 class="tabname">{_e(lbl)}</h3>{_R[tid](review, neutral)}</section>')
@@ -2775,6 +2780,6 @@ def render_page(review: dict, neutral: bool = False) -> str:
             f"<nav>{nav}</nav><main>{body}</main><script>{_JS}</script></body></html>")
     # FDA verbatim source objects retain CRLF. HTML display uses LF so readers
     # that apply universal-newline decoding reproduce exactly the served bytes.
-    if review.get('slug') == 'glp1-ra-mace-t2d':
+    if (review.get('strands') or {}).get('generated_from_declarations'):
         return re.sub(r'[ \t]+\n', '\n', rendered_html.replace('\r\n', '\n'))
     return rendered_html

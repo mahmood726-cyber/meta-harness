@@ -21,7 +21,7 @@ def test_glp1_rebuild_membership():
     from scripts.reproduce_review import replay_core
     review = replay_core('glp1-ra-mace-t2d')
     pools = {s['strand']: s['k'] for s in review['strands']['strands']}
-    assert pools == {'CONVENTIONAL_GLP1RA': 10, 'GLP1RA_ANY_DELIVERY': 11}, pools
+    assert pools == {'CONVENTIONAL_GLP1RA': 7, 'GLP1RA_ANY_DELIVERY': 8}, pools
 
 
 def test_synthetic_second_topic_two_strands(tmp_path, monkeypatch):

@@ -23,6 +23,7 @@ anti-drift prose guard stays satisfied when rendered like _error_coverage_sectio
 """
 from __future__ import annotations
 
+
 from . import k2 as k2_mod
 
 
@@ -372,7 +373,7 @@ def grade(review, ghost=None):
         },
         "downgrades": downgrades,
         "conservative_downgrades_pending_human_judgement": conservative,
-        "certainty": ('provisional' if review.get('slug') == 'glp1-ra-mace-t2d' and unassessed else CERT[idx]),
+        "certainty": ('provisional' if (review.get('strands') or {}).get('generated_from_declarations') and unassessed else CERT[idx]),
         "certainty_capped_by_rob_coverage": capped,
         "certainty_capped_single_trial": single_trial_capped,
         "certainty_capped_d3_unassessed": d3_capped,

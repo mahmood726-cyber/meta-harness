@@ -337,11 +337,17 @@ def load_coercions(path):
     return data
 
 
-def persist(path, outcomes):
+def persist(path, outcomes, strands=None):
     """Write derived type artefacts only; never author a coercion decision."""
     data = {"schema_version": 1, "outcomes": [
         {"name": o["name"], "target": o["effect_type_target"], "effects": o["effect_types"]}
         for o in outcomes]}
+    if strands is not None:
+        data['strands'] = {"primary_strand": strands['primary_strand'],
+                           "effects": strands['additional_effect_types'],
+                           "decisions": [{"id": s['strand'], "refused": s['refused'],
+                                          "members": [r['effect_type_id'] for r in s['members']]}
+                                         for s in strands['strands']]}
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")

@@ -4,6 +4,8 @@ Scans docs/reviews/*/manifest.json and writes docs/index.html. Deterministic:
 reviews are sorted by slug. The front page states what this surface is and is not.
 """
 from __future__ import annotations
+
+from .topic_registry import topic_id
 import glob
 import html
 import json
@@ -866,7 +868,7 @@ def _prose_derived_numerals(docs_dir: str) -> set:
     """Live numerals the banners legitimately cite, derived from the objects (semaglutide's k/MD/CI and the
     three continuous parity k's), so they are accounted rather than whitelisted."""
     out = set()
-    p = os.path.join(docs_dir, "reviews", "semaglutide-obesity-weight", "review.json")
+    p = os.path.join(docs_dir, "reviews", '' + topic_id('obesity_weight') + '', "review.json")
     if os.path.exists(p):
         try:
             res = next((o["result"] for o in json.load(open(p, encoding="utf-8")).get("outcomes", [])
@@ -1044,7 +1046,7 @@ def _continuous_section(docs_dir: str) -> str:
     what the timepoint guard removed (static), and Week-44/Week-68 describe fixed trial designs."""
     k = md = lo = hi = None
     refused = None
-    p = os.path.join(docs_dir, "reviews", "semaglutide-obesity-weight", "review.json")
+    p = os.path.join(docs_dir, "reviews", '' + topic_id('obesity_weight') + '', "review.json")
     if os.path.exists(p):
         try:
             rev = json.load(open(p, encoding="utf-8"))
@@ -1218,7 +1220,7 @@ def build_index(docs_dir: str) -> str:
                "lower it &mdash; so an all-up direction is the expected signature of removing bad downgrades, "
                "not of inflating good ones. Every raised rating was checked individually against its evidence "
                "before shipping, and every GENUINE downgrade was retained: the MRA topic (identifier "
-               "spironolactone-hfref-mortality) keeps its imprecision "
+               '' + topic_id('spironolactone_heart_failure') + ') keeps its imprecision '
                "downgrade (a wide interval), and omega-3 keeps its risk-of-bias downgrade (a trial with real "
                "between-arm differential attrition). A fix that raises our own confidence is held to a higher "
                "bar than one that lowers it, precisely so &lsquo;we fixed a bug&rsquo; can never quietly become "
