@@ -1,10 +1,10 @@
-# RESUME_STATE — meta-harness glp1 programme (refreshed 2026-09-17 21:17 local; refresh on every landing or lane finish)
+# RESUME_STATE — meta-harness glp1 programme (refreshed 2026-09-17 23:15 local; refresh on every landing or lane finish)
 
 Every claim is marked MEASURED (read from git/ls-remote/disk at the time stamp), INFERRED, or CLAIMED. A restarting session should trust `git ls-remote https://github.com/mahmood726-cyber/meta-harness.git <ref>` over anything here.
 
 ## 0. Layout — NOT linked worktrees (MEASURED)
 `C:\meta-harness` (branch `search-v2-engine`, HEAD aa8ed28a, its `refs/remotes/origin/main` is STALE) is only the shared object store lane clones are made from (`git clone -s`); nobody edits it. The active clones (each a separate `.git`, all with `origin` = the GitHub URL — check `git remote -v`, four clones today had `origin` = a local path):
-- `C:\mh-int` — INTEGRATION clone, branch `fix/phase1-integration`, hooksPath `.githooks` (the pre-commit hook = `scripts/verify_all.py`, 40–75 min). HEAD 3cf73885 = origin/main. Landings are committed here, pushed, CI-by-SHA, then `<sha>:main`.
+- `C:\mh-int` — INTEGRATION clone, branch `fix/phase1-integration`, hooksPath `.githooks` (the pre-commit hook = `scripts/verify_all.py`, 40–75 min). HEAD 0f98038c = origin/main. Landings are committed here, pushed, CI-by-SHA, then `<sha>:main`.
 - `C:\mh-base` — HANDOVER clone, branch `handover-2026-09-16` (875ac4ef pushed). Holds `outputs/handover/*` (briefs, lane reports, adjudications, held FDA PDFs, sealed Gemini run, review pack, proof board `outputs/handover/lanes/GLP1_PROOF.md`), and THIS file.
 - `C:\mh-wip` — scratch clone for composing WIP lane bases (detached; HEAD 3cf73885).
 - `F:\claude-temp\mh-clean` — clean clone of origin/main used for landing proofs (served bytes vs clone bytes).
@@ -14,8 +14,8 @@ Every claim is marked MEASURED (read from git/ls-remote/disk at the time stamp),
 ## 1. Refs on GitHub (MEASURED by URL ls-remote 20:31)
 | ref | sha | meaning |
 |---|---|---|
-| main | 3cf73885 | LANDING 3 (served; manifest commit_sha 3cf73885; 32/32 pages byte-proved) |
-| fix/phase1-integration | 3cf73885 | integration branch |
+| main | 0f98038c | commit E = served-page corrections on top of landing 3 (served 23:12; manifest commit_sha 0f98038c; glp1 review_sha256 63f1acef; page bytes = clean clone) |
+| fix/phase1-integration | 0f98038c | integration branch |
 | handover-2026-09-16 | 875ac4ef | all handover artefacts |
 | refs/lanes/landing3-wip | f6f7b14c | pre-landing-3 merged tree (hook-refused) |
 | refs/lanes/landing3-wip-in2 | f5f81800 | + IN2 |
@@ -44,7 +44,7 @@ Local-only SHAs at 20:31: NONE that matter (every WIP base above is on GitHub). 
 | 7 | robustness envelope / fragility / decomposer | BUILT (GS 193,839) — computes on the candidate; NOT SERVED | landing4-candidate |
 | 8 | evidence certificate (release hash bundle) | BUILT (CERT 146,987 tok; `docs/reviews/<slug>/CERTIFICATE.json` with release_sha256; reproduce refuses a mutated held document; plants pre-fix; 10/11 on its tree) — lands as its own commit after E | C:\mh-r-CERT (172 files) |
 | 9 | every defect → regression test proven pre-fix | DONE for: FACT plant, HM plants, FIX1's nine audit findings, STR, TY2, TYPG; weak (module-absent) for TY/GS/FN(partial) | candidate |
-Served-page corrections (GRADE provisional; RoB NOT ASSESSED + low-only re-pool suppressed; heterogeneity STALE): FIX2 DONE (200,126 tok; plants fired pre-fix; 10/11 on its tree), integrated into C:\mh-int with 125 ratchet acks signed; commit E IN THE HOOK since 21:16 (`scratchpad/commit12.log`, chain `land9.sh` armed: push → CI by SHA → <sha>:main → served manifest). Acceptance: glp1 review_sha256 c51114c1 → 63f1acef16041eeb on FETCHED bytes. This lands FIRST, as its own commit; acceptance = glp1 review_sha256 ≠ ab6707c202c8ab5c and the three defects gone on FETCHED bytes.
+Served-page corrections (GRADE provisional; RoB NOT ASSESSED + low-only re-pool suppressed; heterogeneity STALE): FIX2 DONE (200,126 tok; plants fired pre-fix; 10/11 on its tree), integrated into C:\mh-int with 125 ratchet acks signed; commit E `0f98038c` ON MAIN AND SERVED (CI 35278779923 success; served manifest 0f98038c; measured on fetched bytes: 'moderate' 0, 'GRADE provisional' 6, low-only row 0, 'RoB-restricted re-pool suppressed' 2, STALE marks 12; review_sha256 63f1acef). This lands FIRST, as its own commit; acceptance = glp1 review_sha256 ≠ ab6707c202c8ab5c and the three defects gone on FETCHED bytes.
 
 ## 4. Lanes (tokens from each lane's `lane.log` tail; artefact = `C:\mh-r-<LANE>\LANE-<LANE>-REPORT.md`; MEASURED)
 IN 1,844,025 (18:37→00:17) · ST 546,003 · HM1 287,557 · HM2 261,333 · HM3 243,729 · CGX 159,012 · TY 142,503 · IN2 361,450 · GL 568,507 (09:57→11:00) · FN 327,201 · TYP1 198,920 · CGX2 170,723 · TY2 158,240 · TYP2 320,986 · TYP3 192,807 · IN3 326,123 (bad-base attempt 163,365 discarded) · TYPG 163,054 · GS 193,839 · CGX3A 182,766 · CGX3B 242,627 · CGX3C 252,346 · STR 213,980 · FNC 232,838 · PM 399,662 · CGX4 246,482 · AUD 160,867 (hostile audit: 9 confirmed) · FIX1 327,539 · IN5 182,865 · IN4 a1 80,159 / a2 168,647 (my over-strict rules) / a3 517,683 (18:39→20:22). Total ≈ 9.84 M.
@@ -72,3 +72,9 @@ Harvest a finished lane: `cd C:\mh-r-<L>; git status --short --untracked-files=a
 ## 7. Timing (MEASURED durations; INFERRED estimate)
 MEASURED: lanes take 45–105 min wall-clock (GL 63 min; FIX1 62; IN4 a3 103; HM lanes ~50; IN 5 h 40 was the 19-lane integration). A hook run = 40–75 min; CI = 8–15 min; Pages deploy = 12 min; one landing ≈ 1.5–2 h from commit to served bytes.
 INFERRED: (a) served-page corrections (FIX2 → my integration + ratchet acks → hook → CI → deploy): ~3 h from 20:30 → ~23:30 tonight if the hook passes first time. (b) Reviewable glp1 URL (candidate landed: all 11 limbs, FACT provenance on the page, strands, prose objects) — NOT tonight: blocked on the retrieved_utc contract decision + IN6's remaining refusals + ratchet signatures; realistic 18 Sep afternoon if the decision comes in the morning. Long pole: item 2/4 prose+FACT migration corpus-wide (the gate is live on every page).
+
+## 8. 23:15 additions
+- CMP (331,954 tok, `C:\mh-r-CMP`, 282 files): comparator panels + live overlap + 'independent corroboration' gate; PASS on its tree; to integrate onto E with CERT.
+- HRM (301,473 tok): item 10/12 shape right but re-labelled typed refusals as unresolved (27 pages refused) — NOT integrated; HRM2 running on 3cf73885 to redo without the semantic change.
+- IN6 still running on the landing-4 candidate (log 70+ MB).
+- Next landing (F): CERT + CMP (+ HRM2 when green) onto 0f98038c via transplant, retraction proof, ratchet acks, hook, chain.
