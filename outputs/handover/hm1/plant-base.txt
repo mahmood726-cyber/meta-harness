@@ -1,0 +1,24 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________________ test_hm1_plant ________________________________
+
+tmp_path = WindowsPath('C:/mh-r-HM1/.tmp/pytest-of-mahmo/pytest-0/test_hm1_plant0')
+
+    def test_hm1_plant(tmp_path):
+        spec = {"name": "Any adverse events", "keywords": ["adverse events"]}
+        records = {"fixture": {"abstract": "Adverse events were similar between groups."}}
+        outcome = {"name": spec["name"], "kind": "harm", "trials": [],
+                   "declared_absent_trials": [{"id": "fixture", "reason_code": "OUTCOME_NOT_IN_SOURCE"}],
+                   "result": {"present": False}}
+        harms.annotate_outcome(outcome, spec, [{"id": "fixture"}], records)
+        (tmp_path / "review.json").write_text(json.dumps({"outcomes": [outcome]}), encoding="utf-8")
+>       assert gate.check_harms_complete(str(tmp_path)) == []
+E       AssertionError: assert ['L1: HARMS_I...arm absence.'] == []
+E         
+E         Left contains one more item: 'L1: HARMS_INCOMPLETE -- Any adverse events: HARMS_INCOMPLETE -- 1 known reported outcome(s) unresolved (fixture) among 1 source-reporting trial(s); extracted k=0. The page must not render this as harm absence.'
+E         Use -v to get more diff
+
+tests\test_hm1_lane.py:14: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_hm1_lane.py::test_hm1_plant - AssertionError: assert ['L1: ...
+1 failed in 3.57s

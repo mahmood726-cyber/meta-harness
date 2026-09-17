@@ -748,7 +748,7 @@ def _grade_block(grade: dict[str, Any]) -> str:
     )
     return (
         "<div class='absent'><strong>Overall certainty (provisional): "
-        f"{_e(grade.get('certainty','').replace('_',' '))}</strong> "
+        f"{claimgraph.certainty_render({'grade': grade})}</strong> "
         f"(starting from <em>high</em> for randomized trials, {grade.get('downgrades',0)} "
         f"downgrade(s)).{cap}"
         "<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias "

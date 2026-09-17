@@ -266,10 +266,19 @@ def check_pooled_verified(review_dir):
     except (OSError, ValueError) as exc:
         return [f"L1: cannot read review.json: {exc}"]
     bad = []
+    provenance_bad = []
+    from pathlib import Path
+    directory = Path(review_dir).resolve()
+    root = next((p for p in directory.parents if (p / "cache").is_dir()), claimgraph.ROOT)
     for o in rev.get("outcomes", []) or []:
         for t in o.get("trials", []) or []:
+            status = claimgraph.verify_fact(t, root)
+            if not status["verified"]:
+                provenance_bad.append(f"UNVERIFIED_FACT {t.get('id')} in {o.get('name')!r}: {status['reason']}")
             if t.get("verified") not in ("verified", "verified_handchecked"):
                 bad.append(f"{t.get('id')} in {o.get('name')!r} (status={t.get('verified')!r})")
+    if provenance_bad:
+        return ["L1: " + reason for reason in provenance_bad]
     if bad:
         return [f"L1: pooled number(s) not verified against the committed source span — a page must not "
                 f"pool a number whose digits are not located in its source: {'; '.join(bad[:6])}"]
@@ -452,11 +461,24 @@ def check_claimgraph(review_dir):
         rev = json.load(open(p, encoding="utf-8"))
     except (OSError, ValueError) as exc:
         return [f"L1: cannot read review.json for claimgraph: {exc}"]
-    violations = claimgraph.check(rev)
+    violations = claimgraph.check(rev) + claimgraph.certainty_violations(rev)
     if violations:
         return ["L1: claimgraph violations remain (stale dependent result-bearing object): "
                 + json.dumps(violations[:6], ensure_ascii=False)]
     return []
+
+
+def check_typed_renderings(review_dir):
+    from pathlib import Path
+    directory = Path(review_dir)
+    try:
+        rev = json.loads((directory / "review.json").read_text(encoding="utf-8"))
+        rendered = (directory / "index.html").read_text(encoding="utf-8")
+        graph = claimgraph.review_graph(rev)
+        scan = claimgraph.scan_rendered(rendered, graph)
+    except (OSError, ValueError, TypeError) as exc:
+        return [f"L1: typed rendering registry cannot be verified: {exc}"]
+    return [f"L1: {v['code']} {v['claim_id']}: {v['detail']}" for v in scan['violations'] + graph.check() + claimgraph.legacy_scope_violations(rev, rendered)]
 
 
 def check_propositions(review_dir):
@@ -999,6 +1021,7 @@ def gate_page(review_dir):
                + check_fetch_complete(review_dir)
                + check_access_claim_supported(review_dir)
                + check_claimgraph(review_dir)
+               + check_typed_renderings(review_dir)
                + check_propositions(review_dir)
                + check_eligibility_chain(review_dir)
                + check_harms_complete(review_dir)

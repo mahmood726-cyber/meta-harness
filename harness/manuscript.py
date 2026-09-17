@@ -12,6 +12,7 @@ import html as _html
 
 from . import rob_sensitivity as _rob_sensitivity_mod
 from harness import identity as _identity_mod
+from . import claimgraph
 
 
 def _e(s):
@@ -345,19 +346,18 @@ def render(review, neutral: bool = False) -> str:
         f"<p><strong>Question.</strong> {_e(q)}</p>"
         f"<p><strong>Methods.</strong> This review is {reg_phrase}. {_search_phrase} "
         f"Records were screened by two independent rule screeners with adjudication ({n_screened} records "
-        f"assessed); every pooled number was extracted down a source ladder and verified against its "
-        f"committed source. (Deterministic replay establishes that the same committed cache produces the same "
+        f"assessed). {claimgraph.provenance_summary(review)} (Deterministic replay establishes that the same committed cache produces the same "
         f"page; it does not validate search completeness or extraction, and byte-for-byte reproduction from "
         f"the protocol SHA is not currently claimed — see Data availability.)</p>"
         f"<p><strong>Results.</strong> {result_sentence} "
-        + (f"{absent_phrase} were declared absent for this outcome (reported reason on each)."
+        + (claimgraph.membership_summary(prim)
            if n_absent else "")
         + "</p>"
         f"<p><strong>Certainty.</strong> "
         + (f"Overall GRADE certainty is <strong>not rateable</strong>: {_e(g.get('not_rateable_reason'))} "
            "No downgrade count or overall certainty is reported for an incoherent effect object."
            if _grade_not_rateable else
-            (f"Partial GRADE certainty was <strong>{_e(cert)}</strong> "
+            (f"{claimgraph.certainty_render(review)} "
              f"(from {g.get('downgrades', 0)} downgrade(s); {_pub_certainty_phrase}, "
              f"indirectness left to human judgement)." if cert else "Certainty was reported as signals."))
         + "</p>"
@@ -372,9 +372,7 @@ def render(review, neutral: bool = False) -> str:
         f"{reg_methods} Eligibility is by population, intervention, "
         "comparator and design only — never on whether a trial reported the outcome (non-reporters are "
         "declared absent, not screened out). Two independently implemented rule screeners ran with "
-        "adjudication. Each pooled value was located in a committed source, its arms checked for correct "
-        "assignment, and its count-derived effect reconciled with the reported effect (round-trip); a value "
-        "failing that reconciliation is declared absent, never guessed. Pooling used random effects "
+        f"adjudication. {claimgraph.provenance_summary(review)} Pooling used random effects "
         "(Paule-Mandel &tau;&sup2; with a Hartung-Knapp interval on t with k&minus;1 df; log scale for ratios).</p>"
     )
 

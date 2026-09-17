@@ -1243,7 +1243,10 @@ def _trial_inputs(o):
                     f"{_e(ec.get('ci'))}/{_e(ec.get('n2i'))}")
         # VERIFIED badge (rendered, not assumed): does this pooled number's digits appear in the
         # committed source? verified / verified (hand-checked, AACT-derived) / NOT YET.
-        vst = t.get("verified")
+        # A legacy verification label is not a located, digest-backed FACT.
+        # Keep the number visible, but let the graph determine its class mark.
+        fact_status = _claimgraph_mod.verify_fact(t)
+        vst = t.get("verified") if fact_status["verified"] else None
         if vst == "verified":
             src = "<span class='vok' title='" + _e(t.get("verify_basis", "")) + "'>✓ verified against source</span><br>" + _e(t.get("source"))
         elif vst == "verified_handchecked":
@@ -1252,6 +1255,7 @@ def _trial_inputs(o):
             src = "<span class='vno' title='" + _e(t.get("verify_basis", "")) + "'>⚠ NOT YET verified against source</span><br>" + _e(t.get("source"))
         else:
             src = _e(t.get("source"))
+        inp = _claimgraph_mod.fact_render(dict(t, scale=t.get("scale") or o.get("estimand"))) + "<br>" + inp
         cs = t.get("cross_source")
         if cs:
             bits = []
@@ -2600,7 +2604,7 @@ def _riskofbias(r, neutral):
           )
           grade_html = ("<h4>GRADE certainty (PROVISIONAL — partial, object-derived)</h4>"
                       "<div class='absent'><strong>Overall certainty (provisional): "
-                      f"{_e(g.get('certainty','').replace('_',' '))}</strong> "
+                      f"{_claimgraph_mod.certainty_render(r)}</strong> "
                       f"(starting from <em>high</em> for randomized trials, {g.get('downgrades',0)} "
                       "downgrade(s)).{}"
                       "<strong>PROVISIONAL:</strong> this is a machine-derived certainty — risk of bias "

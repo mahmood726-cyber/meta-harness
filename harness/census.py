@@ -320,6 +320,17 @@ def verify(review_dir: str, replay: Optional[Callable[[dict], dict]] = None) -> 
     _fail("served index.html sha matches manifest.html_sha256",
           sha256_text(served_html) == manifest.get("html_sha256"))
 
+    # Typed prose is an integrity contract, not a badge appended after replay.
+    try:
+        graph = claimgraph.review_graph(review)
+        scan = claimgraph.scan_rendered(served_html, graph)
+        violations = scan['violations'] + graph.check() + claimgraph.certainty_violations(review)
+        _fail("typed claim registry covers served prose and validates its objects", not violations,
+              f"{scan['with_object']} of {scan['rendered_units']} visible text units registered; "
+              f"{len(violations)} violations")
+    except (ValueError, TypeError, KeyError) as exc:
+        _fail("typed claim registry covers served prose and validates its objects", False, str(exc))
+
     # 3. Level B replay if provided
     if replay is not None:
         try:

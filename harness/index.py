@@ -14,21 +14,10 @@ from . import parity_relation
 
 _E = lambda x: html.escape("" if x is None else str(x), quote=True)
 
-_FRONT = """<div class="banner">
-<h2>What this is</h2>
-<p>A reproducible harness that builds meta-analyses from a committed protocol, and
-publishes each as a tabbed, auditable page. Every page here passed a two-limb gate:
-it reproduces from a fresh clone with zero census failures and its served analysis
-method equals its declared method; and it names a published open-access comparator
-with the trial-set overlap stated.</p>
-<h2>What this is not</h2>
-<p>It is <strong>not</strong> a claim of stronger evidence than the peer-reviewed
-comparators. The offer is <strong>greater auditability</strong>: every number is
-traceable to a committed source, every absence is declared rather than left blank,
-and any hand-edit breaks the gate. A page whose estimate matches its comparator on
-an identical trial set is arithmetic, not corroboration &mdash; so the overlap is
-stated on every page.</p>
-</div>"""
+_FRONT = """<div class="banner"><h2>Review index</h2>
+<p>Open a review to inspect its source provenance, analysis, limitations and comparator.</p>
+<p>Read the visible FACT / UNVERIFIED_FACT marks alongside the values.</p></div>"""
+
 
 _CSS = """body{font:15px/1.55 system-ui,Segoe UI,Arial,sans-serif;margin:0;color:#12232e;background:#f7f8fa}
 header{background:#12232e;color:#fff;padding:20px 22px}header h1{margin:0;font-size:21px}
@@ -384,29 +373,15 @@ def _gate_scorecard_section(docs_dir: str) -> str:
 
 
 def _verification_section(docs_dir: str) -> str:
-    """The strongest single integrity claim, gate-enforced: every pooled number on every page is
-    verified against its committed source span, and a gate limb refuses any page that pools a number
-    whose digits are not located in its source. Self-counting so the number cannot drift stale."""
-    n = ok = 0
-    for rp in glob.glob(os.path.join(docs_dir, "reviews", "*", "review.json")):
-        try:
-            rev = json.load(open(rp, encoding="utf-8"))
-        except (OSError, ValueError):
-            continue
-        for o in rev.get("outcomes", []) or []:
-            for t in o.get("trials", []) or []:
-                n += 1
-                if t.get("verified") in ("verified", "verified_handchecked"):
-                    ok += 1
-    if not n:
-        return ""
-    return (f"<div class='banner'><h2>Every pooled number is verified against its source "
-            f"(gate-enforced)</h2><p><strong>All {ok} of {n} pooled trial-outcome numbers</strong> across "
-            f"these pages have their digits located in the committed source span they cite (arm counts, "
-            f"effect+CI, or per-arm mean/SD). A publication-gate limb "
-            f"(<code>check_pooled_verified</code>) <strong>refuses any page that pools a number not found "
-            f"in its source</strong>, so this cannot silently stop being true. No published meta-analysis "
-            f"makes — or can be forced to keep — this claim about every one of its numbers.</p></div>")
+    """Re-verify held-document provenance; legacy labels cannot count."""
+    from . import claimgraph
+    combined = {"outcomes": []}
+    for rp in sorted(glob.glob(os.path.join(docs_dir, "reviews", "*", "review.json"))):
+        with open(rp, encoding="utf-8") as handle:
+            combined["outcomes"].extend(json.load(handle).get("outcomes") or [])
+    return ("<div class='banner'><h2>Pooled-number source provenance</h2><p>"
+            + claimgraph.provenance_summary(combined, os.path.dirname(os.path.abspath(docs_dir)))
+            + "</p></div>")
 
 
 def _error_coverage_section(docs_dir: str) -> str:

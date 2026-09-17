@@ -14,6 +14,9 @@ import hashlib
 import json
 import os
 import re
+from pathlib import Path
+import html
+import subprocess
 from typing import Any
 
 
@@ -571,3 +574,434 @@ def check(review: dict[str, Any], registries: dict[str, Any] | None = None) -> l
     violations.extend(_prose_predicate_false(review))
     violations.extend(_scan_dependents(review))
     return violations
+
+
+# Typed provenance extends the existing graph; it does not replace its version,
+# membership, predicate or signed-dispute checks.
+OBJECT_CLASSES = ("FACT", "TRANSFORMATION", "JUDGEMENT", "INTERPRETATION")
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def locate_span(text: str, quoted: str) -> str | None:
+    """Locate a whitespace-normalized quote and return the EXACT original slice.
+
+    PDF line wrapping is not silently removed from the provenance edge. The
+    returned value, including line breaks, must pass literal substring checking.
+    No punctuation, case, digits or words are normalized.
+    """
+    if not quoted or not quoted.strip():
+        return None
+    match = re.search(r"\s+".join(re.escape(w) for w in quoted.split()), text)
+    return match.group(0) if match else None
+
+
+def _held_path(root: Path, value: Any, *, document: bool = False) -> Path:
+    rel = Path(str(value or ""))
+    if not value or rel.is_absolute():
+        raise ValueError("provenance paths must be repository-relative")
+    path = (root / rel).resolve()
+    path.relative_to(root.resolve())
+    if document:
+        parts = path.relative_to(root.resolve()).parts
+        allowed = (len(parts) >= 4 and parts[0] == "cache" and parts[2] == "held")
+        allowed |= parts[:4] == ("outputs", "handover", "glp1_regulatory", "held")
+        if not allowed:
+            raise ValueError("document is not under an allowed held directory")
+    return path
+
+
+def _committed(root: Path, path: Path) -> bool:
+    """A matching local digest alone cannot establish committed provenance."""
+    rel = path.relative_to(root.resolve()).as_posix()
+    result = subprocess.run(["git", "-C", str(root), "show", f"HEAD:{rel}"],
+                            capture_output=True)
+    return result.returncode == 0 and result.stdout == path.read_bytes()
+
+
+def verify_fact(row: dict[str, Any], root: Path | str = ROOT) -> dict[str, Any]:
+    """Fail closed on absent, altered, uncommitted or unlocated evidence."""
+    root = Path(root).resolve()
+    evidence = _fact_evidence(row)
+    try:
+        digest = evidence.get("document_sha256")
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise ValueError("missing full document_sha256")
+        retrieved = evidence.get("retrieved_utc")
+        from datetime import datetime
+        if not isinstance(retrieved, str) or not retrieved.endswith("Z"):
+            raise ValueError("missing retrieved_utc in UTC")
+        datetime.fromisoformat(retrieved.replace("Z", "+00:00"))
+        document = _held_path(root, evidence.get("document_path"), document=True)
+        if hashlib.sha256(document.read_bytes()).hexdigest() != digest:
+            raise ValueError("held document digest mismatch")
+        extracted = _held_path(root, evidence.get("extracted_text"))
+        raw = extracted.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != evidence.get("extracted_text_sha256"):
+            raise ValueError("extracted text digest mismatch")
+        span = evidence.get("span")
+        if not isinstance(span, str) or not span.strip() or span not in raw.decode("utf-8"):
+            raise ValueError("span is not located verbatim in extracted text")
+        if not _committed(root, document) or not _committed(root, extracted):
+            raise ValueError("held document or extraction differs from committed bytes")
+        # Verify the displayed effect and bounds are in this span, not merely in
+        # some unrelated sentence elsewhere in the held document.
+        numbers = {float(n) for n in re.findall(r"(?<![\w.])-?\d+(?:\.\d+)?(?!\w|\.\d)", span)}
+        for field in ("effect", "ci_low", "ci_high", "ai", "ci", "n1i", "n2i", "e1i", "e2i", "t1i", "t2i", "mean1", "mean2", "sd1", "sd2", "nc1", "nc2"):
+            value = row.get(field)
+            if isinstance(value, (float, int)) and not isinstance(value, bool) and float(value) not in numbers:
+                raise ValueError(f"{field}={value} is not in located span")
+        return {"verified": True, "class": "FACT", "document_sha256": digest,
+                "retrieved_utc": retrieved, "span": span}
+    except (OSError, ValueError, TypeError, AttributeError) as exc:
+        return {"verified": False, "class": "UNVERIFIED_FACT", "reason": str(exc)}
+
+
+def regulatory_fact(source: dict[str, Any], decision: dict[str, Any], root=ROOT) -> dict[str, Any]:
+    """Adapt the held source record, retaining exact PDF-extraction whitespace."""
+    held = source.get("held") or {}
+    text = _held_path(Path(root), held.get("extracted_text")).read_bytes().decode("utf-8")
+    effect = decision.get("effect") or {}
+    return {"id": decision.get("trial_key"), "effect": effect.get("estimate"),
+            "ci_low": effect.get("ci_low"), "ci_high": effect.get("ci_high"),
+            "scale": effect.get("scale"), "source": decision.get("span"),
+            "provenance": {"document_sha256": source.get("document_sha256"),
+                "retrieved_utc": source.get("fetched_utc"),
+                "document_path": held.get("held_in_tree"),
+                "extracted_text": held.get("extracted_text"),
+                "extracted_text_sha256": source.get("extracted_text_sha256"),
+                "span": locate_span(text, decision.get("span") or "")}}
+
+
+class ClaimGraph:
+    """Four typed objects with explicit dependency edges and fail-closed rendering."""
+
+    def __init__(self, root=ROOT):
+        self.root = Path(root)
+        self.objects: dict[str, dict[str, Any]] = {}
+        self.invalidated: set[str] = set()
+
+    def add(self, claim_id: str, object_class: str, **fields) -> str:
+        if object_class not in OBJECT_CLASSES:
+            raise ValueError(f"unknown object class {object_class}")
+        if claim_id in self.objects:
+            raise ValueError(f"duplicate claim id {claim_id}")
+        self.objects[claim_id] = {"claim_id": claim_id, "class": object_class, **fields}
+        return claim_id
+
+    def invalidate(self, changed_document_sha: str) -> list[str]:
+        affected = {cid for cid, obj in self.objects.items()
+                    if _fact_evidence(obj.get("row", {})).get(
+                        "document_sha256") == changed_document_sha}
+        while True:
+            next_set = affected | {cid for cid, obj in self.objects.items()
+                                   if set(obj.get("depends_on") or []) & affected}
+            if next_set == affected:
+                break
+            affected = next_set
+        self.invalidated.update(affected)
+        return sorted(affected)
+
+    def check(self) -> list[dict[str, Any]]:
+        violations = []
+        def cyclic(start, node, seen):
+            for dep in self.objects.get(node, {}).get("depends_on") or []:
+                if dep == start or (dep not in seen and cyclic(start, dep, seen | {dep})):
+                    return True
+            return False
+        for cid, obj in self.objects.items():
+            code, detail = None, ""
+            if cid in self.invalidated:
+                code = "STALE_DEPENDENT"
+            elif obj["class"] == "FACT":
+                verified = verify_fact(obj.get("row") or {}, self.root)
+                if not verified["verified"]:
+                    code, detail = "UNVERIFIED_FACT", verified["reason"]
+            elif obj["class"] == "TRANSFORMATION":
+                try:
+                    actual = self.recompute(cid)
+                    if actual != obj.get("value"):
+                        code = "TRANSFORMATION_MISMATCH"
+                except (ValueError, KeyError, TypeError, ZeroDivisionError, RecursionError):
+                    code = "UNRECOMPUTABLE_TRANSFORMATION"
+            elif obj["class"] == "JUDGEMENT":
+                basis = obj.get("basis")
+                adjudication = obj.get("adjudication")
+                if not basis:
+                    code = "JUDGEMENT_WITHOUT_BASIS"
+                elif adjudication not in ("RULE", "MODEL_SPAN_VERIFIED", "OWED", "HUMAN"):
+                    code = "INVALID_ADJUDICATION"
+                elif adjudication == "HUMAN" and not (obj.get("who") and obj.get("date")):
+                    code = "INVALID_ADJUDICATION"
+                elif adjudication == "RULE" and not (isinstance(basis, dict) and basis.get("rule_id")):
+                    code = "INVALID_ADJUDICATION"
+                elif adjudication == "MODEL_SPAN_VERIFIED" and not all(
+                        obj.get(k) for k in ("prompt_hash", "model_pin", "cached_response_sha", "span")):
+                    code = "INVALID_ADJUDICATION"
+            elif obj["class"] == "INTERPRETATION":
+                alternatives = obj.get("alternatives") or []
+                if not any(str(a).strip() and a != obj.get("text") for a in alternatives):
+                    code = "INTERPRETATION_WITHOUT_ALTERNATIVE"
+            if any(dep not in self.objects for dep in obj.get("depends_on") or []):
+                code = "MISSING_DEPENDENCY"
+            if cyclic(cid, cid, {cid}):
+                code = "CYCLIC_DEPENDENCY"
+            if code:
+                violations.append(_violation(code, obj["class"], cid, detail))
+        return violations
+
+    def recompute(self, claim_id):
+        import math
+        obj = self.objects[claim_id]
+        operation = obj.get("operation")
+        inputs = obj.get("inputs")
+        if operation == "fact_coverage":
+            refs = obj.get("input_refs") or []
+            if set(refs) != set(obj.get("depends_on") or []):
+                raise ValueError("coverage dependency mismatch")
+            states = [verify_fact(self.objects[ref]["row"], self.root)["class"] for ref in refs]
+            return {"FACT": states.count("FACT"), "UNVERIFIED_FACT": states.count("UNVERIFIED_FACT"), "total": len(states)}
+        if operation == "count":
+            return len(inputs)
+        if operation == "sum":
+            return sum(inputs)
+        if operation == "log":
+            return math.log(inputs)
+        if operation == "state_counts":
+            return {state: inputs.count(state) for state in sorted(set(inputs))}
+        if operation == "certainty":
+            domains = inputs["domains"]
+            if any(d.get("assessed") is not True for d in domains):
+                return "provisional"
+            return ("very low", "low", "moderate", "high")[max(0, inputs["start"] - sum(
+                d["downgrades"] for d in domains))]
+        raise ValueError(f"unsupported transformation {operation}")
+
+    def render(self, claim_id: str) -> str:
+        if claim_id not in self.objects:
+            raise ValueError(f"SENTENCE_WITHOUT_OBJECT: {claim_id}")
+        obj = self.objects[claim_id]
+        violations = {v["claim_id"]: v for v in self.check()}
+        mark = obj["class"]
+        if claim_id in violations:
+            code = violations[claim_id]["code"]
+            mark = "UNVERIFIED_FACT" if code == "UNVERIFIED_FACT" else "UNRENDERABLE"
+        text = obj.get("text", "")
+        if obj["class"] == "FACT":
+            row = obj.get("row") or {}
+            if row.get("effect") is not None:
+                text = f"{row.get('id', claim_id)}: {row.get('scale', '')} {row.get('effect')} ({row.get('ci_low')}, {row.get('ci_high')})."
+            else:
+                values = {k: row[k] for k in ("ai", "n1i", "ci", "n2i", "e1i", "t1i", "e2i", "t2i", "mean1", "sd1", "nc1", "mean2", "sd2", "nc2") if k in row}
+                text = f"{row.get('id', claim_id)}: {_canonical(values)}."
+        if mark == "UNRENDERABLE":
+            text = violations[claim_id]["code"]
+        elif obj["class"] == "TRANSFORMATION":
+            value = self.recompute(claim_id)
+            if obj.get("operation") == "fact_coverage":
+                text = f"Source provenance: {value['FACT']} FACT of {value['total']} trial-outcome rows; {value['UNVERIFIED_FACT']} UNVERIFIED_FACT of {value['total']}."
+            else:
+                text = f"{obj.get('label', claim_id)}: {value}."
+        elif obj["class"] == "INTERPRETATION":
+            text += " Alternative: " + " Alternative: ".join(obj.get("alternatives") or [])
+        elif obj["class"] == "JUDGEMENT":
+            text = f"{text} [adjudication: {obj.get('adjudication')}]"
+        return (f'<span data-claim-id="{html.escape(claim_id, quote=True)}" '
+                f'data-claim-class="{mark}"><strong>[{mark}]</strong> {html.escape(str(text))}</span>')
+
+
+def fact_render(row: dict[str, Any], root=ROOT) -> str:
+    graph = ClaimGraph(root)
+    cid = graph.add("fact-" + _sha(row)[:16], "FACT", row=row)
+    return graph.render(cid)
+
+
+def _fact_evidence(row):
+    return row.get("provenance") if isinstance(row.get("provenance"), dict) else row
+
+
+def certainty_object(grade: dict[str, Any]) -> dict[str, Any]:
+    names = ("risk_of_bias", "inconsistency", "imprecision", "indirectness", "publication_bias")
+    domains = grade.get("domains") or {}
+    inputs = {"start": ("very low", "low", "moderate", "high").index(grade.get("start", "high")),
+              "domains": [{"assessed": domains.get(name, {}).get("assessed") is True,
+                           "downgrades": domains.get(name, {}).get("downgrade", 0)} for name in names]}
+    if any(not d["assessed"] for d in inputs["domains"]):
+        value = "provisional"
+    else:
+        value = ("very low", "low", "moderate", "high")[max(0, inputs["start"] - sum(d["downgrades"] for d in inputs["domains"]))]
+    return {"operation": "certainty", "inputs": inputs, "value": value, "label": "GRADE certainty"}
+
+
+def certainty_render(review):
+    graph = ClaimGraph()
+    cid = graph.add("grade-certainty", "TRANSFORMATION", **certainty_object(review.get("grade") or {}))
+    return graph.render(cid)
+
+
+def certainty_violations(review):
+    grade = review.get("grade") or {}
+    if not grade or grade.get("certainty") == "not_rateable":
+        return []
+    try:
+        obj = certainty_object(grade)
+        expected = obj["value"]
+        total = sum(d["downgrades"] for d in obj["inputs"]["domains"])
+        if any(not isinstance(d["downgrades"], int) or isinstance(d["downgrades"], bool) or not 0 <= d["downgrades"] <= 3 for d in obj["inputs"]["domains"]):
+            raise ValueError("invalid downgrade")
+    except (ValueError, TypeError, IndexError):
+        return [_violation("CERTAINTY_ARITHMETIC_MISMATCH", "TRANSFORMATION", "grade-certainty", "invalid GRADE inputs")]
+    if grade.get("certainty", "").replace("_", " ") != expected or grade.get("downgrades") != total:
+        return [_violation("CERTAINTY_ARITHMETIC_MISMATCH", "TRANSFORMATION", "grade-certainty",
+                           f"stored {grade.get('certainty')} / {grade.get('downgrades')} downgrades; expected {expected} / {total}")]
+    return []
+
+
+def review_graph(review, root=ROOT):
+    """Registry of migrated objects. Unmigrated prose remains scan debt."""
+    graph = ClaimGraph(root)
+    refs = []
+    for outcome in review.get("outcomes") or []:
+        state_id, state_obj = membership_object(outcome)
+        if state_id not in graph.objects:
+            graph.add(state_id, "TRANSFORMATION", **state_obj)
+        for trial in outcome.get("trials") or []:
+            row = dict(trial, scale=trial.get("scale") or outcome.get("estimand"))
+            cid = "fact-" + _sha(row)[:16]
+            if cid not in graph.objects:
+                graph.add(cid, "FACT", row=row)
+            refs.append(cid)
+    graph.add("fact-coverage", "TRANSFORMATION", operation="fact_coverage", input_refs=refs,
+              depends_on=sorted(set(refs)), value=None)
+    graph.objects['fact-coverage']['value'] = graph.recompute('fact-coverage')
+    if review.get("grade"):
+        graph.add("grade-certainty", "TRANSFORMATION", **certainty_object(review["grade"]))
+    for obj in (review.get("claimgraph") or {}).get("typed_objects") or []:
+        fields = {k: v for k, v in obj.items() if k not in ("claim_id", "class")}
+        graph.add(obj["claim_id"], obj["class"], **fields)
+    return graph
+
+
+def provenance_summary(review, root=ROOT):
+    return review_graph(review, root).render('fact-coverage')
+
+
+def membership_object(outcome):
+    rows = outcome.get("declared_absent_trials") or []
+    states = [row.get("state") or row.get("reason_code") or "UNCLASSIFIED" for row in rows]
+    values = {state: states.count(state) for state in sorted(set(states))}
+    cid = "membership-states-" + _sha({"outcome": outcome.get("name"), "rows": rows})[:16]
+    return cid, {"operation": "state_counts", "inputs": states, "value": values,
+                 "label": "Unpooled per-item states"}
+
+
+def membership_summary(outcome):
+    graph = ClaimGraph()
+    cid, obj = membership_object(outcome)
+    graph.add(cid, "TRANSFORMATION", **obj)
+    return graph.render(cid)
+
+
+def legacy_scope_violations(review, rendered):
+    """Detect the old blanket absent count against per-item states, without
+    treating extraction debt or unavailable sources as demonstrated absence."""
+    plain = html.unescape(re.sub(r"<[^>]*>", " ", rendered))
+    plain = " ".join(plain.split())
+    primary = primary_outcome(review) or {}
+    rows = primary.get("declared_absent_trials") or []
+    # Family/report counting is intentionally not conflated: the old sentence
+    # names families. A family's state is absent only when all its item states
+    # demonstrate absence.
+    families = {}
+    for row in rows:
+        key = row.get("trial_family_id") or row.get("id")
+        families.setdefault(key, []).append(row.get("state") or row.get("reason_code"))
+    actual = sum(all(s == "OUTCOME_NOT_IN_SOURCE" for s in states) for states in families.values())
+    violations = []
+    for match in re.finditer(r"\b(\d+) trial families were declared absent", plain):
+        if int(match.group(1)) != actual:
+            violations.append(_violation("PROSE_PREDICATE_FALSE", "TRANSFORMATION", membership_object(primary)[0],
+                                         f"blanket absent sentence states {match.group(1)} families; per-item OUTCOME_NOT_IN_SOURCE families={actual}"))
+    return violations
+
+
+def scan_rendered(rendered: str, graph: ClaimGraph) -> dict[str, Any]:
+    """Conservative visible-text scan, including table cells and short assertions.
+
+    Text runs between block boundaries are audit units, not an NLP claim of an
+    exact linguistic sentence count. All unregistered visible content is debt;
+    script/style, navigation controls and headings alone are excluded.
+    Marker ids AND text are checked against fresh graph rendering, so adding a
+    real claim id around hand-authored text cannot launder the text.
+    """
+    from html.parser import HTMLParser
+
+    class Scanner(HTMLParser):
+        ignored = {"script", "style", "button", "nav", "title", "h1", "h2", "h3", "h4", "h5", "h6"}
+        blocks = {"p", "div", "td", "th", "li", "section", "br", "tr", "figcaption", "header"}
+
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.stack = []
+            self.units = []
+            self.buffer = []
+            self.active = None
+            self.claim_text = {}
+            self.claim_marks = {}
+
+        def flush(self):
+            value = " ".join("".join(self.buffer).split())
+            if value:
+                self.units.append({"claim_id": self.active, "text": value})
+            self.buffer = []
+
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            cid = attrs.get("data-claim-id")
+            if tag in self.blocks or cid:
+                self.flush()
+            if tag not in {"br", "hr", "img", "input", "meta", "link", "wbr", "source"}:
+                self.stack.append((tag, self.active))
+            if cid:
+                self.active = cid
+                self.claim_marks[cid] = attrs.get("data-claim-class")
+
+        def handle_endtag(self, tag):
+            if self.stack:
+                index = next((i for i in range(len(self.stack)-1, -1, -1) if self.stack[i][0] == tag), None)
+                if index is not None:
+                    previous = self.stack[index][1]
+                    if previous != self.active or tag in self.blocks:
+                        self.flush()
+                    self.stack = self.stack[:index]
+                    self.active = previous
+
+        def handle_data(self, data):
+            if not any(tag in self.ignored for tag, _ in self.stack):
+                self.buffer.append(data)
+
+    scanner = Scanner()
+    scanner.feed(rendered)
+    scanner.flush()
+    violations = []
+    matched = 0
+    for unit in scanner.units:
+        cid = unit["claim_id"]
+        if cid not in graph.objects:
+            violations.append(_violation("SENTENCE_WITHOUT_OBJECT", "unregistered", cid or "", unit["text"]))
+            continue
+        expected = Scanner()
+        expected.feed(graph.render(cid))
+        expected.flush()
+        text = " ".join(u["text"] for u in expected.units)
+        expected_mark = expected.claim_marks.get(cid)
+        if unit["text"] != text or scanner.claim_marks.get(cid) != expected_mark:
+            violations.append(_violation("RENDERING_MISMATCH", graph.objects[cid]["class"], cid, unit["text"]))
+        else:
+            matched += 1
+    return {"rendered_units": len(scanner.units), "with_object": matched,
+            "unit_contract": "conservative visible prose/table text runs; not an exact linguistic sentence count",
+            "violations": violations}
+
+
+def render(claim_id: str, graph: ClaimGraph) -> str:
+    return graph.render(claim_id)
