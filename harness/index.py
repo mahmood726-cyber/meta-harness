@@ -472,6 +472,12 @@ def _error_rate_section(docs_dir: str) -> str:
     prov = (f"<em>Measured on {_E(when)} against the {pop} pooled numbers committed at that time "
             f"(the sample is committed in <code>docs/error_rate_sample.json</code>); a freshness invariant "
             f"refuses a stale figure if the pooled population changes.</em> " if when else "")
+    if d.get("independent_audit_state") == "HISTORICAL_ONLY":
+        prov = (f"<em>Historical blind audit, measured {_E(when)} on {pop} then-pooled numbers; "
+                "this is not a current-population error-rate estimate. "
+                f"The live inventory contains {d.get('current_pooled_population')} pooled rows; "
+                f"{d.get('not_independently_rechecked_current')} are explicitly NOT_INDEPENDENTLY_RECHECKED. "
+                "The inventory refresh does not increase the historical independent-verification numerator.</em> ")
     return (f"<div class='banner'><h2>We measured our own error rate (no meta-analysis reports this about "
             f"itself)</h2>"
             f"<p>{prov}Every claim the harness makes rests on the assumption that its numbers are right. So we "
@@ -918,6 +924,7 @@ def _prose_derived_numerals(docs_dir: str) -> set:
             for v in (e.get("population"), e.get("census_population"), e.get("current_pooled_population"),
                       e.get("independently_reverified"), e.get("exact_match"),
                       e.get("disagreements_pre_adjudication"), e.get("confirmed_our_errors_after_adjudication"),
+                      e.get("not_independently_rechecked_current"),
                       e.get("not_recheckable_from_abstract")):
                 if isinstance(v, int):
                     out.add(str(v))

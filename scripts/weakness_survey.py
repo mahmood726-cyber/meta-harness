@@ -135,7 +135,7 @@ def main(argv):
                        and res.get("ci_low") < 1 < res.get("ci_high"))
             if k <= 2 or res.get("tau2") == 0 or (k and k <= 2 and crosses):
                 fragile.append({"topic": slug, "k": k, "tau2": res.get("tau2"), "ci_crosses_null": crosses})
-        # dim 5 RoB2, dim 6 screening, dim 7 search
+        # dim 5 partial machine assessment, dim 6 screening, dim 7 search
         rob = rev.get("rob2") or {}
         rob_assessed = sum(1 for e in (rob.get("trials") or {}).values()
                            for d in (e.get("domains") or {}).values() if d.get("level") != "not assessed")
@@ -189,7 +189,7 @@ def main(argv):
     print(f"  8b MIXED-SCALE POOLS (estimand not homogeneous): {len(mixed_scale_topics)}")
     for m in mixed_scale_topics:
         print(f"      {m['topic']} [{m['outcome'][:28]}] scales={m['scales']}")
-    print(f"  5 RoB2 DOMAIN COVERAGE: " + ", ".join(f"{d}:{s}={n}" for (d, s), n in sorted(rob_domain.items())))
+    print(f"  5 PARTIAL MACHINE DOMAIN COVERAGE: " + ", ".join(f"{d}:{s}={n}" for (d, s), n in sorted(rob_domain.items())))
     print(f"    D5 (selective reporting / outcome-switching) levels: {dict(d5_levels)}")
     print(f"  9 TRANSPARENCY gaps (coverage<1.0): {survey['dimensions']['9_transparency_gaps']}")
     return 0

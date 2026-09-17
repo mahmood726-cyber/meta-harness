@@ -61,9 +61,9 @@ def test_mixed_scale_pool_labelled_mixed_not_a_single_clean_scale():
 
 
 def test_rob2_shows_unassessed_pooled_trials_with_a_reason():
-    """A pooled trial with no registry match must appear in the RoB2 table as an explicit
+    """A pooled trial with no registry match must appear in the partial machine table as an explicit
     'not assessed' row with a stated coverage count — never silently omitted (the fair-judge defect:
-    'RoB2 table covering a subset of pooled trials without a stated reason')."""
+    'partial machine table covering a subset of pooled trials without a stated reason')."""
     r = _review(2, [{"label": "HAS-NCT", "id": "PMID 1", "ai": 1, "n1i": 10, "ci": 2, "n2i": 10},
                     {"label": "NO-NCT", "id": "PMID 2", "ai": 1, "n1i": 10, "ci": 2, "n2i": 10}], [])
     doms = {k: {"level": "Low", "basis": "AACT field"} for k in

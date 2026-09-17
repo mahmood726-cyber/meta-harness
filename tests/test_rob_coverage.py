@@ -1,4 +1,4 @@
-"""Canonical trial identity: every pooled trial gets a RoB2 assessment (external audit #1).
+"""Canonical trial identity: every pooled trial gets a partial machine assessment (external audit #1).
 
 Before: rob2_build DROPPED trials with no NCT (RALES) and any NCT the AACT snapshot did not carry
 (J-EMPHASIS NCT01115855, SOUL NCT03914326, omarigliptin) — they rendered "no registry match / not

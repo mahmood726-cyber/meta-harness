@@ -8,7 +8,7 @@ resolvable pointer a reader can open to check it independently?
   - each declared-absent trial         -> PMID/NCT + the reason it is absent
   - the pooled result                  -> re-derivable from the pooled trials (arithmetic on the above)
   - registry-first recall              -> AACT snapshot id + method + the missed list
-  - each RoB2 trial-domain             -> the AACT structured field it read
+  - each partial machine trial-domain  -> the AACT structured field it read
   - retraction/integrity per trial     -> the PubMed check
   - reproduction                       -> protocol SHA + replay result (a stranger re-runs it)
 A claim WITHOUT a pointer is a transparency gap -> listed, so it can be closed (target: 0 gaps).

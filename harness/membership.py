@@ -169,10 +169,20 @@ def integrity_with_membership(
     per_trial = {}
     pubmed_checked = 0
     not_checkable = 0
+    not_assessed = 0
     for key in pooled:
         canon = canonical_trial_key(key)
         if _NUMERIC_PMID_RE.match(canon):
             entry = copy.deepcopy(per_pmid.get(canon) or {})
+            if not entry:
+                not_assessed += 1
+                per_trial[key] = {
+                    "trial_key": key, "pubmed_key": canon,
+                    "pubmed_checked": False,
+                    "state": "NOT_ASSESSED",
+                    "evidence": "NOT_ASSESSED (offline lane): no held integrity result for this PMID",
+                }
+                continue
             pubmed_checked += 1
             per_trial[key] = {
                 "trial_key": key,
@@ -195,6 +205,7 @@ def integrity_with_membership(
     out["n_pooled"] = len(pooled)
     out["n_pubmed_checked"] = pubmed_checked
     out["n_not_checkable"] = not_checkable
+    out["n_not_assessed"] = not_assessed
     out["per_trial"] = per_trial
     out["membership_pooled"] = pooled
     return out

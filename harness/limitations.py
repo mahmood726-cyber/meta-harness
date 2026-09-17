@@ -23,6 +23,7 @@ from . import claimgraph
 from . import hazard_consumers as _hazard_consumers
 from . import page as _page
 from . import rob_sensitivity as _rob_sensitivity_mod
+from . import funding as _funding_mod
 
 
 class LimitationKind(str, Enum):
@@ -47,6 +48,7 @@ class LimitationKind(str, Enum):
     HARMS_INCOMPLETE = "HARMS_INCOMPLETE"
     ROB_SPANCHECK = "ROB_SPANCHECK"
     SEARCH_PROVENANCE = "SEARCH_PROVENANCE"
+    ELIGIBILITY_CHAIN = "ELIGIBILITY_CHAIN"
 
 
 class Severity(str, Enum):
@@ -67,6 +69,7 @@ class EvidenceState(str, Enum):
     SOURCE_NOT_RETRIEVED = "SOURCE_NOT_RETRIEVED"
     EXTRACTION_NOT_PERFORMED = "EXTRACTION_NOT_PERFORMED"
     REFUSED_ON_EVIDENCE = "REFUSED_ON_EVIDENCE"
+    ENGINE_CANNOT_CONSUME = "ENGINE_CANNOT_CONSUME"
     PROVISIONAL = "PROVISIONAL"
     PARTIAL = "PARTIAL"
     UNKNOWN = "UNKNOWN"
@@ -96,6 +99,7 @@ EVIDENCE_STATE_ORDER = (
     EvidenceState.SOURCE_NOT_RETRIEVED.value,
     EvidenceState.EXTRACTION_NOT_PERFORMED.value,
     EvidenceState.REFUSED_ON_EVIDENCE.value,
+    EvidenceState.ENGINE_CANNOT_CONSUME.value,
     EvidenceState.PROVISIONAL.value,
     EvidenceState.PARTIAL.value,
     EvidenceState.UNKNOWN.value,
@@ -109,6 +113,7 @@ _SOURCE_ABSENCE_STATES = {
     "EXTRACTION_NOT_PERFORMED": EvidenceState.EXTRACTION_NOT_PERFORMED.value,
     "SOURCE_NOT_RETRIEVED": EvidenceState.SOURCE_NOT_RETRIEVED.value,
     "REFUSED_ON_EVIDENCE": EvidenceState.REFUSED_ON_EVIDENCE.value,
+    "ENGINE_CANNOT_CONSUME": EvidenceState.ENGINE_CANNOT_CONSUME.value,
 }
 _VALIDITY_THREATENING_KINDS = {
     LimitationKind.UNIT_OF_ANALYSIS.value,
@@ -127,6 +132,7 @@ _VALIDITY_THREATENING_STATES = {
     EvidenceState.RAN_ERROR.value,
     EvidenceState.NOT_RUN.value,
     EvidenceState.REFUSED_ON_EVIDENCE.value,
+    EvidenceState.ENGINE_CANNOT_CONSUME.value,
 }
 
 
@@ -285,8 +291,9 @@ def _retrieval_snapshot_block(ret: dict[str, Any]) -> str:
         "<div class='banner'>"
         f"<p><strong>Snapshot:</strong> records_sha256 <code>{_e(sha8)}</code>; "
         f"retrieved_utc {_e(snap.get('retrieved_utc'))}; mode {_page._retrieval_mode_label(snap.get('mode'))}.</p>"
-        "<p>This page is a REPLAY of that snapshot: re-running from the protocol SHA regenerates "
-        "it byte-for-byte. A live re-search is a separate, dated event (see Re-search below if present).</p>"
+        "<p>This page replays the committed retrieval snapshot; it is not a claim that the protocol "
+        "SHA alone regenerates the page byte-for-byte. A live re-search is a separate, dated event "
+        "(see Re-search below if present).</p>"
         "</div>"
     )
 
@@ -402,15 +409,40 @@ def _harms_incomplete_block(res: dict[str, Any]) -> str:
     )
 
 
+def _harms_result_incomplete_block(res: dict[str, Any]) -> str:
+    unresolved = ", ".join(str(x.get("label") or x.get("id"))
+                           for x in (res.get("known_reported_not_yet_extracted") or []))
+    return (
+        "<div class='absent'><strong>HARMS_INCOMPLETE.</strong> "
+        f"{_e(res.get('reason'))} "
+        f"<span class='muted'>Unresolved: {_e(unresolved)}</span></div>"
+    )
+
+
+def _harms_registry_incomplete_block(state: dict[str, Any]) -> str:
+    names = ", ".join(str(x.get("label") or x.get("id"))
+                      for x in (state.get("known_reported_not_yet_extracted") or [])[:8])
+    return (
+        "<div class='absent'><strong>HARMS_INCOMPLETE.</strong> "
+        f"{_e(state.get('reason'))} "
+        f"<span class='muted'>Known source-reported harms: {_e(names)}</span></div>"
+    )
+
+
 def _design_refusal_block(res: dict[str, Any]) -> str:
     dr = res.get("design_refusal") or {}
     refused = "; ".join(
         f"{_e(x.get('trial'))} ({_e(x.get('design'))})" for x in (dr.get("refused") or [])
     )
+    missing = "; ".join(
+        f"{_e(x.get('trial'))}: {_e(x.get('reason_code') or x.get('state'))} missing {_e(x.get('missing'))}"
+        for x in (dr.get("refused") or [])
+    )
     return (
-        "<div class='absent'><strong>Pool changed because a design refusal was added.</strong> "
-        f"{_e(dr.get('statement'))} Refused trial(s): {refused}. Any published estimates for "
-        "refused trials are disclosed in the trial table below and are not pooled.</div>"
+        "<div class='absent'><strong>ENGINE_CANNOT_CONSUME design variance.</strong> "
+        f"{_e(dr.get('statement'))} Refused trial(s): {refused}. {missing}. "
+        "The evidence is not absent; this engine cannot consume the row without a held "
+        "design-adjusted effect or ICC design-effect variance.</div>"
     )
 
 
@@ -473,53 +505,80 @@ def _uoa_block(review: dict[str, Any], uoa: list[dict[str, Any]]) -> str:
 
 
 def _funding_known(funding: dict[str, Any]) -> bool:
-    typ = funding.get("type") or ""
-    return (
-        typ.startswith("industry")
-        or typ == "mixed"
-        or typ.startswith("public")
-        or typ.startswith("non-profit")
-        or bool(funding.get("note"))
-    )
+    return _funding_mod.funding_known(funding)
 
 
 def _funding_block(fund: list[dict[str, Any]]) -> str:
+    def _class(item: dict[str, Any]) -> str:
+        return item.get("sponsor_class") or item.get("type") or ""
+
     def _ord(item: dict[str, Any]) -> int:
-        typ = item.get("type") or ""
+        typ = _class(item)
         if typ.startswith("industry"):
             return 0
         if typ == "mixed":
             return 1
         if typ.startswith("public"):
             return 2
-        if typ.startswith("declared") or typ.startswith("stated"):
+        if typ.startswith("in_source"):
             return 3
         return 4
 
     def _celltype(item: dict[str, Any]) -> str:
-        return _e(item.get("type")) + (f"<br><em>{_e(item.get('note'))}</em>" if item.get("note") else "")
+        bits = [f"<strong>{_e(_class(item))}</strong>", _e(item.get("status") or "")]
+        if item.get("note"):
+            bits.append(f"<em>{_e(item.get('note'))}</em>")
+        if item.get("industry_authors_present"):
+            bits.append("<em>industry authors present (not sponsor evidence)</em>")
+        return "<br>".join(bit for bit in bits if bit)
+
+    def _sponsor_cell(item: dict[str, Any]) -> str:
+        sponsors = item.get("sponsors") or []
+        roles = item.get("role") or []
+        body = "; ".join(_e(value) for value in sponsors) or "&mdash;"
+        if roles:
+            body += "<br><em>roles: " + _e(", ".join(roles)) + "</em>"
+        return body
+
+    def _source_cell(item: dict[str, Any]) -> str:
+        sources = item.get("sources") or [{
+            "source_id": item.get("source_id") or item.get("source"),
+            "basis_span": item.get("basis_span") or item.get("span"),
+            "role": item.get("role") or [],
+        }]
+        rows = []
+        for src in sources:
+            label = src.get("source_id") or ""
+            span = src.get("basis_span") or ""
+            role = src.get("role") or []
+            text = f"<strong>{_e(label)}</strong>: {_e(span)}"
+            if role:
+                text += f" <em>roles: {_e(', '.join(role))}</em>"
+            rows.append(text)
+        return "<br>".join(rows) or "&mdash;"
 
     rows = "".join(
         f"<tr><td>{_e(item.get('id'))}</td><td>{_celltype(item)}</td>"
-        f"<td>{_e(item.get('scanned') or item.get('source'))}</td><td>{_e(item.get('span'))}</td></tr>"
+        f"<td>{_sponsor_cell(item)}</td><td>{_e(item.get('scanned') or item.get('source'))}</td>"
+        f"<td>{_source_cell(item)}</td></tr>"
         for item in sorted(fund, key=lambda item: _ord(item))
     )
-    n_ind = sum(
-        1
-        for item in fund
-        if (item.get("type") or "").startswith("industry") or item.get("type") == "mixed" or item.get("note")
-    )
-    n_ns_ft = sum(1 for item in fund if (item.get("type") or "").startswith("not stated (full text"))
-    n_ns_ab = sum(1 for item in fund if (item.get("type") or "").startswith("not stated (abstract"))
+    n_ind = sum(1 for item in fund if _funding_mod.industry_tied(item))
+    n_ns_ft = sum(1 for item in fund if item.get("status") == "none_stated_in_held_text"
+                  and (item.get("scanned") or "").startswith("full text"))
+    n_ns_ab = sum(1 for item in fund if item.get("status") == "none_stated_in_held_text"
+                  and not (item.get("scanned") or "").startswith("full text"))
     n_known = sum(1 for item in fund if _funding_known(item))
     n_unknown = len(fund) - n_known
     return (
         "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled "
         "trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a "
         "documented reporting-bias dimension (they tend to report more favourable results). For "
-        "each pooled trial the funding source is classified from a verbatim statement in the "
-        "committed source (full text preferred, abstract fallback), including an industry "
-        "<em>drug-supply</em> tie in an otherwise independently funded trial: "
+        "each pooled trial the funding source is classified from held text (full text preferred, "
+        "abstract fallback) and the registry sponsor is shown as a second source when available; "
+        "when held text and registry disagree, both source spans are rendered. Industry author "
+        "affiliations are flagged only as affiliations, never sponsor evidence. Including an "
+        "industry <em>drug-supply</em> tie in an otherwise independently funded trial: "
         f"<strong>{n_ind} of {n_known} known</strong> ({n_unknown} unknown) pooled trials are "
         "industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN "
         "funding &mdash; unknown-funding trials are reported separately below, not counted as "
@@ -531,8 +590,8 @@ def _funding_block(fund: list[dict[str, Any]]) -> str:
         "The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is "
         "not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never "
         "inferred."
-        "<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Scanned</th>"
-        f"<th>Verbatim statement</th></tr>{rows}</table></div>"
+        "<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th>"
+        f"<th>Scanned</th><th>Source evidence</th></tr>{rows}</table></div>"
     )
 
 
@@ -568,6 +627,22 @@ def _arm_contrast_block(ac: dict[str, dict[str, Any]]) -> str:
         "never silently treated as verified. "
         "<table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th>"
         f"</tr>{rows}</table></div>"
+    )
+
+
+def _stale_contrast_block(stale: dict[str, Any]) -> str:
+    return (
+        "<div class='absent'><strong>UNRENDERABLE stale contrast block.</strong> "
+        f"{_e(stale.get('reason'))}; current pooled trial ids: "
+        f"{_e(', '.join(stale.get('current_pooled_trial_ids') or []))}; suppressed stale ids: "
+        f"{_e(', '.join(stale.get('dropped_trial_ids') or []))}.</div>"
+    )
+
+
+def _protocol_control_block(ctrl: dict[str, Any]) -> str:
+    return (
+        "<div class='absent'><strong>UNRENDERABLE protocol control expectation.</strong> "
+        f"{_e(ctrl.get('control'))}. {_e(ctrl.get('reason'))}</div>"
     )
 
 
@@ -661,17 +736,26 @@ def _grade_block(grade: dict[str, Any]) -> str:
             "<table class='arms'><tr><th>Domain</th><th>Signal</th><th>Basis</th></tr>"
             f"{''.join(rows)}</table></div>"
         )
+    pub = (grade.get("domains") or {}).get("publication_bias") or {}
+    pub_sentence = (
+        "Risk of bias, inconsistency and imprecision are computed from committed fields; "
+        "<strong>publication bias is NOT ASSESSED automatically</strong> because the available "
+        "registry ghost census is descriptive until its denominator is PICO-scoped. "
+        if pub.get("assessed") is False else
+        "Risk of bias, inconsistency, imprecision and publication bias are computed from "
+        "committed fields; <strong>publication bias is assessed from the registry ghost census, "
+        "not funnel-plot asymmetry</strong> (which is unreliable at our small k). "
+    )
     return (
         "<div class='absent'><strong>Overall certainty (provisional): "
         f"{_e(grade.get('certainty','').replace('_',' '))}</strong> "
         f"(starting from <em>high</em> for randomized trials, {grade.get('downgrades',0)} "
         f"downgrade(s)).{cap}"
         "<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias "
-        f"{rob_phrase} (not a human RoB2) and indirectness is not auto-rated, "
+        f"{rob_phrase} (registry-machine-signal-restricted signals, not a human risk-of-bias assessment) "
+        "and indirectness is not auto-rated, "
         "so a formal human GRADE assessment may differ. "
-        "Risk of bias, inconsistency, imprecision and publication bias are computed from "
-        "committed fields; <strong>publication bias is assessed from the registry ghost census, "
-        "not funnel-plot asymmetry</strong> (which is unreliable at our small k). "
+        + pub_sentence +
         "<strong>Indirectness is left to human judgement</strong> (the PICO scope note states "
         "the directness) &mdash; this is a partial GRADE, honestly labelled."
         "<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr>"
@@ -763,6 +847,17 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
                 identifier_html,
             )
 
+    if (review.get("eligibility_chain") or {}).get("violations"):
+        add(
+            "protocol:eligibility-chain",
+            LimitationKind.ELIGIBILITY_CHAIN,
+            Severity.BLOCKS_CLAIM,
+            "admissible pooled claim",
+            EvidenceState.REFUSED_ON_EVIDENCE,
+            ["/eligibility_chain/violations", "/eligibility_chain/contract"],
+            _page._eligibility_chain_block(review),
+        )
+
     rc = (review.get("search") or {}).get("retrieval_class") or {}
     if rc.get("class") in ("KNOWN_ITEM_RETRIEVAL", "TITLE_SEEDED_RETRIEVAL", "HAND_WRITTEN_KEYWORD_SEARCH"):
         add(
@@ -820,6 +915,18 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
                     ["/strands/why_topic_is_suppressed", "/strands/strands", "/strands/refused_cross_endpoint_pool"],
                     _page.render_strands_section(review["strands"]),
                 )
+
+    for idx, ctrl in enumerate(((review.get("protocol") or {}).get("control_expectations") or [])):
+        if ctrl.get("state") == "UNRENDERABLE":
+            add(
+                f"protocol:control-expectation:{idx}",
+                LimitationKind.AUDITABILITY_SCOPE,
+                Severity.NOTE,
+                "protocol control expectation",
+                EvidenceState.RECORDED,
+                ["/protocol/control_expectations"],
+                _protocol_control_block(ctrl),
+            )
 
     for section_name in ("protocol", "search", "screening"):
         reason = _absent(review.get(section_name))
@@ -922,14 +1029,19 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
 
     harms = [outcome for outcome in (review.get("outcomes") or []) if outcome.get("kind") == "harm"]
     if not harms:
+        hstate = review.get("harms_registry_state") or {}
         add(
             "harms:none",
-            LimitationKind.DECLARED_ABSENT_SECTION,
+            LimitationKind.HARMS_INCOMPLETE if hstate else LimitationKind.DECLARED_ABSENT_SECTION,
             Severity.BLOCKS_CLAIM,
             "harms outcomes",
-            EvidenceState.UNKNOWN,
-            ["/outcomes"],
-            _absent_block("no harms recorded"),
+            EvidenceState.PARTIAL if hstate else EvidenceState.UNKNOWN,
+            (
+                ["/harms_registry_state/known_reported_not_yet_extracted", "/harms_registry_state/reason"]
+                if hstate
+                else ["/outcomes"]
+            ),
+            _harms_registry_incomplete_block(hstate) if hstate else _absent_block("no harms recorded"),
         )
     for idx, outcome in enumerate(harms):
         _add_outcome_limitations(add, outcome, f"harms:{idx}:{_slug_piece(outcome.get('name'))}")
@@ -1071,9 +1183,20 @@ def _add_outcome_limitations(add: Any, outcome: dict[str, Any], prefix: str) -> 
             LimitationKind.UNIT_OF_ANALYSIS,
             Severity.QUALIFIES_CLAIM,
             f"pooled estimate: {outcome.get('name')}",
-            EvidenceState.REFUSED_ON_EVIDENCE,
+            EvidenceState.ENGINE_CANNOT_CONSUME,
             ["/outcomes/*/result/design_refusal", "/outcomes/*/design_refusals"],
             _design_refusal_block(result),
+        )
+    if (not rr and not result.get("unrenderable") and not result.get("suppressed_incompatible")
+            and not result.get("pool_refused") and result.get("harms_incomplete")):
+        add(
+            f"{prefix}:harms-incomplete",
+            LimitationKind.HARMS_INCOMPLETE,
+            Severity.BLOCKS_CLAIM,
+            f"outcome result: {outcome.get('name')}",
+            EvidenceState.PARTIAL,
+            ["/outcomes/*/result/harms_incomplete", "/outcomes/*/result/known_reported_not_yet_extracted"],
+            _harms_result_incomplete_block(result),
         )
 
 
@@ -1123,6 +1246,17 @@ def _add_risk_of_bias_limitations(add: Any, review: dict[str, Any]) -> None:
 
     ac = (review.get("arm_contrast") or {}).get("trials") or {}
     if ac:
+        stale = (review.get("arm_contrast") or {}).get("stale_block_unrenderable") or {}
+        if stale:
+            add(
+                "riskofbias:stale-randomised-contrast",
+                LimitationKind.RANDOMISED_CONTRAST,
+                Severity.QUALIFIES_CLAIM,
+                "randomised-contrast membership for current pooled trials",
+                EvidenceState.PARTIAL,
+                ["/arm_contrast/stale_block_unrenderable", "/arm_contrast/trials"],
+                _stale_contrast_block(stale),
+            )
         statuses = {entry.get("status") for entry in ac.values()}
         state = EvidenceState.RECORDED if statuses == {"verified"} else EvidenceState.PARTIAL
         add(

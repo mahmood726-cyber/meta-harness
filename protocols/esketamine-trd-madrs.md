@@ -30,3 +30,10 @@ The estimand is the mean difference (MADRS points) in the change from baseline, 
 
 ## Comparator
 - Published open-access meta-analysis of intranasal esketamine for treatment-resistant depression reporting the MADRS change, for trial-set overlap and reporting comparison only. An identical estimate on an identical trial set is arithmetic, not corroboration; the overlap is stated on the page.
+
+## Retrospective executable-screen amendment (2026-09-16)
+`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that the
+structured exclusion of phase 2 / phase II trials was declared in the protocol but
+not executable in the topic config. The config now excludes phase 2/II contexts at
+screening while leaving the phase 3 treatment-resistant-depression esketamine
+trials eligible. This amendment changes screening only.

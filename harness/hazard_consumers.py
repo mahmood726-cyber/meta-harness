@@ -80,6 +80,12 @@ WIRED_CONSUMERS: dict[tuple[str, str], dict[str, str]] = {
         "/outcomes/*/result/design_refusal",
         "design",
     ),
+    ("UNIT_OF_ANALYSIS", "ENGINE_CANNOT_CONSUME"): _spec(
+        "design_key.decision_for_trial",
+        "harness.design_key.decision_for_trial",
+        "/outcomes/*/result/design_refusal",
+        "design",
+    ),
     ("RANDOMISED_CONTRAST", "PARTIAL"): _spec(
         "compat.outcome_key",
         "harness.compat.outcome_key",
@@ -125,6 +131,12 @@ WIRED_CONSUMERS: dict[tuple[str, str], dict[str, str]] = {
         "/search/retrieval_class/search_provenance",
         "invalidation",
         PHASE_LANE_AD,
+    ),
+    ("ELIGIBILITY_CHAIN", "REFUSED_ON_EVIDENCE"): _spec(
+        "gate.check_eligibility_chain",
+        "harness.gate.check_eligibility_chain",
+        "/eligibility_chain/violations",
+        "eligibility_chain",
     ),
 }
 
@@ -264,7 +276,7 @@ def _design_action_summary(action: dict[str, Any]) -> str:
 def _design_verdict(review: dict[str, Any], obj: dict[str, Any]) -> str:
     state = str(obj.get("evidence_state") or "")
     actions: list[str] = []
-    if state == "REFUSED_ON_EVIDENCE":
+    if state in {"REFUSED_ON_EVIDENCE", "ENGINE_CANNOT_CONSUME"}:
         for outcome in review.get("outcomes") or []:
             result = outcome.get("result") if isinstance(outcome, dict) else {}
             if isinstance(result, dict) and result.get("design_refusal"):
@@ -308,6 +320,12 @@ def _compat_underlying_verdict(review: dict[str, Any]) -> str:
     return "HARMS_INCOMPLETE: " + "; ".join(names) if names else "NO_HARMS_INCOMPLETE"
 
 
+def _eligibility_chain_verdict(review: dict[str, Any]) -> str:
+    violations = ((review.get("eligibility_chain") or {}).get("violations")) or []
+    hard = [v for v in violations if isinstance(v, dict)]
+    return f"REFUSE: {len(hard)} eligibility-chain violation(s)" if hard else "PASS"
+
+
 def _gate_verdict(review: dict[str, Any], obj: dict[str, Any], spec: dict[str, str],
                   phase: str = PHASE_FINAL) -> str:
     runner = spec["runner"]
@@ -321,6 +339,8 @@ def _gate_verdict(review: dict[str, Any], obj: dict[str, Any], spec: dict[str, s
         return _compat_verdict(review)
     if runner == "compat_underlying":
         return _compat_underlying_verdict(review)
+    if runner == "eligibility_chain":
+        return _eligibility_chain_verdict(review)
     return "UNKNOWN_RUNNER"
 
 
@@ -549,7 +569,7 @@ def _plant_design(pair: tuple[str, str], planted: bool) -> str:
                 "correlation_handling": {"method": "none", "evidence": []},
             },
         }
-    elif pair[1] == "REFUSED_ON_EVIDENCE":
+    elif pair[1] in {"REFUSED_ON_EVIDENCE", "ENGINE_CANNOT_CONSUME"}:
         trial = {
             "id": "PMID 111",
             "derivation": "reconstructed",
@@ -588,6 +608,15 @@ def _plant_compat(pair: tuple[str, str], planted: bool) -> str:
     return f"verified {rc.get('verified')}/{rc.get('total')}"
 
 
+def _plant_eligibility_chain(pair: tuple[str, str], planted: bool) -> str:
+    core = _clean_core()
+    if planted:
+        core["eligibility_chain"] = {
+            "violations": [{"code": "TRIAL_FAILS_CONTRACT", "dimension": "design_masking"}]
+        }
+    return _eligibility_chain_verdict(core)
+
+
 def _plant_verdict(pair: tuple[str, str], spec: dict[str, str], planted: bool) -> str:
     runner = spec["runner"]
     if runner == "invalidation":
@@ -601,6 +630,8 @@ def _plant_verdict(pair: tuple[str, str], spec: dict[str, str], planted: bool) -
         return _plant_compat(pair, planted)
     if runner == "compat_underlying":
         return _compat_underlying_verdict(_plant_core(pair) if planted else _clean_core())
+    if runner == "eligibility_chain":
+        return _plant_eligibility_chain(pair, planted)
     return "UNKNOWN_RUNNER"
 
 

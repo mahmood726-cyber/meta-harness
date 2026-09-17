@@ -104,11 +104,21 @@ def test_real_review_reproduces_and_passes_full_gate():
     # outside the repo (no docs/reviews present).
     import os as _os
     root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
-    d = _os.path.join(root, "docs", "reviews", "probiotics-aad-prevention")
+    d = _os.path.join(root, "docs", "reviews", "noac-vs-warfarin-af-stroke")
     if not _os.path.isdir(d):
         return
     ok, reasons = gate_page(d)
     assert ok, f"real committed review must pass the full gate, got: {reasons}"
+
+
+def test_synthetic_harms_incomplete_refuses_full_gate():
+    review = _review_core()
+    review["outcomes"][1]["result"].update(
+        harms_incomplete=True,
+        reason="HARMS_INCOMPLETE -- synthetic reported harm remains unresolved",
+        known_reported_not_yet_extracted=[{"id": "SYNTH", "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED"}])
+    with tempfile.TemporaryDirectory() as tmp:
+        _refuses(_build(tmp, review=review), "HARMS_INCOMPLETE")
 
 
 # --- Limb 1 refusals ----------------------------------------------------------

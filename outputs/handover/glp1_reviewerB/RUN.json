@@ -1,0 +1,82 @@
+{
+ "object": "MODEL_RUN",
+ "role": "Reviewer B -- independent second extraction (dual-extraction disagreement measurement)",
+ "contract": "outputs/handover/lanes/REPRODUCIBLE_MODEL_CONTRACT.md (Mahmood 2026-09-16)",
+ "prompt": {
+  "file": "TASK.md",
+  "sha256": "c0b998020173e7128f52988a89da3cb49da43450726902506387e6711fa0dc9d",
+  "delivered_via": "agy --print <TASK.md contents> with cwd = sealed folder"
+ },
+ "input_set": {
+  "sha256_of_manifest": "6159933df65953cb96946484f7cd3fcbac6809eaa5d17fff5d2b276c110d7f31",
+  "files": {
+   "sources/FDA_NDA208471_StatR.txt": "952b8088e14b457d97364f13bb0f9407803bf875faed5fa30d995972e2687a26",
+   "sources/FDA_NDA209053_EMDAC_2023.txt": "e27b9985959e139b9c84f15b7e364d3c82a2fed861819e2b777f6b3f5aef963e",
+   "sources/PMID_26630143.txt": "7bd3c1131aa7a803502765ad2947c2bc307c918b14b215f5d67ddb476e607bb1",
+   "sources/PMID_27295427.txt": "3341a59a86458325a1f1a5d9b9d9603133c8010675115bf37d769543b97f3391",
+   "sources/PMID_27633186.txt": "94f04958b35c6400ed9721d40703fd3bdd18f42276c35ffcb9af503f12809e17",
+   "sources/PMID_28910237.txt": "125435a99fc7dc97d232e12bc5a96f5a2238bb88fc49234cbb655a4826259410",
+   "sources/PMID_30291013.txt": "cb1a3105579e98cb40a7446dec5294f8d4744e7c3eadc7b9c7a8bc485783ed2a",
+   "sources/PMID_31185157.txt": "2f93e1ee2ae41a3e0ddef16099f7395b189362c43430e77d5b285e1858191d1d",
+   "sources/PMID_31189511.txt": "ce6d2c7b51d4d4ea65ac43a0f715f8501ab838f46c616e4ae119d55af822fba5",
+   "sources/PMID_34215025.txt": "1de7b1f58be9691cc5b1ab2416a949f7b42368652f3198bfc82ca4d7f71286e4",
+   "sources/PMID_34526024.txt": "12c3e55785279179b8a84216222349dbbfa41259453f797c09c82b6319f0eb76",
+   "sources/PMID_34873344.txt": "9ec6f713f3ddba44056702e78860e673d96b1d10937d66da23bb66211faaa9bd",
+   "sources/PMID_37952131.txt": "e3174ed3092ac7464bf4e69da98e471e5b029e5606eacd65df04f162e25f1496",
+   "sources/PMID_38785209.txt": "feaf6ddc1bb3c8ccd78ba9b22588b9fa8c1575521d73f29ce24250ade410b525",
+   "sources/PMID_40162642.txt": "dd4a22784eed621be64044af9d086a67d9325f6210fa49d9c76298c2f1589b7f",
+   "TASK.md": "c0b998020173e7128f52988a89da3cb49da43450726902506387e6711fa0dc9d",
+   "PROTOCOL.md": "d7208503c823d1b4f10fb8e356b69d30b3f25874420a8b678d25319811a7ae4c"
+  },
+  "sealed": true,
+  "note": "13 PubMed records + 2 FDA review texts + protocol with B-prime; nothing else was readable from the working folder"
+ },
+ "model": {
+  "reported_by_model": "Gemini 3.1 Pro (High)",
+  "cli": "Antigravity CLI (agy) 1.2.4",
+  "settings_model": "Gemini 3.1 Pro (High)",
+  "vendor_family": "google",
+  "version_string": "NOT EXPOSED by the CLI (no build/version id in the response)"
+ },
+ "decoding": {
+  "temperature": "NOT EXPOSED",
+  "seed": "NOT EXPOSED",
+  "max_tokens": "NOT EXPOSED",
+  "note": "agy --print exposes no decoding parameters; contract condition 2 (pinned decoding) is UNMET"
+ },
+ "run_started_utc": "2026-09-16T17:51:04Z",
+ "response": {
+  "file": "reviewB_extraction.json",
+  "sha256": "485c330c54229a81c96f52e20c31dbb185dda69954aff7e65dd35acb04879e91",
+  "records": 13,
+  "log": "agy_run.log"
+ },
+ "replay": {
+  "byte_identical_replay_possible": false,
+  "reason": "decoding not pinned and model version not identified; a re-run is a NEW observation, not a replay"
+ },
+ "contract_status": {
+  "1_source_five_fields": "MET (prompt, input set, model identity as reported, date, response all held)",
+  "2_pinned_identity_and_decoding": "UNMET",
+  "3_cached_committed_response": "MET (this folder)",
+  "4_byte_identical_replay": "UNMET",
+  "5_span_verified_postcheck": "MET for the 11 compared trials (see ADJUDICATIONS.json and comparison below)",
+  "6_disagreement_recorded": "MET"
+ },
+ "classification": "INDEPENDENT_AUDIT_OBSERVATION -- NOT a source. Under the contract a model never supplies a number; this run supplies a disagreement rate and two disagreements, both resolved by span + registered rule.",
+ "influence_on_served_values": {
+  "measured": true,
+  "evidence": "docs/reviews/glp1-ra-mace-t2d/review.json at commit b10c53d3 contains neither 1.24/0.90 nor 0.887; 'Gemini' and 'Reviewer B' absent; FREEDOM-CVO appears only in the pre-existing known_missing_sensitivity rows",
+  "value": "NONE"
+ },
+ "comparison": {
+  "trials_compared": 11,
+  "agree": 9,
+  "disagree": 2,
+  "disagreement_rate": "18% (2 of 11)",
+  "disagreements": [
+   "FREEDOM-CVO: analysis timepoint row (end-of-treatment vs end-of-study)",
+   "FLOW: endpoint identity not enumerable from the abstract"
+  ]
+ }
+}

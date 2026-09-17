@@ -263,6 +263,8 @@ def _eligible_not_pooled(core, id_nct=None):
     for r in ((core.get("screening") or {}).get("records") or []):
         if r.get("decision") != "include":
             continue
+        if r.get("completeness_state") in {"eligible+ongoing", "eligible+not_yet_recruiting"}:
+            continue
         if r.get("publication_role") in identity_mod.NON_TRIAL_PUBLICATION_ROLES:
             continue
         fam = r.get("trial_family_id")

@@ -192,6 +192,15 @@ def stamp_review(review: dict[str, Any]) -> dict[str, Any]:
         if isinstance(result, dict):
             result["input_set_version"] = version
             _stamp(result, "outcome_result", name, version)
+        design_consumption = outcome.get("design_consumption")
+        if isinstance(design_consumption, dict):
+            _stamp(design_consumption, "design_consumption", name, version)
+            review.setdefault("claimgraph", {}).setdefault("objects", []).append({
+                "kind": "design_consumption",
+                "claim_id": design_consumption.get("claim_id"),
+                "depends_on": design_consumption.get("depends_on"),
+                "outcome": name,
+            })
         for row in outcome.get("declared_absent_trials") or []:
             _stamp(row, "membership_state", name, version)
 

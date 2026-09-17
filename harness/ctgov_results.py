@@ -7,6 +7,8 @@ in the extraction source hierarchy for count data (structured primary-source res
 """
 from __future__ import annotations
 
+from . import second_source as second_source_mod
+
 
 def _num(x):
     try:
@@ -155,7 +157,7 @@ def _is_supplementary_estimand(title: str) -> bool:
 
 
 def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_total=None,
-                  judgments=None):
+                  judgments=None, declared_components=None):
     """Return dict {ai,n1i,ci,n2i,source} for the outcome measure matching our outcome, else None.
 
     Chooses the outcome measure whose TITLE contains one of our outcome keywords (so we do not
@@ -215,7 +217,17 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
     # relative ORDER of two same-outcome measures changes, and only when both are present.
     cands = [om for om in outcome_measures
              if title_matches(om.get("title")) and identity_ok(om.get("title"))]
-    cands.sort(key=lambda om: (0 if om.get("type") == "PRIMARY" else 1,
+
+    def component_rank(om):
+        if not declared_components:
+            return 0
+        ok, _reason = second_source_mod.component_identity(
+            "composite", declared_components, om.get("title") or "", om.get("description") or ""
+        )
+        return 0 if ok else 1
+
+    cands.sort(key=lambda om: (component_rank(om),
+                               0 if om.get("type") == "PRIMARY" else 1,
                                1 if _is_supplementary_estimand(om.get("title")) else 0))
     for om in cands:
         ptype = (om.get("paramType") or "").upper()
@@ -296,6 +308,7 @@ def extract_ctgov(outcome_measures, outcome_kws, interv_terms, comp_terms, min_t
         popd = (om.get("populationDescription") or "").strip()
         out = {"ai": int(ai), "n1i": int(n1i), "ci": int(ci), "n2i": int(n2i),
                "registry_title": title,
+               "registry_description": (om.get("description") or "").strip(),
                "registry_type": om.get("type"),
                "registry_param_type": ptype or None,
                "registry_measure_type": measure_type,

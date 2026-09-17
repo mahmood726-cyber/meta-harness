@@ -14,7 +14,14 @@ import os
 import re
 
 from . import extract, screen, scope, verify, locate, unit_of_analysis, funding, estmeasure, design_key
+from . import aact
+from . import screen_entry
+from . import comparator_second_pass
+from . import source_hierarchy as source_hierarchy_mod
+from . import design_variance
 from . import parity_relation
+from . import comparator_truth
+from . import endpoint_canonical as endpoint_canonical_mod
 from . import k2 as k2_mod
 from . import identity as identity_mod
 from . import membership as membership_mod
@@ -27,9 +34,19 @@ from . import known_missing as known_missing_mod
 from . import missing_effect as missing_effect_mod
 from . import compat as compat_mod
 from . import compat_check as compat_check_mod
+from . import compat_direction as compat_direction_mod
 from . import recovery_recheck as recovery_recheck_mod
 from . import absence as absence_mod
+from . import consumer_consistency as consumer_consistency_mod
+from . import reason_audit as reason_audit_mod
+from . import unextracted as unextracted_mod
+from . import harms as harms_mod
 from . import protocol_compiler as protocol_compiler_mod
+from . import target_endpoint as target_endpoint_mod
+from . import second_source as second_source_mod
+from . import propositions as propositions_mod
+from . import eligibility_chain as eligibility_chain_mod
+from . import scope_identity as scope_identity_mod
 from .limitations import build_limitations
 from .ctgov_results import extract_ctgov
 from .synth import Study, pool, method_text, METHOD_RATIO
@@ -381,6 +398,29 @@ def _rr_cs(ai, n1, ci, n2):
     return (ai / n1) / (ci / n2)
 
 
+def _reported_effect_candidate(eff, provenance, source_label):
+    return source_hierarchy_mod.reported_effect_candidate(eff, provenance, source_label)
+
+
+def _source_effect_candidates(spec, *, abstract=None, fulltext=None, ctgov_outcomes=None,
+                              verified_effect=None):
+    return source_hierarchy_mod.source_effect_candidates(
+        spec,
+        abstract=abstract,
+        fulltext=fulltext,
+        ctgov_outcomes=ctgov_outcomes,
+        verified_effect=verified_effect,
+    )
+
+
+def _selection_extras(row):
+    return source_hierarchy_mod.selection_extras(row)
+
+
+def _span_effect_candidates(spec, selected, base_candidates):
+    return source_hierarchy_mod.span_effect_candidates(spec, selected, base_candidates)
+
+
 CROSS_SOURCE_LOG_TOL = 0.12
 
 _ENDPOINT_STOPWORDS = {
@@ -452,37 +492,64 @@ def _pooled_effect_for_endpoint_match(ex):
 
 def _classify_endpoint_match(spec, registry_title, pooled_effect, registry_effect, *,
                              registry_measure_type=None, registry_timepoint=None,
-                             registry_population=None, pooled_scale=None):
+                             registry_population=None, pooled_scale=None,
+                             registry_description=None, trial_components=None,
+                             pooled_population=None):
     title = registry_title or ""
-    rtype = registry_measure_type or "UNKNOWN"
     if not title:
-        return {"endpoint_match": "NOT_CHECKABLE",
-                "endpoint_match_reason": "registry outcome title is missing"}
-    if not _endpoint_title_matches(spec, title):
-        return {"endpoint_match": "DIFFERENT_ENDPOINT",
-                "endpoint_match_reason": f"registry title is not the pooled endpoint: {title}"}
-    if rtype == "KM_ESTIMATE":
-        return {"endpoint_match": "DIFFERENT_ENDPOINT",
-                "endpoint_match_reason": (f"registry title matches but the selected measure is a KM/timepoint "
-                                          f"estimate ({registry_timepoint or 'timepoint not named'}), not the "
-                                          f"pooled {pooled_scale or 'effect'} endpoint: {title}")}
-    if pooled_effect is None or registry_effect is None or pooled_effect <= 0 or registry_effect <= 0:
-        return {"endpoint_match": "NOT_CHECKABLE",
-                "endpoint_match_reason": f"cannot compare pooled and registry effects for: {title}"}
-    import math
-    delta = abs(math.log(float(pooled_effect) / float(registry_effect)))
-    if delta > CROSS_SOURCE_LOG_TOL:
-        return {"endpoint_match": "DIFFERENT_ENDPOINT",
-                "endpoint_match_reason": (f"registry-implied value {_fmt_effect(registry_effect)} differs from "
-                                          f"pooled {_fmt_effect(pooled_effect)} by log delta {delta:.3g} "
-                                          f"> tolerance {CROSS_SOURCE_LOG_TOL}: {title}")}
-    conversion = ""
-    if (pooled_scale or "").upper() in ("HR", "RR/HR") and rtype in ("COUNT_OF_PARTICIPANTS", "PERCENTAGE"):
-        conversion = (" pooled HR is compared with a registry proportion ratio only because the values "
-                      f"agree within log tolerance {CROSS_SOURCE_LOG_TOL}; this is corroboration, not replacement.")
-    return {"endpoint_match": "SAME_ENDPOINT",
-            "endpoint_match_reason": (f"registry title, population/timepoint metadata, and numeric value match "
-                                      f"the pooled endpoint within log tolerance {CROSS_SOURCE_LOG_TOL}." + conversion)}
+        return {
+            "identity": {
+                "title_match": False,
+                "component_match": False,
+                "measure_type": "unknown",
+                "population_match": False,
+                "verdict": second_source_mod.SECOND_SOURCE_NOT_CHECKABLE,
+            },
+            "second_source_verdict": second_source_mod.SECOND_SOURCE_NOT_CHECKABLE,
+            "endpoint_match": second_source_mod.SECOND_SOURCE_NOT_CHECKABLE,
+            "endpoint_match_reason": "registry outcome title is missing",
+            "registry_effect_label": "CT.gov registry value",
+        }
+    return second_source_mod.classify_identity(
+        title_match=_endpoint_title_matches(spec, title),
+        spec_name=spec.get("name") or "",
+        registry_title=title,
+        registry_description=registry_description or "",
+        declared_components=trial_components,
+        registry_measure_type=registry_measure_type,
+        pooled_scale=pooled_scale,
+        pooled_effect=pooled_effect,
+        registry_effect=registry_effect,
+        pooled_population=pooled_population or spec.get("population"),
+        registry_population=registry_population,
+        registry_timepoint=registry_timepoint,
+        log_tolerance=CROSS_SOURCE_LOG_TOL,
+    )
+
+
+def _refresh_cross_source_identity(cross_source, spec, trial_components=None):
+    verdict = _classify_endpoint_match(
+        spec,
+        cross_source.get("registry_title") or "",
+        cross_source.get("pooled_effect_for_endpoint_match"),
+        cross_source.get("registry_implied_effect") or cross_source.get("ctgov_rr"),
+        registry_measure_type=cross_source.get("registry_measure_type"),
+        registry_timepoint=cross_source.get("registry_selected_timepoint") or cross_source.get("registry_timeframe"),
+        registry_population=cross_source.get("registry_population"),
+        pooled_scale=cross_source.get("pooled_scale_for_endpoint_match"),
+        registry_description=cross_source.get("registry_description"),
+        trial_components=trial_components,
+        pooled_population=spec.get("population"),
+    )
+    cross_source.update(verdict)
+    cross_source["corroborates_endpoint"] = second_source_mod.counted_as_corroboration(cross_source)
+    if cross_source.get("agree") is False:
+        cross_source["note"] = "DISCREPANCY vs CT.gov structured results (direction flip) -- investigate before trusting"
+    elif cross_source["corroborates_endpoint"]:
+        cross_source["note"] = "independently corroborated by CT.gov structured results; " + cross_source["endpoint_match_reason"]
+    else:
+        cross_source["note"] = f"{cross_source.get('endpoint_match')}: {cross_source.get('endpoint_match_reason')}"
+    return cross_source
 
 
 def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
@@ -495,7 +562,8 @@ def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
     oms = ctgov_results.get(nct)
     if not oms:
         return None
-    cg = extract_ctgov(oms, spec["keywords"], interv, comp)
+    trial_components = ex.get("components") or ex.get("target_endpoint_components")
+    cg = extract_ctgov(oms, spec["keywords"], interv, comp, declared_components=trial_components)
     if not cg:
         return None
     c_rr = cg.get("registry_implied_effect")
@@ -512,10 +580,13 @@ def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
         registry_timepoint=cg.get("registry_selected_timepoint") or cg.get("registry_timeframe"),
         registry_population=cg.get("registry_population"),
         pooled_scale=pooled_scale,
+        registry_description=cg.get("registry_description"),
+        trial_components=trial_components,
     )
     out = {"ctgov_rr": round(c_rr, 3) if c_rr else None,
            "ctgov_source": cg.get("source", ""),
            "registry_title": cg.get("registry_title"),
+           "registry_description": cg.get("registry_description"),
            "registry_type": cg.get("registry_type"),
            "registry_param_type": cg.get("registry_param_type"),
            "registry_measure_type": cg.get("registry_measure_type"),
@@ -526,6 +597,8 @@ def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
            "pooled_effect_for_endpoint_match": round(pooled_effect, 6) if pooled_effect else None,
            "pooled_scale_for_endpoint_match": pooled_scale,
            "endpoint_match_tolerance_log": CROSS_SOURCE_LOG_TOL,
+           "registry_intervention_value": cg.get("registry_intervention_value"),
+           "registry_comparator_value": cg.get("registry_comparator_value"),
            **verdict}
     if a_rr and c_rr:
         import math
@@ -536,17 +609,7 @@ def _cross_source(ex, nct, ctgov_results, spec, interv, comp):
         out["agree"] = not (flip and gross)
     else:
         out["agree"] = None
-    out["corroborates_endpoint"] = (
-        out.get("endpoint_match") == "SAME_ENDPOINT" and out.get("agree") is not False
-    )
-    if out.get("agree") is False:
-        out["note"] = "DISCREPANCY vs CT.gov structured results (direction flip) — investigate before trusting"
-    elif out["corroborates_endpoint"]:
-        out["note"] = "independently corroborated by CT.gov structured results; " + out["endpoint_match_reason"]
-    else:
-        title = out.get("registry_title") or "untitled registry outcome"
-        out["note"] = f"registry reports a DIFFERENT measure: {title} — {out.get('endpoint_match_reason')}"
-    return out
+    return _refresh_cross_source_identity(out, spec, trial_components)
 
 
 def _pool_result(studies, scale="RR", *, require_study_effect=False):
@@ -681,7 +744,7 @@ def _load_outcome_judgments(slug):
 
 
 def _load_rob2(slug):
-    """Committed per-trial RoB2 assessment (cache/<slug>/rob2.json) from AACT + registry-vs-pooled."""
+    """Committed per-trial partial machine assessment from AACT + registry-vs-pooled."""
     import os, json
     fp = os.path.join(ROOT, "cache", slug, "rob2.json")
     if not os.path.exists(fp):
@@ -708,7 +771,7 @@ def _load_arm_contrast(slug):
 
 def _load_rob_spancheck():
     """Corpus-level RoB span-check summary (docs/rob_spancheck.json): the cross-family agreement rate of the
-    model/registry-derived RoB2 ratings vs the trial abstracts. Same number on every RoB tab (it is a corpus
+    model/registry-derived partial machine ratings vs the trial abstracts. Same number on every RoB tab (it is a corpus
     measurement); rendered so the RoB block carries a credibility number after a visible rendering break."""
     import os, json
     fp = os.path.join(ROOT, "docs", "rob_spancheck.json")
@@ -737,36 +800,19 @@ def _load_definition_audit(slug):
     return rows or None
 
 
+def _verified_for_outcome(data, outcome):
+    from .verified_inputs import for_outcome
+    return for_outcome(data, outcome)
+
+
 def _load_verified_arms(slug):
-    """Committed hand-verified structured arm-level counts (cache/<slug>/verified_arms.json):
-    {pmid: {outcome, ai, n1i, ci, n2i, source}}. The bottom of the source hierarchy — a number a
-    human verified against a structured source (AACT) and the published rate, for a trial whose
-    abstract/single-NCT/full-text did not yield it. Absent => none."""
-    p = os.path.join(ROOT, "cache", slug, "verified_arms.json")
-    if not os.path.exists(p):
-        return None
-    try:
-        return json.load(open(p, encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
+    from .verified_inputs import load
+    return load(slug, cache_root=os.path.join(ROOT, "cache"))["verified_arms.json"] or None
 
 
 def _load_verified_effects(slug):
-    """Committed full-text-verified EFFECT entries (cache/<slug>/verified_effects.json):
-    {pmid: {outcome, effect, ci_low, ci_high, scale, source, verification}}. The effect analogue of
-    verified_arms — for a trial whose declared-outcome effect+CI lives ONLY in the full text (not the
-    abstract, not a single-NCT registry row) and cannot be reduced to unambiguous per-arm counts
-    (e.g. CONFIRM-HF's HF-hospitalisation HR 0.39 (0.19-0.82), Table 2 of PMC4359359 — the % arm
-    denominators are the analysis population, not the randomised n, so counts would be inferred; the
-    reported HR is unambiguous). `source` carries the VERBATIM span so verify.verify_pooled checks the
-    effect's digits against the committed bytes. Absent => none."""
-    p = os.path.join(ROOT, "cache", slug, "verified_effects.json")
-    if not os.path.exists(p):
-        return None
-    try:
-        return json.load(open(p, encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
+    from .verified_inputs import load
+    return load(slug, cache_root=os.path.join(ROOT, "cache"))["verified_effects.json"] or None
 
 
 def _load_dose_selection(slug):
@@ -782,6 +828,63 @@ def _load_dose_selection(slug):
         return json.load(open(p, encoding="utf-8"))
     except (OSError, ValueError):
         return None
+
+
+def _clean_record_id(value):
+    s = str(value or "").strip()
+    for sep in ("Â·", "·", "ï¿½", "�"):
+        if sep in s:
+            s = s.split(sep)[-1].strip()
+    return s.replace("PMID ", "").replace("PMID:", "").strip()
+
+
+_ONGOING_STATUS = {"RECRUITING", "ACTIVE_NOT_RECRUITING", "ENROLLING_BY_INVITATION", "APPROVED_FOR_MARKETING"}
+_NOT_YET_STATUS = {"NOT_YET_RECRUITING"}
+_COMPLETED_STATUS = {"COMPLETED", "TERMINATED", "WITHDRAWN", "SUSPENDED", "UNKNOWN"}
+
+
+def _completeness_for_record(rec, dates):
+    rid = str((rec or {}).get("id") or "")
+    nct = screen._nct_id(rec or {})
+    d = dates.get(nct or "") if nct else {}
+    status = str((d or {}).get("overall_status") or (rec or {}).get("overall_status") or (rec or {}).get("status") or "").upper()
+    has_results = bool((rec or {}).get("has_results") or (d or {}).get("results_first_posted_date"))
+    if status in _NOT_YET_STATUS:
+        state = "eligible+not_yet_recruiting"
+    elif status in _ONGOING_STATUS:
+        state = "eligible+ongoing"
+    elif (rec or {}).get("id_type") == "pmid" or status in _COMPLETED_STATUS or has_results:
+        state = "eligible+completed+results_available" if (has_results or (rec or {}).get("id_type") == "pmid") else "eligible+completed+results_unavailable"
+    else:
+        state = "eligible+completed+results_unavailable"
+    return {
+        "completeness_state": state,
+        "registry_status": status or None,
+        "results_first_posted_date": (d or {}).get("results_first_posted_date") or None,
+        "completion_date": (d or {}).get("completion_date") or None,
+        "completeness_basis": "CT.gov status/results dates from local AACT snapshot" if nct and d else "publication record / committed cache metadata",
+    }
+
+
+def _annotate_completeness(review, rec_by_id):
+    ncts = [screen._nct_id(r) for r in rec_by_id.values()]
+    dates = aact.study_dates([n for n in ncts if n]) if any(ncts) else {}
+
+    def annotate(item):
+        rec = rec_by_id.get(_clean_record_id(item.get("id")))
+        if not rec:
+            return
+        ann = _completeness_for_record(rec, dates)
+        for k, v in ann.items():
+            if v not in (None, "", []):
+                item.setdefault(k, v)
+
+    for row in (review.get("screening") or {}).get("records") or []:
+        if row.get("decision") == "include":
+            annotate(row)
+    for outcome in review.get("outcomes") or []:
+        for row in outcome.get("declared_absent_trials") or []:
+            annotate(row)
 
 
 def _load_retrieval_ledger(slug):
@@ -825,6 +928,36 @@ def _with_model_adjudication(slug, dual, decisions):
     return dual
 
 
+def _apply_adjudicator_flags(slug, screening_records):
+    p = os.path.join(ROOT, "cache", slug, "screen_adjudication.json")
+    if not os.path.exists(p):
+        return {"records": screening_records, "pending": []}
+    try:
+        judgments = json.load(open(p, encoding="utf-8")).get("judgments", {})
+    except (OSError, ValueError):
+        return {"records": screening_records, "pending": []}
+    pending = []
+    for row in screening_records:
+        rid = _clean_record_id(row.get("id"))
+        jr = judgments.get(rid)
+        if not isinstance(jr, dict) or not isinstance(jr.get("is_eligible"), bool):
+            continue
+        served_include = row.get("decision") == "include"
+        model_include = jr.get("is_eligible") is True
+        if served_include == model_include:
+            continue
+        row["adjudicator_state"] = "ADJUDICATOR_DISAGREES"
+        row["adjudicator_recommended_decision"] = "include" if model_include else "exclude"
+        row["adjudicator_rationale"] = jr.get("rationale")
+        pending.append({
+            "id": rid,
+            "served": row.get("decision"),
+            "adjudicator": row["adjudicator_recommended_decision"],
+            "rationale": jr.get("rationale"),
+        })
+    return {"records": screening_records, "pending": pending}
+
+
 def _apply_trial_annotations(spec, trials):
     """Copy source-backed per-trial compatibility annotations from the topic spec onto pooled rows."""
     anns = spec.get("trial_annotations") or {}
@@ -834,6 +967,18 @@ def _apply_trial_annotations(spec, trials):
         "prior_disease_stage",
         "background_therapy",
         "components",
+        "endpoint_definition",
+        "follow_up_window",
+        "analysis_set",
+        "effect_model_class",
+        "source_label",
+        "background_lifestyle_intensity",
+        "endpoint_event_time",
+        "analysis_set_literal",
+        "treatment_strategy",
+        "clomifene_status",
+        "dose_regimen",
+        "run_in_enrichment",
         "evidence_unit",
         "evidence_unit_detail",
     }
@@ -844,17 +989,39 @@ def _apply_trial_annotations(spec, trials):
             continue
         for k in allowed:
             if k in ann:
+                if k == "components" and t.get("components"):
+                    continue
                 t[k] = ann[k]
 
 
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
                    locate_judgments=None, verified_effects=None, dose_selection=None,
-                   registry_designs=None, k2_anchor_config=None):
+                   registry_designs=None, k2_anchor_config=None, eligibility_contract=None):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     dose_selection = dose_selection or {}
+    verified_arms = _verified_for_outcome(verified_arms, spec.get("name"))
+    verified_effects = _verified_for_outcome(verified_effects, spec.get("name"))
     trials, absent = [], []
+    candidate_index = {}
+    all_effect_candidates = []
+    for d in included:
+        rec = rec_by_id.get(d["id"], {})
+        nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
+        ft = fulltext_by_pmid.get(d["id"]) if d["id_type"] == "pmid" else None
+        ve = (verified_effects or {}).get(d["id"])
+        cands = _source_effect_candidates(
+            spec,
+            abstract=rec.get("abstract", ""),
+            fulltext=ft,
+            ctgov_outcomes=ctgov_results.get(nct) if nct else None,
+            verified_effect=ve,
+        )
+        candidate_index[d["id"]] = cands
+        all_effect_candidates.extend(cands)
+    estimand_decision = source_hierarchy_mod.estimand_decision(spec, all_effect_candidates)
+    selector_estimand = estimand_decision.get("target_scale") or spec.get("estimand") or "RR"
     for d in included:
         rec = rec_by_id.get(d["id"], {})
         label = rec.get("acronym") or d.get("label") or d["id"]
@@ -886,14 +1053,24 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # value is NOT in the committed source (so no override number exists) — refuse rather than pool the
         # wrong endpoint. STEP-12 (42575111): the abstract's "141 of 161" is OVERALL adverse events, not the
         # gastrointestinal-specific count our harm outcome names (the abstract gives no GI-specific count).
-        _abs_over = (verified_effects or {}).get(d["id"]) or (verified_arms or {}).get(d["id"])
+        _abs_over = next((entry for entry in (
+            (verified_effects or {}).get(d["id"]), (verified_arms or {}).get(d["id"]))
+            if entry and entry.get("override") and entry.get("absent")), None)
         if (_abs_over and _abs_over.get("override") and _abs_over.get("absent")
                 and _abs_over.get("outcome") == spec.get("name")):
             absent.append({"label": label, "id": idstr, "absent_kind": "adjudicated_absent",
                            "state": _abs_over.get("state"),  # override may pin the ontology state; else defaulted below
-                           "reason_code": _abs_over.get("reason_code") or _abs_over.get("state"),
-                           "source_span": _abs_over.get("source", ""),
-                           "verbatim_span": _abs_over.get("source", ""),
+                           "reason_code": (_abs_over.get("reason_code") or _abs_over.get("state")
+                                           or _abs_over.get("provenance")),
+                           "source_adjudicated": bool(_abs_over.get("source_span")),
+                           "document_sha256": _abs_over.get("document_sha256"),
+                           "typed_refusal": bool(_abs_over.get("source_span") and _abs_over.get("provenance")),
+                           "refusal_provenance": _abs_over.get("provenance"),
+                           "source_span": _abs_over.get("source_span") or "",
+                           "verbatim_span": _abs_over.get("source_span") or "",
+                           "source": _abs_over.get("source", ""),
+                           "document_ref": _abs_over.get("document_ref"),
+                           "source_level": _abs_over.get("source_level"),
                            **({"published_alternative": _abs_over.get("published_alternative")}
                               if _abs_over.get("published_alternative") else {}),
                            "reason": _abs_over.get("reason", "declared absent (override): the committed source "
@@ -903,7 +1080,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         if (va_over and va_over.get("override") and va_over.get("outcome") == spec.get("name")
                 and all(va_over.get(k) is not None for k in ("ai", "n1i", "ci", "n2i"))):
             trials.append({"label": label, "id": idstr, "ai": va_over["ai"], "n1i": va_over["n1i"],
-                           "ci": va_over["ci"], "n2i": va_over["n2i"], "provenance": "aact_verified",
+                           "ci": va_over["ci"], "n2i": va_over["n2i"], "provenance": va_over.get("provenance", "aact_verified"),
+                           **{k: va_over[k] for k in ("document_ref", "document_sha256", "source_level") if k in va_over},
                            "source": va_over.get("source", "hand-verified arm-count correction (override)")})
             continue
         # CONTINUOUS override (mean/SD/n), incl. multi-arm combination: beats the automated CT.gov path,
@@ -922,18 +1100,39 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 and ve_over.get("effect") is not None):
             trials.append({"label": label, "id": idstr, "effect": ve_over["effect"],
                            "ci_low": ve_over.get("ci_low"), "ci_high": ve_over.get("ci_high"),
-                           "scale": ve_over.get("scale", "HR"), "provenance": "fulltext_verified",
+                           "scale": ve_over.get("scale", "HR"),
+                           "provenance": ve_over.get("provenance", "fulltext_verified"),
                            **({"alternative_co_primary": ve_over.get("alternative_co_primary")}
                               if ve_over.get("alternative_co_primary") else {}),
                            "source": ve_over.get("source", "hand-verified endpoint correction (override)")})
+            continue
+        nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
+        target_pick = target_endpoint_mod.select_target_endpoint(
+            spec,
+            rec.get("abstract", ""),
+            ctgov_results.get(nct) if nct else None,
+            interv,
+            comp,
+        )
+        if target_pick.get("selected"):
+            t = {"label": label, "id": idstr, **target_pick["selected"]}
+            if nct and nct in ctgov_results:
+                cs = _cross_source(t, nct, ctgov_results, spec, interv, comp)
+                if cs and (t.get("provenance") != "ctgov_results"
+                           or cs.get("registry_title") != t.get("registry_title")
+                           or not cs.get("corroborates_endpoint")):
+                    t["cross_source"] = cs
+            trials.append(t)
             continue
         # SOURCE HIERARCHY: the ABSTRACT headline (the authors' primary-outcome result, unambiguous)
         # first; CT.gov structured results as the FALLBACK when the abstract yields no extractable
         # number (bare %, composite-only). CT.gov-first was tried and REJECTED: outcome-measure
         # selection is ambiguous (abbreviated OM titles) and it overrode EMPEROR's correct 361-event
         # composite with a 15-event secondary. Both are primary-source; the abstract headline is safer.
-        nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
         dc = extract.declared_is_composite(spec.get("name", ""))
+        ft = fulltext_by_pmid.get(d["id"]) if d["id_type"] == "pmid" else None
+        ve = (verified_effects or {}).get(d["id"])
+        effect_candidates = candidate_index.get(d["id"], [])
         ex = extract.extract_trial(rec.get("abstract", ""), spec["keywords"], interv, comp,
                                    declared_composite=dc, estimand=spec.get("estimand"))
         if not ex.get("absent"):
@@ -947,8 +1146,11 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 continue
             ex["provenance"] = "abstract"
             t = {"label": label, "id": idstr, **ex}
+            t = design_key.select_estimator_by_source_hierarchy(
+                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+            )
             if nct and nct in ctgov_results:
-                cs = _cross_source(ex, nct, ctgov_results, spec, interv, comp)
+                cs = _cross_source(t, nct, ctgov_results, spec, interv, comp)
                 if cs:
                     t["cross_source"] = cs
             trials.append(t)
@@ -959,18 +1161,25 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
               if nct and nct in ctgov_results else None)
         if cg:
             cg["provenance"] = "ctgov_results"
-            trials.append({"label": label, "id": idstr, **cg})
+            t = {"label": label, "id": idstr, **cg}
+            t = design_key.select_estimator_by_source_hierarchy(
+                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+            )
+            trials.append(t)
             continue
         # FULL-TEXT FALLBACK: per-arm SD / person-time / rate-ratio+CI that the abstract omits
         # often live in the PMC OA full text (Albert's azithromycin IRR 0.73). Same extractors,
         # same round-trip + refuse-on-ambiguity guards; keyword-scoped so it reads the outcome's
         # own sentences, not the whole document.
-        ft = fulltext_by_pmid.get(d["id"]) if d["id_type"] == "pmid" else None
         fx = extract.extract_trial(ft, spec["keywords"], interv, comp, declared_composite=dc,
                                    estimand=spec.get("estimand")) if ft else None
         if fx and not fx.get("absent"):
             fx["provenance"] = "pmc_fulltext"
-            trials.append({"label": label, "id": idstr, **fx})
+            t = {"label": label, "id": idstr, **fx}
+            t = design_key.select_estimator_by_source_hierarchy(
+                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+            )
+            trials.append(t)
             continue
         # BOTTOM OF THE SOURCE HIERARCHY: a committed, HAND-VERIFIED structured arm-level entry
         # (e.g. AACT counts summed across a trial's two registrations, verified against the
@@ -980,10 +1189,15 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         va = (verified_arms or {}).get(d["id"])
         if va and va.get("outcome") == spec.get("name") and all(
                 va.get(k) is not None for k in ("ai", "n1i", "ci", "n2i")):
-            trials.append({"label": label, "id": idstr, "ai": va["ai"], "n1i": va["n1i"],
-                           "ci": va["ci"], "n2i": va["n2i"],
-                           "provenance": va.get("provenance", "aact_verified"),
-                           "source": va.get("source", "hand-verified structured arm-level counts")})
+            t = {"label": label, "id": idstr, "ai": va["ai"], "n1i": va["n1i"],
+                 "ci": va["ci"], "n2i": va["n2i"],
+                 "provenance": va.get("provenance", "aact_verified"),
+                 "source": va.get("source", "hand-verified structured arm-level counts"),
+                 **_selection_extras(va)}
+            t = design_key.select_estimator_by_source_hierarchy(
+                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+            )
+            trials.append(t)
             continue
         # CONTINUOUS hand-verified arms (mean/SD/n), incl. MULTI-ARM COMBINATION: a multi-arm trial
         # whose dose arms are combined against the shared placebo (the unit-of-analysis rule) is
@@ -992,17 +1206,21 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # mean/SD digits against the committed source span (provenance is not abstract/pmc_fulltext).
         if va and va.get("outcome") == spec.get("name") and all(
                 va.get(k) is not None for k in ("mean1", "sd1", "nc1", "mean2", "sd2", "nc2")):
-            trials.append({"label": label, "id": idstr,
-                           "mean1": va["mean1"], "sd1": va["sd1"], "nc1": va["nc1"],
-                           "mean2": va["mean2"], "sd2": va["sd2"], "nc2": va["nc2"],
-                           "scale": "MD", "provenance": va.get("provenance", "fulltext_verified_arms"),
-                           "source": va.get("source", "hand-verified continuous per-arm mean/SD/n")})
+            t = {"label": label, "id": idstr,
+                 "mean1": va["mean1"], "sd1": va["sd1"], "nc1": va["nc1"],
+                 "mean2": va["mean2"], "sd2": va["sd2"], "nc2": va["nc2"],
+                 "scale": "MD", "provenance": va.get("provenance", "fulltext_verified_arms"),
+                 "source": va.get("source", "hand-verified continuous per-arm mean/SD/n"),
+                 **_selection_extras(va)}
+            t = design_key.select_estimator_by_source_hierarchy(
+                t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
+            )
+            trials.append(t)
             continue
         # FULL-TEXT-VERIFIED EFFECT (committed): the declared-outcome effect+CI is reported only in
         # the full text and cannot be reduced to unambiguous per-arm counts. provenance is NOT
         # abstract/pmc_fulltext so verify.verify_pooled checks the effect's digits against the
         # committed source span (not the abstract). Only for the matching outcome.
-        ve = (verified_effects or {}).get(d["id"])
         if ve and ve.get("outcome") == spec.get("name") and ve.get("effect") is not None:
             trials.append({"label": label, "id": idstr, "effect": ve["effect"],
                            "ci_low": ve.get("ci_low"), "ci_high": ve.get("ci_high"),
@@ -1010,6 +1228,28 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "source": ve.get("source", "full-text-verified effect+CI")})
             continue
         absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
+    if eligibility_contract:
+        kept = []
+        for trial in trials:
+            pid = trial["id"].replace("PMID ", "")
+            admission = eligibility_chain_mod.admission_record(
+                trial, rec_by_id.get(pid), spec, eligibility_contract)
+            failed = [dim for dim, cell in admission.items()
+                      if cell.get("verdict") == "FAIL" and dim not in eligibility_chain_mod.COMPAT_AXES]
+            if not failed:
+                kept.append(trial)
+                continue
+            span = (rec_by_id.get(pid) or {}).get("abstract") or trial.get("source", "")
+            absent.append({"id": trial["id"], "label": trial["label"],
+                           "absent_kind": "adjudicated_absent", "state": "REFUSED_ON_EVIDENCE",
+                           "reason_code": "REFUSED_ON_EVIDENCE", "source_span": span,
+                           "verbatim_span": span, "admission": admission,
+                           "eligibility_refusal_code": "TRIAL_FAILS_CONTRACT",
+                           "eligibility_chain_rationale": ", ".join(failed),
+                           "reason": "Protocol eligibility contract not satisfied: " + "; ".join(
+                               f"{dim}={admission[dim]['trial_value']} (requires {admission[dim]['contract_value']})"
+                               for dim in failed)})
+        trials = kept
     # ESTIMAND-CONSISTENCY GUARD (continuous topics): a mean-difference topic must pool ONLY continuous
     # per-arm mean/SD data. If the source hierarchy fell through to a COUNT/proportion or a ratio effect
     # for a trial (e.g. a multi-arm trial whose continuous MADRS was refused, then a "% with >=50% response"
@@ -1069,35 +1309,54 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     # PER-TRIAL VERIFICATION against committed source, computed at build and rendered (not assumed):
     # each pooled number's digits must be present in the committed abstract / structured source.
     for t in trials:
+        if not t.get("selection_rule"):
+            selected = design_key.select_estimator_by_source_hierarchy(t, [], selector_estimand)
+            t.clear()
+            t.update(selected)
+        source_limit = source_hierarchy_mod.mixed_by_source_limit(t, estimand_decision)
+        if source_limit:
+            limits = t.setdefault("source_hierarchy_limitations", [])
+            if not any(lim.get("code") == source_limit.get("code") for lim in limits):
+                limits.append(source_limit)
         pid = str(t.get("id", "")).replace("PMID ", "")
         ab = (rec_by_id.get(pid) or {}).get("abstract", "")
         t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
         if t.get("ai") is not None or t.get("mean1") is not None or t.get("e1i") is not None:
-            t["derivation"] = "reconstructed"
+            t["derivation"] = t.get("derivation") or "reconstructed"
         elif t.get("effect") is not None:
-            t["derivation"] = "reported"
-        design_key.stamp_trial(t, rec_by_id, registry_designs or {}, spec.get("estimand"))
-        if design_key.maybe_use_published_adjusted(t, spec.get("estimand")):
+            t["derivation"] = t.get("derivation") or "reported"
+        design_key.stamp_trial(t, rec_by_id, registry_designs or {}, selector_estimand)
+        if design_key.maybe_use_published_adjusted(t, selector_estimand):
+            t.setdefault("selection_rule", "PUBLISHED_ADJUSTED_TARGET_CLASS")
+            t.setdefault("alternatives", [])
+            t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
+        if design_variance.apply_design_adjustment(t, spec.get("estimand")):
             t["verified"], t["verify_basis"] = verify.verify_pooled(t, ab)
     trials, design_refusals = design_key.split_design_refusals(trials)
     for t in design_refusals:
-        absent.append(design_key.refusal_absence(t))
+        absent.append(design_variance.refusal_absence(t))
+    included_meta = {
+        str(d.get("id")): {k: d.get(k) for k in screen_entry.DECISION_EXTRA_KEYS if k in d}
+        for d in included
+    }
+    for row in absent:
+        key = str(row.get("id", "")).replace("PMID ", "")
+        meta = included_meta.get(key)
+        if meta:
+            row.update(meta)
     _apply_trial_annotations(spec, trials)
+    for t in trials:
+        if t.get("cross_source"):
+            _refresh_cross_source_identity(t["cross_source"], spec, t.get("components"))
     out = {"name": spec["name"], "kind": kind, "primary": bool(spec.get("primary")),
            "estimand": spec.get("estimand", "RR"), "population": spec.get("population"),
            "timepoint": spec.get("timepoint"), "method": METHOD,
+           "served_estimand": selector_estimand, "estimand_decision": estimand_decision,
            "trials": trials, "declared_absent_trials": absent}
     if spec.get("component_compat_key"):
         out["component_compat_key"] = True
     if design_refusals:
-        out["design_refusals"] = [{
-            "trial": design_key.display_name(t),
-            "id": t.get("id"),
-            "design": (t.get("design") or {}).get("design"),
-            "reason": design_key.refusal_reason(t),
-            **({"published_alternative": (t.get("design") or {}).get("published_alternative")}
-               if (t.get("design") or {}).get("published_alternative") else {}),
-        } for t in design_refusals]
+        out["design_refusals"] = [design_variance.design_refusal_row(t) for t in design_refusals]
     out["membership"] = membership_mod.build_outcome_membership(out, included)
     if design_refusals and len(trials) < 2:
         out["result"] = {
@@ -1110,7 +1369,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             "refused": out["design_refusals"],
         }
     elif trials:
-        meas = (spec.get("estimand") or "RR").upper()
+        meas = (selector_estimand or spec.get("estimand") or "RR").upper()
         meas = meas if meas in ("RR", "OR") else "RR"  # 2x2 pools as RR/OR; HR only via effect+CI
         def _meas(t):
             if t.get("e1i") is not None:
@@ -1132,7 +1391,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             # heterogeneity the label makes visible, e.g. spironolactone RR/HR).
             pooled_scale = trials[0]["scale"]
         else:
-            pooled_scale = spec.get("estimand", "RR")
+            pooled_scale = selector_estimand or spec.get("estimand", "RR")
         studies = [Study(label=t["label"], ai=t.get("ai"), n1i=t.get("n1i"), ci=t.get("ci"),
                          n2i=t.get("n2i"), effect=t.get("effect"), ci_low=t.get("ci_low"),
                          ci_high=t.get("ci_high"),
@@ -1148,7 +1407,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 trial,
                 yi=yi,
                 vi=vi,
-                estimand=spec.get("estimand"),
+                estimand=selector_estimand,
                 analysis_population=spec.get("population"),
                 scale=pooled_scale,
             )
@@ -1189,8 +1448,9 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 "pool_changed": True,
                 "refused": out["design_refusals"],
                 "statement": ("Pool changed because a design refusal was added: reconstructed cluster, "
-                              "crossover, cluster-crossover, and stepped-wedge trials require an explicit "
-                              "design adjustment before contributing a parallel-group SE."),
+                              "crossover, cluster-crossover, and stepped-wedge trials require a held "
+                              "design-adjusted effect or an ICC design-effect variance before this engine "
+                              "can consume them."),
             }
         # HONEST MIXED-SCALE LABEL (estimand homogeneity): if the pooled trials do NOT share one
         # ratio estimand, the label must SAY so — never present a heterogeneous pool as a single
@@ -1271,7 +1531,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         for t in trials:
             _pid = str(t.get("id", "")).replace("PMID ", "").strip() or str(t.get("label", ""))
             _ab = (rec_by_id.get(_pid) or rec_by_id.get(t.get("label")) or {}).get("abstract", "")
-            _ch_srcs.append((_ab or "") + " " + (t.get("source", "") or ""))
+            _ch_srcs.append({
+                "source": (_ab or "") + " " + (t.get("source", "") or ""),
+                "endpoint_definition": t.get("endpoint_definition"),
+            })
         _ch = extract.composite_heterogeneity(spec.get("name", ""), _ch_srcs)
         if _ch:
             out["result"]["composite_heterogeneity"] = _ch
@@ -1328,6 +1591,10 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             out["result"] = {"present": False,
                              "reason": "no included trial reported this outcome with a percentage-corroborated "
                                        "count or an effect+CI in its abstract"}
+    if out.get("design_refusals"):
+        out["design_consumption"] = design_variance.consumption_summary(out)
+        if isinstance(out.get("result"), dict):
+            out["result"]["design_consumption"] = out["design_consumption"]
     return out
 
 
@@ -1483,11 +1750,16 @@ def build_review_core(slug, config, records, protocol_sha):
     dsel = _load_dose_selection(slug)
     ljudg = locate.load(slug) if config.get("locate_gate") else None
     registry_designs = design_key.registry_designs(records)
+    eligibility_contract = None
+    if config.get("eligibility_chain_enforced"):
+        with open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8") as f:
+            eligibility_contract = eligibility_chain_mod.compile_contract(slug, config, f.read())
     outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp,
                                outcome_judgments=ojudg, verified_arms=varms, locate_judgments=ljudg,
                                verified_effects=veffs, dose_selection=dsel,
                                registry_designs=registry_designs,
-                               k2_anchor_config=config.get("k2_direction_conflict_anchor"))
+                               k2_anchor_config=config.get("k2_direction_conflict_anchor"),
+                               eligibility_contract=eligibility_contract)
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 
@@ -1542,6 +1814,15 @@ def build_review_core(slug, config, records, protocol_sha):
                     "note": (f"Trials newer than the comparator ({comp_year}) cannot be in it (only-ours, "
                              f"verifiable by date). Exact shared count not asserted.")},
     }
+    if slug in comparator_second_pass.PROFILES:
+        comparator = comparator_second_pass.apply(slug, config, records, comp_rec, comparator)
+    if slug in comparator_truth.PAGE_ANNOTATION_SLUGS:
+        _comp_text = comparator_truth.load_cached_comparator_text(
+            ROOT, slug, comparator.get("pmid"), (comp_full or comp_abstract)
+        )
+        comparator = comparator_truth.annotate_comparator(
+            slug, comparator, primary.get("trials") or [], config, _comp_text
+        )
     comparator_scope_note = config.get("comparator_scope_note")
     if (primary.get("result") or {}).get("design_refusal"):
         refused_names = ", ".join(
@@ -1569,14 +1850,25 @@ def build_review_core(slug, config, records, protocol_sha):
                 "rule_id": d["rule_id"], "reason": d["reason"],
                 "span": d.get("span", ""), "found_by": found_by,
                 **({"matched_intervention": d.get("matched_intervention")} if d.get("matched_intervention") else {}),
+                **{k: d.get(k) for k in screen_entry.DECISION_EXTRA_KEYS if k in d},
+                **({"arm_object": d.get("arm_object")} if d.get("arm_object") else {}),
+                **({"arm_object_hidden_eligible_contrast": d.get("arm_object_hidden_eligible_contrast")}
+                   if d.get("arm_object_hidden_eligible_contrast") else {}),
             })
     else:
         screening_records = [{"id": (f"{rec_by_id.get(d['id'],{}).get('acronym')} · " if rec_by_id.get(d['id'],{}).get('acronym') else "") + str(d["id"]),
                               "id_type": d["id_type"], "decision": d["decision"],
                               "rule_id": d["rule_id"], "reason": d["reason"],
                               "span": d.get("span", ""),
-                              **({"matched_intervention": d.get("matched_intervention")} if d.get("matched_intervention") else {})}
+                              **({"matched_intervention": d.get("matched_intervention")} if d.get("matched_intervention") else {}),
+                              **{k: d.get(k) for k in screen_entry.DECISION_EXTRA_KEYS if k in d},
+                              **({"arm_object": d.get("arm_object")} if d.get("arm_object") else {}),
+                              **({"arm_object_hidden_eligible_contrast": d.get("arm_object_hidden_eligible_contrast")}
+                                 if d.get("arm_object_hidden_eligible_contrast") else {})}
                              for d in scr["decisions"]]
+
+    _adj = _apply_adjudicator_flags(slug, screening_records)
+    screening_records = _adj["records"]
 
     source_status = _source_status(slug, config, records, merged, retrieval_ledger)
     retrieval_class = classify_retrieval(
@@ -1584,8 +1876,17 @@ def build_review_core(slug, config, records, protocol_sha):
         retrieval_ledger,
         source_status.get("Registry-first (AACT)"),
     )
+    protocol_text = _read_text("protocols", slug + ".md")
+    scope_identity = scope_identity_mod.assess(
+        config=config,
+        protocol_text=protocol_text,
+        search={"retrieval_class": retrieval_class},
+        ledger=retrieval_ledger,
+        slug=slug,
+    )
 
     integrity = membership_mod.integrity_with_membership(_load_integrity(slug), outcomes)
+    arm_contrast = design_variance.current_arm_contrast(_load_arm_contrast(slug), primary)
 
     review = {
         "slug": slug, "title": config["title"], "question": config["question"],
@@ -1595,7 +1896,7 @@ def build_review_core(slug, config, records, protocol_sha):
                      # Eligibility is GENERATED from the include object the screen enforces, so the
                      # declared eligibility on the page cannot drift from the code that screens.
                      "eligibility": screen.describe_eligibility(config.get("include", {})),
-                     "text": _read_text("protocols", slug + ".md")},
+                     "text": protocol_text},
         "search": {"n_records": len(merged), "cache_ref": f"cache/{slug}/records.json",
                    "run_utc": records.get("fetched_utc"), "databases": ["PubMed", "ClinicalTrials.gov"],
                    "sources": [{"name": "PubMed", "queries": records.get("pubmed_queries", [])},
@@ -1607,7 +1908,9 @@ def build_review_core(slug, config, records, protocol_sha):
                    **({"ghost": _gh} if (_gh := _load_ghost(slug)) else {})},
         "screening": {"records": screening_records,
                       "positive_control": scr["positive_control"], "negative_control": scr["negative_control"],
-                      "dual": _with_model_adjudication(slug, screen.run_dual(merged, config), scr["decisions"])},
+                      "dual": _with_model_adjudication(slug, screen.run_dual(merged, config), scr["decisions"]),
+                      **({"adjudicator_pending": _adj["pending"]} if _adj.get("pending") else {})},
+        "scope_identity": scope_identity,
         "outcomes": outcomes,
         "comparator": comparator,
         "estimand_exclusions": config.get("estimand_exclusions", []),
@@ -1617,7 +1920,7 @@ def build_review_core(slug, config, records, protocol_sha):
         # Arm-contrast disclosure (TIER-1 structural fix): per pooled trial, whether the intervention of
         # interest is a parser-confirmed RANDOMISED CONTRAST or a fail-open/background inclusion. Visible,
         # never silent -- a trial admitted with no registry arm data reads 'contrast unverified', not verified.
-        **({"arm_contrast": _ac} if (_ac := _load_arm_contrast(slug)) else {}),
+        **({"arm_contrast": arm_contrast} if arm_contrast else {}),
         **({"integrity": integrity} if integrity else {}),
         # Unit-of-analysis disclosure (ME-26/27): pooled trials with a cluster-randomized or crossover
         # design, from the committed abstracts. Rendered as a caveat; not an adjustment (ICC unavailable).
@@ -1632,6 +1935,7 @@ def build_review_core(slug, config, records, protocol_sha):
         **({"rob_spancheck": _rsc} if (_rsc := _load_rob_spancheck()) else {}),
     }
     identity_mod.annotate_review(review, merged, config.get("companion_reports") or [])
+    _annotate_completeness(review, rec_by_id)
     # CANONICAL CLAIM: one derivation of significance / null-crossing / direction per result,
     # attached to every outcome (primary, secondary, harms) and every transcribed comparator claim,
     # so a surface DERIVES the stated judgement from one object instead of recomputing it (the
@@ -1661,6 +1965,9 @@ def build_review_core(slug, config, records, protocol_sha):
             review["protocol_history"] = {"amendments": _amendments}
     except OSError:
         pass
+    _protocol_controls = design_variance.protocol_control_expectations(review)
+    if _protocol_controls:
+        review.setdefault("protocol", {})["control_expectations"] = _protocol_controls
     # IDENTIFIER SCOPE: detect a single-agent slug over a class-level included pool structurally
     # from the configured declaration and screening object, before any downstream gate can reassure it.
     _scope_config = dict(config)
@@ -1689,18 +1996,25 @@ def build_review_core(slug, config, records, protocol_sha):
     # outcome so the contract that lets its trials be pooled is auditable on the page; a backstop in
     # the build refuses a pool whose trials do not share the hard dimensions (defense in depth).
     for _o in review.get("outcomes", []):
+        endpoint_canonical_mod.annotate_outcome(_o, slug)
         _ck = compat_mod.outcome_key(_o, review)
         if _ck:
             _o["compat_key"] = _ck
+        _cd = compat_direction_mod.outcome_directions(_o, review)
+        if _cd.get("dimensions"):
+            _o["compat_direction"] = _cd
+        _ev = endpoint_canonical_mod.diagnose(_o, slug, _ck)
+        if _ev:
+            _o["endpoint_canonical_diagnostics"] = _ev
         # DERIVATION provenance (melatonin defect: a harness-computed MD shown as 'the trial's own
         # effect'): label each pooled number reported (the source gave the effect+CI directly) vs
         # reconstructed (the harness computed it from arm counts / means / person-time). Both are
         # legitimate; conflating them is not.
         for _t in (_o.get("trials") or []):
             if _t.get("ai") is not None or _t.get("mean1") is not None or _t.get("e1i") is not None:
-                _t["derivation"] = "reconstructed"
+                _t["derivation"] = _t.get("derivation") or "reconstructed"
             elif _t.get("effect") is not None:
-                _t["derivation"] = "reported"
+                _t["derivation"] = _t.get("derivation") or "reported"
         # RECOVERY-INDUCED-INCOMPATIBILITY RECHECK: a recovery is verified before integration, but
         # adding a trial can break the POOL it joins. Re-run the compatibility contract on the whole
         # outcome AFTER integration (derivation now set) and record the verdict + any disclosure. This
@@ -1748,6 +2062,21 @@ def build_review_core(slug, config, records, protocol_sha):
     # KNOWN-MISSING SENSITIVITY: invalidation names eligible evidence outside the primary pool.
     # This panel keeps the primary untouched and shows only source-backed re-pools as SENSITIVITY.
     known_missing_mod.build(review, _inv_sig, rec_by_id, records)
+    consumer_consistency_mod.annotate_review(review, slug, config, records)
+    # RX measurement layer: verify the declared reason codes and enumerate included-trial x
+    # registered-outcome values visible in held sources but not extracted. This is deliberately
+    # additive: it annotates the review object and row-level audit fields, but never changes the
+    # extractor output, reason_code, membership, or pool.
+    _src_map = reason_audit_mod.sources_by_trial(slug, records, ROOT)
+    reason_audit_mod.annotate_review(slug, review, _spec_by_name, _src_map)
+    unextracted_mod.annotate_review(slug, review, _spec_by_name, _src_map)
+    if slug == "colchicine-postop-af" or config.get("eligibility_chain_enforced"):
+        try:
+            _md = open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8").read()
+            eligibility_chain_mod.apply_admissions(review, config, records, _md)
+        except OSError:
+            pass
+    harms_mod.annotate_review(review, _spec_by_name, included, rec_by_id, ftbp)
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config so a divergence (estimand, analysis set, design masking AND/OR) between the registered
     # prose and the machine rules cannot pass -- the tocilizumab self-certification defect (a check
@@ -1777,11 +2106,24 @@ def build_review_core(slug, config, records, protocol_sha):
     # publication bias computed from committed fields; indirectness left to human judgement).
     if (_grade := grade_mod.grade(review, _load_ghost(slug))):
         review["grade"] = _grade
+        design_variance.annotate_grade(review)
+    if any(
+        _t.get("target_endpoint_class")
+        for _o in review.get("outcomes", [])
+        for _t in (_o.get("trials") or [])
+    ):
+        review.setdefault("protocol", {})["target_endpoint_selection"] = (
+            target_endpoint_mod.protocol_rule_object()
+        )
     claimgraph_mod.stamp_review(review)
     _cg_bad = claimgraph_mod.check(review)
     if _cg_bad:
         raise ValueError("CLAIMGRAPH CONTRADICTION (build refused): " + json.dumps(_cg_bad))
     review["limitations"] = build_limitations(review)
+    review = propositions_mod.attach(review)
+    _prop_bad = propositions_mod.check_propositions(review)
+    if _prop_bad:
+        raise ValueError("PROPOSITION CONTRADICTION (build refused): " + json.dumps(_prop_bad))
     return review
 
 

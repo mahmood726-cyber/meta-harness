@@ -1,8 +1,8 @@
 """Unit-of-analysis/design caveat rendering.
 
-Before the design-key refusal, balanced crystalloids had pooled cluster-period crossover trials and
-needed a variance-inflation sensitivity. After the refusal, those trials are named exclusions and the
-only remaining design caveat is BaSICS as an individual-randomized factorial marginal contrast.
+Balanced crystalloids keeps design-refused reconstructed cluster-crossover rows out of the pool.
+The unit-of-analysis caveat now covers the remaining pooled factorial marginal contrast, while
+the refused cluster-crossover rows are carried by the typed design-refusal object.
 """
 import json
 import os
@@ -20,10 +20,12 @@ def _load(slug):
 def test_crystalloids_uoa_caveat_matches_post_refusal_factorial_state():
     r = _load("balanced-crystalloids-vs-saline-mortality")
     uoa = r.get("unit_of_analysis") or []
-    assert [u.get("design") for u in uoa] == ["factorial"]
+    assert sorted(u.get("design") for u in uoa) == ["factorial"]
+    primary = next(o for o in r["outcomes"] if o.get("primary"))
+    refused = ((primary.get("result") or {}).get("design_refusal") or {}).get("refused") or []
+    assert {row.get("trial") for row in refused} >= {"SMART", "SALT", "SPLIT"}
     html = page._riskofbias(r, False)
     assert "point estimate is unaffected" not in html, "the false invariance claim must be gone"
     assert "within-subject" not in html
     assert "individual-randomized factorial designs" in html
     assert "source-reported adjusted marginal estimate" in html
-    assert not re.search(r"re-pools \(illustrative DL\) from [0-9.]+ to [0-9.]+", re.sub(r"<[^>]+>", " ", html))

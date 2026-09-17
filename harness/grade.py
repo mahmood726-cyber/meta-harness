@@ -327,7 +327,7 @@ def grade(review, ghost=None):
     if (res.get("k") or 0) <= 1 and idx == 0:
         idx = 1
         single_trial_capped = True
-    # D3-UNASSESSED CAP (audits 20/21): D3 (missing outcome data) is a REQUIRED RoB2 domain, and the
+    # D3-UNASSESSED CAP (audits 20/21): D3 (missing outcome data) is a required bias domain, and the
     # harness has no outcome-missingness evidence source, so it is permanently NOT ASSESSED for every
     # pooled trial. A body of evidence whose bias assessment is structurally incomplete on a required
     # domain cannot be certified HIGH certainty -- cap at moderate, with the named reason, until an

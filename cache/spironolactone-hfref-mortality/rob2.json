@@ -73,7 +73,9 @@
             "comparison": {
               "matched": false,
               "method": "no_registered_outcome",
-              "pooled_components": [],
+              "pooled_components": [
+                "ALL_CAUSE_MORTALITY"
+              ],
               "registered_components": []
             }
           },
@@ -111,7 +113,36 @@
             "level": "not_assessable"
           }
         ]
-      }
+      },
+      "assessed_domains": [
+        {
+          "domain": "D1_randomisation",
+          "label": "allocation sequence/randomisation",
+          "level": "low"
+        }
+      ],
+      "unassessed_domains": [
+        {
+          "domain": "D2_deviations",
+          "label": "masking of participants/personnel",
+          "level": "not assessed"
+        },
+        {
+          "domain": "D3_missing_outcome_data",
+          "label": "missing outcome data",
+          "level": "not assessed"
+        },
+        {
+          "domain": "D4_outcome_measurement",
+          "label": "masking of outcome assessment",
+          "level": "not assessed"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
+          "level": "not_assessable"
+        }
+      ]
     },
     "21073363": {
       "nct": "NCT00232180",
@@ -163,7 +194,7 @@
         },
         "D5_selective_reporting": {
           "level": "low",
-          "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting",
+          "basis": "prespecified secondary outcome, registered 'Number of Participants With First Occurrence of All-Cause Mortality (Adjudicated)'",
           "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
           "inputs": {
             "pooled_outcome": "All-cause mortality",
@@ -263,14 +294,16 @@
             ],
             "comparison": {
               "registered_type": "secondary",
-              "registered_label": "Number of Participants With First Occurrence of All-Cause Mortality or Heart Failure (HF) Hospitalization (Adjudicated)",
+              "registered_label": "Number of Participants With First Occurrence of All-Cause Mortality (Adjudicated)",
               "matched": true,
-              "method": "text_identity",
-              "pooled_components": [],
-              "registered_components": [
-                "HF_HOSPITALISATION"
+              "method": "component_set",
+              "pooled_components": [
+                "ALL_CAUSE_MORTALITY"
               ],
-              "registered_text": "Number of Participants With First Occurrence of All-Cause Mortality or Heart Failure (HF) Hospitalization (Adjudicated) Death due to any cause or first of occurrence HF hospitalization. HF hospitalization is defined as an overnight stay, or longer, in a hospital environment (emergency room, observation unit or in-patient care, or similar facility including admission to a day care facility) due to HF as the primary reason for hospitalization as determined by the endpoint committee adjudicator."
+              "registered_components": [
+                "ALL_CAUSE_MORTALITY"
+              ],
+              "registered_text": "Number of Participants With First Occurrence of All-Cause Mortality (Adjudicated) Death due to any cause."
             }
           },
           "derived_at_build": true
@@ -307,13 +340,42 @@
             "level": "not assessed"
           }
         ]
-      }
+      },
+      "assessed_domains": [
+        {
+          "domain": "D1_randomisation",
+          "label": "allocation sequence/randomisation",
+          "level": "low"
+        },
+        {
+          "domain": "D2_deviations",
+          "label": "masking of participants/personnel",
+          "level": "low"
+        },
+        {
+          "domain": "D4_outcome_measurement",
+          "label": "masking of outcome assessment",
+          "level": "low"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
+          "level": "low"
+        }
+      ],
+      "unassessed_domains": [
+        {
+          "domain": "D3_missing_outcome_data",
+          "label": "missing outcome data",
+          "level": "not assessed"
+        }
+      ]
     },
     "28824029": {
       "nct": "NCT01115855",
       "registry_in_aact": true,
       "assessed_from": "registry+abstract",
-      "overall": "low (on assessed domains; some domains require human judgement)",
+      "overall": "some concerns",
       "domains": {
         "D1_randomisation": {
           "level": "low",
@@ -371,8 +433,8 @@
           "derived_at_build": true
         },
         "D5_selective_reporting": {
-          "level": "low",
-          "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting",
+          "level": "some concerns",
+          "basis": "the pooled outcome matches no registered primary or secondary outcome (registered primary: 'Number of Participants With First Occurrence of Cardiovascular (CV) Mortality or') -- possibly post-hoc/unregistered",
           "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
           "inputs": {
             "pooled_outcome": "All-cause mortality",
@@ -491,16 +553,19 @@
               }
             ],
             "comparison": {
-              "registered_type": "secondary",
-              "registered_label": "Number of Participants With With First Occurrence of All-Cause Mortality",
-              "matched": true,
-              "method": "text_identity",
-              "pooled_components": [],
+              "registered_type": null,
+              "registered_label": "Number of Participants With First Occurrence of Cardiovascular (CV) Mortality or Hospitalization Due to Heart Failure (HF)",
+              "matched": false,
+              "method": "component_set",
+              "pooled_components": [
+                "ALL_CAUSE_MORTALITY"
+              ],
               "registered_components": [
+                "HF_HOSPITALISATION",
                 "NONFATAL_MI",
                 "NONFATAL_STROKE"
               ],
-              "registered_text": "Number of Participants With With First Occurrence of All-Cause Mortality All-cause mortality was defined as any CV mortality, Non-CV mortality, including malignant tumor, pulmonary disease and trauma.CV mortality was defined as death due to HF, myocardial infarction, cardiac arrhythmia, stroke or cerebral vascular accident, other CV cause (such as aneurysm or pulmonary embolism). Mortality during treatment, within 30 days of treatment discontinuation and after 30 days of discontinuation was reported. Hazard ratio of Eplerenone versus placebo for first occurrence of the event was obtained from a Cox proportional hazards model."
+              "registered_text": "Number of Participants With First Occurrence of Cardiovascular (CV) Mortality or Hospitalization Due to Heart Failure (HF) CV mortality was defined as any death due to HF, myocardial infarction, cardiac arrhythmia, stroke or cerebral vascular accident, other CV cause (such as aneurysm or pulmonary embolism). Hospitalization due to HF was defined as an overnight stay, or longer, in a hospital environment (emergency room, observation unit or in-patient care, or similar facility including admission to a day care facility) due to HF. Hazard ratio of Eplerenone versus placebo for first occurrence of the event was obtained from a Cox proportional hazards model."
             }
           },
           "derived_at_build": true
@@ -527,7 +592,7 @@
           {
             "domain": "D5_selective_reporting",
             "label": "registered outcome versus pooled outcome",
-            "level": "low"
+            "level": "some concerns"
           }
         ],
         "unassessed_domains": [
@@ -537,7 +602,36 @@
             "level": "not assessed"
           }
         ]
-      }
+      },
+      "assessed_domains": [
+        {
+          "domain": "D1_randomisation",
+          "label": "allocation sequence/randomisation",
+          "level": "low"
+        },
+        {
+          "domain": "D2_deviations",
+          "label": "masking of participants/personnel",
+          "level": "low"
+        },
+        {
+          "domain": "D4_outcome_measurement",
+          "label": "masking of outcome assessment",
+          "level": "low"
+        },
+        {
+          "domain": "D5_selective_reporting",
+          "label": "registered outcome versus pooled outcome",
+          "level": "some concerns"
+        }
+      ],
+      "unassessed_domains": [
+        {
+          "domain": "D3_missing_outcome_data",
+          "label": "missing outcome data",
+          "level": "not assessed"
+        }
+      ]
     }
   }
 }

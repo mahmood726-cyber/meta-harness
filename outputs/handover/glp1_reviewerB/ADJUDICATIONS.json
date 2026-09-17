@@ -1,0 +1,70 @@
+{
+ "object": "ADJUDICATION_SET",
+ "date_utc": "2026-09-16",
+ "adjudicator": {
+  "who": "integrator (Claude Opus 5, session ba56f4ae)",
+  "authority": "registered protocol amendment B-prime rules; NOT a human sign-off -- Mahmood has not countersigned these two decisions",
+  "human_signature": "OWED"
+ },
+ "decisions": [
+  {
+   "id": "ADJ-GLP1-001",
+   "trial": "FREEDOM-CVO",
+   "nct": "NCT01455896",
+   "question": "Which 3-point MACE row from FDA NDA 209053 EMDAC briefing (2023) is the review's value?",
+   "reviewer_A": {
+    "value": "HR 1.24 (0.90, 1.70), 85/2075 vs 69/2081",
+    "row": "Table 19, ITT Population End of Study, FREEDOM (CLP-107)",
+    "pdf_page": 58
+   },
+   "reviewer_B": {
+    "value": "HR 1.36 (0.96, 1.92), 73/2070 vs 56/2074",
+    "row": "3-Point MACE End of Treatment row (span verbatim in reviewB_extraction.json)"
+   },
+   "both_spans_located_in_held_document": true,
+   "rule_applied": "B-prime 'Timepoint': the prespecified analysis at the end of randomised follow-up (on-study / end-of-study ITT); on-treatment or end-of-treatment analyses are sensitivity analyses",
+   "decision": "End-of-study row adopted: HR 1.24 (0.90, 1.70). End-of-treatment row recorded as a sensitivity value, not discarded.",
+   "why": "Neither reviewer erred on reading; the disagreement is a timepoint/analysis-set selection that the registered rule decides. B's row is the on-treatment analysis.",
+   "consequence": "The typed effect object must carry `censoring: on-study|on-treatment` and `timepoint`; a value without them is UNTYPED. Foundation item for the type system (FN/CGX).",
+   "applied_to_served_page": false,
+   "source_level": 2,
+   "document_sha256": "719362393b2029c2d4a081ab1bc69647034b2168efe686808d419f16177f0103"
+  },
+  {
+   "id": "ADJ-GLP1-002",
+   "trial": "FLOW",
+   "nct": "NCT03819153",
+   "question": "Is the abstract's 'major cardiovascular events ... HR 0.82' the 3-point composite the review pools?",
+   "reviewer_A": {
+    "value": "HR 0.82 (confirmatory secondary MACE)",
+    "basis": "abstract (level 1) for the value"
+   },
+   "reviewer_B": {
+    "value": "NOT_REPORTED_IN_HELD_SOURCES",
+    "basis": "abstract does not enumerate the components; refused to relabel"
+   },
+   "rule_applied": "Source ladder: value from level 1; endpoint IDENTITY from the lowest level that enumerates components -- registry design_outcomes (level 3, AACT snapshot, offline)",
+   "decision": "Endpoint identity resolved from AACT design_outcomes for NCT03819153 (MACE = CV death, non-fatal MI, non-fatal stroke); value stays level 1; identity cited at level 3. B's refusal was CORRECT on the held set B was given. AACT span now recorded (17 Sep); censoring caveat added.",
+   "why": "B was sealed to abstracts + two FDA texts and had no registry record; the harness holds the registry record. The resolution is by an additional held source, not by overruling B.",
+   "consequence": "FLOW may be pooled only once the AACT design_outcomes row is recorded as a source with its verbatim title span and the snapshot identity; not yet done on the page.",
+   "applied_to_served_page": false,
+   "source_level_value": 1,
+   "source_level_identity": 3,
+   "aact_span": {
+    "snapshot": "F:/AACT-storage/AACT/2026-08-30 (local, offline)",
+    "table": "design_outcomes",
+    "nct_id": "NCT03819153",
+    "outcome_type": "secondary",
+    "measure_verbatim": "Number of Participants From Time of Randomization to Time to First Occurrence of a Major Adverse Cardiovascular Event (MACE): Acute Myocardial Infarction (Non Fatal); Non-fatal Stroke; and CV Death",
+    "description_verbatim": "Number of participants who reported first occurence of non-fatal acute myocardial infarction, non-fatal stroke, and CV death combined data were presented from Week 0 up to Week 234 during on-treatment period. MACE consisted of non-fatal acute myocardial infarction, cardiovascular death and non-fatal stroke. First on-treatment period is defined as period from date of first dose until first time where no dose had been administered within 5 weeks (35 days) or end of the in-trial period, whichever came first.",
+    "time_frame_verbatim": "From Week 0 up to Week 234",
+    "row_sha256": "c49a09a582ba7dc1a6806a4cc6624e94ce868ae88bac186cbc3931bd351b70d3",
+    "component_rows": [
+     "Number of Participants From Time of Randomization to Time to Occurrence of Each of the Individual Components of the Confirmatory Secondary MACE Endpoint: Non-fatal Myocardial Infarction",
+     "Number of Participants From Time of Randomization to Time to Occurrence of Each of the Individual Components of the Confirmatory Secondary MACE Endpoint: Non-fatal Stroke"
+    ]
+   },
+   "caveat": "The registry description of the composite says 'during on-treatment period' while the component rows say 'in-trial period'; the abstract's HR 0.82 is the in-trial (on-study) analysis per the publication. Endpoint IDENTITY (components) is resolved at level 3; the CENSORING axis for the 0.82 value must be typed from the publication (level 1) by the TY lane's axis 8 before FLOW pools -- not assumed here."
+  }
+ ]
+}

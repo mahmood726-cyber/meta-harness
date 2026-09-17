@@ -4,8 +4,8 @@
     "cond": "chronic kidney disease",
     "intr": "SGLT2"
   },
-  "title": "SGLT2 inhibitors vs placebo for CKD progression in chronic kidney disease",
-  "question": "In adults with chronic kidney disease, do SGLT2 inhibitors reduce kidney disease progression versus placebo? (Double-blind placebo-controlled RCTs.)",
+  "title": "SGLT2 inhibitors vs placebo for trial-defined primary cardiorenal composites in chronic kidney disease",
+  "question": "In adults with chronic kidney disease, do SGLT2 inhibitors reduce trial-defined primary cardiorenal composite events versus placebo? (Double-blind placebo-controlled RCTs.)",
   "pubmed_queries": [
     "32970396[uid]",
     "30990260[uid]",
@@ -25,12 +25,26 @@
   "negative_control_pmids": [
     "31535829"
   ],
+  "contrast_evictions": [
+    {
+      "key": "NCT06350123",
+      "alt": [
+        "MIRO-CKD"
+      ],
+      "trial": "MIRO-CKD",
+      "basis": "all cached registry arms receive dapagliflozin; randomisation isolates balcinrenone rather than dapagliflozin/SGLT2-vs-placebo",
+      "mechanism": "arm-contrast"
+    }
+  ],
   "include": {
     "population_any": [
       "chronic kidney disease",
       "kidney disease",
       "CKD",
       "nephropathy"
+    ],
+    "population_any_extra": [
+      "chronic kidney diseases"
     ],
     "population_none": [
       "heart failure",
@@ -58,7 +72,30 @@
     "comparator_any": [
       "placebo"
     ],
-    "design_double_blind": true
+    "design_double_blind": true,
+    "screen_overrides": [
+      {
+        "id": "NCT03190694",
+        "decision": "include",
+        "rule_id": "INCLUDE",
+        "reason": "source-backed registry override: DIAMOND is a randomized double-blind dapagliflozin crossover trial in non-diabetic chronic kidney disease/proteinuria; the committed CT.gov interventions omit the comparator arm label.",
+        "span_term": "Chronic Kidney Diseases"
+      }
+    ]
+  },
+  "arm_object": {
+    "contrast": {
+      "drug_any": [
+        "dapagliflozin",
+        "canagliflozin",
+        "empagliflozin",
+        "SGLT2",
+        "SGLT-2"
+      ],
+      "comparator_any": [
+        "placebo"
+      ]
+    }
   },
   "intervention_terms": [
     "SGLT2",
@@ -100,7 +137,7 @@
     "control"
   ],
   "primary_outcome": {
-    "name": "Trial-defined major kidney / cardiorenal composite (components differ by trial)",
+    "name": "Trial-defined primary cardiorenal composite",
     "keywords": [
       "CKD progression",
       "kidney disease progression",
@@ -127,33 +164,42 @@
       "32970396": {
         "prior_disease_stage": "chronic_kidney_disease",
         "background_therapy": "standard_care",
+        "endpoint_definition": "SUSTAINED_EGFR_DECLINE_GE_50_PERCENT | KIDNEY_FAILURE | RENAL_DEATH | CV_DEATH",
         "components": [
           "sustained >=50% eGFR decline",
           "end-stage kidney disease",
           "renal death",
           "cardiovascular death"
-        ]
+        ],
+        "endpoint_event_time": "TIME_TO_FIRST_EVENT",
+        "analysis_set_literal": "ITT"
       },
       "30990260": {
         "prior_disease_stage": "chronic_kidney_disease",
         "background_therapy": "standard_care",
+        "endpoint_definition": "KIDNEY_FAILURE | DOUBLING_SERUM_CREATININE | RENAL_DEATH | CV_DEATH",
         "components": [
           "end-stage kidney disease",
           "doubling of serum creatinine",
           "renal death",
           "cardiovascular death"
-        ]
+        ],
+        "endpoint_event_time": "TIME_TO_FIRST_EVENT",
+        "analysis_set_literal": "ITT"
       },
       "36331190": {
         "prior_disease_stage": "chronic_kidney_disease",
         "background_therapy": "standard_care",
+        "endpoint_definition": "KIDNEY_FAILURE | SUSTAINED_EGFR_LT_10 | SUSTAINED_EGFR_DECLINE_GE_40_PERCENT | RENAL_DEATH | CV_DEATH",
         "components": [
           "end-stage kidney disease",
           "sustained eGFR <10 ml/min/1.73 m2",
           "sustained >=40% eGFR decline",
           "renal death",
           "cardiovascular death"
-        ]
+        ],
+        "endpoint_event_time": "TIME_TO_FIRST_EVENT",
+        "analysis_set_literal": "ITT"
       }
     }
   },
@@ -181,7 +227,7 @@
   ],
   "comparator_outcomes": [
     {
-      "name": "Trial-defined major kidney / cardiorenal composite (components differ by trial)",
+      "name": "Trial-defined primary cardiorenal composite",
       "keywords": [
         "CKD progression",
         "kidney disease progression",

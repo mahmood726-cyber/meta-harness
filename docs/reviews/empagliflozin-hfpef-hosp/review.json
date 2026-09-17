@@ -8,7 +8,11 @@
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%', 'mildly reduced ejection fraction', 'heart failure with mildly reduced ejection fraction']; and none of ['heart failure with reduced ejection fraction', 'reduced ejection fraction', 'HFrEF', 'ejection fraction of 40% or less', 'left ventricular ejection fraction of 40% or less', 'type 2 diabetes', 'diabetes', 'diabetic', 'chronic kidney disease', 'kidney disease', 'myocardial infarction', 'acute myocardial infarction', 'Fontan', 'single ventricle']; randomised intervention is one of ['empagliflozin', 'Jardiance'] (named in title/conditions); a comparator among ['placebo', 'matching placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
-    "text": "# Protocol - Empagliflozin for cardiovascular death or worsening heart failure in HFmrEF/HFpEF\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure and mildly reduced or preserved ejection fraction\n  (HFmrEF/HFpEF; operationally LVEF >40% or preserved-EF trial eligibility).\n- **I** - Empagliflozin 10 mg daily, added to usual heart-failure therapy.\n- **C** - placebo or matching placebo, added to usual heart-failure therapy.\n- **O (primary)** - time to first composite cardiovascular death or worsening heart\n  failure, where worsening heart failure includes hospitalization or urgent visit for\n  heart failure as defined by the trial.\n- **Estimand** - hazard ratio (HR) with 95% confidence interval.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **Population** - adult HFmrEF/HFpEF or preserved-EF heart-failure population,\n  judged from the title, registry conditions, or trial acronym.\n- **Intervention** - Empagliflozin is named in the title or registry condition/acronym.\n- **Comparator** - placebo or matching placebo.\n- **Design** - randomized, double-blind, placebo-controlled trial.\n\nExclude (reason must be true of the record):\n- **X1** - not a randomized controlled trial.\n- **X2** - wrong population, including HFrEF/LVEF <=40%, diabetes-only, CKD-only,\n  myocardial-infarction, or other non-HFmrEF/HFpEF populations.\n- **X3** - wrong intervention or comparator.\n- **X-DESIGN** - not double-blind/placebo-controlled in the machine-readable record.\n\nEligibility is not decided by outcome reporting. An eligible Empagliflozin HFpEF trial\nthat reports symptoms, hemodynamics, or safety but not the target composite HR is kept\nas target-result absent, not excluded.\n\n## Outcomes\n- **Primary efficacy outcome** - composite cardiovascular death or worsening heart\n  failure; HR estimand; intention-to-treat/randomized population; longest\n  trial-reported randomized follow-up.\n- **Secondary outcomes** - none preregistered for this topic.\n- **Harms** - none preregistered for this topic.\n\n## Search\n- PubMed: UID-anchored queries for EMPEROR-Preserved (PMID 34449189), PRESERVED-HF\n  (PMID 34711976), and CAMEO-DAPA (PMID 37534453), plus configured comparator and\n  negative-control PMIDs.\n- ClinicalTrials.gov: condition \"heart failure with preserved ejection fraction\",\n  intervention \"Empagliflozin\".\n- Citation chasing: enabled and bounded; every reached record is still screened by\n  the same P/I/C/design rules.\n\n## Synthesis method\nRandom-effects inverse-variance on log(HR) using source-reported trial HRs and 95%\nCIs only. Paule-Mandel tau^2; HKSJ 95% CI on t(k-1) with variance floor\nmax(1, Q/(k-1)); prediction interval mu +/- t(k-1)*sqrt(tau^2 + se^2). For k=1,\nthe result is reported as the single trial's own HR with no random-effects pooling.\n\n## Comparator\nPal et al., *Indian Heart Journal* 2023, \"SGLT2 inhibitors and cardiovascular outcomes\nin heart failure with mildly reduced and preserved ejection fraction: A systematic\nreview and meta-analysis\" (PMID 36914068, DOI 10.1016/j.ihj.2023.03.003; Unpaywall\nis_oa=true). This comparator matches the HFmrEF/HFpEF population, placebo comparison,\ncomposite cardiovascular-death/HF-worsening outcome, and HR estimand, but is class-level\nSGLT2 inhibitor evidence rather than Empagliflozin-only evidence; the overlap tab must\ntherefore not claim an identical trial set.\n\n## Controls\n- **Positive** - EMPEROR-Preserved (PMID 34449189) must be recovered and included.\n- **Negative** - DAPA-HF (PMID 31535829), a Empagliflozin/placebo trial with the same\n  endpoint but HFrEF/LVEF <=40%, must be recovered and excluded as wrong population.\n"
+    "text": "# Protocol - Empagliflozin for cardiovascular death or worsening heart failure in HFmrEF/HFpEF\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure and mildly reduced or preserved ejection fraction\n  (HFmrEF/HFpEF; operationally LVEF >40% or preserved-EF trial eligibility).\n- **I** - Empagliflozin 10 mg daily, added to usual heart-failure therapy.\n- **C** - placebo or matching placebo, added to usual heart-failure therapy.\n- **O (primary)** - time to first composite cardiovascular death or worsening heart\n  failure, where worsening heart failure includes hospitalization or urgent visit for\n  heart failure as defined by the trial.\n- **Estimand** - hazard ratio (HR) with 95% confidence interval.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **Population** - adult HFmrEF/HFpEF or preserved-EF heart-failure population,\n  judged from the title, registry conditions, or trial acronym.\n- **Intervention** - Empagliflozin is named in the title or registry condition/acronym.\n- **Comparator** - placebo or matching placebo.\n- **Design** - randomized, double-blind, placebo-controlled trial.\n\nExclude (reason must be true of the record):\n- **X1** - not a randomized controlled trial.\n- **X2** - wrong population, including HFrEF/LVEF <=40%, diabetes-only, CKD-only,\n  myocardial-infarction, or other non-HFmrEF/HFpEF populations.\n- **X3** - wrong intervention or comparator.\n- **X-DESIGN** - not double-blind/placebo-controlled in the machine-readable record.\n\nEligibility is not decided by outcome reporting. An eligible Empagliflozin HFpEF trial\nthat reports symptoms, hemodynamics, or safety but not the target composite HR is kept\nas target-result absent, not excluded.\n\n## Outcomes\n- **Primary efficacy outcome** - composite cardiovascular death or worsening heart\n  failure; HR estimand; intention-to-treat/randomized population; longest\n  trial-reported randomized follow-up.\n- **Secondary outcomes** - none preregistered for this topic.\n- **Harms** - none preregistered for this topic.\n\n## Search\n- PubMed: UID-anchored queries for EMPEROR-Preserved (PMID 34449189), PRESERVED-HF\n  (PMID 34711976), and CAMEO-DAPA (PMID 37534453), plus configured comparator and\n  negative-control PMIDs.\n- ClinicalTrials.gov: condition \"heart failure with preserved ejection fraction\",\n  intervention \"Empagliflozin\".\n- Citation chasing: enabled and bounded; every reached record is still screened by\n  the same P/I/C/design rules.\n\n## Synthesis method\nRandom-effects inverse-variance on log(HR) using source-reported trial HRs and 95%\nCIs only. Paule-Mandel tau^2; HKSJ 95% CI on t(k-1) with variance floor\nmax(1, Q/(k-1)); prediction interval mu +/- t(k-1)*sqrt(tau^2 + se^2). For k=1,\nthe result is reported as the single trial's own HR with no random-effects pooling.\n\n## Comparator\nPal et al., *Indian Heart Journal* 2023, \"SGLT2 inhibitors and cardiovascular outcomes\nin heart failure with mildly reduced and preserved ejection fraction: A systematic\nreview and meta-analysis\" (PMID 36914068, DOI 10.1016/j.ihj.2023.03.003; Unpaywall\nis_oa=true). This comparator matches the HFmrEF/HFpEF population, placebo comparison,\ncomposite cardiovascular-death/HF-worsening outcome, and HR estimand, but is class-level\nSGLT2 inhibitor evidence rather than Empagliflozin-only evidence; the overlap tab must\ntherefore not claim an identical trial set.\n\n## Controls\n- **Positive** - EMPEROR-Preserved (PMID 34449189) must be recovered and included.\n- **Negative** - DAPA-HF (PMID 31535829), a Empagliflozin/placebo trial with the same\n  endpoint but HFrEF/LVEF <=40%, must be recovered and excluded as wrong population.\n",
+    "target_endpoint_selection": {
+      "summary": "Target endpoint selector: EXACT_TARGET beats NEAR_MATCH; a near-match may be pooled only when no exact target is held. Within the same endpoint class, source-reported target-estimand effects beat registry effect estimates, which beat crude reconstructions. For multiple registered primaries in the same outcome family, choose the prespecified primary whose component set is closest to the canonical review definition; ties use registration order and alternatives render as sensitivity rows. Rule applied after results were already known in this lane, so the timing is disclosed.",
+      "results_known_at_rule_time": true
+    }
   },
   "search": {
     "n_records": 100,
@@ -190,7 +194,12 @@
         ],
         "matched_intervention": "empagliflozin",
         "trial_family_id": "NCT03057951",
-        "publication_role": "primary"
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "registry_status": "COMPLETED",
+        "results_first_posted_date": "2022-06-06",
+        "completion_date": "2021-04-26",
+        "completeness_basis": "CT.gov status/results dates from local AACT snapshot"
       },
       {
         "id": "32865377",
@@ -1229,7 +1238,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT06401343",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT06401343",
         "publication_role": "primary"
       },
       {
@@ -1242,7 +1256,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "ADDEMFEP",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT06683053",
         "publication_role": "primary"
       },
       {
@@ -1255,7 +1274,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT07047508",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT07047508",
         "publication_role": "primary"
       },
       {
@@ -1268,7 +1292,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT05584319",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT05584319",
         "publication_role": "primary"
       },
       {
@@ -1281,7 +1310,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT05057806",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT05057806",
         "publication_role": "primary"
       },
       {
@@ -1294,21 +1328,30 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT05600387",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT05600387",
         "publication_role": "primary"
       },
       {
         "id": "SAK · NCT05138575",
         "id_type": "nct",
-        "decision": "include",
-        "rule_id": "INCLUDE",
-        "reason": "eligible double-blind/placebo-controlled RCT: intervention empagliflozin, comparator placebo, population preserved ejection fraction — P/I/C/design met.",
-        "span": "population “…rial Heart Failure With Preserved Ejection Fraction SAK”; comparator “…te Potassium Chloride + Placebo for Empagliflozin SAK”",
+        "decision": "exclude",
+        "rule_id": "X-CONTRAST",
+        "reason": "CONTRAST_ABSENT: the intervention of interest appears in every structured CT.gov arm entry; the randomised difference is another intervention: Empagliflozin + Potassium Chloride; Empagliflozin + Potassium Nitrate; Potassium Chloride + Placebo for Empagliflozin",
+        "span": "…erved Ejection Fraction Empagliflozin + Potassium Chloride Em…",
         "found_by": [
           "UNRECORDED"
         ],
-        "matched_intervention": "empagliflozin",
-        "trial_family_id": "SAK",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT05138575",
         "publication_role": "primary"
       },
       {
@@ -1322,8 +1365,16 @@
           "UNRECORDED"
         ],
         "matched_intervention": "empagliflozin",
-        "trial_family_id": "EMPA-PRED",
-        "publication_role": "primary"
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+        "trial_family_id": "NCT06249945",
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_unavailable",
+        "completeness_basis": "publication record / committed cache metadata"
       },
       {
         "id": "NCT03448406",
@@ -1336,8 +1387,16 @@
           "UNRECORDED"
         ],
         "matched_intervention": "empagliflozin",
-        "trial_family_id": "REC:NCT03448406",
-        "publication_role": "primary"
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+        "trial_family_id": "NCT03448406",
+        "publication_role": "primary",
+        "completeness_state": "eligible+completed+results_available",
+        "completeness_basis": "publication record / committed cache metadata"
       },
       {
         "id": "NCT05129722",
@@ -1349,7 +1408,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT05129722",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT05129722",
         "publication_role": "primary"
       },
       {
@@ -1362,7 +1426,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "SGLT2-HD",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT06929169",
         "publication_role": "primary"
       },
       {
@@ -1375,7 +1444,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT03753087",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT03753087",
         "publication_role": "primary"
       },
       {
@@ -1388,7 +1462,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT06424288",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT06424288",
         "publication_role": "primary"
       },
       {
@@ -1401,7 +1480,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT07776054",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT07776054",
         "publication_role": "primary"
       },
       {
@@ -1414,8 +1498,13 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "ICDDTKZ26",
-        "publication_role": "correction"
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT07303556",
+        "publication_role": "primary"
       },
       {
         "id": "NCT06046612",
@@ -1427,7 +1516,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT06046612",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT06046612",
         "publication_role": "primary"
       },
       {
@@ -1440,7 +1534,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "PADN-HFPEF",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT07331220",
         "publication_role": "primary"
       },
       {
@@ -1453,7 +1552,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT07599293",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT07599293",
         "publication_role": "primary"
       },
       {
@@ -1466,7 +1570,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "DICE",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT07322237",
         "publication_role": "primary"
       },
       {
@@ -1479,7 +1588,12 @@
         "found_by": [
           "UNRECORDED"
         ],
-        "trial_family_id": "REC:NCT05139472",
+        "phase": null,
+        "status": null,
+        "primary_completion": null,
+        "completion": null,
+        "enrollment": null,
+        "trial_family_id": "NCT05139472",
         "publication_role": "primary"
       }
     ],
@@ -1502,6 +1616,78 @@
       "caveat": "the two rule sets share an author and the same eligibility criteria, so they are NOT statistically independent; this agreement overstates inter-rater reliability. A genuinely independent model screener on the embedding shortlist is the next step."
     }
   },
+  "scope_identity": {
+    "slug": "empagliflozin-hfpef-hosp",
+    "eligibility_scope": {
+      "type": "OPEN_PIC_DESIGN",
+      "basis": "topics/<slug>.json include + protocols/<slug>.md",
+      "population_terms": [
+        "heart failure with mildly reduced or preserved ejection fraction",
+        "mildly reduced or preserved ejection fraction",
+        "preserved ejection fraction",
+        "HFpEF",
+        "HFmrEF",
+        "left ventricular ejection fraction of more than 40%",
+        "left ventricular ejection fraction >40%",
+        "ejection fraction greater than 40%",
+        "ejection fraction >=50%",
+        "mildly reduced ejection fraction",
+        "heart failure with mildly reduced ejection fraction"
+      ],
+      "population_exclusions": [
+        "heart failure with reduced ejection fraction",
+        "reduced ejection fraction",
+        "HFrEF",
+        "ejection fraction of 40% or less",
+        "left ventricular ejection fraction of 40% or less",
+        "type 2 diabetes",
+        "diabetes",
+        "diabetic",
+        "chronic kidney disease",
+        "kidney disease",
+        "myocardial infarction",
+        "acute myocardial infarction",
+        "Fontan",
+        "single ventricle"
+      ],
+      "intervention_terms": [
+        "empagliflozin",
+        "Jardiance"
+      ],
+      "comparator_terms": [
+        "placebo",
+        "matching placebo"
+      ],
+      "design_terms": [
+        "randomised controlled trial",
+        "double blind"
+      ],
+      "phase_terms": [
+        "acute"
+      ],
+      "outcome_reporting_is_eligibility": false,
+      "description": ""
+    },
+    "search_scope": {
+      "type": "PRE_IDENTIFIED_SET",
+      "retrieval_class": "KNOWN_ITEM_RETRIEVAL",
+      "retrieval_label": "KNOWN-ITEM RETRIEVAL — NOT A SYSTEMATIC SEARCH",
+      "query_count": 2,
+      "queries": [
+        "34449189[uid]",
+        "34449189[uid]"
+      ],
+      "source_kinds": [
+        "LEGACY_UNRECORDED",
+        "PUBMED_PMID_ENUMERATION"
+      ],
+      "discovery_capable_source_count": 0,
+      "description": "retrieval can test only named PMIDs/titles/trial identifiers already supplied"
+    },
+    "verdict": "SCOPE_MISMATCH",
+    "reason": "open P/I/C/design eligibility was evaluated only inside a pre-identified retrieval set; the open eligibility universe was not tested",
+    "render_requirement": "N of the pre-identified set met eligibility; eligibility over the open scope was NOT tested (search class KNOWN_ITEM_RETRIEVAL)"
+  },
   "outcomes": [
     {
       "name": "Composite cardiovascular death or worsening heart failure",
@@ -1511,19 +1697,74 @@
       "population": "intention-to-treat",
       "timepoint": "trial end / longest randomized follow-up",
       "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "served_estimand": "HR",
+      "estimand_decision": {
+        "declared_estimand": "HR",
+        "decision": "time_to_first_event",
+        "target_scale": "HR",
+        "target_class": "FIRST_EVENT_RATIO",
+        "published_candidate_scales": [
+          "HR"
+        ],
+        "served_scale_changed": false,
+        "reason": "published HR exists for the target outcome",
+        "rule": "prefer published HR; keep reconstruction only when no HR exists"
+      },
       "trials": [
         {
           "label": "34449189",
           "id": "PMID 34449189",
-          "effect": 0.79,
-          "ci_low": 0.69,
-          "ci_high": 0.9,
+          "source": "ClinicalTrials.gov results (structured target endpoint): outcome 'Time to Adjudicated Cardiovascular (CV) Death' HR 0.91 (95% CI 0.76 to 1.09)",
+          "provenance": "ctgov_results",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_endpoint_source_rank": "registry_published_effect",
+          "target_endpoint_components": [
+            "cardiovascular death"
+          ],
+          "components": [
+            "cardiovascular death"
+          ],
+          "target_endpoint_extra_components": [],
+          "target_endpoint_missing_components": [],
+          "results_known_at_rule_time": true,
+          "effect": 0.91,
+          "ci_low": 0.76,
+          "ci_high": 1.09,
           "scale": "HR",
-          "source": "abstract source-reported HR (registered estimand): RESULTS: Over a median of 26.2 months, a primary outcome event occurred in 415 of 2997 patients (13.8%) in the empagliflozin group and in 511 of 2991 patients (17.1%) in the placebo group (hazard rati",
-          "provenance": "abstract",
+          "registry_title": "Time to Adjudicated Cardiovascular (CV) Death",
+          "registry_type": "SECONDARY",
+          "registry_measure_type": "KM_ESTIMATE",
+          "registry_timeframe": "From randomization until completion of the planned treatment phase, up to 1403 days.",
+          "target_endpoint_alternatives": [
+            {
+              "candidate_id": "abstract:published_target_effect:0",
+              "source_type": "abstract",
+              "source_kind": "published_target_effect",
+              "target_endpoint_class": "NEAR_MATCH",
+              "extra_components": [
+                "heart failure hospitalization"
+              ],
+              "source_rank_kind": "published_target_effect"
+            },
+            {
+              "candidate_id": "ctgov:0",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "Time to First Event of Adjudicated Cardiovascular (CV) Death or Adjudicated Hospitalisation for Heart Failure (HHF)",
+              "registry_type": "PRIMARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "extra_components": [
+                "heart failure hospitalization"
+              ],
+              "source_rank_kind": "registry_published_effect"
+            }
+          ],
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
           "verified": "verified",
           "verify_basis": "effect present in committed source",
-          "derivation": "reported",
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
@@ -1533,18 +1774,35 @@
               "evidence": []
             },
             "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [],
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              },
+              {
+                "source": "trial reported estimate label",
+                "span": "HR 0.91 (95% CI 0.76 to 1.09"
+              }
+            ],
+            "published_alternative": {
+              "effect": 0.91,
+              "ci_low": 0.76,
+              "ci_high": 1.09,
+              "scale": "HR",
+              "adjusted": false,
+              "span": "HR 0.91 (95% CI 0.76 to 1.09"
+            },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
           },
           "study_effect": {
-            "effect_estimate": 0.79,
-            "standard_error": 0.06778266535223057,
+            "effect_estimate": 0.91,
+            "standard_error": 0.09199519603097155,
             "estimand": "HR",
             "analysis_population": "intention-to-treat",
             "randomisation_unit": "UNKNOWN",
@@ -1555,13 +1813,13 @@
               "evidence": []
             },
             "source_provenance": {
-              "source": "abstract",
-              "span": "abstract source-reported HR (registered estimand): RESULTS: Over a median of 26.2 months, a primary outcome event occurred in 415 of 2997 patients (13.8%) in the empagliflozin group and in 511 of 2991 patients (17.1%) in the placebo group (hazard rati"
+              "source": "ctgov_results",
+              "span": "ClinicalTrials.gov results (structured target endpoint): outcome 'Time to Adjudicated Cardiovascular (CV) Death' HR 0.91 (95% CI 0.76 to 1.09)"
             },
             "design_action": {
-              "action": "ALLOW_WITH_LABEL",
-              "gate_id": "design-key:design-not-observed",
-              "decision_state": "design not observed; pooled through the parallel path under that label",
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
               "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
               "validity_critical": false
             }
@@ -1606,41 +1864,43 @@
             "intervention_ontology": {
               "intervention_class": null
             }
-          }
+          },
+          "trial_id": "PMID 34449189",
+          "report_id": "PMID 34449189",
+          "outcome_effect_id": "empagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure::PMID 34449189::PMID 34449189"
         }
       ],
       "declared_absent_trials": [
-        {
-          "label": "SAK",
-          "id": "NCT05138575",
-          "absent_kind": "machine_absent",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "SAK",
-          "publication_role": "primary",
-          "reason_code": "SOURCE_NOT_RETRIEVED",
-          "state": "SOURCE_NOT_RETRIEVED",
-          "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
-          "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a",
-          "claim_id": "676e93a58a5c0005",
-          "depends_on": {
-            "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a"
-          },
-          "claim_kind": "membership_state"
-        },
         {
           "label": "EMPA-PRED",
           "id": "NCT06249945",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "EMPA-PRED",
+          "phase": null,
+          "status": null,
+          "primary_completion": null,
+          "completion": null,
+          "enrollment": null,
+          "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "trial_family_id": "NCT06249945",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_unavailable",
+          "completeness_basis": "publication record / committed cache metadata",
           "reason_code": "SOURCE_NOT_RETRIEVED",
           "state": "SOURCE_NOT_RETRIEVED",
           "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
-          "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a",
-          "claim_id": "676e93a58a5c0005",
+          "trial_id": "NCT06249945",
+          "report_id": "NCT06249945",
+          "outcome_effect_id": "empagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure::NCT06249945::NCT06249945",
+          "reason_code_audit": {
+            "verdict": "NOT_VERIFIABLE",
+            "detail": "no held source",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
+          },
+          "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac",
+          "claim_id": "ee4203e0bbfeff2a",
           "depends_on": {
-            "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a"
+            "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac"
           },
           "claim_kind": "membership_state"
         },
@@ -1649,15 +1909,31 @@
           "id": "NCT03448406",
           "absent_kind": "machine_absent",
           "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "REC:NCT03448406",
+          "phase": null,
+          "status": null,
+          "primary_completion": null,
+          "completion": null,
+          "enrollment": null,
+          "contrast_rule": "RANDOMISED_CONTRAST_PRESENT",
+          "trial_family_id": "NCT03448406",
           "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "completeness_basis": "publication record / committed cache metadata",
           "reason_code": "SOURCE_NOT_RETRIEVED",
           "state": "SOURCE_NOT_RETRIEVED",
           "state_basis": "SOURCE_NOT_RETRIEVED: cached abstract text is missing for this record",
-          "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a",
-          "claim_id": "676e93a58a5c0005",
+          "trial_id": "NCT03448406",
+          "report_id": "NCT03448406",
+          "outcome_effect_id": "empagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure::NCT03448406::NCT03448406",
+          "reason_code_audit": {
+            "verdict": "NOT_VERIFIABLE",
+            "detail": "no held source",
+            "stated_reason_code": "SOURCE_NOT_RETRIEVED"
+          },
+          "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac",
+          "claim_id": "ee4203e0bbfeff2a",
           "depends_on": {
-            "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a"
+            "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac"
           },
           "claim_kind": "membership_state"
         }
@@ -1667,20 +1943,19 @@
           "PMID 34449189"
         ],
         "declared_absent": [
-          "NCT05138575",
           "NCT06249945",
           "NCT03448406"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "f0be0658812054b2f2b4fd43cf6a2446e5416d7f4d9a9e0050380d8656266eb1"
+        "input_set_version": "f17c9e00a12e39af5b7c92f914890afaefd2f85f9e30de31e277a7644244448d"
       },
       "result": {
         "k": 1,
-        "estimate": 0.79,
+        "estimate": 0.91,
         "scale": "HR",
-        "ci_low": 0.69,
-        "ci_high": 0.9,
+        "ci_low": 0.76,
+        "ci_high": 1.09,
         "Q": 0.0,
         "ci_provenance": "source-reported-CI:k=1-verbatim",
         "ci_note": "k=1: point estimate and 95% CI are the single trial's reported values, verbatim.",
@@ -1702,19 +1977,37 @@
         },
         "claim": {
           "present": true,
-          "significant": true,
-          "crosses_null": false,
+          "significant": false,
+          "crosses_null": true,
           "touches_null": false,
           "null": 1.0,
           "direction": "benefit",
           "significant_fixed": null
         },
-        "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a",
-        "claim_id": "23c84ea169be72c9",
+        "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac",
+        "claim_id": "300820814edc3ea3",
         "depends_on": {
-          "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a"
+          "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac"
         },
         "claim_kind": "outcome_result"
+      },
+      "endpoint_canonical": {
+        "label": "COMPOSITE_CARDIOVASCULAR_DEATH_OR_WORSENING_HEART_FAILURE",
+        "event_time": "TIME_TO_FIRST_EVENT",
+        "components": [
+          "CARDIOVASCULAR_DEATH"
+        ],
+        "component_sets": [
+          {
+            "components": [
+              "CARDIOVASCULAR_DEATH"
+            ],
+            "trials": [
+              "34449189"
+            ]
+          }
+        ],
+        "status": "HOMOGENEOUS"
       },
       "compat_key": {
         "effect_measure": [
@@ -1723,20 +2016,63 @@
         "event_process": [
           "FIRST_EVENT_RATIO"
         ],
-        "endpoint": "trial-defined Composite cardiovascular death or worsening heart failure (definitions listed per trial)",
+        "endpoint": "COMPOSITE_CARDIOVASCULAR_DEATH_OR_WORSENING_HEART_FAILURE",
         "follow_up_window": "trial end / longest randomized follow-up",
         "analysis_set": "intention-to-treat",
+        "analysis_set_declared": "intention-to-treat",
         "randomised_contrast": {
           "verified": 1,
           "total": 1
         },
         "matched": true,
         "mismatches": [],
-        "dimension_matches": {
-          "endpoint": false
+        "endpoint_canonical": {
+          "label": "COMPOSITE_CARDIOVASCULAR_DEATH_OR_WORSENING_HEART_FAILURE",
+          "event_time": "TIME_TO_FIRST_EVENT",
+          "components": [
+            "CARDIOVASCULAR_DEATH"
+          ],
+          "component_sets": [
+            {
+              "components": [
+                "CARDIOVASCULAR_DEATH"
+              ],
+              "trials": [
+                "34449189"
+              ]
+            }
+          ],
+          "status": "HOMOGENEOUS"
         },
-        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS",
-        "underlying_checked": true
+        "endpoint_canonical_status": "HOMOGENEOUS"
+      },
+      "compat_direction": {
+        "dimensions": [
+          {
+            "dimension": "endpoint_definition",
+            "label": "Endpoint definition",
+            "key_direction": "CONSISTENT",
+            "asserted_key_state": "homogeneous",
+            "rendered_warning_state": "not_asserted",
+            "underlying": {
+              "derivable": true,
+              "matched": true,
+              "values": [
+                "CV_DEATH"
+              ],
+              "missing_trials": [],
+              "per_trial": [
+                {
+                  "trial": "34449189",
+                  "id": "PMID 34449189",
+                  "value": "CV_DEATH",
+                  "basis": "canonicalized from trial components"
+                }
+              ]
+            },
+            "n_trials": 1
+          }
+        ]
       },
       "recovery_recheck": {
         "hard_incompatible": false,
@@ -1748,27 +2084,10 @@
         "reconstructed_members": [],
         "label_mix_small_k": false
       },
-      "compat_underlying": {
-        "status": "COMPAT_DIMENSION_HETEROGENEOUS",
-        "dimensions": [
-          "endpoint"
-        ],
-        "per_trial": {
-          "endpoint": [
-            {
-              "trial_id": "34449189",
-              "trial_label": "34449189",
-              "value": "EMPEROR-Preserved: CV death + HHF, no urgent-visit component.; DISCLOSED (component note; k=1)",
-              "source": "docs/definition_audit.json",
-              "span": "EMPEROR-Preserved: CV death + HHF, no urgent-visit component.; DISCLOSED (component note; k=1)"
-            }
-          ]
-        }
-      },
       "known_missing_sensitivity": {
         "claim_id": "empagliflozin-hfpef-hosp::primary::known_missing_sensitivity",
         "depends_on": {
-          "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a"
+          "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac"
         },
         "depends_on_detail": [
           {
@@ -1782,7 +2101,7 @@
           {
             "path": "/outcomes/primary/result",
             "k": 1,
-            "estimate": 0.79
+            "estimate": 0.91
           }
         ],
         "heading": "Known eligible trials not in this pool, and what they would do",
@@ -1801,21 +2120,9 @@
             "conclusion_effect": "NOT_COMPUTABLE"
           },
           {
-            "trial_key": "NCT05138575",
-            "name": "SGLT2i and KNO3 in HFpEF - The SAK HFpEF Trial",
-            "source_ref": "cache/empagliflozin-hfpef-hosp/records.json#NCT05138575.abstract",
-            "source_span": "",
-            "verify_basis": "committed source does not carry an extractable target-estimand value",
-            "value_status": "NOT_IN_COMMITTED_SOURCE",
-            "missing_class": "NOT_IN_COMMITTED_SOURCE",
-            "why_eligible": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-            "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
-          },
-          {
             "trial_key": "NCT06249945",
             "name": "EMPAgliflozin in Heart Failure With PReserved Ejection Fraction and End Stage Renal Disease",
-            "source_ref": "cache/empagliflozin-hfpef-hosp/records.json#NCT06249945.abstract",
+            "source_ref": "cache/empagliflozin-hfpef-hosp/records.json#227983957.abstract",
             "source_span": "",
             "verify_basis": "committed source does not carry an extractable target-estimand value",
             "value_status": "NOT_IN_COMMITTED_SOURCE",
@@ -1827,7 +2134,7 @@
           {
             "trial_key": "NCT03448406",
             "name": "This Study Tests Empagliflozin in Patients With Chronic Heart Failure With Preserved Ejection Fraction (HFpEF). The Study Looks at How Far Patients Can Walk in 6 Minutes and at Their Heart Failure Symptoms.",
-            "source_ref": "cache/empagliflozin-hfpef-hosp/records.json#NCT03448406.abstract",
+            "source_ref": "cache/empagliflozin-hfpef-hosp/records.json#227813710.abstract",
             "source_span": "",
             "verify_basis": "committed source does not carry an extractable target-estimand value",
             "value_status": "NOT_IN_COMMITTED_SOURCE",
@@ -1974,7 +2281,7 @@
           },
           "D5_selective_reporting": {
             "level": "low",
-            "basis": "the pooled outcome is a PRE-REGISTERED SECONDARY outcome (prespecified in the registry) -- prespecified reporting, not selective reporting",
+            "basis": "prespecified secondary outcome, registered 'Time to Adjudicated Cardiovascular (CV) Death'",
             "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
             "inputs": {
               "pooled_outcome": "Composite cardiovascular death or worsening heart failure",
@@ -2080,7 +2387,36 @@
               "level": "not assessed"
             }
           ]
-        }
+        },
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
       }
     }
   },
@@ -2124,6 +2460,7 @@
     },
     "n_pubmed_checked": 1,
     "n_not_checkable": 0,
+    "n_not_assessed": 0,
     "per_trial": {
       "PMID 34449189": {
         "trial_key": "PMID 34449189",
@@ -2143,9 +2480,26 @@
     {
       "id": "PMID 34449189",
       "type": "industry",
-      "span": "of diabetes. (Funded by Boehringer Ingelheim and Eli Lilly; EMPEROR-Preserved ClinicalTrials.gov number, NCT03057951).",
+      "span": "(Funded by Boehringer Ingelheim and Eli Lilly; EMPEROR-Preserved ClinicalTrials.gov number, NCT03057951).",
       "source": "abstract",
-      "scanned": "abstract only"
+      "scanned": "abstract",
+      "funding_state": "INDUSTRY_SPONSORED"
+    },
+    {
+      "id": "NCT03448406",
+      "type": "source not retrieved",
+      "span": "",
+      "source": "",
+      "scanned": "",
+      "funding_state": "SOURCE_NOT_RETRIEVED"
+    },
+    {
+      "id": "NCT06249945",
+      "type": "source not retrieved",
+      "span": "",
+      "source": "",
+      "scanned": "",
+      "funding_state": "SOURCE_NOT_RETRIEVED"
     }
   ],
   "definition_audit": {
@@ -2157,7 +2511,7 @@
     }
   },
   "rob_spancheck": {
-    "_doc": "RoB span-check: a cross-family (Fable) sample verified the model/registry-derived RoB2 domain ratings (randomization / blinding / assessor-blinding) against each trial abstract. Rebuilds RoB credibility with a number after a visible rendering break. Seed 20260912.",
+    "_doc": "Partial machine assessment span-check: a cross-family (Fable) sample verified the model/registry-derived partial machine domain ratings (randomization / blinding / assessor-blinding) against each trial abstract. Rebuilds registry-machine-signal-restricted credibility with a number after a visible rendering break. Seed 20260912.",
     "checker": "Fable (cross-family)",
     "n_sampled": 45,
     "seed": 20260912,
@@ -2174,7 +2528,14 @@
     "n_records_annotated": 105
   },
   "protocol_config": {
-    "divergences": [],
+    "divergences": [
+      {
+        "code": "DESIGN_MASKING_ANDOR",
+        "dimension": "design",
+        "prose": "double-blind AND placebo-controlled",
+        "config": "double-blind OR placebo-controlled"
+      }
+    ],
     "intervention_i_line": "empagliflozin 10 mg daily, added to usual heart-failure therapy."
   },
   "identifier_scope": {
@@ -2182,7 +2543,6 @@
     "identifier_agent": "empagliflozin",
     "pooled_agents": {
       "34449189": "empagliflozin",
-      "SAK · NCT05138575": "empagliflozin",
       "EMPA-PRED · NCT06249945": "empagliflozin",
       "NCT03448406": "empagliflozin"
     },
@@ -2203,33 +2563,105 @@
       },
       {
         "code": "eligible_declared_absent",
-        "detail": "screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: SAK, EMPA-PRED, REC:NCT03448406; the completeness claim cannot be current"
+        "detail": "screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT06249945, NCT03448406; the completeness claim cannot be current"
       }
     ]
   },
   "compat_underlying": {
     "checked": true,
-    "n_pre_fix_asserted_not_underlying": 1,
+    "n_pre_fix_asserted_not_underlying": 0,
     "n_post_fix_asserted_not_underlying": 0,
-    "pre_fix_violations": [
-      {
-        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
-        "outcome": "Composite cardiovascular death or worsening heart failure",
-        "dimension": "endpoint",
-        "asserted": "composite",
-        "per_trial_values": [
-          {
-            "trial_id": "34449189",
-            "trial_label": "34449189",
-            "value": "EMPEROR-Preserved: CV death + HHF, no urgent-visit component.; DISCLOSED (component note; k=1)",
-            "source": "docs/definition_audit.json",
-            "span": "EMPEROR-Preserved: CV death + HHF, no urgent-visit component.; DISCLOSED (component note; k=1)"
-          }
-        ],
-        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
-      }
-    ],
+    "pre_fix_violations": [],
     "post_fix_violations": []
+  },
+  "reason_code_audit": {
+    "denominator_source": "declared_absent_trials reason_code/state rows on this page",
+    "N": 2,
+    "counts": {
+      "REASON_TRUE": 0,
+      "REASON_FALSE_VALUE_HELD": 0,
+      "REASON_WRONG_KIND": 0,
+      "NOT_VERIFIABLE": 2
+    },
+    "n_false_value_held": 0,
+    "n_not_verifiable": 2,
+    "by_code_kind": {
+      "SOURCE_NOT_RETRIEVED": {
+        "REASON_TRUE": 0,
+        "REASON_FALSE_VALUE_HELD": 0,
+        "REASON_WRONG_KIND": 0,
+        "NOT_VERIFIABLE": 2
+      }
+    },
+    "rows": [
+      {
+        "slug": "empagliflozin-hfpef-hosp",
+        "outcome": "Composite cardiovascular death or worsening heart failure",
+        "outcome_kind": "primary",
+        "trial_key": "NCT06249945",
+        "label": "EMPA-PRED",
+        "id": "NCT06249945",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "NOT_VERIFIABLE",
+        "detail": "no held source"
+      },
+      {
+        "slug": "empagliflozin-hfpef-hosp",
+        "outcome": "Composite cardiovascular death or worsening heart failure",
+        "outcome_kind": "primary",
+        "trial_key": "NCT03448406",
+        "label": "NCT03448406",
+        "id": "NCT03448406",
+        "stated_reason_code": "SOURCE_NOT_RETRIEVED",
+        "verdict": "NOT_VERIFIABLE",
+        "detail": "no held source"
+      }
+    ]
+  },
+  "unextracted_outcome_audit": {
+    "denominator_source": "included screening records x registered outcomes in this review",
+    "N": 3,
+    "counts": {
+      "EXTRACTED": 1,
+      "HELD_NOT_EXTRACTED": 0,
+      "NOT_IN_HELD_SOURCES": 2,
+      "ABSENT_BY_DESIGN": 0
+    },
+    "n_held_not_extracted": 0,
+    "by_outcome_kind": {
+      "primary": {
+        "EXTRACTED": 1,
+        "HELD_NOT_EXTRACTED": 0,
+        "NOT_IN_HELD_SOURCES": 2,
+        "ABSENT_BY_DESIGN": 0
+      }
+    },
+    "rows": [
+      {
+        "slug": "empagliflozin-hfpef-hosp",
+        "trial_key": "34449189",
+        "trial_label": "34449189",
+        "outcome": "Composite cardiovascular death or worsening heart failure",
+        "outcome_kind": "primary",
+        "status": "EXTRACTED"
+      },
+      {
+        "slug": "empagliflozin-hfpef-hosp",
+        "trial_key": "NCT06249945",
+        "trial_label": "EMPA-PRED · NCT06249945",
+        "outcome": "Composite cardiovascular death or worsening heart failure",
+        "outcome_kind": "primary",
+        "status": "NOT_IN_HELD_SOURCES"
+      },
+      {
+        "slug": "empagliflozin-hfpef-hosp",
+        "trial_key": "NCT03448406",
+        "trial_label": "NCT03448406",
+        "outcome": "Composite cardiovascular death or worsening heart failure",
+        "outcome_kind": "primary",
+        "status": "NOT_IN_HELD_SOURCES"
+      }
+    ]
   },
   "rob_sensitivity": {
     "outcome": "Composite cardiovascular death or worsening heart failure",
@@ -2237,55 +2669,58 @@
     "levels": {
       "34449189": "low"
     },
-    "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a",
+    "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac",
     "n_trials": 1,
     "n_rob_rated": 1,
     "rob_covered": true,
     "any_high": false,
     "full": {
       "k": 1,
-      "estimate": 0.79,
+      "estimate": 0.91,
       "scale": "HR",
-      "ci_low": 0.6917,
-      "ci_high": 0.9022,
+      "ci_low": 0.7599,
+      "ci_high": 1.0898,
       "tau2": 0.0,
-      "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a",
-      "claim_id": "2cdbfde76b3a86a6",
+      "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac",
+      "claim_id": "24ba44e0e3eb8f58",
       "depends_on": {
-        "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a"
+        "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac"
       },
       "claim_kind": "rob_sensitivity.full"
     },
     "drop_high": {
       "k": 1,
-      "estimate": 0.79,
+      "estimate": 0.91,
       "scale": "HR",
-      "ci_low": 0.6917,
-      "ci_high": 0.9022,
+      "ci_low": 0.7599,
+      "ci_high": 1.0898,
       "tau2": 0.0,
-      "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a",
-      "claim_id": "01255e03cd8e2521",
+      "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac",
+      "claim_id": "554066ed3de550a2",
       "depends_on": {
-        "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a"
+        "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac"
       },
       "claim_kind": "rob_sensitivity.drop_high"
     },
     "low_only": {
       "k": 1,
-      "estimate": 0.79,
+      "estimate": 0.91,
       "scale": "HR",
-      "ci_low": 0.6917,
-      "ci_high": 0.9022,
+      "ci_low": 0.7599,
+      "ci_high": 1.0898,
       "tau2": 0.0,
-      "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a",
-      "claim_id": "c4690c1b301d6113",
+      "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac",
+      "claim_id": "575054dabed4b065",
       "depends_on": {
-        "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a"
+        "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac"
       },
       "claim_kind": "rob_sensitivity.low_only"
     },
     "drop_high_informative": false,
     "low_only_relation": "identical_to_full",
+    "low_only_kind": "bias_sensitivity",
+    "low_only_excluded_adverse": 0,
+    "low_only_excluded_unassessed": 0,
     "low_only_informative": false,
     "low_only_predicate": "same_trial_set"
   },
@@ -2310,9 +2745,9 @@
       },
       "imprecision": {
         "downgrade": 0,
-        "crosses_null": false,
+        "crosses_null": true,
         "assessed": true,
-        "basis": "95% CI [0.69, 0.9]; excludes the null with a reasonably tight interval -> precise; single trial — imprecision judged from the CI, not downgraded merely for k=1"
+        "basis": "95% CI [0.76, 1.09]; crosses the null but excludes an appreciable effect on BOTH sides (within 0.75-1.25) -> precise about the absence of an appreciable effect; single trial — imprecision judged from the CI, not downgraded merely for k=1"
       },
       "publication_bias": {
         "downgrade": 0,
@@ -2342,10 +2777,10 @@
     ],
     "rob_basis": "machine-assessed domains only; D3 unassessed on 1 of 1 trial(s)",
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
-    "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a",
-    "claim_id": "8429603714cf0573",
+    "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac",
+    "claim_id": "5f83ddd1b7eeb04c",
     "depends_on": {
-      "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a"
+      "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac"
     },
     "claim_kind": "grade"
   },
@@ -2353,16 +2788,16 @@
     "objects": [
       {
         "kind": "rob_sensitivity_prose",
-        "claim_id": "28222a48da29c395",
+        "claim_id": "c4a1d374dda1875d",
         "depends_on": {
-          "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a"
+          "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac"
         }
       },
       {
         "kind": "manuscript_result_sentence",
-        "claim_id": "63082628583129f8",
+        "claim_id": "d5b63c370ec8f676",
         "depends_on": {
-          "input_set_version": "2e35e4907ca3dd996ab9b49691712374b2804cb88ae6247645cf30cb55e0132a"
+          "input_set_version": "3a8e1fb0756378b28949139a4d85175693e46b82b783d0e905810309b8d02fac"
         }
       }
     ]
@@ -2379,8 +2814,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate.  See the <a href='#known-missing-sensitivity'>known-missing sensitivity panel</a>.<ul><li>no genuine executed concept search (PMID_ENUMERATION_explicit): protocol Search section explicitly says UID-anchored queries for the named trials — known-item retrieval, cannot discover an unknown eligible trial.</li><li>a trial identified as eligible under the registered PICO is not pooled (EMPA-VISION) — the pooled result and completeness claim cannot be current</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: SAK, EMPA-PRED, REC:NCT03448406; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "4b00e6107df60c20e81114307de1dce84ef0a0aa56bbbeebd2439a49039c384b",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate.  See the <a href='#known-missing-sensitivity'>known-missing sensitivity panel</a>.<ul><li>no genuine executed concept search (PMID_ENUMERATION_explicit): protocol Search section explicitly says UID-anchored queries for the named trials — known-item retrieval, cannot discover an unknown eligible trial.</li><li>a trial identified as eligible under the registered PICO is not pooled (EMPA-VISION) — the pooled result and completeness claim cannot be current</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT06249945, NCT03448406; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "d04c4151a22dc5fc1c6393c59eaf56791d88229be0ace08a41555fa18ea4c9b5",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -2455,8 +2890,8 @@
         "/search/retrieval/snapshot",
         "/search/retrieval/sources"
       ],
-      "rendered_text": "<div class='banner'><p><strong>Snapshot:</strong> records_sha256 <code>5ef3f171</code>; retrieved_utc 2026-09-11; mode LEGACY_UNRECORDED: a pre-ledger fetch; which query retrieved which record was not recorded; every record's found_by names this single source.</p><p>This page is a REPLAY of that snapshot: re-running from the protocol SHA regenerates it byte-for-byte. A live re-search is a separate, dated event (see Re-search below if present).</p></div>",
-      "text_sha256": "13773552b1eba77d7e33bc7b02dcc651cd7e166e8f91390cf09a2e794385e2ac",
+      "rendered_text": "<div class='banner'><p><strong>Snapshot:</strong> records_sha256 <code>5ef3f171</code>; retrieved_utc 2026-09-11; mode LEGACY_UNRECORDED: a pre-ledger fetch; which query retrieved which record was not recorded; every record's found_by names this single source.</p><p>This page replays the committed retrieval snapshot; it is not a claim that the protocol SHA alone regenerates the page byte-for-byte. A live re-search is a separate, dated event (see Re-search below if present).</p></div>",
+      "text_sha256": "4724f4b37dd88f987248dc5f854d81b2c77637f1ae230be706200e58c855ae5f",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2658,12 +3093,12 @@
       "limitation_class": "INFORMATIONAL",
       "severity": "QUALIFIES_CLAIM",
       "claim_affected": "funding and conflict-of-interest adjustment",
-      "evidence_state": "RECORDED",
+      "evidence_state": "PARTIAL",
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from a verbatim statement in the committed source (full text preferred, abstract fallback), including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>1 of 1 known</strong> (0 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Scanned</th><th>Verbatim statement</th></tr><tr><td>PMID 34449189</td><td>industry</td><td>abstract only</td><td>of diabetes. (Funded by Boehringer Ingelheim and Eli Lilly; EMPEROR-Preserved ClinicalTrials.gov number, NCT03057951).</td></tr></table></div>",
-      "text_sha256": "33f862c1d8586daff7d045c41fa85b8a1b6612c32f6be80db3e4b2662783c454",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>1 of 1 known</strong> (2 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 34449189</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Boehringer Ingelheim and Eli Lilly; EMPEROR-Preserved ClinicalTrials.gov number, NCT03057951).</td></tr><tr><td>NCT03448406</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr><tr><td>NCT06249945</td><td><strong>source not retrieved</strong></td><td>&mdash;</td><td></td><td><strong></strong>: </td></tr></table></div>",
+      "text_sha256": "f388d9750452afa6c427d0217c0de147e02f86ae0d4ff62485474da069f958cf",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2675,9 +3110,9 @@
       "unwired_acknowledged": {
         "signed_by": "Codex lane AD",
         "date": "2026-09-15",
-        "reason": "Funding and conflict-of-interest are disclosed for interpretation; the harness does not estimate a per-trial funding adjustment and no analytic gate consumes the recorded state.",
+        "reason": "Funding and conflict-of-interest are disclosed for interpretation; the harness does not estimate a per-trial funding adjustment and no analytic gate consumes the partial state.",
         "tranche": "TRANCHE-hazard-consumers",
-        "ack_id": "HC-FUNDING_COI-RECORDED"
+        "ack_id": "HC-FUNDING_COI-PARTIAL"
       }
     },
     {
@@ -2692,8 +3127,8 @@
         "/rob_sensitivity/drop_high",
         "/rob_sensitivity/low_only"
       ],
-      "rendered_text": "<div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> The primary outcome is re-pooled by risk-of-bias stratum with the identical estimator. <strong>1 of 1</strong> pooled trials have a risk-of-bias rating; no pooled trial is rated <em>high</em> risk (the registry-derived assessment does not reach 'high'), so the standard drop-high sensitivity is inert and the informative stratum is <em>low-only</em>. All pooled trials are low risk, so the low-only re-pool is the full pool; there is no coverage-driven k reduction in this stratum.<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr><tr><td>Full pool (all pooled trials)</td><td>k=1, HR 0.79 [0.6917, 0.9022]</td></tr><tr><td>Low risk of bias only</td><td>k=1, HR 0.79 [0.6917, 0.9022] <em>(all pooled trials are low risk; the re-pool is the full pool)</em></td></tr></table></div>",
-      "text_sha256": "e6a020a7c586946b6bf7982b9462971d205945967521db02ab4743d03515453f",
+      "rendered_text": "<div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> The primary outcome is re-pooled by risk-of-bias stratum with the identical estimator. <strong>1 of 1</strong> pooled trials have a risk-of-bias rating; no pooled trial is rated <em>high</em> risk (the registry-derived assessment does not reach 'high'), so the standard drop-high sensitivity is inert and the informative stratum is <em>low-only</em>. Low-only kind: <code>bias_sensitivity</code> (0 adverse rating exclusion(s), 0 unassessed-domain exclusion(s)). All pooled trials are low risk, so the low-only re-pool is the full pool; there is no coverage-driven k reduction in this stratum.<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr><tr><td>Full pool (all pooled trials)</td><td>k=1, HR 0.91 [0.7599, 1.0898]</td></tr><tr><td>Low risk of bias only</td><td>k=1, HR 0.91 [0.7599, 1.0898] <em>(all pooled trials are low risk; the re-pool is the full pool)</em></td></tr></table></div>",
+      "text_sha256": "9f03d70a083e699558f10a3314a97e227e14fdc5ad578e00a91f2bc0ea17b596",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2721,8 +3156,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 0 downgrade(s)). <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 1 of 1 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (not a human RoB2) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency, imprecision and publication bias are computed from committed fields; <strong>publication bias is assessed from the registry ghost census, not funnel-plot asymmetry</strong> (which is unreliable at our small k). <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 1 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>single trial (k=1): between-study inconsistency is not estimable</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.69, 0.9]; excludes the null with a reasonably tight interval -&gt; precise; single trial — imprecision judged from the CI, not downgraded merely for k=1</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (11 of ~37 completed unpublished, 30%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "754861e7fc62ad6da739b81c014b33346e5a7b72b53fa9abc5ac5e001b0cc141",
+      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 0 downgrade(s)). <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 1 of 1 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (registry-machine-signal-restricted signals, not a human risk-of-bias assessment) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency and imprecision are computed from committed fields; <strong>publication bias is NOT ASSESSED automatically</strong> because the available registry ghost census is descriptive until its denominator is PICO-scoped. <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 1 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>single trial (k=1): between-study inconsistency is not estimable</td></tr><tr><td>Imprecision</td><td>not downgraded</td><td>95% CI [0.76, 1.09]; crosses the null but excludes an appreciable effect on BOTH sides (within 0.75-1.25) -&gt; precise about the absence of an appreciable effect; single trial — imprecision judged from the CI, not downgraded merely for k=1</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (11 of ~37 completed unpublished, 30%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "58f69eb5dfcf139c41c94713fa71e653c2350f15b4a0cb89dbf3d1e68f016ba4",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -2799,10 +3234,80 @@
       }
     }
   ],
+  "propositions": {
+    "version": 1,
+    "objects": [
+      {
+        "kind": "publication_bias_state",
+        "surface": "grade/manuscript/reporting",
+        "source_path": "/grade/domains/publication_bias",
+        "assessed": false,
+        "state": "NOT_ASSESSED",
+        "claim_id": "785fa24e85d4d2bc"
+      },
+      {
+        "kind": "declared_equals_enforced",
+        "surface": "reporting/prisma_item_5",
+        "source_path": "/protocol_config/divergences",
+        "asserted_equal": false,
+        "divergence_count": 1,
+        "divergence_codes": [
+          "DESIGN_MASKING_ANDOR"
+        ],
+        "claim_id": "2eb93d01c8ed8224"
+      },
+      {
+        "kind": "byte_reproducible",
+        "surface": "search/reporting/reproduction/manuscript",
+        "source_path": "/reproduction",
+        "asserts_protocol_sha_replay": false,
+        "asserts_committed_cache_replay": true,
+        "claim_id": "ffece3f8af6a0b03"
+      },
+      {
+        "kind": "pooled_count",
+        "surface": "overview/results/manuscript",
+        "source_path": "/outcomes/*[primary]/result/k",
+        "subject": "primary_effect_objects",
+        "count": 1,
+        "claim_id": "5cb7cb94b7a46f28"
+      },
+      {
+        "kind": "rated_count",
+        "surface": "riskofbias/manuscript",
+        "source_path": "/rob_sensitivity",
+        "rated": 1,
+        "total": 1,
+        "claim_id": "f3cfb5ce652671d4"
+      },
+      {
+        "kind": "retracted_count",
+        "surface": "riskofbias/integrity",
+        "source_path": "/integrity",
+        "pooled": 1,
+        "retracted": 0,
+        "claim_id": "03bfa63d09bd1b11"
+      }
+    ],
+    "scope_counts": {
+      "publication_bias_state": 1,
+      "declared_equals_enforced": 1,
+      "byte_reproducible": 1,
+      "pooled_count": 1,
+      "rated_count": 1,
+      "retracted_count": 1,
+      "search_found": 0,
+      "state_collapsed": 0
+    },
+    "not_in_scope": [
+      "verbatim source quotations",
+      "external comparator prose without a committed object row"
+    ]
+  },
   "reproduction": {
     "failures": 0,
     "protocol_sha": "c5dc828d141fe01e81ce46b9a9e29863c2a01918",
-    "review_sha256": "420776b5b3fae25f4f660ff885e6edf62300d9f077d56359e1f059ac82f9f094",
+    "review_sha256": "93de4fa7c34838f6fe0359078af578b5236b59b9a7b553f9d971bdb55087ae7d",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -2850,7 +3355,34 @@
     },
     "proposition_check": {
       "checked": true,
-      "contradictions": []
+      "contradictions": [],
+      "legacy_contradictions": [],
+      "scope_counts": {
+        "publication_bias_state": 1,
+        "declared_equals_enforced": 1,
+        "byte_reproducible": 1,
+        "pooled_count": 1,
+        "rated_count": 1,
+        "retracted_count": 1,
+        "search_found": 0,
+        "state_collapsed": 0
+      },
+      "scope": {
+        "scope_counts": {
+          "publication_bias_state": 1,
+          "declared_equals_enforced": 1,
+          "byte_reproducible": 1,
+          "pooled_count": 1,
+          "rated_count": 1,
+          "retracted_count": 1,
+          "search_found": 0,
+          "state_collapsed": 0
+        },
+        "not_in_scope": [
+          "verbatim source quotations",
+          "external comparator prose without a committed object row"
+        ]
+      }
     },
     "claimgraph_check": {
       "violations": [],

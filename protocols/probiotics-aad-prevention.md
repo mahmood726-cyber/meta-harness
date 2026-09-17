@@ -65,3 +65,11 @@ AAD RR 0.63 (95% CI 0.54 to 0.73) across 42 studies in adults and states that 32
 - **Negative** - the randomized synbiotic yogurt child-health trial (PMID 25841539) must
   be recovered and EXCLUDED because its title/conditions are not the antibiotic-associated
   diarrhoea population.
+
+## Retrospective executable-screen amendment (2026-09-16)
+`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found prevention
+scope and no-probiotic-control wording that were not executable enough. The config
+now excludes protocol-only reports before RCT publication-type acceptance, excludes
+treatment/therapeutic-efficacy records rather than AAD prevention records, and
+accepts explicit "not receive" no-probiotic controls for yogurt/probiotic
+prevention trials. This amendment changes screening only.

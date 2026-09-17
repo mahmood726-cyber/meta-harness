@@ -26,14 +26,18 @@ def _reviews():
 
 # ---- absent-override ------------------------------------------------------------------------------
 def test_absent_override_declared_and_flag_gated():
-    """The semaglutide GI-AE wrong-endpoint fix: the flagged absent-override declares the trial absent,
-    and the trial is NOT pooled. An UNFLAGGED entry (no override/absent) would not."""
+    """The semaglutide GI-AE wrong-endpoint fix must not pool STEP-12.
+
+    STEP-12 is now refused upstream by the arm-object population contract, so the older
+    outcome-level absent override remains a dormant cache guard rather than a rendered
+    declared-absent trial.
+    """
     r = json.load(open(os.path.join(DOCS, "reviews", "semaglutide-obesity-weight", "review.json"), encoding="utf-8"))
     gi = next(o for o in r["outcomes"] if "astrointestinal" in o["name"])
     assert "42575111" not in [str(t.get("label")) for t in gi.get("trials", [])], "wrong-endpoint trial still pooled"
-    da = [t for t in gi.get("declared_absent_trials", []) if str(t.get("label")) == "42575111"]
-    assert da, "STEP-12 not declared absent"
-    assert "override" in da[0]["reason"].lower() or "overall" in da[0]["reason"].lower()
+    screening = [row for row in r["screening"]["records"] if str(row.get("id", "")).endswith("42575111")]
+    assert screening and screening[0]["decision"] == "exclude"
+    assert screening[0]["rule_id"] == "X-POPULATION"
     # the committed override entry carries both flags (flag-gated: absent requires override AND absent)
     ve = json.load(open(os.path.join(ROOT, "cache", "semaglutide-obesity-weight", "verified_effects.json"), encoding="utf-8"))
     e = ve["42575111"]
@@ -340,7 +344,7 @@ def test_timepoint_and_heterogeneity_guards():
 
 
 def test_no_registry_abstract_disagreement_on_structural_facts():
-    """EMPHASIS-HF class (the registry is not infallible): a RoB2 domain must not be rated on a registry
+    """EMPHASIS-HF class (the registry is not infallible): a partial machine domain must not be rated on a registry
     field that the trial's own abstract contradicts on a structural fact. Scans the whole corpus:
     (a) D1 basis 'NON_RANDOMIZED' while the abstract says randomized; (b) D2 'not assessed' while the
     abstract says double-blind. Any hit is a registry data error to correct (as EMPHASIS/CORP/ORIGIN were)."""

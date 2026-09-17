@@ -78,9 +78,7 @@ def test_sglt2_ckd_composite_name_components_and_declare_plant():
 
     live = _live_review("sglt2-ckd-progression")
     live_primary = _primary(live)
-    assert live_primary["name"] == (
-        "Trial-defined major kidney / cardiorenal composite (components differ by trial)"
-    )
+    assert live_primary["name"] == "Trial-defined primary cardiorenal composite"
     assert all(t.get("components") for t in _pooled_trials(live))
     assert not _declare_reason_contradicts_pool(live)
 

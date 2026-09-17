@@ -35,3 +35,21 @@ PMC9438305, DOI 10.1186/s13019-022-01958-9; open access). Reports POAF RR 0.62 (
 - **Positive** — the search recovers the colchicine-vs-placebo cardiac-surgery POAF RCTs the comparator pools.
 - **Negative** — CORP (colchicine for recurrent pericarditis, PMID 21873705 — another topic in this set)
   must be recovered and EXCLUDED (wrong population).
+
+## Retrospective executable-screen amendment (2026-09-16)
+`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that the
+cardiac-surgery population vocabulary missed "myocardial revascularization"
+language in Zarpelon PMID 27223641. The config now treats myocardial
+revascularization/revascularisation surgery as cardiac-surgery vocabulary and
+accepts its randomized "control group" wording as the usual-care control. This
+amendment changes screening only and does not make dose/timing-ambiguous or
+multi-arm outcome data poolable.
+
+
+## Amendment — 17 Sep 2026
+
+**Status: RETROSPECTIVE**
+
+Eligibility is based on population, intervention, comparator and design only. Analysis set and follow-up window are compatibility axes: mismatches and UNKNOWN/not_stated values must appear as typed per-trial compatibility findings and do not evict trials. Design/masking remains an eligibility rule.
+
+Both readings were disclosed in the handoff when this amendment was written: strict contract k=1 (no pooled result) versus compatibility-axis k=4. Those were the handoff expectations, not verified results of the integrated build. The held base includes open-label END-AF (PMID 27502857), which fails the unchanged design/masking rule; with that rule enforced, the integrated build measures strict k=0 versus compatibility-axis k=3. Both must be rendered, with the strict reading as a sensitivity row, so this retrospective choice remains visible. No earlier protocol sentence is withdrawn by this amendment.

@@ -48,13 +48,19 @@ POPULATION_MISMATCH = "POPULATION_MISMATCH"
 SOURCE_NOT_RETRIEVED = "SOURCE_NOT_RETRIEVED"
 EXTRACTION_NOT_PERFORMED = "EXTRACTION_NOT_PERFORMED"
 REFUSED_ON_EVIDENCE = "REFUSED_ON_EVIDENCE"
+SIGNAL_SPURIOUS = "SIGNAL_SPURIOUS"
 OUTCOME_POST_HOC_NOT_POOLED = "outcome_post_hoc_not_pooled"
 OUTCOME_NOT_REPORTED = "outcome_not_reported"
+RETRIEVED_INCOMPATIBLE_STRUCTURE = "RETRIEVED_INCOMPATIBLE_STRUCTURE"
+RETRIEVED_REFUSED_WITH_REASON = "RETRIEVED_REFUSED_WITH_REASON"
+UNIT_MISMATCH_CYCLE_LEVEL = "UNIT_MISMATCH_CYCLE_LEVEL"
+ENGINE_CANNOT_CONSUME = "ENGINE_CANNOT_CONSUME"
 
 _CODE_ALIASES = {
     "NO_OUTCOME_DATA_IN_SOURCE": OUTCOME_NOT_IN_SOURCE,
     "EXTRACTION_NOT_PERFORMED": EXTRACTION_NOT_PERFORMED,
     "REFUSED_ON_EVIDENCE": REFUSED_ON_EVIDENCE,
+    "ENGINE_CANNOT_CONSUME": ENGINE_CANNOT_CONSUME,
     "SOURCE_NOT_RETRIEVED": SOURCE_NOT_RETRIEVED,
 }
 
@@ -259,6 +265,21 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
     poolable. It never changes extraction order and never makes a non-pooled value poolable.
     """
     row = row or {}
+    # All lane adjudications require a recognized reason and an exact held span.
+    code = row.get("refusal_provenance") or row.get("reason_code") or row.get("state")
+    span = row.get("source_span") or row.get("verbatim_span")
+    allowed = {REFUSED_ON_EVIDENCE, SIGNAL_SPURIOUS, MULTI_ARM_UNRESOLVED,
+               TIMEPOINT_MISMATCH, POPULATION_MISMATCH,
+               EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH}
+    if row.get("typed_refusal") or ((row.get("absent_kind") == "adjudicated_absent" or row.get("source_adjudicated")) and span and code in allowed):
+        if code not in allowed or not reason or not span:
+            raise ValueError("Typed refusal requires a recognized code, reason and held verbatim span")
+        if not any(span in text for text in (abstract or "", fulltext or "")):
+            from .verified_inputs import validate_referenced_span
+            validate_referenced_span(row)
+        return {"reason_code": code, "state": code,
+                "state_basis": _basis(code, span, reason),
+                "source_span": span, "verbatim_span": span}
     if row.get("state") in (OUTCOME_POST_HOC_NOT_POOLED, OUTCOME_NOT_REPORTED):
         code = row.get("state")
         span = row.get("source_span") or row.get("verbatim_span") or row.get("source") or reason or ""
@@ -268,6 +289,21 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
             "state_basis": _basis(code, span, reason),
             "source_span": _clip(span),
             "verbatim_span": _clip(span),
+        }
+    if (
+        row.get("state") == ENGINE_CANNOT_CONSUME
+        or row.get("reason_code") == ENGINE_CANNOT_CONSUME
+        or row.get("absent_kind") == "engine_cannot_consume"
+    ):
+        return {
+            "reason_code": ENGINE_CANNOT_CONSUME,
+            "state": ENGINE_CANNOT_CONSUME,
+            "state_basis": row.get("state_basis") or _basis(
+                ENGINE_CANNOT_CONSUME,
+                detail="design-adjusted effect or ICC design effect is not held",
+            ),
+            "source_span": row.get("source_span") or "",
+            "verbatim_span": row.get("verbatim_span") or "",
         }
     hint = _reason_hint_code(reason)
     design_span = None

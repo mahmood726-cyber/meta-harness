@@ -52,11 +52,9 @@ def _pooled_pmid_union(rev):
 
 
 def test_committed_integrity_is_fresh_for_every_live_topic():
-    """Corpus invariant (the durable fix for the stale-n_pooled defect the fair blind re-judge
-    flagged): for every live topic that carries an integrity.json, its n_pooled and the PMIDs it
-    actually checked (per_pmid keys) MUST equal the current all-outcome pooled PMID union. A pool
-    change (a recovery added, a dedup drop) that is not followed by a fresh integrity run makes the
-    retraction line report a wrong count — exactly the class this test forbids from returning."""
+    """Every current PMID has either held integrity evidence or an explicit
+    NOT_ASSESSED state. Historical snapshot coverage is never called current
+    merely because membership changed during an offline rebuild."""
     reviews = os.path.join(ROOT, "docs", "reviews")
     if not os.path.isdir(reviews):
         return  # not a full repo checkout; nothing to assert
@@ -71,11 +69,26 @@ def test_committed_integrity_is_fresh_for_every_live_topic():
         integ = json.load(open(ip, encoding="utf-8"))
         union = _pooled_pmid_union(rev)
         checked += 1
-        if integ.get("n_pooled") != len(union):
-            stale.append(f"{slug}: n_pooled={integ.get('n_pooled')} != pooled union {len(union)}")
-        elif set(integ.get("per_pmid", {})) != union:
-            missing = union - set(integ.get("per_pmid", {}))
-            extra = set(integ.get("per_pmid", {})) - union
-            stale.append(f"{slug}: per_pmid coverage drifted (missing={sorted(missing)} extra={sorted(extra)})")
+        # The immutable snapshot can cover an earlier population. The served
+        # object must account for the current union without inventing checks.
+        current = rev.get("integrity") or {}
+        rows = {v.get("pubmed_key"): v for v in current.get("per_trial", {}).values()
+                if v.get("pubmed_key")}
+        if set(rows) != union:
+            stale.append(f"{slug}: served integrity membership differs from current union")
+        missing = union - set(integ.get("per_pmid", {}))
+        for pid in union:
+            row = rows.get(pid, {})
+            if pid in missing:
+                assert row.get("state") == "NOT_ASSESSED", (slug, pid)
+                assert row.get("pubmed_checked") is False, (slug, pid)
+            else:
+                assert row.get("pubmed_checked") is True, (slug, pid)
+                assert row.get("retracted") == bool(integ["per_pmid"][pid].get("retracted"))
+        assert current.get("n_pubmed_checked") == len(union - missing), slug
+        assert current.get("n_not_assessed") == len(missing), slug
+        if missing:
+            html = open(os.path.join(reviews, slug, "index.html"), encoding="utf-8").read()
+            assert "NOT_ASSESSED (offline lane)" in html, slug
     assert not stale, "stale integrity.json (re-run scripts/integrity_check.py): " + "; ".join(stale)
     assert checked > 0, "no committed integrity.json found to verify"
