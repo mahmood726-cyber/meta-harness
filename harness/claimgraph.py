@@ -605,6 +605,12 @@ def _held_path(root: Path, value: Any, *, document: bool = False) -> Path:
         parts = path.relative_to(root.resolve()).parts
         allowed = (len(parts) >= 4 and parts[0] == "cache" and parts[2] == "held")
         allowed |= parts[:4] == ("outputs", "handover", "glp1_regulatory", "held")
+        # Already committed primary publications are held documents too.
+        allowed |= (len(parts) == 3 and parts[0] == "cache" and
+                    (parts[2] == "records.json" or
+                     (parts[2].startswith("ft_") and parts[2].endswith(".txt"))))
+        allowed |= (parts[:6] == ("outputs", "search_v2", "lanes", "R3", "lane_r3", "raw")
+                    and parts[-1].endswith("-efetch.xml"))
         if not allowed:
             raise ValueError("document is not under an allowed held directory")
     return path
@@ -645,7 +651,8 @@ def verify_fact(row: dict[str, Any], root: Path | str = ROOT) -> dict[str, Any]:
             raise ValueError("held document or extraction differs from committed bytes")
         # Verify the displayed effect and bounds are in this span, not merely in
         # some unrelated sentence elsewhere in the held document.
-        numbers = {float(n) for n in re.findall(r"(?<![\w.])-?\d+(?:\.\d+)?(?!\w|\.\d)", span)}
+        numeric_span = re.sub(r"(?<=\d)[·‧∙](?=\d)", ".", span)
+        numbers = {float(n) for n in re.findall(r"(?<![\w.])-?\d+(?:\.\d+)?(?!\w|\.\d)", numeric_span)}
         for field in ("effect", "ci_low", "ci_high", "ai", "ci", "n1i", "n2i", "e1i", "e2i", "t1i", "t2i", "mean1", "mean2", "sd1", "sd2", "nc1", "nc2"):
             value = row.get(field)
             if isinstance(value, (float, int)) and not isinstance(value, bool) and float(value) not in numbers:

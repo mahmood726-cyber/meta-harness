@@ -1019,7 +1019,18 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     dose_selection = dose_selection or {}
+    from . import verified_source
     trials, absent = [], []
+    refused_verified = {key: reason for key, row in (verified_effects or {}).items()
+                        if row.get('outcome') == spec.get('name')
+                        and (reason := verified_source.refusal(row))}
+    for d in included:
+        if d['id'] in refused_verified:
+            absent.append({'label': d.get('label') or d['id'],
+                           'id': f"PMID {d['id']}" if d['id_type'] == 'pmid' else d['id'],
+                           'absent_kind': 'refused_on_evidence',
+                           'reason': 'UNLOCATED_VERIFIED_SOURCE: ' + refused_verified[d['id']]})
+    included = [d for d in included if d['id'] not in refused_verified]
     candidate_index = {}
     all_effect_candidates = []
     for d in included:
@@ -1108,7 +1119,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "scale": ve_over.get("scale", "HR"), "provenance": "fulltext_verified",
                            **({"alternative_co_primary": ve_over.get("alternative_co_primary")}
                               if ve_over.get("alternative_co_primary") else {}),
-                           "source": ve_over.get("source", "hand-verified endpoint correction (override)")})
+                           "source": ve_over.get("source", "hand-verified endpoint correction (override)"),
+                           **verified_source.metadata(ve_over)})
             continue
         nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
         target_pick = target_endpoint_mod.select_target_endpoint(
@@ -1229,7 +1241,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             trials.append({"label": label, "id": idstr, "effect": ve["effect"],
                            "ci_low": ve.get("ci_low"), "ci_high": ve.get("ci_high"),
                            "scale": ve.get("scale", "HR"), "provenance": "fulltext_verified",
-                           "source": ve.get("source", "full-text-verified effect+CI")})
+                           "source": ve.get("source", "full-text-verified effect+CI"),
+                           **verified_source.metadata(ve)})
             continue
         absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
     # ESTIMAND-CONSISTENCY GUARD (continuous topics): a mean-difference topic must pool ONLY continuous
@@ -1712,6 +1725,9 @@ def _source_status(slug, config, records, merged, ledger=None):
 
 
 def build_review_core(slug, config, records, protocol_sha):
+    if slug == 'glp1-ra-mace-t2d':
+        from . import glp1
+        records = glp1.augment(records)
     merged = _dedup(records, config.get("pivotal_trials"))
     retrieval_ledger = _load_retrieval_ledger(slug)
     retrieval_records = (retrieval_ledger.get("records") or {}) if retrieval_ledger else {}
@@ -1758,7 +1774,12 @@ def build_review_core(slug, config, records, protocol_sha):
     effect_coercions = effect_type_mod.load_coercions(
         os.path.join(ROOT, "cache", slug, "coercions.json"))
     effect_protocol_text = _read_text("protocols", slug + ".md")
-    outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp,
+    # INTEGRATOR NOTE (17 Sep): lane GL excluded FREEDOM-CVO (34873344) from the glp1 primary strand by slug+pmid here;
+    # this must be replaced by the strand membership object (cache/<slug>/strands) -- flagged for lane IN4.
+    outcomes = [_build_outcome(spec, kind,
+                               [d for d in included if not (slug == 'glp1-ra-mace-t2d'
+                                and spec.get('name') == config['primary_outcome']['name'] and d['id'] == '34873344')],
+                               rec_by_id, interv, comp, cgr, ftbp,
                                outcome_judgments=ojudg, verified_arms=varms, locate_judgments=ljudg,
                                verified_effects=veffs, dose_selection=dsel,
                                registry_designs=registry_designs,
@@ -1956,7 +1977,10 @@ def build_review_core(slug, config, records, protocol_sha):
                 _r["claim"] = claim_mod.derive(_r)
     # DECLARED STRANDS are result-bearing objects for this topic, not index-only prose.
     # Attach them before invalidation so strand members count as pooled membership.
-    claimgraph_mod.attach_strands(review, ROOT)
+    if slug == 'glp1-ra-mace-t2d':
+        review['strands'] = glp1.strands(primary, veffs)
+    else:
+        claimgraph_mod.attach_strands(review, ROOT)
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config before invalidation, because identifier-scope needs the PICO I-line quote for its reason.
     _protocol_i_line = ""
@@ -1988,6 +2012,8 @@ def build_review_core(slug, config, records, protocol_sha):
     # source that errored). Poisons the dependent outputs -- the page renders a STALE banner and the
     # index counts STALE topics -- so a known-incomplete/unproven result cannot read as current.
     _inv_sig = _invalidation_signals(slug)
+    if slug == 'glp1-ra-mace-t2d':
+        glp1.resolve_missing(review, _inv_sig)
     # Identity crosswalk (read-only session #1, NAMED_BUT_UNBOUND): resolve a record's identifiers so a
     # trial screened-in under one id (NCT) but pooled under another (PMID) is not falsely counted
     # eligible-not-pooled. Built from the merged records' own nct field; verified 0 cross-space cases
@@ -2120,6 +2146,8 @@ def build_review_core(slug, config, records, protocol_sha):
         review.setdefault("protocol", {})["target_endpoint_selection"] = (
             target_endpoint_mod.protocol_rule_object()
         )
+    if slug == 'glp1-ra-mace-t2d':
+        glp1.annotate(review)
     claimgraph_mod.stamp_review(review)
     _cg_bad = claimgraph_mod.check(review)
     if _cg_bad:

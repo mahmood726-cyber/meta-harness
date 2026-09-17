@@ -102,7 +102,7 @@ def test_plant_randomised_contrast_disclosed():
 
 def test_positive_controls_still_pool_with_matched_keys():
     # finerenone (IDENTICAL composites), sglt2-ckd (3 HRs), glp1 (7 HRs) must pool, key matched.
-    for slug, exp_k in [("finerenone-ckd-t2d-renal", 2), ("sglt2-ckd-progression", 3), ("glp1-ra-mace-t2d", 8)]:
+    for slug, exp_k in [("finerenone-ckd-t2d-renal", 2), ("sglt2-ckd-progression", 3), ("glp1-ra-mace-t2d", 10)]:
         p = _os.path.join(_ROOT, "docs", "reviews", slug, "review.json")
         if not _os.path.exists(p):
             continue

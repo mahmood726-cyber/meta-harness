@@ -509,6 +509,8 @@ def render_strands_section(d: dict) -> str:
                        if sens else "")
             res = (f"pooled {_e(pool.get('effect'))} ({_e(pool.get('ci_low'))}–{_e(pool.get('ci_high'))}), "
                    f"k={_e(pool.get('k'))}, HKSJ/PM &tau;&sup2;={_e(pool.get('tau2'))}, <strong>{sig}</strong>{senstxt}")
+            if d.get('primary_strand'):
+                res += f"; prediction interval {_e(pool.get('pi_low'))}–{_e(pool.get('pi_high'))}"
         elif not (s.get("members") or []):
             res = f"<code>{_e(s.get('status') or 'EMPTY')}</code>: {_e(s.get('reason') or 'no source-backed members declared')}"
         else:
@@ -520,6 +522,9 @@ def render_strands_section(d: dict) -> str:
     refline = (f"<p><strong>Refused cross-endpoint pool:</strong> {_e(ref.get('description'))} "
                f"If forced it would be {_e(ref.get('if_forced_it_would_be'))} — "
                f"<code>{_e(ref.get('verdict'))}</code>.</p>" if ref else "")
+    if d.get('primary_strand'):
+        return ("<div class='banner'><h3>Declared strands: primary and any delivery</h3>"
+                f"<ul>{''.join(rows)}</ul></div>")
     return (f"<div class='banner'><h3>Declared strands (the single pool is suppressed; these are the "
             f"endpoint-clean decompositions)</h3><p>{_e(d.get('why_topic_is_suppressed'))}</p>"
             f"<ul>{''.join(rows)}</ul>{refline}"
@@ -993,6 +998,12 @@ def _screening(r, neutral):
                        + (f"; {len(retro)} registered retrospectively - after enrolment began, a reporting-bias "
                           f"signal, not disqualifying ({_e(', '.join(retro))})" if retro else "")
                        + f" (checked {_e(integ.get('checked_utc'))} via {_e(integ.get('source'))}).</p>")
+            if integ.get('unassessed_pmids'):
+                msg = (f"<p class='note'><strong>Trial integrity:</strong> "
+                       f"{_e(integ.get('n_pubmed_checked'))} of {_e(integ.get('n_pooled'))} pooled trials "
+                       "covered by the historical PubMed check. No retraction was recorded in that checked set. "
+                       f"Current integrity status unassessed for PMID {_e(', '.join(integ['unassessed_pmids']))}; "
+                       "the offline source set does not establish a current retraction check.</p>")
             integ_html = msg
     # PRISMA 2020 flow (items 16a/16b): counts at every stage, exclusions broken down by rule.
     from collections import Counter as _C
@@ -2724,6 +2735,9 @@ def render_page(review: dict, neutral: bool = False) -> str:
     tabs_spec = [(tid, lbl) for tid, lbl in TABS if not (neutral and tid in NEUTRAL_DROP)]
     nav = "".join(f'<button data-t="{tid}" onclick="show(\'{tid}\')">{_e(lbl)}</button>' for tid, lbl in tabs_spec)
     body = ""
+    if review.get('slug') == 'glp1-ra-mace-t2d' and review.get('strands'):
+        from .glp1 import render as render_glp1
+        body = render_glp1(review)
     for tid, lbl in tabs_spec:
         body += (f'<section class="tab" id="tab-{tid}">'
                  f'<h3 class="tabname">{_e(lbl)}</h3>{_R[tid](review, neutral)}</section>')
@@ -2744,8 +2758,13 @@ def render_page(review: dict, neutral: bool = False) -> str:
                 "exact served bytes are attested separately (html_sha256 in manifest.json and the production "
                 "record on the production-records branch). Cite this hash when auditing; a different hash is "
                 "a different version of this page.</div>")
-    return ("<!doctype html><html lang=en><head><meta charset=utf-8>"
+    rendered_html = ("<!doctype html><html lang=en><head><meta charset=utf-8>"
             "<meta name=viewport content='width=device-width,initial-scale=1'>"
             f"<title>{title}</title><style>{_CSS}</style></head><body>"
             f"<header><h1>{title}</h1><div class=sub>{sub}</div>{_pin}</header>"
             f"<nav>{nav}</nav><main>{body}</main><script>{_JS}</script></body></html>")
+    # FDA verbatim source objects retain CRLF. HTML display uses LF so readers
+    # that apply universal-newline decoding reproduce exactly the served bytes.
+    if review.get('slug') == 'glp1-ra-mace-t2d':
+        return re.sub(r'[ \t]+\n', '\n', rendered_html.replace('\r\n', '\n'))
+    return rendered_html
