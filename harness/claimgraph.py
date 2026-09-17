@@ -755,7 +755,7 @@ class ClaimGraph:
                     actual = self.recompute(cid)
                     if actual != obj.get("value"):
                         code = "TRANSFORMATION_MISMATCH"
-                except (ValueError, KeyError, TypeError, ZeroDivisionError, RecursionError):
+                except (ValueError, KeyError, IndexError, TypeError, ZeroDivisionError, RecursionError):
                     code = "UNRECOMPUTABLE_TRANSFORMATION"
             elif obj["class"] == "JUDGEMENT":
                 basis = obj.get("basis")
@@ -788,6 +788,36 @@ class ClaimGraph:
         obj = self.objects[claim_id]
         operation = obj.get("operation")
         inputs = obj.get("inputs")
+        if operation == "section_effect_display":
+            from . import manuscript
+            ref = obj['input_ref']
+            if obj.get('depends_on') != [ref]:
+                raise ValueError('display dependency mismatch')
+            source = self.objects[ref]
+            if source['class'] == 'FACT':
+                row = source['row']
+                if not verify_fact(row, self.root)['verified']:
+                    raise ValueError('display requires a verified source')
+                if obj['mode'] == 'label':
+                    return str(row.get('label') or row.get('id'))
+                values = row
+            elif source.get('operation') == 'reported_effect_pool':
+                fresh = self.recompute(ref)
+                if fresh != source.get('value'):
+                    raise ValueError('stale pool display')
+                if obj['mode'] == 'label':
+                    return f"Pooled (k={fresh['k']})"
+                values = dict(fresh, effect=fresh['estimate'])
+            else:
+                raise ValueError('unsupported display source')
+            return manuscript.compute('forest-point', values)
+        if operation == "section_text":
+            from . import manuscript, risk_prose
+            owner = {"manuscript": manuscript, "risk": risk_prose}[obj["owner"]]
+            return owner.compute(obj["unit"], inputs)
+        if operation in ('ledger_field', 'selection_flow', 'harms_states', 'parity_consistency', 'retrieval_cell', 'query_item'):
+            from .section_claims import recompute
+            return recompute(operation, inputs)
         if operation == "fact_coverage":
             refs = obj.get("input_refs") or []
             if set(refs) != set(obj.get("depends_on") or []):
@@ -796,6 +826,25 @@ class ClaimGraph:
             return {"FACT": states.count("FACT"), "UNVERIFIED_FACT": states.count("UNVERIFIED_FACT"), "total": len(states)}
         if operation == "count":
             return len(inputs)
+        if operation == 'reported_effect_leave_one_out':
+            pool_id = obj['pool_ref']
+            if obj.get('depends_on') != [pool_id]:
+                raise ValueError('leave-one-out dependency mismatch')
+            pool_obj = self.objects[pool_id]
+            refs = pool_obj['input_refs']
+            if len(refs) < 3:
+                raise ValueError('leave-one-out requires at least three inputs')
+            values = []
+            for dropped in refs:
+                subset = [ref for ref in refs if ref != dropped]
+                local = ClaimGraph(self.root)
+                local.objects = {ref: self.objects[ref] for ref in subset}
+                local.add('pool', 'TRANSFORMATION', **{**{k: v for k, v in pool_obj.items()
+                          if k not in ('class', 'claim_id')}, 'input_refs': subset, 'depends_on': subset})
+                values.append({'dropped': str(self.objects[dropped]['row'].get('label') or
+                                              trial_key(self.objects[dropped]['row'])),
+                               'estimate': local.recompute('pool')['estimate']})
+            return values
         if operation == "reported_effect_pool":
             from .synth import Study, pool
             refs = obj["input_refs"]
@@ -807,7 +856,11 @@ class ClaimGraph:
             result = pool([Study(label=row.get("id", str(i)), effect=row["effect"],
                                  ci_low=row["ci_low"], ci_high=row["ci_high"],
                                  measure=obj["scale"]) for i, row in enumerate(rows)], scale=obj["scale"])
-            return {key: getattr(result, key) for key in POOL_FIELDS}
+            values = {key: getattr(result, key) for key in POOL_FIELDS}
+            if obj.get('precision') is not None:
+                values = {key: round(value, obj['precision']) if isinstance(value, float) else value
+                          for key, value in values.items()}
+            return values
         if operation == "sum":
             return sum(inputs)
         if operation == "log":
@@ -849,7 +902,12 @@ class ClaimGraph:
         text = obj.get("text", "")
         if obj["class"] == "FACT":
             row = obj.get("row") or {}
-            if row.get("effect") is not None:
+            if obj.get('display') == 'located-provenance':
+                evidence = _fact_evidence(row)
+                text = (f"{row.get('id', claim_id)}: document {evidence.get('document_path')}; "
+                        f"SHA-256 {evidence.get('document_sha256')}; retrieved {evidence.get('retrieved_utc')}; "
+                        f"located span: {evidence.get('span')}")
+            elif row.get("effect") is not None:
                 text = f"{row.get('id', claim_id)}: {row.get('scale', '')} {row.get('effect')} ({row.get('ci_low')}, {row.get('ci_high')})."
             else:
                 values = {k: row[k] for k in ("ai", "n1i", "ci", "n2i", "e1i", "t1i", "e2i", "t2i", "mean1", "sd1", "nc1", "mean2", "sd2", "nc2") if k in row}
@@ -858,14 +916,20 @@ class ClaimGraph:
             text = violations[claim_id]["code"]
         elif obj["class"] == "TRANSFORMATION":
             value = self.recompute(claim_id)
-            if obj.get("operation") == "fact_coverage":
+            if obj.get('operation') in ('ledger_field', 'selection_flow', 'harms_states', 'parity_consistency', 'retrieval_cell', 'query_item'):
+                from .section_claims import transformation_text
+                text = transformation_text(obj, value)
+            elif obj.get("operation") == "fact_coverage":
                 text = f"Source provenance: {value['FACT']} FACT of {value['total']} trial-outcome rows; {value['UNVERIFIED_FACT']} UNVERIFIED_FACT of {value['total']}."
             elif obj.get("operation") == "reported_effect_pool":
-                fmt = lambda v: f"{v:.6g}" if isinstance(v, float) else str(v)
+                fmt = lambda v: (f"{round(v, obj['precision']):g}" if 'precision' in obj
+                                 else f"{v:.6g}") if isinstance(v, float) else str(v)
                 text = (f"{obj['label']}: pooled {obj['scale']} {fmt(value['estimate'])} "
                         f"(95% CI {fmt(value['ci_low'])} to {fmt(value['ci_high'])}); "
                         f"k={value['k']}; HKSJ/PM tau squared={fmt(value['tau2'])}; "
                         f"prediction interval {fmt(value['pi_low'])} to {fmt(value['pi_high'])}.")
+            elif obj.get("operation") in ("section_text", "section_effect_display"):
+                text = value
             else:
                 text = f"{obj.get('label', claim_id)}: {value}."
         elif obj["class"] == "INTERPRETATION":
@@ -873,7 +937,7 @@ class ClaimGraph:
         elif obj["class"] == "JUDGEMENT":
             text = f"{text} [adjudication: {obj.get('adjudication')}]"
         return (f'<span data-claim-id="{html.escape(claim_id, quote=True)}" '
-                f'data-claim-class="{mark}"><strong>[{mark}]</strong> {html.escape(str(text))}</span>')
+                f'data-claim-class="{mark}"><strong>[{mark}]</strong> {html.escape(str(text), quote=False)}</span>')
 
 
 def fact_render(row: dict[str, Any], root=ROOT) -> str:
@@ -966,7 +1030,8 @@ def certainty_violations(review):
     return []
 
 
-def review_graph(review, root=ROOT):
+@_provenance_batch()
+def review_graph(review, root=ROOT, include_sections=True):
     """Registry of migrated objects. Unmigrated prose remains scan debt."""
     graph = ClaimGraph(root)
     refs = []
@@ -993,6 +1058,14 @@ def review_graph(review, root=ROOT):
         graph.add(obj["claim_id"], obj["class"], **fields)
     for strand in (review.get("strands") or {}).get("strands") or []:
         register_strand(graph, strand)
+    from . import page_claims
+    page_claims.register(review, graph)
+    if include_sections:
+        from . import manuscript, risk_prose
+        risk_prose.register(graph, review)
+        manuscript.register(graph, review)
+    from .section_claims import register as register_sections
+    register_sections(graph, review)
     return graph
 
 
@@ -1086,7 +1159,7 @@ def scan_rendered(rendered: str, graph: ClaimGraph) -> dict[str, Any]:
 
     class Scanner(HTMLParser):
         ignored = {"script", "style", "button", "nav", "title", "h1", "h2", "h3", "h4", "h5", "h6"}
-        blocks = {"p", "div", "td", "th", "li", "section", "br", "tr", "figcaption", "header"}
+        blocks = {"p", "div", "td", "th", "li", "section", "br", "tr", "figcaption", "header", "text"}
 
         def __init__(self):
             super().__init__(convert_charrefs=True)

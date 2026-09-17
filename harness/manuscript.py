@@ -1,16 +1,13 @@
-"""Deterministic manuscript per review (Stage PAPER, forward plan P1).
+"""Deterministic manuscript rendered from registered typed objects.
 
-Generates a full structured manuscript FROM the review object: structured abstract, methods describing what
-actually ran, results with a forest plot (SVG, object-derived), limitations (from GRADE/RoB/heterogeneity
-fields), and a data-availability statement with the protocol SHA and the one command. EVERY number is
-interpolated from a committed object field, so the manuscript cannot state a number the data does not carry.
-A gate limb (harness.gate.check_manuscript_numbers) enforces this by extracting every risky numeral from the
-rendered manuscript and refusing any that is not in object_numerals(review)."""
+Numerical synthesis and forest labels require source-backed effect inputs;
+recorded judgements remain labelled judgements and interpretations show an
+alternative. The legacy numeral gate remains a second, narrower check.
+"""
 from __future__ import annotations
 
 import html as _html
 
-from . import rob_sensitivity as _rob_sensitivity_mod
 from harness import identity as _identity_mod
 from . import claimgraph
 
@@ -86,6 +83,8 @@ def object_numerals(review):
         if isinstance(v, int):
             out.add(str(v))
         elif isinstance(v, float):
+            out.add(str(v))  # FACT rows preserve the recorded precision.
+            out.add(str(abs(v)))  # The legacy gate tokenises magnitudes.
             out.add(f"{round(v, nd):g}")
             out.add(f"{round(v, 1):g}")
             out.add(f"{abs(round(v, nd)):g}")
@@ -97,7 +96,7 @@ def object_numerals(review):
     # every pooled trial's values
     for o in review.get("outcomes", []):
         for t in o.get("trials", []):
-            for k in ("effect", "ci_low", "ci_high", "ai", "n1i", "ci", "n2i",
+            for k in ("effect", "ci_low", "ci_high", "ai", "n1i", "ci", "n2i", "e1i", "t1i", "e2i", "t2i",
                       "mean1", "sd1", "nc1", "mean2", "sd2", "nc2"):
                 add(t.get(k))
         r2 = o.get("result") or {}
@@ -109,6 +108,10 @@ def object_numerals(review):
     for o in review.get("outcomes", []):
         add(len(o.get("trials", []) or []))
         add(len(o.get("declared_absent_trials", []) or []))
+        states = [row.get('state') or row.get('reason_code') or 'UNCLASSIFIED'
+                  for row in o.get('declared_absent_trials') or []]
+        for state in set(states):
+            add(states.count(state))
         if review.get("publication_units"):
             counts = _identity_mod.outcome_counts(o)
             add(counts["pooled"].get("trials"))
@@ -140,16 +143,36 @@ def object_numerals(review):
     texts = [review.get("title") or "", review.get("question") or ""]
     for o in review.get("outcomes", []):
         texts += [str(o.get("timepoint") or ""), str(o.get("population") or ""), str(o.get("name") or "")]
+        for trial in o.get('trials') or []:
+            texts += [str(trial.get('id') or ''), str(trial.get('label') or '')]
     for txt in texts:
         for m in _re.findall(r"\d+(?:\.\d+)?", txt):
             out.add(m)
             if "." not in m:
                 continue
             out.add(f"{float(m):g}")
+    # Recorded GRADE bases are now visible judgements, including the quoted
+    # source numbers. Permit their actual input tokens, never rendered output.
+    for domain in (g.get('domains') or {}).values():
+        for token in _re.findall(r"\d+(?:\.\d+)?", str(domain.get('basis') or '')):
+            out.add(token)
+            out.add(f"{float(token):g}")
+    from . import risk_prose
+    rob_rows = risk_prose._rows(review)
+    overall_states = risk_prose._states(rob_rows)
+    for state in set(overall_states):
+        add(overall_states.count(state))
+    levels = [str((entry.get('domains') or {}).get('D3_missing_outcome_data', {}).get('level') or 'not assessed')
+              for _, entry in rob_rows]
+    add(sum(level.lower() in ('not assessed', 'unassessed', 'not_assessed') for level in levels))
+    screen_states = [str(row.get('decision') or row.get('final_decision') or 'unclassified')
+                     for row in scr.get('records') or []]
+    for state in set(screen_states):
+        add(screen_states.count(state))
     return out
 
 
-def _forest(review):
+def _forest(review, writer=None):
     """A minimal object-derived forest plot (SVG) of the primary outcome: one row per pooled trial with its
     effect and CI, and a diamond for the pooled estimate. Ratio scales use a log x-axis with null at 1."""
     prim = _primary(review)
@@ -192,6 +215,8 @@ def _forest(review):
     lo_x, hi_x = min(tx), max(tx)
     span = (hi_x - lo_x) or 1.0
     W, rowh, padL, padR, padT = 640, 22, 190, 60, 30
+    if writer is not None:
+        W, padL, padR = 1100, 340, 310
     H = padT + rowh * (len(rows) + 2) + 20
 
     def xpix(v):
@@ -207,241 +232,202 @@ def _forest(review):
     if nx is not None and lo_x <= (math.log(null) if is_ratio else null) <= hi_x:
         parts.append(f"<line x1='{nx:.1f}' y1='{padT-6}' x2='{nx:.1f}' y2='{H-24}' stroke='#b0bec5' stroke-dasharray='3 3'/>")
     y = padT
-    for lab, e, lo, hi in rows:
+    for index, (lab, e, lo, hi) in enumerate(rows):
+        if writer is not None:
+            trial = prim['trials'][index]
+            source_row = dict(trial, scale=trial.get('scale') or prim.get('estimand'))
+            source_ref = 'fact-' + claimgraph._sha(source_row)[:16]
         cx = xpix(e)
         if lo is not None and hi is not None:
             xl, xh = xpix(lo), xpix(hi)
             parts.append(f"<line x1='{xl:.1f}' y1='{y:.1f}' x2='{xh:.1f}' y2='{y:.1f}' stroke='#37474f'/>")
         parts.append(f"<rect x='{cx-3:.1f}' y='{y-3:.1f}' width='6' height='6' fill='#1d3b4d'/>")
-        parts.append(f"<text x='6' y='{y+4:.1f}' fill='#12232e'>{_e(lab)}</text>")
+        label_text = (_e(lab) if writer is None else writer.effect_display(
+            'forest-label-' + str(index), source_ref, 'label'))
+        parts.append(f"<text x='6' y='{y+4:.1f}' fill='#12232e'>{label_text}</text>")
         val = f"{_fmt(e)}" + (f" [{_fmt(lo)}, {_fmt(hi)}]" if lo is not None else "")
-        parts.append(f"<text x='{W-padR+6}' y='{y+4:.1f}' fill='#37474f'>{_e(val)}</text>")
+        value_text = (_e(val) if writer is None else writer.effect_display(
+            'forest-point-' + str(index), source_ref, 'point'))
+        parts.append(f"<text x='{W-padR+6}' y='{y+4:.1f}' fill='#37474f'>{value_text}</text>")
         y += rowh
     # pooled diamond
     if pooled[0] is not None and pooled[1] is not None:
         y += rowh // 2
         xc, xl, xh = xpix(pooled[0]), xpix(pooled[1]), xpix(pooled[2])
         parts.append(f"<polygon points='{xl:.1f},{y:.1f} {xc:.1f},{y-6:.1f} {xh:.1f},{y:.1f} {xc:.1f},{y+6:.1f}' fill='#b31412'/>")
-        parts.append(f"<text x='6' y='{y+4:.1f}' fill='#b31412' font-weight='600'>Pooled ({_e(_forest_k_phrase(prim))})</text>")
+        pool_label = f'Pooled ({_forest_k_phrase(prim)})'
+        if writer is not None:
+            pool_label = writer.effect_display('forest-pooled-label', 'manuscript-result', 'label')
+        else:
+            pool_label = _e(pool_label)
+        parts.append(f"<text x='6' y='{y+4:.1f}' fill='#b31412' font-weight='600'>{pool_label}</text>")
         pv = f"{_fmt(pooled[0])} [{_fmt(pooled[1])}, {_fmt(pooled[2])}]"
-        parts.append(f"<text x='{W-padR+6}' y='{y+4:.1f}' fill='#b31412' font-weight='600'>{_e(pv)}</text>")
-    parts.append(f"<text x='{padL}' y='{H-6}' fill='#78909c'>{_e(scale or 'effect')} ({'log scale, null=1' if is_ratio else 'null=0'})</text></svg>")
+        if writer is not None:
+            pv = writer.effect_display('forest-pooled-point', 'manuscript-result', 'point')
+        else:
+            pv = _e(pv)
+        parts.append(f"<text x='{W-padR+6}' y='{y+4:.1f}' fill='#b31412' font-weight='600'>{pv}</text>")
+    axis = f"{scale or 'effect'} ({'log scale, null=1' if is_ratio else 'null=0'})"
+    if writer is not None:
+        axis = writer.svg(writer.computation('forest-axis', {'label': axis}, unit='forest-label'))
+    else:
+        axis = _e(axis)
+    parts.append(f"<text x='{padL}' y='{H-6}' fill='#78909c'>{axis}</text></svg>")
     return "".join(parts)
 
 
-def render(review, neutral: bool = False) -> str:
+def compute(unit, inputs):
+    """Named prose transformations over structured records, never rendered text."""
+    if unit == 'question':
+        return 'Recorded review question: ' + str(inputs.get('question') or 'not recorded')
+    if unit == 'screening':
+        records = inputs.get('records') or []
+        states = [str(r.get('decision') or r.get('final_decision') or 'unclassified') for r in records]
+        counts = {s: states.count(s) for s in sorted(set(states))}
+        return f'Screening records: {len(records)}; recorded per-item decisions: {counts}.'
+    if unit == 'search':
+        states = inputs.get('source_status') or {}
+        return 'Recorded retrieval adapter states: ' + '; '.join(
+            f'{key}: {value}' for key, value in sorted(states.items())) + '.'
+    if unit == 'registration':
+        import re
+        text = inputs.get('protocol_text') or ''
+        retrospective = bool(re.search(r'\bNCT\d{8}\b|\bPMID[:\s]|\b\d{7,8}\b|hazard ratio|95%\s*CI|odds ratio|rate ratio', text))
+        pre = inputs.get('preregistration') or {}
+        if pre.get('prospective') and not retrospective:
+            return ('The recorded protocol-only commit is ' + str(pre.get('sha') or '')[:12]
+                    + '; the registration record marks it prospective.')
+        return ('Prospective registration is not demonstrated by the recorded protocol/history. '
+                'Recorded build SHA: ' + str(pre.get('build_sha') or inputs.get('sha') or '')[:12] + '.')
+    if unit == 'availability':
+        return ('The committed cache and code are the replay inputs: python scripts/build_topic.py '
+                + str(inputs.get('slug') or '') + '. Recorded protocol SHA: '
+                + str(inputs.get('sha') or '')[:12] + '. Protocol-SHA byte-for-byte reproduction is not claimed.')
+    if unit == 'evidence-units':
+        states = [t.get('evidence_unit') or 'trial' for t in inputs]
+        counts = {s: states.count(s) for s in sorted(set(states))}
+        return f'Primary pooled evidence units: {counts}.'
+    if unit == 'forest-label':
+        return str(inputs['label'])
+    if unit == 'forest-point':
+        e, lo, hi = inputs['effect'], inputs.get('ci_low'), inputs.get('ci_high')
+        return _fmt(e) + (f' [{_fmt(lo)}, {_fmt(hi)}]' if lo is not None else '')
+    raise ValueError('unknown manuscript computation: ' + unit)
+
+
+def register(graph, review):
+    """Register all manuscript units independently of the HTML consumer."""
+    from .section_prose import Writer, register_pool
+    from . import risk_prose
+    w = Writer(graph, 'manuscript')
+    parts = []
+
+    def paragraph(value):
+        parts.append('<p>' + value + '</p>')
+
+    paragraph(w.judgement('generation',
+        'This manuscript is generated from the review object. Registered transformations and recorded judgements are labelled separately.',
+        {'rule_id': 'harness.manuscript:typed-rendering', 'implementation': 'harness/manuscript.py'}))
+    parts.append('<h4>Abstract</h4><h5>Question</h5>')
+    paragraph(w.computation('question', {'question': review.get('question')}))
+    parts.append('<h5>Methods</h5>')
+    pre = (review.get('reproduction') or {}).get('preregistration') or {}
+    protocol = review.get('protocol') or {}
+    paragraph(w.computation('registration', {'preregistration': pre, 'sha': protocol.get('sha'),
+                                            'protocol_text': protocol.get('text')}))
+    paragraph(w.computation('search', {'source_status': (review.get('search') or {}).get('source_status')}))
+    paragraph(w.computation('screening', {'records': (review.get('screening') or {}).get('records')}))
+    if 'fact-coverage' in graph.objects:
+        paragraph(w.ref('fact-coverage'))
     prim = _primary(review)
+    parts.append('<h5>Results</h5>')
     if not prim:
-        return "<p>No primary outcome to report.</p>"
-    res = prim.get("result") or {}
-    title = review.get("title") or review.get("slug")
-    q = review.get("question") or ""
-    scr = review.get("screening") or {}
-    n_screened = len(scr.get("records", []) or [])
-    k = res.get("k")
-    scale = res.get("scale") or prim.get("estimand") or "effect"
-    est = _fmt(res.get("estimate"))
-    lo, hi = _fmt(res.get("ci_low")), _fmt(res.get("ci_high"))
-    g = review.get("grade") or {}
-    cert = (g.get("certainty") or "").replace("_", " ")
-    _grade_not_rateable = g.get("certainty") == "not_rateable"
-    sens = review.get("rob_sensitivity") or {}
-    prot = review.get("protocol") or {}
-    sha = str(prot.get("sha") or "")[:12]
-    # PREREGISTRATION vs BUILD (audit 20): only claim "committed before synthesis" when a protocol-ONLY
-    # prospective commit actually exists; otherwise state honestly that precedence is not demonstrated.
-    _pre = (review.get("reproduction") or {}).get("preregistration") or {}
-    # RETRACTION #2: a protocol that already contains PMIDs/NCTs/results is a timestamped record, not a
-    # prospective registration (fails PRISMA 24a regardless of a protocol-only SHA).
-    import re as _re
-    _proto_has_results = bool(_re.search(r"\bNCT\d{8}\b|\bPMID[:\s]|\b\d{7,8}\b|hazard ratio|95%\s*CI|"
-                                         r"odds ratio|rate ratio", (prot.get("text", "") or "")))
-    _prospective = bool(_pre.get("prospective")) and not _proto_has_results
-    _pre_sha = str(_pre.get("sha") or "")[:12]
-    _build_sha = str(_pre.get("build_sha") or prot.get("sha") or "")[:12]
-    if _prospective:
-        reg_phrase = (f"prospectively registered: the protocol was committed in a protocol-only commit "
-                      f"(registration SHA {_e(_pre_sha)}) before synthesis")
-        reg_methods = (f"The protocol (protocol-only commit {_e(_pre_sha)}) was committed before any "
-                       f"synthesis ran; deterministic replay is from the committed cache, and "
-                       f"protocol-SHA byte-for-byte replay is not currently claimed.")
+        paragraph(w.judgement('no-primary', 'No primary outcome is recorded.',
+                             {'rule_id': 'primary-flag-required', 'source_field': 'outcomes'}, owed=True))
     else:
-        reg_phrase = (f"NOT prospectively registered in this repository: the protocol first "
-                      f"entered the repository inside a build commit (SHA {_e(_build_sha)}), so precedence of "
-                      f"protocol over synthesis is not demonstrated here")
-        reg_methods = (f"The protocol first entered the repository inside a build commit (SHA {_e(_build_sha)}); "
-                       f"the PICO is fixed, but this repository's history does not demonstrate that the protocol "
-                       f"preceded synthesis, and byte-for-byte reproduction from that SHA is not currently claimed.")
-    # RETRACTION propagation: the search claim in Methods must derive from source_status, not be authored.
-    _ss = (review.get("search") or {}).get("source_status") or {}
-    _aact = _ss.get("Registry-first (AACT)")
-    if _aact == "RAN_OK":
-        _search_phrase = "The evidence set was assembled from PubMed/ClinicalTrials.gov retrieval."
-    else:
-        _search_phrase = (f"The registry-first (AACT) adapter did NOT complete for this topic (status "
-                          f"{_e(_aact)}); the evidence set was assembled by known-item retrieval, NOT a completed "
-                          f"registry-first or systematic search (retracted claim).")
-    if review.get("publication_units"):
-        absent_counts = _identity_mod.outcome_counts(prim)["absent"]
-        n_absent = absent_counts.get("trials", 0)
-        absent_phrase = _identity_mod.count_phrase(absent_counts, "trial family")
-    else:
-        n_absent = len(prim.get("declared_absent_trials", []) or [])
-        absent_phrase = f"{n_absent} eligible trial(s)"
-
-    # ---- structured abstract ----
-    if res.get("pool_refused"):
-        ref = res.get("pool_refused") or {}
-        anchor = ref.get("honest_k1_anchor") or {}
-        if anchor:
-            rem = ", ".join(str(x.get("label")) for x in (ref.get("named_remainders") or []))
-            result_sentence = (
-                f"The two eligible trials conflict in direction, so no pooled effect is reported. "
-                f"The pre-named k=1 anchor is {_e(anchor.get('name') or anchor.get('label'))}: "
-                f"{_e(anchor.get('scale') or scale)} {_fmt(anchor.get('effect'))} "
-                f"(95% CI {_fmt(anchor.get('ci_low'))} to {_fmt(anchor.get('ci_high'))}); "
-                f"the named remainder is {_e(rem)}."
-            )
+        res = prim.get('result') or {}
+        trials = prim.get('trials') or []
+        paragraph(w.computation('evidence-units', trials))
+        if res.get('suppressed_incompatible') or res.get('pool_refused'):
+            paragraph(w.judgement('result-refused',
+                ('INCOMPATIBLE estimand classes: no pooled effect is reported.' if res.get('suppressed_incompatible')
+                 else 'The recorded pooling rule refused a pooled effect; trial estimates remain individually reportable.'),
+                {'rule_id': 'respect-pooling-refusal', 'source_field': 'outcomes.primary.result',
+                 'recorded_refusal': res.get('pool_refused') or res.get('estmeasure')}, owed=True))
+        elif trials and not res.get('pooled_ci_refused'):
+            paragraph(register_pool(graph, 'manuscript-result', trials, res.get('scale') or prim.get('estimand'),
+                                    'Primary outcome'))
         else:
-            result_sentence = (
-                "The two eligible trials conflict in direction or interval support, so no pooled effect is "
-                "reported; both trial estimates are reported individually."
-            )
-    elif res.get("suppressed_incompatible"):
-        # FAIL CLOSED (audit 23): no pooled result sentence when the estimand pool is incompatible.
-        result_sentence = ("The eligible trials report the primary outcome on INCOMPATIBLE estimand classes ("
-                           + _e(" + ".join((res.get("estmeasure") or {}).get("canonicals", [])))
-                           + "), so no pooled effect is reported: these effect measures are not one "
-                           "quantity without an explicit, source-backed conversion. The per-trial estimates "
-                           "are reported and each coherent strand must be pooled separately.")
-    elif res.get("present") is False or k is None:
-        result_sentence = ("No eligible trial reported the primary outcome with an extractable, "
-                           "source-verified estimate, so it is declared absent rather than pooled.")
-    elif k == 1:
-        result_sentence = (f"A single eligible trial contributed an extractable estimate: {scale} "
-                           f"{est} (95% CI {lo} to {hi}); with k=1 no between-trial heterogeneity or "
-                           f"prediction interval is estimable.")
-    elif res.get("pooled_ci_refused"):
-        result_sentence = (
-            f"Pooling {k} trials retained the point estimate ({scale} {est}), but the registered PM/HKSJ "
-            "confidence interval is not served at k=2 because it uses t(1)=12.71; no pooled "
-            "significance or null-crossing claim is made."
-        )
-    else:
-        pi = ""
-        if res.get("pi_low") is not None:
-            pi = f" The 95% prediction interval was {_fmt(res.get('pi_low'))} to {_fmt(res.get('pi_high'))}."
-        result_sentence = (f"Pooling {_k_phrase(prim)} gave {scale} {est} (95% CI {lo} to {hi}), "
-                           f"random-effects (Paule-Mandel with a Hartung-Knapp interval).{pi}")
+            paragraph(w.judgement('result-unavailable',
+                'No pooled interval is served for this recorded outcome state; this does not establish outcome absence.',
+                {'rule_id': 'no-interval-without-renderable-pool', 'source_field': 'outcomes.primary.result',
+                 'recorded_state': res}, owed=True))
+        mid, member = claimgraph.membership_object(prim)
+        if mid not in graph.objects:
+            graph.add(mid, 'TRANSFORMATION', **member)
+        if prim.get('declared_absent_trials'):
+            paragraph(w.ref(mid))
+    parts.append('<h5>Certainty</h5>')
+    g = review.get('grade') or {}
+    if g.get('certainty') == 'not_rateable':
+        paragraph(w.judgement('certainty-refused',
+            'Overall GRADE certainty is not rateable. Recorded reason: ' + str(g.get('not_rateable_reason') or 'not supplied'),
+            {'rule_id': 'no-certainty-for-refused-effect-object', 'source_field': 'grade'}, owed=True))
+    elif g:
+        paragraph(w.ref('grade-certainty'))
+        paragraph(w.ref('grade-downgrades'))
+    parts.append('<h4>Methods</h4>')
+    paragraph(w.judgement('methods',
+        'The reported-effect transformation uses random effects (Paule-Mandel with a Hartung-Knapp interval). '
+        'Held source evidence is required for each effect input; missing evidence refuses the transformation.',
+        {'rule_id': 'harness.claimgraph:reported_effect_pool', 'implementation': 'harness/claimgraph.py'}))
+    paragraph(w.interpretation('replay',
+        'Deterministic replay establishes consistency of the committed inputs and computation; it does not validate search completeness or extraction.',
+        'A reproducible result can still change when missing evidence is recovered or an extraction is corrected.'))
+    parts.append('<h4>Results</h4>')
+    if prim:
+        if 'manuscript-result' in graph.objects:
+            try:
+                # The graphic uses the same freshly computed result as the prose.
+                # No stale stored aggregate controls the diamond or its label.
+                fresh = graph.recompute('manuscript-result')
+                import copy
+                graphical = copy.deepcopy(review)
+                _primary(graphical)['result'] = dict(fresh, scale=prim.get('estimand'))
+                parts.append('<figure>' + _forest(graphical, w) + '</figure>')
+            except (ValueError, KeyError, TypeError, ZeroDivisionError):
+                pass  # The source/pool refusal is already rendered in the abstract.
+        rows = []
+        for trial in prim.get('trials') or []:
+            row = dict(trial, scale=trial.get('scale') or prim.get('estimand'))
+            cid = 'fact-' + claimgraph._sha(row)[:16]
+            if cid not in graph.objects:
+                graph.add(cid, 'FACT', row=row)
+            rows.append('<tr><td>' + w.ref(cid) + '</td></tr>')
+        if rows:
+            parts.append('<table class="arms"><tr><th>Source estimate</th></tr>' + ''.join(rows) + '</table>')
+    parts.append('<h4>Risk-of-bias sensitivity</h4>')
+    # The shared RoB registry supplies exactly the same state counts everywhere.
+    if 'risk-overall-states' not in graph.objects:
+        risk_prose.register(graph, review)
+    paragraph(w.ref('risk-overall-states'))
+    paragraph(w.ref('risk-d3-states'))
+    parts.append('<h4>Limitations</h4>')
+    paragraph(w.interpretation('limitations',
+        'Machine-derived domain judgements support an auditable partial assessment; they are not a formal human risk-of-bias assessment.',
+        'Human review of the held sources may revise a recorded domain judgement or identify information missing from the machine inputs.'))
+    if g:
+        for name in claimgraph.GRADE_DOMAINS:
+            owned = 'risk-grade-domain-' + name
+            paragraph(w.ref(owned if owned in graph.objects else 'grade-domain-' + name))
+    parts.append('<h4>Data availability &amp; reproduction</h4>')
+    paragraph(w.computation('availability', {'slug': review.get('slug'), 'sha': protocol.get('sha')}))
+    return ''.join(parts)
 
-    _pub = (g.get("domains") or {}).get("publication_bias") or {}
-    _pub_certainty_phrase = (
-        "publication bias not assessed automatically; any registry ghost census is descriptive until "
-        "PICO-scoped"
-        if _pub.get("assessed") is False else
-        "publication bias assessed from the trial registry"
-    )
-    abstract = (
-        "<h4>Abstract</h4>"
-        f"<p><strong>Question.</strong> {_e(q)}</p>"
-        f"<p><strong>Methods.</strong> This review is {reg_phrase}. {_search_phrase} "
-        f"Records were screened by two independent rule screeners with adjudication ({n_screened} records "
-        f"assessed). {claimgraph.provenance_summary(review)} (Deterministic replay establishes that the same committed cache produces the same "
-        f"page; it does not validate search completeness or extraction, and byte-for-byte reproduction from "
-        f"the protocol SHA is not currently claimed — see Data availability.)</p>"
-        f"<p><strong>Results.</strong> {result_sentence} "
-        + (claimgraph.membership_summary(prim)
-           if n_absent else "")
-        + "</p>"
-        f"<p><strong>Certainty.</strong> "
-        + (f"Overall GRADE certainty is <strong>not rateable</strong>: {_e(g.get('not_rateable_reason'))} "
-           "No downgrade count or overall certainty is reported for an incoherent effect object."
-           if _grade_not_rateable else
-            (f"{claimgraph.certainty_render(review)} "
-             f"{claimgraph.grade_render(g, 'grade-downgrades')} ({_pub_certainty_phrase}, "
-             f"indirectness left to human judgement)." if cert else "Certainty was reported as signals."))
-        + "</p>"
-    )
 
-    # ---- methods ----
-    methods = (
-        "<h4>Methods</h4>"
-        "<p>This manuscript is generated deterministically from the review object; every number below is "
-        "interpolated from a committed field. Deterministic replay is from the committed cache; "
-        "protocol-commit byte reproduction is not claimed. "
-        f"{reg_methods} Eligibility is by population, intervention, "
-        "comparator and design only — never on whether a trial reported the outcome (non-reporters are "
-        "declared absent, not screened out). Two independently implemented rule screeners ran with "
-        f"adjudication. {claimgraph.provenance_summary(review)} Pooling used random effects "
-        "(Paule-Mandel &tau;&sup2; with a Hartung-Knapp interval on t with k&minus;1 df; log scale for ratios).</p>"
-    )
-
-    # ---- results ----
-    forest = _forest(review)
-    forest_caption = ("Forest plot of the primary outcome, rendered from the committed per-trial estimates."
-                      if res.get("pool_refused") or res.get("pooled_ci_refused") else
-                      "Forest plot of the primary outcome, rendered from the committed per-trial estimates "
-                      "and the pooled result.")
-    results = (
-        "<h4>Results</h4>"
-        f"<p>{result_sentence}</p>"
-        + (f"<figure>{forest}<figcaption class='note'>{forest_caption}</figcaption></figure>" if forest else "")
-    )
-    if sens.get("full"):
-        n_rated, n_tr = sens.get("n_rob_rated"), sens.get("n_trials")
-        lo_s = sens.get("low_only") or {}
-        results += (f"<p><strong>Risk-of-bias sensitivity.</strong> {n_rated} of {n_tr} pooled trials carry a "
-                    f"risk-of-bias rating"
-                    + ("; no trial is rated high risk. " if not sens.get("any_high") else ". ")
-                    + (f"Restricted to low-risk trials the estimate was {scale} {_fmt(lo_s.get('estimate'))} "
-                       f"(95% CI {_fmt(lo_s.get('ci_low'))} to {_fmt(lo_s.get('ci_high'))}, k={lo_s.get('k')}); "
-                       f"{_rob_sensitivity_mod.low_only_relation_context_text(sens)}" if lo_s.get("estimate") is not None
-                       else "a low-risk-only subpool was not estimable.") + "</p>")
-
-    # ---- limitations ----
-    lim_bits = []
-    if g.get("domains", {}).get("imprecision", {}).get("downgrade"):
-        lim_bits.append("the confidence interval is wide or crosses the null (imprecision)")
-    elif not g.get("domains", {}).get("imprecision", {}).get("assessed", True):
-        lim_bits.append("imprecision is not machine-assessed because the pooled k=2 CI is refused")
-    if g.get("domains", {}).get("inconsistency", {}).get("downgrade"):
-        lim_bits.append("between-trial heterogeneity was detected (inconsistency)")
-    elif not g.get("domains", {}).get("inconsistency", {}).get("assessed", True):
-        lim_bits.append("inconsistency is not automatically assessable at k=2")
-    if not sens.get("rob_covered", True):
-        lim_bits.append("risk of bias is not assessed for every pooled trial (registry-derived coverage)")
-    if g.get("domains", {}).get("publication_bias", {}).get("downgrade"):
-        lim_bits.append("the trial registry shows unpublished completed trials (possible publication bias)")
-    ck = prim.get("compat_key") or {}
-    for lim in ck.get("limitations") or []:
-        if lim.get("code") == "COMPAT_DIMENSION_HETEROGENEOUS":
-            lim_bits.append(lim.get("detail"))
-    limitations = (
-        "<h4>Limitations</h4>"
-        "<p>" + ("Overall GRADE certainty is not rateable for this outcome because the primary pool mixes "
-                 "incompatible estimand classes, so no certainty conclusion (and no 'no domain downgraded' "
-                 "claim) is made. " if _grade_not_rateable else
-                 ("This synthesis is limited in that " + "; ".join(lim_bits) + ". " if lim_bits else
-                  "No GRADE domain was downgraded from the machine-computable signals. "))
-        + "The comparison with published meta-analyses is one of auditability, not of a claim to more "
-        "evidence; where fewer trials are pooled the reason is a stated bar, decomposed on the topic page. "
-        "Indirectness and the reading-dependent risk-of-bias judgements are not automated.</p>"
-    )
-
-    # ---- data availability ----
-    data = (
-        "<h4>Data availability & reproduction</h4>"
-        f"<p>The committed cache and code regenerate this review from the committed cache as-is "
-        f"(<code>python scripts/build_topic.py {_e(review.get('slug'))}</code>). "
-        "<strong>RETRACTED (round-2): we do NOT currently claim byte-for-byte reproduction from the protocol "
-        f"SHA {_e(sha)}.</strong> Direct testing showed the build consumes mutable post-registration state not "
-        "pinned in any committed manifest, so re-running at the protocol SHA does not regenerate this page. "
-        "'Deterministic replay establishes that the same cache produces the same page; it does not validate "
-        "search completeness or extraction.' A pinned build manifest is required before any byte-for-byte or "
-        "single-command reproduction claim can be restored.</p>"
-    )
-
-    banner = ("<div class='banner'>This manuscript is <strong>generated from the review object</strong> — "
-              "every number is interpolated from a committed field, and a gate limb refuses any manuscript "
-              "numeral that is not object-derived. It is a machine artefact, not a hand-written paper.</div>")
-    return banner + abstract + methods + results + limitations + data
+@claimgraph._provenance_batch()
+def render(review, neutral=False):
+    from .section_prose import Writer
+    local = claimgraph.review_graph(review, include_sections=False)
+    document = register(local, review)
+    return Writer(local, 'manuscript').finish(document)
