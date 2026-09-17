@@ -12,6 +12,7 @@ prove every visible absent/banner block has a structured object before a later
 lane switches rendering authority.
 """
 from __future__ import annotations
+from . import grade as _grade_mod
 
 import hashlib
 import json
@@ -358,7 +359,7 @@ def _suppressed_outcome_block(res: dict[str, Any]) -> str:
     )
 
 
-def _k2_pool_refusal_block(res: dict[str, Any]) -> str:
+def _k2_pool_refusal_block(res: dict[str, Any], stale_reason="") -> str:
     ref = res.get("pool_refused") or {}
     cf = res.get("counterfactual") or {}
     line = (
@@ -370,7 +371,7 @@ def _k2_pool_refusal_block(res: dict[str, Any]) -> str:
             f" <em>The invalid pooled row is quarantined for audit only: "
             f"{_num(cf.get('would_be_estimate'))} ({_num(cf.get('would_be_ci_low'))}-"
             f"{_num(cf.get('would_be_ci_high'))}), tau^2={_e(cf.get('would_be_tau2'))}, "
-            f"I^2={_e(cf.get('would_be_i2'))}%.</em>"
+            f"I^2={_e(cf.get('would_be_i2'))}%. {_e(stale_reason)}</em>"
         )
     anchor = ref.get("honest_k1_anchor") or {}
     if anchor:
@@ -650,6 +651,9 @@ _ROB_SENS_REFUSED_HTML = "<h4>Risk-of-bias sensitivity (re-pooled with the same 
 
 
 def _rob_sensitivity_block(sens: dict[str, Any]) -> str:
+    suppressed = _rob_sensitivity_mod.suppression_reason(sens)
+    if suppressed:
+        return f"<div class='absent'>{_e(suppressed)}</div>"
     def _fmt(point: dict[str, Any] | None) -> str:
         if point and point.get("ci_refused"):
             return f"k={point['k']}, {point['scale']} {point['estimate']} (CI refused at k=2: {point['ci_refused']})"
@@ -702,65 +706,18 @@ def _grade_block(grade: dict[str, Any]) -> str:
         else:
             mark = "&minus;1" if downgrade == 1 else f"&minus;{downgrade}" if downgrade else "not downgraded"
         rows.append(f"<tr><td>{_e(label)}</td><td>{mark}</td><td>{_e(value.get('basis',''))}</td></tr>")
-    cap = (
-        " The rating is capped below <em>high</em> because risk of bias is not assessed for every "
-        "pooled trial." if grade.get("certainty_capped_by_rob_coverage") else ""
-    )
-    if grade.get("certainty_capped_unassessed_domain"):
-        unassessed = ", ".join(item.replace("_", " ") for item in (grade.get("unassessed_domains") or []))
-        cap += (
-            f" The rating is capped below <em>high</em> because a required GRADE domain was NOT "
-            f"ASSESSED ({unassessed}); an unassessed domain is not evidence of no concern, so the top "
-            f"certainty cannot be certified until it is rated (unassessed never counts as favourable)."
-        )
-    if grade.get("certainty_capped_d3_unassessed"):
-        cap += (
-            " The rating is capped below <em>high</em> because D3 (missing outcome data), a required "
-            "risk-of-bias domain, is NOT ASSESSED for any pooled trial (no outcome-missingness "
-            "source) &mdash; high certainty cannot be certified on a structurally-incomplete bias assessment."
-        )
-    if grade.get("rob_basis"):
-        cap += f" <strong>RoB basis:</strong> {_e(grade.get('rob_basis'))}."
-    rob_phrase = (
-        "uses registry-machine-signal-restricted domains"
-        if grade.get("rob_basis")
-        else "uses machine-derived signals"
-    )
-    if grade.get("certainty") == "not_rateable":
-        return (
-            "<div class='absent'><strong>Overall certainty: not rateable.</strong> "
-            f"{_e(grade.get('not_rateable_reason',''))}. The individual domain signals are shown "
-            "below, but no overall certainty category is emitted &mdash; a partial or incoherent "
-            "evidence object cannot produce one, and &lsquo;provisional&rsquo; would soften the "
-            "language without repairing the logic."
-            "<table class='arms'><tr><th>Domain</th><th>Signal</th><th>Basis</th></tr>"
-            f"{''.join(rows)}</table></div>"
-        )
-    pub = (grade.get("domains") or {}).get("publication_bias") or {}
-    pub_sentence = (
-        "Risk of bias, inconsistency and imprecision are computed from committed fields; "
-        "<strong>publication bias is NOT ASSESSED automatically</strong> because the available "
-        "registry ghost census is descriptive until its denominator is PICO-scoped. "
-        if pub.get("assessed") is False else
-        "Risk of bias, inconsistency, imprecision and publication bias are computed from "
-        "committed fields; <strong>publication bias is assessed from the registry ghost census, "
-        "not funnel-plot asymmetry</strong> (which is unreliable at our small k). "
-    )
+    certainty = _e(_grade_mod.render_certainty(grade))
+    unassessed = ", ".join(grade.get("unassessed_domains") or [])
     return (
-        "<div class='absent'><strong>Overall certainty (provisional): "
-        f"{_e(grade.get('certainty','').replace('_',' '))}</strong> "
-        f"(starting from <em>high</em> for randomized trials, {grade.get('downgrades',0)} "
-        f"downgrade(s)).{cap}"
-        "<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias "
-        f"{rob_phrase} (registry-machine-signal-restricted signals, not a human risk-of-bias assessment) "
-        "and indirectness is not auto-rated, "
-        "so a formal human GRADE assessment may differ. "
-        + pub_sentence +
-        "<strong>Indirectness is left to human judgement</strong> (the PICO scope note states "
-        "the directness) &mdash; this is a partial GRADE, honestly labelled."
+        f"<div class='absent'><strong data-grade-certainty='true'>{certainty}</strong> "
+        f"({grade.get('downgrades', 0)} downgrade(s); starting arithmetic: high for randomized trials). "
+        f"Unassessed domains: {_e(unassessed)}; unassessed never counts as favourable. "
+        "Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. "
+        f"{_e(grade.get('not_rateable_reason') or '')}"
         "<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr>"
         f"{''.join(rows)}</table></div>"
     )
+
 
 
 def _rob_spancheck_block(rsc: dict[str, Any]) -> str:
@@ -893,7 +850,7 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
                 "primary pooled estimate",
                 EvidenceState.SUPPRESSED,
                 ["/outcomes/*/result/pool_refused", "/outcomes/*/result/k2_trial_diagnostics"],
-                _k2_pool_refusal_block(pres),
+                _k2_pool_refusal_block(pres, _grade_mod.stale_heterogeneity(review)),
             )
         if pres.get("suppressed_incompatible"):
             add(
@@ -1025,7 +982,7 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
             _absent_block("no efficacy outcomes in the review object"),
         )
     for idx, outcome in enumerate(non_harm):
-        _add_outcome_limitations(add, outcome, f"outcomes:{idx}:{_slug_piece(outcome.get('name'))}")
+        _add_outcome_limitations(add, outcome, f"outcomes:{idx}:{_slug_piece(outcome.get('name'))}", review)
 
     harms = [outcome for outcome in (review.get("outcomes") or []) if outcome.get("kind") == "harm"]
     if not harms:
@@ -1115,7 +1072,7 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
     return out
 
 
-def _add_outcome_limitations(add: Any, outcome: dict[str, Any], prefix: str) -> None:
+def _add_outcome_limitations(add: Any, outcome: dict[str, Any], prefix: str, review=None) -> None:
     reason = _absent(outcome)
     if reason:
         add(
@@ -1164,7 +1121,7 @@ def _add_outcome_limitations(add: Any, outcome: dict[str, Any], prefix: str) -> 
             f"pooled estimate: {outcome.get('name')}",
             EvidenceState.SUPPRESSED,
             ["/outcomes/*/result/pool_refused", "/outcomes/*/result/k2_trial_diagnostics"],
-            _k2_pool_refusal_block(result),
+            _k2_pool_refusal_block(result, _grade_mod.stale_heterogeneity(review or {"outcomes": [outcome]}) if outcome.get("primary") else ""),
         )
     elif result.get("pooled_ci_refused"):
         add(
@@ -1308,7 +1265,7 @@ def _add_risk_of_bias_limitations(add: Any, review: dict[str, Any]) -> None:
 
     grade = review.get("grade") or {}
     if grade.get("certainty"):
-        state = EvidenceState.NOT_ASSESSED if grade.get("certainty") == "not_rateable" else EvidenceState.PROVISIONAL
+        state = EvidenceState.NOT_ASSESSED if grade.get("not_rateable_reason") or grade.get("certainty") == "not_rateable" else EvidenceState.PROVISIONAL
         add(
             "riskofbias:grade-certainty",
             LimitationKind.GRADE_CERTAINTY,

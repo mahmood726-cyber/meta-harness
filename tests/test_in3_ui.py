@@ -19,8 +19,9 @@ def test_in3_pages_render_resolved_harms_scope_and_offline_integrity():
                 Path(os.environ.get('PROGRAMFILES',''))/'Google/Chrome/Application/chrome.exe']
     exe=next((p for p in candidates if p.is_file()),None)
     assert exe,'Local browser required; downloads prohibited'
-    server=http.server.ThreadingHTTPServer(('127.0.0.1',8000),
+    server=http.server.ThreadingHTTPServer(('127.0.0.1',0),  # ephemeral port: concurrent clones on 8000 served each other 404s
         functools.partial(http.server.SimpleHTTPRequestHandler,directory=str(ROOT)))
+    port=server.server_address[1]
     thread=threading.Thread(target=server.serve_forever,daemon=True)
     thread.start()
     try:
@@ -28,12 +29,12 @@ def test_in3_pages_render_resolved_harms_scope_and_offline_integrity():
             browser=p.chromium.launch(executable_path=str(exe),headless=True)
             try:
                 page=browser.new_page()
-                page.route('**/*',lambda route: route.continue_() if route.request.url.startswith('http://127.0.0.1:8000/') else route.abort())
+                page.route('**/*',lambda route: route.continue_() if route.request.url.startswith(f'http://127.0.0.1:{port}/') else route.abort())
                 errors=[]
                 page.on('pageerror',lambda error:errors.append(str(error)))
                 for slug in SLUGS:
                     review=json.loads((ROOT/f'docs/reviews/{slug}/review.json').read_text(encoding='utf-8'))
-                    assert page.goto(f'http://127.0.0.1:8000/docs/reviews/{slug}/index.html').status==200
+                    assert page.goto(f'http://127.0.0.1:{port}/docs/reviews/{slug}/index.html').status==200
                     if review['scope_identity']['verdict']=='SCOPE_MISMATCH':
                         assert 'pre-identified set met eligibility' in page.locator('#tab-overview').inner_text()
                     page.locator('button[data-t="harms"]').click()

@@ -20,6 +20,7 @@ import re
 from typing import Any
 
 from . import manuscript as _manuscript_mod
+from . import grade as _grade_mod
 from . import rob_sensitivity as _rob_sensitivity_mod
 from . import claimgraph as _claimgraph_mod
 from . import identity as _identity_mod
@@ -328,7 +329,7 @@ def _effect_label(res) -> str:
     return "Single-trial effect" if res.get("k") == 1 else "Pooled effect"
 
 
-def _k2_pool_refusal_block(res: dict) -> str:
+def _k2_pool_refusal_block(res: dict, stale_reason="") -> str:
     ref = res.get("pool_refused") or {}
     cf = res.get("counterfactual") or {}
     line = (
@@ -340,7 +341,7 @@ def _k2_pool_refusal_block(res: dict) -> str:
             f" <em>The invalid pooled row is quarantined for audit only: "
             f"{_num(cf.get('would_be_estimate'))} ({_num(cf.get('would_be_ci_low'))}-"
             f"{_num(cf.get('would_be_ci_high'))}), tau^2={_e(cf.get('would_be_tau2'))}, "
-            f"I^2={_e(cf.get('would_be_i2'))}%.</em>"
+            f"I^2={_e(cf.get('would_be_i2'))}%. {_e(stale_reason)}</em>"
         )
     anchor = ref.get("honest_k1_anchor") or {}
     if anchor:
@@ -632,6 +633,8 @@ def _stale_topic_overview(r):
 
 def _overview(r, neutral):
     parts = [f"<h2>{_e(r.get('title'))}</h2>", f"<p class='q'>{_e(r.get('question'))}</p>"]
+    if r.get("grade"):
+        parts.append(f"<p data-grade-certainty='true'>{_e(_grade_mod.render_certainty(r['grade']))}</p>")
     # INVALIDATION PROPAGATION: a single STALE verdict poisons the headline. If any dependent output
     # is known incomplete/superseded/unproven, say so at the top rather than let the result read as
     # current. Each reason is named; the corpus index publishes the count as it falls.
@@ -654,7 +657,7 @@ def _overview(r, neutral):
         res = prim.get("result") or {}
         if res.get("pool_refused"):
             parts.append("<h3>Primary outcome</h3>")
-            parts.append(_k2_pool_refusal_block(res))
+            parts.append(_k2_pool_refusal_block(res, _grade_mod.stale_heterogeneity(r)))
         elif res.get("suppressed_incompatible"):
             # FAIL CLOSED (audit 23): the overview summary must not present a suppressed-incompatible primary
             # as pooled — no "Trials pooled (k)", no "Pooled effect" row (even with the number popped, the
@@ -716,9 +719,11 @@ def _overview(r, neutral):
             if res.get("ci_low_fixed") is not None:
                 rows.append(_common_effect_row(res))
             if res.get("pi_low") is not None:
-                rows.append(("Prediction interval", f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}"))
+                rows.append(("Prediction interval", f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))} {_e(_grade_mod.stale_heterogeneity(r))}"))
             if res.get("tau2") is not None:
-                rows.append(("Between-study τ²", _tau(res.get("tau2"))))
+                rows.append(("Between-study τ²", _tau(res.get("tau2")) + " " + _e(_grade_mod.stale_heterogeneity(r))))
+            if _grade_mod.membership_incomplete(r):
+                rows.append(("Heterogeneity state", _grade_mod.stale_heterogeneity(r)))
             rows.append(("Method", prim.get("method") or r.get("method_declared")))
             parts.append(_kv(rows))
             parts.append(_known_missing_sensitivity_panel(prim))
@@ -1485,7 +1490,8 @@ def _loo_text(loo):
     return _e(loo.get("note"))
 
 
-def _outcome_block(o, show_inputs=True):
+def _outcome_block(o, show_inputs=True, review=None):
+    r = (review or {"outcomes": [o]}) if o.get("primary") else {}
     reason = _absent(o)
     if reason:
         return f"<h4>{_e(o.get('name'))}</h4>" + _absent_block(reason)
@@ -1503,7 +1509,7 @@ def _outcome_block(o, show_inputs=True):
     elif res.get("unrenderable"):
         body += _unrenderable_block(res)
     elif res.get("pool_refused"):
-        body += _k2_pool_refusal_block(res)
+        body += _k2_pool_refusal_block(res, _grade_mod.stale_heterogeneity(r))
     elif res.get("suppressed_incompatible"):
         # FAIL CLOSED (audit 23): detected-invalid means NOTHING pooled is rendered — no effect, CI, tau^2,
         # prediction interval, common-effect sensitivity, forest or leave-one-out. Only the reason + the
@@ -1585,9 +1591,10 @@ def _outcome_block(o, show_inputs=True):
                 f"tau^2={_tau(pool.get('tau2'))}. {_e(sens.get('rule'))}",
             ))
         rows.extend([
-            ("Prediction interval", (f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))}" if res.get('pi_low') is not None else None)),
-            ("τ²", _tau(res.get("tau2")) if res.get("tau2") is not None else None),
-            ("Note", res.get("pi_note")),
+            ("Prediction interval", (f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))} {_e(_grade_mod.stale_heterogeneity(r))}" if res.get('pi_low') is not None else None)),
+            ("τ²", _tau(res.get("tau2")) + " " + _e(_grade_mod.stale_heterogeneity(r)) if res.get("tau2") is not None else None),
+            ("I²", str(res.get("i2")) + "% " + _grade_mod.stale_heterogeneity(r) if res.get("i2") is not None else None),
+            ("Note", _grade_mod.stale_heterogeneity(r) or res.get("pi_note")),
             ("Small-k note", res.get("fixed_note")),
             ("Composite heterogeneity", res.get("composite_heterogeneity")),
             ("Leave-one-out (influence)", _loo_text(res.get("leave_one_out"))),
@@ -1726,7 +1733,7 @@ def _outcome_block(o, show_inputs=True):
                      f"({_nd} here) is a claim about the trial itself. An unassessed outcome never counts as "
                      f"favourable to the intervention.</p>")
         body += _trial_inputs(o)
-    return body
+    return ("<div data-primary-result='true'>" + body + "</div>") if o.get("primary") else body
 
 
 def _definition_audit_block(r):
@@ -1795,7 +1802,7 @@ def _outcomes(r, neutral):
     outs = [o for o in (r.get("outcomes") or []) if o.get("kind") != "harm"]
     if not outs:
         return _absent_block("no efficacy outcomes in the review object")
-    return _definition_audit_block(r) + _reason_code_audit_block(r) + "".join(_outcome_block(o) for o in outs)
+    return _definition_audit_block(r) + _reason_code_audit_block(r) + "".join(_outcome_block(o, review=r) for o in outs)
 
 
 def _harms(r, neutral):
@@ -2221,18 +2228,7 @@ def _reporting(r, neutral):
          "hand-verified AACT arms), round-trip validation on every extraction, outcome-identity gating; refuse on ambiguity.",
          ""),
         ("15 Certainty assessment", bool(res.get("k")),
-         ("Risk-of-bias tab — overall GRADE certainty is NOT RATEABLE: the primary pool mixes incompatible "
-          "estimand classes, so no overall certainty, 95% CI or tau^2 summary is asserted (the domain signals "
-          "are shown, the overall is suppressed until the estimand is made coherent)."
-          if res.get("suppressed_incompatible") else
-          "Results tab — the machine-computable certainty signals are shown: imprecision via the 95% CI"
-          + (" and the prediction interval" if has_pi else "")
-          + (", single-trial (k=1) flagged" if res.get("k") == 1 else "")
-          + ", inconsistency via tau^2. A PARTIAL, object-derived GRADE is now rendered on the Risk-of-bias tab "
-            "(risk-of-bias, inconsistency and imprecision computed from committed fields; "
-          + _pub_reporting +
-            "; indirectness left to human judgement) — a graded certainty label with each "
-            "domain's basis, not a full hand-graded GRADE."),
+         _grade_mod.render_certainty(r.get("grade") or {}) + "; see the domain table for assessed and unassessed domains. " + _grade_mod.stale_heterogeneity(r),
          ""),
         ("16a Flow with counts at every stage", bool(scr.get("records")),
          "Screening tab — PRISMA flow: identified -> screened -> excluded-by-rule (counts) -> eligible -> pooled k -> declared-absent.",
@@ -2539,118 +2535,16 @@ def _riskofbias(r, neutral):
                    "never silently treated as verified. "
                    "<table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th>"
                    f"</tr>{ac_rows}</table></div>")
-    # RoB-stratified sensitivity re-pool (object-derived from r['rob_sensitivity']; regenerates on rebuild)
+    from .limitations import _rob_sensitivity_block, _grade_block
     sens = r.get("rob_sensitivity") or {}
     sens_html = ""
-    _prim_refused = next(((o.get("result") or {}).get("pool_refused") for o in (r.get("outcomes") or [])
-                          if o.get("primary")), None)
+    _prim_refused = next(((o.get("result") or {}).get("pool_refused") for o in (r.get("outcomes") or []) if o.get("primary")), None)
     if not sens.get("full") and _prim_refused:
-        # A refused pooled row (k=2 direction conflict) has no re-pool; the block still states that
-        # under its own heading -- a disclosure that vanishes is a ratchet loss, a stated refusal is not.
         sens_html = _ROB_SENS_REFUSED_HTML.format(code=_e(_prim_refused.get("code")))
     if sens.get("full"):
-        def _fmt(p):
-            if not p:
-                return "&mdash;"
-            if p.get("ci_refused"):
-                return f"k={p['k']}, {p['scale']} {p['estimate']} (CI refused at k=2: {_e(p['ci_refused'])})"
-            return f"k={p['k']}, {p['scale']} {p['estimate']} [{p['ci_low']}, {p['ci_high']}]"
-        f, dh, lo = sens.get("full"), sens.get("drop_high"), sens.get("low_only")
-        n_rated, n_tr = sens.get("n_rob_rated"), sens.get("n_trials")
-        lines = [f"<tr><td>Full pool (all pooled trials)</td><td>{_fmt(f)}</td></tr>"]
-        if sens.get("any_high"):
-            lines.append(f"<tr><td>Excluding high risk of bias</td><td>{_fmt(dh)}</td></tr>")
-        # An EMPTY low-risk-only subgroup is NOT ESTIMABLE, never 'no difference' / agreement: with no
-        # pooled trial qualifying as low risk, the re-pool cannot be computed at all. Render it as such.
-        if not lo:
-            low_cell = ("<strong>NOT ESTIMABLE</strong> &mdash; no pooled trial qualifies as low risk of "
-                        "bias, so this stratum has no trials to re-pool (an empty subgroup is not agreement "
-                        "with the full pool)")
-        else:
-            low_cell = _fmt(lo) + _rob_sensitivity_mod.low_only_relation_note_html(sens)
-        lines.append(f"<tr><td>Low risk of bias only</td><td>{low_cell}</td></tr>")
-        sens_html = ("<h4>Risk-of-bias sensitivity (re-pooled with the same estimator)</h4>"
-                     "<div class='absent'><strong>Does the result survive dropping the trials that are not "
-                     "low risk of bias?</strong> The primary outcome is re-pooled by risk-of-bias stratum "
-                     "with the identical estimator. "
-                     f"<strong>{n_rated} of {n_tr}</strong> pooled trials have a risk-of-bias rating; "
-                     + ("no pooled trial is rated <em>high</em> risk (the registry-derived assessment does not "
-                        "reach 'high'), so the standard drop-high sensitivity is inert and the informative "
-                        "stratum is <em>low-only</em>. " if not sens.get("any_high") else "")
-                     + _rob_sensitivity_mod.low_only_relation_context_html(sens)
-                     + f"<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr>"
-                     f"{''.join(lines)}</table></div>")
-    # Partial, object-derived GRADE certainty (from r['grade'])
+        sens_html = "<h4>Risk-of-bias sensitivity</h4>" + _rob_sensitivity_block(dict(sens, formally_assessed=_grade_mod._rob_domain(r).get("assessed")))
     g = r.get("grade") or {}
-    grade_html = ""
-    if g.get("certainty"):
-        doms = g.get("domains", {})
-        order = [("risk_of_bias", "Risk of bias"), ("inconsistency", "Inconsistency"),
-                 ("imprecision", "Imprecision"), ("indirectness", "Indirectness"),
-                 ("publication_bias", "Publication bias (registry-based)")]
-        drows = []
-        for k, lab in order:
-            dv = doms.get(k, {})
-            dn = dv.get("downgrade", 0)
-            # NOT_ASSESSED != NOT_DOWNGRADED: an unassessed domain must NOT render as "not downgraded"
-            # (which reads as assessed-and-clean). Say NOT ASSESSED, and that it is not evidence of no concern.
-            if not dv.get("assessed", True):
-                mark = "human judgement" if dv.get("not_auto_rated") else "<strong>NOT ASSESSED</strong>"
-            else:
-                mark = ("&minus;1" if dn == 1 else f"&minus;{dn}" if dn else "not downgraded")
-            drows.append(f"<tr><td>{_e(lab)}</td><td>{mark}</td><td>{_e(dv.get('basis',''))}</td></tr>")
-        cap = (" The rating is capped below <em>high</em> because risk of bias is not assessed for every "
-               "pooled trial." if g.get("certainty_capped_by_rob_coverage") else "")
-        if g.get("certainty_capped_unassessed_domain"):
-            _un = ", ".join(d.replace("_", " ") for d in (g.get("unassessed_domains") or []))
-            cap += (f" The rating is capped below <em>high</em> because a required GRADE domain was NOT "
-                    f"ASSESSED ({_un}); an unassessed domain is not evidence of no concern, so the top "
-                    f"certainty cannot be certified until it is rated (unassessed never counts as favourable).")
-        if g.get("certainty_capped_d3_unassessed"):
-            cap += (" The rating is capped below <em>high</em> because D3 (missing outcome data), a required "
-                    "risk-of-bias domain, is NOT ASSESSED for any pooled trial (no outcome-missingness "
-                    "source) — high certainty cannot be certified on a structurally-incomplete bias assessment.")
-        if g.get("rob_basis"):
-            cap += f" <strong>RoB basis:</strong> {_e(g.get('rob_basis'))}."
-        rob_phrase = (
-            "uses registry-machine-signal-restricted domains"
-            if g.get("rob_basis")
-            else "uses machine-derived signals"
-        )
-        if g.get("certainty") == "not_rateable":
-            grade_html = ("<h4>GRADE certainty — NOT RATEABLE</h4>"
-                          "<div class='absent'><strong>Overall certainty: not rateable.</strong> "
-                          f"{_e(g.get('not_rateable_reason',''))}. The individual domain signals are shown "
-                          "below, but no overall certainty category is emitted — a partial or incoherent "
-                          "evidence object cannot produce one, and &lsquo;provisional&rsquo; would soften the "
-                          "language without repairing the logic."
-                          "<table class='arms'><tr><th>Domain</th><th>Signal</th><th>Basis</th></tr>"
-                          f"{''.join(drows)}</table></div>")
-        else:
-          _pub = (g.get("domains") or {}).get("publication_bias") or {}
-          _pub_sentence = (
-              "Risk of bias, inconsistency and imprecision are computed from committed fields; "
-              "<strong>publication bias is NOT ASSESSED automatically</strong> because the available "
-              "registry ghost census is descriptive until its denominator is PICO-scoped. "
-              if _pub.get("assessed") is False else
-              "Risk of bias, inconsistency, imprecision and publication bias are computed from "
-              "committed fields; <strong>publication bias is assessed from the registry ghost census, "
-              "not funnel-plot asymmetry</strong> (which is unreliable at our small k). "
-          )
-          grade_html = ("<h4>GRADE certainty (PROVISIONAL — partial, object-derived)</h4>"
-                      "<div class='absent'><strong>Overall certainty (provisional): "
-                      f"{_e(g.get('certainty','').replace('_',' '))}</strong> "
-                      f"(starting from <em>high</em> for randomized trials, {g.get('downgrades',0)} "
-                      "downgrade(s)).{}"
-                      "<strong>PROVISIONAL:</strong> this is a machine-derived certainty — risk of bias "
-                      f"{rob_phrase} (registry-machine-signal-restricted signals, not a human risk-of-bias assessment) "
-                      "and indirectness is not auto-rated, "
-                      "so a formal human GRADE assessment may differ. "
-                      + _pub_sentence +
-                      "<strong>Indirectness is left to human judgement</strong> (the PICO scope note states "
-                      "the directness) &mdash; this is a partial GRADE, honestly labelled."
-                      "<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr>"
-                      f"{''.join(drows)}</table></div>").format(cap)
+    grade_html = (f"<h4 data-grade-certainty='true'>{_e(_grade_mod.render_certainty(g))}</h4>" + _grade_block(g)) if g else ""
     rsc = r.get("rob_spancheck") or {}
     rsc_html = ""
     if rsc.get("agreement_rate") is not None:

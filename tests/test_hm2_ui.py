@@ -19,7 +19,8 @@ def test_hm2_harm_tables_render_in_browser():
     executable = next((p for p in candidates if p.is_file()), None)
     assert executable, "A locally installed browser is required; no download is permitted"
     handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(root))
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 8000), handler)
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)  # ephemeral port: concurrent clones on 8000 served each other 404s
+    port = server.server_address[1]
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -28,11 +29,11 @@ def test_hm2_harm_tables_render_in_browser():
             try:
                 page = browser.new_page()
                 page.route("**/*", lambda route: route.continue_()
-                           if route.request.url.startswith("http://127.0.0.1:8000/") else route.abort())
+                           if route.request.url.startswith(f"http://127.0.0.1:{port}/") else route.abort())
                 errors = []
                 page.on("pageerror", lambda error: errors.append(str(error)))
                 for slug in sorted({i["slug"] for i in evidence}):
-                    response = page.goto(f"http://127.0.0.1:8000/docs/reviews/{slug}/index.html")
+                    response = page.goto(f"http://127.0.0.1:{port}/docs/reviews/{slug}/index.html")
                     assert response.status == 200
                     page.locator('button[data-t="harms"]').click()
                     panel = page.locator("#tab-harms")

@@ -25,6 +25,51 @@ from __future__ import annotations
 
 from . import k2 as k2_mod
 
+PROVISIONAL = "GRADE provisional -- not yet fully assessable"
+
+
+def render_certainty(g):
+    """The single display contract for the canonical overall certainty state."""
+    if not g:
+        return "GRADE not assessed"
+    if g.get("unassessed_domains") or g.get("certainty") == "provisional":
+        return g.get("certainty_state") or PROVISIONAL
+    return g.get("certainty_state") or (g.get("certainty") or "not assessed").replace("_", " ")
+
+
+def missing_family_count(review):
+    """Count source-backed absent families; do not infer a count from reason prose."""
+    primary = next((o for o in review.get("outcomes", []) if o.get("primary")), {})
+    rows = (primary.get("known_missing_sensitivity") or {}).get("rows") or []
+    if rows:
+        return len({str(r.get("trial_key") or r.get("id") or r.get("name")) for r in rows})
+    absent = primary.get("declared_absent_trials") or []
+    return len(absent) if absent else None
+
+
+def membership_incomplete(review):
+    codes = {r.get("code") for r in (review.get("invalidation") or {}).get("reasons", [])}
+    panels = [review.get("known_missing_sensitivity") or {}]
+    panels.extend(o.get("known_missing_sensitivity") or {} for o in review.get("outcomes", []) if o.get("primary"))
+    return bool(codes & {"eligible_declared_absent", "known_eligible_missing"}
+                or any(p.get("rows") for p in panels))
+
+
+def stale_heterogeneity(review):
+    if not membership_incomplete(review):
+        return ""
+    n = missing_family_count(review)
+    count = f"{n} eligible families not in the pool" if n is not None else "eligible families not in the pool; count not established"
+    return f"STALE: pooled membership known incomplete ({count}); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
+
+
+def machine_rob(review):
+    rob = review.get("rob2") or {}
+    flags = [str(rob.get("output_family") or ""), str(rob.get("rob_basis") or ""), str(rob.get("basis") or "")]
+    flags.extend(str(d.get("rule_id") or "") for t in (rob.get("trials") or {}).values()
+                 for d in (t.get("domains") or {}).values())
+    return any("machine" in f.lower() or "registry-signal-restricted" in f.lower() for f in flags)
+
 
 def _norm_overall(overall):
     if not overall:
@@ -86,11 +131,19 @@ def _rob_domain(review):
     if coverage_incomplete and n_rated > 0:
         basis += (f"; risk-of-bias signal available for only {n_rated} of {n} pooled trials "
                   f"(registry-derived), so the rating is capped")
+    if machine_rob(review):
+        assessed = False
+        basis = "FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below"
     return {"downgrade": down, "coverage_incomplete": coverage_incomplete, "assessed": assessed,
             "n_trials": n, "n_rated": n_rated, "n_high": n_high, "n_some": n_some, "basis": basis}
 
 
-def _inconsistency_domain(res):
+def _inconsistency_domain(res, review=None):
+    if review and membership_incomplete(review):
+        domain = _inconsistency_domain(res)
+        domain.update(assessed=False, stale=True,
+                      basis="not assessable: " + stale_heterogeneity(review))
+        return domain
     k = res.get("k")
     tau2 = res.get("tau2")
     if tau2 is None:
@@ -269,7 +322,7 @@ def grade(review, ghost=None):
     res = prim["result"]
     scale = res.get("scale")
     rob = _rob_domain(review)
-    inc = _inconsistency_domain(res)
+    inc = _inconsistency_domain(res, review)
     imp = _imprecision_domain(res, scale)
     pub = _pubbias_domain(ghost)
     _rob2_trials = (review.get("rob2") or {}).get("trials") or {}
@@ -291,7 +344,9 @@ def grade(review, ghost=None):
                         "indirectness": {"downgrade": 0, "not_auto_rated": True, "assessed": False,
                                          "basis": "not auto-rated (human judgement)"}},
             "downgrades": rob["downgrade"] + inc["downgrade"] + imp["downgrade"] + pub["downgrade"],
-            "certainty": "not_rateable",
+            "certainty": "provisional",
+            "certainty_state": PROVISIONAL,
+            "unassessed_domains": [name for name, dom in {"risk_of_bias": rob, "inconsistency": inc, "imprecision": imp, "publication_bias": pub, "indirectness": {"assessed": False}}.items() if not dom.get("assessed", True)],
             "rob_basis": rob_basis,
             "not_rateable_reason": ("the primary pool mixes INCOMPATIBLE estimand classes "
                                     f"({' + '.join((res.get('estmeasure') or {}).get('canonicals', []))}); an "
@@ -372,7 +427,8 @@ def grade(review, ghost=None):
         },
         "downgrades": downgrades,
         "conservative_downgrades_pending_human_judgement": conservative,
-        "certainty": CERT[idx],
+        "certainty": "provisional" if unassessed else CERT[idx],
+        "certainty_state": PROVISIONAL if unassessed else CERT[idx].replace("_", " "),
         "certainty_capped_by_rob_coverage": capped,
         "certainty_capped_single_trial": single_trial_capped,
         "certainty_capped_d3_unassessed": d3_capped,

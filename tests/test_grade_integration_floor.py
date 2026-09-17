@@ -35,10 +35,10 @@ def test_grade_rob_domain_joins_by_trial_identity_not_label():
 def test_unassessable_imprecision_counts_as_conservative_downgrade_never_raises_certainty():
     served = grade.grade(_review(k2_refused=False))
     refused = grade.grade(_review(k2_refused=True))
-    order = ["high", "moderate", "low", "very_low"]
     assert refused["domains"]["imprecision"].get("not_assessable_automatically") is True
     assert "imprecision" in refused.get("conservative_downgrades_pending_human_judgement", [])
-    assert order.index(refused["certainty"]) >= order.index(served["certainty"]), (served["certainty"], refused["certainty"])
+    assert refused["certainty"] == served["certainty"] == "provisional"
+    assert refused["downgrades"] >= served["downgrades"]
 
 
 def test_rob_sensitivity_object_survives_k2_ci_refusal_with_refused_cis():

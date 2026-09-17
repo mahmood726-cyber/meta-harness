@@ -108,7 +108,7 @@ def test_corpus_incompatible_topics_are_fully_suppressed():
         # "no domain downgraded" conclusion for an incoherent effect object.
         from harness import grade as _grade
         g = _grade.grade(r) or {}
-        assert g.get("certainty") == "not_rateable", f"{slug}: GRADE rated a suppressed-incompatible pool"
+        assert g.get("certainty") == "provisional" and g.get("not_rateable_reason"), f"{slug}: GRADE rated a suppressed-incompatible pool"
         ms = manuscript.render(r)
         assert "downgrade(s)" not in ms, f"{slug}: manuscript printed a downgrade count for a not-rateable pool"
         assert "No GRADE domain was downgraded" not in ms, f"{slug}: manuscript asserted a GRADE conclusion"

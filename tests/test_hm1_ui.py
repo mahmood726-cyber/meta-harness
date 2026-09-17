@@ -12,7 +12,8 @@ from playwright.sync_api import sync_playwright
 def test_hm1_harm_panel_in_browser():
     root = Path(__file__).resolve().parents[1]
     handler = partial(SimpleHTTPRequestHandler, directory=str(root / "docs"))
-    server = ThreadingHTTPServer(("127.0.0.1", 8000), handler)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)  # ephemeral port: concurrent clones each ran a server on 8000 and served each other 404s
+    port = server.server_address[1]
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -23,8 +24,8 @@ def test_hm1_harm_panel_in_browser():
                 errors = []
                 page.on("pageerror", lambda error: errors.append(str(error)))
                 page.route("**/*", lambda route: route.continue_()
-                           if route.request.url.startswith("http://127.0.0.1:8000/") else route.abort())
-                response = page.goto("http://127.0.0.1:8000/reviews/probiotics-aad-prevention/",
+                           if route.request.url.startswith(f"http://127.0.0.1:{port}/") else route.abort())
+                response = page.goto(f"http://127.0.0.1:{port}/reviews/probiotics-aad-prevention/",
                                      wait_until="networkidle")
                 assert response.status == 200
                 page.locator('button[data-t="harms"]').click()

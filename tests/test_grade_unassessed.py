@@ -43,7 +43,7 @@ def test_PLANT_clean_body_would_be_HIGH_without_the_cap():
 
 def test_unassessed_domain_caps_certainty_below_high():
     g = G.grade(_clean_review(), ghost=None)
-    assert g["certainty"] == "moderate", g["certainty"]     # capped, not high
+    assert g["certainty"] == "provisional", g["certainty"]  # no category while unassessed
     assert g["certainty_capped_unassessed_domain"] is True
     assert "publication_bias" in g["unassessed_domains"]
     assert "indirectness" in g["unassessed_domains"]
@@ -58,7 +58,7 @@ def test_assessed_clean_domain_does_not_cap():
     assert g["domains"]["publication_bias"]["downgrade"] == 0     # 1/10 = 10% < 30%
     assert "publication_bias" not in g["unassessed_domains"]
     # indirectness is still unassessed, so it still caps at moderate (never high on this partial GRADE):
-    assert g["certainty"] == "moderate"
+    assert g["certainty"] == "provisional"
 
 
 def test_renderer_cap_message_and_marks():

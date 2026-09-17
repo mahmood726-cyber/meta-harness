@@ -7,6 +7,7 @@ interpolated from a committed object field, so the manuscript cannot state a num
 A gate limb (harness.gate.check_manuscript_numbers) enforces this by extracting every risky numeral from the
 rendered manuscript and refusing any that is not in object_numerals(review)."""
 from __future__ import annotations
+from . import grade as _grade_mod
 
 import html as _html
 
@@ -248,8 +249,8 @@ def render(review, neutral: bool = False) -> str:
     est = _fmt(res.get("estimate"))
     lo, hi = _fmt(res.get("ci_low")), _fmt(res.get("ci_high"))
     g = review.get("grade") or {}
-    cert = (g.get("certainty") or "").replace("_", " ")
-    _grade_not_rateable = g.get("certainty") == "not_rateable"
+    cert = _grade_mod.render_certainty(g) if g else ""
+    _grade_not_rateable = bool(g.get("not_rateable_reason"))
     sens = review.get("rob_sensitivity") or {}
     prot = review.get("protocol") or {}
     sha = str(prot.get("sha") or "")[:12]
@@ -339,11 +340,14 @@ def render(review, neutral: bool = False) -> str:
         result_sentence = (f"Pooling {_k_phrase(prim)} gave {scale} {est} (95% CI {lo} to {hi}), "
                            f"random-effects (Paule-Mandel with a Hartung-Knapp interval).{pi}")
 
+    if _grade_mod.membership_incomplete(review):
+        result_sentence += " " + _e(_grade_mod.stale_heterogeneity(review))
+
     _pub = (g.get("domains") or {}).get("publication_bias") or {}
     _pub_certainty_phrase = (
         "publication bias not assessed automatically; any registry ghost census is descriptive until "
         "PICO-scoped"
-        if _pub.get("assessed") is False else
+        if not _pub.get("assessed", False) else
         "publication bias assessed from the trial registry"
     )
     abstract = (
@@ -360,12 +364,11 @@ def render(review, neutral: bool = False) -> str:
            if n_absent else "")
         + "</p>"
         f"<p><strong>Certainty.</strong> "
-        + (f"Overall GRADE certainty is <strong>not rateable</strong>: {_e(g.get('not_rateable_reason'))} "
-           "No downgrade count or overall certainty is reported for an incoherent effect object."
-           if _grade_not_rateable else
-            (f"Partial GRADE certainty was <strong>{_e(cert)}</strong> "
-             f"(from {g.get('downgrades', 0)} downgrade(s); {_pub_certainty_phrase}, "
-             f"indirectness left to human judgement)." if cert else "Certainty was reported as signals."))
+        + (f"<strong data-grade-certainty='true'>{_e(cert)}</strong> "
+           + (f"(from {g.get('downgrades', 0)} downgrade(s); " if not _grade_not_rateable else "(")
+           + f"{_pub_certainty_phrase}; "
+           f"unassessed domains: {_e(', '.join(g.get('unassessed_domains') or []))}). "
+           + (_e(g.get('not_rateable_reason')) if _grade_not_rateable else ""))
         + "</p>"
     )
 
@@ -395,7 +398,10 @@ def render(review, neutral: bool = False) -> str:
         f"<p>{result_sentence}</p>"
         + (f"<figure>{forest}<figcaption class='note'>{forest_caption}</figcaption></figure>" if forest else "")
     )
-    if sens.get("full"):
+    suppressed = _rob_sensitivity_mod.suppression_reason(sens, review)
+    if sens.get("full") and suppressed:
+        results += f"<p>{_e(suppressed)}</p>"
+    elif sens.get("full"):
         n_rated, n_tr = sens.get("n_rob_rated"), sens.get("n_trials")
         lo_s = sens.get("low_only") or {}
         results += (f"<p><strong>Risk-of-bias sensitivity.</strong> {n_rated} of {n_tr} pooled trials carry a "
@@ -412,10 +418,12 @@ def render(review, neutral: bool = False) -> str:
         lim_bits.append("the confidence interval is wide or crosses the null (imprecision)")
     elif not g.get("domains", {}).get("imprecision", {}).get("assessed", True):
         lim_bits.append("imprecision is not machine-assessed because the pooled k=2 CI is refused")
-    if g.get("domains", {}).get("inconsistency", {}).get("downgrade"):
+    if g.get("domains", {}).get("inconsistency", {}).get("stale"):
+        lim_bits.append(_grade_mod.stale_heterogeneity(review))
+    elif g.get("domains", {}).get("inconsistency", {}).get("downgrade"):
         lim_bits.append("between-trial heterogeneity was detected (inconsistency)")
     elif not g.get("domains", {}).get("inconsistency", {}).get("assessed", True):
-        lim_bits.append("inconsistency is not automatically assessable at k=2")
+        lim_bits.append(g["domains"]["inconsistency"].get("basis", "inconsistency is not assessed"))
     if not sens.get("rob_covered", True):
         lim_bits.append("risk of bias is not assessed for every pooled trial (registry-derived coverage)")
     if g.get("domains", {}).get("publication_bias", {}).get("downgrade"):
@@ -426,7 +434,7 @@ def render(review, neutral: bool = False) -> str:
             lim_bits.append(lim.get("detail"))
     limitations = (
         "<h4>Limitations</h4>"
-        "<p>" + ("Overall GRADE certainty is not rateable for this outcome because the primary pool mixes "
+        "<p>" + ((_e(_grade_mod.render_certainty(g)) + ": the primary pool mixes ") +
                  "incompatible estimand classes, so no certainty conclusion (and no 'no domain downgraded' "
                  "claim) is made. " if _grade_not_rateable else
                  ("This synthesis is limited in that " + "; ".join(lim_bits) + ". " if lim_bits else

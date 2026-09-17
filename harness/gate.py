@@ -981,6 +981,143 @@ def check_scope_identity(review_dir, html):
     return scope_identity_mod.gate_reasons(rev, html, root=ROOT)
 
 
+class _RenderedNode:
+    def __init__(self, tag="", attrs=()):
+        self.tag, self.attrs, self.children = tag, dict(attrs), []
+
+    def get(self, key):
+        return self.attrs.get(key)
+
+    def get_text(self, separator=" ", strip=True):
+        text = separator.join(c.get_text(separator, strip) if isinstance(c, _RenderedNode) else c for c in self.children)
+        return " ".join(text.split()) if strip else text
+
+    def find_all(self, tag=None, **attrs):
+        out = []
+        for child in self.children:
+            if not isinstance(child, _RenderedNode):
+                continue
+            if (tag is None or child.tag == tag) and all(k in child.attrs and (v is None or child.get(k) == v) for k, v in attrs.items()):
+                out.append(child)
+            out.extend(child.find_all(tag, **attrs))
+        return out
+
+
+def _parse_rendered(html):
+    # The publication gate remains stdlib-only, including on a fresh clone.
+    from html.parser import HTMLParser
+
+    class Parser(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.root = _RenderedNode()
+            self.stack = [self.root]
+
+        def handle_starttag(self, tag, attrs):
+            node = _RenderedNode(tag, attrs)
+            self.stack[-1].children.append(node)
+            if tag not in {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}:
+                self.stack.append(node)
+
+        def handle_endtag(self, tag):
+            for i in range(len(self.stack) - 1, 0, -1):
+                if self.stack[i].tag == tag:
+                    del self.stack[i:]
+                    break
+
+        def handle_data(self, data):
+            self.stack[-1].children.append(data)
+
+    parser = Parser()
+    parser.feed(html)
+    return parser.root
+
+
+def _certainty_inputs(review_dir):
+    from pathlib import Path
+    root = Path(review_dir)
+    return (json.loads((root / "review.json").read_text(encoding="utf-8")),
+            _parse_rendered((root / "index.html").read_text(encoding="utf-8")))
+
+
+def check_certainty_surfaces_agree(review_dir):
+    """Check served bytes, not merely a second render of the same producer."""
+    from . import grade
+    rev, soup = _certainty_inputs(review_dir)
+    g = rev.get("grade") or {}
+    if not g:
+        return []
+    expected = grade.render_certainty(g)
+    reasons = []
+    if g.get("unassessed_domains") and g.get("certainty") != "provisional":
+        reasons.append("certainty_surfaces_agree: unassessed domains issued a category")
+    if g.get("certainty") == "provisional" and g.get("certainty_state") != grade.PROVISIONAL:
+        reasons.append("certainty_surfaces_agree: provisional certainty_state is not canonical")
+    spans = soup.find_all(**{"data-grade-certainty": None})
+    if not spans or any(s.get_text(" ", strip=True) != expected for s in spans):
+        reasons.append("certainty_surfaces_agree: certainty surface differs from canonical GRADE")
+    for section in soup.find_all("section"):
+        if section.get("id") not in {"tab-overview", "tab-reporting", "tab-manuscript", "tab-riskofbias"}:
+            continue
+        if expected not in section.get_text(" ", strip=True):
+            reasons.append("certainty_surfaces_agree: missing canonical certainty in " + section.get("id"))
+    text = soup.get_text(" ", strip=True)
+    if g.get("certainty") == "provisional" and re.search(
+            r"(?:GRADE certainty (?:was|is)|Overall certainty(?:\s*\(provisional\))?\s*:)\s*(?:high|moderate|low|very[ _]low)\b", text, re.I):
+        reasons.append("certainty_surfaces_agree: provisional rendered as a category")
+    pub = (g.get("domains") or {}).get("publication_bias") or {}
+    abstract = next(iter(soup.find_all(id="tab-manuscript")), None)
+    if not pub.get("assessed") and abstract and "publication bias assessed from the trial registry" in abstract.get_text(" ", strip=True):
+        reasons.append("certainty_surfaces_agree: unassessed publication bias rendered as assessed")
+    return reasons
+
+
+def check_rob_sensitivity_surfaces(review_dir):
+    from .rob_sensitivity import suppression_reason
+    rev, soup = _certainty_inputs(review_dir)
+    sens = rev.get("rob_sensitivity") or {}
+    if not sens.get("full") or not suppression_reason(sens, rev):
+        return []
+    text = soup.get_text(" ", strip=True)
+    if "Low risk of bias only" in text or "Restricted to low-risk trials the estimate was" in text or "RoB-restricted re-pool suppressed:" not in text:
+        return ["rob_sensitivity_surfaces: unassessed or identical re-pool must be suppressed"]
+    return []
+
+
+def check_stale_heterogeneity_surfaces(review_dir):
+    from .grade import membership_incomplete, stale_heterogeneity
+    rev, soup = _certainty_inputs(review_dir)
+    if not membership_incomplete(rev):
+        return []
+    reasons = []
+    # Scope to synthesis prose, never to quoted trial abstracts or historical protocol text.
+    nodes = []
+    for section in soup.find_all("section"):
+        if section.get("id") == "tab-manuscript":
+            nodes.extend(section.find_all("p"))
+        elif section.get("id") in {"tab-overview", "tab-riskofbias"}:
+            cls = "kv" if section.get("id") == "tab-overview" else "arms"
+            for table in section.find_all("table", **{"class": cls}):
+                nodes.extend(table.find_all("tr"))
+    primary = next(iter(soup.find_all(**{"data-primary-result": None})), None)
+    if primary:
+        table = next(iter(primary.find_all("table", **{"class": "kv"})), None)
+        nodes.extend(table.find_all("tr") if table else [])
+        nodes.extend(n for n in primary.children if isinstance(n, _RenderedNode) and n.tag == "p")
+    if not nodes:
+        nodes = [soup]
+    for node in nodes:
+        text = node.get_text(" ", strip=True)
+        if re.search(r"\bhomogeneous\b|prediction interval not markedly wider|no between-study heterogeneity detected", text, re.I):
+            reasons.append("stale_heterogeneity_surfaces: incomplete pool interpreted as homogeneity")
+        if (re.search(r"Prediction interval|Between-study τ²|^τ²|^I²", text)
+                and re.search(r"\d", text) and "STALE" not in text):
+            reasons.append("stale_heterogeneity_surfaces: primary heterogeneity lacks STALE mark")
+    if stale_heterogeneity(rev) not in soup.get_text(" ", strip=True):
+        reasons.append("stale_heterogeneity_surfaces: missing membership reason")
+    return sorted(set(reasons))
+
+
 def gate_page(review_dir):
     """Return (ok: bool, reasons: list[str]). ok == True only if both limbs pass."""
     try:
@@ -988,6 +1125,9 @@ def gate_page(review_dir):
     except (OSError, ValueError) as exc:
         return False, [f"gate: cannot load review dir: {exc}"]
     reasons = (check_limb1(review_dir, manifest, html, rep)
+               + check_certainty_surfaces_agree(review_dir)
+               + check_rob_sensitivity_surfaces(review_dir)
+               + check_stale_heterogeneity_surfaces(review_dir)
                + check_cache_tracked(manifest)
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)

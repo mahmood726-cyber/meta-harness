@@ -41,7 +41,7 @@ def suppressed_states(docs_dir: str) -> dict:
         if res.get("suppressed_incompatible"):
             states.add("estimand_incompatible")
         g = r.get("grade") or {}
-        if g.get("certainty") == "not_rateable":
+        if g.get("certainty") == "not_rateable" or g.get("not_rateable_reason"):
             states.add("grade_not_rateable")
         if states:
             out[slug] = states

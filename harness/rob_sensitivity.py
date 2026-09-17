@@ -33,6 +33,19 @@ LOW_ONLY_KINDS = {
 }
 
 
+def suppression_reason(sens, review=None):
+    sens = sens or {}
+    from .grade import _rob_domain
+    formal = _rob_domain(review).get("assessed") if review is not None else sens.get("formally_assessed", False)
+    reasons = []
+    if not formal:
+        reasons.append("formal RoB 2 not yet assessed")
+    if relation_from_sensitivity(sens) == LOW_ONLY_IDENTICAL_TO_FULL:
+        k = (sens.get("full") or {}).get("k")
+        reasons.append(f"the machine-signal low-only set equals the full pool (k={k} of {k})")
+    return "RoB-restricted re-pool suppressed: " + "; ".join(reasons) if reasons else ""
+
+
 def _norm(overall):
     if not overall:
         return None
@@ -233,6 +246,9 @@ def sensitivity(review):
            "low_only_excluded_unassessed": excluded_unassessed,
            "low_only_informative": relation == LOW_ONLY_FEWER_TRIALS,
            "low_only_predicate": low_only_predicate}
+    from .grade import _rob_domain
+    out["formally_assessed"] = bool(_rob_domain(review).get("assessed"))
+    out["suppression_reason"] = suppression_reason(out, review)
     # At k=2 the registered CI is refused (K2_SINGLE_DF) on the primary; the stratified re-pools carry
     # the same refusal so the block renders strata + point estimates and no t(1) interval. Marked HERE so
     # a recompute of sensitivity(review) reproduces the stored object byte for byte.

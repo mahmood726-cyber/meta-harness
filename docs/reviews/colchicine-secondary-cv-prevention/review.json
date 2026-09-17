@@ -2225,8 +2225,6 @@
               "validity_critical": false
             }
           },
-          "analysis_set_literal": "ITT",
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "death from cardiovascular causes",
             "resuscitated cardiac arrest",
@@ -2234,6 +2232,8 @@
             "stroke",
             "urgent hospitalization for angina leading to coronary revascularization"
           ],
+          "analysis_set_literal": "ITT",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "study_effect": {
             "effect_estimate": 0.77,
             "standard_error": 0.11568435207776077,
@@ -2337,15 +2337,15 @@
               "validity_critical": false
             }
           },
-          "analysis_set_literal": "ITT",
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
-          "run_in_enrichment": "active_run_in_gi_intolerance_enriched",
           "components": [
             "cardiovascular death",
             "spontaneous myocardial infarction",
             "ischemic stroke",
             "ischemia-driven coronary revascularization"
           ],
+          "run_in_enrichment": "active_run_in_gi_intolerance_enriched",
+          "analysis_set_literal": "ITT",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "study_effect": {
             "effect_estimate": 0.69,
             "standard_error": 0.09586638910873521,
@@ -2458,14 +2458,14 @@
               "validity_critical": false
             }
           },
-          "analysis_set_literal": "ITT",
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "death from cardiovascular causes",
             "recurrent myocardial infarction",
             "stroke",
             "unplanned ischemia-driven coronary revascularization"
           ],
+          "analysis_set_literal": "ITT",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "study_effect": {
             "effect_estimate": 0.99,
             "standard_error": 0.07932261436146144,
@@ -8636,7 +8636,9 @@
     "low_only_excluded_adverse": 0,
     "low_only_excluded_unassessed": 0,
     "low_only_informative": false,
-    "low_only_predicate": "same_trial_set"
+    "low_only_predicate": "same_trial_set",
+    "formally_assessed": false,
+    "suppression_reason": "RoB-restricted re-pool suppressed: formal RoB 2 not yet assessed; the machine-signal low-only set equals the full pool (k=3 of 3)"
   },
   "grade": {
     "start": "high",
@@ -8644,18 +8646,19 @@
       "risk_of_bias": {
         "downgrade": 0,
         "coverage_incomplete": false,
-        "assessed": true,
+        "assessed": false,
         "n_trials": 3,
         "n_rated": 3,
         "n_high": 0,
         "n_some": 0,
-        "basis": "none of the 3 assessed trial(s) at high risk; fewer than half at 'some concerns'"
+        "basis": "FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below"
       },
       "inconsistency": {
         "downgrade": 0,
         "not_estimable": false,
-        "assessed": true,
-        "basis": "tau^2=0.02669; prediction interval not markedly wider than the CI"
+        "assessed": false,
+        "basis": "not assessable: STALE: pooled membership known incomplete (22 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
+        "stale": true
       },
       "imprecision": {
         "downgrade": 1,
@@ -8679,12 +8682,15 @@
     },
     "downgrades": 1,
     "conservative_downgrades_pending_human_judgement": [],
-    "certainty": "moderate",
+    "certainty": "provisional",
+    "certainty_state": "GRADE provisional -- not yet fully assessable",
     "certainty_capped_by_rob_coverage": false,
     "certainty_capped_single_trial": false,
     "certainty_capped_d3_unassessed": false,
     "certainty_capped_unassessed_domain": false,
     "unassessed_domains": [
+      "risk_of_bias",
+      "inconsistency",
       "publication_bias",
       "indirectness"
     ],
@@ -9036,8 +9042,8 @@
         "/rob_sensitivity/drop_high",
         "/rob_sensitivity/low_only"
       ],
-      "rendered_text": "<div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> The primary outcome is re-pooled by risk-of-bias stratum with the identical estimator. <strong>3 of 3</strong> pooled trials have a risk-of-bias rating; no pooled trial is rated <em>high</em> risk (the registry-derived assessment does not reach 'high'), so the standard drop-high sensitivity is inert and the informative stratum is <em>low-only</em>. Low-only kind: <code>bias_sensitivity</code> (0 adverse rating exclusion(s), 0 unassessed-domain exclusion(s)). All pooled trials are low risk, so the low-only re-pool is the full pool; there is no coverage-driven k reduction in this stratum.<table class='arms'><tr><th>Stratum</th><th>Re-pooled estimate</th></tr><tr><td>Full pool (all pooled trials)</td><td>k=3, HR 0.8134 [0.5074, 1.3039]</td></tr><tr><td>Low risk of bias only</td><td>k=3, HR 0.8134 [0.5074, 1.3039] <em>(all pooled trials are low risk; the re-pool is the full pool)</em></td></tr></table></div>",
-      "text_sha256": "549188003c4ab3cdd1ac5ed182368203d6b542a30d4efab19af8eb065f4469af",
+      "rendered_text": "<div class='absent'>RoB-restricted re-pool suppressed: formal RoB 2 not yet assessed; the machine-signal low-only set equals the full pool (k=3 of 3)</div>",
+      "text_sha256": "ba8cd062dfb14b47bd68f6180052ff97cce3d4812982044b69f6931b01ea25ca",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -9065,8 +9071,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong>Overall certainty (provisional): moderate</strong> (starting from <em>high</em> for randomized trials, 1 downgrade(s)). <strong>RoB basis:</strong> machine-assessed domains only; D3 unassessed on 2 of 3 trial(s).<strong>PROVISIONAL:</strong> this is a machine-derived certainty &mdash; risk of bias uses registry-machine-signal-restricted domains (registry-machine-signal-restricted signals, not a human risk-of-bias assessment) and indirectness is not auto-rated, so a formal human GRADE assessment may differ. Risk of bias, inconsistency and imprecision are computed from committed fields; <strong>publication bias is NOT ASSESSED automatically</strong> because the available registry ghost census is descriptive until its denominator is PICO-scoped. <strong>Indirectness is left to human judgement</strong> (the PICO scope note states the directness) &mdash; this is a partial GRADE, honestly labelled.<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td>not downgraded</td><td>none of the 3 assessed trial(s) at high risk; fewer than half at &#x27;some concerns&#x27;</td></tr><tr><td>Inconsistency</td><td>not downgraded</td><td>tau^2=0.02669; prediction interval not markedly wider than the CI</td></tr><tr><td>Imprecision</td><td>&minus;1</td><td>95% CI [0.5074, 1.3039]; crosses the null AND is compatible with an appreciable benefit (&lt;=0.75) and an appreciable harm (&gt;=1.25) -&gt; imprecise (the estimate is consistent with both no effect and an appreciable effect)</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (6 of ~33 completed unpublished, 18%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "983e4cddc9e6b1840bec1f1014ada21955ec4c36f68bdb686f418f2e8fa4bad7",
+      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (1 downgrade(s); starting arithmetic: high for randomized trials). Unassessed domains: risk_of_bias, inconsistency, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. <table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT ASSESSED</strong></td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>not assessable: STALE: pooled membership known incomplete (22 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td>&minus;1</td><td>95% CI [0.5074, 1.3039]; crosses the null AND is compatible with an appreciable benefit (&lt;=0.75) and an appreciable harm (&gt;=1.25) -&gt; imprecise (the estimate is consistent with both no effect and an appreciable effect)</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>registry census (6 of ~33 completed unpublished, 18%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "fa956592e4b00c08b44e81cd3338e6a17b16f4026bb12f148696174630e94653",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -9216,7 +9222,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9",
-    "review_sha256": "7d9c375636948087bf718586c7cff922a246a1a369c8e9ae31f1d7c00a8ad3ce",
+    "review_sha256": "eab8fdc8ab7c1f5bff2705570571b6befa688cbc0b8ded0bda4d120550e4aa4c",
     "from_cache": true,
     "preregistration": {
       "prospective": false,

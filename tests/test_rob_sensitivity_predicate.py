@@ -100,6 +100,8 @@ def _low_only_cell(rendered_html: str) -> str:
 
 
 def predicate_is_true(sens: dict, rendered_html: str) -> bool:
+    if "RoB-restricted re-pool suppressed:" in rendered_html:
+        return bool(rs.suppression_reason(sens)) and "Low risk of bias only" not in rendered_html
     cell = _low_only_cell(rendered_html)
     relation = rs.relation_from_sensitivity(sens)
     if relation == rs.LOW_ONLY_IDENTICAL_TO_FULL:
@@ -118,6 +120,8 @@ def predicate_is_true(sens: dict, rendered_html: str) -> bool:
 
 
 def relation_sentence_is_rendered(sens: dict, rendered_html: str) -> bool:
+    if rs.suppression_reason(sens):
+        return rs.suppression_reason(sens) in html.unescape(re.sub(r"<[^>]+>", "", rendered_html)) and "Low risk of bias only" not in rendered_html
     cell = _low_only_cell(rendered_html)
     relation = rs.relation_from_sensitivity(sens)
     if relation == rs.LOW_ONLY_IDENTICAL_TO_FULL:
@@ -192,6 +196,7 @@ def _sens(full_k: int, low_k: int | None) -> dict:
     low_only = _point(low_k, 0.82) if low_k is not None else None
     relation = rs.low_only_relation(full, low_only)
     return {
+        "formally_assessed": True,
         "n_rob_rated": full_k,
         "n_trials": full_k,
         "any_high": False,
@@ -224,6 +229,11 @@ def test_synthetic_fewer_trials_sentence_survives_and_renderers_agree():
         (_sens(2, 2), "all pooled trials are low risk; the re-pool is the full pool"),
     ]
     for sens, expected_phrase in cases:
+        if rs.suppression_reason(sens):
+            for rendered in (page._riskofbias(_review_with_sens(sens), neutral=False), limitations._rob_sensitivity_block(sens)):
+                assert "RoB-restricted re-pool suppressed:" in rendered
+                assert "Low risk of bias only" not in rendered
+            continue
         page_cell = _low_only_cell(page._riskofbias(_review_with_sens(sens), neutral=False))
         limitations_cell = _low_only_cell(limitations._rob_sensitivity_block(sens))
         assert expected_phrase in page_cell
