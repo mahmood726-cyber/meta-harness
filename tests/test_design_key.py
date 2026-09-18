@@ -62,7 +62,8 @@ def test_reported_unadjusted_cluster_crossover_needs_refusal():
     }
     rec = {"title": "SPLIT", "abstract": "Double-blind, cluster randomized, double-crossover trial"}
     D.stamp_trial(trial, {"26444692": rec}, {}, "RR")
-    assert trial["design"]["estimator_source"] == "PUBLISHED_UNADJUSTED"
+    assert trial["design"]["estimator_source"] == "PUBLISHED_RR"
+    assert trial["design"]["adjustment_status"] == "UNRESOLVED"
     assert trial["design"]["design_action"]["action"] == "REFUSE"
     assert D.needs_design_refusal(trial)
 

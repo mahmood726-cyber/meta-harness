@@ -1378,6 +1378,8 @@ def _trial_inputs(o):
             src += ("<div class='ident'><em>design key:</em> "
                     f"{_e(design_label)} / unit {_e(dk.get('unit_of_randomisation'))}; "
                     f"estimator {_e(dk.get('estimator_source'))}; "
+                    f"adjustment_status: {_e(dk.get('adjustment_status') or 'UNRESOLVED')} "
+                    f"({_e((dk.get('adjustment_axis') or {}).get('span') or 'no located adjustment span')}); "
                     f"correlation handling {_e(corr.get('method'))}; "
                     f"action {_e(decision.get('action'))}"
                     + (f" <span class='muted'>{_e(basis)}</span>" if basis else "")
@@ -1490,8 +1492,28 @@ def _loo_text(loo):
     return _e(loo.get("note"))
 
 
+def _harms_ledger_block(o):
+    from . import harms
+    rows = []
+    for item in harms.reporting_ledger(o):
+        ladder = "; ".join(f"{r.get('rung')}: {r.get('state')} {r.get('obligation', '')}"
+                           for r in item.get("source_ladder") or []) or "Source ladder unresolved — checks not recorded"
+        rows.append(f"<tr><td>{_e(item.get('label') or item.get('id'))}</td>"
+                    f"<td>{_e(item.get('state'))} / {_e(item.get('reason_code', ''))}: {_e(item.get('reason', ''))}</td>"
+                    f"<td>{_e(' '.join(str(item.get('span') or 'Span unresolved').split()))}</td><td>{_e(ladder)}</td></tr>")
+    heading = ("<div class='absent harms-synthesis-gated'><strong>" + harms.INCOMPLETE_MESSAGE
+               + "</strong></div>" if harms.synthesis_incomplete(o) else "<h5>Harms extraction ledger</h5>")
+    return (heading + "<table class='arms harms-debt-ledger'><tr><th>Reporting trial</th>"
+            "<th>Extraction state / refusal reason</th><th>Located span</th>"
+            "<th>Source-ladder obligations</th></tr>" + "".join(rows) + "</table>")
+
+
 def _outcome_block(o, show_inputs=True, review=None):
     r = (review or {"outcomes": [o]}) if o.get("primary") else {}
+    from . import harms
+    if harms.synthesis_incomplete(o):
+        return (f"<h4>{_e(o.get('name'))}</h4>" + _harms_ledger_block(o)
+                + (_trial_inputs(o) if show_inputs else ""))
     reason = _absent(o)
     if reason:
         return f"<h4>{_e(o.get('name'))}</h4>" + _absent_block(reason)
@@ -1733,6 +1755,8 @@ def _outcome_block(o, show_inputs=True, review=None):
                      f"({_nd} here) is a claim about the trial itself. An unassessed outcome never counts as "
                      f"favourable to the intervention.</p>")
         body += _trial_inputs(o)
+    if o.get("kind") == "harm":
+        body += _harms_ledger_block(o)
     return ("<div data-primary-result='true'>" + body + "</div>") if o.get("primary") else body
 
 

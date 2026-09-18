@@ -1138,6 +1138,47 @@ def check_no_independent_corroboration_claim(review_dir, html):
     except (OSError, ValueError, KeyError, TypeError) as exc:
         return [f"COMPARATOR_PANEL: cannot validate: {exc}"]
 
+def check_harms_synthesis_gated(review_dir, html):
+    """An incomplete harm outcome must serve the gated ledger, never the numerical block."""
+    from . import harms, page
+    try:
+        with open(os.path.join(review_dir, "review.json"), encoding="utf-8") as f:
+            review = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1(harms_synthesis_gated): cannot inspect review: {exc}"]
+    reasons = []
+    panel = re.search(r'<section class="tab" id="tab-harms"><h3 class="tabname">[^<]*</h3>(.*?)</section>', html, re.S)
+    incomplete = any(harms.synthesis_incomplete(o) for o in review.get("outcomes") or [])
+    if incomplete and panel and panel.group(1) != page._harms(review, False):
+        reasons.append("L1(harms_synthesis_gated): harms panel contains a changed or additional quantitative surface")
+    for outcome in review.get("outcomes") or []:
+        if harms.synthesis_incomplete(outcome):
+            expected = page._outcome_block(outcome)
+            if expected not in html:
+                reasons.append(f"L1(harms_synthesis_gated): {outcome.get('name')}: incomplete extraction requires suppression and complete debt ledger")
+    return reasons
+
+
+def check_adjustment_span_backed(review_dir):
+    """Refuse unsupported legacy adjustment labels and unresolved typed-axis claims."""
+    from . import adjustment
+    try:
+        with open(os.path.join(review_dir, "review.json"), encoding="utf-8") as f:
+            review = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1(adjustment_span_backed): cannot inspect review: {exc}"]
+    reasons = []
+    for outcome in review.get("outcomes") or []:
+        for trial in outcome.get("trials") or []:
+            design = trial.get("design") or {}
+            axis = adjustment.axis_for_trial(trial)
+            label = design.get("estimator_source")
+            if (label in {"PUBLISHED_ADJUSTED", "PUBLISHED_UNADJUSTED"}
+                    or design.get("adjustment_status", "UNRESOLVED") != axis["status"]
+                    or (axis["status"] != "UNRESOLVED" and design.get("adjustment_axis") != axis)):
+                reasons.append(f"L1(adjustment_span_backed): {trial.get('id')}: adjustment assertion lacks a located typed axis or retains a legacy label")
+    return reasons
+
 
 def gate_page(review_dir):
     """Return (ok: bool, reasons: list[str]). ok == True only if both limbs pass."""
@@ -1150,6 +1191,9 @@ def gate_page(review_dir):
                + check_rob_sensitivity_surfaces(review_dir)
                + check_stale_heterogeneity_surfaces(review_dir)
                + check_certificate(review_dir)
+               + check_no_independent_corroboration_claim(review_dir, html)
+               + check_harms_synthesis_gated(review_dir, html)
+               + check_adjustment_span_backed(review_dir)
                + check_cache_tracked(manifest)
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
@@ -1177,7 +1221,6 @@ def gate_page(review_dir):
                + check_method_matches_scale(review_dir)
                + check_compat_key_underlying(review_dir)
                + check_scope_identity(review_dir, html)
-               + check_no_independent_corroboration_claim(review_dir, html)
                + check_preregistration_not_build(review_dir)
                + check_limb2(manifest, html))
     return (len(reasons) == 0), reasons

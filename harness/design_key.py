@@ -14,7 +14,7 @@ import os
 import re
 from typing import Any
 
-from . import estmeasure, unit_of_analysis
+from . import estmeasure, unit_of_analysis, adjustment
 
 
 UNSUPPORTED_RECONSTRUCTED = {"CLUSTER", "CROSSOVER", "CLUSTER_CROSSOVER", "STEPPED_WEDGE"}
@@ -578,8 +578,9 @@ def key_for_trial(trial: dict[str, Any], rec: dict[str, Any] | None = None,
     alt = _published_alternative(trial.get("source") or "")
     interaction = _interaction_evidence(text + " " + str(trial.get("source") or ""))
     estimator_source = "RECONSTRUCTED"
+    adjustment_axis = adjustment.axis_for_trial(trial)
     if derivation == "reported":
-        estimator_source = "PUBLISHED_ADJUSTED" if "adjust" in (trial.get("source") or "").lower() else "PUBLISHED_UNADJUSTED"
+        estimator_source = adjustment.label(trial)
     if alt:
         basis.append({"source": "trial reported estimate label", "span": alt["span"]})
 
@@ -587,6 +588,8 @@ def key_for_trial(trial: dict[str, Any], rec: dict[str, Any] | None = None,
         "unit_of_randomisation": unit,
         "design": design,
         "estimator_source": estimator_source,
+        "adjustment_status": adjustment_axis["status"],
+        "adjustment_axis": adjustment_axis,
         "correlation_handling": _correlation_for_trial(trial, estimator_source=estimator_source, alt=alt),
         "se_provenance": _se_provenance(trial),
         "basis": basis,
@@ -636,7 +639,13 @@ def maybe_use_published_adjusted(trial: dict[str, Any], declared_estimand: str |
     trial["scale"] = alt["scale"]
     trial["derivation"] = "reported"
     trial["selected_estimator"] = "published_adjusted"
-    d["estimator_source"] = "PUBLISHED_ADJUSTED"
+    d["estimator_source"] = adjustment.label(trial)
+    span = alt.get("span", "")
+    start = (trial.get("source") or "").find(span) if span else -1
+    trial["adjustment_axis"] = {"status": "ADJUSTED", "source": "selected published adjusted estimate",
+                                "span": span, "start": start, "end": start + len(span)}
+    d["adjustment_axis"] = adjustment.axis_for_trial(trial)
+    d["adjustment_status"] = d["adjustment_axis"]["status"]
     evidence = [{"source": "trial reported adjusted estimate", "span": alt.get("span", "")}]
     if d.get("factorial_interaction"):
         evidence.append(d["factorial_interaction"])

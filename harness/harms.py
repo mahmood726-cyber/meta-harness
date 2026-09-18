@@ -25,6 +25,67 @@ _REPORTED_STATES = {
     KNOWN_REPORTED_NOT_YET_EXTRACTED,
 }
 
+INCOMPLETE_MESSAGE = "HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued"
+
+
+def reporting_ledger(outcome):
+    """Keep every reporting row, including typed refusals; typed refusals resolve debt, but cannot support synthesis."""
+    rows = {}
+    for item in (outcome.get("result") or {}).get("harm_reporting_trials") or []:
+        rows[_id_key(item.get("id") or item.get("label"))] = dict(item)
+    for trial in outcome.get("trials") or []:
+        key = _id_key(trial.get("id") or trial.get("label"))
+        span = trial.get("source_span") or trial.get("verbatim_span") or trial.get("source")
+        rows[key] = dict(rows.get(key, {}), id=key, label=trial.get("label"),
+                         state="EXTRACTED" if span else "UNRESOLVED", span=span,
+                         extracted=bool(span))
+    for trial in outcome.get("declared_absent_trials") or []:
+        key = _id_key(trial.get("id") or trial.get("label"))
+        code = trial.get("reason_code") or trial.get("state")
+        if (trial.get("harm_source_reported") or key in rows
+                or ("harm_source_reported" not in trial
+                    and (code in _INCOMPATIBLE_CODES or code == absence.REFUSED_ON_EVIDENCE))):
+            rows[key] = dict(rows.get(key, {}), id=key, label=trial.get("label"),
+                             state=trial.get("harm_absence_state") or code or "UNRESOLVED", extracted=False,
+                             reason_code=code,
+                             reason=trial.get("reason") or "Extraction unresolved",
+                             span=trial.get("source_span") or trial.get("verbatim_span")
+                             or trial.get("harm_source_span"))
+    return list(rows.values())
+
+
+def synthesis_incomplete(outcome):
+    if outcome.get("kind") != "harm":
+        return False
+    result = outcome.get("result") or {}
+    return bool(result.get("harms_incomplete") or result.get("state") == "HARMS_INCOMPLETE"
+                or any(r.get("state") != "EXTRACTED" or not r.get("span")
+                       for r in reporting_ledger(outcome)))
+
+
+def _ladder(pid, rec_by_id, fulltext_by_pmid, trial=None):
+    # Only name checks actually performed here. Held text is not proof that all rungs were searched.
+    ladder = [
+        {"rung": "abstract", "state": "CHECKED" if (rec_by_id.get(pid) or {}).get("abstract") else "NOT_CHECKED"},
+        {"rung": "held full text", "state": "CHECKED" if (fulltext_by_pmid or {}).get(pid) else "NOT_CHECKED"},
+        {"rung": "supplement / registry results / regulatory source", "state": "NOT_CHECKED_BY_HARMS_AUDIT",
+         "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."},
+    ]
+    trial = trial or {}
+    document = trial.get("document_ref")
+    if document:
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        path = (root / document).resolve()
+        span = trial.get("source_span") or trial.get("verbatim_span") or ""
+        checked = False
+        if span and path.is_relative_to(root) and path.is_file():
+            checked = " ".join(span.split()) in " ".join(path.read_text(encoding="utf-8").split())
+        ladder.append({"rung": "located adjudication source: " + document,
+                       "state": "CHECKED_LOCATED_SPAN" if checked else "SPAN_NOT_VERIFIED",
+                       "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."})
+    return ladder
+
 _INCOMPATIBLE_CODES = {
     absence.EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH,
     absence.COUNTS_PRESENT_NOT_CORROBORATED,
@@ -197,6 +258,12 @@ def annotate_outcome(outcome: dict[str, Any], spec: dict[str, Any], included: li
                                "span": sig["span"]})
             reporting.append(unresolved[-1])
     result = outcome.setdefault("result", {})
+    result["harm_reporting_trials"] = reporting
+    reporting = reporting_ledger(outcome)
+    by_id = {_id_key(t.get("id") or t.get("label")): t
+             for t in (outcome.get("trials") or []) + (outcome.get("declared_absent_trials") or [])}
+    for item in reporting:
+        item["source_ladder"] = _ladder(item["id"], rec_by_id, fulltext_by_pmid, by_id.get(item["id"]))
     result["harm_reporting_trials_n"] = len(reporting)
     result["harm_extracted_trials_n"] = len(outcome.get("trials") or [])
     result["harm_registered_trials_n"] = len(included)
@@ -221,6 +288,10 @@ def annotate_outcome(outcome: dict[str, Any], spec: dict[str, Any], included: li
                 "No harm value is poolable, but the registered trials are not all certified "
                 f"{RETRIEVED_OUTCOME_NOT_REPORTED}; states=" + ", ".join(sorted(s for s in states_present if s))
             )
+    if synthesis_incomplete(outcome):
+        result["harms_synthesis_suppressed"] = True
+        from . import claim
+        result["claim"] = claim.derive(result)
     return outcome
 
 
@@ -262,7 +333,7 @@ def sweep_topic(review: dict[str, Any]) -> dict[str, Any]:
     known_debt = 0
     for o in harms:
         res = o.get("result") or {}
-        if res.get("harms_incomplete"):
+        if synthesis_incomplete(o):
             incomplete += 1
         known_debt += len(res.get("known_reported_not_yet_extracted") or [])
         for t in o.get("trials") or []:
@@ -298,6 +369,8 @@ def write_sweep(reviews_root: str, out_path: str) -> dict[str, Any]:
         "denominator": "all docs/reviews/* review.json harm outcomes after HM annotation",
         "topics": topics,
         "n_harm_outcomes_rendered_k_lt_reporting_trials": n_incomplete,
+        "n_harm_outcomes_suppressed": n_incomplete,
+        "n_pages_with_suppressed_harm_outcomes": sum(t["harm_outcomes_incomplete"] > 0 for t in topics),
         "N_harm_outcomes": n_outcomes,
         "n_trials_with_KNOWN_REPORTED_NOT_YET_EXTRACTED": n_debt,
         "N_topics": len(topics),

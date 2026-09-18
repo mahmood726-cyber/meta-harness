@@ -70,6 +70,11 @@ def derive(result):
       direction    : 'benefit' / 'harm' / 'none' relative to the null (benefit = estimate on
                      the protective side for a ratio: <1; for MD, <0). Descriptive only.
     """
+    if result.get("harms_synthesis_suppressed"):
+        return {"present": False, "pooled_claim": False, "state": "HARMS_INCOMPLETE",
+                "significant": False, "crosses_null": None, "touches_null": None,
+                "null": None, "direction": None,
+                "basis": "No quantitative safety conclusion while source-reporting trials remain unresolved"}
     if result.get("pool_refused"):
         return {"present": False, "pooled_claim": False, "state": "POOL_REFUSED",
                 "refusal_code": (result.get("pool_refused") or {}).get("code"),

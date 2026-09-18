@@ -19,8 +19,9 @@ def test_all_served_comparator_panels():
                   Path(os.environ.get("PROGRAMFILES", "")) / "Google/Chrome/Application/chrome.exe"]
     exe = next((p for p in candidates if p.is_file()), None)
     assert exe, "Installed browser required; no download"
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 8000),
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0),
         functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(ROOT)))
+    port = server.server_address[1]  # ephemeral port: concurrent clones on 8000 served each other 404s
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -28,14 +29,14 @@ def test_all_served_comparator_panels():
             browser = p.chromium.launch(executable_path=str(exe), headless=True)
             try:
                 page = browser.new_page()
-                page.route("**/*", lambda route: route.continue_() if route.request.url.startswith("http://127.0.0.1:8000/") else route.abort())
+                page.route("**/*", lambda route: route.continue_() if route.request.url.startswith(f"http://127.0.0.1:{port}/") else route.abort())
                 errors = []
                 page.on("pageerror", lambda error: errors.append(str(error)))
                 paths = sorted((ROOT / "docs/reviews").glob("*/review.json"))
                 assert len(paths) == 32
                 for path in paths:
                     review = json.loads(path.read_text(encoding="utf-8"))
-                    assert page.goto(f"http://127.0.0.1:8000/docs/reviews/{path.parent.name}/index.html").status == 200
+                    assert page.goto(f"http://127.0.0.1:{port}/docs/reviews/{path.parent.name}/index.html").status == 200
                     page.locator('button[data-t="comparator"]').click()
                     tab = page.locator("#tab-comparator")
                     assert tab.is_visible()

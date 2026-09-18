@@ -1073,6 +1073,12 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _add_outcome_limitations(add: Any, outcome: dict[str, Any], prefix: str, review=None) -> None:
+    from . import harms
+    if harms.synthesis_incomplete(outcome):
+        add(f"{prefix}:harms-incomplete", LimitationKind.HARMS_INCOMPLETE,
+            Severity.BLOCKS_CLAIM, f"outcome result: {outcome.get('name')}", EvidenceState.PARTIAL,
+            ["/outcomes/*/result/harm_reporting_trials"], _page._harms_ledger_block(outcome))
+        return
     reason = _absent(outcome)
     if reason:
         add(

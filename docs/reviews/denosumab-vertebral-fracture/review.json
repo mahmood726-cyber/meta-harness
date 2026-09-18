@@ -1355,7 +1355,11 @@
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
-            "estimator_source": "PUBLISHED_UNADJUSTED",
+            "estimator_source": "PUBLISHED_RR",
+            "adjustment_status": "UNRESOLVED",
+            "adjustment_axis": {
+              "status": "UNRESOLVED"
+            },
             "correlation_handling": {
               "method": "none",
               "evidence": []
@@ -1382,7 +1386,7 @@
             "analysis_population": "intention-to-treat",
             "randomisation_unit": "UNKNOWN",
             "study_design": "UNKNOWN",
-            "estimator_method": "PUBLISHED_UNADJUSTED",
+            "estimator_method": "PUBLISHED_RR",
             "correlation_handling": {
               "method": "none",
               "evidence": []
@@ -1634,7 +1638,11 @@
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
-            "estimator_source": "PUBLISHED_UNADJUSTED",
+            "estimator_source": "PUBLISHED_HR",
+            "adjustment_status": "UNRESOLVED",
+            "adjustment_axis": {
+              "status": "UNRESOLVED"
+            },
             "correlation_handling": {
               "method": "none",
               "evidence": []
@@ -1661,7 +1669,7 @@
             "analysis_population": "UNKNOWN",
             "randomisation_unit": "UNKNOWN",
             "study_design": "UNKNOWN",
-            "estimator_method": "PUBLISHED_UNADJUSTED",
+            "estimator_method": "PUBLISHED_HR",
             "correlation_handling": {
               "method": "none",
               "evidence": []
@@ -1913,7 +1921,11 @@
           "design": {
             "unit_of_randomisation": "UNKNOWN",
             "design": "UNKNOWN",
-            "estimator_source": "PUBLISHED_UNADJUSTED",
+            "estimator_source": "PUBLISHED_HR",
+            "adjustment_status": "UNRESOLVED",
+            "adjustment_axis": {
+              "status": "UNRESOLVED"
+            },
             "correlation_handling": {
               "method": "none",
               "evidence": []
@@ -1940,7 +1952,7 @@
             "analysis_population": "UNKNOWN",
             "randomisation_unit": "UNKNOWN",
             "study_design": "UNKNOWN",
-            "estimator_method": "PUBLISHED_UNADJUSTED",
+            "estimator_method": "PUBLISHED_HR",
             "correlation_handling": {
               "method": "none",
               "evidence": []
@@ -2196,6 +2208,7 @@
           "null": null,
           "direction": null
         },
+        "harm_reporting_trials": [],
         "harm_reporting_trials_n": 0,
         "harm_extracted_trials_n": 0,
         "harm_registered_trials_n": 1,
@@ -2291,23 +2304,50 @@
         "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=RETRIEVED_REFUSED_WITH_REASON",
         "claim": {
           "present": false,
+          "pooled_claim": false,
+          "state": "HARMS_INCOMPLETE",
           "significant": false,
           "crosses_null": null,
           "touches_null": null,
           "null": null,
-          "direction": null
+          "direction": null,
+          "basis": "No quantitative safety conclusion while source-reporting trials remain unresolved"
         },
-        "harm_reporting_trials_n": 1,
-        "harm_extracted_trials_n": 0,
-        "harm_registered_trials_n": 1,
         "harm_reporting_trials": [
           {
             "id": "19671655",
             "label": "19671655",
             "state": "RETRIEVED_REFUSED_WITH_REASON",
-            "span": "There was no increase in the risk of cancer, infection, cardiovascular disease, delayed fracture healing, or hypocalcemia, and there were no cases of osteonecrosis of the jaw and no adverse reactions to the injection of denosumab."
+            "span": "There was no increase in the risk of cancer, infection, cardiovascular disease, delayed fracture healing, or hypocalcemia, and there were no cases of osteonecrosis of the jaw and no adverse reactions to the injection of denosumab.",
+            "extracted": false,
+            "reason_code": "REFUSED_ON_EVIDENCE",
+            "reason": "The source describes no increased infection risk but gives no serious-infection aggregate; AACT lists individual infection diagnoses which may overlap and cannot be summed into unique patients.",
+            "source_ladder": [
+              {
+                "rung": "abstract",
+                "state": "CHECKED"
+              },
+              {
+                "rung": "held full text",
+                "state": "NOT_CHECKED"
+              },
+              {
+                "rung": "supplement / registry results / regulatory source",
+                "state": "NOT_CHECKED_BY_HARMS_AUDIT",
+                "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: cache/denosumab-vertebral-fracture/records.json",
+                "state": "CHECKED_LOCATED_SPAN",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
+              }
+            ]
           }
         ],
+        "harm_reporting_trials_n": 1,
+        "harm_extracted_trials_n": 0,
+        "harm_registered_trials_n": 1,
+        "harms_synthesis_suppressed": true,
         "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
         "claim_id": "e3400b44c75832b0",
         "depends_on": {
@@ -3153,32 +3193,26 @@
       }
     },
     {
-      "limitation_id": "topic:denosumab-vertebral-fracture:harms:1:serious-infection:result-absent",
-      "kind": "DECLARED_ABSENT_SECTION",
-      "limitation_class": "INFORMATIONAL",
+      "limitation_id": "topic:denosumab-vertebral-fracture:harms:1:serious-infection:harms-incomplete",
+      "kind": "HARMS_INCOMPLETE",
+      "limitation_class": "VALIDITY_THREATENING",
       "severity": "BLOCKS_CLAIM",
       "claim_affected": "outcome result: Serious infection",
-      "evidence_state": "DECLARED_ABSENT",
+      "evidence_state": "PARTIAL",
       "source_fields": [
-        "/outcomes/*/result/present",
-        "/outcomes/*/result/reason"
+        "/outcomes/*/result/harm_reporting_trials"
       ],
-      "rendered_text": "<div class=\"absent\"><strong>DECLARED ABSENT.</strong> No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=RETRIEVED_REFUSED_WITH_REASON</div>",
-      "text_sha256": "3580d69d37a1761656482d3dc296c104f6b8c94bf1702c437da944485ad21a3d",
+      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>19671655</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The source describes no increased infection risk but gives no serious-infection aggregate; AACT lists individual infection diagnoses which may overlap and cannot be summed into unique patients.</td><td>There was no increase in the risk of cancer, infection, cardiovascular disease, delayed fracture healing, or hypocalcemia, and there were no cases of osteonecrosis of the jaw and no adverse reactions to the injection of denosumab.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/denosumab-vertebral-fracture/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
+      "text_sha256": "40b5a05fa7d98bb4dc4939a82b37c317150545c9a6bb1c05c28ada0a33fcf155",
       "linked_decision": {
-        "action": "ALLOW_WITH_LABEL",
-        "gate_id": "limitation:labelled-validity-threat",
-        "decision_state": "validity threat is explicitly labelled on the affected claim"
+        "action": "REFUSE",
+        "gate_id": "compat-check:harms-incomplete",
+        "decision_state": "isolated harms estimate is suppressed until known primary-pool reports are extracted or typed-refused"
       },
-      "consumer": null,
-      "unwired": true,
-      "unwired_reason": "section/outcome absence is visible scoping evidence; no single analytic gate consumes all such sections",
-      "unwired_acknowledged": {
-        "signed_by": "Codex lane AD",
-        "date": "2026-09-15",
-        "reason": "Declared section or outcome absence is already the visible scoped result; no single analytic gate consumes every such absence object.",
-        "tranche": "TRANCHE-hazard-consumers",
-        "ack_id": "HC-DECLARED_ABSENT_SECTION-DECLARED_ABSENT"
+      "consumer": {
+        "gate_id": "compat_check.harms_incomplete",
+        "gate_input_path": "/harms/*/result/state",
+        "gate_verdict_at_build": "NO_HARMS_INCOMPLETE"
       }
     },
     {
@@ -3471,7 +3505,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "3fb64a1e01434eb6ee9ea8a764a84c749270dfff",
-    "review_sha256": "ad8072ec36210af46747d2307226d4f2cf0dc0b4b22f123070fe9c3c2c44901c",
+    "review_sha256": "c3936b0bcc7a68b4dcce61cf999681606f67afd5807589e5d9e4d94379387376",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -3615,7 +3649,7 @@
         "scripts/build_topic.py": "bfd51ffd7d2d8c5296c501cade1a4f6bd19ef896"
       },
       "manuscript_sha256": "f86f71269726a4aacfd88942b814fe7c69128ba935c9c989a8e3751af6ce1db4",
-      "review_sha256": "ad8072ec36210af46747d2307226d4f2cf0dc0b4b22f123070fe9c3c2c44901c",
+      "review_sha256": "c3936b0bcc7a68b4dcce61cf999681606f67afd5807589e5d9e4d94379387376",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/denosumab-vertebral-fracture.md UTF-8 text, universal newlines",
@@ -3634,7 +3668,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "97f1cc97a1cfe285067190b647cc8b3e30f994d1e5c5d84fccfba5f29ef79cfa"
+      "release_sha256": "09ebb2b5d0fe6cb57da6a2d090a2be732d3c77bd6adf77531af133b75321691b"
     }
   }
 }
