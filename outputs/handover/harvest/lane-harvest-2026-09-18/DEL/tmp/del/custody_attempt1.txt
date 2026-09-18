@@ -1,0 +1,38 @@
+F
+================================== FAILURES ===================================
+__________________ test_held_document_byte_mutation_refuses ___________________
+
+tmp_path = WindowsPath('C:/mh-r-DEL/.tmp/del/custody/test_held_document_byte_mutati0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B6452BFA80>
+
+    def test_held_document_byte_mutation_refuses(tmp_path, monkeypatch):
+        # Copy held inputs only; the statistical replay continues using its unchanged cache.
+        for folder in ("cache/" + SLUG, "topics", "protocols", "harness", "scripts",
+                       "outputs/handover/glp1_regulatory"):
+            shutil.copytree(ROOT / folder, tmp_path / folder)
+        held = next((tmp_path / "outputs/handover/glp1_regulatory").rglob("*.txt"))
+        before = held.read_bytes()
+        held.write_bytes(bytes([before[0] ^ 1]) + before[1:])
+        try:
+            certificate = importlib.import_module("harness.certificate")
+        except ModuleNotFoundError:
+            certificate = None
+        if certificate:
+            monkeypatch.setattr(certificate, "ROOT", tmp_path)
+            review = json.loads((ROOT / "docs/reviews" / SLUG / "review.json").read_text(encoding="utf-8"))
+            saved = review["reproduction"]["certificate"]
+            changed = certificate.compute(SLUG, review, saved["protocol_sha"])
+            assert changed["release_sha256"] != saved["release_sha256"]
+>           assert {k for k in saved if saved[k] != changed[k]} == {"held_documents", "release_sha256"}
+E           AssertionError: assert {'analysis_co...lease_sha256'} == {'held_docume...lease_sha256'}
+E             
+E             Extra items in the left set:
+E             'analysis_code_blobs'
+E             'analysis_code_sha256'
+E             Use -v to get more diff
+
+tests\test_certificate.py:33: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_certificate.py::test_held_document_byte_mutation_refuses - ...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed in 6.70s

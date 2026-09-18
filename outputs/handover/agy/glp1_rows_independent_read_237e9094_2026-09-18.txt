@@ -1,0 +1,22 @@
+PMID 31185157 | EXACT_TARGET | SUPPORTED | Result: "(hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11". Def: "death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke". | Result span carries number, definition matches EXACT_TARGET rule and result refers to it.
+
+PMID 27633186 | EXACT_TARGET | SUPPORTED | Result: "(hazard ratio, 0.74; 95% confidence interval [CI], 0.58 to 0.95". Def: "cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke". | Result span carries number, definition matches EXACT_TARGET rule and result refers to it.
+
+PMID 27295427 | EXACT_TARGET | SUPPORTED | Result: "(hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97". Def: "death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke". | Result carries number. Definition exactly defines 3-point composite; result reports THAT composite.
+
+PMID 34215025 | EXACT_TARGET | DEFECT | Result: "(hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92". Def: "nonfatal myocardial infarction, nonfatal stroke, or death from cardiovascular or undetermined causes". | Page components list omits "undetermined causes", contradicting the span. Admissibility should not be EXACT_TARGET.
+
+PMID 31189511 | EXACT_TARGET | SUPPORTED | Result: "(hazard ratio [HR] 0.88, 95% CI 0.79-0.99". Def: "non-fatal myocardial infarction, non-fatal stroke, or death from cardiovascular causes (including unknown causes)". | Result span carries number, definition matches EXACT_TARGET rule and result refers to it.
+
+PMID 30291013 | EXACT_TARGET | SUPPORTED | Result: "(hazard ratio 0.78, 95% CI 0.68-0.90)". Def: "cardiovascular death, myocardial infarction, or stroke". | Result span carries number, definition matches EXACT_TARGET rule and result refers to it.
+
+PMID 28910237 | EXACT_TARGET | SUPPORTED | Result: "(hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00)". Def: "death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke". | Result carries number. Definition exactly defines 3-point composite; result reports THAT composite.
+
+PMID 40162642 | UNBOUND_LEGACY | UNVERIFIABLE_FROM_SPANS | Source: "hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96". | Missing distinct endpoint_result_span and endpoint_definition_span for verification.
+
+PMID 26630143 | OUTCOME_NOT_IN_SOURCE | SUPPORTED | Span: "The trial was designed with adequate statistical power to assess whether lixisenatide was noninferior as well as superior to placebo". | Source silently absent. Note page claim: value is not in the committed source.
+
+DEFECTS
+1. PMID 34215025: The endpoint_definition_span defines the composite as "nonfatal myocardial infarction, nonfatal stroke, or death from cardiovascular or undetermined causes". The page's components list only includes ["cardiovascular death", "myocardial infarction", "stroke"], directly contradicting the span which adds "or undetermined causes". Because it includes this extra component, the EXACT_TARGET admissibility classification is incorrect under the strict {CV death, MI, stroke} rule.
+
+The harness correctly binds most trials to the exact 3-point MACE definition and corresponding result, with the exception of one trial requiring a class correction due to an unlisted component and one legacy entry lacking span bindings.

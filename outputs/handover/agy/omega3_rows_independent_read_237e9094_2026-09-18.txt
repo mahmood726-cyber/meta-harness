@@ -1,0 +1,24 @@
+TRIAL 33190147 | EXACT_TARGET | UNVERIFIABLE_FROM_SPANS | result: "hazard ratio, 0.99 [95% CI, 0.90-1.09]"; def: "composite outcome of major adverse cardiovascular events." | 1. Carries number. 2. Def span lacks components. 3. Cannot verify EXACT_TARGET. 4. Q4 (STRENGTH): 0.99 is the published primary ("The primary end point"); previous registry difference NOT_SETTLED_BY_SPANS.
+
+TRIAL 30415637 | EXACT_TARGET | SUPPORTED | result: "(hazard ratio, 0.92; 95% confidence interval [CI], 0.80 to 1.06"; def: "(a composite of myocardial infarction, stroke, or death from cardiovascular causes)" | 1. Carries number. 2. Def span names exactly {CV death, MI, stroke}. 3. EXACT_TARGET admissibility is correct. (Note: This is the actual VITAL trial, carrying HR 0.92).
+
+TRIAL 30415628 | EXACT_TARGET | DEFECT | result: "ClinicalTrials.gov outcome measure #1: Composite of CV Death, Nonfatal MI..." | 1. Defect: Result span does not carry the HR 0.74 or CI shown. 2. Def span names exact components. 3. EXACT_TARGET correct. 4. Q4 (mistakenly asked as VITAL in prompt): NOT_SETTLED_BY_SPANS.
+
+TRIAL 22686415 | UNBOUND_LEGACY | UNVERIFIABLE_FROM_SPANS | (No spans) | Result and definition spans are entirely missing from this row.
+
+TRIAL 20929341 | EXACT_TARGET | DEFECT | result: "hazard ratio with EPA-DHA, 1.01; 95% confidence interval [CI], 0.87 to 1.17"; def: "comprised fatal and nonfatal cardiovascular events and cardiac interventions." | 1. Carries number. 2. Def span includes extra component ("cardiac interventions"). 3. Defect: EXACT_TARGET class is contradicted by extra component.
+
+TRIAL 21115589 | UNBOUND_LEGACY | UNVERIFIABLE_FROM_SPANS | (No spans) | Result and definition spans are entirely missing from this row.
+
+TRIAL 30146932 | RESULT_INCOMPATIBLE (NEAR_MATCH) | SUPPORTED | result: "(rate ratio, 0.97; 95% confidence interval [CI], 0.87 to 1.08"; def: "nonfatal myocardial infarction or stroke, transient ischemic attack, or vascular death" | 1. Carries number. 2. Def span adds TIA. 3. Correctly refused. 5. Refusal reason supported by definition span.
+
+TRIAL 23839902 | OUTCOME_NOT_IN_SOURCE | UNVERIFIABLE_FROM_SPANS | (No spans) | Result and definition spans are entirely missing from this row.
+
+TRIAL 23656645 | OUTCOME_NOT_IN_SOURCE | UNVERIFIABLE_FROM_SPANS | (No spans) | Result and definition spans are entirely missing from this row.
+
+DEFECTS
+1. TRIAL 30415628: The `endpoint_result_span` does not carry the HR 0.74 or CI shown in the data; it only names the endpoint.
+2. TRIAL 20929341: The page class is EXACT_TARGET, but the `endpoint_definition_span` explicitly includes "cardiac interventions", contradicting the exact {CV death, MI, stroke} requirement.
+
+OVERALL STATEMENT
+While correctly refusing incompatible composites, the binding harness has defects classifying an endpoint with extra components as EXACT_TARGET, failing to capture the numerical effect in one result span, and leaving several rows missing spans entirely.

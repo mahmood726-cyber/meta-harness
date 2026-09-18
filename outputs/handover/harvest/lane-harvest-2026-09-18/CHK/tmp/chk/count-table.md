@@ -1,0 +1,34 @@
+| Page | Old N | Completed / failed / planned | review SHA moved | HTML SHA moved |
+|---|---:|---|---|---|
+| balanced-crystalloids-vs-saline-mortality | 0 | 0 / 0 / 0 | no | yes |
+| colchicine-postop-af | 1 | 3 / 0 / 0 | no | yes |
+| colchicine-recurrent-pericarditis | 1 | 1 / 0 / 0 | no | yes |
+| colchicine-secondary-cv-prevention | 1 | 3 / 0 / 0 | no | yes |
+| corticosteroids-cap-mortality | 0 | 0 / 0 / 0 | no | yes |
+| corticosteroids-covid19-mortality | 1 | 3 / 0 / 0 | no | yes |
+| dapagliflozin-hfpef-hosp | 1 | 3 / 0 / 0 | no | yes |
+| denosumab-vertebral-fracture | 3 | 5 / 0 / 0 | no | yes |
+| doac-vte-recurrence | 1 | 3 / 0 / 0 | no | yes |
+| dpp4-mace-t2d | 1 | 3 / 0 / 0 | no | yes |
+| empagliflozin-hfpef-hosp | 1 | 3 / 0 / 0 | no | yes |
+| esketamine-trd-madrs | 1 | 3 / 0 / 0 | no | yes |
+| finerenone-ckd-t2d-renal | 0 | 0 / 0 / 0 | no | yes |
+| glp1-ra-mace-t2d | 1 | 3 / 0 / 0 | no | yes |
+| iv-iron-hfref-hosp | 4 | 4 / 0 / 0 | no | yes |
+| melatonin-primary-insomnia-sol | 1 | 3 / 0 / 0 | no | yes |
+| metformin-pcos-ovulation | 1 | 3 / 0 / 0 | no | yes |
+| noac-vs-warfarin-af-stroke | 2 | 4 / 0 / 0 | no | yes |
+| omega3-cardiovascular-events | 1 | 3 / 0 / 0 | no | yes |
+| pcsk9-mace | 2 | 4 / 0 / 0 | no | yes |
+| probiotics-aad-prevention | 1 | 3 / 0 / 0 | no | yes |
+| sacubitril-valsartan-hfref | 0 | 0 / 0 / 0 | no | yes |
+| semaglutide-obesity-mace | 2 | 4 / 0 / 0 | no | yes |
+| semaglutide-obesity-weight | 0 | 0 / 0 / 0 | no | yes |
+| sglt2-ckd-progression | 3 | 5 / 0 / 0 | no | yes |
+| sglt2-hfref-hosp-cvdeath | 0 | 0 / 0 / 0 | no | yes |
+| sglt2-primary-prevention-hf | 1 | 3 / 0 / 0 | no | yes |
+| spironolactone-hfref-mortality | 1 | 3 / 0 / 0 | no | yes |
+| statins-primary-prevention-elderly | 0 | 0 / 0 / 0 | no | yes |
+| ticagrelor-vs-clopidogrel-acs | 0 | 0 / 0 / 0 | no | yes |
+| tocilizumab-covid19-mortality | 1 | 3 / 0 / 0 | no | yes |
+| tranexamic-acid-pph | 2 | 4 / 0 / 0 | no | yes |

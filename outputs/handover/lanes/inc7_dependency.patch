@@ -1,0 +1,49 @@
+diff --git a/harness/claimgraph.py b/harness/claimgraph.py
+index 840d2751..f4382a15 100644
+--- a/harness/claimgraph.py
++++ b/harness/claimgraph.py
+@@ -474,19 +474,26 @@ def _scan_dependents(review: dict[str, Any]) -> list[dict[str, Any]]:
+     primary_version = input_set_version(primary or {}) if primary else ""
+     out = []
+ 
+-    def current_for(obj: dict[str, Any], inherited_outcome: str | None) -> str | None:
+-        if obj.get("input_set_version"):
+-            return str(obj.get("input_set_version"))
++    def current_for(obj: dict[str, Any], inherited_outcome: str | None, strand_version: str | None) -> str | None:
++        # The CURRENT version is always recomputed from the rows as they stand now -- the outcome's trials, or
++        # the enclosing strand's members for a strand object. An object's own stored `input_set_version` was
++        # written by the same stamping pass as its `depends_on` and can never disagree with it -- comparing
++        # the two made the checker silent for 25 of the 28 stamped objects on the served glp1 page when a
++        # pooled effect was mutated (URGENT audit, defect 4).
++        if strand_version:
++            return strand_version
+         outcome = obj.get("outcome") or inherited_outcome
+         if outcome and outcome in versions:
+             return versions[outcome]
+         return primary_version or None
+ 
+-    def walk(obj: Any, path: str, inherited_outcome: str | None = None) -> None:
++    def walk(obj: Any, path: str, inherited_outcome: str | None = None, strand_version: str | None = None) -> None:
+         if isinstance(obj, dict):
++            if path.startswith("/strands/strands/") and path.count("/") == 3 and obj.get("members") is not None:
++                strand_version = _strand_version(obj)
+             dep = obj.get("depends_on") or {}
+             recorded = dep.get("input_set_version")
+-            current = current_for(obj, inherited_outcome)
++            current = current_for(obj, inherited_outcome, strand_version)
+             if recorded and current and recorded != current and not obj.get("unrenderable"):
+                 out.append(_violation(
+                     "STALE_DEPENDENT",
+@@ -501,10 +508,10 @@ def _scan_dependents(review: dict[str, Any]) -> list[dict[str, Any]]:
+             for key, value in obj.items():
+                 if key in {"protocol", "search", "screening", "limitations"}:
+                     continue
+-                walk(value, f"{path}/{key}", next_outcome)
++                walk(value, f"{path}/{key}", next_outcome, strand_version)
+         elif isinstance(obj, list):
+             for idx, value in enumerate(obj):
+-                walk(value, f"{path}/{idx}", inherited_outcome)
++                walk(value, f"{path}/{idx}", inherited_outcome, strand_version)
+ 
+     walk(review, "")
+     return out

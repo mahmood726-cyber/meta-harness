@@ -1,0 +1,23 @@
+..............................ss..............F
+================================== FAILURES ===================================
+______________ test_real_review_reproduces_and_passes_full_gate _______________
+
+    def test_real_review_reproduces_and_passes_full_gate():
+        # A real committed page must pass the WHOLE gate including Level-B replay (the pipeline
+        # re-run from committed cache regenerates the committed numbers). Skips only if run
+        # outside the repo (no docs/reviews present).
+        import os as _os
+        root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+        d = _os.path.join(root, "docs", "reviews", "noac-vs-warfarin-af-stroke")
+        if not _os.path.isdir(d):
+            return
+        ok, reasons = gate_page(d)
+>       assert ok, f"real committed review must pass the full gate, got: {reasons}"
+E       AssertionError: real committed review must pass the full gate, got: ['CERTIFICATE.json release_sha256 mismatch: recomputed dd1ecd8ffdceefc34672445ff6898e5f502787b048a7c5b0a28b089eec11bae7 vs saved 838a39d427d7f1048813605bed6877ca02f74b4ce074e855474c20d32a6379dc']
+E       assert False
+
+tests\test_gate.py:111: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_gate.py::test_real_review_reproduces_and_passes_full_gate
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 44 passed, 2 skipped, 807 deselected in 41.35s

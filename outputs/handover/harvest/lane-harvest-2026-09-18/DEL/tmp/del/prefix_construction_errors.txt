@@ -1,0 +1,941 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.13, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\mahmo\AppData\Local\Programs\Python\Python313\python.exe
+hypothesis profile 'default'
+rootdir: C:\mh-r-DEL
+plugins: anyio-4.13.0, hypothesis-6.155.6, base-url-2.1.0, playwright-0.8.0, timeout-2.4.0
+collecting ... collected 12 items
+
+tests/test_deletion_invariant.py::test_deletion_invariant[definition_span-glp1-ra-mace-t2d] FAILED [  8%]
+tests/test_deletion_invariant.py::test_deletion_invariant[definition_span-sacubitril-valsartan-hfref] FAILED [ 16%]
+tests/test_deletion_invariant.py::test_deletion_invariant[result_span-glp1-ra-mace-t2d] FAILED [ 25%]
+tests/test_deletion_invariant.py::test_deletion_invariant[result_span-sacubitril-valsartan-hfref] FAILED [ 33%]
+tests/test_deletion_invariant.py::test_deletion_invariant[grade_domain-glp1-ra-mace-t2d] FAILED [ 41%]
+tests/test_deletion_invariant.py::test_deletion_invariant[grade_domain-sacubitril-valsartan-hfref] FAILED [ 50%]
+tests/test_deletion_invariant.py::test_deletion_invariant[trial_row-glp1-ra-mace-t2d] FAILED [ 58%]
+tests/test_deletion_invariant.py::test_deletion_invariant[trial_row-sacubitril-valsartan-hfref] FAILED [ 66%]
+tests/test_deletion_invariant.py::test_deletion_invariant[search_candidate-glp1-ra-mace-t2d] SKIPPED [ 75%]
+tests/test_deletion_invariant.py::test_deletion_invariant[search_candidate-sacubitril-valsartan-hfref] SKIPPED [ 83%]
+tests/test_deletion_invariant.py::test_deletion_invariant[retraction-glp1-ra-mace-t2d] FAILED [ 91%]
+tests/test_deletion_invariant.py::test_deletion_invariant[retraction-sacubitril-valsartan-hfref] FAILED [100%]
+
+================================== FAILURES ===================================
+__________ test_deletion_invariant[definition_span-glp1-ra-mace-t2d] __________
+
+slug = 'glp1-ra-mace-t2d', obj = 'definition_span'
+tmp_path = WindowsPath('C:/mh-r-DEL/.tmp/del/prefix/test_deletion_invariant_defini0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002D5C6551A70>
+
+    @pytest.mark.parametrize('slug', TOPICS)
+    @pytest.mark.parametrize('obj', OBJECTS)
+    def test_deletion_invariant(slug, obj, tmp_path, monkeypatch):
+        if obj == 'search_candidate':
+            # A real registered artefact, but NOT consumed by build_topic.py.
+            reg = read(ROOT / search_completeness.REGISTRY)
+            candidate = reg['candidate_file']
+            assert (ROOT / candidate).is_file()
+            path = tmp_path / search_completeness.REGISTRY
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(reg), encoding='utf-8')
+            # Copy then delete, so this is a deletion rather than a never-created fixture.
+            dest = tmp_path / candidate
+            dest.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / candidate, dest)
+            dest.unlink()
+            ok, reason = search_completeness.check(tmp_path)
+            assert not ok
+            assert reason == 'COULD-NOT-EXECUTE: registered file missing: ' + candidate
+            pytest.skip('NOT_CONSTRUCTIBLE in topic production chain; real standalone search gate HELD')
+    
+        before = core(slug)
+        changed = copy.deepcopy(before)
+        baseline = tmp_path / 'baseline'
+        publish(slug, before, baseline)  # baseline must build; unrelated failures are errors
+        expected = None
+        if obj in ('definition_span', 'result_span'):
+            field = 'endpoint_' + obj
+            trial = next(t for o in changed['outcomes'] for t in o.get('trials', []) if t.get(field))
+            trial.pop(field)
+            expected = 'MISSING_ENDPOINT_SUPPORT: ' + field + ': ' + trial['id']
+        elif obj == 'grade_domain':
+            assert 'indirectness' in changed['grade']['domains']
+            del changed['grade']['domains']['indirectness']
+            expected = 'MISSING_GRADE_DOMAIN: indirectness'
+        elif obj == 'trial_row':
+            cache = tmp_path / 'cache' / slug
+            shutil.copytree(ROOT / 'cache' / slug, cache)
+            path = cache / 'verified_effects.json'
+            rows = read(path)
+            pid = '40162642' if slug == TOPICS[0] else '25176015'
+            assert pid in rows
+            del rows[pid]
+            path.write_text(json.dumps(rows), encoding='utf-8')
+            from harness import verified_inputs
+            original = verified_inputs.load
+            monkeypatch.setattr(verified_inputs, 'load',
+                lambda s, cache_root=None: original(s, cache_root=tmp_path / 'cache'))
+            expected = 'MISSING_VERIFIED_EFFECT: ' + slug + '/' + pid
+        else:
+            # Source object for the emitted REPRODUCTION_RETRACTION marking.
+            rows = changed['limitations']
+            removed = [r for r in rows if r.get('limitation_id') == 'reproduction:round-2-retraction']
+            assert len(removed) == 1
+            changed['limitations'] = [r for r in rows if r not in removed]
+    
+        try:
+            if obj == 'trial_row':
+                changed = core(slug)
+            publish(slug, changed, tmp_path / 'after')
+        except ValueError as exc:
+            assert expected is not None and str(exc) == expected
+            return
+        after = read(tmp_path / 'after' / 'review.json')
+        old = read(baseline / 'review.json')
+        if obj == 'trial_row':
+            old_k = next(o for o in old['outcomes'] if o.get('primary'))['result']['k']
+            new_k = next(o for o in after['outcomes'] if o.get('primary'))['result']['k']
+            assert new_k < old_k, 'FIRED: deleted verified trial but pooled k did not fall'
+        elif obj in ('definition_span', 'result_span'):
+>           assert all(t.get('endpoint_' + obj) for o in after['outcomes']
+                       for t in o.get('trials', []) if t.get('target_endpoint_class') == 'EXACT_TARGET'), \
+E                      AssertionError: FIRED: EXACT_TARGET survives deleted binding support
+E                      assert False
+E                       +  where False = all(<generator object test_deletion_invariant.<locals>.<genexpr> at 0x000002D5C66A2C50>)
+
+tests\test_deletion_invariant.py:128: AssertionError
+_____ test_deletion_invariant[definition_span-sacubitril-valsartan-hfref] _____
+
+slug = 'sacubitril-valsartan-hfref', obj = 'definition_span'
+tmp_path = WindowsPath('C:/mh-r-DEL/.tmp/del/prefix/test_deletion_invariant_defini1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002D5B4BD4D60>
+
+    @pytest.mark.parametrize('slug', TOPICS)
+    @pytest.mark.parametrize('obj', OBJECTS)
+    def test_deletion_invariant(slug, obj, tmp_path, monkeypatch):
+        if obj == 'search_candidate':
+            # A real registered artefact, but NOT consumed by build_topic.py.
+            reg = read(ROOT / search_completeness.REGISTRY)
+            candidate = reg['candidate_file']
+            assert (ROOT / candidate).is_file()
+            path = tmp_path / search_completeness.REGISTRY
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(reg), encoding='utf-8')
+            # Copy then delete, so this is a deletion rather than a never-created fixture.
+            dest = tmp_path / candidate
+            dest.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / candidate, dest)
+            dest.unlink()
+            ok, reason = search_completeness.check(tmp_path)
+            assert not ok
+            assert reason == 'COULD-NOT-EXECUTE: registered file missing: ' + candidate
+            pytest.skip('NOT_CONSTRUCTIBLE in topic production chain; real standalone search gate HELD')
+    
+        before = core(slug)
+        changed = copy.deepcopy(before)
+        baseline = tmp_path / 'baseline'
+        publish(slug, before, baseline)  # baseline must build; unrelated failures are errors
+        expected = None
+        if obj in ('definition_span', 'result_span'):
+            field = 'endpoint_' + obj
+            trial = next(t for o in changed['outcomes'] for t in o.get('trials', []) if t.get(field))
+            trial.pop(field)
+            expected = 'MISSING_ENDPOINT_SUPPORT: ' + field + ': ' + trial['id']
+        elif obj == 'grade_domain':
+            assert 'indirectness' in changed['grade']['domains']
+            del changed['grade']['domains']['indirectness']
+            expected = 'MISSING_GRADE_DOMAIN: indirectness'
+        elif obj == 'trial_row':
+            cache = tmp_path / 'cache' / slug
+            shutil.copytree(ROOT / 'cache' / slug, cache)
+            path = cache / 'verified_effects.json'
+            rows = read(path)
+            pid = '40162642' if slug == TOPICS[0] else '25176015'
+            assert pid in rows
+            del rows[pid]
+            path.write_text(json.dumps(rows), encoding='utf-8')
+            from harness import verified_inputs
+            original = verified_inputs.load
+            monkeypatch.setattr(verified_inputs, 'load',
+                lambda s, cache_root=None: original(s, cache_root=tmp_path / 'cache'))
+            expected = 'MISSING_VERIFIED_EFFECT: ' + slug + '/' + pid
+        else:
+            # Source object for the emitted REPRODUCTION_RETRACTION marking.
+            rows = changed['limitations']
+            removed = [r for r in rows if r.get('limitation_id') == 'reproduction:round-2-retraction']
+            assert len(removed) == 1
+            changed['limitations'] = [r for r in rows if r not in removed]
+    
+        try:
+            if obj == 'trial_row':
+                changed = core(slug)
+            publish(slug, changed, tmp_path / 'after')
+        except ValueError as exc:
+            assert expected is not None and str(exc) == expected
+            return
+        after = read(tmp_path / 'after' / 'review.json')
+        old = read(baseline / 'review.json')
+        if obj == 'trial_row':
+            old_k = next(o for o in old['outcomes'] if o.get('primary'))['result']['k']
+            new_k = next(o for o in after['outcomes'] if o.get('primary'))['result']['k']
+            assert new_k < old_k, 'FIRED: deleted verified trial but pooled k did not fall'
+        elif obj in ('definition_span', 'result_span'):
+>           assert all(t.get('endpoint_' + obj) for o in after['outcomes']
+                       for t in o.get('trials', []) if t.get('target_endpoint_class') == 'EXACT_TARGET'), \
+E                      AssertionError: FIRED: EXACT_TARGET survives deleted binding support
+E                      assert False
+E                       +  where False = all(<generator object test_deletion_invariant.<locals>.<genexpr> at 0x000002D5C67B1210>)
+
+tests\test_deletion_invariant.py:128: AssertionError
+____________ test_deletion_invariant[result_span-glp1-ra-mace-t2d] ____________
+
+slug = 'glp1-ra-mace-t2d', obj = 'result_span'
+tmp_path = WindowsPath('C:/mh-r-DEL/.tmp/del/prefix/test_deletion_invariant_result0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002D5C734EE70>
+
+    @pytest.mark.parametrize('slug', TOPICS)
+    @pytest.mark.parametrize('obj', OBJECTS)
+    def test_deletion_invariant(slug, obj, tmp_path, monkeypatch):
+        if obj == 'search_candidate':
+            # A real registered artefact, but NOT consumed by build_topic.py.
+            reg = read(ROOT / search_completeness.REGISTRY)
+            candidate = reg['candidate_file']
+            assert (ROOT / candidate).is_file()
+            path = tmp_path / search_completeness.REGISTRY
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(reg), encoding='utf-8')
+            # Copy then delete, so this is a deletion rather than a never-created fixture.
+            dest = tmp_path / candidate
+            dest.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / candidate, dest)
+            dest.unlink()
+            ok, reason = search_completeness.check(tmp_path)
+            assert not ok
+            assert reason == 'COULD-NOT-EXECUTE: registered file missing: ' + candidate
+            pytest.skip('NOT_CONSTRUCTIBLE in topic production chain; real standalone search gate HELD')
+    
+        before = core(slug)
+        changed = copy.deepcopy(before)
+        baseline = tmp_path / 'baseline'
+        publish(slug, before, baseline)  # baseline must build; unrelated failures are errors
+        expected = None
+        if obj in ('definition_span', 'result_span'):
+            field = 'endpoint_' + obj
+            trial = next(t for o in changed['outcomes'] for t in o.get('trials', []) if t.get(field))
+            trial.pop(field)
+            expected = 'MISSING_ENDPOINT_SUPPORT: ' + field + ': ' + trial['id']
+        elif obj == 'grade_domain':
+            assert 'indirectness' in changed['grade']['domains']
+            del changed['grade']['domains']['indirectness']
+            expected = 'MISSING_GRADE_DOMAIN: indirectness'
+        elif obj == 'trial_row':
+            cache = tmp_path / 'cache' / slug
+            shutil.copytree(ROOT / 'cache' / slug, cache)
+            path = cache / 'verified_effects.json'
+            rows = read(path)
+            pid = '40162642' if slug == TOPICS[0] else '25176015'
+            assert pid in rows
+            del rows[pid]
+            path.write_text(json.dumps(rows), encoding='utf-8')
+            from harness import verified_inputs
+            original = verified_inputs.load
+            monkeypatch.setattr(verified_inputs, 'load',
+                lambda s, cache_root=None: original(s, cache_root=tmp_path / 'cache'))
+            expected = 'MISSING_VERIFIED_EFFECT: ' + slug + '/' + pid
+        else:
+            # Source object for the emitted REPRODUCTION_RETRACTION marking.
+            rows = changed['limitations']
+            removed = [r for r in rows if r.get('limitation_id') == 'reproduction:round-2-retraction']
+            assert len(removed) == 1
+            changed['limitations'] = [r for r in rows if r not in removed]
+    
+        try:
+            if obj == 'trial_row':
+                changed = core(slug)
+            publish(slug, changed, tmp_path / 'after')
+        except ValueError as exc:
+            assert expected is not None and str(exc) == expected
+            return
+        after = read(tmp_path / 'after' / 'review.json')
+        old = read(baseline / 'review.json')
+        if obj == 'trial_row':
+            old_k = next(o for o in old['outcomes'] if o.get('primary'))['result']['k']
+            new_k = next(o for o in after['outcomes'] if o.get('primary'))['result']['k']
+            assert new_k < old_k, 'FIRED: deleted verified trial but pooled k did not fall'
+        elif obj in ('definition_span', 'result_span'):
+>           assert all(t.get('endpoint_' + obj) for o in after['outcomes']
+                       for t in o.get('trials', []) if t.get('target_endpoint_class') == 'EXACT_TARGET'), \
+E                      AssertionError: FIRED: EXACT_TARGET survives deleted binding support
+E                      assert False
+E                       +  where False = all(<generator object test_deletion_invariant.<locals>.<genexpr> at 0x000002D5C66A25C0>)
+
+tests\test_deletion_invariant.py:128: AssertionError
+_______ test_deletion_invariant[result_span-sacubitril-valsartan-hfref] _______
+
+slug = 'sacubitril-valsartan-hfref', obj = 'result_span'
+tmp_path = WindowsPath('C:/mh-r-DEL/.tmp/del/prefix/test_deletion_invariant_result1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002D5C657D150>
+
+    @pytest.mark.parametrize('slug', TOPICS)
+    @pytest.mark.parametrize('obj', OBJECTS)
+    def test_deletion_invariant(slug, obj, tmp_path, monkeypatch):
+        if obj == 'search_candidate':
+            # A real registered artefact, but NOT consumed by build_topic.py.
+            reg = read(ROOT / search_completeness.REGISTRY)
+            candidate = reg['candidate_file']
+            assert (ROOT / candidate).is_file()
+            path = tmp_path / search_completeness.REGISTRY
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(reg), encoding='utf-8')
+            # Copy then delete, so this is a deletion rather than a never-created fixture.
+            dest = tmp_path / candidate
+            dest.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / candidate, dest)
+            dest.unlink()
+            ok, reason = search_completeness.check(tmp_path)
+            assert not ok
+            assert reason == 'COULD-NOT-EXECUTE: registered file missing: ' + candidate
+            pytest.skip('NOT_CONSTRUCTIBLE in topic production chain; real standalone search gate HELD')
+    
+        before = core(slug)
+        changed = copy.deepcopy(before)
+        baseline = tmp_path / 'baseline'
+        publish(slug, before, baseline)  # baseline must build; unrelated failures are errors
+        expected = None
+        if obj in ('definition_span', 'result_span'):
+            field = 'endpoint_' + obj
+            trial = next(t for o in changed['outcomes'] for t in o.get('trials', []) if t.get(field))
+            trial.pop(field)
+            expected = 'MISSING_ENDPOINT_SUPPORT: ' + field + ': ' + trial['id']
+        elif obj == 'grade_domain':
+            assert 'indirectness' in changed['grade']['domains']
+            del changed['grade']['domains']['indirectness']
+            expected = 'MISSING_GRADE_DOMAIN: indirectness'
+        elif obj == 'trial_row':
+            cache = tmp_path / 'cache' / slug
+            shutil.copytree(ROOT / 'cache' / slug, cache)
+            path = cache / 'verified_effects.json'
+            rows = read(path)
+            pid = '40162642' if slug == TOPICS[0] else '25176015'
+            assert pid in rows
+            del rows[pid]
+            path.write_text(json.dumps(rows), encoding='utf-8')
+            from harness import verified_inputs
+            original = verified_inputs.load
+            monkeypatch.setattr(verified_inputs, 'load',
+                lambda s, cache_root=None: original(s, cache_root=tmp_path / 'cache'))
+            expected = 'MISSING_VERIFIED_EFFECT: ' + slug + '/' + pid
+        else:
+            # Source object for the emitted REPRODUCTION_RETRACTION marking.
+            rows = changed['limitations']
+            removed = [r for r in rows if r.get('limitation_id') == 'reproduction:round-2-retraction']
+            assert len(removed) == 1
+            changed['limitations'] = [r for r in rows if r not in removed]
+    
+        try:
+            if obj == 'trial_row':
+                changed = core(slug)
+            publish(slug, changed, tmp_path / 'after')
+        except ValueError as exc:
+            assert expected is not None and str(exc) == expected
+            return
+        after = read(tmp_path / 'after' / 'review.json')
+        old = read(baseline / 'review.json')
+        if obj == 'trial_row':
+            old_k = next(o for o in old['outcomes'] if o.get('primary'))['result']['k']
+            new_k = next(o for o in after['outcomes'] if o.get('primary'))['result']['k']
+            assert new_k < old_k, 'FIRED: deleted verified trial but pooled k did not fall'
+        elif obj in ('definition_span', 'result_span'):
+>           assert all(t.get('endpoint_' + obj) for o in after['outcomes']
+                       for t in o.get('trials', []) if t.get('target_endpoint_class') == 'EXACT_TARGET'), \
+E                      AssertionError: FIRED: EXACT_TARGET survives deleted binding support
+E                      assert False
+E                       +  where False = all(<generator object test_deletion_invariant.<locals>.<genexpr> at 0x000002D5C66A09A0>)
+
+tests\test_deletion_invariant.py:128: AssertionError
+___________ test_deletion_invariant[grade_domain-glp1-ra-mace-t2d] ____________
+
+slug = 'glp1-ra-mace-t2d', obj = 'grade_domain'
+tmp_path = WindowsPath('C:/mh-r-DEL/.tmp/del/prefix/test_deletion_invariant_grade_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002D5C657E8B0>
+
+    @pytest.mark.parametrize('slug', TOPICS)
+    @pytest.mark.parametrize('obj', OBJECTS)
+    def test_deletion_invariant(slug, obj, tmp_path, monkeypatch):
+        if obj == 'search_candidate':
+            # A real registered artefact, but NOT consumed by build_topic.py.
+            reg = read(ROOT / search_completeness.REGISTRY)
+            candidate = reg['candidate_file']
+            assert (ROOT / candidate).is_file()
+            path = tmp_path / search_completeness.REGISTRY
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(reg), encoding='utf-8')
+            # Copy then delete, so this is a deletion rather than a never-created fixture.
+            dest = tmp_path / candidate
+            dest.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / candidate, dest)
+            dest.unlink()
+            ok, reason = search_completeness.check(tmp_path)
+            assert not ok
+            assert reason == 'COULD-NOT-EXECUTE: registered file missing: ' + candidate
+            pytest.skip('NOT_CONSTRUCTIBLE in topic production chain; real standalone search gate HELD')
+    
+        before = core(slug)
+        changed = copy.deepcopy(before)
+        baseline = tmp_path / 'baseline'
+        publish(slug, before, baseline)  # baseline must build; unrelated failures are errors
+        expected = None
+        if obj in ('definition_span', 'result_span'):
+            field = 'endpoint_' + obj
+            trial = next(t for o in changed['outcomes'] for t in o.get('trials', []) if t.get(field))
+            trial.pop(field)
+            expected = 'MISSING_ENDPOINT_SUPPORT: ' + field + ': ' + trial['id']
+        elif obj == 'grade_domain':
+            assert 'indirectness' in changed['grade']['domains']
+            del changed['grade']['domains']['indirectness']
+            expected = 'MISSING_GRADE_DOMAIN: indirectness'
+        elif obj == 'trial_row':
+            cache = tmp_path / 'cache' / slug
+            shutil.copytree(ROOT / 'cache' / slug, cache)
+            path = cache / 'verified_effects.json'
+            rows = read(path)
+            pid = '40162642' if slug == TOPICS[0] else '25176015'
+            assert pid in rows
+            del rows[pid]
+            path.write_text(json.dumps(rows), encoding='utf-8')
+            from harness import verified_inputs
+            original = verified_inputs.load
+            monkeypatch.setattr(verified_inputs, 'load',
+                lambda s, cache_root=None: original(s, cache_root=tmp_path / 'cache'))
+            expected = 'MISSING_VERIFIED_EFFECT: ' + slug + '/' + pid
+        else:
+            # Source object for the emitted REPRODUCTION_RETRACTION marking.
+            rows = changed['limitations']
+            removed = [r for r in rows if r.get('limitation_id') == 'reproduction:round-2-retraction']
+            assert len(removed) == 1
+            changed['limitations'] = [r for r in rows if r not in removed]
+    
+        try:
+            if obj == 'trial_row':
+                changed = core(slug)
+            publish(slug, changed, tmp_path / 'after')
+        except ValueError as exc:
+            assert expected is not None and str(exc) == expected
+            return
+        after = read(tmp_path / 'after' / 'review.json')
+        old = read(baseline / 'review.json')
+        if obj == 'trial_row':
+            old_k = next(o for o in old['outcomes'] if o.get('primary'))['result']['k']
+            new_k = next(o for o in after['outcomes'] if o.get('primary'))['result']['k']
+            assert new_k < old_k, 'FIRED: deleted verified trial but pooled k did not fall'
+        elif obj in ('definition_span', 'result_span'):
+            assert all(t.get('endpoint_' + obj) for o in after['outcomes']
+                       for t in o.get('trials', []) if t.get('target_endpoint_class') == 'EXACT_TARGET'), \
+                'FIRED: EXACT_TARGET survives deleted binding support'
+        elif obj == 'grade_domain':
+>           assert 'indirectness' in after['grade']['domains'], 'FIRED: published GRADE silently lacks a domain'
+E           AssertionError: FIRED: published GRADE silently lacks a domain
+E           assert 'indirectness' in {'imprecision': {'assessed': True, 'basis': '95% CI [0.8086, 0.9061]; excludes the null with a reasonably tight interval -> precise', 'crosses_null': False, 'downgrade': 0}, 'inconsistency': {'assessed': False, 'basis': 'not assessable: STALE: pooled membership known incomplete (3 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.', 'downgrade': 0, 'not_estimable': False, ...}, 'publication_bias': {'assessed': False, 'basis': "registry census (118 of ~577 completed unpublished, 20%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO's publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)", 'downgrade': 0, 'ghost_fraction': 0.205, ...}, 'risk_of_bias': {'assessed': False, 'basis': 'FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below', 'coverage_incomplete': False, 'downgrade': 0, ...}}
+
+tests\test_deletion_invariant.py:132: AssertionError
+______ test_deletion_invariant[grade_domain-sacubitril-valsartan-hfref] _______
+
+slug = 'sacubitril-valsartan-hfref', obj = 'grade_domain'
+tmp_path = WindowsPath('C:/mh-r-DEL/.tmp/del/prefix/test_deletion_invariant_grade_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002D5C669F750>
+
+    @pytest.mark.parametrize('slug', TOPICS)
+    @pytest.mark.parametrize('obj', OBJECTS)
+    def test_deletion_invariant(slug, obj, tmp_path, monkeypatch):
+        if obj == 'search_candidate':
+            # A real registered artefact, but NOT consumed by build_topic.py.
+            reg = read(ROOT / search_completeness.REGISTRY)
+            candidate = reg['candidate_file']
+            assert (ROOT / candidate).is_file()
+            path = tmp_path / search_completeness.REGISTRY
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(reg), encoding='utf-8')
+            # Copy then delete, so this is a deletion rather than a never-created fixture.
+            dest = tmp_path / candidate
+            dest.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / candidate, dest)
+            dest.unlink()
+            ok, reason = search_completeness.check(tmp_path)
+            assert not ok
+            assert reason == 'COULD-NOT-EXECUTE: registered file missing: ' + candidate
+            pytest.skip('NOT_CONSTRUCTIBLE in topic production chain; real standalone search gate HELD')
+    
+        before = core(slug)
+        changed = copy.deepcopy(before)
+        baseline = tmp_path / 'baseline'
+        publish(slug, before, baseline)  # baseline must build; unrelated failures are errors
+        expected = None
+        if obj in ('definition_span', 'result_span'):
+            field = 'endpoint_' + obj
+            trial = next(t for o in changed['outcomes'] for t in o.get('trials', []) if t.get(field))
+            trial.pop(field)
+            expected = 'MISSING_ENDPOINT_SUPPORT: ' + field + ': ' + trial['id']
+        elif obj == 'grade_domain':
+            assert 'indirectness' in changed['grade']['domains']
+            del changed['grade']['domains']['indirectness']
+            expected = 'MISSING_GRADE_DOMAIN: indirectness'
+        elif obj == 'trial_row':
+            cache = tmp_path / 'cache' / slug
+            shutil.copytree(ROOT / 'cache' / slug, cache)
+            path = cache / 'verified_effects.json'
+            rows = read(path)
+            pid = '40162642' if slug == TOPICS[0] else '25176015'
+            assert pid in rows
+            del rows[pid]
+            path.write_text(json.dumps(rows), encoding='utf-8')
+            from harness import verified_inputs
+            original = verified_inputs.load
+            monkeypatch.setattr(verified_inputs, 'load',
+                lambda s, cache_root=None: original(s, cache_root=tmp_path / 'cache'))
+            expected = 'MISSING_VERIFIED_EFFECT: ' + slug + '/' + pid
+        else:
+            # Source object for the emitted REPRODUCTION_RETRACTION marking.
+            rows = changed['limitations']
+            removed = [r for r in rows if r.get('limitation_id') == 'reproduction:round-2-retraction']
+            assert len(removed) == 1
+            changed['limitations'] = [r for r in rows if r not in removed]
+    
+        try:
+            if obj == 'trial_row':
+                changed = core(slug)
+            publish(slug, changed, tmp_path / 'after')
+        except ValueError as exc:
+            assert expected is not None and str(exc) == expected
+            return
+        after = read(tmp_path / 'after' / 'review.json')
+        old = read(baseline / 'review.json')
+        if obj == 'trial_row':
+            old_k = next(o for o in old['outcomes'] if o.get('primary'))['result']['k']
+            new_k = next(o for o in after['outcomes'] if o.get('primary'))['result']['k']
+            assert new_k < old_k, 'FIRED: deleted verified trial but pooled k did not fall'
+        elif obj in ('definition_span', 'result_span'):
+            assert all(t.get('endpoint_' + obj) for o in after['outcomes']
+                       for t in o.get('trials', []) if t.get('target_endpoint_class') == 'EXACT_TARGET'), \
+                'FIRED: EXACT_TARGET survives deleted binding support'
+        elif obj == 'grade_domain':
+>           assert 'indirectness' in after['grade']['domains'], 'FIRED: published GRADE silently lacks a domain'
+E           AssertionError: FIRED: published GRADE silently lacks a domain
+E           assert 'indirectness' in {'imprecision': {'assessed': False, 'basis': 'pooled row refused (DIRECTION_CONFLICT_K2); imprecision cannot be machine-rated from a non-served pooled CI | counted as ONE conservative downgrade pending human judgement (a check that could not run cannot raise certainty)', 'conservative': True, 'downgrade': 1, ...}, 'inconsistency': {'assessed': False, 'basis': 'not assessable: STALE: pooled membership known incomplete (5 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable. | counted as ONE conservative downgrade pending human judgement (a check that could not run cannot raise certainty)', 'conservative': True, 'direction_conflict': True, ...}, 'publication_bias': {'assessed': False, 'basis': 'no registry ghost census available for this topic', 'downgrade': 0, 'not_assessable': True}, 'risk_of_bias': {'assessed': False, 'basis': 'FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below', 'coverage_incomplete': False, 'downgrade': 1, ...}}
+
+tests\test_deletion_invariant.py:132: AssertionError
+_____________ test_deletion_invariant[trial_row-glp1-ra-mace-t2d] _____________
+
+slug = 'glp1-ra-mace-t2d', obj = 'trial_row'
+tmp_path = WindowsPath('C:/mh-r-DEL/.tmp/del/prefix/test_deletion_invariant_trial_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002D5C669E250>
+
+    @pytest.mark.parametrize('slug', TOPICS)
+    @pytest.mark.parametrize('obj', OBJECTS)
+    def test_deletion_invariant(slug, obj, tmp_path, monkeypatch):
+        if obj == 'search_candidate':
+            # A real registered artefact, but NOT consumed by build_topic.py.
+            reg = read(ROOT / search_completeness.REGISTRY)
+            candidate = reg['candidate_file']
+            assert (ROOT / candidate).is_file()
+            path = tmp_path / search_completeness.REGISTRY
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(reg), encoding='utf-8')
+            # Copy then delete, so this is a deletion rather than a never-created fixture.
+            dest = tmp_path / candidate
+            dest.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / candidate, dest)
+            dest.unlink()
+            ok, reason = search_completeness.check(tmp_path)
+            assert not ok
+            assert reason == 'COULD-NOT-EXECUTE: registered file missing: ' + candidate
+            pytest.skip('NOT_CONSTRUCTIBLE in topic production chain; real standalone search gate HELD')
+    
+        before = core(slug)
+        changed = copy.deepcopy(before)
+        baseline = tmp_path / 'baseline'
+        publish(slug, before, baseline)  # baseline must build; unrelated failures are errors
+        expected = None
+        if obj in ('definition_span', 'result_span'):
+            field = 'endpoint_' + obj
+            trial = next(t for o in changed['outcomes'] for t in o.get('trials', []) if t.get(field))
+            trial.pop(field)
+            expected = 'MISSING_ENDPOINT_SUPPORT: ' + field + ': ' + trial['id']
+        elif obj == 'grade_domain':
+            assert 'indirectness' in changed['grade']['domains']
+            del changed['grade']['domains']['indirectness']
+            expected = 'MISSING_GRADE_DOMAIN: indirectness'
+        elif obj == 'trial_row':
+            cache = tmp_path / 'cache' / slug
+            shutil.copytree(ROOT / 'cache' / slug, cache)
+            path = cache / 'verified_effects.json'
+            rows = read(path)
+            pid = '40162642' if slug == TOPICS[0] else '25176015'
+            assert pid in rows
+            del rows[pid]
+            path.write_text(json.dumps(rows), encoding='utf-8')
+            from harness import verified_inputs
+            original = verified_inputs.load
+            monkeypatch.setattr(verified_inputs, 'load',
+                lambda s, cache_root=None: original(s, cache_root=tmp_path / 'cache'))
+            expected = 'MISSING_VERIFIED_EFFECT: ' + slug + '/' + pid
+        else:
+            # Source object for the emitted REPRODUCTION_RETRACTION marking.
+            rows = changed['limitations']
+            removed = [r for r in rows if r.get('limitation_id') == 'reproduction:round-2-retraction']
+            assert len(removed) == 1
+            changed['limitations'] = [r for r in rows if r not in removed]
+    
+        try:
+            if obj == 'trial_row':
+>               changed = core(slug)
+                          ^^^^^^^^^^
+
+tests\test_deletion_invariant.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\test_deletion_invariant.py:28: in core
+    return pipeline.build_review_core(slug, read(ROOT / 'topics' / (slug + '.json')),
+harness\aact_cache.py:47: in wrapped
+    review = function(slug, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+harness\pipeline.py:1773: in build_review_core
+    varms = _load_verified_arms(slug)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+harness\pipeline.py:810: in _load_verified_arms
+    return load(slug, cache_root=os.path.join(ROOT, "cache"))["verified_arms.json"] or None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\test_deletion_invariant.py:105: in <lambda>
+    lambda s, cache_root=None: original(s, cache_root=tmp_path / 'cache'))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+harness\verified_inputs.py:100: in load
+    _validate(row, directory, pid, canonical='kind' in old)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+entry = {'document_ref': 'outputs/handover/glp1_regulatory/208471Orig1s000MedR.pdf.txt', 'document_sha256': '80d91f3cdaea588b8...tracted_text_sha256': '448150daf6667013259e6e4c741aba8a60153af651d5d04886455d3b8e595c22', 'kind': 'typed_refusal', ...}
+directory = WindowsPath('C:/mh-r-DEL/.tmp/del/prefix/test_deletion_invariant_trial_0/cache/glp1-ra-mace-t2d')
+pid = '26630143', canonical = True
+
+    def _validate(entry, directory, pid, canonical=False):
+        span = entry.get('source_span')
+        if span is None:
+            if canonical:
+                raise ValueError(f'{directory.name}/{pid}: canonical entry requires source_span')
+            return  # legacy free-form source commentary; existing verifier remains authoritative
+        if not isinstance(span, str) or not span:
+            raise ValueError(f'{directory.name}/{pid}: empty source_span')
+        ref = (entry.get('document_ref') or '').split('#')[0]
+        candidates = []
+        if ref:
+            candidates = [directory / ref, directory.parent.parent / ref]
+        else:
+            candidates = [directory / 'records.json', directory / f'ft_{pid}.txt']
+        found = False
+        for path in candidates:
+            if not path.is_file():
+                continue
+            text = path.read_text(encoding='utf-8')
+            if path.name == 'records.json':
+                data = json.loads(text)
+                rec = next((r for r in data.get('records', []) if str(r.get('id')) == str(pid)), {})
+                texts = [rec.get('abstract', ''), rec.get('fulltext', '')]
+            else:
+                texts = [text]
+            if any(span in value for value in texts if isinstance(value, str)):
+                found = True
+                break
+        if not found:
+>           raise ValueError(f'{directory.name}/{pid}: source_span absent from held document {ref}')
+E           ValueError: glp1-ra-mace-t2d/26630143: source_span absent from held document outputs/handover/glp1_regulatory/208471Orig1s000MedR.pdf.txt
+
+harness\verified_inputs.py:79: ValueError
+
+During handling of the above exception, another exception occurred:
+
+slug = 'glp1-ra-mace-t2d', obj = 'trial_row'
+tmp_path = WindowsPath('C:/mh-r-DEL/.tmp/del/prefix/test_deletion_invariant_trial_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002D5C669E250>
+
+    @pytest.mark.parametrize('slug', TOPICS)
+    @pytest.mark.parametrize('obj', OBJECTS)
+    def test_deletion_invariant(slug, obj, tmp_path, monkeypatch):
+        if obj == 'search_candidate':
+            # A real registered artefact, but NOT consumed by build_topic.py.
+            reg = read(ROOT / search_completeness.REGISTRY)
+            candidate = reg['candidate_file']
+            assert (ROOT / candidate).is_file()
+            path = tmp_path / search_completeness.REGISTRY
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(reg), encoding='utf-8')
+            # Copy then delete, so this is a deletion rather than a never-created fixture.
+            dest = tmp_path / candidate
+            dest.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / candidate, dest)
+            dest.unlink()
+            ok, reason = search_completeness.check(tmp_path)
+            assert not ok
+            assert reason == 'COULD-NOT-EXECUTE: registered file missing: ' + candidate
+            pytest.skip('NOT_CONSTRUCTIBLE in topic production chain; real standalone search gate HELD')
+    
+        before = core(slug)
+        changed = copy.deepcopy(before)
+        baseline = tmp_path / 'baseline'
+        publish(slug, before, baseline)  # baseline must build; unrelated failures are errors
+        expected = None
+        if obj in ('definition_span', 'result_span'):
+            field = 'endpoint_' + obj
+            trial = next(t for o in changed['outcomes'] for t in o.get('trials', []) if t.get(field))
+            trial.pop(field)
+            expected = 'MISSING_ENDPOINT_SUPPORT: ' + field + ': ' + trial['id']
+        elif obj == 'grade_domain':
+            assert 'indirectness' in changed['grade']['domains']
+            del changed['grade']['domains']['indirectness']
+            expected = 'MISSING_GRADE_DOMAIN: indirectness'
+        elif obj == 'trial_row':
+            cache = tmp_path / 'cache' / slug
+            shutil.copytree(ROOT / 'cache' / slug, cache)
+            path = cache / 'verified_effects.json'
+            rows = read(path)
+            pid = '40162642' if slug == TOPICS[0] else '25176015'
+            assert pid in rows
+            del rows[pid]
+            path.write_text(json.dumps(rows), encoding='utf-8')
+            from harness import verified_inputs
+            original = verified_inputs.load
+            monkeypatch.setattr(verified_inputs, 'load',
+                lambda s, cache_root=None: original(s, cache_root=tmp_path / 'cache'))
+            expected = 'MISSING_VERIFIED_EFFECT: ' + slug + '/' + pid
+        else:
+            # Source object for the emitted REPRODUCTION_RETRACTION marking.
+            rows = changed['limitations']
+            removed = [r for r in rows if r.get('limitation_id') == 'reproduction:round-2-retraction']
+            assert len(removed) == 1
+            changed['limitations'] = [r for r in rows if r not in removed]
+    
+        try:
+            if obj == 'trial_row':
+                changed = core(slug)
+            publish(slug, changed, tmp_path / 'after')
+        except ValueError as exc:
+>           assert expected is not None and str(exc) == expected
+E           AssertionError: assert ('MISSING_VERIFIED_EFFECT: glp1-ra-mace-t2d/40162642' is not None and 'glp1-ra-mace...0MedR.pdf.txt' == 'MISSING_VERI...-t2d/40162642'
+E             
+E             - MISSING_VERIFIED_EFFECT: glp1-ra-mace-t2d/40162642
+E             + glp1-ra-mace-t2d/26630143: source_span absent from held document outputs/handover/glp1_regulatory/208471Orig1s000MedR.pdf.txt)
+
+tests\test_deletion_invariant.py:119: AssertionError
+________ test_deletion_invariant[trial_row-sacubitril-valsartan-hfref] ________
+
+slug = 'sacubitril-valsartan-hfref', obj = 'trial_row'
+tmp_path = WindowsPath('C:/mh-r-DEL/.tmp/del/prefix/test_deletion_invariant_trial_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002D5C66A37A0>
+
+    @pytest.mark.parametrize('slug', TOPICS)
+    @pytest.mark.parametrize('obj', OBJECTS)
+    def test_deletion_invariant(slug, obj, tmp_path, monkeypatch):
+        if obj == 'search_candidate':
+            # A real registered artefact, but NOT consumed by build_topic.py.
+            reg = read(ROOT / search_completeness.REGISTRY)
+            candidate = reg['candidate_file']
+            assert (ROOT / candidate).is_file()
+            path = tmp_path / search_completeness.REGISTRY
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(reg), encoding='utf-8')
+            # Copy then delete, so this is a deletion rather than a never-created fixture.
+            dest = tmp_path / candidate
+            dest.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / candidate, dest)
+            dest.unlink()
+            ok, reason = search_completeness.check(tmp_path)
+            assert not ok
+            assert reason == 'COULD-NOT-EXECUTE: registered file missing: ' + candidate
+            pytest.skip('NOT_CONSTRUCTIBLE in topic production chain; real standalone search gate HELD')
+    
+        before = core(slug)
+        changed = copy.deepcopy(before)
+        baseline = tmp_path / 'baseline'
+        publish(slug, before, baseline)  # baseline must build; unrelated failures are errors
+        expected = None
+        if obj in ('definition_span', 'result_span'):
+            field = 'endpoint_' + obj
+            trial = next(t for o in changed['outcomes'] for t in o.get('trials', []) if t.get(field))
+            trial.pop(field)
+            expected = 'MISSING_ENDPOINT_SUPPORT: ' + field + ': ' + trial['id']
+        elif obj == 'grade_domain':
+            assert 'indirectness' in changed['grade']['domains']
+            del changed['grade']['domains']['indirectness']
+            expected = 'MISSING_GRADE_DOMAIN: indirectness'
+        elif obj == 'trial_row':
+            cache = tmp_path / 'cache' / slug
+            shutil.copytree(ROOT / 'cache' / slug, cache)
+            path = cache / 'verified_effects.json'
+            rows = read(path)
+            pid = '40162642' if slug == TOPICS[0] else '25176015'
+            assert pid in rows
+            del rows[pid]
+            path.write_text(json.dumps(rows), encoding='utf-8')
+            from harness import verified_inputs
+            original = verified_inputs.load
+            monkeypatch.setattr(verified_inputs, 'load',
+                lambda s, cache_root=None: original(s, cache_root=tmp_path / 'cache'))
+            expected = 'MISSING_VERIFIED_EFFECT: ' + slug + '/' + pid
+        else:
+            # Source object for the emitted REPRODUCTION_RETRACTION marking.
+            rows = changed['limitations']
+            removed = [r for r in rows if r.get('limitation_id') == 'reproduction:round-2-retraction']
+            assert len(removed) == 1
+            changed['limitations'] = [r for r in rows if r not in removed]
+    
+        try:
+            if obj == 'trial_row':
+                changed = core(slug)
+            publish(slug, changed, tmp_path / 'after')
+        except ValueError as exc:
+            assert expected is not None and str(exc) == expected
+            return
+        after = read(tmp_path / 'after' / 'review.json')
+        old = read(baseline / 'review.json')
+        if obj == 'trial_row':
+            old_k = next(o for o in old['outcomes'] if o.get('primary'))['result']['k']
+            new_k = next(o for o in after['outcomes'] if o.get('primary'))['result']['k']
+>           assert new_k < old_k, 'FIRED: deleted verified trial but pooled k did not fall'
+E           AssertionError: FIRED: deleted verified trial but pooled k did not fall
+E           assert 2 < 2
+
+tests\test_deletion_invariant.py:126: AssertionError
+____________ test_deletion_invariant[retraction-glp1-ra-mace-t2d] _____________
+
+slug = 'glp1-ra-mace-t2d', obj = 'retraction'
+tmp_path = WindowsPath('C:/mh-r-DEL/.tmp/del/prefix/test_deletion_invariant_retrac0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002D5C6731D30>
+
+    @pytest.mark.parametrize('slug', TOPICS)
+    @pytest.mark.parametrize('obj', OBJECTS)
+    def test_deletion_invariant(slug, obj, tmp_path, monkeypatch):
+        if obj == 'search_candidate':
+            # A real registered artefact, but NOT consumed by build_topic.py.
+            reg = read(ROOT / search_completeness.REGISTRY)
+            candidate = reg['candidate_file']
+            assert (ROOT / candidate).is_file()
+            path = tmp_path / search_completeness.REGISTRY
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(reg), encoding='utf-8')
+            # Copy then delete, so this is a deletion rather than a never-created fixture.
+            dest = tmp_path / candidate
+            dest.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / candidate, dest)
+            dest.unlink()
+            ok, reason = search_completeness.check(tmp_path)
+            assert not ok
+            assert reason == 'COULD-NOT-EXECUTE: registered file missing: ' + candidate
+            pytest.skip('NOT_CONSTRUCTIBLE in topic production chain; real standalone search gate HELD')
+    
+        before = core(slug)
+        changed = copy.deepcopy(before)
+        baseline = tmp_path / 'baseline'
+        publish(slug, before, baseline)  # baseline must build; unrelated failures are errors
+        expected = None
+        if obj in ('definition_span', 'result_span'):
+            field = 'endpoint_' + obj
+            trial = next(t for o in changed['outcomes'] for t in o.get('trials', []) if t.get(field))
+            trial.pop(field)
+            expected = 'MISSING_ENDPOINT_SUPPORT: ' + field + ': ' + trial['id']
+        elif obj == 'grade_domain':
+            assert 'indirectness' in changed['grade']['domains']
+            del changed['grade']['domains']['indirectness']
+            expected = 'MISSING_GRADE_DOMAIN: indirectness'
+        elif obj == 'trial_row':
+            cache = tmp_path / 'cache' / slug
+            shutil.copytree(ROOT / 'cache' / slug, cache)
+            path = cache / 'verified_effects.json'
+            rows = read(path)
+            pid = '40162642' if slug == TOPICS[0] else '25176015'
+            assert pid in rows
+            del rows[pid]
+            path.write_text(json.dumps(rows), encoding='utf-8')
+            from harness import verified_inputs
+            original = verified_inputs.load
+            monkeypatch.setattr(verified_inputs, 'load',
+                lambda s, cache_root=None: original(s, cache_root=tmp_path / 'cache'))
+            expected = 'MISSING_VERIFIED_EFFECT: ' + slug + '/' + pid
+        else:
+            # Source object for the emitted REPRODUCTION_RETRACTION marking.
+            rows = changed['limitations']
+            removed = [r for r in rows if r.get('limitation_id') == 'reproduction:round-2-retraction']
+>           assert len(removed) == 1
+E           assert 0 == 1
+E            +  where 0 = len([])
+
+tests\test_deletion_invariant.py:111: AssertionError
+_______ test_deletion_invariant[retraction-sacubitril-valsartan-hfref] ________
+
+slug = 'sacubitril-valsartan-hfref', obj = 'retraction'
+tmp_path = WindowsPath('C:/mh-r-DEL/.tmp/del/prefix/test_deletion_invariant_retrac1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002D5BE653D40>
+
+    @pytest.mark.parametrize('slug', TOPICS)
+    @pytest.mark.parametrize('obj', OBJECTS)
+    def test_deletion_invariant(slug, obj, tmp_path, monkeypatch):
+        if obj == 'search_candidate':
+            # A real registered artefact, but NOT consumed by build_topic.py.
+            reg = read(ROOT / search_completeness.REGISTRY)
+            candidate = reg['candidate_file']
+            assert (ROOT / candidate).is_file()
+            path = tmp_path / search_completeness.REGISTRY
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(reg), encoding='utf-8')
+            # Copy then delete, so this is a deletion rather than a never-created fixture.
+            dest = tmp_path / candidate
+            dest.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / candidate, dest)
+            dest.unlink()
+            ok, reason = search_completeness.check(tmp_path)
+            assert not ok
+            assert reason == 'COULD-NOT-EXECUTE: registered file missing: ' + candidate
+            pytest.skip('NOT_CONSTRUCTIBLE in topic production chain; real standalone search gate HELD')
+    
+        before = core(slug)
+        changed = copy.deepcopy(before)
+        baseline = tmp_path / 'baseline'
+        publish(slug, before, baseline)  # baseline must build; unrelated failures are errors
+        expected = None
+        if obj in ('definition_span', 'result_span'):
+            field = 'endpoint_' + obj
+            trial = next(t for o in changed['outcomes'] for t in o.get('trials', []) if t.get(field))
+            trial.pop(field)
+            expected = 'MISSING_ENDPOINT_SUPPORT: ' + field + ': ' + trial['id']
+        elif obj == 'grade_domain':
+            assert 'indirectness' in changed['grade']['domains']
+            del changed['grade']['domains']['indirectness']
+            expected = 'MISSING_GRADE_DOMAIN: indirectness'
+        elif obj == 'trial_row':
+            cache = tmp_path / 'cache' / slug
+            shutil.copytree(ROOT / 'cache' / slug, cache)
+            path = cache / 'verified_effects.json'
+            rows = read(path)
+            pid = '40162642' if slug == TOPICS[0] else '25176015'
+            assert pid in rows
+            del rows[pid]
+            path.write_text(json.dumps(rows), encoding='utf-8')
+            from harness import verified_inputs
+            original = verified_inputs.load
+            monkeypatch.setattr(verified_inputs, 'load',
+                lambda s, cache_root=None: original(s, cache_root=tmp_path / 'cache'))
+            expected = 'MISSING_VERIFIED_EFFECT: ' + slug + '/' + pid
+        else:
+            # Source object for the emitted REPRODUCTION_RETRACTION marking.
+            rows = changed['limitations']
+            removed = [r for r in rows if r.get('limitation_id') == 'reproduction:round-2-retraction']
+>           assert len(removed) == 1
+E           assert 0 == 1
+E            +  where 0 = len([])
+
+tests\test_deletion_invariant.py:111: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_deletion_invariant.py::test_deletion_invariant[definition_span-glp1-ra-mace-t2d]
+FAILED tests/test_deletion_invariant.py::test_deletion_invariant[definition_span-sacubitril-valsartan-hfref]
+FAILED tests/test_deletion_invariant.py::test_deletion_invariant[result_span-glp1-ra-mace-t2d]
+FAILED tests/test_deletion_invariant.py::test_deletion_invariant[result_span-sacubitril-valsartan-hfref]
+FAILED tests/test_deletion_invariant.py::test_deletion_invariant[grade_domain-glp1-ra-mace-t2d]
+FAILED tests/test_deletion_invariant.py::test_deletion_invariant[grade_domain-sacubitril-valsartan-hfref]
+FAILED tests/test_deletion_invariant.py::test_deletion_invariant[trial_row-glp1-ra-mace-t2d]
+FAILED tests/test_deletion_invariant.py::test_deletion_invariant[trial_row-sacubitril-valsartan-hfref]
+FAILED tests/test_deletion_invariant.py::test_deletion_invariant[retraction-glp1-ra-mace-t2d]
+FAILED tests/test_deletion_invariant.py::test_deletion_invariant[retraction-sacubitril-valsartan-hfref]
+======================= 10 failed, 2 skipped in 25.32s ========================

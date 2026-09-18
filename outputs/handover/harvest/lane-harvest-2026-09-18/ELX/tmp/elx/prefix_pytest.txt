@@ -1,0 +1,59 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+________________ test_no_held_trial_is_not_in_committed_source ________________
+
+    def test_no_held_trial_is_not_in_committed_source():
+        held = []
+        for path in (ROOT / 'outputs/handover').rglob('regulatory_sources*.json'):
+            manifest = read(path)
+            for source in manifest.get('sources', []):
+                name = source.get('document_path') or (source.get('held') or {}).get('held_in_tree')
+                if not name:
+                    continue
+                data = subprocess.check_output(['git', 'show', 'HEAD:' + name], cwd=ROOT)
+                assert hashlib.sha256(data).hexdigest() == source['document_sha256']
+                held.extend((manifest['slug'], d) for d in source.get('decisions', []))
+        failures = []
+        for path in (ROOT / 'docs/reviews').glob('*/review.json'):
+            for outcome in read(path)['outcomes']:
+                for row in outcome.get('known_missing_sensitivity', {}).get('rows', []):
+                    if row.get('value_status') != 'NOT_IN_COMMITTED_SOURCE':
+                        continue
+                    for slug, decision in held:
+                        ids = {decision.get('trial'), decision.get('nct'),
+                               str(decision.get('trial_key', '')).replace('PMID ', '')}
+                        if slug == path.parent.name and row['trial_key'] in ids:
+                            failures.append((slug, decision['trial']))
+>       assert not failures, failures
+E       AssertionError: [('glp1-ra-mace-t2d', 'FREEDOM-CVO'), ('glp1-ra-mace-t2d', 'ELIXA')]
+E       assert not [('glp1-ra-mace-t2d', 'FREEDOM-CVO'), ('glp1-ra-mace-t2d', 'ELIXA')]
+
+tests\test_held_source_never_not_in_committed_source.py:45: AssertionError
+_________________ test_elixa_conflict_spans_primary_unchanged _________________
+
+    def test_elixa_conflict_spans_primary_unchanged():
+        review = read(ROOT / 'docs/reviews' / SLUG / 'review.json')
+        outcome = primary(review)
+        rows = outcome['known_missing_sensitivity']['rows']
+        row = next(r for r in rows if r['trial_key'] == '26630143')
+>       assert row['value_status'] == 'EXTRACTED_SOURCE_CONFLICT'
+E       AssertionError: assert 'NOT_IN_COMMITTED_SOURCE' == 'EXTRACTED_SOURCE_CONFLICT'
+E         
+E         - EXTRACTED_SOURCE_CONFLICT
+E         + NOT_IN_COMMITTED_SOURCE
+
+tests\test_held_source_never_not_in_committed_source.py:53: AssertionError
+__________________ test_membership_demonstration_recomputed ___________________
+
+    def test_membership_demonstration_recomputed():
+        outcome = primary(read(ROOT / 'docs/reviews' / SLUG / 'review.json'))
+>       demo = outcome['known_missing_sensitivity']['membership_demonstration']
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'membership_demonstration'
+
+tests\test_held_source_never_not_in_committed_source.py:72: KeyError
+=========================== short test summary info ===========================
+FAILED tests/test_held_source_never_not_in_committed_source.py::test_no_held_trial_is_not_in_committed_source
+FAILED tests/test_held_source_never_not_in_committed_source.py::test_elixa_conflict_spans_primary_unchanged
+FAILED tests/test_held_source_never_not_in_committed_source.py::test_membership_demonstration_recomputed
+3 failed in 5.01s

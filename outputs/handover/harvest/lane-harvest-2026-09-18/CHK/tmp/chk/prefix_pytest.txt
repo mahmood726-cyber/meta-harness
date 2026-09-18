@@ -1,0 +1,52 @@
+FFF.                                                                     [100%]
+================================== FAILURES ===================================
+___________________________ test_iv_iron_real_calls ___________________________
+
+    def test_iv_iron_real_calls():
+        core = review('iv-iron-hfref-hosp')
+        completed = []
+        original = claim.significance_contradictions
+        def spy(*args, **kwargs):
+            result = original(*args, **kwargs)
+            completed.append(result)
+            return result
+        with patch.object(claim, 'significance_contradictions', spy):
+            cc = census._claim_check(core)
+>       assert count(rendered(core, cc)) == len(completed)
+E       assert 4 == 0
+E        +  where 4 = count("<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=...===id)});}\n(function(){var f=document.querySelector('nav button');if(f)show(f.dataset.t);})();</script></body></html>")
+E        +    where "<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=...===id)});}\n(function(){var f=document.querySelector('nav button');if(f)show(f.dataset.t);})();</script></body></html>" = rendered({'arm_contrast': {'metric_label': 'parser-confirmed contrast', 'metric_scope': 'AACT arm-label parser output; this mea...rator_fulltext.txt', 'document_sha256': '1ad28889226f9ad0726ec30f61a2c0fce6fe70f44bde9f0f509601aafb5373b7', ...}], ...}, {'claims_checked': 4, 'contradictions': [], 'scope': {'counts': {'grade': 1, 'outcome_result': 0, 'rob_sensitivity': 0...rview', 'manuscript']}, 'scope_counts': {'grade': 1, 'outcome_result': 0, 'rob_sensitivity': 0, 'strand_pool': 4}, ...})
+E        +  and   0 = len([])
+
+tests\test_check_counts_from_receipts.py:37: AssertionError
+_______________________ test_raising_surface_is_failed ________________________
+
+    def test_raising_surface_is_failed():
+        core = review('glp1-ra-mace-t2d')
+        before = count(rendered(core, census._claim_check(core)))
+        with patch.object(page, 'render_overview', side_effect=RuntimeError('CHK planted renderer failure')):
+            cc = census._claim_check(core)
+        html = rendered(core, cc)
+>       assert count(html) == before - 1
+E       assert 1 == (1 - 1)
+E        +  where 1 = count("<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=...===id)});}\n(function(){var f=document.querySelector('nav button');if(f)show(f.dataset.t);})();</script></body></html>")
+
+tests\test_check_counts_from_receipts.py:46: AssertionError
+_________________________ test_k8_cannot_use_k1_label _________________________
+
+    def test_k8_cannot_use_k1_label():
+        core = review('glp1-ra-mace-t2d')
+        primary = next(o for o in core['outcomes'] if o.get('primary'))
+        assert primary['result']['k'] == 8
+        primary['result']['ci_provenance'] = 'source-reported-CI:k=1-verbatim'
+>       assert census._interval_provenance_check(core)
+E       AssertionError: assert []
+E        +  where [] = <function _interval_provenance_check at 0x0000019613ED5260>({'arm_contrast': {'metric_label': 'parser-confirmed contrast', 'metric_scope': 'AACT arm-label parser output; this mea...supplied by lane adjudication; complete citation not held)', 'document_ref': None, 'document_sha256': None, ...}], ...})
+E        +    where <function _interval_provenance_check at 0x0000019613ED5260> = census._interval_provenance_check
+
+tests\test_check_counts_from_receipts.py:56: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_check_counts_from_receipts.py::test_iv_iron_real_calls - as...
+FAILED tests/test_check_counts_from_receipts.py::test_raising_surface_is_failed
+FAILED tests/test_check_counts_from_receipts.py::test_k8_cannot_use_k1_label
+3 failed, 1 passed in 6.99s
