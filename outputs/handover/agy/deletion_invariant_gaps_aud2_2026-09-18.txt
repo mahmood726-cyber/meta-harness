@@ -1,0 +1,64 @@
+Gemini
+
+file: harness/census.py:support_violations:89
+object: core["reproduction"]["claim_check"]
+what deleting it does today: The `if cc` block is skipped because `cc` falls back to `{}`. `_claim_check(core)` is never called to re-verify the receipts or check for contradictions, and no error is appended for the missing object.
+why it violates the invariant: During the `verify()` Level A check on a fresh clone, silently deleting the claim check evidence causes the entire contradiction and engine-replay validation to pass without failure, losing execution assurance.
+one-line mutation test: `del core["reproduction"]["claim_check"]; assert not census.support_violations(core)`
+Rank: HIGH
+
+file: harness/census.py:support_violations:85
+object: core["reproduction"]["certificate"]["rendered_evidence_sha256"]
+what deleting it does today: The `if sealed.get("rendered_evidence_sha256"):` branch evaluates to false and is skipped.
+why it violates the invariant: The reproduction block is excluded from the core hash. This certificate digest is the only cryptographic seal protecting reproduction fields (like parity and refusals) from tampering. Deleting it allows silent modification of evidence without breaking the build or verification.
+one-line mutation test: `del core["reproduction"]["certificate"]["rendered_evidence_sha256"]; assert not census.support_violations(core)`
+Rank: HIGH
+
+file: harness/search_completeness.py:_check:1261
+object: split["assignments"][slug]["set"] (when set to "MEASUREMENT")
+what deleting it does today: The topic is excluded from the `measurement` list comprehension, completely bypassing the loop that validates topic states (`RAN_ERROR`, etc.) and record counts.
+why it violates the invariant: Silently dropping the measurement flag on a topic that is failing search completeness hides its errors and missing candidates from the gate, falsely allowing the benchmark check to pass.
+one-line mutation test: `del split["assignments"]["failing-topic"]["set"]; assert search_completeness._check(root)[0] is True`
+Rank: HIGH
+
+file: harness/grade.py:_inconsistency_domain:884
+object: res["pi_low"] (and res["pi_high"])
+what deleting it does today: The `pil is not None` condition becomes False, skipping the block that compares the prediction interval width to the confidence interval width.
+why it violates the invariant: Deleting the prediction interval bounds silently avoids a heterogeneity downgrade (retaining `downgrade: 0`) while leaving the domain fully "assessed", falsely inflating the GRADE certainty.
+one-line mutation test: `del res["pi_low"]; assert grade._inconsistency_domain(res)["downgrade"] == 0`
+Rank: HIGH
+
+file: harness/grade.py:membership_incomplete:749
+object: outcome["known_missing_sensitivity"]
+what deleting it does today: The generator comprehension finds no rows, making `any(p.get("rows") for p in panels)` evaluate to False. The function returns False instead of True.
+why it violates the invariant: Silently deleting the declaration of missing trials causes the system to miss that the pool membership is incomplete, inappropriately bypassing the "stale heterogeneity" penalty in the inconsistency domain.
+one-line mutation test: `del review["outcomes"][0]["known_missing_sensitivity"]; assert grade._inconsistency_domain(res, review)["assessed"] is True`
+Rank: HIGH
+
+file: harness/grade.py:_domain_assessment:1026
+object: review["rob2"]["trials"][trial_id]["domains"]
+what deleting it does today: The `(row.get('domains') or {}).items()` iteration returns empty, so no `"not assessed"` or `"not_assessable"` checks are appended to the `unassessed` list for that trial.
+why it violates the invariant: Deleting a trial's unassessed risk-of-bias domains hides the missing coverage from the GRADE arithmetic, improperly upgrading the final certainty from "provisional" to a definitive rating.
+one-line mutation test: `del review["rob2"]["trials"]["pmid123"]["domains"]; assert not any("risk_of_bias" in u for u in grade.grade(review)["unassessed_domains"])`
+Rank: MEDIUM
+
+file: harness/census.py:_claim_check:190
+object: outcome["primary"]
+what deleting it does today: The `if o.get("primary"):` condition evaluates to False, bypassing the rendering and cross-surface scan of the `overview` and `manuscript`.
+why it violates the invariant: Silently dropping the primary flag from an outcome stops the system from checking the headline surfaces for significance contradictions, allowing a false or contradictory claim in the manuscript to pass the build gate.
+one-line mutation test: `del core["outcomes"][0]["primary"]; assert "overview" not in census._claim_check(core)["surfaces_checked"]`
+Rank: MEDIUM
+
+file: harness/certificate.py:compute:620
+object: cache/<slug>/families.json
+what deleting it does today: The `if family.exists()` check fails, binding the string `"NOT_PRESENT"` to the certificate instead of computing its hash.
+why it violates the invariant: The trial family map is a required support object. Silently deleting the file from disk allows the evidence certificate to be generated and verified cleanly without it, eroding cryptographic assurance without causing a failure.
+one-line mutation test: `Path("cache/slug/families.json").unlink(); assert certificate.compute(...)["trial_family_map_sha256"] == "NOT_PRESENT"`
+Rank: MEDIUM
+
+file: harness/census.py:support_violations:66
+object: core["grade"]
+what deleting it does today: The `if core.get("grade") is not None:` condition evaluates to False, bypassing the `validate_arithmetic` check.
+why it violates the invariant: Deleting an invalid or arithmetically broken GRADE object allows the build to silently succeed (falling back to "GRADE not assessed") rather than failing closed on the broken arithmetic.
+one-line mutation test: `del core["grade"]; assert not census.support_violations(core)`
+Rank: LOW
