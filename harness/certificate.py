@@ -78,6 +78,11 @@ def _held(cache, review, objects):
 
 def compute(slug, review, protocol_sha):
     """Re-read each listed input; fail closed on absent required files or corpus drift."""
+    from .target_endpoint import required_support_refusals
+    from .compat_check import analysis_set_refusals
+    refusals = required_support_refusals(review) + analysis_set_refusals(review)
+    if refusals:
+        raise ValueError("; ".join(refusals))
     if Path(slug).name != slug or slug in (".", ".."):
         raise ValueError("invalid certificate slug")
     cache = ROOT / "cache" / slug

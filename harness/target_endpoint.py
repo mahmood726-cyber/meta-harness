@@ -356,6 +356,20 @@ def admissibility(spec: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
     return {"admissible": True, "verdict": "UNBOUND_LEGACY", "endpoint_binding": "unbound_legacy"}
 
 
+def required_support_refusals(review: dict[str, Any]) -> list[str]:
+    """Publication backstop: a bound endpoint cannot outlive its supporting spans."""
+    reasons = []
+    for outcome in review.get("outcomes") or []:
+        for row in outcome.get("trials") or []:
+            fields = ["source"]
+            if row.get("endpoint_binding") in {BINDING_SELF, BINDING_DEFINITION, BINDING_REGISTRY}:
+                fields.extend(("endpoint_definition_span", "endpoint_result_span"))
+            for field in fields:
+                if not str(row.get(field) or "").strip():
+                    reasons.append(f"MISSING_ENDPOINT_SUPPORT: {field}: {row.get('id')}")
+    return reasons
+
+
 def admit_rows(spec: dict[str, Any], trials: list[dict[str, Any]]):
     """Apply `admissibility` to every pooled row (after EVERY route); return (kept, refused)."""
     kept, refused = [], []

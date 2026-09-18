@@ -959,13 +959,15 @@ def check_compat_key_underlying(review_dir):
         except (OSError, ValueError):
             records = {}
     bad = _compat_check.page_gate_violations(rev, records)
+    from .target_endpoint import required_support_refusals
+    support = required_support_refusals(rev) + _compat_check.analysis_set_refusals(rev)
     if not bad:
-        return []
+        return support
     bits = [
         f"{v.get('outcome')}::{v.get('dimension')} asserted {v.get('asserted')!r}"
         for v in bad[:6]
     ]
-    return ["L1(compat): compatibility key asserted a uniform value contradicted by pooled trial rows "
+    return support + ["L1(compat): compatibility key asserted a uniform value contradicted by pooled trial rows "
             f"({'; '.join(bits)}) -- relabel the dimension mixed/trial-defined and list per-trial values"]
 
 

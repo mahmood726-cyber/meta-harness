@@ -1,0 +1,32 @@
+--- a/harness/claimgraph.py
++++ b/harness/claimgraph.py
+@@ -474,9 +474,17 @@
+     primary_version = input_set_version(primary or {}) if primary else ""
+     out = []
+ 
+-    def current_for(obj: dict[str, Any], inherited_outcome: str | None) -> str | None:
+-        if obj.get("input_set_version"):
+-            return str(obj.get("input_set_version"))
++    strand_versions = {
++        f"/strands/strands/{index}": _strand_version(strand)
++        for index, strand in enumerate((review.get("strands") or {}).get("strands") or [])
++    }
++
++    def current_for(obj: dict[str, Any], inherited_outcome: str | None, path: str) -> str | None:
++        for prefix, version in strand_versions.items():
++            if path == prefix or path.startswith(prefix + "/"):
++                return version
++        # Stored stamps are assertions, never the current source version.
++        # Compare all outcome consumers to independently recomputed trial inputs.
+         outcome = obj.get("outcome") or inherited_outcome
+         if outcome and outcome in versions:
+             return versions[outcome]
+@@ -486,7 +494,7 @@
+         if isinstance(obj, dict):
+             dep = obj.get("depends_on") or {}
+             recorded = dep.get("input_set_version")
+-            current = current_for(obj, inherited_outcome)
++            current = current_for(obj, inherited_outcome, path)
+             if recorded and current and recorded != current and not obj.get("unrenderable"):
+                 out.append(_violation(
+                     "STALE_DEPENDENT",

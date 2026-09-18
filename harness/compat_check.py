@@ -657,5 +657,39 @@ def enrich(
     return review
 
 
+def analysis_set_refusals(review: dict[str, Any]) -> list[str]:
+    """Refuse a source-stated per-protocol set under an ITT population promise.
+
+    Unknown labels remain unknown. This checks the stored evidence span as well
+    as its scalar, so changing a span alone cannot retain a favourable label.
+    """
+    reasons = []
+    for outcome in review.get("outcomes") or []:
+        declared = _canon(outcome.get("population") or "")
+        if declared not in {"itt", "intention-to-treat", "intention to treat"}:
+            continue
+        key = outcome.get("compat_key") or {}
+        # Existing heterogeneous pools explicitly disclose their actual mix and
+        # mark this dimension unmatched. Do not erase that degraded declaration.
+        disclosed_mix = (
+            (key.get("dimension_matches") or {}).get("analysis_set") is False
+            and key.get("limitation_code") == HETEROGENEOUS
+            and key.get("analysis_set") == _summarize_analysis([
+                str(t.get("analysis_set") or "") for t in outcome.get("trials") or []])
+        )
+        for trial in outcome.get("trials") or []:
+            axis = (trial.get("compat_dimensions") or {}).get("analysis_set") or {}
+            span = str(axis.get("span") or "")
+            values = {str(trial.get("analysis_set") or "").lower(),
+                      str(axis.get("value") or "").lower()}
+            if (values & {"pp", "per-protocol", "per protocol"}
+                    or re.search(r"\bper[-\s]+protocol\b", span, re.I)):
+                if disclosed_mix and values == {"per-protocol"}:
+                    continue
+                reasons.append(f"ANALYSIS_SET_MISMATCH: {trial.get('id')}: "
+                               f"per-protocol differs from declared {outcome.get('population')}")
+    return reasons
+
+
 def page_gate_violations(review: dict[str, Any], records: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     return [v for v in check(review, records) if v.get("code") == ASSERTED_NOT_UNDERLYING]
