@@ -1,0 +1,36 @@
+Gemini 3.1 Pro (High)
+eligibility.POPULATION | IMPLEMENTED | CONTRADICTS | Constraint explicitly omits "adults" from terms, contradicting the text span; harness.screen.run also ignores "adults".
+eligibility.INTERVENTION | REQUIRES_ADJUDICATION | OK | Constraint accurately reflects text span.
+eligibility.COMPARATOR | REQUIRES_ADJUDICATION | OK | Constraint accurately reflects text span.
+eligibility.DESIGN | REQUIRES_ADJUDICATION | OK | Constraint accurately reflects text span.
+eligibility.OUTCOME_ASCERTAINMENT | IMPLEMENTED | OVER-CLAIM | harness.screen.run completely ignores outcome ascertainment; it only checks population, intervention, comparator, and design.
+nonaxis.OUTCOME_RESULT_AVAILABILITY | IMPLEMENTED | OVER-CLAIM | harness.screen.run is a static offline screener and does not pursue missing results down the source ladder.
+prose.6 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.7 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.8 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.9 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.10 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.11 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.12 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.13 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.14 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.15 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.16 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.17 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.18 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.19 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.20 | UNIMPLEMENTED | OK | No enforcing function claimed.
+prose.21 | UNIMPLEMENTED | OK | No enforcing function claimed.
+primary.binding | REQUIRES_ADJUDICATION | OK | Constraint accurately extracts binding axes without over-claiming enforcement.
+delivery.strands | IMPLEMENTED | OVER-CLAIM | harness.strands.declarations only verifies JSON config equality, completely ignoring the clause's text on P/I/C, binding axes, and pool candidates.
+PICO.Harms | UNIMPLEMENTED | MISSING | - **O (harms / secondary)** - gastrointestinal adverse events, discontinuation for adverse events, and any further harm outcome the resolved comparator reports.
+Estimand | UNIMPLEMENTED | MISSING | - **Estimand** - hazard ratio (HR), GLP-1 receptor agonist vs placebo.
+Population.ITT | UNIMPLEMENTED | MISSING | - **Population** - intention-to-treat as randomised.
+Timepoint | UNIMPLEMENTED | MISSING | - **Timepoint** - trial end / longest primary cardiovascular outcome follow-up.
+Search.PubMed | UNIMPLEMENTED | MISSING | - PubMed: exact-title sweeps for the large GLP-1 receptor agonist cardiovascular outcome trials in type 2 diabetes (LEADER, SUSTAIN-6, REWIND, HARMONY Outcomes, AMPLITUDE-O, PIONEER-6, EXSCEL, and ELIXA).
+Search.ClinicalTrials | UNIMPLEMENTED | MISSING | - ClinicalTrials.gov: condition "type 2 diabetes cardiovascular", intervention "efpeglenatide".
+Search.FixedScreenNote | UNIMPLEMENTED | MISSING | - Fixed-screen note: several PubMed abstracts for verified double-blind CVOTs do not use the literal phrase "double-blind"; the config therefore does not require that literal abstract/title string, while the protocol eligibility criterion remains double-blind placebo-controlled design.
+Synthesis.Method | UNIMPLEMENTED | MISSING | Random-effects inverse-variance on log(RR); **Paule-Mandel** tau^2; **HKSJ** 95% CI on `t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval `mu +/- t_{k-1}*sqrt(tau^2+se^2)`. DerSimonian-Laird forbidden. Engine validated vs metafor 5.0.1 (<1e-6). For this topic, the poolable input is the published HR + 95% CI path on the same ratio/log scale; 2x2 extraction is available but is not required when a trial reports an HR + CI.
+Comparator | UNIMPLEMENTED | MISSING | Giugliano et al., *Cardiovascular Diabetology* 2021, "GLP-1 receptor agonists and cardiorenal outcomes in type 2 diabetes: an updated meta-analysis of eight CVOTs" (PMID 34526024, DOI 10.1186/s12933-021-01366-8; Unpaywall is_oa=true; PubMed Central PMC8442438). It reports pooled MACE HR 0.86 (95% CI 0.79-0.94) over 8 cardiovascular outcome trials.
+Controls.Positive | UNIMPLEMENTED | MISSING | - **Positive** - the search must recover and include LEADER, SUSTAIN-6, and REWIND.
+Controls.Negative | UNIMPLEMENTED | MISSING | - **Negative** - SELECT (semaglutide, double-blind, placebo-controlled, but obesity without diabetes - another disease population) must be recovered and EXCLUDED by the population rule.
