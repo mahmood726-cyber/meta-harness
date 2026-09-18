@@ -237,3 +237,53 @@ def typed_criteria(md_text):
     """Return typed protocol criteria for consumers that need executable contracts."""
     from . import eligibility_chain
     return eligibility_chain.protocol_criteria(md_text)
+
+
+ELIGIBILITY_HEADING = re.compile(r"^##\s*Eligibility\s*[-—:]?\s*(?:on\s+)?P/I/C/DESIGN\s+ONLY\s*$", re.M | re.I)
+ELIGIBILITY_BULLET = re.compile(r"^\s*[-*]\s*\*\*Eligibility(?:\s*\(([^)]*)\))?\.?\*\*\s*(.+)$", re.M)
+ASCERTAINMENT_PHRASE = "prospectively specified and systematically ascertained"
+RESULT_AVAILABILITY_PHRASES = ("published availability", "availability of the")
+
+
+def eligibility_clause(md_text):
+    """The registered eligibility clause, parsed from the committed prose protocol (the amendment's
+    '- **Eligibility (B-prime).** ...' bullet, or the older '- **Eligibility.** ...' form). Returns None when no
+    clause is present (fail closed: a renderer then prints no rule sentence of its own). The two booleans are what the
+    manuscript's rule sentence is conditioned on -- never a literal: `ascertainment_axis` (the clause makes prospective,
+    systematic ascertainment of the outcome an eligibility axis) and `result_availability_not_axis` (the clause says
+    eligibility does not depend on the availability of the result). Mahmood's review of edaf5f6b (18 Sep 2026), item 3:
+    'outcome ascertainment is an eligibility axis; outcome result availability is not' -- rule A's 'P/I/C/design only'
+    sentence must never render for a topic whose registered clause says otherwise."""
+    matches = list(ELIGIBILITY_BULLET.finditer(md_text or ""))
+    if matches:
+        m = matches[-1]  # the latest dated clause in the amendment history governs
+        label = (m.group(1) or "").strip() or "registered"
+        text = " ".join(m.group(2).split())
+    else:
+        # rule-A protocols: a section heading '## Eligibility - (on) P/I/C/DESIGN only' followed by its rule lines
+        h = ELIGIBILITY_HEADING.search(md_text or "")
+        if not h:
+            return None
+        body = (md_text or "")[h.end():]
+        nxt = re.search(r"^## ", body, re.M)
+        section = body[: nxt.start()] if nxt else body
+        label = "registered (P/I/C/design)"
+        text = " ".join(section.split())[:1200]
+    lowered = text.lower()
+    not_axis = ("does **not** depend" in text or "does not depend" in lowered) and any(p in lowered for p in RESULT_AVAILABILITY_PHRASES)
+    return {"label": label, "text": text, "ascertainment_axis": ASCERTAINMENT_PHRASE in lowered,
+            "result_availability_not_axis": bool(not_axis)}
+
+
+def eligibility_rule_sentence(md_text):
+    """The methods sentence a page may print, derived from the parsed clause. None when nothing is registered."""
+    clause = eligibility_clause(md_text)
+    if clause is None:
+        return None
+    if clause["ascertainment_axis"]:
+        head = f"Eligibility follows the registered {clause['label']} clause: {clause['text']}"
+        if clause["result_availability_not_axis"]:
+            return head + " Outcome ascertainment is an eligibility axis; outcome result availability is not."
+        return head
+    return ("Eligibility is by population, intervention, comparator and design (the registered rule) -- never on whether a "
+            "trial reported the outcome (non-reporters are declared absent, not screened out).")

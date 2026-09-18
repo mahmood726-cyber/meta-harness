@@ -1076,7 +1076,7 @@ def _screening(r, neutral):
     included_phrase = ((f"{_identity_mod.count_phrase(inc_counts, 'trial family')} included")
                        if show_units else f"{n_inc} included")
     body = (_identifier_scope_block(r) + flow + integ_html + f"<p>{len(recs)} records screened; <strong>{included_phrase}</strong>. "
-            "Eligibility is on P/I/C/design only; every record carries a rule id, a "
+            f"{_e(_eligibility_screen_sentence(r))} every record carries a rule id, a "
             "reason true of that record, and a verbatim span quoted from the record.</p>"
             f"<table class='recs'>{head}{rows}</table>")
     pc = s.get("positive_control")
@@ -2652,6 +2652,24 @@ function show(id){document.querySelectorAll('.tab').forEach(function(t){t.classL
 document.querySelectorAll('nav button').forEach(function(b){b.classList.toggle('active',b.dataset.t===id)});}
 (function(){var f=document.querySelector('nav button');if(f)show(f.dataset.t);})();"""
 
+
+
+def _eligibility_screen_sentence(r):
+    """What the SCREEN evaluated, stated from the registered clause: the machine screen tests P/I/C/design; a protocol
+    whose clause adds outcome ascertainment as an axis has that axis recorded as UNRESOLVED per record here (it is
+    established, or not, from held evidence at extraction), never as an exclusion -- derived from
+    harness.protocol_compiler.eligibility_clause, never a literal."""
+    from . import protocol_compiler as _pc
+    text = ((r.get("protocol") or {}).get("text")) if isinstance(r.get("protocol"), dict) else None
+    clause = _pc.eligibility_clause(text or "")
+    if clause is None:
+        return "Eligibility rule NOT PARSABLE from the registered protocol; the screen tested P/I/C/design and says so;"
+    if clause["ascertainment_axis"]:
+        return (f"The machine screen tests population, intervention, comparator and design; the registered {clause['label']} "
+                "clause adds prospective, systematic outcome ascertainment as an eligibility axis, which the screen records "
+                "as UNRESOLVED per record until held evidence establishes it (never an exclusion); outcome result availability "
+                "is not an axis;")
+    return "Eligibility is on P/I/C/design (the registered rule);"
 
 def render_page(review: dict, neutral: bool = False) -> str:
     from .certificate import render as render_certificate

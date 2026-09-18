@@ -235,6 +235,20 @@ def _forest(review):
     return "".join(parts)
 
 
+
+def _eligibility_rule_sentence(review):
+    """The eligibility rule as REGISTERED, derived from the committed protocol prose (harness.protocol_compiler
+    .eligibility_clause) -- never a literal. glp1's B-prime clause makes prospective, systematic outcome ascertainment an
+    eligibility axis and result availability explicitly not one; a topic whose registered rule is P/I/C/design says so;
+    a protocol with no parsable clause gets a stated refusal, not a sentence."""
+    from . import protocol_compiler as _pc
+    text = ((review.get("protocol") or {}).get("text")) if isinstance(review.get("protocol"), dict) else None
+    sentence = _pc.eligibility_rule_sentence(text or "")
+    if sentence is None:
+        return ("Eligibility rule: NOT PARSABLE from the registered protocol text (no eligibility clause located); "
+                "no rule sentence is asserted.")
+    return _e(sentence).replace("**", "")
+
 def render(review, neutral: bool = False) -> str:
     prim = _primary(review)
     if not prim:
@@ -378,9 +392,7 @@ def render(review, neutral: bool = False) -> str:
         "<p>This manuscript is generated deterministically from the review object; every number below is "
         "interpolated from a committed field. Deterministic replay is from the committed cache; "
         "protocol-commit byte reproduction is not claimed. "
-        f"{reg_methods} Eligibility is by population, intervention, "
-        "comparator and design only — never on whether a trial reported the outcome (non-reporters are "
-        "declared absent, not screened out). Two independently implemented rule screeners ran with "
+        f"{reg_methods} {_eligibility_rule_sentence(review)} Two independently implemented rule screeners ran with "
         "adjudication. Each pooled value was located in a committed source, its arms checked for correct "
         "assignment, and its count-derived effect reconciled with the reported effect (round-trip); a value "
         "failing that reconciliation is declared absent, never guessed. Pooling used random effects "
