@@ -1,4 +1,4 @@
-# RESUME_STATE — meta-harness glp1 programme (refreshed 2026-09-18 02:30 local; refresh on every landing or lane finish)
+# RESUME_STATE — meta-harness glp1 programme (refreshed 2026-09-18 02:26 local; refresh on every landing or lane finish)
 
 Every claim is marked MEASURED (read from git/ls-remote/disk at the time stamp), INFERRED, or CLAIMED. A restarting session should trust `git ls-remote https://github.com/mahmood726-cyber/meta-harness.git <ref>` over anything here.
 
@@ -104,3 +104,5 @@ INFERRED: (a) served-page corrections (FIX2 → my integration + ratchet acks �
 - Never do again: hang-kill a lane inside a silent verify_all (window now 30 min); judge patch application by conflicts (file count + working-tree transplant); copy a lane's registry/scorecard over another's (merge by gate_id).
 
 ## 12. 02:30 — served state re-verified by the outside observer through a browser (review_sha256 d67a3615, html_sha256 28d5b5bc, protocol b10c53d3; the three corrections present). Two observer errors recorded as defect classes: a deduplicating fetch tool read as the origin; the stale `C:\meta-harness` tree grepped as the corpus. Still owed: the review-hash-changed landing gate (goes in with HRM3's commit H).
+
+## 13. 02:26 — commit H IN THE HOOK (`commit15.log`, chain `land12.sh` which now runs `scripts/landing_hash_check.py <prev> <new>` before pushing main and refuses if a touched review's review_sha256/html_sha256 did not move): HRM2 merged by HRM3 (199,905 tok) — harms synthesis suppressed 46/61 with ledgers, adjustment labels UNRESOLVED 95/95; 51 ratchet acks signed (the one 'retraction'-marker decrease is two duplicate renderings of a protocol sentence containing 'withdrawn' — measured; retraction_survival 32/32). Codex idle after H; remaining work is landing 4 (blocked on the retrieved_utc decision + search re-run) and the independent search.
