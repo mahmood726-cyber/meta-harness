@@ -789,6 +789,8 @@
           "scale": "HR",
           "provenance": "fulltext_verified",
           "source": "FIDELIO-DKD (PMID 33264825) abstract: 'a primary outcome event occurred in 504 of 2833 patients (17.8%) in the finerenone group and 600 of 2841 patients (21.1%) in the placebo group (hazard ratio, 0.82; 95% confidence interval [CI], 0.73 to 0.93; P=0.001)'. SCALE CORRECTION (override): the abstract extractor pooled the count-derived RR (0.84) from 504/2833 vs 600/2841, creating a mixed HR/RR pool with FIGARO's HR; the trial reports the time-to-event HR 0.82 directly, which is the correct like-for-like estimand.",
+          "endpoint_admissibility": "UNBOUND_LEGACY",
+          "endpoint_binding": "unbound_legacy",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -902,39 +904,30 @@
           "id": "PMID 34449181",
           "source": "abstract source-reported HR (registered estimand): The secondary composite outcome occurred in 350 patients (9.5%) in the finerenone group and in 395 (10.8%) in the placebo group (hazard ratio, 0.87; 95% CI, 0.76 to 1.01).",
           "provenance": "abstract",
-          "target_endpoint_class": "NEAR_MATCH",
+          "target_endpoint_class": "EXACT_TARGET",
           "target_endpoint_source_rank": "published_target_effect",
           "target_endpoint_components": [
-            "cardiovascular death",
-            "heart failure hospitalization",
             "kidney failure",
-            "myocardial infarction",
             "renal death",
-            "stroke",
             "sustained egfr decline"
           ],
           "components": [
-            "cardiovascular death",
-            "heart failure hospitalization",
             "kidney failure",
-            "myocardial infarction",
             "renal death",
-            "stroke",
             "sustained egfr decline"
           ],
-          "target_endpoint_extra_components": [
-            "cardiovascular death",
-            "heart failure hospitalization",
-            "myocardial infarction",
-            "stroke"
-          ],
+          "target_endpoint_extra_components": [],
           "target_endpoint_missing_components": [],
           "results_known_at_rule_time": true,
-          "near_match_reason": "extra components: cardiovascular death, heart failure hospitalization, myocardial infarction, stroke",
+          "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+          "endpoint_result_span": "The secondary composite outcome occurred in 350 patients (9.5%) in the finerenone group and in 395 (10.8%) in the placebo group (hazard ratio, 0.87; 95% CI, 0.76 to 1.01).",
+          "endpoint_definition_span": "The first secondary outcome was a composite of kidney failure, a sustained decrease from baseline of at least 40% in the eGFR, or death from renal causes.",
+          "endpoint_binding_reason": "result sentence names an endpoint; one definition span found",
           "effect": 0.87,
           "ci_low": 0.76,
           "ci_high": 1.01,
           "scale": "HR",
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -1237,30 +1230,12 @@
         "label": "KIDNEY_COMPOSITE_OUTCOME",
         "event_time": "TIME_TO_FIRST_EVENT",
         "components": [
-          "CARDIOVASCULAR_DEATH",
-          "HEART_FAILURE_HOSPITALIZATION",
           "KIDNEY_FAILURE",
-          "MYOCARDIAL_INFARCTION",
           "RENAL_DEATH",
-          "STROKE",
           "SUSTAINED_40_EGFR_DECLINE",
           "SUSTAINED_EGFR_DECLINE"
         ],
         "component_sets": [
-          {
-            "components": [
-              "CARDIOVASCULAR_DEATH",
-              "HEART_FAILURE_HOSPITALIZATION",
-              "KIDNEY_FAILURE",
-              "MYOCARDIAL_INFARCTION",
-              "RENAL_DEATH",
-              "STROKE",
-              "SUSTAINED_EGFR_DECLINE"
-            ],
-            "trials": [
-              "34449181"
-            ]
-          },
           {
             "components": [
               "KIDNEY_FAILURE",
@@ -1269,6 +1244,16 @@
             ],
             "trials": [
               "33264825"
+            ]
+          },
+          {
+            "components": [
+              "KIDNEY_FAILURE",
+              "RENAL_DEATH",
+              "SUSTAINED_EGFR_DECLINE"
+            ],
+            "trials": [
+              "34449181"
             ]
           }
         ],
@@ -1295,30 +1280,12 @@
           "label": "KIDNEY_COMPOSITE_OUTCOME",
           "event_time": "TIME_TO_FIRST_EVENT",
           "components": [
-            "CARDIOVASCULAR_DEATH",
-            "HEART_FAILURE_HOSPITALIZATION",
             "KIDNEY_FAILURE",
-            "MYOCARDIAL_INFARCTION",
             "RENAL_DEATH",
-            "STROKE",
             "SUSTAINED_40_EGFR_DECLINE",
             "SUSTAINED_EGFR_DECLINE"
           ],
           "component_sets": [
-            {
-              "components": [
-                "CARDIOVASCULAR_DEATH",
-                "HEART_FAILURE_HOSPITALIZATION",
-                "KIDNEY_FAILURE",
-                "MYOCARDIAL_INFARCTION",
-                "RENAL_DEATH",
-                "STROKE",
-                "SUSTAINED_EGFR_DECLINE"
-              ],
-              "trials": [
-                "34449181"
-              ]
-            },
             {
               "components": [
                 "KIDNEY_FAILURE",
@@ -1327,6 +1294,16 @@
               ],
               "trials": [
                 "33264825"
+              ]
+            },
+            {
+              "components": [
+                "KIDNEY_FAILURE",
+                "RENAL_DEATH",
+                "SUSTAINED_EGFR_DECLINE"
+              ],
+              "trials": [
+                "34449181"
               ]
             }
           ],
@@ -3994,7 +3971,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "43f5f12e367109bebd37936a8177ef00c6dcf1f6",
-    "review_sha256": "433ee96aefbc9423e20a483f0be317b7a1c97ea568d0edc2e31bdcdb526b74e5",
+    "review_sha256": "51dd05507f17bff490f4590386e1a50e161efd1f20ae0be12cc32758d526f937",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -4129,16 +4106,16 @@
         }
       ],
       "config_sha256": "c4df95b936636ee77e20d9152ea93f00180c0186b87572ac324ab41590c2869e",
-      "analysis_code_sha256": "3bedc0338f83a031cca9854feb22af9b970c7c9b12ef4eff2b6d7661c835198f",
+      "analysis_code_sha256": "81fbc6b07395c9785a58d9a746ae6d18097d73c658a26151fc2902b6b88f9ae2",
       "analysis_code_blobs": {
         "harness/synth.py": "504c2bf2b895c7241962907a25ce0acfa0d63cb7",
-        "harness/pipeline.py": "d0fca1b186157ae9dd81bcf528cda4252553665b",
+        "harness/pipeline.py": "26ffa18734a281e8fc0330702490920bc0aa188e",
         "harness/grade.py": "1a3b570a78889362dee00c1af59d67de9b28fce0",
         "harness/effect_type.py": "NOT_PRESENT",
         "scripts/build_topic.py": "bfd51ffd7d2d8c5296c501cade1a4f6bd19ef896"
       },
       "manuscript_sha256": "c3b0865eac59c07517616150b0362a1329cf7cf564b8e49e168eb3fcb4fcfe94",
-      "review_sha256": "433ee96aefbc9423e20a483f0be317b7a1c97ea568d0edc2e31bdcdb526b74e5",
+      "review_sha256": "51dd05507f17bff490f4590386e1a50e161efd1f20ae0be12cc32758d526f937",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/finerenone-ckd-t2d-renal.md UTF-8 text, universal newlines",
@@ -4157,7 +4134,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "23e2ba2ebf3e4ca7931aacf4ff58c775d78ee3f2a7f2c83c8010e919278198a4"
+      "release_sha256": "522295c4e131abac403fe8520ce13b63c528a31ae1676257762bff93a7b21f54"
     }
   }
 }

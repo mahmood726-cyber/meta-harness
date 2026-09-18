@@ -801,22 +801,25 @@
           "id": "PMID 19717846",
           "source": "abstract source-reported HR (registered estimand): RESULTS: At 12 months, the primary end point--a composite of death from vascular causes, myocardial infarction, or stroke--had occurred in 9.8% of patients receiving ticagrelor as compared with 11.7% ",
           "provenance": "abstract",
-          "target_endpoint_class": "NEAR_MATCH",
+          "target_endpoint_class": "EXACT_TARGET",
           "target_endpoint_source_rank": "published_target_effect",
           "target_endpoint_components": [
+            "cardiovascular death",
             "myocardial infarction",
             "stroke"
           ],
           "components": [
+            "cardiovascular death",
             "myocardial infarction",
             "stroke"
           ],
           "target_endpoint_extra_components": [],
-          "target_endpoint_missing_components": [
-            "cardiovascular death"
-          ],
+          "target_endpoint_missing_components": [],
           "results_known_at_rule_time": true,
-          "near_match_reason": "missing components: cardiovascular death",
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "RESULTS: At 12 months, the primary end point--a composite of death from vascular causes, myocardial infarction, or stroke--had occurred in 9.8% of patients receiving ticagrelor as compared with 11.7% of those receiving clopidogrel (hazard ratio, 0.84; 95% confidence interval [CI], 0.77 to 0.92; P<0.001).",
+          "endpoint_definition_span": "RESULTS: At 12 months, the primary end point--a composite of death from vascular causes, myocardial infarction, or stroke--had occurred in 9.8% of patients receiving ticagrelor as compared with 11.7% of those receiving clopidogrel (hazard ratio, 0.84; 95% confidence interval [CI], 0.77 to 0.92; P<0.001).",
+          "endpoint_binding_reason": "result sentence names its own component set: cardiovascular death, myocardial infarction, stroke",
           "effect": 0.84,
           "ci_low": 0.77,
           "ci_high": 0.92,
@@ -828,11 +831,10 @@
               "source_kind": "reconstruction",
               "registry_title": "Participants With Any Event From the Composite of Death From Vascular Causes, Myocardial Infarction (MI), and Stroke",
               "registry_type": "PRIMARY",
-              "target_endpoint_class": "NEAR_MATCH",
-              "missing_components": [
-                "cardiovascular death"
-              ],
-              "source_rank_kind": "reconstruction"
+              "target_endpoint_class": "EXACT_TARGET",
+              "source_rank_kind": "reconstruction",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
             },
             {
               "candidate_id": "ctgov:2",
@@ -840,11 +842,10 @@
               "source_kind": "reconstruction",
               "registry_title": "Participants With Any Event From the Composite of Death From Vascular Causes, MI, and Stroke for the Subgroup of Patients With Intent for Invasive Management at Randomization",
               "registry_type": "SECONDARY",
-              "target_endpoint_class": "NEAR_MATCH",
-              "missing_components": [
-                "cardiovascular death"
-              ],
-              "source_rank_kind": "reconstruction"
+              "target_endpoint_class": "EXACT_TARGET",
+              "source_rank_kind": "reconstruction",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
             },
             {
               "candidate_id": "ctgov:3",
@@ -856,7 +857,9 @@
               "missing_components": [
                 "cardiovascular death"
               ],
-              "source_rank_kind": "reconstruction"
+              "source_rank_kind": "reconstruction",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
             },
             {
               "candidate_id": "ctgov:4",
@@ -865,10 +868,12 @@
               "registry_title": "Participants With Any Event From the Composite of Death From Vascular Causes, MI (Including Silent), Stroke, Recurrent Ischemia, Transient Ischemic Attack (TIA) and Other Arterial Thrombotic Events.",
               "registry_type": "SECONDARY",
               "target_endpoint_class": "NEAR_MATCH",
-              "missing_components": [
-                "cardiovascular death"
+              "extra_components": [
+                "transient ischemic attack"
               ],
-              "source_rank_kind": "reconstruction"
+              "source_rank_kind": "reconstruction",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
             },
             {
               "candidate_id": "ctgov:5",
@@ -881,22 +886,27 @@
                 "cardiovascular death",
                 "stroke"
               ],
-              "source_rank_kind": "reconstruction"
+              "source_rank_kind": "reconstruction",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
             },
             {
-              "candidate_id": "ctgov:7",
+              "candidate_id": "ctgov:6",
               "source_type": "ctgov_results",
               "source_kind": "reconstruction",
-              "registry_title": "Participants With Stroke",
+              "registry_title": "Participants With Death From Vascular Causes",
               "registry_type": "SECONDARY",
               "target_endpoint_class": "NEAR_MATCH",
               "missing_components": [
-                "cardiovascular death",
-                "myocardial infarction"
+                "myocardial infarction",
+                "stroke"
               ],
-              "source_rank_kind": "reconstruction"
+              "source_rank_kind": "reconstruction",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
             }
           ],
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -1008,6 +1018,8 @@
           "scale": "HR",
           "provenance": "fulltext_verified",
           "source": "PHILO (PMID 26376600, NCT01294462) abstract: composite primary efficacy endpoint (MI, stroke, or death from vascular causes) occurred in 9.0% ticagrelor vs 6.3% clopidogrel (HR, 1.47; 95% CI: 0.88-2.44); Japanese/Taiwanese/South Korean ACS",
+          "endpoint_admissibility": "UNBOUND_LEGACY",
+          "endpoint_binding": "unbound_legacy",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -1285,12 +1297,14 @@
         "label": "TRIAL_DEFINED_MAJOR_CORONARY_CARDIOVASCULAR_COMPOSITE",
         "event_time": "TIME_TO_FIRST_EVENT",
         "components": [
+          "CARDIOVASCULAR_DEATH",
           "MYOCARDIAL_INFARCTION",
           "STROKE"
         ],
         "component_sets": [
           {
             "components": [
+              "CARDIOVASCULAR_DEATH",
               "MYOCARDIAL_INFARCTION",
               "STROKE"
             ],
@@ -1322,12 +1336,14 @@
           "label": "TRIAL_DEFINED_MAJOR_CORONARY_CARDIOVASCULAR_COMPOSITE",
           "event_time": "TIME_TO_FIRST_EVENT",
           "components": [
+            "CARDIOVASCULAR_DEATH",
             "MYOCARDIAL_INFARCTION",
             "STROKE"
           ],
           "component_sets": [
             {
               "components": [
+                "CARDIOVASCULAR_DEATH",
                 "MYOCARDIAL_INFARCTION",
                 "STROKE"
               ],
@@ -1353,14 +1369,14 @@
               "matched": false,
               "values": [
                 "ALL_CAUSE_MORTALITY",
-                "MI | STROKE"
+                "CV_DEATH | MI | STROKE"
               ],
               "missing_trials": [],
               "per_trial": [
                 {
                   "trial": "19717846",
                   "id": "PMID 19717846",
-                  "value": "MI | STROKE",
+                  "value": "CV_DEATH | MI | STROKE",
                   "basis": "canonicalized from trial components"
                 },
                 {
@@ -1432,6 +1448,8 @@
           "selection_rule": "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT",
           "selected_estimator": "reconstructed",
           "alternatives": [],
+          "endpoint_admissibility": "UNBOUND_LEGACY",
+          "endpoint_binding": "unbound_legacy",
           "source_hierarchy_limitations": [
             {
               "code": "MIXED_BY_SOURCE_LIMIT",
@@ -1548,6 +1566,8 @@
           "scale": "HR",
           "provenance": "abstract_verified",
           "source": "Primary safety and efficacy endpoints were time to first occurrence of any major bleeding event and to any event from the composite of myocardial infarction, stroke or death from vascular causes, respectively.At 12 months, overall major bleeding occurred in 10.3% of ticagrelor-treated patients and in 6.8% of clopidogrel-treated patients (hazard ratio (HR), 1.54; 95% confidence interval (CI): 0.94-2.53); the composite primary efficacy endpoint occurred in 9.0% and in 6.3% of ticagrelor- and clopidogrel-treated patients, respectively (HR, 1.47; 95% CI: 0.88-2.44). ",
+          "endpoint_admissibility": "UNBOUND_LEGACY",
+          "endpoint_binding": "unbound_legacy",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -3612,7 +3632,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "3fb64a1e01434eb6ee9ea8a764a84c749270dfff",
-    "review_sha256": "91335d32c5b6b460a63b741238545a8140fa73891de9602b34f65bee3ad1e508",
+    "review_sha256": "759ecb61f51056be428d32ad1bc86868c333b88df1f32288d1388c17060f5492",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -3724,16 +3744,16 @@
         }
       ],
       "config_sha256": "053640ae9f591119c87910c339db0f0fee1cbf07b96f55d792ed81545a57e70f",
-      "analysis_code_sha256": "3bedc0338f83a031cca9854feb22af9b970c7c9b12ef4eff2b6d7661c835198f",
+      "analysis_code_sha256": "81fbc6b07395c9785a58d9a746ae6d18097d73c658a26151fc2902b6b88f9ae2",
       "analysis_code_blobs": {
         "harness/synth.py": "504c2bf2b895c7241962907a25ce0acfa0d63cb7",
-        "harness/pipeline.py": "d0fca1b186157ae9dd81bcf528cda4252553665b",
+        "harness/pipeline.py": "26ffa18734a281e8fc0330702490920bc0aa188e",
         "harness/grade.py": "1a3b570a78889362dee00c1af59d67de9b28fce0",
         "harness/effect_type.py": "NOT_PRESENT",
         "scripts/build_topic.py": "bfd51ffd7d2d8c5296c501cade1a4f6bd19ef896"
       },
       "manuscript_sha256": "0df0f075536cf3665555413dae238757ee5b8de7af0340e6bc3bbe74d4bd3471",
-      "review_sha256": "91335d32c5b6b460a63b741238545a8140fa73891de9602b34f65bee3ad1e508",
+      "review_sha256": "759ecb61f51056be428d32ad1bc86868c333b88df1f32288d1388c17060f5492",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/ticagrelor-vs-clopidogrel-acs.md UTF-8 text, universal newlines",
@@ -3752,7 +3772,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "d6157f3c985c36c1f72f2a4dc71babcc21b8f94d600db4b0cd2ae4748410477c"
+      "release_sha256": "65c91750d3a26100f0bfbf2a9d41f23b553cb27dce715b2e338c9e33607c0d52"
     }
   }
 }
