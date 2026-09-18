@@ -8,11 +8,7 @@
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['coronary', 'myocardial infarction', 'acute coronary', 'stable angina', 'atherosclerotic cardiovascular', 'percutaneous coronary intervention', 'stent restenosis', 'bare-metal stent']; and none of ['pericarditis', 'postpericardiotomy', 'post-pericardiotomy', 'post pericardiotomy', 'atrial fibrillation', 'cardiac surgery', 'coronary artery bypass', 'coronary artery bypass grafting', 'cabg', 'postoperative', 'ablation', 'stroke', 'transient ischemic', 'intracerebral', 'covid', 'osteoarthritis', 'hypertension', 'aortic stenosis', 'gout']; randomised intervention is one of ['colchicine'] (named in title/conditions); a comparator among ['placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
-    "text": "# Protocol - colchicine for secondary cardiovascular prevention\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs. This topic uses the\nsame fixed harness and declared method as the existing colchicine topics.\n\n## PICO\n- **P** - adults with coronary disease or recent myocardial infarction.\n- **I** - low-dose colchicine added to guideline-based medical therapy.\n- **C** - placebo added to guideline-based medical therapy.\n- **O (primary)** - major adverse cardiovascular events (MACE) composite.\n- **O (harms)** - gastrointestinal adverse effects; non-cardiovascular death.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio or other ratio effect as reported by each trial,\n  pooled on the ratio scale by the fixed harness.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / longest planned follow-up for the primary MACE\n  composite.\n\n## Eligibility - on P/I/C/DESIGN only\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is coronary disease or recent myocardial infarction;\n- **I3** - low-dose colchicine versus placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (e.g. pericarditis, postoperative atrial fibrillation,\n  primary stroke-only populations, hypertension, COVID-19, osteoarthritis);\n- **X3** - wrong intervention/comparison (no colchicine-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative\n  control).\n\nEligibility is NOT on the outcome axis. Whether an included trial reports MACE\nin its abstract, gives 2x2 data, gives only an effect plus confidence interval,\nor reports neither extractable form is extraction status only, never a screening\nexclusion.\n\n## Search\n- PubMed: exact landmark-trial title queries for COLCOT and LoDoCo2, plus a\n  colchicine x coronary disease x placebo x randomised/double-blind sweep.\n- ClinicalTrials.gov: condition \"coronary artery disease\", intervention\n  \"colchicine\".\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log ratio effects; Paule-Mandel tau^2; HKSJ\n95% CI on t_{k-1} (floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1} *\nsqrt(tau^2+se^2). 0.5 continuity correction to all four cells of a study only\nif it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor\n5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nFrontiers in Cardiovascular Medicine 2022, \"Colchicine and coronary heart\ndisease risks: A meta-analysis of randomized controlled clinical trials\" (PMID\n36176989, PMC9512890, DOI 10.3389/fcvm.2022.947959; Unpaywall is_oa=true).\nIt reports colchicine reduced MACE (RR 0.65, 95% CI 0.38-0.77) in coronary\natherosclerotic heart disease trials, and reports gastrointestinal and mortality\nsafety outcomes.\n\n## Controls\n- **Positive** - the search must recover and include COLCOT (PMID 31733140) and\n  LoDoCo2 (PMID 32865380).\n- **Negative** - CORP recurrent pericarditis (PMID 21873705), a double-blind\n  placebo colchicine trial from another topic/disease, must be recovered and\n  excluded as the wrong population.\n\n## Retrospective executable-screen amendment (2026-09-16)\n`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that duplicate\nsecondary/economic analyses of already-pooled colchicine cardiovascular trials\nwere being treated as independent eligible trials. The config now excludes\ncost-effectiveness / cost-utility analyses and secondary/subgroup analyses such as\nLoDoCo2 prior-ACS subgroup reports. This amendment changes screening only; primary\ntrial reports remain eligible.\n",
-    "target_endpoint_selection": {
-      "summary": "Target endpoint selector: EXACT_TARGET beats NEAR_MATCH; a near-match may be pooled only when no exact target is held. Within the same endpoint class, source-reported target-estimand effects beat registry effect estimates, which beat crude reconstructions. For multiple registered primaries in the same outcome family, choose the prespecified primary whose component set is closest to the canonical review definition; ties use registration order and alternatives render as sensitivity rows. Rule applied after results were already known in this lane, so the timing is disclosed.",
-      "results_known_at_rule_time": true
-    }
+    "text": "# Protocol - colchicine for secondary cardiovascular prevention\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs. This topic uses the\nsame fixed harness and declared method as the existing colchicine topics.\n\n## PICO\n- **P** - adults with coronary disease or recent myocardial infarction.\n- **I** - low-dose colchicine added to guideline-based medical therapy.\n- **C** - placebo added to guideline-based medical therapy.\n- **O (primary)** - major adverse cardiovascular events (MACE) composite.\n- **O (harms)** - gastrointestinal adverse effects; non-cardiovascular death.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio or other ratio effect as reported by each trial,\n  pooled on the ratio scale by the fixed harness.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - trial end / longest planned follow-up for the primary MACE\n  composite.\n\n## Eligibility - on P/I/C/DESIGN only\nInclude a record iff **all** hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is coronary disease or recent myocardial infarction;\n- **I3** - low-dose colchicine versus placebo;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (e.g. pericarditis, postoperative atrial fibrillation,\n  primary stroke-only populations, hypertension, COVID-19, osteoarthritis);\n- **X3** - wrong intervention/comparison (no colchicine-vs-placebo contrast);\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative\n  control).\n\nEligibility is NOT on the outcome axis. Whether an included trial reports MACE\nin its abstract, gives 2x2 data, gives only an effect plus confidence interval,\nor reports neither extractable form is extraction status only, never a screening\nexclusion.\n\n## Search\n- PubMed: exact landmark-trial title queries for COLCOT and LoDoCo2, plus a\n  colchicine x coronary disease x placebo x randomised/double-blind sweep.\n- ClinicalTrials.gov: condition \"coronary artery disease\", intervention\n  \"colchicine\".\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log ratio effects; Paule-Mandel tau^2; HKSJ\n95% CI on t_{k-1} (floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1} *\nsqrt(tau^2+se^2). 0.5 continuity correction to all four cells of a study only\nif it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs metafor\n5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nFrontiers in Cardiovascular Medicine 2022, \"Colchicine and coronary heart\ndisease risks: A meta-analysis of randomized controlled clinical trials\" (PMID\n36176989, PMC9512890, DOI 10.3389/fcvm.2022.947959; Unpaywall is_oa=true).\nIt reports colchicine reduced MACE (RR 0.65, 95% CI 0.38-0.77) in coronary\natherosclerotic heart disease trials, and reports gastrointestinal and mortality\nsafety outcomes.\n\n## Controls\n- **Positive** - the search must recover and include COLCOT (PMID 31733140) and\n  LoDoCo2 (PMID 32865380).\n- **Negative** - CORP recurrent pericarditis (PMID 21873705), a double-blind\n  placebo colchicine trial from another topic/disease, must be recovered and\n  excluded as the wrong population.\n\n## Retrospective executable-screen amendment (2026-09-16)\n`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that duplicate\nsecondary/economic analyses of already-pooled colchicine cardiovascular trials\nwere being treated as independent eligible trials. The config now excludes\ncost-effectiveness / cost-utility analyses and secondary/subgroup analyses such as\nLoDoCo2 prior-ACS subgroup reports. This amendment changes screening only; primary\ntrial reports remain eligible.\n"
   },
   "search": {
     "n_records": 120,
@@ -2200,6 +2196,8 @@
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
           "alternatives": [],
+          "endpoint_admissibility": "UNBOUND_LEGACY",
+          "endpoint_binding": "unbound_legacy",
           "verified": "verified",
           "verify_basis": "effect present in committed source",
           "design": {
@@ -2229,6 +2227,7 @@
               "validity_critical": false
             }
           },
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "death from cardiovascular causes",
             "resuscitated cardiac arrest",
@@ -2237,7 +2236,6 @@
             "urgent hospitalization for angina leading to coronary revascularization"
           ],
           "analysis_set_literal": "ITT",
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "study_effect": {
             "effect_estimate": 0.77,
             "standard_error": 0.11568435207776077,
@@ -2321,6 +2319,8 @@
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
           "alternatives": [],
+          "endpoint_admissibility": "UNBOUND_LEGACY",
+          "endpoint_binding": "unbound_legacy",
           "verified": "verified",
           "verify_basis": "effect present in committed source",
           "design": {
@@ -2345,15 +2345,15 @@
               "validity_critical": false
             }
           },
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "cardiovascular death",
             "spontaneous myocardial infarction",
             "ischemic stroke",
             "ischemia-driven coronary revascularization"
           ],
-          "analysis_set_literal": "ITT",
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "run_in_enrichment": "active_run_in_gi_intolerance_enriched",
+          "analysis_set_literal": "ITT",
           "study_effect": {
             "effect_estimate": 0.69,
             "standard_error": 0.09586638910873521,
@@ -2437,6 +2437,8 @@
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
           "alternatives": [],
+          "endpoint_admissibility": "UNBOUND_LEGACY",
+          "endpoint_binding": "unbound_legacy",
           "verified": "verified",
           "verify_basis": "effect present in committed source",
           "design": {
@@ -2470,6 +2472,7 @@
               "validity_critical": false
             }
           },
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "death from cardiovascular causes",
             "recurrent myocardial infarction",
@@ -2477,7 +2480,6 @@
             "unplanned ischemia-driven coronary revascularization"
           ],
           "analysis_set_literal": "ITT",
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "study_effect": {
             "effect_estimate": 0.99,
             "standard_error": 0.07932261436146144,
@@ -3665,6 +3667,8 @@
           "selection_rule": "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT",
           "selected_estimator": "reconstructed",
           "alternatives": [],
+          "endpoint_admissibility": "UNBOUND_LEGACY",
+          "endpoint_binding": "unbound_legacy",
           "verified": "verified",
           "verify_basis": "arm counts present in committed source",
           "design": {
@@ -5013,38 +5017,18 @@
         {
           "label": "32865380",
           "id": "PMID 32865380",
-          "source": "abstract source-reported HR (registered estimand): The incidence of death from noncardiovascular causes was higher in the colchicine group than in the placebo group (incidence, 0.7 vs. 0.5 events per 100 person-years; hazard ratio, 1.51; 95% CI, 0.99 ",
-          "provenance": "abstract",
-          "target_endpoint_class": "NEAR_MATCH",
-          "target_endpoint_source_rank": "published_target_effect",
-          "target_endpoint_components": [
-            "cardiovascular death",
-            "coronary revascularization",
-            "myocardial infarction",
-            "stroke"
-          ],
-          "components": [
-            "cardiovascular death",
-            "coronary revascularization",
-            "myocardial infarction",
-            "stroke"
-          ],
-          "target_endpoint_extra_components": [
-            "coronary revascularization",
-            "myocardial infarction",
-            "stroke"
-          ],
-          "target_endpoint_missing_components": [],
-          "results_known_at_rule_time": true,
-          "near_match_reason": "extra components: coronary revascularization, myocardial infarction, stroke",
           "effect": 1.51,
           "ci_low": 0.99,
           "ci_high": 2.31,
           "scale": "HR",
+          "source": "abstract source-reported HR (registered estimand): The incidence of death from noncardiovascular causes was higher in the colchicine group than in the placebo group (incidence, 0.7 vs. 0.5 events per 100 person-years; hazard ratio, 1.51; 95% CI, 0.99 ",
+          "provenance": "abstract",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
           "alternatives": [],
+          "endpoint_admissibility": "UNBOUND_LEGACY",
+          "endpoint_binding": "unbound_legacy",
           "verified": "verified",
           "verify_basis": "effect present in committed source",
           "design": {
@@ -6076,26 +6060,9 @@
       "endpoint_canonical": {
         "label": "TRIAL_DEFINED_MAJOR_CORONARY_CARDIOVASCULAR_COMPOSITE",
         "event_time": "TIME_TO_FIRST_EVENT",
-        "components": [
-          "CARDIOVASCULAR_DEATH",
-          "CORONARY_REVASCULARIZATION",
-          "MYOCARDIAL_INFARCTION",
-          "STROKE"
-        ],
-        "component_sets": [
-          {
-            "components": [
-              "CARDIOVASCULAR_DEATH",
-              "CORONARY_REVASCULARIZATION",
-              "MYOCARDIAL_INFARCTION",
-              "STROKE"
-            ],
-            "trials": [
-              "32865380"
-            ]
-          }
-        ],
-        "status": "HOMOGENEOUS"
+        "components": [],
+        "component_sets": [],
+        "status": "NOT_DECLARED"
       },
       "compat_key": {
         "effect_measure": [
@@ -6104,7 +6071,7 @@
         "event_process": [
           "FIRST_EVENT_RATIO"
         ],
-        "endpoint": "TRIAL_DEFINED_MAJOR_CORONARY_CARDIOVASCULAR_COMPOSITE",
+        "endpoint": "trial-defined Non-cardiovascular death (definitions listed per trial)",
         "follow_up_window": null,
         "analysis_set": null,
         "analysis_set_declared": null,
@@ -6117,56 +6084,16 @@
         "endpoint_canonical": {
           "label": "TRIAL_DEFINED_MAJOR_CORONARY_CARDIOVASCULAR_COMPOSITE",
           "event_time": "TIME_TO_FIRST_EVENT",
-          "components": [
-            "CARDIOVASCULAR_DEATH",
-            "CORONARY_REVASCULARIZATION",
-            "MYOCARDIAL_INFARCTION",
-            "STROKE"
-          ],
-          "component_sets": [
-            {
-              "components": [
-                "CARDIOVASCULAR_DEATH",
-                "CORONARY_REVASCULARIZATION",
-                "MYOCARDIAL_INFARCTION",
-                "STROKE"
-              ],
-              "trials": [
-                "32865380"
-              ]
-            }
-          ],
-          "status": "HOMOGENEOUS"
+          "components": [],
+          "component_sets": [],
+          "status": "NOT_DECLARED"
         },
-        "endpoint_canonical_status": "HOMOGENEOUS"
-      },
-      "compat_direction": {
-        "dimensions": [
-          {
-            "dimension": "endpoint_definition",
-            "label": "Endpoint definition",
-            "key_direction": "CONSISTENT",
-            "asserted_key_state": "homogeneous",
-            "rendered_warning_state": "not_asserted",
-            "underlying": {
-              "derivable": true,
-              "matched": true,
-              "values": [
-                "CV_DEATH | CORONARY_REVASCULARIZATION | MI | STROKE"
-              ],
-              "missing_trials": [],
-              "per_trial": [
-                {
-                  "trial": "32865380",
-                  "id": "PMID 32865380",
-                  "value": "CV_DEATH | CORONARY_REVASCULARIZATION | MI | STROKE",
-                  "basis": "canonicalized from trial components"
-                }
-              ]
-            },
-            "n_trials": 1
-          }
-        ]
+        "endpoint_canonical_status": "NOT_DECLARED",
+        "dimension_matches": {
+          "endpoint": false
+        },
+        "underlying_checked": true,
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS"
       },
       "recovery_recheck": {
         "hard_incompatible": false,
@@ -6177,6 +6104,23 @@
         "k": 1,
         "reconstructed_members": [],
         "label_mix_small_k": false
+      },
+      "compat_underlying": {
+        "status": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "dimensions": [
+          "endpoint"
+        ],
+        "per_trial": {
+          "endpoint": [
+            {
+              "trial_id": "32865380",
+              "trial_label": "32865380",
+              "value": "primary end point was a composite of cardiovascular death, spontaneous (nonprocedural) myocardial infarction, ischemic stroke, or ischemia-driven coronary revascularization",
+              "source": "committed source text",
+              "span": "ed patients with chronic coronary disease to receive 0.5 mg of colchicine once daily or matching placebo. The primary end point was a composite of cardiovascular death, spontaneous (nonprocedural) myocardial infarction, ischemic stroke, or ischemia-driven coronary revascularization. The key secondary end point was a composite of cardiovascular death, spontaneous myocardial infarction, or i"
+            }
+          ]
+        }
       }
     }
   ],
@@ -7276,7 +7220,7 @@
   },
   "compat_underlying": {
     "checked": true,
-    "n_pre_fix_asserted_not_underlying": 3,
+    "n_pre_fix_asserted_not_underlying": 4,
     "n_post_fix_asserted_not_underlying": 0,
     "pre_fix_violations": [
       {
@@ -7351,6 +7295,22 @@
             "value": "Gastrointestinal adverse effects",
             "source": "outcome.name",
             "span": "Gastrointestinal adverse effects"
+          }
+        ],
+        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
+      },
+      {
+        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
+        "outcome": "Non-cardiovascular death",
+        "dimension": "endpoint",
+        "asserted": "TRIAL_DEFINED_MAJOR_CORONARY_CARDIOVASCULAR_COMPOSITE",
+        "per_trial_values": [
+          {
+            "trial_id": "32865380",
+            "trial_label": "32865380",
+            "value": "primary end point was a composite of cardiovascular death, spontaneous (nonprocedural) myocardial infarction, ischemic stroke, or ischemia-driven coronary revascularization",
+            "source": "committed source text",
+            "span": "ed patients with chronic coronary disease to receive 0.5 mg of colchicine once daily or matching placebo. The primary end point was a composite of cardiovascular death, spontaneous (nonprocedural) myocardial infarction, ischemic stroke, or ischemia-driven coronary revascularization. The key secondary end point was a composite of cardiovascular death, spontaneous myocardial infarction, or i"
           }
         ],
         "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
@@ -9531,7 +9491,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9",
-    "review_sha256": "edd22816678d8737cd418da28b73f3b86e74503b870568ef7d11f631a679bb6e",
+    "review_sha256": "7a6f8eb56cc435ba1f6ad11a489d662a7e71e86066077e0d359adbd44ac4c74f",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -9679,16 +9639,16 @@
         }
       ],
       "config_sha256": "ce5daab70cc053271f088b14e44a9a7941fa5e183a91eb1020b277d1e2cc6ef3",
-      "analysis_code_sha256": "3bedc0338f83a031cca9854feb22af9b970c7c9b12ef4eff2b6d7661c835198f",
+      "analysis_code_sha256": "81fbc6b07395c9785a58d9a746ae6d18097d73c658a26151fc2902b6b88f9ae2",
       "analysis_code_blobs": {
         "harness/synth.py": "504c2bf2b895c7241962907a25ce0acfa0d63cb7",
-        "harness/pipeline.py": "d0fca1b186157ae9dd81bcf528cda4252553665b",
+        "harness/pipeline.py": "26ffa18734a281e8fc0330702490920bc0aa188e",
         "harness/grade.py": "1a3b570a78889362dee00c1af59d67de9b28fce0",
         "harness/effect_type.py": "NOT_PRESENT",
         "scripts/build_topic.py": "bfd51ffd7d2d8c5296c501cade1a4f6bd19ef896"
       },
       "manuscript_sha256": "8edc8b1de679382bed2f29c6e2351c937e3038ef803c9a1f9981da1e6619473a",
-      "review_sha256": "edd22816678d8737cd418da28b73f3b86e74503b870568ef7d11f631a679bb6e",
+      "review_sha256": "7a6f8eb56cc435ba1f6ad11a489d662a7e71e86066077e0d359adbd44ac4c74f",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/colchicine-secondary-cv-prevention.md UTF-8 text, universal newlines",
@@ -9707,7 +9667,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "237df79252fac899b663dd2800b459c2891d5c69f41f5469269c27d23a654dfe"
+      "release_sha256": "847b9a7a87f8ae2c5caee965bf76ff59edbb9909d706fe937c7156abc7d8c8c9"
     }
   }
 }

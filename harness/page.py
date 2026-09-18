@@ -1341,6 +1341,20 @@ def _trial_inputs(o):
                 src += ("<div class='ident'><em>multiple registered primaries:</em> "
                         f"{_e(rp.get('n_registered_primaries_in_family'))} in outcome family; "
                         f"{_e(rp.get('rule'))}; rule timing: applied after results were known.</div>")
+        # ENDPOINT BINDING (external review of glp1 edaf5f6b, defect 1): the number's own result span and
+        # the definition span it was classified against, plus the admissibility verdict every route
+        # passes. A hand-verified row with no span binding says so (unbound_legacy) rather than looking bound.
+        if t.get("endpoint_binding") or t.get("endpoint_admissibility"):
+            eb = [f"binding: {t.get('endpoint_binding') or 'unbound'}",
+                  f"admissibility: {t.get('endpoint_admissibility') or 'not evaluated'}"]
+            src += "<div class='ident'><em>endpoint binding:</em> " + _e("; ".join(eb))
+            if t.get("endpoint_definition_span"):
+                src += (f"<br><span class='muted'>definition span: "
+                        f"{_e(' '.join(str(t.get('endpoint_definition_span')).split()))}</span>")
+            if t.get("endpoint_result_span") and t.get("endpoint_result_span") != t.get("endpoint_definition_span"):
+                src += (f"<br><span class='muted'>result span: "
+                        f"{_e(' '.join(str(t.get('endpoint_result_span')).split()))}</span>")
+            src += "</div>"
         # DERIVATION provenance: is this the trial's OWN reported effect, or a harness reconstruction
         # from arm-level data? Both legitimate; labelling prevents 'the trial's own effect' on a number
         # the harness computed (the melatonin -17.4 defect).
@@ -1455,6 +1469,20 @@ def _trial_inputs(o):
             )
         if span:
             reason_detail += f"<br><span class='muted'>span: {_e(span)}</span>"
+        if t.get("endpoint_admissibility"):
+            rf = t.get("refused_effect") or {}
+            if rf.get("effect") is not None:
+                reason_detail += (f"<br><span class='muted'>refused number (not pooled): {_e(rf.get('scale'))} "
+                                  f"{_num(rf.get('effect'))} (95% CI {_num(rf.get('ci_low'))}–{_num(rf.get('ci_high'))})</span>")
+            elif rf.get("ai") is not None:
+                reason_detail += (f"<br><span class='muted'>refused counts (not pooled): {_e(rf.get('ai'))}/{_e(rf.get('n1i'))} "
+                                  f"vs {_e(rf.get('ci'))}/{_e(rf.get('n2i'))}</span>")
+            if t.get("endpoint_definition_span"):
+                reason_detail += (f"<br><span class='muted'>definition span: "
+                                  f"{_e(' '.join(str(t.get('endpoint_definition_span')).split()))}</span>")
+            if t.get("endpoint_result_span") and t.get("endpoint_result_span") != t.get("endpoint_definition_span"):
+                reason_detail += (f"<br><span class='muted'>result span: "
+                                  f"{_e(' '.join(str(t.get('endpoint_result_span')).split()))}</span>")
         if t.get("state_basis"):
             reason_detail += f"<br><span class='muted'>basis: {_e(t.get('state_basis'))}</span>"
         if t.get("completeness_state"):
@@ -1809,7 +1837,10 @@ def _reason_code_audit_block(r):
     if rows:
         detail = ("<table class='arms'><tr><th>Trial</th><th>Outcome</th><th>Code</th>"
                   "<th>Audit verdict</th><th>Held source</th></tr>"
-                  + "".join(rows[:12]) + "</table>")
+                  # every audited row is rendered: a display cap hid the last row whenever a new
+                  # refusal was added at the top (the honest-state marker count fell while the audit
+                  # grew) -- a count must never be quieter than its own table
+                  + "".join(rows) + "</table>")
     return (
         "<div class='audit-block'><h3>Reason-code audit</h3>"
         f"<p><strong>{_e(rc.get('REASON_FALSE_VALUE_HELD', 0))} of {_e(ra.get('N', 0))}</strong> "

@@ -1124,6 +1124,24 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                     t["cross_source"] = cs
             trials.append(t)
             continue
+        # WRONG-ENDPOINT REFUSAL (external review of served glp1 edaf5f6b, defect 1): the selector found a
+        # number in the held source but its bound endpoint span is NOT the declared outcome (a component
+        # alone, a different composite, or a span it could not bind). That is a typed refusal for THIS
+        # trial, rendered with the refused number and both spans. It must NOT fall through to the legacy
+        # abstract/registry/full-text routes below, which would pool the same number with no class.
+        if target_pick.get("refusal"):
+            rf = target_pick["refusal"]
+            absent.append({"label": label, "id": idstr, "absent_kind": "refused_on_evidence",
+                           "state": "REFUSED_ON_EVIDENCE", "reason_code": rf.get("reason_code"),
+                           "endpoint_admissibility": rf.get("reason_code"),
+                           "endpoint_binding": rf.get("endpoint_binding"),
+                           "endpoint_result_span": rf.get("endpoint_result_span"),
+                           "endpoint_definition_span": rf.get("endpoint_definition_span"),
+                           "target_endpoint_class": rf.get("target_endpoint_class"),
+                           "refused_effect": rf.get("refused_effect"),
+                           "source": rf.get("source") or "", "provenance": "abstract",
+                           "reason": rf.get("reason") or "endpoint not admissible"})
+            continue
         # SOURCE HIERARCHY: the ABSTRACT headline (the authors' primary-outcome result, unambiguous)
         # first; CT.gov structured results as the FALLBACK when the abstract yields no extractable
         # number (bare %, composite-only). CT.gov-first was tried and REJECTED: outcome-measure
@@ -1228,6 +1246,12 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "source": ve.get("source", "full-text-verified effect+CI")})
             continue
         absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
+    # MANDATORY ADMISSIBILITY (every route converges here): a row is pooled only if its bound endpoint
+    # is the declared outcome. Exact targets pass; a near match passes only under the outcome's explicit
+    # `allow_near_match` declaration with nothing missing; unbound/different/component-only rows are
+    # refused with the number they carried and both spans, so a reader sees what was refused and why.
+    trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
+    absent.extend(_inadmissible)
     if eligibility_contract:
         kept = []
         for trial in trials:
