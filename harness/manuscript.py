@@ -75,6 +75,15 @@ def _primary(review):
     return next((o for o in review.get("outcomes", []) if o.get("primary")), None)
 
 
+def _verification_phrase(review):
+    trials = [t for o in review.get("outcomes", []) for t in o.get("trials", [])]
+    if trials and all(t.get("verified") in ("verified", "verified_handchecked") for t in trials):
+        return ("Every pooled row carries a positive source-digit verification state. "
+                "This does not establish correct arm assignment, outcome identity or independent verification.")
+    return ("SOURCE_VERIFICATION_UNPROVEN: positive source-digit verification is not established "
+            "for every pooled row in this review object.")
+
+
 def object_numerals(review):
     """The set of numeral strings the manuscript is ALLOWED to print — every one derived from a committed
     object field. The gate limb checks the rendered manuscript's risky numerals against this set."""
@@ -335,8 +344,7 @@ def render(review, neutral: bool = False) -> str:
                            "quantity without an explicit, source-backed conversion. The per-trial estimates "
                            "are reported and each coherent strand must be pooled separately.")
     elif res.get("present") is False or k is None:
-        result_sentence = ("No eligible trial reported the primary outcome with an extractable, "
-                           "source-verified estimate, so it is declared absent rather than pooled.")
+        result_sentence = ('PRIMARY_RESULT_UNAVAILABLE: the result object supplies no poolable primary estimate; this does not establish that eligible trials failed to report the outcome.')
     elif k == 1:
         result_sentence = (f"A single eligible trial contributed an extractable estimate: {scale} "
                            f"{est} (95% CI {lo} to {hi}); with k=1 no between-trial heterogeneity or "
@@ -368,9 +376,8 @@ def render(review, neutral: bool = False) -> str:
         "<h4>Abstract</h4>"
         f"<p><strong>Question.</strong> {_e(q)}</p>"
         f"<p><strong>Methods.</strong> This review is {reg_phrase}. {_search_phrase} "
-        f"Records were screened by two independent rule screeners with adjudication ({n_screened} records "
-        f"assessed); every pooled number was extracted down a source ladder and verified against its "
-        f"committed source. (Deterministic replay establishes that the same committed cache produces the same "
+        f"The screening log contains {n_screened} records. {_verification_phrase(review)} "
+        f"(Deterministic replay establishes that the same committed cache produces the same "
         f"page; it does not validate search completeness or extraction, and byte-for-byte reproduction from "
         f"the protocol SHA is not currently claimed — see Data availability.)</p>"
         f"<p><strong>Results.</strong> {result_sentence} "
@@ -392,10 +399,9 @@ def render(review, neutral: bool = False) -> str:
         "<p>This manuscript is generated deterministically from the review object; every number below is "
         "interpolated from a committed field. Deterministic replay is from the committed cache; "
         "protocol-commit byte reproduction is not claimed. "
-        f"{reg_methods} {_eligibility_rule_sentence(review)} Two independently implemented rule screeners ran with "
-        "adjudication. Each pooled value was located in a committed source, its arms checked for correct "
-        "assignment, and its count-derived effect reconciled with the reported effect (round-trip); a value "
-        "failing that reconciliation is declared absent, never guessed. Pooling used random effects "
+        f"{reg_methods} {_eligibility_rule_sentence(review)} {_verification_phrase(review)} "
+        "ARM_ASSIGNMENT_UNPROVEN: the manuscript does not infer arm assignment or round-trip "
+        "reconciliation from a source-digit verification flag. Pooling used random effects "
         "(Paule-Mandel &tau;&sup2; with a Hartung-Knapp interval on t with k&minus;1 df; log scale for ratios).</p>"
     )
 

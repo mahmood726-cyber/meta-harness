@@ -569,7 +569,7 @@ def check_propositions(review: dict[str, Any], registries: dict[str, Any] | None
 def check_document(review: dict[str, Any]) -> dict[str, Any]:
     violations = check_propositions(review)
     return {
-        "checked": True,
+        "checked": not violations,
         "scope_counts": scope_counts(review),
         "scope": {
             "scope_counts": scope_counts(review),

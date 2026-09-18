@@ -1,0 +1,51 @@
+--- a/harness/census.py
++++ b/harness/census.py
+@@ -70,6 +70,7 @@
+     core = dict(review_core_obj)
+     core.pop("reproduction", None)
+     checked = 0
++    scanned_surfaces = set()
+     contradictions = []
+     for o in core.get("outcomes", []):
+         res = o.get("result")
+@@ -78,23 +79,24 @@
+         cl = res.get("claim") or claim.derive(res)
+         if not cl.get("present"):
+             continue
+-        checked += 1
+         surfaces = {}
+         try:
+             surfaces["outcome block"] = page.render_outcome_block(o)
+-        except Exception:
+-            pass
++        except Exception as exc:
++            raise RuntimeError("CLAIM_SURFACE_RENDER_FAILED: outcome block") from exc
+         if o.get("primary"):
+             for name, fn in (("overview", page.render_overview), ("manuscript", page.render_manuscript)):
+                 try:
+                     surfaces[name] = fn(core)
+-                except Exception:
+-                    pass
++                except Exception as exc:
++                    raise RuntimeError("CLAIM_SURFACE_RENDER_FAILED: " + name) from exc
++        checked += 1
++        scanned_surfaces.update(surfaces)
+         for c in claim.significance_contradictions(cl, surfaces):
+             contradictions.append({"outcome": o.get("name"), **c})
+     scope_counts = claimgraph.scope_counts(core, checked)
+-    surfaces = ["outcome block", "overview", "manuscript"]
+-    checked_total = checked + scope_counts.get("strand_pool", 0)
++    surfaces = sorted(scanned_surfaces)
++    checked_total = checked
+     scope = {
+         "counts": scope_counts,
+         "surfaces_checked": surfaces,
+@@ -220,7 +222,7 @@
+     _prop_doc = propositions.check_document(review_core_obj)
+     _pbad = _pbad + (_prop_doc.get("contradictions") or [])
+     reproduction["proposition_check"] = {
+-        "checked": True,
++        "checked": _prop_doc.get("checked") is True and not _pbad,
+         "contradictions": _pbad,
+         "legacy_contradictions": proposition.contradictions(review_core_obj),
+         "scope_counts": _prop_doc.get("scope_counts") or {},

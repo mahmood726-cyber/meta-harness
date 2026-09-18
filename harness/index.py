@@ -14,21 +14,10 @@ from . import parity_relation
 
 _E = lambda x: html.escape("" if x is None else str(x), quote=True)
 
-_FRONT = """<div class="banner">
-<h2>What this is</h2>
-<p>A reproducible harness that builds meta-analyses from a committed protocol, and
-publishes each as a tabbed, auditable page. Every page here passed a two-limb gate:
-it reproduces from a fresh clone with zero census failures and its served analysis
-method equals its declared method; and it names a published open-access comparator
-with the trial-set overlap stated.</p>
-<h2>What this is not</h2>
-<p>It is <strong>not</strong> a claim of stronger evidence than the peer-reviewed
-comparators. The offer is <strong>greater auditability</strong>: every number is
-traceable to a committed source, every absence is declared rather than left blank,
-and any hand-edit breaks the gate. A page whose estimate matches its comparator on
-an identical trial set is arithmetic, not corroboration &mdash; so the overlap is
-stated on every page.</p>
-</div>"""
+_FRONT = """<div class="banner"><h2>What this is</h2>
+<p>A harness for generating meta-analysis pages from committed inputs. Gate results
+and source evidence must be inspected for each page; this index does not establish
+fresh-clone reproduction, complete source coverage, or comparative superiority.</p></div>"""
 
 _CSS = """body{font:15px/1.55 system-ui,Segoe UI,Arial,sans-serif;margin:0;color:#12232e;background:#f7f8fa}
 header{background:#12232e;color:#fff;padding:20px 22px}header h1{margin:0;font-size:21px}
@@ -69,17 +58,7 @@ def _parity_section(docs_dir: str) -> str:
                     if (r.get("parity_relation") or {}).get("relation") == "IDENTICAL_SET")
     color = {"IDENTICAL_SET": "#e6f4ea", "DOMINANT_SUBSET": "#fff8e1", "SUPERSET": "#fff8e1",
              "SUBSET": "#fff8e1", "OVERLAPPING": "#fff8e1"}
-    body = (f"<div class='banner'><h2>Parity with the published comparator (the finishing metric)</h2>"
-            f"<p>For each same-scope topic: our pooled <em>k</em> vs the <strong>comparable</strong> "
-            f"comparator <em>k</em> (the comparator's pooled list, enumerated from its own references/"
-            f"full text, after removing trials that are out of scope, double-counted substudies, "
-            f"observational, or non-prespecified for the outcome). <strong>{identical} of {len(rows)}</strong> "
-            f"topics with parity rows have an identical computed trial set; identical-set agreement is "
-            f"arithmetic replication, not independent corroboration. Every remaining relation has a named reason. "
-            f"This is a measurement snapshot (the enumeration is model-assisted; scope calls are "
-            f"assessments, and each pooled recovery was verified against source before it counted).</p>"
-            "<table><tr><th>Topic</th><th>Our k</th><th>Comparator k</th><th>Computed relation</th>"
-            "<th>Named reason for any difference</th></tr>")
+    body = (f"<div class='banner'><h2>Parity with the published comparator (the finishing metric)</h2><p>For each same-scope topic: our pooled <em>k</em> vs the <strong>comparable</strong> comparator <em>k</em> (the comparator's pooled list, enumerated from its own references/full text, after removing trials that are out of scope, double-counted substudies, observational, or non-prespecified for the outcome). <strong>{identical} of {len(rows)}</strong> topics with parity rows have an identical computed trial set; identical-set agreement is arithmetic replication, not independent corroboration. Named reasons come from the parity record. SOURCE_VERIFICATION_UNPROVEN: parity membership does not establish source verification of each recovery.</p><table><tr><th>Topic</th><th>Our k</th><th>Comparator k</th><th>Computed relation</th><th>Named reason for any difference</th></tr>")
     for r in enriched:
         rel = r.get("parity_relation") or {}
         st = str(rel.get("relation") or r.get("status", ""))
@@ -156,21 +135,9 @@ def _recovery_section(docs_dir: str) -> str:
         + (f" <span class='muted'>{_E(a.get('note'))}</span>" if a.get('note') else "") + "</li>"
         for a in (d.get("attempts") or []))
     rd = d.get("recall_denominator") or {}
-    recall_line = (f"<p><strong>Baseline unaided search recall: {_E(rd.get('baseline_unaided_recall'))}</strong> "
-                   f"&mdash; against the {_E(rd.get('clean_eligible_denominator'))} source-verified-eligible "
-                   f"missing trials. Every one is a confirmed miss of the current search; this is the honest "
-                   f"zero from which search improvement is measured. Recall is computed ONLY against "
-                   f"source-verified-eligible entries &mdash; the test set itself contained "
-                   f"{_E((sb.get('test_set_errors_found') or 0))} errors, caught by source verification.</p>"
+    recall_line = (f"<p><strong>Baseline unaided search recall: {_E(rd.get('baseline_unaided_recall'))}</strong> &mdash; against the {_E(rd.get('clean_eligible_denominator'))} entries labelled source-verified-eligible in the historical recovery record. CURRENT_RECALL_UNPROVEN: this snapshot does not establish misses of the current search; its recorded test-set error count is {_E(sb.get('test_set_errors_found') or 0)} errors, caught by source verification.</p>"
                    if rd else "")
-    return (f"<div class='banner'><h2>Recovery scoreboard &mdash; corrections are not systematically "
-            f"flattering</h2>{recall_line}<p><strong>{sb.get('recovered')} recovered of {sb.get('attempted')} "
-            f"attempted</strong>: {sb.get('tightened')} tightened, {sb.get('cost_significance')} lost "
-            f"significance, {sb.get('toward_null_stayed_nonsig')} moved toward the null; "
-            f"{sb.get('refused_on_source')} refused on source, {sb.get('scope_pending')} held on scope. "
-            f"Every recovery is source-verified (audit-relayed numbers are not sources); the vocabulary "
-            f"blind spot is measured by where a recovery BREAKS, not by a forward scan that over-counts."
-            f"<ul>{rows}</ul></p></div>")
+    return (f"<div class='banner'><h2>Recovery scoreboard &mdash; corrections are not systematically flattering</h2>{recall_line}<p><strong>{sb.get('recovered')} recovered of {sb.get('attempted')} attempted</strong>: {sb.get('tightened')} tightened, {sb.get('cost_significance')} lost significance, {sb.get('toward_null_stayed_nonsig')} moved toward the null; {sb.get('refused_on_source')} refused on source, {sb.get('scope_pending')} held on scope. SOURCE_VERIFICATION_UNPROVEN: recovery status alone does not establish source verification; consult each attempt and its source evidence.<ul>{rows}</ul></p></div>")
 
 
 def _participant_flow_section(docs_dir: str) -> str:
@@ -320,7 +287,7 @@ def _external_findings_section(docs_dir: str) -> str:
         f"[verification {_E(r.get('verification'))}]</li>" for r in rows)
     return (f"<div class='absent'><h2>{_E(heading)}</h2>"
             f"<p><strong>{len(rows)}</strong> findings recorded, <strong>{n_none}</strong> with verification NONE and "
-            f"<strong>{len(rows) - n_none}</strong> confirmed by an outside party. Applying the same instrument to a comparator "
+            f"<strong>{len(rows) - n_none}</strong> with a verification label other than NONE (not necessarily external confirmation). Applying the same instrument to a comparator "
             "and to our own pool establishes procedural symmetry, not instrument validity: a blind spot in our checker misses "
             "the same defect in both. These are hypotheses, promoted only by external source checking; the sentence "
             "\"our instrument found n problems in them and m in us\" is not evidence of anything and is not written here. "
@@ -400,13 +367,10 @@ def _verification_section(docs_dir: str) -> str:
                     ok += 1
     if not n:
         return ""
-    return (f"<div class='banner'><h2>Every pooled number is verified against its source "
-            f"(gate-enforced)</h2><p><strong>All {ok} of {n} pooled trial-outcome numbers</strong> across "
-            f"these pages have their digits located in the committed source span they cite (arm counts, "
-            f"effect+CI, or per-arm mean/SD). A publication-gate limb "
-            f"(<code>check_pooled_verified</code>) <strong>refuses any page that pools a number not found "
-            f"in its source</strong>, so this cannot silently stop being true. No published meta-analysis "
-            f"makes — or can be forced to keep — this claim about every one of its numbers.</p></div>")
+    return (f"<div class='banner'><h2>Recorded source-digit verification states</h2>"
+            f"<p><strong>{ok} of {n} pooled trial-outcome numbers</strong> carry a positive "
+            "verification state. This count does not independently establish source-span validity, "
+            "arm assignment, or publication-gate success.</p></div>")
 
 
 def _error_coverage_section(docs_dir: str) -> str:
@@ -478,32 +442,13 @@ def _error_rate_section(docs_dir: str) -> str:
                 f"The live inventory contains {d.get('current_pooled_population')} pooled rows; "
                 f"{d.get('not_independently_rechecked_current')} are explicitly NOT_INDEPENDENTLY_RECHECKED. "
                 "The inventory refresh does not increase the historical independent-verification numerator.</em> ")
-    return (f"<div class='banner'><h2>We measured our own error rate (no meta-analysis reports this about "
-            f"itself)</h2>"
-            f"<p>{prov}Every claim the harness makes rests on the assumption that its numbers are right. So we "
-            f"measured it: all <strong>{pop}</strong> pooled numbers were independently re-extracted from the "
-            f"committed source by an offline checker <strong>blind to the stored value</strong>, then compared "
-            f"deterministically. <strong>{rv} of {pop}</strong> were re-extractable from the same source the "
-            f"checker was given; <strong>{ex} of {rv} matched exactly</strong> (&lsquo;exactly&rsquo; = the "
-            f"effect and both confidence limits agree to the rounding of the source's printed precision, and "
-            f"counts agree as integers). The "
-            f"<strong>{dis}</strong> disagreements were hand-adjudicated against source: on adjudication "
-            f"<strong>{err}</strong> was a genuine error on our side "
-            f"(a gastrointestinal-adverse-event outcome that had pooled the trial's OVERALL adverse-event "
-            f"count &mdash; a wrong endpoint that had passed every gate; found here and fixed), and the "
-            f"remainder were checker-side (an incidence-rate ratio the checker called a plain rate ratio "
-            f"with identical numbers; an on-treatment vs intention-to-treat estimand choice where our ITT "
-            f"value is the standard one). The other <strong>{nr}</strong> numbers source from "
-            f"ClinicalTrials.gov results or full text, so they were not re-checkable from the abstract and "
-            f"are not counted as verified here. <strong>The pre-adjudication disagreement rate was {dis} of "
-            f"{rv}</strong>"
-            + (f" (Wilson 95% CI {round(lo*100,1)}&ndash;{round(hi*100,1)}%)" if lo is not None else "")
-            + ". <strong>The honest caveat that makes this credible:</strong> the blind checker and the "
-            "extractor share a model architecture, so this is an <strong>internal-consistency</strong> "
-            "measure, not an independent accuracy estimate &mdash; a genuinely independent, cross-family "
-            "(non-Claude) re-extraction is the stronger check, and is being built. It is nonetheless the "
-            "single most important number the project lacked, and it is measured, adjudicated, and "
-            "reproducible from <code>scripts/error_rate_compare.py</code>.</p></div>")
+    return (f"<div class='banner'><h2>Historical internal error-rate measurement</h2><p>{prov}"
+            "The historical record labels this exercise 'measured our own error rate'; it is an "
+            "internal-consistency comparison. "
+            f"The record reports {rv} of {pop} rows re-extractable, {ex} of {rv} matched exactly, {dis} disagreements, "
+            f"{err} labelled internal errors and {nr} not re-checkable. "
+            "These counters do not establish independent errors, current pool coverage or successful repairs. "
+            "Consult the per-row comparison and adjudication records.</p></div>")
 
 
 def _external_agreement_section(docs_dir: str) -> str:
@@ -593,21 +538,7 @@ def _crossfamily_section(docs_dir: str) -> str:
     if agree is None or rate is None:
         return ""
     comp = agree + (dis or 0)
-    return (f"<div class='banner'><h2>Independent cross-family check &mdash; the fix for &lsquo;everything is "
-            f"self-assessed&rsquo;</h2>"
-            f"<p>Our checker and our error-rate sampler share a model architecture with our extractor, so the "
-            f"internal error rate is a consistency measure, not independent accuracy. So a <strong>different "
-            f"model family</strong> &mdash; Gemini 3.1 Pro, via AGY, sharing no architecture with our pipeline "
-            f"&mdash; independently re-extracted every pooled number from the same committed source. It "
-            f"<strong>agreed with our stored value on {agree} of {comp}</strong> comparable numbers "
-            f"(<strong>{round(rate*100,1)}%</strong>); on <strong>{three}</strong> numbers all three families "
-            f"(our harness, a GPT-5 checker, and Gemini) agree. Every one of the <strong>{dis}</strong> "
-            f"disagreements was hand-adjudicated against source and <strong>{wrong}</strong> was a wrong number: "
-            f"they are a documented approved-dose rule, intention-to-treat vs the trial's on-treatment primary, "
-            f"a rounding tie, one registry-vs-abstract count, and one CT.gov-vs-abstract estimand difference "
-            f"(all disclosed in <code>docs/crossfamily.json</code>). A model call is treated as a source &mdash; "
-            f"the Gemini outputs are committed, so this regenerates without re-calling the model. "
-            f"<strong>Three-family agreement is a far stronger claim than our own dual extraction.</strong></p>"
+    return (f"<div class='banner'><h2>Recorded cross-family comparison</h2><p>INDEPENDENCE_UNPROVEN: model labels and agreement counts do not establish independent errors or coverage of the current pool. The historical comparison record reports <strong>agreement with our stored value on {agree} of {comp}</strong> comparable numbers (<strong>{round(rate * 100, 1)}%</strong>); on <strong>{three}</strong> numbers all three families (our harness, a GPT-5 checker, and Gemini) agree. Every one of the <strong>{dis}</strong> disagreements was hand-adjudicated against source and <strong>{wrong}</strong> was a wrong number: they are a documented approved-dose rule, intention-to-treat vs the trial's on-treatment primary, a rounding tie, one registry-vs-abstract count, and one CT.gov-vs-abstract estimand difference (all disclosed in <code>docs/crossfamily.json</code>). A model call is treated as a source &mdash; the Gemini outputs are committed, so this regenerates without re-calling the model. <strong>Three-family agreement is a far stronger claim than our own dual extraction.</strong></p>"
             + _crossfamily_judge_line(docs_dir)
             + "</div>")
 
@@ -628,23 +559,11 @@ def _definition_audit_section(docs_dir: str) -> str:
         return ""
     ref, disc, ok, q = a.get("refused_defect_fixed"), a.get("composite_heterogeneity_disclose_queued"), \
         a.get("already_disclosed_accept"), a.get("queued_adjudication")
-    return (f"<div class='banner'><h2>Cross-family definition audit: is the number under the RIGHT label?</h2>"
-            f"<p>A single cross-family QA pass over four rows had caught a defect (TECOS's 4-point composite "
-            f"pooled under a 3-point label) that every internal gate passed &mdash; so we ran it over the "
-            f"<strong>whole corpus</strong>. Two independent families (Gemini via AGY and Fable) re-read every "
-            f"one of the <strong>{n}</strong> pooled rows and asked not just &lsquo;does the number match&rsquo; "
-            f"but <strong>does the outcome DEFINITION match the label</strong> &mdash; composite component set, "
-            f"timepoint, population, analysis set. <strong>{cand} of {n}</strong> rows were flagged for a "
-            f"possible definition mismatch (<strong>{both}</strong> by both families). Adjudicated against "
-            f"source: <strong>{ref}</strong> were genuine wrong-endpoint/population defects and were refused at "
-            f"source this cycle (two omega-3 trials whose composite was not MACE; two probiotics trials pooling "
-            f"a per-protocol/completers set, not ITT); {disc} are the well-known heterogeneity of pooling each "
-            f"trial's own primary MACE (3&ndash;5 component composites) under one generic label, now being "
-            f"disclosed; {ok} were already disclosed on the page (a stated subgroup or estimand); and {q} remain "
-            f"queued for per-row adjudication. This class &mdash; a right number under a slightly wrong label "
-            f"&mdash; is invisible to a value check and was only found by a different model family reading the "
-            f"source fresh. The audit is now a standing check (<code>docs/definition_audit.json</code>) and its "
-            f"guard refuses component/population mismatches at build time.</p></div>")
+    return (f"<div class='banner'><h2>Recorded definition audit</h2>"
+            f"<p>The historical record lists {cand} of {n} rows as candidates and {both} flags from both families. "
+            f"Recorded dispositions: {ref} refused, {disc} disclosure queued, {ok} already disclosed, {q} queued. "
+            "AUDIT_COVERAGE_UNPROVEN: summary counters do not establish independent errors, complete current "
+            "pool coverage or successful repairs. See docs/definition_audit.json.</p></div>")
 
 
 def _crossfamily_judge_line(docs_dir: str) -> str:
@@ -682,31 +601,7 @@ def _provenance_section(docs_dir: str) -> str:
     tot, ab, na = d.get("total"), d.get("abstract"), d.get("non_abstract")
     if not tot:
         return ""
-    return (f"<div class='banner'><h2>Where the numbers come from &mdash; and what we do not yet claim</h2>"
-            f"<p><strong>Provenance mix (a tracked metric).</strong> Of {tot} pooled numbers, "
-            f"<strong>{ab}</strong> come from the trial <strong>abstract</strong> (the authors' headline "
-            f"result &mdash; the weakest source, though the safest default) and <strong>{na}</strong> from "
-            f"higher tiers (ClinicalTrials.gov structured results, PMC full text, hand-verified arm counts). "
-            f"Nearly every wrong number the audit found came from an abstract. <strong>We tested how far the "
-            f"abstract share can be driven down and the answer is a bar, not effort:</strong> only a handful of "
-            f"the abstract-sourced rows have a ClinicalTrials.gov structured result available to promote to, and "
-            f"CT.gov results carry their own estimand/definition risk &mdash; exactly the class the definition "
-            f"audit just proved (a structured number can be the wrong composite/timepoint). Full-text promotion "
-            f"is available but per-row expensive (as done for the SGLT2 heart-failure hospitalizations). So "
-            f"abstract-dominance is <strong>bar-limited, not effort-limited</strong>; the honest fix is not "
-            f"bulk-promotion but the definition guards that make an abstract number safe to pool "
-            f"(<code>scripts/provenance.py</code>).</p>"
-            f"<p><strong>Stated limitations (plainly).</strong> (1) The comparators are <strong>open-access "
-            f"only</strong> &mdash; we benchmark against free reviews, not necessarily the best ones. "
-            f"(2) Protocol registration is <strong>self-hosted</strong> (a git commit SHA), with no external "
-            f"timestamp authority &mdash; it proves order relative to our own history, not against a third "
-            f"party. (3) <strong>Topic selection is ours</strong>, which can flatter the success rate; the "
-            f"expansion tier is preregistered in one batch with declared-hard cases to counter this. "
-            f"(4) The headline accuracy figure began as an <strong>internal-consistency</strong> measure; an "
-            f"independent non-Claude model family has since re-extracted every pooled row against the same "
-            f"committed source (reported in the cross-family section above), so it now carries a genuinely "
-            f"independent check &mdash; though the census and blind-judging arms still share our architecture, "
-            f"which leaves that cross-family re-extraction as the sole fully-decorrelated signal.</p></div>")
+    return (f"<div class='banner'><h2>Where the numbers come from &mdash; and what we do not yet claim</h2><p><strong>Provenance mix (a tracked metric).</strong> Of {tot} pooled numbers, <strong>{ab}</strong> come from the trial <strong>abstract</strong> (the authors' headline result &mdash; the weakest source, though the safest default) and <strong>{na}</strong> from other provenance categories (ClinicalTrials.gov structured results, PMC full text, and entries labelled hand-verified). PROMOTION_COVERAGE_UNPROVEN: this provenance count does not measure alternative-source availability or establish statistical independence of the historical model audits.</p><p>Comparators are restricted to open-access sources; protocol timestamps are internal git records and topic selection is not random.</p></div>")
 
 
 def _screen_section(docs_dir: str) -> str:
@@ -726,10 +621,9 @@ def _screen_section(docs_dir: str) -> str:
     na = d.get("n_not_assessable_no_abstract_text")
     if nd is None or k is None:
         return ""
-    return (f"<div class='banner'><h2>Screening reproducibility, measured against an independent blind "
-            f"screener</h2>"
-            f"<p>An independent screener &mdash; blind to our decision, working from title and abstract "
-            f"against the same eligibility criteria &mdash; re-screened the pooled records. Over the "
+    return (f"<div class='banner'><h2>Recorded screening reproducibility</h2>"
+            f"<p>INDEPENDENCE_UNPROVEN: the historical title-and-abstract comparison record does not "
+            f"establish independent errors or coverage of the current pooled set. Over the "
             f"<strong>{nd}</strong> records that carry an abstract, agreement with our rule-screener was "
             f"<strong>{round(agree*100,1)}%</strong> (Cohen's &kappa; = <strong>{k}</strong>), and it "
             f"recovered <strong>{round(sens*100,1)}%</strong> of the records we included. This second "
@@ -831,8 +725,7 @@ def _fair_section(docs_dir: str) -> str:
     are stated as a single margin only when they genuinely agree (all-ours), else spelled out."""
     n = _fair_numbers(docs_dir)
     if not n.get("prisma_cells") or not n.get("judge_total"):
-        return ("<div class='banner'><h2>Fair comparison (measured against comparator FULL TEXT)</h2>"
-                "<p>The fair full-text comparison record is being regenerated.</p></div>")
+        return ("<div class='banner'><h2>Fair comparison</h2><p>COMPARISON_STATE_UNPROVEN: required full-text comparison records are absent or incomplete.</p></div>")
     rob_o, rob_c = n["judge_risk_of_bias_reporting_ours"], n["judge_risk_of_bias_reporting_comp"]
     comp_complete = n["judge_completeness_of_evidence_comp"]
     tot = n["judge_total"]
@@ -846,33 +739,16 @@ def _fair_section(docs_dir: str) -> str:
     aud_clause = "winning <strong>" + "; ".join(_parts) + "</strong>"
     # RoB direction-aware: it is not necessarily "to us".
     rob_dir = ("to us" if rob_o > rob_c else "to the comparator" if rob_c > rob_o else "even")
-    return (
-        "<div class='banner'><h2>Fair comparison (measured against comparator FULL TEXT)</h2>"
-        "<p>An earlier countable PRISMA comparison read the comparators' <em>abstracts</em> against our "
-        "full pages &mdash; a confound in our favour, which we flagged and then fixed by reading each "
-        f"comparator's OA <strong>full text</strong> ({n['prisma_scorable']} of {n['prisma_total']} topics "
-        "scorable; the remainder have no obtainable comparator full text). Scored fairly, full-text vs "
-        f"full-page across the {n['prisma_scorable']} scorable topics ({n['prisma_cells']} cells, including "
-        f"the continuous-outcome pages): the comparators satisfy <strong>{n['prisma_comp_present']} of "
-        f"{n['prisma_cells']}</strong> checkable PRISMA-item cells, yet there is <strong>no reporting item a "
-        f"comparator's full text presents that our page lacks ({n['prisma_ours_lacks']} of "
-        f"{n['prisma_cells']})</strong>, while we present <strong>{n['prisma_we_present']}</strong> that even "
-        "their full text does not (chiefly per-record exclusion reasons and a machine-checkable registration "
-        "SHA). The margin narrowed under fair measurement, as it should; the direction held.</p>"
-        f"<p><strong>Fair blind re-judge (full-text vs full-page, {n['judge_total']} topics, order-blinded).</strong> "
-        "Restating the record on the fair basis, whatever it shows: our pages are judged more "
-        f"<strong>auditable on {n['judge_more_auditable_ours']} of {n['judge_total']}</strong>, {aud_clause}; "
-        f"the comparator is more <strong>complete on {comp_complete} of {tot}</strong> (larger "
-        f"<em>k</em>); risk-of-bias reporting splits <strong>{rob_o}&ndash;{rob_c}</strong> {rob_dir}. "
-        "The split holds across the whole judged set, binary and continuous alike &mdash; each page is more "
-        "auditable and less complete than its comparator &mdash; but it is not a clean sweep on every "
-        "sub-dimension: the comparator wins search reproducibility on one topic and edges risk-of-bias "
-        "reporting, and those losses are shown here rather than hidden. So the earlier abstract-based "
-        "&lsquo;15 clean wins&rsquo; is superseded by a stable domain split: <strong>we win transparency and "
-        "auditability; we lose completeness/<em>k</em></strong> &mdash; the same conclusion the parity table "
-        "reaches, confirmed by a blind reader on full text. The judge also flagged real defects in our pages "
-        "(a risk-of-bias table covering only a subset of pooled trials; a retraction line whose count did not "
-        "equal k); those are recorded, not hidden.</p></div>")
+    return (f"<div class='banner'><h2>Recorded full-text comparison</h2>"
+            f"<p>The historical comparison record covers {n['prisma_scorable']} of {n['prisma_total']} topics "
+            f"and {n['prisma_cells']} PRISMA cells. Comparator-present cells: {n['prisma_comp_present']} of "
+            f"{n['prisma_cells']}; ours lacking comparator-present items: {n['prisma_ours_lacks']} of "
+            f"{n['prisma_cells']}; ours-only items: <strong>{n['prisma_we_present']}</strong>. "
+            f"The judge record covers {n['judge_total']} topics and labels ours more "
+            f"<strong>auditable on {n['judge_more_auditable_ours']} of {n['judge_total']}</strong>; {aud_clause}. "
+            f"Recorded risk-of-bias reporting split: {rob_o}&ndash;{rob_c} {rob_dir}; comparator completeness "
+            f"preference: {comp_complete} of {tot}. These aggregate counters do not establish a uniform "
+            "per-topic conclusion or independent confirmation of current parity.</p></div>")
 
 
 # Static numerals allowed in the thesis/continuous prose banners: facts that do NOT change as the corpus
@@ -1141,7 +1017,7 @@ def build_index(docs_dir: str) -> str:
             )
         body += "</table>"
     else:
-        body = ("<div class='empty'>No harness-produced pages have passed the gate yet. "
+        body = ("<div class='empty'>No harness-produced page manifests are listed here. "
                 "This index is generated, never hand-maintained.</div>")
 
     # SELECTION EFFECT (item 9): the preregistered topic set vs what actually built. Stated on the
@@ -1161,112 +1037,8 @@ def build_index(docs_dir: str) -> str:
                 "field. The topic set is preregistered and the declines are recorded (JUDGELOG), so the "
                 "selection is visible rather than silent.</p></div>") + body
 
-    _stance = ("<div class='banner'><h2>Methodological stance (measured, not asserted)</h2>"
-               "<p><strong>We decline where the comparator imputed.</strong> On continuous outcomes "
-               "(e.g. zinc for cold duration) the published comparator reconstructed per-arm variances "
-               "from Kaplan&ndash;Meier curves and figures, or used paywalled values; of its 7 pooled "
-               "trials, 0 report a verifiable per-arm SD in accessible primary text. We pool only what "
-               "we can verify against source, so we decline those cells rather than impute &mdash; a "
-               "genuine methodological difference, not a shortfall.</p>"
-               "<p><strong>The reach picture is complete &mdash; all three routes measured.</strong> "
-               "FDA/EMA and multi-registry (ISRCTN/EU-CTR/ICTRP) adapters reach newer approval-label and "
-               "registered trials but cannot reach old pre-registry RCTs (DART 1989, GISSI-Prevenzione 1999, "
-               "JELIS 2007, CORE/COPE 2005). <strong>Bibliographic citation chasing (Crossref) DOES reach "
-               "them &mdash; 9 of 9 recovered</strong> from the comparators' own reference lists. But our "
-               "preregistered screening then declines most for a stated, defensible reason: they are "
-               "<strong>open-label</strong> where we require double-blind (CORE, COPE, JELIS, GISSI-P), or "
-               "the population/outcome does not match. So <em>these particular</em> gaps (omega-3's "
-               "pre-registry open-label trials) are screening-strictness decisions rather than search "
-               "failures &mdash; the comparators' larger pools include open-label and off-outcome trials our "
-               "criteria exclude. Each affected page names which recovered trials were declined and why. "
-               "<strong>But this is not true of every topic: the external audits proved genuine search and "
-               "extraction misses on others &mdash; see the honest split below.</strong></p></div>")
-    _thesis = ("<div class='banner'><h2>The result, in two honest parts (after ten external audits)</h2>"
-               "<p><strong>On reporting and reproducibility we are clearly better, and it is externally "
-               "verified.</strong> Every pooled number carries a verbatim source span and the whole review "
-               "regenerates from a committed protocol commit; ten independent audits found roughly two dozen "
-               "defect classes in a week <em>because</em> every number is checkable &mdash; the errors were "
-               "findable, which is the entire point. We correctly refused what several comparators pooled: "
-               "ELIXA's four-point composite dropped into a three-point analysis, open-label trials under a "
-               "double-blind protocol, per-arm variances reconstructed from figures. Every refusal is "
-               "published with its reason.</p>"
-               "<p><strong>On the evidence synthesis itself &mdash; finding the right trials and the right "
-               "patients &mdash; the published comparators have been better on the topics audited.</strong> "
-               "Our point estimates were arithmetically correct for the trials we did pool &mdash; but our "
-               "own recovery work has since shown those pools were systematically too thin <em>and skewed "
-               "toward larger effects</em>: every eligible trial we have recovered and source-verified moved "
-               "the estimate <em>toward the null</em>, and toward the comparator (the probiotics pool moved "
-               "measurably closer to the Goodman meta as we added the trials it had pooled and we had not). "
-               "Being arithmetically right on a narrow, favourably-skewed evidence base is not a defensible "
-               "position, and these pages no longer imply otherwise. The gap versus a comparator splits into "
-               "two kinds, and we name which is which:</p>"
-               "<ul><li><strong>Stated design bars (defensible).</strong> We pool fewer because we require "
-               "double-blinding (omega-3 excludes open-label CORE/COPE/JELIS/GISSI-P), harmonise a single "
-               "estimand, or decline figure-imputed variances (zinc); the comparator's larger pool includes "
-               "trials our criteria exclude. Named on each page.</li>"
-               "<li><strong>Search and extraction failures the audits proved (a real weakness, being "
-               "fixed).</strong> Our enumerated (PMID-seeded) searches could not discover trials the authors "
-               "did not already list &mdash; PCSK9 missed VESALIUS-CV, GLP-1 missed FLOW and SOUL, DPP-4 "
-               "missed OMNeON, and the probiotics comparator (Goodman) pooled far more trials than we did; "
-               "and &lsquo;declared absent&rsquo; masked outcomes that exist in full text we never retrieved "
-               "(TECOS's and EXAMINE's three-point MACE). Colchicine-postop pooled non-cardiac (thoracic) "
-               "trials and read a weaker effect than the cardiac-surgery metas. These are being fixed "
-               "(searches rebuilt as concept queries; full-text retrieval required before any &lsquo;absent&rsquo;); "
-               "the per-class fix status is tracked in the repository's AUDIT_RESPONSE.md. "
-               "<strong>And the weakness is not confined to the audited topics:</strong> once a full-text "
-               "fetch defect was fixed, our own recovery lane found the same under-population where no "
-               "external auditor had looked &mdash; tocilizumab-COVID mortality was pooled from a single "
-               "trial while the field holds roughly two dozen. Five further eligible trials are now "
-               "source-verified but deliberately <em>not</em> pooled: adding that subset (small early-era "
-               "trials, with the large benefit trials still missing from our corpus) would flip a real "
-               "benefit to a spurious null. <strong>A recovery that changes a conclusion is not shipped until "
-               "the recovered set is shown to be representative, not merely verified</strong> &mdash; the "
-               "verified trials are held pending a full search rebuild, and the incompleteness is stated on "
-               "that page.</li></ul>"
-               "<p><strong>The adjudication design itself was losing eligible trials, and we measured it.</strong> "
-               "Cold reads (a reviewer given a page with no brief, asked only &lsquo;is this a sound systematic "
-               "review?&rsquo;) found that our screener treated a missing PubMed &lsquo;Randomized Controlled "
-               "Trial&rsquo; publication type as <em>not an RCT</em>, when a missing tag is merely <em>unknown</em> "
-               "&mdash; the abstract body should overrule incomplete metadata. Fixing it (the same four-state "
-               "principle we apply to sources) recovered <strong>12 genuine pubtype-lag randomised trials across "
-               "six topics</strong>. That number is a correction: a first pass flagged 25, but thirteen were "
-               "reviews, comments, meta-analyses or protocols that our own guards then held back &mdash; and one of those "
-               "guards, in turn, briefly excluded a real trial (RE-COVER II) until a positive control caught it. "
-               "We report the corrected 12, not the raw 25, because a number with its correction visible is worth "
-               "more than a bigger one. On <strong>esketamine</strong> this recovery (the Chen 2023 trial the "
-               "metadata had hidden) plus a genuine continuous extractor that combines a trial&rsquo;s dose arms "
-               "against its shared placebo moved the primary result from an interval wide enough to read as "
-               "&lsquo;compatible with no effect&rsquo; to a modest but real benefit that matches the independent "
-               "individual-patient-data meta-analysis &mdash; a conclusion change, built entirely from "
-               "source-verified numbers.</p>"
-               "<p><strong>Why 19 provisional GRADE ratings rose and none fell &mdash; and why that is not "
-               "inflation.</strong> When the appraisal fixes landed &mdash; a per-trial risk-of-bias source "
-               "hierarchy (a trial&rsquo;s own double-blind text overrules a registry Boolean that read it as "
-               "unblinded), a publication-bias denominator scoped to the screened-eligible set rather than a "
-               "broad drug universe, a rule that stops counting a REGISTERED SECONDARY endpoint as selective "
-               "reporting, and a rounded-CI fix &mdash; 19 topics&rsquo; provisional certainty rose one level "
-               "and none fell. The direction is one-way <em>by construction</em>: each of those fixes DELETES "
-               "a spurious downgrade, and deleting a wrong penalty can only raise or leave a rating, never "
-               "lower it &mdash; so an all-up direction is the expected signature of removing bad downgrades, "
-               "not of inflating good ones. Every raised rating was checked individually against its evidence "
-               "before shipping, and every GENUINE downgrade was retained: the MRA topic (identifier "
-               "spironolactone-hfref-mortality) keeps its imprecision "
-               "downgrade (a wide interval), and omega-3 keeps its risk-of-bias downgrade (a trial with real "
-               "between-arm differential attrition). A fix that raises our own confidence is held to a higher "
-               "bar than one that lowers it, precisely so &lsquo;we fixed a bug&rsquo; can never quietly become "
-               "&lsquo;our evidence is better than we said&rsquo;.</p>"
-               "<p>So the honest offer is <strong>the most auditable synthesis, not the most complete one</strong> "
-               "&mdash; and where our evidence base was narrower or wrong, the audits caught it precisely "
-               "because every number is checkable.</p>"
-               "<p><strong>The sharpest form of the argument.</strong> We attempted a per-trial, "
-               "number-by-number check against the gold standard &mdash; the Cochrane review of metformin for "
-               "PCOS ovulation (CD013505) &mdash; and found that <strong>0 of its 18 trials expose their "
-               "per-trial counts in machine-readable form</strong>: the numbers live in forest-plot images, "
-               "not the text. <strong>A reader cannot check a Cochrane review number-by-number. They can check "
-               "ours</strong> &mdash; every pooled number here carries a verbatim source span, and the whole "
-               "review regenerates from a committed protocol commit. (Extracting per-trial ground truth from "
-               "forest-plot images is a named research-agenda item &mdash; vision/OCR or individual patient "
-               "data &mdash; not yet attempted.)</p></div>")
+    _stance = ("<div class='banner'><h2>Methodological stance</h2><p>REACH_STATE_UNPROVEN: this static summary cannot establish source availability, citation-chase recovery, or current screening decisions; consult each topic's retrieval ledger and explicit refusals.</p></div>")
+    _thesis = ("<div class='banner'><h2>Limits of the evidence</h2><p>EXTERNAL_VERIFICATION_UNPROVEN: this index does not establish comparative superiority, independent verification, protocol-commit replay, or a uniform direction of recovery effects. Source spans, declared absent decisions, current pool decisions and historical audit records remain available for inspection; they do not justify a blanket accuracy or completeness claim.</p></div>")
     _cont = _continuous_section(docs_dir)
     _erate = _error_rate_section(docs_dir)
     _spec = _spec_curve_section(docs_dir)

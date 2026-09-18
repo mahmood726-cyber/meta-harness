@@ -722,16 +722,7 @@ def _grade_block(grade: dict[str, Any]) -> str:
 
 def _rob_spancheck_block(rsc: dict[str, Any]) -> str:
     return (
-        "<div class='banner'><strong>RoB spans span-checked (cross-family): "
-        f"{round(rsc['agreement_rate'] * 100)}% agreement</strong> ({rsc.get('supported')} of "
-        f"{rsc.get('supported', 0) + rsc.get('not_supported', 0)} scoreable), from a seeded sample of "
-        f"{rsc.get('n_sampled')} model/registry-derived domain ratings independently checked by a "
-        f"different model family (Fable) against each trial abstract; {rsc.get('unclear')} were "
-        "unscoreable (no claim, or a conservative not-stated rating). This check itself found and "
-        "fixed a real error &mdash; one trial (EMPHASIS-HF) was mislabelled NON_RANDOMIZED by the "
-        "registry, contradicted by its abstract; the RoB block was also visibly broken until a "
-        "human review caught it. The number is here because a RoB block a reader cannot trust is "
-        "worthless (<code>docs/rob_spancheck.json</code>).</div>"
+        f"<div class='banner'><strong>RoB spans span-checked (cross-family): {round(rsc['agreement_rate'] * 100)}% agreement</strong> ({rsc.get('supported')} of {rsc.get('supported', 0) + rsc.get('not_supported', 0)} scoreable), from a seeded sample of {rsc.get('n_sampled')} domain ratings in the historical span-check record; INDEPENDENCE_UNPROVEN: this summary does not establish model independence or coverage of the current pool; {rsc.get('unclear')} were unscoreable (no claim, or a conservative not-stated rating). This check itself found and fixed a real error &mdash; one trial (EMPHASIS-HF) was mislabelled NON_RANDOMIZED by the registry, contradicted by its abstract; the RoB block was also visibly broken until a human review caught it. The number is here because a RoB block a reader cannot trust is worthless (<code>docs/rob_spancheck.json</code>).</div>"
     )
 
 
@@ -835,8 +826,8 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
         EvidenceState.RECORDED,
         ["/slug"],
         "<div class='banner'>This page offers <strong>greater auditability, not "
-        "stronger evidence</strong>: every number traces to a committed source, every "
-        "absence is declared, and any hand-edit breaks the reproduction census.</div>",
+        "stronger evidence</strong>: source links and declared absences support inspection; "
+        "consult the reproduction census for its actual result.</div>",
     )
 
     primary = _primary(review)

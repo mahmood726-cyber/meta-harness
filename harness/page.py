@@ -524,7 +524,8 @@ def render_strands_section(d: dict) -> str:
     return (f"<div class='banner'><h3>Declared strands (the single pool is suppressed; these are the "
             f"endpoint-clean decompositions)</h3><p>{_e(d.get('why_topic_is_suppressed'))}</p>"
             f"<ul>{''.join(rows)}</ul>{refline}"
-            f"<p class='note'>Every effect source-verified; intervals from the canonical engine. The "
+            f"<p class='note'>SOURCE_VERIFICATION_UNPROVEN: this strand summary does not establish "
+            f"per-effect source verification. The "
             f"compatibility key keeps strands apart; a cross-strand pool is refused, not computed.</p></div>")
 
 
@@ -649,8 +650,8 @@ def _overview(r, neutral):
     if not neutral:
         parts.append(
             "<div class='banner'>This page offers <strong>greater auditability, not "
-            "stronger evidence</strong>: every number traces to a committed source, every "
-            "absence is declared, and any hand-edit breaks the reproduction census.</div>")
+            "stronger evidence</strong>: source links and declared absences support inspection; "
+            "consult the reproduction census for its actual result.</div>")
         parts.append(_hazard_acknowledgements_block(r))
     prim = _primary(r)
     if prim and _absent(prim) is None:
@@ -988,12 +989,12 @@ def _screening(r, neutral):
                           "— this page must not stand until resolved.</div>")
         else:
             retro = integ.get("retrospectively_registered", [])
-            msg = (f"<p class='note'><strong>Trial integrity:</strong> none of the {_e(integ.get('n_pooled'))} "
-                   f"trials pooled across all outcomes on this page is retracted"
+            msg = (f"<p class='note'><strong>Trial integrity:</strong> {_e(integ.get('n_pooled'))} "
+                   f"trials pooled; the supplied integrity record lists no known retractions. Coverage is unproven"
                    + (f"; {len(concern)} under an expression of concern ({_e(', '.join(concern))})" if concern else "")
                    + (f"; {len(retro)} registered retrospectively — after enrolment began, a reporting-bias "
                       f"signal, not disqualifying ({_e(', '.join(retro))})" if retro else "")
-                   + f" (checked {_e(integ.get('checked_utc'))} via {_e(integ.get('source'))} + AACT dates).</p>")
+                   + f" (record timestamp {_e(integ.get('checked_utc'))}; reported source {_e(integ.get('source'))}).</p>")
             if integ.get("n_not_checkable") is not None:
                 msg = (f"<p class='note'><strong>Trial integrity:</strong> {_e(integ.get('n_pooled'))} "
                        f"trials pooled; {_e(integ.get('n_pubmed_checked'))} checked via PubMed, "
@@ -1003,7 +1004,7 @@ def _screening(r, neutral):
                        + (f"; {len(concern)} under an expression of concern ({_e(', '.join(concern))})" if concern else "")
                        + (f"; {len(retro)} registered retrospectively - after enrolment began, a reporting-bias "
                           f"signal, not disqualifying ({_e(', '.join(retro))})" if retro else "")
-                       + f" (checked {_e(integ.get('checked_utc'))} via {_e(integ.get('source'))}).</p>")
+                       + f" (record timestamp {_e(integ.get('checked_utc'))}; reported source {_e(integ.get('source'))}).</p>")
             integ_html = msg
     # PRISMA 2020 flow (items 16a/16b): counts at every stage, exclusions broken down by rule.
     from collections import Counter as _C
@@ -1042,7 +1043,7 @@ def _screening(r, neutral):
     excl_bits = " · ".join(f"{rid} {n}" for rid, n in sorted(rule_counts.items()))
     flow = ("<h4>Study selection flow (PRISMA 2020)</h4>"
             "<table class='recs'><tr><th>Stage</th><th>n</th></tr>"
-            f"<tr><td>Records identified (committed search)</td><td>{_e(n_identified)}</td></tr>"
+            f"<tr><td>Records recorded (search provenance shown separately)</td><td>{_e(n_identified)}</td></tr>"
             f"<tr><td>Records screened (deduplicated)</td><td>{_e(len(recs))}</td></tr>"
             f"<tr><td>Excluded at screening — by rule</td><td>{_e(sum(rule_counts.values()))} ({_e(excl_bits)})</td></tr>"
             f"<tr><td>Met eligibility (P/I/C/design)</td><td>{_e(eligible_display)}</td></tr>"
@@ -1801,15 +1802,14 @@ def _definition_audit_block(r):
         both = " ·both families" if v.get("both_families") else ""
         rows.append(f"<tr><td>{_e(pmid)}</td><td>{_e(outcome)}</td><td>{_e(v.get('detail',''))}{_e(both)}</td>"
                     f"<td><strong>{_e(v.get('resolution',''))}</strong></td></tr>")
-    return ("<div class='absent'><strong>Cross-family definition audit.</strong> Two independent model "
-            "families (Gemini via AGY, and Fable) re-read every pooled row and checked whether the extracted "
-            "result matches the outcome LABEL's definition &mdash; composite component set, timepoint, "
-            "population, analysis set &mdash; not just the number. Rows flagged for this topic, with how each "
+    return ("<div class='absent'><strong>Cross-family definition audit.</strong> "
+            "AUDIT_COVERAGE_UNPROVEN: the findings object does not establish coverage of every pooled row "
+            "by both model families. Recorded findings concern outcome definition, timepoint, "
+            "population and analysis set. Rows flagged for this topic, with how each "
             "was resolved (refuse the trial / disclose the heterogeneity / relabel the timepoint / already "
             "disclosed). This is the endpoint-<strong>IDENTITY</strong> check &mdash; distinct from the "
-            "per-number <strong>MAGNITUDE</strong> check (every pooled number located in its committed source "
-            "span, gate-enforced). A number can pass magnitude and fail identity, which is exactly the class "
-            "this audit catches; &lsquo;verified&rsquo; on this harness now means both:"
+            "per-number <strong>MAGNITUDE</strong> check. A source-digit verification state alone "
+            "does not establish endpoint identity:"
             "<table class='arms'><tr><th>Trial</th><th>Outcome</th><th>Finding</th><th>Resolution</th></tr>"
             + "".join(rows) + "</table></div>")
 
@@ -1983,7 +1983,7 @@ def _comparator(r, neutral):
     body += "<h4>Trial-set overlap (an identical estimate on an identical set is arithmetic, not corroboration)</h4>"
     body += _kv([
         ("k in this review (our own search)", ov.get("ours_k")),
-        (("k in the comparator (verified against its source text)" if ov.get("theirs_k_source")
+        (("k recorded for comparator (source citation supplied)" if ov.get("theirs_k_source")
           else "k stated in the comparator's own text (auto-extracted)"), ov.get("theirs_k")),
         *([("Comparator k — source", ov.get("theirs_k_source"))] if ov.get("theirs_k_source") else []),
         ("Shared trials", ov.get("shared_k")),
@@ -2146,10 +2146,10 @@ def _reproduction(r, neutral):
         rows = "".join(
             f"<tr><td>{_e(x.get('trial'))}</td><td>{_e(x.get('verified'))}</td>"
             f"<td>{_e(x.get('not_pooled_because'))}{(' <strong>DISPUTED &mdash; this trial IS pooled despite the refusal above; both policies are declared; decision owed to ' + _e(x['disputed'].get('decision_owed_to')) + ' (signed ' + _e(x['disputed'].get('signed_by')) + ', ' + _e(x['disputed'].get('date')) + '): ' + _e(x['disputed'].get('reason')) + '</strong>') if isinstance(x.get('disputed'), dict) else ''}</td></tr>" for x in rf)
-        body += ("<h4>Verified but not pooled (refusals, with reasons)</h4>"
-                 "<p class='muted'>Trials we located and whose numbers we verified against source, "
-                 "yet deliberately did not pool. Honest k over inflated k: a named refusal is a result.</p>"
-                 "<table class='arms'><tr><th>Trial</th><th>What was verified</th>"
+        body += ("<h4>Recorded refusal decisions (including disputed entries)</h4>"
+                 "<p class='muted'>REFUSAL_STATE_UNPROVEN: a recorded refusal alone does not establish "
+                 "source verification or exclusion from the current pool. Disputed decisions remain visible.</p>"
+                 "<table class='arms'><tr><th>Trial</th><th>Recorded verification statement</th>"
                  f"<th>Why it was not pooled</th></tr>{rows}</table>")
     # CANONICAL CLAIM OBJECT: every surface derives its significance wording from one object; the build
     # scans the rendered page + manuscript and fails closed on any surface that asserts the opposite.
@@ -2193,7 +2193,7 @@ def _reproduction(r, neutral):
             + (f" (PMID {_e(x.get('pmid'))})" if x.get('pmid') else "")
             + (f" — {_e(x.get('note'))}" if x.get('note') else "") + "</li>" for x in nc)
         body += ("<h4>Never considered (a fifth state — the true search gap)</h4>"
-                 "<p>These trials are verified in-scope under the registered PICO yet were absent from "
+                 "<p>These entries are recorded as in-scope in the historical gap inventory and absent from "
                  "EVERY identifier space in this review — not screened, not excluded, not declared absent, "
                  "simply never retrieved. They are invisible to the STALE count, PRISMA and the "
                  f"declared-absent census unless named here:<ul>{_nrows}</ul></p>")
@@ -2289,7 +2289,7 @@ def _reporting(r, neutral):
          ""),
         ("9 Data collection process", True,
          "Results tab + per-trial Source column — source hierarchy (abstract > CT.gov structured > full text > "
-         "hand-verified AACT arms), round-trip validation on every extraction, outcome-identity gating; refuse on ambiguity.",
+         "hand-verified AACT arms), round-trip validation and outcome-identity gating are method requirements; their execution must be established per extraction.",
          ""),
         ("15 Certainty assessment", bool(res.get("k")),
          _grade_mod.render_certainty(r.get("grade") or {}) + "; see the domain table for assessed and unassessed domains. " + _grade_mod.stale_heterogeneity(r),
@@ -2612,16 +2612,7 @@ def _riskofbias(r, neutral):
     rsc = r.get("rob_spancheck") or {}
     rsc_html = ""
     if rsc.get("agreement_rate") is not None:
-        rsc_html = ("<div class='banner'><strong>RoB spans span-checked (cross-family): "
-                    f"{round(rsc['agreement_rate']*100)}% agreement</strong> ({rsc.get('supported')} of "
-                    f"{rsc.get('supported',0)+rsc.get('not_supported',0)} scoreable), from a seeded sample of "
-                    f"{rsc.get('n_sampled')} model/registry-derived domain ratings independently checked by a "
-                    f"different model family (Fable) against each trial abstract; {rsc.get('unclear')} were "
-                    "unscoreable (no claim, or a conservative not-stated rating). This check itself found and "
-                    "fixed a real error &mdash; one trial (EMPHASIS-HF) was mislabelled NON_RANDOMIZED by the "
-                    "registry, contradicted by its abstract; the RoB block was also visibly broken until a "
-                    "human review caught it. The number is here because a RoB block a reader cannot trust is "
-                    "worthless (<code>docs/rob_spancheck.json</code>).</div>")
+        rsc_html = (f"<div class='banner'><strong>RoB spans span-checked (cross-family): {round(rsc['agreement_rate'] * 100)}% agreement</strong> ({rsc.get('supported')} of {rsc.get('supported', 0) + rsc.get('not_supported', 0)} scoreable), from a seeded sample of {rsc.get('n_sampled')} domain ratings in the historical span-check record; INDEPENDENCE_UNPROVEN: this summary does not establish model independence or coverage of the current pool; {rsc.get('unclear')} were unscoreable (no claim, or a conservative not-stated rating). This check itself found and fixed a real error &mdash; one trial (EMPHASIS-HF) was mislabelled NON_RANDOMIZED by the registry, contradicted by its abstract; the RoB block was also visibly broken until a human review caught it. The number is here because a RoB block a reader cannot trust is worthless (<code>docs/rob_spancheck.json</code>).</div>")
     return (f"<p>{cover}</p>" + rsc_html + uoa_html + ac_html + fund_html
             + "<p><strong>Registry-machine-signal-restricted partial machine assessment</strong> (per pooled trial) &mdash; NOT a "
             "formal human risk-of-bias assessment, which requires human judgements the registry cannot supply. "
