@@ -1,6 +1,13 @@
-# RESUME_STATE — meta-harness glp1 programme (refreshed 2026-09-18 02:10 local; refresh on every landing or lane finish)
+# RESUME_STATE — meta-harness glp1 programme (refreshed 2026-09-18 02:30 local; refresh on every landing or lane finish)
 
 Every claim is marked MEASURED (read from git/ls-remote/disk at the time stamp), INFERRED, or CLAIMED. A restarting session should trust `git ls-remote https://github.com/mahmood726-cyber/meta-harness.git <ref>` over anything here.
+
+## 00. How to read the SERVED state (the only verification path; two observers got this wrong on 17 Sep)
+- `curl -s https://mahmood726-cyber.github.io/meta-harness/_production/manifest.json` → `commit_sha` (which commit built the site — a CONTAINER property).
+- `curl -s https://mahmood726-cyber.github.io/meta-harness/reviews/<slug>/manifest.json` → `review_sha256` (the review OBJECT), `html_sha256` (the page bytes), `protocol_sha` (the registration). A landing that claims to change a review must move `review_sha256`; the manifest `commit_sha` alone proves nothing about the reader's page.
+- Fetch with a non-caching client (`curl`, a browser with cache disabled). Tool fetchers that deduplicate (some cache for an hour) return old bytes as if fresh — a constant byte length across repeated fetches is the tell.
+- NEVER read `C:\meta-harness\docs` as the corpus: that clone sits on `search-v2-engine` at aa8ed28a (16 Sep) and is only the object store lane clones are cut from. Read `F:\claude-temp\mh-clean` after `git fetch origin main && git checkout --detach origin/main`, or a fresh clone of main.
+- Compare served bytes to the clone: `sha256sum docs/reviews/<slug>/index.html` in the clean clone vs `curl … | sha256sum`.
 
 ## 0. Layout — NOT linked worktrees (MEASURED)
 `C:\meta-harness` (branch `search-v2-engine`, HEAD aa8ed28a, its `refs/remotes/origin/main` is STALE) is only the shared object store lane clones are made from (`git clone -s`); nobody edits it. The active clones (each a separate `.git`, all with `origin` = the GitHub URL — check `git remote -v`, four clones today had `origin` = a local path):
@@ -95,3 +102,5 @@ INFERRED: (a) served-page corrections (FIX2 → my integration + ratchet acks �
 - HRM3 running (`C:\mh-r-HRM3`, base 432294db): merge HRM2 (harms synthesis suppression + adjustment labels) onto F → commit H in the morning.
 - Landing 4 (glp1 strands k=7/k=8 with FACT provenance, families, typed axes, prose objects, envelope): candidate 60c5cd67 + IN6 attempt-1 tree (`C:\mh-r-IN6`, 4 of 11 refused). BLOCKED on: (1) Mahmood's decision on date-precision retrieval stamps vs re-retrieval (FACT contract); (2) integrator re-run of `scripts/search_v2_run.py` with network (engine hash changed); (3) two unit tests; (4) ratchet acks. Then IN7 on top of main.
 - Never do again: hang-kill a lane inside a silent verify_all (window now 30 min); judge patch application by conflicts (file count + working-tree transplant); copy a lane's registry/scorecard over another's (merge by gate_id).
+
+## 12. 02:30 — served state re-verified by the outside observer through a browser (review_sha256 d67a3615, html_sha256 28d5b5bc, protocol b10c53d3; the three corrections present). Two observer errors recorded as defect classes: a deduplicating fetch tool read as the origin; the stale `C:\meta-harness` tree grepped as the corpus. Still owed: the review-hash-changed landing gate (goes in with HRM3's commit H).
