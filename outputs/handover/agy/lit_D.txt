@@ -1,0 +1,28 @@
+Gemini 3.1 Pro
+
+(A) PATTERN DESCRIPTION FOR PYTHON-AST DETECTOR
+1. Unconditional Assertional String Literals in Formatting (f-strings or concatenation):
+   - Syntactic Shape: A `JoinedStr` (f-string) or `BinOp` (string formatting/concatenation) containing a `Constant` string node with past-tense action verbs (e.g., "found", "verified", "assessed", "checked", "falsified"). This node is returned or assigned without being nested inside an `If` or `IfExp` conditional that checks a dynamic property of a state object.
+   - False-Positive Risk: High, as it will flag legitimate methodology explanations (e.g., "Risk of bias was assessed..."). It requires filtering to target specific declarative narratives or anecdotes (e.g., "this check found", "direct testing falsified").
+2. Hardcoded Date/Time Variable Assignment:
+   - Syntactic Shape: An `Assign` or `AnnAssign` node where a target `Name` matches a time-related regex (e.g., `(?i)(now|run|generated|retrieved|measured)_(date|time|on|at)`) and the `value` is a `Constant` (string/integer representing a fixed date or timestamp).
+   - False-Positive Risk: Medium. Common in mocked test fixtures, so tests must be explicitly excluded.
+3. Unconditional Status Constants:
+   - Syntactic Shape: An `Assign` or a `Dict` key-value pair where the target or key denotes a state (e.g., `status`, `state`, `result`) and the assigned value is a string `Constant` such as 'verified', 'assessed', or 'PASS', unconditionally set without dynamic derivation.
+   - False-Positive Risk: High. Flags common sentinel values or initialization states (e.g., defaulting variables to 'PASS' before validation).
+4. Live Time-Stamping in Deterministic Artifacts:
+   - Syntactic Shape: A `Call` node invoking `datetime.now()` or `datetime.utcnow()` inside functions meant to generate reproducible outputs (often matching naming patterns like `build_*`, `generate_*`, or `render_*`), instead of consuming a frozen timestamp from a state object.
+   - False-Positive Risk: Low if tightly scoped to output generators, but Medium if it flags generic logging decorators.
+
+(B) FINDINGS
+file:harness/limitations.py:733-737
+Literal: "unscoreable (no claim, or a conservative not-stated rating). This check itself found and fixed a real error &mdash; one trial (EMPHASIS-HF) was mislabelled NON_RANDOMIZED by the registry, contradicted by its abstract; the RoB block was also visibly broken until a human review caught it. The number is here because a RoB block a reader cannot trust is worthless (<code>docs/rob_spancheck.json</code>).</div>"
+Enclosing function: _rob_spancheck_block
+Why it is unconditioned: The f-string is returned unconditionally for every execution of `_rob_spancheck_block`. It makes a hardcoded factual assertion that a human review "found and fixed a real error" specifically in the EMPHASIS-HF trial, emitting this highly specific historical anecdote across all topic reviews regardless of whether EMPHASIS-HF is part of the review or if that error was encountered in the current object state.
+Confidence: HIGH
+
+file:harness/limitations.py:1065-1073
+Literal: "<div class='absent'><strong>RETRACTED (round-2): reproducibility claim not currently supported.</strong> We previously claimed that re-running from the registration SHA on a fresh clone regenerates this page byte-for-byte. Direct testing falsified that: running the advertised command changed several canonical output files, and running it AT the registered SHA produced an essentially empty review because the build consumes MUTABLE POST-REGISTRATION STATE (later caches, extraction state, adapter outputs) that is NOT pinned in any committed manifest. Until every build input is pinned in a committed manifest with hashes and the build runs from that manifest, this page does NOT claim byte-for-byte reproduction from the protocol SHA &mdash; only that the analysis is deterministic given the committed cache as-is. Independent REPEATABILITY (a fresh search retrieving the same set) was never claimed and is not claimed now.</div>"
+Enclosing function: build_limitations
+Why it is unconditioned: The block of text is passed as a constant literal to `add()` whenever `reproduction` is not declared absent. It explicitly asserts that a test was executed ("Direct testing falsified that") and details its results. While functioning as a global disclaimer, it asserts a fixed check was performed without deriving those test results from a state object.
+Confidence: MEDIUM

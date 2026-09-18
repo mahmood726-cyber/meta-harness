@@ -1,0 +1,37 @@
+Gemini 3.1 Pro (High)
+
+### (A) AST Detector Pattern Description
+
+To detect these defects using `ast`, a Python static detector should target four specific syntactic shapes:
+
+1. **Output String Assertion:** 
+   - **Shape:** An `ast.JoinedStr` (f-string) or `ast.Constant` (string literal) containing past-tense assertion verbs (e.g., `"assessed"`, `"verified"`, `"checked"`, `"reconciled"`) that is assigned to a variable, appended to a list, or returned for HTML/JSON generation.
+   - **Condition:** The node must *not* be a descendant of an `ast.If` or `ast.IfExp` that tests an external state variable (e.g., `review.get(...)`).
+   - **False-positive risk:** The string might be explaining the *general methodology or intended design* (e.g., "The system is designed to verify data") rather than falsely claiming a specific run successfully completed the check.
+
+2. **Fixed Date Stamp:**
+   - **Shape:** An `ast.Assign` where the target is an `ast.Name` containing time-related substrings (`'date'`, `'time'`, `'run'`, `'generated'`, `'retrieved'`) and the `value` is an `ast.Constant` string matching a date/time format (e.g., `YYYY-MM-DD`).
+   - **False-positive risk:** Valid configurations or domain constants (e.g., `CUTOFF_DATE = "2020-01-01"`) that legitimately use fixed dates, rather than attempting to masquerade as the execution timestamp.
+
+3. **Unconditional Constant Status:**
+   - **Shape:** An `ast.Assign` or `ast.Return` where the `value` is an `ast.Constant` containing a status literal (e.g., `"verified"`, `"PASS"`, `"assessed"`).
+   - **Condition:** Occurs at the top level of a block or unconditionally within a function, rather than being guarded by an `ast.If` evaluating actual data conditions.
+   - **False-positive risk:** Initializing default fallback states (e.g., `status = 'pending'`), or simple factory/mapping functions where the caller has already performed the condition check.
+
+4. **Live Datetime in Artefact:**
+   - **Shape:** An `ast.Call` to `datetime.now()`, `datetime.utcnow()`, or `time.time()` assigned directly into a dictionary or object property destined for serialization (e.g., a reproducible output artefact).
+   - **False-positive risk:** Legitimate usage in `logging` statements, performance profiling duration checks, or standard outputs not intended for deterministic reproducibility.
+
+### (B) Findings
+
+**file: harness/manuscript.py:359-364**
+- **Literal:** `"Records were screened by two independent rule screeners with adjudication ({n_screened} records assessed); every pooled number was extracted down a source ladder and verified against its committed source."`
+- **Enclosing function:** `render`
+- **Why it is unconditioned:** The claim that every pooled number was "verified" and that records were "screened... with adjudication" is hardcoded into the `abstract` f-string directly. It is not conditional on any state check reflecting the actual execution (like `review.get("all_verified")`), unlike the surrounding `reg_phrase` or `_search_phrase` which correctly read from the object state.
+- **Confidence:** HIGH
+
+**file: harness/manuscript.py:384-388**
+- **Literal:** `"Two independently implemented rule screeners ran with adjudication. Each pooled value was located in a committed source, its arms checked for correct assignment, and its count-derived effect reconciled with the reported effect (round-trip)"`
+- **Enclosing function:** `render`
+- **Why it is unconditioned:** This methodology claim is embedded unconditionally in the `methods` HTML string. It asserts that specific checks ("arms checked", "count-derived effect reconciled") were completed for the current run, completely decoupled from any boolean flag or verification state in the `review` object.
+- **Confidence:** HIGH

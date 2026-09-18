@@ -1,0 +1,33 @@
+Gemini 3.1 Pro
+
+TASK (A): PATTERN DESCRIPTION FOR STATIC DETECTOR
+1. Unconditional Status Literal:
+   - Syntactic Shape: An `ast.Dict` containing a key (e.g., `"checked"`, `"state"`, `"status"`, `"assessed"`) mapped directly to a constant `ast.Constant` (like `True`, `"PASS"`, `"RAN..."`), or an `ast.Assign` targeting a dictionary attribute with such a constant, where the assignment is not within a control flow structure (like `ast.If` or `ast.IfExp`) evaluating a state variable.
+   - False-Positive Risk: Medium to High. Dictionaries frequently use literal constants for schema defaults or placeholder flags before dynamic mutation. It requires heuristics to distinguish an unearned "verification" stamp from normal initialization.
+
+2. Fixed Date Assignment:
+   - Syntactic Shape: `ast.Assign` where the target is a variable name signifying execution/generation time (e.g., `RUN_DATE`, `generated_on`) and the value is a string `ast.Constant` matching a date format.
+   - False-Positive Risk: Low if checking specific named constants that imply generation time. Medium if globally flagging any assigned date string, as dates can legitimately represent dataset cutoffs or logical filters.
+
+3. Live `datetime.now()` in Pinned Artifact:
+   - Syntactic Shape: An `ast.Call` to `datetime.now()` or `datetime.utcnow()` that writes its output directly into a dictionary/formatter building a reproducible artifact (like a manifest, candidate snapshot, or payload), bypassing a pinned timestamp variable.
+   - False-Positive Risk: Low if specifically targeting output serialization blocks of artifacts explicitly claiming determinism. High in general utility code, as generic logging/profiling naturally requires live clock times.
+
+TASK (B): FINDINGS
+file: harness/census.py:226
+literal: `True`
+enclosing function: `build_review_dir`
+why unconditioned: It unconditionally maps `"checked": True` inside the `reproduction["proposition_check"]` output dictionary. This hardcodes a stamp that the check successfully executed, instead of deriving the boolean dynamically from the object state or the actual execution flow.
+confidence: HIGH
+
+file: scripts/search_v2_run.py:873
+literal: `"RAN (development run; per-source states in its snapshot ledger)"`
+enclosing function: `_previous_row`
+why unconditioned: When carrying over a previous run's row for a DEVELOPMENT topic, it blindly assigns this string literal to the `"state"` key. It asserts the topic ran, completely unconditioned on the actual underlying source ledger states within the object (`items`).
+confidence: HIGH
+
+file: scripts/search_v2_run.py:780
+literal: `datetime.datetime.now(datetime.UTC)`
+enclosing function: `_utc` (used heavily in `refresh`, e.g., lines 1015, 1056, 1059)
+why unconditioned: A live system clock time is returned and stamped directly into the output snapshot payload for keys like `"started_utc"`, `"updated_utc"`, and `"finished_utc"`. This writes a live instant into a supposedly pinned, reproducible candidate artefact (which otherwise deliberately forces a pinned deterministic `RUN_DATE = "2026-09-15"`).
+confidence: HIGH
