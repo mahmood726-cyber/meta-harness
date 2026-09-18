@@ -327,8 +327,20 @@ def grade(review, ghost=None):
     pub = _pubbias_domain(ghost)
     _rob2_trials = (review.get("rob2") or {}).get("trials") or {}
     prim_trials = (prim or {}).get("trials", []) or []
-    d3_levels = [((_rob2_trials.get(str(t.get("label"))) or {}).get("domains") or {}).get("D3_missing_outcome_data", {}).get("level")
-                 for t in prim_trials]
+    # rob2.trials is keyed by the trial IDENTIFIER (PMID/NCT); a row's label may be an acronym ("SOUL"), so
+    # look the record up by id first, label second. A trial with NO rob2 record has NO assessed D3 either:
+    # it counts as unassessed, never silently as neither (glp1 read "D3 unassessed on 7 of 8" while all 8 were
+    # unassessed -- SOUL's label missed the map; agy adversarial read of served 98726cc1, 2026-09-18).
+    def _d3_level(t):
+        rec = None
+        for key in (str(t.get("id") or "").replace("PMID ", "").strip(), str(t.get("label") or "")):
+            if key and key in _rob2_trials:
+                rec = _rob2_trials[key]
+                break
+        if not rec:
+            return "not assessed"
+        return ((rec.get("domains") or {}).get("D3_missing_outcome_data") or {}).get("level") or "not assessed"
+    d3_levels = [_d3_level(t) for t in prim_trials]
     d3_unassessed_n = sum(1 for lv in d3_levels if lv == "not assessed")
     rob_basis = (f"machine-assessed domains only; D3 unassessed on {d3_unassessed_n} "
                  f"of {len(prim_trials)} trial(s)")
