@@ -47,6 +47,14 @@ def test_primary_trial_values_and_membership_are_unchanged():
         assert before['screening_records'] == after['screening']['records'], slug
         b = next(o for o in after['outcomes'] if o.get('primary'))
         values = lambda o: [{k:t.get(k) for k in fields} for t in o['trials']]
+        sup = (snap.get('superseded') or {}).get(slug)
+        if sup:
+            # a LATER landing may change a primary only by a declared, named supersession that records the
+            # values it moved to; the pinned HM3 values are never rewritten (the control stays immutable)
+            assert sup.get('landing') and sup.get('reason'), slug
+            assert sup['primary_values_after'] == values(b), slug
+            assert before['primary_values'] != values(b), (slug, 'supersession declared but nothing moved')
+            continue
         assert before['primary_values'] == values(b), slug
 
 

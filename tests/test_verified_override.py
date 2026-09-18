@@ -20,16 +20,33 @@ _INTERV = _CFG.get("intervention_terms", ["n-3", "fatty acid"])
 _COMP = _CFG.get("comparator_terms", ["placebo", "control"])
 
 
+def _origin_outcome(verified_effects):
+    return pipeline._build_outcome(_SPEC, "efficacy", _INC, _RECS, _INTERV, _COMP,
+                                   verified_effects=verified_effects)
+
+
 def _origin_effect(verified_effects):
-    o = pipeline._build_outcome(_SPEC, "efficacy", _INC, _RECS, _INTERV, _COMP,
-                                verified_effects=verified_effects)
+    o = _origin_outcome(verified_effects)
     t = [x for x in o["trials"] if x["id"] == "PMID 22686415"]
     return t[0].get("effect") if t else None
 
 
-def test_without_override_abstract_selects_the_wrong_endpoint():
+def _origin_refusal(verified_effects):
+    o = _origin_outcome(verified_effects)
+    return next((a for a in o.get("declared_absent_trials") or [] if a["id"] == "PMID 22686415"), None)
+
+
+def test_without_override_the_wrong_endpoint_is_refused_not_pooled():
     # The real bug: no override -> the generic 'primary outcome' anchor grabs ORIGIN's CV-death primary 0.98.
-    assert _origin_effect(None) == 0.98
+    # Since the endpoint-span binding landing (2026-09-18) that number is bound to its own definition span
+    # (death from cardiovascular causes = one component of major vascular events) and REFUSED with the
+    # refused number shown -- never pooled under the composite label. (Before that landing this test
+    # asserted `== 0.98`, i.e. it pinned the defect as the expected behaviour.)
+    assert _origin_effect(None) is None
+    refusal = _origin_refusal(None)
+    assert refusal is not None
+    assert refusal.get("refused_effect", {}).get("effect") == 0.98
+    assert "cardiovascular death" in json.dumps(refusal).lower() or "component" in json.dumps(refusal).lower()
 
 
 def test_override_corrects_to_major_vascular_events():
@@ -41,7 +58,11 @@ def test_override_corrects_to_major_vascular_events():
 
 def test_unflagged_verified_effect_does_not_override():
     ve = {"22686415": {"outcome": _SPEC["name"], "effect": 1.01, "scale": "HR"}}  # no override flag
-    assert _origin_effect(ve) == 0.98, "an UNFLAGGED verified_effect must not override the abstract"
+    # an UNFLAGGED verified_effect is a fallback for an abstract that yields NOTHING; it never replaces
+    # what the abstract route decided. Here the abstract route decides a typed refusal (wrong endpoint),
+    # so the unflagged entry is not pooled either: neither 0.98 (wrong endpoint) nor 1.01 (unauthorised).
+    assert _origin_effect(ve) is None, "an UNFLAGGED verified_effect must not override the abstract route"
+    assert _origin_refusal(ve) is not None
 
 
 def test_verified_arms_override_beats_abstract():
