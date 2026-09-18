@@ -154,6 +154,61 @@
    },
    "extracted_text_sha256": "e27b9985959e139b9c84f15b7e364d3c82a2fed861819e2b777f6b3f5aef963e",
    "span_location_check": "OWED: locate each `span` verbatim in extracted_text on replay (not yet a limb)"
+  },
+  {
+   "source_id": "FDA_NDA209637_s025_label_2025",
+   "kind": "REGULATORY_FDA",
+   "source_level": 2,
+   "query": "Drugs@FDA NDA 209637 (Ozempic / semaglutide) -> supplement S-025 (new indication: reduce the risk of sustained eGFR decline, ESKD and CV death in adults with T2D and CKD; approval letter dated 2025, sNDA received March 28, 2024) -> Label (PDF) https://www.accessdata.fda.gov/drugsatfda_docs/label/2025/209637s025lbl.pdf ; the S-025 review package is NOT posted (nda/2025/209637Orig1s025.pdf and nda/2026/... both 404 on 2026-09-18); s032/s035/s037 reviews are labeling-safety supplements, not FLOW",
+   "ladder_attempts_before_this": [
+    "Europe PMC EXT_ID:38785209 -> isOpenAccess N, inEPMC N, fullTextUrl 'Subscription required' (2026-09-18)",
+    "Unpaywall 10.1056/NEJMoa2403347 -> is_oa false, no oa_locations (2026-09-18)",
+    "NEJM supplementary appendix / protocol / full text URLs -> HTTP 403 Cloudflare challenge page ('Just a moment...'); not bypassed (bot-detection rule); could be retried through the browser pane with Mahmood's download permission"
+   ],
+   "fetched_utc": "2026-09-18T07:58:00Z",
+   "retrieved_utc": "2026-09-18T07:58:00Z",
+   "retrieved_utc_precision": "instant",
+   "document_path": "outputs/handover/glp1_regulatory/held/209637s025lbl.pdf",
+   "document_sha256": "547606a71cf2cee768b1f98848be7ed53c06ea640bc6968f485c0fa3da455c42",
+   "document_bytes": 1269082,
+   "pages": 34,
+   "extracted_text_path": "outputs/handover/glp1_regulatory/209637s025lbl.pdf.txt",
+   "extracted_text_sha256": "8882f70933720c2ae710adfe512e8c1cf3a24968f3d7153ece6184af186d068f",
+   "state": "RAN_OK",
+   "denominator": "one document; 34 pages scanned for the FLOW 3-component MACE row and its observation-period statement",
+   "decisions": [
+    {
+     "trial": "FLOW",
+     "trial_key": "PMID 38785209",
+     "nct": "NCT03819153",
+     "outcome": "3-point MACE (CV death, non-fatal MI, non-fatal stroke), time to first occurrence",
+     "rule_id": "source-ladder:regulatory-label:MACE3-row-v1",
+     "decision": "EXTRACTED",
+     "effect": {
+      "scale": "HR",
+      "estimate": 0.82,
+      "ci_low": 0.68,
+      "ci_high": 0.98,
+      "p": 0.0289,
+      "estimator": "Cox proportional hazards model with treatment as factor, stratified by baseline SGLT2-inhibitor use"
+     },
+     "counts": {
+      "ai": 212,
+      "n1i": 1767,
+      "ci": 254,
+      "n2i": 1766
+     },
+     "analysis_set": "all randomized (N=1767 OZEMPIC 1 mg, N=1766 placebo; 3,533 randomized)",
+     "follow_up": "followed for a median of 41 months",
+     "censoring_span": "Cumulative incidence estimates are based on time from randomization to first EAC-confirmed MACE with non-CV death modelled as competing risk. The x-axis is truncated at 52 months where approximately 5% of the population was in the trial.",
+     "censoring_reading_PROPOSED": "in-trial (randomization to end of trial): the analysis is on all randomized patients from randomization, with patients at risk followed to 48+ months and 'in the trial' at 52 months; the word 'in-trial' is used on the same label for the eGFR figure (Figure 9). This is the regulator's description of the analysis, not the prospective SAP (not reachable, see ladder_attempts_before_this) -- Mahmood's condition (ADJ-GLP1-002: 'include after its prospective exact-outcome provenance span is locked') is therefore met at LEVEL 2 only if he accepts the regulatory label as the locking document.",
+     "span_page_pdf": 25,
+     "span": "Composite of cardiovascular death, non-fatal myocardial infarction, non-fatal stroke (time to first occurrence) 254 (14.4) 212 (12.0) 0.82 (0.68, 0.98) 0.0289",
+     "table_span_verbatim_lines": "Composite of cardiovascular death, \nnon-fatal myocardial infarction, \nnon-fatal stroke (time to first \noccurrence) \n254 (14.4) 212 (12.0) \n0.82 (0.68, \n0.98) 0.0289",
+     "model_span": "1 Cox proportional hazards model with treatment as factor and stratified by baseline use of SGLT2- inhibitor at baseline (yes or no).",
+     "not_substituted": "the SUSTAIN-6 Table 9 row on the same label (0.74 (0.58, 0.95), median observation 2.1 years) is a different trial and was not touched; the FLOW primary kidney composite 0.76 was not entered as MACE"
+    }
+   ]
   }
  ],
  "replay_status": "documents held and digested 2026-09-16; spans NOT yet machine-located on replay; values NOT yet on any served page"
