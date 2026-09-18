@@ -710,8 +710,12 @@ def _grade_block(grade: dict[str, Any]) -> str:
     unassessed = ", ".join(grade.get("unassessed_domains") or [])
     return (
         f"<div class='absent'><strong data-grade-certainty='true'>{certainty}</strong> "
-        f"({grade.get('downgrades', 0)} downgrade(s); starting arithmetic: high for randomized trials). "
-        f"Unassessed domains: {_e(unassessed)}; unassessed never counts as favourable. "
+        # The downgrade arithmetic is a property of a COMPLETED assessment: while any domain is unassessed the
+        # certainty is provisional and no count or starting level may render (it would rebuild the category the
+        # B-prime amendment withdrew -- Mahmood's review of edaf5f6b, item 5); the domain rows stay.
+        + (f"({grade.get('downgrades', 0)} downgrade(s); starting arithmetic: high for randomized trials). "
+           if not (grade.get("unassessed_domains") or []) else "(downgrade arithmetic not stated while a domain is unassessed). ")
+        + f"Unassessed domains: {_e(unassessed)}; unassessed never counts as favourable. "
         "Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. "
         f"{_e(grade.get('not_rateable_reason') or '')}"
         "<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr>"

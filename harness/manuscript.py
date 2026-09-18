@@ -379,7 +379,7 @@ def render(review, neutral: bool = False) -> str:
         + "</p>"
         f"<p><strong>Certainty.</strong> "
         + (f"<strong data-grade-certainty='true'>{_e(cert)}</strong> "
-           + (f"(from {g.get('downgrades', 0)} downgrade(s); " if not _grade_not_rateable else "(")
+           + (f"(from {g.get('downgrades', 0)} downgrade(s); " if not _grade_not_rateable and not (g.get('unassessed_domains') or []) else "(")
            + f"{_pub_certainty_phrase}; "
            f"unassessed domains: {_e(', '.join(g.get('unassessed_domains') or []))}). "
            + (_e(g.get('not_rateable_reason')) if _grade_not_rateable else ""))
