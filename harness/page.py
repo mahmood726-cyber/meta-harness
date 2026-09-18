@@ -2394,9 +2394,10 @@ def _riskofbias(r, neutral):
                   ("D5_selective_reporting", "D5 selective reporting")]
     head = "<tr><th>Trial</th><th>Overall</th>" + "".join(f"<th>{_e(l)}</th>" for _, l in dom_labels) + "</tr>"
     rows = []
+    family = rb.get("output_family")
     for pid, a in sorted(assessed.items()):  # stable order (canonical_json sorts keys; render must too)
-        cells = "".join(f"<td title='{_e(a['domains'][k]['basis'])}'>{_e(a['domains'][k]['level'])}</td>" for k, _ in dom_labels)
-        rows.append(f"<tr><td>{_e(pid)}</td><td><strong>{_e(a.get('overall'))}</strong></td>{cells}</tr>")
+        cells = "".join(f"<td title='{_e(a['domains'][k]['basis'])}'>{_e(rob_cell_text(a['domains'][k]['level'], family))}</td>" for k, _ in dom_labels)
+        rows.append(f"<tr><td>{_e(pid)}</td><td><strong>{_e(rob_overall_text(a.get('overall'), family))}</strong></td>{cells}</tr>")
     # Pooled trials with NO registry match: render as explicit not-assessed rows, with the reason, so
     # coverage is visible. D1/D2/D4 here are auto-derived from AACT registry fields keyed on NCT;
     # a trial with no NCT/AACT match cannot be machine-assessed and is not guessed.
@@ -2701,6 +2702,30 @@ def _eligibility_screen_sentence(r):
                 "as UNRESOLVED per record until held evidence establishes it (never an exclusion); outcome result availability "
                 "is not an axis;")
     return "Eligibility is on P/I/C/design (the registered rule);"
+
+
+def rob_cell_text(level, output_family):
+    """What a risk-of-bias cell may SAY, derived from the rob2 object's output family. The registry machine signal
+    (rob2.OUTPUT_FAMILY) is not a RoB 2 judgement: B-prime withdrew judgements, so a signal level renders as the
+    qualified signal and never as the bare judgement word (Mahmood's review of edaf5f6b, item 2). A formal RoB 2
+    assessment object (a different output family, adjudicated) renders its judgement as such."""
+    from . import rob2 as _rob2
+    level = "" if level is None else str(level)
+    if output_family != _rob2.OUTPUT_FAMILY:
+        return level
+    if level in _rob2.NOT_ASSESSED_LEVELS or level == "not assessed":
+        return level
+    if level == "low":
+        return "machine signal consistent with low risk — formal RoB 2 not assessed"
+    return f"machine signal: {level} — formal RoB 2 not assessed"
+
+
+def rob_overall_text(overall, output_family):
+    from . import rob2 as _rob2
+    overall = "" if overall is None else str(overall)
+    if output_family != _rob2.OUTPUT_FAMILY:
+        return overall
+    return f"FORMAL RoB 2 NOT ASSESSED (machine signal on assessed domains: {overall})"
 
 def render_page(review: dict, neutral: bool = False) -> str:
     from .certificate import render as render_certificate
