@@ -227,7 +227,11 @@ def test_funding_fraction_excludes_unknown_from_denominator():
     for f in glob.glob(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                     "docs", "reviews", "*", "review.json")):
         r = json.load(open(f, encoding="utf-8"))
-        fund = r.get("funding") or []
+        # The denominator is CURRENT outcome membership, never the stored funding rows: a funding row for a
+        # trial a later gate removed from every pool (glp1 ELIXA) must not be counted -- the served page read
+        # "9 of 9 known pooled trials" beside k=8 (agy adversarial read, lane ASC 2026-09-19).
+        from harness import funding as funding_mod
+        fund = funding_mod.pooled_funding(r)
         if not fund:
             continue
         html = page._riskofbias(r, False)

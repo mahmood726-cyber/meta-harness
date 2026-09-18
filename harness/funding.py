@@ -372,6 +372,26 @@ def _pooled_trials(review: dict[str, Any]) -> list[dict[str, Any]]:
     return out
 
 
+def pooled_funding(review):
+    """Current outcome membership governs disclosure, including missing funding.
+
+    Late outcome gates can remove trials after funding was scanned. Do not count
+    those stale rows, or silently omit a current trial with no funding row.
+    """
+    def key(row):
+        return str(row.get("id", "")).replace("PMID ", "").strip()
+    rows = {key(row): row for row in review.get("funding", [])}
+    return [rows.get(key(trial), {"id": trial["id"], "status": "unknown"})
+            for trial in _pooled_trials(review)]
+
+
+def denominator_sentence(review):
+    """Name both denominators from current outcome membership, never funding rows."""
+    total = len(_pooled_trials(review))
+    primary = {"outcomes": [o for o in review.get("outcomes", []) if o.get("primary")]}
+    return f"{total} trials pooled across all outcomes; {len(_pooled_trials(primary))} in the primary pool"
+
+
 def scan_pooled(
     review: dict[str, Any],
     rec_by_id: dict[str, dict[str, Any]],

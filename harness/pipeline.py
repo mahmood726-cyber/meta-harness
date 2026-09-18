@@ -928,6 +928,12 @@ def _with_model_adjudication(slug, dual, decisions):
     return dual
 
 
+def _record_outcome_ascertainment(screening_records, protocol_text):
+    """Attach the protocol-derived state to every final screening row."""
+    return [dict(row, outcome_ascertainment=screen.outcome_ascertainment(protocol_text))
+            for row in screening_records]
+
+
 def _apply_adjudicator_flags(slug, screening_records):
     p = os.path.join(ROOT, "cache", slug, "screen_adjudication.json")
     if not os.path.exists(p):
@@ -1902,6 +1908,7 @@ def build_review_core(slug, config, records, protocol_sha):
         source_status.get("Registry-first (AACT)"),
     )
     protocol_text = _read_text("protocols", slug + ".md")
+    screening_records = _record_outcome_ascertainment(screening_records, protocol_text)
     scope_identity = scope_identity_mod.assess(
         config=config,
         protocol_text=protocol_text,

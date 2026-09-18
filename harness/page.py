@@ -2471,7 +2471,7 @@ def _riskofbias(r, neutral):
             + " ".join(parts)
             + " This is a stated limitation and design-key disclosure, not silent simple-parallel pooling.</div>"
         )
-    fund = r.get("funding") or []
+    fund = _funding_mod.pooled_funding(r)
     fund_html = ""
     if fund:
         def _class(f):
@@ -2544,7 +2544,7 @@ def _riskofbias(r, neutral):
                      "when held text and registry disagree, both source spans are rendered. Industry author "
                      "affiliations are flagged only as affiliations, never sponsor evidence. Including an "
                      "industry <em>drug-supply</em> tie in an otherwise independently funded trial: "
-                     f"<strong>{n_ind} of {n_known} known</strong> ({n_unknown} unknown) pooled trials are "
+                     f"{_funding_mod.denominator_sentence(r)}. <strong>{n_ind} of {n_known} known</strong> ({n_unknown} unknown) pooled trials are "
                      "industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN "
                      "funding — unknown-funding trials are reported separately below, not counted as "
                      "independently funded — for comparison against a "
@@ -2685,10 +2685,18 @@ document.querySelectorAll('nav button').forEach(function(b){b.classList.toggle('
 
 
 
+def _ascertainment_record_counts(r):
+    """Count recorded states; legacy objects cannot imply a universal state."""
+    rows = (r.get("screening") or {}).get("records") or []
+    unresolved = sum((row.get("outcome_ascertainment") or {}).get("state") == "UNRESOLVED"
+                     for row in rows)
+    return f"as UNRESOLVED on {unresolved} of {len(rows)} records"
+
+
 def _eligibility_screen_sentence(r):
     """What the SCREEN evaluated, stated from the registered clause: the machine screen tests P/I/C/design; a protocol
-    whose clause adds outcome ascertainment as an axis has that axis recorded as UNRESOLVED per record here (it is
-    established, or not, from held evidence at extraction), never as an exclusion -- derived from
+    whose clause adds outcome ascertainment as an axis reports the recorded state count,
+    never as an exclusion -- derived from
     harness.protocol_compiler.eligibility_clause, never a literal."""
     from . import protocol_compiler as _pc
     text = ((r.get("protocol") or {}).get("text")) if isinstance(r.get("protocol"), dict) else None
@@ -2698,7 +2706,7 @@ def _eligibility_screen_sentence(r):
     if clause["ascertainment_axis"]:
         return (f"The machine screen tests population, intervention, comparator and design; the registered {clause['label']} "
                 "clause adds prospective, systematic outcome ascertainment as an eligibility axis, which the screen records "
-                "as UNRESOLVED per record until held evidence establishes it (never an exclusion); outcome result availability "
+                f"{_ascertainment_record_counts(r)} until held evidence establishes it (never an exclusion); outcome result availability "
                 "is not an axis;")
     return "Eligibility is on P/I/C/design (the registered rule);"
 

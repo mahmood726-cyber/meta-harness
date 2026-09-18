@@ -22,6 +22,22 @@ from . import screen_entry
 _BOUND_CACHE: dict = {}
 
 
+def outcome_ascertainment(protocol_text):
+    """Record the compiled axis without mistaking result availability for evidence.
+
+    No held ascertainment adjudication is consumed by the machine screen yet, so
+    it cannot establish this axis. Missing/unparsable clauses stay unresolved.
+    This annotation never changes an inclusion or exclusion decision.
+    """
+    from .protocol_compiler import eligibility_clause
+    clause = eligibility_clause(protocol_text)
+    if clause is None:
+        return {"state": "UNRESOLVED", "basis": "ELIGIBILITY_CLAUSE_NOT_PARSABLE"}
+    if not clause["ascertainment_axis"]:
+        return {"state": "NOT_AN_AXIS", "basis": clause["label"]}
+    return {"state": "UNRESOLVED", "basis": clause["label"]}
+
+
 def _boundary_re(term: str):
     """Whole-token match by default. A trailing '*' makes the term a STEM (leading boundary +
     prefix, any word continuation) so intentional stems like 'antibiotic-associated diarr*'
