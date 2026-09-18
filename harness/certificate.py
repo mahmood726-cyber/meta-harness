@@ -76,6 +76,62 @@ def _held(cache, review, objects):
             for p in sorted(paths, key=_ref)]
 
 
+def _require_retained_document_digests(extraction):
+    """A rebuild cannot erase a committed row's existing source binding.
+
+    Compare identities, not list offsets. Legacy rows that never carried a digest
+    remain outside this deletion check; removal of an entire row is a separate gate.
+    The anchor is the running repository's HEAD, including for scratch input roots.
+    """
+    import subprocess
+    repo = Path(__file__).resolve().parents[1]
+    for ref, current in extraction.items():
+        if Path(ref).name not in ('verified_arms.json', 'verified_effects.json'):
+            continue
+        try:
+            source = subprocess.run(['git', '-C', str(repo), 'show', 'HEAD:' + ref],
+                                    capture_output=True, encoding='utf-8')
+            if source.returncode:
+                tracked = subprocess.run(['git', '-C', str(repo), 'ls-files', '--', ref],
+                                         capture_output=True, encoding='utf-8', check=True)
+                if not tracked.stdout.strip():
+                    continue  # new input with no committed deletion anchor
+                raise ValueError('DOCUMENT_DIGEST_SNAPSHOT_UNAVAILABLE: ' + ref)
+            baseline = json.loads(source.stdout)
+        except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as exc:
+            raise ValueError('DOCUMENT_DIGEST_SNAPSHOT_UNAVAILABLE: ' + ref) from exc
+        for pid, value in current.items():
+            old = baseline.get(pid, [])
+            old_rows = old if isinstance(old, list) else [old]
+            bound = {row.get('outcome') for row in old_rows if row.get('document_sha256')}
+            for row in value if isinstance(value, list) else [value]:
+                if row.get('outcome') in bound and not row.get('document_sha256'):
+                    raise ValueError(f'MISSING_DOCUMENT_SHA256: {ref}/{pid}/{row.get("outcome")}')
+
+
+def _verify_document_bindings(slug, saved):
+    """Check exact bytes, including JSON whitespace excluded by canonical hashing."""
+    bindings = [(d['ref'], d['sha256']) for d in saved.get('held_documents', [])]
+    for name in ('verified_arms.json', 'verified_effects.json'):
+        path = _safe(f'cache/{slug}/{name}')
+        if not path.is_file():
+            continue  # the extraction-object certificate comparison catches deletion
+        for value in _json(path).values():
+            for row in value if isinstance(value, list) else [value]:
+                if row.get('document_sha256'):
+                    ref = (row.get('document_ref') or '').split('#')[0]
+                    if not ref:
+                        raise ValueError(f'MISSING_DOCUMENT_REF: {name}/{row.get("outcome")}')
+                    # Regulatory transcriptions distinguish the PDF digest from its text digest.
+                    bindings.append((ref, row.get('extracted_text_sha256') or row['document_sha256']))
+    for ref, digest in bindings:
+        path = _safe(ref)
+        if not path.is_file():
+            raise ValueError('HELD_DOCUMENT_MISSING: ' + ref)
+        if _file_hash(path) != digest:
+            raise ValueError('DOCUMENT_SHA256_MISMATCH: ' + ref)
+
+
 def compute(slug, review, protocol_sha):
     """Re-read each listed input; fail closed on absent required files or corpus drift."""
     if Path(slug).name != slug or slug in (".", ".."):
@@ -94,6 +150,7 @@ def compute(slug, review, protocol_sha):
     extraction_paths = sorted(set(cache.glob("verified_*.json")) |
                               set(cache.glob("*effect_type*.json")))
     extraction = {_ref(p): _json(p) for p in extraction_paths}
+    _require_retained_document_digests(extraction)
     family = cache / "families.json"
     blobs = {}
     for ref in CODE:
@@ -156,6 +213,7 @@ def verify(review_dir, review=None, protocol_sha=None):
             raise ValueError("certificate must be a JSON object")
         review = review if review is not None else _json(directory / "review.json")
         manifest = _json(directory / "manifest.json")
+        _verify_document_bindings(manifest['slug'], saved)
         expected = compute(manifest["slug"], review, protocol_sha or manifest["protocol_sha"])
         if canonical_json(saved) != canonical_json(expected):
             return [f"CERTIFICATE.json release_sha256 mismatch: recomputed {expected['release_sha256']} vs saved {saved.get('release_sha256')}"]
