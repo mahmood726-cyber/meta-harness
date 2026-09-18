@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 import threading
 
+import pytest
+pytest.importorskip("playwright", reason="browser E2E; not installed in CI")
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,8 +18,9 @@ def test_all_certificate_blocks_and_downloads():
                   Path(os.environ.get("PROGRAMFILES", "")) / "Google/Chrome/Application/chrome.exe"]
     exe = next((p for p in candidates if p.is_file()), None)
     assert exe, "Local browser required; no downloads"
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 8000), functools.partial(
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(  # ephemeral port: concurrent clones on 8000 served each other 404s
         http.server.SimpleHTTPRequestHandler, directory=str(ROOT)))
+    port = server.server_address[1]
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -26,12 +29,12 @@ def test_all_certificate_blocks_and_downloads():
             try:
                 page = browser.new_page()
                 page.route("**/*", lambda r: r.continue_() if r.request.url.startswith(
-                    "http://127.0.0.1:8000/") else r.abort())
+                    f"http://127.0.0.1:{port}/") else r.abort())
                 errors = []
                 page.on("pageerror", lambda e: errors.append(str(e)))
                 for directory in sorted((ROOT / "docs/reviews").iterdir()):
                     cert = json.loads((directory / "CERTIFICATE.json").read_text(encoding="utf-8"))
-                    url = f"http://127.0.0.1:8000/docs/reviews/{directory.name}/"
+                    url = f"http://127.0.0.1:{port}/docs/reviews/{directory.name}/"
                     assert page.goto(url + "index.html").status == 200
                     block = page.locator("#evidence-certificate")
                     assert block.is_visible()
