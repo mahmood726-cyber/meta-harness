@@ -15,7 +15,8 @@ from harness.target_endpoint import _components_from_text
 DIRECTORY = Path('outputs/handover/glp1_regulatory')
 INDEX = DIRECTORY / 'regulatory_sources_glp1.json'
 OUTPUT = Path('cache/glp1-ra-mace-t2d/regulatory_facts.json')
-SOURCES = {'FREEDOM-CVO': 'fda_media_172242_ITCA650.pdf', 'FLOW': '209637s025lbl.pdf'}
+SOURCES = {'FREEDOM-CVO': 'fda_media_172242_ITCA650.pdf', 'FLOW': '209637s025lbl.pdf',
+           'ELIXA': '208471Orig1s000StatR.pdf'}
 PAGE = re.compile(r'(?m)^(?:### PAGE (\d+)|===== page (\d+) =====)')
 FREEDOM_CAPTION = re.compile(r'Table 19\. Time to First Occurrence[^\n]*\n[^\n]*FREEDOM \(CLP-107\)[^\n]*')
 FLOW_CAPTION = re.compile(r'Table 10: Analyses of the Primary and Secondary Endpoints and their Individual Components in FLOW\s+Trial')
@@ -29,6 +30,104 @@ FREEDOM_ROW = re.compile(
 FLOW_ROW = re.compile(FLOW_DEFINITION.pattern +
     rf'\s+(?P<ce>\d+)\s+\({DECIMAL}\)\s+(?P<ie>\d+)\s+\({DECIMAL}\)\s+{EFFECT}')
 FLOW_ARMS = re.compile(r'Placebo\s+N=(?P<cn>\d+)\s+\(%\)\s+OZEMPIC\s+1 mg\s+N=(?P<inn>\d+)')
+ELIXA_CAPTION = re.compile(r'Table 8: Analysis of the MACE Endpoint[^\S\r\n]*')
+ELIXA_ARMS = re.compile(r'Placebo\s+\(N=(?P<cn>[\d,]+)\)\s+Lixisenatide\s+\(N=(?P<inn>[\d,]+)\)\s+Hazard ratio\s+\(95% CI\)')
+ELIXA_ROW = re.compile(rf'MACE endpoint \((?P<analysis>on-study|on-treatment)\)\s+{EFFECT}\s+No\. of patients with event \(%\)\s+(?P<ce>\d+)\s+\({DECIMAL}%\)\s+(?P<ie>\d+)\s+\({DECIMAL}%\)')
+ELIXA_TEXT = re.compile(rf'For ITT analysis (?P<total>\d+) MACE events were observed, (?P<ce>\d+) and (?P<ie>\d+) in placebo and\s+lixisenatide group, respectively\. The 95% confidence interval for the hazard ratio is \((?P<lo>{DECIMAL}),\s+(?P<hi>{DECIMAL})\) with a point estimate of (?P<hr>{DECIMAL})\.')
+ELIXA_SUMMARY = re.compile(rf'There were (?P<total>\d+) secondary MACE events observed in the study for the ITT population, (?P<ie>\d+) in\s+the lixisenatide group and (?P<ce>\d+) in the placebo group\. The pre-specified Cox proportional hazards\s+analysis resulted in a hazard ratio estimate of (?P<hr>{DECIMAL}) with an associated 95% confidence interval of\s+\((?P<lo>{DECIMAL}),\s+(?P<hi>{DECIMAL})\)\.')
+
+
+def parse_elixa(text):
+    rows = [m for m in ELIXA_ROW.finditer(text) if not text[m.end():].strip()]
+    if rows:
+        if len(rows) != 1:
+            raise ValueError('ambiguous ELIXA row')
+        headers = list(ELIXA_ARMS.finditer(text))
+        if len(headers) != 1:
+            raise ValueError('missing or ambiguous ELIXA arm headers')
+        values = {**rows[0].groupdict(), **headers[0].groupdict()}
+    else:
+        match = ELIXA_TEXT.fullmatch(text) or ELIXA_SUMMARY.fullmatch(text)
+        if not match:
+            raise ValueError('unparseable ELIXA result')
+        values = match.groupdict()
+        if int(values['total']) != int(values['ie']) + int(values['ce']):
+            raise ValueError('ELIXA event total mismatch')
+    effect = dict(scale='HR', value=float(values['hr']), ci_low=float(values['lo']), ci_high=float(values['hi']))
+    counts = {arm: {'events': int(values[e]),
+                    'n': int(values[n].replace(',', '')) if n in values else 'NOT_STATED_IN_SPAN'}
+              for arm, e, n in [('intervention', 'ie', 'inn'), ('comparator', 'ce', 'cn')]}
+    if not 0 < effect['ci_low'] <= effect['value'] <= effect['ci_high']:
+        raise ValueError('invalid effect interval')
+    if any(c['events'] < 0 or (isinstance(c['n'], int) and not 0 <= c['events'] <= c['n']) for c in counts.values()):
+        raise ValueError('invalid counts')
+    return effect, counts
+
+
+def differences(left, right):
+    """Missing prose denominators are absence, not numeric disagreement."""
+    result = [k for k in ('value', 'ci_low', 'ci_high') if left['effect'][k] != right['effect'][k]]
+    for arm in ('intervention', 'comparator'):
+        for key in ('events', 'n'):
+            a, b = left['counts'][arm][key], right['counts'][arm][key]
+            if isinstance(a, int) and isinstance(b, int) and a != b:
+                result.append(f'counts.{arm}.{key}')
+    return result
+
+
+def locate_elixa(text):
+    def unique(pattern):
+        matches = list(re.finditer(pattern, text, re.S))
+        if len(matches) != 1:
+            raise ValueError('ELIXA required span missing or ambiguous: ' + pattern)
+        return match_span(text, matches[0])
+
+    definition = unique(r'MACE, a composite endpoint defined as\s+cardiovascular death, non-fatal myocardial infarction, or non-fatal stroke, as adjudicated by the\s+cardiovascular events adjudication committee \(CAC\)\.')
+    role = unique(r'Secondary endpoints include alternate composites of cardiovascular outcomes, MACE and all-\s+cause mortality, and other exploratory endpoints\.')
+    analysis = unique(r'The primary analysis population is intent to treat \(ITT\).*?study end date, even if a subject has discontinued randomized treatment\.')
+    local_analysis = unique(r'ITT analyses \(on-study and on-treatment\) of MACE, defined as cardiovascular death, non-fatal\s+MI, and non-fatal stroke, are consistent with those of MACE\+ \(Table 8\)\.')
+    treatment = unique(r'The on-treatment period for CV\s+endpoints is defined as the time from randomization up to \d+ days after the last injection of\s+randomized product\.')
+    common = dict(definition_span=definition, components=sorted(_components_from_text(definition['text'])),
+                  endpoint_role='secondary MACE; primary on-study analysis of this target', endpoint_role_span=role)
+    tables, others = [], []
+    for caption in ELIXA_CAPTION.finditer(text):
+        end_match = re.search(r'Source:|### PAGE ', text[caption.end():])
+        end = caption.end() + end_match.start() if end_match else len(text)
+        body = text[caption.end():end]
+        if not ELIXA_ARMS.search(body):
+            continue
+        for row in ELIXA_ROW.finditer(body):
+            result = span(text, caption.end(), caption.end() + row.end())
+            effect, counts = parse_elixa(result['text'])
+            item = dict(common, kind='table', table=match_span(text, caption), result_span=result,
+                        row_span=match_span(text, row, caption.end()), effect=effect, counts=counts,
+                        analysis_set_span=local_analysis, analysis_label_span=span(text, caption.end()+row.start('analysis'), caption.end()+row.end('analysis')),
+                        censoring_rule_span=treatment if row['analysis'] == 'on-treatment' else analysis)
+            (others if row['analysis'] == 'on-treatment' else tables).append(item)
+    passages = []
+    for match in ELIXA_TEXT.finditer(text):
+        result = match_span(text, match)
+        effect, counts = parse_elixa(result['text'])
+        passages.append(dict(common, kind='text', result_span=result, effect=effect, counts=counts,
+                             analysis_set_span=span(text, match.start(), match.start()+len('For ITT analysis')),
+                             censoring_rule_span='NOT_STATED_IN_SPAN', analysis_context_span=analysis))
+    if len(tables) != 1 or len(passages) != 1 or len(others) != 1:
+        raise ValueError('ELIXA requires unique on-study table, nearby text and on-treatment table')
+    comparison = differences(tables[0], passages[0])
+    result = dict(common, nct='NOT_LOCATED', other_analyses=others, comparison={'differing_fields': comparison},
+                  notes='Table and adjacent prose compared without rounding; missing prose denominators not imputed. On-treatment kept separate.')
+    if comparison:
+        result.update(state='CONFLICT', conflicts=[tables[0], passages[0]])
+    else:
+        result.update(state='LOCATED', effect=tables[0]['effect'], counts=tables[0]['counts'],
+                      result_span=tables[0]['result_span'], corroborating=[tables[0], passages[0]])
+    result['additional_passages'] = []
+    for match in ELIXA_SUMMARY.finditer(text):
+        effect, counts = parse_elixa(match.group())
+        result['additional_passages'].append(dict(kind='summary_text', result_span=match_span(text, match),
+            effect=effect, counts=counts, analysis_set_span=span(text, match.start(), text.index(',', match.start()) ),
+            censoring_rule_span='NOT_STATED_IN_SPAN', comparison_to_table=differences(tables[0], dict(effect=effect, counts=counts))))
+    return result
 
 
 def read_text(path):
@@ -57,6 +156,8 @@ def match_span(text, match, offset=0):
 
 
 def parse_result(trial, text):
+    if trial == 'ELIXA':
+        return parse_elixa(text)
     rows = list((FREEDOM_ROW if trial == 'FREEDOM-CVO' else FLOW_ROW).finditer(text))
     # A candidate ends precisely at its row, while retaining preceding arm headers.
     # Earlier rows may be present; locate() emits every one and compares them.
@@ -85,6 +186,8 @@ def parse_result(trial, text):
 
 def locate(trial, text):
     """Bound table search, excluding TOC captions and adjacent endpoints."""
+    if trial == 'ELIXA':
+        return locate_elixa(text)
     freedom = trial == 'FREEDOM-CVO'
     caption_rx = FREEDOM_CAPTION if freedom else FLOW_CAPTION
     definition_rx = FREEDOM_DEFINITION if freedom else FLOW_DEFINITION
@@ -169,11 +272,7 @@ def build(root=ROOT):
             located['state'] = 'NOT_LOCATED'
             located['refusal_scope'] = 'required provenance index verification'
             located['notes'] += ' REFUSED: ' + meta['provenance_check']['state'] + '; numeric fields withheld, even when spans are located.'
-            located.pop('effect', None)
-            located.pop('counts', None)
-            for candidate in located.get('conflicts', []):
-                candidate.pop('effect', None)
-                candidate.pop('counts', None)
+            withhold_numbers(located)
         facts.append({'trial': trial, 'outcome': '3-point MACE', **meta, **located})
     artifact = {'generated_by': 'scripts/glp1_regulatory_facts.py',
                 'mechanism': 'deterministic regex/table locator over committed .pdf.txt; no model call',
@@ -181,6 +280,17 @@ def build(root=ROOT):
                 'facts': facts}
     validate(artifact, root)
     return artifact
+
+
+def withhold_numbers(node):
+    if isinstance(node, dict):
+        node.pop('effect', None)
+        node.pop('counts', None)
+        for value in node.values():
+            withhold_numbers(value)
+    elif isinstance(node, list):
+        for value in node:
+            withhold_numbers(value)
 
 
 def validate(artifact, root=ROOT):
@@ -204,7 +314,14 @@ def validate(artifact, root=ROOT):
                     check_spans(value)
 
         check_spans(fact)
-        for candidate in [fact, *fact.get('conflicts', [])]:
+        if fact.get('state') == 'CONFLICT':
+            conflicts = fact.get('conflicts', [])
+            if 'effect' in fact:
+                raise ValueError('CONFLICT must omit top-level effect')
+            if len(conflicts) < 2 or not any(differences(a, b) for a in conflicts for b in conflicts):
+                raise ValueError('CONFLICT requires differing parsed values')
+        for candidate in [fact, *fact.get('conflicts', []), *fact.get('other_analyses', []),
+                          *fact.get('additional_passages', []), *fact.get('corroborating', [])]:
             if 'effect' in candidate or 'counts' in candidate:
                 if not candidate.get('result_span'):
                     raise ValueError('numeric value without result_span')
@@ -220,11 +337,17 @@ def validate(artifact, root=ROOT):
                     raise ValueError('definition components mismatch')
         # Replay the locator too: a true span from a different endpoint is insufficient.
         expected = locate(fact['trial'], text)
-        for key in ('table', 'definition_span', 'result_span', 'components', 'nct', 'nct_span', 'conflicts'):
+        if meta['provenance_check']['state'] != 'MATCH':
+            withhold_numbers(expected)
+        for key in ('table', 'definition_span', 'result_span', 'components', 'nct', 'nct_span', 'conflicts',
+                    'other_analyses', 'additional_passages', 'corroborating', 'comparison',
+                    'analysis_set_span', 'censoring_rule_span', 'endpoint_role_span'):
             if key == 'conflicts' and meta['provenance_check']['state'] != 'MATCH':
                 continue
             if fact.get(key) != expected.get(key):
                 raise ValueError('locator binding mismatch: ' + key)
+        if meta['provenance_check']['state'] == 'MATCH' and fact['state'] != expected['state']:
+            raise ValueError('locator state mismatch')
 
 
 def serialize(artifact):
@@ -338,11 +461,121 @@ def write_report(artifact, proposal_path, test_output_path):
     (ROOT / 'LANE-FX-REPORT.md').write_bytes(('\n'.join(lines) + '\n').encode('utf-8'))
 
 
+def write_fx2_report(artifact, test_output_path):
+    """Post-generation proposal audit; never supplies locator inputs."""
+    import subprocess
+    fact = next(f for f in artifact['facts'] if f['trial'] == 'ELIXA')
+    text = read_text(ROOT / fact['text_file'])
+    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+    lines = ['# LANE FX2 report', '', f'HEAD: `{head}`. No commit; no network.', '',
+        'MEASURED: 1 of 1 requested target definitions, 2 of 2 primary-analysis result passages, '
+        'and 1 of 1 on-treatment table rows located. 2 of 2 ELIXA PDF/text digests match the required provenance index. '
+        'The raw-text digest was computed before decoding/any normalization; extraction preserves CRLF. '
+        'The locator-only artefact `.tmp/elixa-located-before-provenance.json` was produced before consulting '
+        'the ELIXA provenance index or either proposal. The final artefact applies required provenance admission.', '',
+        'INFERRED: the requested three-point target is the secondary MACE endpoint, not the trial primary MACE+ endpoint. '
+        'The source explicitly classifies it as secondary. The on-study table and adjacent ITT prose refer to the same target; '
+        'the general methods span defines on-study follow-up through the common study end date, including treatment discontinuation. '
+        'The adjacent prose does not itself restate censoring, so its censoring_rule_span remains NOT_STATED_IN_SPAN.', '',
+        'CLAIMED: bounded offline extraction only; no release, submission, certification, pooling, or portfolio-status change. '
+        'No protected harness modules, source files, index, workbook, or original FX report changed.', '',
+        '## Static versus dynamic disclosure', '',
+        '| Item | Static configuration | Dynamic evidence |', '|---|---|---|',
+        '| Selection | Trial/file labels, caption/row regexes, endpoint vocabulary | Unique source matches; missing/ambiguous required matches fail closed |',
+        '| Results | No clinical result constants | Effects and counts parsed from held spans; prose denominators explicitly absent |',
+        '| Provenance | Existing index path | SHA-256 over raw PDF/text bytes compared to index |',
+        '| Locations | Zero-based, end-exclusive convention | Character/UTF-8 byte offsets; PDF pages from extraction markers |',
+        '| Conflict | Exact comparison without rounding; only shared numeric count fields compared | Differing fields computed from independently parsed passages |',
+        '| Proposal audit | Whitespace-only folding, ellipsis splitting | Post-generation substring matching; never seeds extraction |', '',
+        '## Provenance and comparison', '',
+        f"State: {fact['state']}; source: {fact['source_id']}; provenance: {fact['provenance_check']['state']}.",
+        f"PDF SHA-256: `{fact['document_sha256']}`.", f"Raw text SHA-256: `{fact['text_sha256']}`.",
+        f"Mechanical differing fields: `{json.dumps(fact['comparison']['differing_fields'])}`. No top-level effect is present.",
+        'The lower-bound discrepancy is retained under exact comparison as requested; no rounding-based reconciliation is attempted. '
+        'Matching estimates and event counts do not resolve the interval conflict.', '',
+        '## Located evidence', '']
+
+    def emit_span(label, value):
+        if not isinstance(value, dict):
+            lines.extend([f'{label}: {value}.', ''])
+            return
+        lines.extend([f"{label}: chars [{value['char_start']}, {value['char_end']}), bytes "
+                      f"[{value['byte_start']}, {value['byte_end']}), PDF page {value.get('page_pdf')}"
+                      f" (end page {value.get('page_pdf_end')}).", '', '```text', value['text'], '```', ''])
+
+    emit_span('definition_span', fact['definition_span'])
+    emit_span('endpoint_role_span', fact['endpoint_role_span'])
+    lines.extend(['Components: ' + ', '.join(fact['components']) + '.', ''])
+    for group in ('conflicts', 'other_analyses', 'additional_passages'):
+        for index, candidate in enumerate(fact.get(group, []), 1):
+            lines.extend([f"### {group} / {index}: {candidate['kind']}", '',
+                          'Parsed values:', '```json', json.dumps({k: candidate[k] for k in ('effect', 'counts')}, indent=2), '```', ''])
+            for key in ('table', 'row_span', 'result_span', 'analysis_label_span', 'analysis_set_span',
+                        'censoring_rule_span', 'analysis_context_span'):
+                if key in candidate:
+                    emit_span(key, candidate[key])
+    lines.extend(['The on-treatment result_span retains the preceding arm headers and on-study row; '
+                  'the parser accepts only the terminal on-treatment row. Its row_span isolates that row. '
+                  'The executive-summary result is an additional same-target passage, with its own comparison to the table; '
+                  'it is not misclassified as a different analysis.', '',
+                  '## Post-generation proposal cross-check', '',
+                  'Proposal: `.tmp/ref/agy_elixa.txt`. Each quoted fragment is searched only on its proposed PDF page. '
+                  'Whitespace is folded for this audit only; all reported offsets map back to unchanged raw text.', '',
+                  '| Passage | PDF page | Located fragments | Not located fragments |', '|---|---|---|---|'])
+    proposal = read_text(ROOT / '.tmp/ref/agy_elixa.txt')
+    total, found = 0, 0
+    for section in re.finditer(r'\*\*Passage (\d+)\*\*\s*\* Quote: "(.*?)"(.*?)(?=\*\*Passage |\n---|\Z)', proposal, re.S):
+        number, quote, discussion = section.groups()
+        page = re.search(r'Page Marker: ### PAGE (\d+)', discussion)
+        if not page:
+            raise ValueError('proposal passage has no page')
+        marker = re.search(r'(?m)^### PAGE ' + page[1] + r'\s*$', text)
+        next_page = PAGE.search(text, marker.end())
+        end = next_page.start() if next_page else len(text)
+        normalized, mapping = '', []
+        for token in re.finditer(r'\S+', text[marker.end():end]):
+            if normalized:
+                normalized += ' '
+                mapping.append(marker.end() + token.start())
+            normalized += token.group()
+            mapping.extend(range(marker.end()+token.start(), marker.end()+token.end()))
+        fragments = [f.strip() for f in re.split(r'\.\.\.|…', quote) if f.strip()]
+        hits, missing = [], []
+        for fragment in fragments:
+            folded = ' '.join(fragment.split())
+            pos = normalized.find(folded)
+            if pos < 0:
+                missing.append('`' + folded.replace('|', '/') + '`')
+            else:
+                hits.append(f'chars [{mapping[pos]}, {mapping[pos+len(folded)-1]+1})')
+        total += len(fragments)
+        found += len(hits)
+        lines.append(f"| {number} | {page[1]} | {len(hits)} of {len(fragments)}; " + '; '.join(hits) + ' | ' + ('; '.join(missing) or 'None') + ' |')
+    lines.extend(['', f'MEASURED: {found} of {total} proposal fragments located with the stated exact-after-whitespace-folding rule.', '',
+        'The ELX report describes eight handover spans on PDF pages 7, 8, 22, 24 and 35. '
+        'The fragment audit above checks these source regions independently. The target table and adjacent result are on page 24; '
+        'the executive summary is on page 7. The locator binds the fuller definition on page 16, while the proposal also quotes '
+        'the shorter definition on page 24. MACE+ regions are audit-only, not imported as three-point facts. '
+        'This is a region cross-check, not a claim to have independently replayed all eight handover records; those records are not extraction inputs.', '',
+        '## Not located / limitations', '',
+        'No NCT identifier was located by this bounded locator. No trial-primary three-point endpoint definition is located: '
+        'the source calls MACE secondary. Denominators and censoring rules are NOT_STATED_IN_SPAN in the nearby prose and executive summary. '
+        'Proposal fragments listed as not located above are not repaired or used as evidence. The search is bounded to these source formats, '
+        'not an exhaustive semantic audit of every passage. PDF page numbers come from held extraction markers; no independent PDF rendering is claimed. '
+        'Existing FLOW provenance refusal remains unchanged.', '',
+        '## Verification', '', 'Command: `python -m pytest -q -s tests/test_glp1_regulatory_facts.py tests/test_target_endpoint.py`.', '',
+        'The first FX2 focused run passed. Corruption plants are validated from still-corrupt scratch artefacts before any repair. '
+        'Tests cover byte-identical regeneration, all nested spans/values, hash-mismatch refusal, conflict rejection, and the agreeing-passages branch.', '',
+        '```text', read_text(test_output_path).rstrip(), '```', ''])
+    (ROOT / 'LANE-FX2-REPORT.md').write_bytes(('\n'.join(lines)+'\n').encode('utf-8'))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=ROOT / OUTPUT)
     parser.add_argument('--validate', type=Path)
     parser.add_argument('--report', action='store_true')
+    parser.add_argument('--report-fx2', action='store_true')
     parser.add_argument('--test-output', type=Path)
     args = parser.parse_args()
     if args.validate:
@@ -356,6 +589,10 @@ def main():
         if not args.test_output:
             parser.error('--report requires --test-output')
         write_report(artifact, ROOT / '.tmp/ref/agy_freedom.txt', args.test_output)
+    if args.report_fx2:
+        if not args.test_output:
+            parser.error('--report-fx2 requires --test-output')
+        write_fx2_report(artifact, args.test_output)
     for fact in artifact['facts']:
         print(f"{fact['trial']}: {fact['state']}; provenance={fact['provenance_check']['state']}")
 
