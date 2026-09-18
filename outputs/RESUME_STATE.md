@@ -1,4 +1,4 @@
-# RESUME_STATE — meta-harness glp1 programme (refreshed 2026-09-18 00:02 local; refresh on every landing or lane finish)
+# RESUME_STATE — meta-harness glp1 programme (refreshed 2026-09-18 01:16 local; refresh on every landing or lane finish)
 
 Every claim is marked MEASURED (read from git/ls-remote/disk at the time stamp), INFERRED, or CLAIMED. A restarting session should trust `git ls-remote https://github.com/mahmood726-cyber/meta-harness.git <ref>` over anything here.
 
@@ -84,3 +84,8 @@ INFERRED: (a) served-page corrections (FIX2 → my integration + ratchet acks �
 - HRM2 DONE (114,420 tok; `C:\mh-r-HRM2`, 204 files): harms synthesis suppressed 46 of 61 with ledgers kept, adjustment labels UNRESOLVED 95/95, gate 32/32 incl. check_harms_complete → commit G after F.
 - IN6 still running on the landing-4 candidate (log 114 MB, report being written).
 - C: free 24 GB.
+
+## 10. 01:16 additions
+- Commit F `432294db` (CERT + CMP) hook 11/11 (attempt 3; attempts 1–2: scorecard registry merge, re-rendered index banner ack); pushed (ls-remote branch 432294db); CI 35289342303 REFUSED on one import: CERT's Playwright test lacked the visible skip. Commit G (skip + ephemeral port) IN THE HOOK since 01:14 (`commit14.log`, chain `land11.sh`) → main.
+- IN6 attempt 1 (`C:\mh-r-IN6`, report 586 KB): landing-4 candidate post-fix standard 4 of 11 refused — unit (2 tests: CGX3B owned-section units after the merge; glp1 UI test expects 0 UNVERIFIED_FACT, 4 remain = date-stamped harm rows), gate (retrieved_utc decision), search completeness (search_v2 engine hash changed → `scripts/search_v2_run.py` must be re-run with network by the integrator), ratchet. My hang detector killed it at the end of an essentially finished run (10-min window < a silent verify_all); relaunch killed; window widened to 30 min.
+- HRM3 running on 432294db (merge HRM2 onto F).
