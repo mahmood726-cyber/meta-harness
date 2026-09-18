@@ -4,7 +4,9 @@ The historical independent checker outputs are not required for this offline
 inventory refresh. New rows are explicitly NOT_INDEPENDENTLY_RECHECKED.
 """
 import json
+from datetime import datetime, timezone
 from pathlib import Path
+TODAY=datetime.now(timezone.utc).strftime('%Y-%m-%d')
 ROOT=Path(__file__).resolve().parents[1]
 
 def main():
@@ -26,16 +28,24 @@ def main():
                     build_verification=trial.get('verified'),
                     source=trial.get('source'),
                     stored={k:trial[k] for k in ('effect','ci_low','ci_high','scale','ai','n1i','ci','n2i','mean1','sd1','nc1','mean2','sd2','nc2') if k in trial})
+    superseded=[]
     for rid,row in current.items():
         if rid not in rows:
             rows[rid]=row
+        elif rows[rid].get('stored') and rows[rid]['stored']!=row['stored']:
+            # the pooled number MOVED since the census: its historical verdict was about a different
+            # number and no longer applies (a measured-once figure must not look live)
+            superseded.append(dict(row_id=rid,previous=rows[rid],refreshed_utc=TODAY))
+            rows[rid]=row
+    if superseded:
+        sample['superseded_rows']=(sample.get('superseded_rows') or [])+superseded
     sample['rows']=[rows[k] for k in sorted(rows)]
     sample['n']=len(rows)
     sample['refresh_note']='New IN3 census rows are inventoried from current objects and explicitly NOT_INDEPENDENTLY_RECHECKED; no new blind verification is claimed.'
     d.update(population=len(rows),n_pooled_current_after_fixes=len(current),
              current_pooled_population=len(current),
              removed_by_census_fixes=sorted(set(rows)-set(current)),
-             inventory_refreshed_utc='2026-09-17',
+             inventory_refreshed_utc=TODAY,
              inventory_method='scripts/refresh_error_rate_census.py; current review objects, no independent re-extraction',
              independent_audit_state='HISTORICAL_ONLY',
              not_independently_rechecked_current=sum(rows[k]['verdict']=='NOT_INDEPENDENTLY_RECHECKED' for k in current))

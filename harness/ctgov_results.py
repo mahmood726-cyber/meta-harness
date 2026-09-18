@@ -6,6 +6,7 @@ abstract reports only a bare % or a composite no longer depends on prose parsing
 in the extraction source hierarchy for count data (structured primary-source results).
 """
 from __future__ import annotations
+import re
 
 from . import second_source as second_source_mod
 
@@ -25,6 +26,15 @@ def _intlike(x):
 def _registry_measure_type(om, class_title, measurements, denom_units):
     """Classify the selected CT.gov row's numeric meaning for cross-source display."""
     ptype = (om.get("paramType") or "").upper()
+    title_l = str(om.get("title") or "").lower()
+    # UNIT CONFLICT: a registry row declared COUNT_OF_PARTICIPANTS whose own title counts EVENTS
+    # ("Number of Hospitalizations for Heart Failure": HEART-FID, where the publication reports the same
+    # integers as hospitalisations, not patients). A recurrent-event count is not a binary participant
+    # count and must not be reconstructed as one; the conflict is typed and the row is not reconstructed.
+    if ptype == "COUNT_OF_PARTICIPANTS" and re.search(
+            r"\b(?:number|total|count) of (?:hospitali[sz]ations|events|episodes|admissions|visits)\b", title_l) \
+            and not re.search(r"\b(?:number|proportion|percentage) of (?:participants|patients|subjects)\b", title_l):
+        return "UNIT_CONFLICT_EVENTS_VS_PARTICIPANTS"
     if ptype in ("COUNT_OF_PARTICIPANTS", "COUNT_OF_UNITS"):
         return ptype
     text = " ".join(str(x or "") for x in (
