@@ -1,4 +1,4 @@
-# RESUME_STATE — meta-harness glp1 programme (refreshed 2026-09-18 02:26 local; refresh on every landing or lane finish)
+# RESUME_STATE — meta-harness glp1 programme (refreshed 2026-09-18 03:40 local; refresh on every landing or lane finish)
 
 Every claim is marked MEASURED (read from git/ls-remote/disk at the time stamp), INFERRED, or CLAIMED. A restarting session should trust `git ls-remote https://github.com/mahmood726-cyber/meta-harness.git <ref>` over anything here.
 
@@ -11,7 +11,7 @@ Every claim is marked MEASURED (read from git/ls-remote/disk at the time stamp),
 
 ## 0. Layout — NOT linked worktrees (MEASURED)
 `C:\meta-harness` (branch `search-v2-engine`, HEAD aa8ed28a, its `refs/remotes/origin/main` is STALE) is only the shared object store lane clones are made from (`git clone -s`); nobody edits it. The active clones (each a separate `.git`, all with `origin` = the GitHub URL — check `git remote -v`, four clones today had `origin` = a local path):
-- `C:\mh-int` — INTEGRATION clone, branch `fix/phase1-integration`, hooksPath `.githooks` (the pre-commit hook = `scripts/verify_all.py`, 40–75 min). HEAD 405cb80b = origin/main. Landings are committed here, pushed, CI-by-SHA, then `<sha>:main`.
+- `C:\mh-int` — INTEGRATION clone, branch `fix/phase1-integration`, hooksPath `.githooks` (the pre-commit hook = `scripts/verify_all.py`, 40–75 min). HEAD 3f8add72 = origin/main. Landings are committed here, pushed, CI-by-SHA, then `<sha>:main`.
 - `C:\mh-base` — HANDOVER clone, branch `handover-2026-09-16` (875ac4ef pushed). Holds `outputs/handover/*` (briefs, lane reports, adjudications, held FDA PDFs, sealed Gemini run, review pack, proof board `outputs/handover/lanes/GLP1_PROOF.md`), and THIS file.
 - `C:\mh-wip` — scratch clone for composing WIP lane bases (detached; HEAD 3cf73885).
 - `F:\claude-temp\mh-clean` — clean clone of origin/main used for landing proofs (served bytes vs clone bytes).
@@ -21,8 +21,8 @@ Every claim is marked MEASURED (read from git/ls-remote/disk at the time stamp),
 ## 1. Refs on GitHub (MEASURED by URL ls-remote 20:31)
 | ref | sha | meaning |
 |---|---|---|
-| main | 405cb80b | E (corrections) → F 432294db (evidence certificate + comparator panel) → G 405cb80b (CI-visible Playwright skip); served 02:05, manifest commit_sha 405cb80b, 32/32 bytes = clean clone; glp1 review_sha256 d67a3615, certificate release_sha256 1603ceef, protocol_sha b10c53d3 on the page |
-| fix/phase1-integration | 405cb80b | integration branch |
+| main | 3f8add72 | H = harms synthesis suppressed while incomplete (ledgers kept) + adjustment labels UNRESOLVED + landing hash check, on top of E/F/G; served 03:36 (manifest 3f8add72; glp1 review_sha256 edaf5f6b, html_sha256 efbc3c28 = clean clone; protocol_sha b10c53d3) |
+| fix/phase1-integration | 3f8add72 | integration branch |
 | handover-2026-09-16 | 875ac4ef | all handover artefacts |
 | refs/lanes/landing3-wip | f6f7b14c | pre-landing-3 merged tree (hook-refused) |
 | refs/lanes/landing3-wip-in2 | f5f81800 | + IN2 |
@@ -106,3 +106,5 @@ INFERRED: (a) served-page corrections (FIX2 → my integration + ratchet acks �
 ## 12. 02:30 — served state re-verified by the outside observer through a browser (review_sha256 d67a3615, html_sha256 28d5b5bc, protocol b10c53d3; the three corrections present). Two observer errors recorded as defect classes: a deduplicating fetch tool read as the origin; the stale `C:\meta-harness` tree grepped as the corpus. Still owed: the review-hash-changed landing gate (goes in with HRM3's commit H).
 
 ## 13. 02:26 — commit H IN THE HOOK (`commit15.log`, chain `land12.sh` which now runs `scripts/landing_hash_check.py <prev> <new>` before pushing main and refuses if a touched review's review_sha256/html_sha256 did not move): HRM2 merged by HRM3 (199,905 tok) — harms synthesis suppressed 46/61 with ledgers, adjustment labels UNRESOLVED 95/95; 51 ratchet acks signed (the one 'retraction'-marker decrease is two duplicate renderings of a protocol sentence containing 'withdrawn' — measured; retraction_survival 32/32). Codex idle after H; remaining work is landing 4 (blocked on the retrieved_utc decision + search re-run) and the independent search.
+
+## 14. 03:40 — commit H `3f8add72` ON MAIN AND SERVED (CI 35298586402; landing hash check printed glp1 review_sha256 d67a3615 → edaf5f6b MOVED before the main push; served manifest 3f8add72; page bytes = clean clone). Fetched glp1: 'HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued' ×2 with the ledger, adjustment_status UNRESOLVED ×10 (the one remaining 'PUBLISHED_UNADJUSTED' string is the sweep's own explanatory label), GRADE provisional ×6, certificate, comparator panel. No lanes running. Next: landing 4 (needs Mahmood's retrieved_utc decision + integrator's network re-run of scripts/search_v2_run.py), then the independent concept search.
