@@ -1,0 +1,41 @@
+Gemini
+
+1.
+File: harness/effect_type.py
+Function: type_attached_strands
+Code line: 418
+Why it bypasses: It iterates over legacy strands loaded from a JSON cache (when `generated_from_declarations` is falsy) and calls `unify()` to attach type receipts without ever calling `admissibility()` or re-pooling. The existing `pool` object inside the cached strand is kept and rendered directly, completely bypassing the mandatory admissibility verdict gate.
+Severity: HIGH
+Plants that would prove it: A manipulated `review.json` cache file containing a legacy strand with an incompatible member (e.g., scale="HR" in an "RR" topic) and a pre-computed `pool` object. The engine would blindly render the pooled effect without refusal.
+
+2.
+File: harness/pipeline.py
+Function: _build_outcome
+Code line: 1478
+Why it bypasses: It creates new `Study(...)` objects for an `alternative_co_primary` effect completely outside of `type_rows()`, meaning the alternative effect never receives an admissibility verdict (`design` remains `None`). It then calls `_pool_result` without `require_study_effect=True`. If the validation loop is skipped (e.g., if all `source` strings happen to be empty), the unverified alternative numbers pool directly.
+Severity: HIGH
+Plants that would prove it: A trial with an `alternative_co_primary` object containing an incompatible effect measure, combined with all trials in the pool having an empty `source` string. The validation loop would skip, and the incompatible effect would pool without refusal.
+
+3.
+File: harness/envelope.py
+Function: calculate
+Code line: 1814
+Why it bypasses: It calls `pool(studies, scale=scale)` without `require_study_effect=True` and manually computes alternative models (REML, fixed effect, Wald CI). If an envelope specification introduces a new trial (like the regulatory `FREEDOM-CVO end of treatment` alternative) that was never typed and lacks an admissibility verdict, and the pool's validation loop is skipped (e.g., due to empty sources), the unverified number is pooled and rendered in the envelope.
+Severity: HIGH
+Plants that would prove it: An envelope specification containing trials with completely empty `source` strings and an incompatible effect measure. `pool()`'s validation would skip, allowing `calculate` to compute and render the invalid sensitivity result.
+
+4.
+File: harness/pipeline.py
+Function: _build_outcome
+Code line: 1143
+Why it bypasses: The `_cross_source` function executes a second-pass extraction from CT.gov to attach a comparator effect to a trial. This `cross_source` object is never passed through `effect_type_mod.type_rows()` or `admissibility()`, yet it is rendered on the page alongside the main effect.
+Severity: LOW
+Plants that would prove it: A CT.gov results payload containing an outcome that matches keywords but has an incompatible effect measure. The unverified CT.gov number would be rendered as a `cross_source` comparator without being flagged or refused.
+
+5.
+File: harness/strands.py
+Function: build
+Code line: 1722
+Why it bypasses: It copies `strand_sensitivity_values` from the config and only checks them with `verified_source.refusal(row)` before rendering them as single facts on the page. They are never subjected to `effect_type.type_rows()` or `admissibility()`, meaning they bypass the main outcome verdict gate.
+Severity: MEDIUM
+Plants that would prove it: A `strand_sensitivity_values` array containing an input with a valid source span but an incompatible scale. It would be rendered directly on the page as a sensitivity effect without refusal.
