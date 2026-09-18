@@ -1,0 +1,16 @@
+# LANE ROB2 — verify the RoB 2 algorithm transcription against the HELD RoB 2 guidance (now on disk), close the membership gap with the held families file, and re-derive the proposals; nothing becomes a judgement — adjudication stays OWED.
+
+Report file: `LANE-ROB2-REPORT.md`. This clone is lane ROB's finished worktree (base 3f8add72 + ROB's `harness/rob2_evidence.py`, `scripts/rob2_propose.py`, `cache/glp1-ra-mace-t2d/rob2_proposals.json`, renderer draft, tests; read `LANE-ROB-REPORT.md` and `STUCK_FAILURES.md`). Never reset/checkout/stash. No commit. No network.
+
+Inputs now supplied (copied into this clone by the integrator before launch):
+- `outputs/handover/rob2_method/rob2_full_guidance.pdf` (+ `.txt`, sha256 in `SOURCES.json`): the RoB 2 full guidance, 22 August 2019; `rob2_cribsheet.pdf` (+ `.txt`). The five domain algorithms are flowchart figures: the extracted text carries the signalling questions, response options, the algorithm captions and the criteria sentences ("Low risk of bias if …", "Some concerns if …", "High risk of bias if …") in the guidance prose per domain.
+- `cache/glp1-ra-mace-t2d/families.json` (the canonical PRIMARY families, 11 + SELECT) and `family_registry.rows.json.gz` (held AACT rows incl. `id_information`), copied from the landing-4 tree.
+- `outputs/handover/glp1_regulatory/held/209637s025lbl.pdf` + `209637s025lbl.pdf.txt` (the FDA S-025 label: FLOW design, masking, analysis population, EAC adjudication statements) and the updated `regulatory_sources_glp1.json`.
+
+## Rules
+1. **Algorithm check against held text**: for each domain, locate in `rob2_full_guidance.pdf.txt` the criteria sentences that define Low / Some concerns / High (quote them with page and offset) and compare with the branch logic in `harness/rob2_evidence.py`. Write `outputs/handover/glp1_rob2/algorithm_transcription_check.json`: per domain per branch: `{branch, guidance_span (verbatim), page, agrees: true|false|UNREADABLE (flowchart arrow not in extracted text), fix_applied}`. Fix every disagreement in the code; every UNREADABLE branch is listed by name — the implementation stays "provisional" for exactly those branches and says so in the rendered line. The overall-judgement rule (High if any domain High; Some concerns if any Some concerns, with the "multiple some-concerns" caveat) must be quoted from the held text.
+2. **Membership**: switch the proposal set to the 11 PRIMARY families of `families.json` (assert equality with the reviewB set; if they differ, list the difference and use `families.json`).
+3. **Re-derive** the proposals with the FLOW label now held (FLOW's masking, EAC adjudication, analysis population statements are on the label — quote them; FLOW should no longer be 1 of 22 answered if the label supports more; NI stays wherever no span supports an answer). Re-run the span locator and the planted-paraphrase refusal (paste).
+4. Keep everything PROPOSED; adjudicator OWED. Report per trial Y/PY/PN/N vs NI of 22, domains derived (PROPOSED), algorithm branches agree/disagree/UNREADABLE (`n of N`), tests (`python -m pytest tests/test_rob2_evidence.py tests/test_rob2_proposals_ui.py -q`).
+
+MEASURED / INFERRED / CLAIMED; `n of N` with N named. Never a backslash escape through a heredoc; write regexes to files. No commit.
