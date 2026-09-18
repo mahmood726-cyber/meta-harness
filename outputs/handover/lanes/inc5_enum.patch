@@ -1,0 +1,77 @@
+diff --git a/harness/target_endpoint.py b/harness/target_endpoint.py
+index caf37933..a34ab390 100644
+--- a/harness/target_endpoint.py
++++ b/harness/target_endpoint.py
+@@ -397,6 +397,60 @@ def canonical_components(spec: dict[str, Any]) -> list[str]:
+     return sorted(_components_from_text(spec.get("name")))
+ 
+ 
++_ENUM_CUE_RX = re.compile(
++    r"\b(?:comprised(?: of)?|comprising|consist(?:ed|ing|s)? of|composed of|defined as|namely|including|included)\b"
++    r"|\bcomposite (?:outcome |end[\s-]?point )?of\b", re.I)
++_ENUM_STOP_RX = re.compile(
++    r"[.;:]|\b(?:during|within|over|through|assessed|analy[sz]ed|evaluated|measured|compared|was|were|occurred|"
++    r"occurring|which|that|whichever|while|whereas|in (?:[a-z-]+ ){0,2}(?:patients|participants|subjects|adults|people)|"
++    r"among)\b", re.I)
++_ENUM_ITEM_PREFIX_RX = re.compile(
++    r"^(?:the |a |an |any |all |first |new |fatal |non-?fatal |hospitali[sz]ation for |hospitali[sz]ed |"
++    r"hospital admission for |admission for |time to |occurrence of |component of |components of |of )+", re.I)
++_ENUM_NOISE = {"composite", "the composite", "first occurrence", "first event", "either", "both", "fatal", "nonfatal",
++               "non-fatal", "any", "events", "event", "outcome", "outcomes", "end point", "endpoint", "end points",
++               "endpoints", "the following", "following"}
++
++
++def unrecognised_enumerated_components(text: str | None) -> list[str]:
++    """Items a definition span ENUMERATES after a definition cue ('comprised', 'composite of', 'defined as', ...)
++    that the component vocabulary cannot read.  An enumeration in the span governs: a component the vocabulary
++    does not recognise is an unrecognised EXTRA component, never nothing -- Alpha Omega's 'major cardiovascular
++    events, which comprised fatal and nonfatal cardiovascular events and cardiac interventions' was expanded to
++    the 3-point set because none of its enumerated items was recognised (served omega3 at 237e9094, found by an
++    independent read of the bound spans)."""
++    s = _fold(text)
++    m = _ENUM_CUE_RX.search(s)
++    if not m:
++        return []
++    tail = _ENUM_STOP_RX.split(s[m.end():], 1)[0]
++    if s[:m.start()].count("(") > s[:m.start()].count(")"):
++        # the enumeration sits inside a parenthesis ('MACE (a composite of MI, stroke, or CV death) and invasive
++        # cancer'): it ends where the parenthesis closes; what follows is not part of the composite
++        tail = tail.split(")", 1)[0]
++    out: list[str] = []
++    for raw in re.split(r",|/|\bor\b|\band\b|\bplus\b", tail):
++        item = _ENUM_ITEM_PREFIX_RX.sub("", raw.strip(" ,()[]")).strip()
++        if not item or len(item) < 4 or item in _ENUM_NOISE:
++            continue
++        if _MACE_RX.search(item) or re.search(r"composite|component|randomi[sz]ation|follow-?up", item):
++            # a family name ('major adverse cardiovascular events') or a reference to the composite itself
++            # ('any component of the composite endpoint') is not an enumerated component
++            continue
++        if re.fullmatch(r"(?:undetermined|unknown|unexplained) causes?", item):
++            # the CVOT definition of cardiovascular death ('death from cardiovascular or undetermined causes',
++            # AMPLITUDE-O) splits on 'or' into a qualifier of the death item, not a component of its own
++            continue
++        if _components_from_text(item, expand_named_composites=False):
++            continue
++        if re.fullmatch(r"(?:cardiovascular|cv|vascular) events?", item):
++            # 'fatal and nonfatal cardiovascular events' names a family, not a component the vocabulary reads
++            out.append(raw.strip(" ,()"))
++            continue
++        out.append(item)
++    return out
++
++
+ def _keyword_family_match(spec: dict[str, Any], text: str | None) -> bool:
+     s = _fold(text)
+     for kw in spec.get("keywords") or []:
+@@ -427,6 +481,11 @@ def _classify(spec: dict[str, Any], text: str | None, components: set[str] | Non
+         if not (c == "coronary heart disease death" and "cardiovascular death" in canon)
+     )
+     missing = sorted(canon - cand_for_match)
++    # an enumerated component the vocabulary cannot read is an unrecognised EXTRA component: the span's own
++    # enumeration governs, and a named-composite expansion never stands in for items the span actually lists
++    unrecognised = unrecognised_enumerated_components(text)
++    if unrecognised:
++        extra = sorted(set(extra) | {f"unrecognised component: {u}" for u in unrecognised})
+     if not extra and not missing:
+         cls = EXACT_TARGET
+     elif cand and (not missing or not extra):

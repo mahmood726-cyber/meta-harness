@@ -1,0 +1,48 @@
+--- a/harness/target_endpoint.py
++++ b/harness/target_endpoint.py
+@@ -517,6 +517,16 @@
+         lo = _num(a.get("ciLowerLimit"))
+         hi = _num(a.get("ciUpperLimit"))
+         if effect is not None and lo is not None and hi is not None:
++            # the registry's OWN rendering of this analysis, verbatim strings: this is the result span the
++            # displayed number must be found in (a registry row's result span was the measure TITLE, which
++            # carries no number -- REDUCE-IT on the served omega3 page at 237e9094, independent read)
++            group = str(a.get("groupDescription") or "").strip()
++            pct = str(a.get("ciPctValue") or "95").strip()
++            analysis_span = (
++                (f"{group}: " if group else "")
++                + f"{a.get('paramType')} {a.get('paramValue')} ({pct}% CI {a.get('ciLowerLimit')} to "
++                + f"{a.get('ciUpperLimit')}; {a.get('statisticalMethod') or 'method not stated'})"
++            )
+             return {
+                 "effect": effect,
+                 "ci_low": lo,
+@@ -524,6 +534,7 @@
+                 "scale": scale,
+                 "analysis_method": a.get("statisticalMethod"),
+                 "analysis_param_type": a.get("paramType"),
++                "analysis_span": analysis_span,
+             }
+     return None
+ 
+@@ -682,6 +693,8 @@
+         if analysis:
+             c = dict(base)
+             c.update(analysis)
++            # the result span is the registry analysis itself (verbatim), not the measure title
++            c["endpoint_result_span"] = f"{base['endpoint_result_span']} -- analysis: {analysis['analysis_span']}"
+             c["source_kind"] = REGISTRY_PUBLISHED_EFFECT
+             c["source_rank_kind"] = REGISTRY_PUBLISHED_EFFECT
+             c["source_rank"] = SOURCE_RANK[REGISTRY_PUBLISHED_EFFECT]
+@@ -702,6 +715,11 @@
+         if counts and measure_type == "COUNT_OF_PARTICIPANTS":
+             c = dict(base)
+             c.update({k: counts[k] for k in ("ai", "n1i", "ci", "n2i")})
++            # a reconstruction's result span carries the registry counts it is derived from, verbatim
++            c["endpoint_result_span"] = (
++                f"{base['endpoint_result_span']} -- counts: {counts['ai']}/{counts['n1i']} ({counts['intervention_arm']}) "
++                f"vs {counts['ci']}/{counts['n2i']} ({counts['comparator_arm']})"
++            )
+             c["source_kind"] = RECONSTRUCTION
+             c["source_rank_kind"] = RECONSTRUCTION
+             c["source_rank"] = SOURCE_RANK[RECONSTRUCTION]
