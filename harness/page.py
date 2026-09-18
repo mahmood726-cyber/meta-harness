@@ -20,6 +20,7 @@ import re
 from typing import Any
 
 from . import manuscript as _manuscript_mod
+from . import absence as _absence_mod
 from . import grade as _grade_mod
 from . import rob_sensitivity as _rob_sensitivity_mod
 from . import claimgraph as _claimgraph_mod
@@ -1766,7 +1767,13 @@ def _outcome_block(o, show_inputs=True, review=None):
     if show_inputs and (n_pool or n_abs):
         if n_abs and n_pool:
             _states = collections.Counter((t.get("state") or "") for t in (o.get("declared_absent_trials") or []))
-            _nd = _states.get("NO_OUTCOME_DATA_IN_SOURCE", 0)
+            # The legend's "no outcome data in source (n here)" must count the TYPED code the rows carry
+            # (absence.OUTCOME_NOT_IN_SOURCE; the legacy spelling NO_OUTCOME_DATA_IN_SOURCE is its alias).
+            # Counting only the legacy spelling made this number 0 on every page -- a count that cannot be
+            # non-zero, served as "(0 here)" beside a row in exactly that state (glp1 ELIXA; agy adversarial
+            # read of 98726cc1, 2026-09-18).
+            _nd = sum(n for st, n in _states.items()
+                      if st == "NO_OUTCOME_DATA_IN_SOURCE" or st == _absence_mod.OUTCOME_NOT_IN_SOURCE)
             unitized = any((t.get("trial_family_id") for t in (o.get("trials") or []))) or any(
                 (t.get("trial_family_id") for t in (o.get("declared_absent_trials") or [])))
             absent_display = (
