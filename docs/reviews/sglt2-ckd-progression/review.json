@@ -2416,17 +2416,17 @@
               "validity_critical": false
             }
           },
-          "prior_disease_stage": "chronic_kidney_disease",
-          "analysis_set_literal": "ITT",
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "sustained >=50% eGFR decline",
             "end-stage kidney disease",
             "renal death",
             "cardiovascular death"
           ],
-          "endpoint_definition": "primary outcome was a composite of a sustained decline in the estimated GFR of at least 50%, end-stage kidney disease, or death from renal or cardiovascular causes",
           "background_therapy": "standard_care",
+          "prior_disease_stage": "chronic_kidney_disease",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
+          "analysis_set_literal": "ITT",
+          "endpoint_definition": "primary outcome was a composite of a sustained decline in the estimated GFR of at least 50%, end-stage kidney disease, or death from renal or cardiovascular causes",
           "study_effect": {
             "effect_estimate": 0.61,
             "standard_error": 0.08797112829924103,
@@ -2563,17 +2563,17 @@
               "validity_critical": false
             }
           },
-          "prior_disease_stage": "chronic_kidney_disease",
-          "analysis_set_literal": "ITT",
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "end-stage kidney disease",
             "doubling of serum creatinine",
             "renal death",
             "cardiovascular death"
           ],
-          "endpoint_definition": "primary outcome was a composite of end-stage kidney disease (dialysis, transplantation, or a sustained estimated GFR of <15 ml per minute per 1",
           "background_therapy": "standard_care",
+          "prior_disease_stage": "chronic_kidney_disease",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
+          "analysis_set_literal": "ITT",
+          "endpoint_definition": "primary outcome was a composite of end-stage kidney disease (dialysis, transplantation, or a sustained estimated GFR of <15 ml per minute per 1",
           "study_effect": {
             "effect_estimate": 0.7,
             "standard_error": 0.08397649292412455,
@@ -2686,9 +2686,6 @@
               "validity_critical": false
             }
           },
-          "prior_disease_stage": "chronic_kidney_disease",
-          "analysis_set_literal": "ITT",
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "end-stage kidney disease",
             "sustained eGFR <10 ml/min/1.73 m2",
@@ -2696,8 +2693,11 @@
             "renal death",
             "cardiovascular death"
           ],
-          "endpoint_definition": "primary outcome was a composite of progression of kidney disease (defined as end-stage kidney disease, a sustained decrease in eGFR to <10 ml per minute per 1",
           "background_therapy": "standard_care",
+          "prior_disease_stage": "chronic_kidney_disease",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
+          "analysis_set_literal": "ITT",
+          "endpoint_definition": "primary outcome was a composite of progression of kidney disease (defined as end-stage kidney disease, a sustained decrease in eGFR to <10 ml per minute per 1",
           "study_effect": {
             "effect_estimate": 0.72,
             "standard_error": 0.06322467296835074,
@@ -5598,7 +5598,19 @@
         "config": "ertugliflozin"
       }
     ],
-    "intervention_i_line": "an sglt2 inhibitor, specifically dapagliflozin, canagliflozin, or empagliflozin, added to background standard care."
+    "intervention_i_line": "an sglt2 inhibitor, specifically dapagliflozin, canagliflozin, or empagliflozin, added to background standard care.",
+    "checked_dimensions": [
+      "analysis_set",
+      "design",
+      "estimand",
+      "intervention_declaration",
+      "intervention_i_line"
+    ],
+    "unchecked_dimensions": [
+      "ascertainment_axis: no comparable explicit protocol/include boolean",
+      "result_availability_not_axis: no comparable explicit protocol/include boolean"
+    ],
+    "basis": "Committed protocol prose compared with executable topic fields; only listed dimensions are checked."
   },
   "identifier_scope": {
     "level": "CLASS",
@@ -6854,8 +6866,56 @@
       }
     }
   ],
+  "comparator_panel": [
+    {
+      "id": "41203232",
+      "citation": "SGLT2 Inhibitors and Kidney Outcomes by Glomerular Filtration Rate and Albuminuria: A Meta-Analysis. (2026); JAMA; DOI 10.1001/jama.2025.20834; PMID 41203232",
+      "year": "2026",
+      "scope_note": "Registered comparator identity; unextracted quantities and trial membership remain unknown.",
+      "held": true,
+      "document_ref": "cache/sglt2-ckd-progression/comparator_fulltext.txt",
+      "document_sha256": "369252fd522db6abddbaaf32177c5bd5603f6b9b671e39dc7f68d126ca38b9a5",
+      "trial_set": [],
+      "k": null,
+      "effect": null,
+      "ci": null,
+      "i2": null,
+      "pi": null,
+      "method": null,
+      "overlaps": []
+    }
+  ],
   "propositions": {
     "version": 1,
+    "declared_equals_enforced": {
+      "state": "DIVERGENT",
+      "checked_dimensions": [
+        "analysis_set",
+        "design",
+        "estimand",
+        "intervention_declaration",
+        "intervention_i_line"
+      ],
+      "divergences": [
+        {
+          "code": "DESIGN_MASKING_ANDOR",
+          "dimension": "design",
+          "prose": "double-blind AND placebo-controlled",
+          "config": "double-blind OR placebo-controlled"
+        },
+        {
+          "code": "INTERVENTION_AGENT_PROSE_DIVERGENCE",
+          "dimension": "intervention_i_line",
+          "prose": "an sglt2 inhibitor, specifically dapagliflozin, canagliflozin, or empagliflozin, added to background standard care.",
+          "config": "ertugliflozin"
+        }
+      ],
+      "basis": "Committed protocol prose compared with executable topic fields; only listed dimensions are checked.",
+      "unchecked_dimensions": [
+        "ascertainment_axis: no comparable explicit protocol/include boolean",
+        "result_availability_not_axis: no comparable explicit protocol/include boolean"
+      ]
+    },
     "objects": [
       {
         "kind": "publication_bias_state",
@@ -6869,6 +6929,33 @@
         "kind": "declared_equals_enforced",
         "surface": "reporting/prisma_item_5",
         "source_path": "/protocol_config/divergences",
+        "state": "DIVERGENT",
+        "checked_dimensions": [
+          "analysis_set",
+          "design",
+          "estimand",
+          "intervention_declaration",
+          "intervention_i_line"
+        ],
+        "divergences": [
+          {
+            "code": "DESIGN_MASKING_ANDOR",
+            "dimension": "design",
+            "prose": "double-blind AND placebo-controlled",
+            "config": "double-blind OR placebo-controlled"
+          },
+          {
+            "code": "INTERVENTION_AGENT_PROSE_DIVERGENCE",
+            "dimension": "intervention_i_line",
+            "prose": "an sglt2 inhibitor, specifically dapagliflozin, canagliflozin, or empagliflozin, added to background standard care.",
+            "config": "ertugliflozin"
+          }
+        ],
+        "basis": "Committed protocol prose compared with executable topic fields; only listed dimensions are checked.",
+        "unchecked_dimensions": [
+          "ascertainment_axis: no comparable explicit protocol/include boolean",
+          "result_availability_not_axis: no comparable explicit protocol/include boolean"
+        ],
         "asserted_equal": false,
         "divergence_count": 2,
         "divergence_codes": [
@@ -6925,29 +7012,10 @@
       "external comparator prose without a committed object row"
     ]
   },
-  "comparator_panel": [
-    {
-      "id": "41203232",
-      "citation": "SGLT2 Inhibitors and Kidney Outcomes by Glomerular Filtration Rate and Albuminuria: A Meta-Analysis. (2026); JAMA; DOI 10.1001/jama.2025.20834; PMID 41203232",
-      "year": "2026",
-      "scope_note": "Registered comparator identity; unextracted quantities and trial membership remain unknown.",
-      "held": true,
-      "document_ref": "cache/sglt2-ckd-progression/comparator_fulltext.txt",
-      "document_sha256": "369252fd522db6abddbaaf32177c5bd5603f6b9b671e39dc7f68d126ca38b9a5",
-      "trial_set": [],
-      "k": null,
-      "effect": null,
-      "ci": null,
-      "i2": null,
-      "pi": null,
-      "method": null,
-      "overlaps": []
-    }
-  ],
   "reproduction": {
     "failures": 0,
     "protocol_sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9",
-    "review_sha256": "2e8806d864a2828ff93306d6bc9a329bf5c4e3b527ab8d9894bc569dd98a61ce",
+    "review_sha256": "ac04574876b46bf411de8fec3df0c00de43e7eda0622dc8546cc112dff5f7e69",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -7095,7 +7163,7 @@
         "scripts/build_topic.py": "bfd51ffd7d2d8c5296c501cade1a4f6bd19ef896"
       },
       "manuscript_sha256": "5d17c76b803a5b9c69c305909995a88e3be741d0eaf4ade042301ce7eb4945c6",
-      "review_sha256": "2e8806d864a2828ff93306d6bc9a329bf5c4e3b527ab8d9894bc569dd98a61ce",
+      "review_sha256": "ac04574876b46bf411de8fec3df0c00de43e7eda0622dc8546cc112dff5f7e69",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/sglt2-ckd-progression.md UTF-8 text, universal newlines",
@@ -7114,7 +7182,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "cf6a3558b44b9527f069ef74efc8acab815b10ddfcd4ef0aeaf98f7c4dd00a05"
+      "release_sha256": "7b90a7820eb74bffaac3bc5a25e42a419bf082bc6b13907604a61f14d361d76b"
     }
   }
 }

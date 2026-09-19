@@ -11,6 +11,7 @@ import copy
 import hashlib
 import json
 import re
+from pathlib import Path
 from collections import Counter
 from typing import Any
 
@@ -191,6 +192,23 @@ def protocol_divergences(review: dict[str, Any]) -> list[dict[str, Any]]:
     return out
 
 
+def declared_equals_enforced(review: dict[str, Any]) -> dict[str, Any]:
+    """Single fail-closed state used by both page surfaces, including legacy reviews."""
+    stored = (review.get("propositions") or {}).get("declared_equals_enforced")
+    source = stored if stored is not None else (review.get("protocol_config") or {})
+    checked = list(source.get("checked_dimensions") or [])
+    divergences = protocol_divergences(review)
+    for row in source.get("divergences") or []:
+        if row not in divergences:
+            divergences.append(row)
+    state = "NOT_ESTABLISHED" if not checked else ("DIVERGENT" if divergences else "ESTABLISHED")
+    basis = source.get("basis") or "Agreement is limited to the listed checked dimensions."
+    if not checked:
+        basis = "no dimension was checked; no comparable dimensions were recorded"
+    return {"state": state, "checked_dimensions": checked, "divergences": divergences,
+            "basis": basis, "unchecked_dimensions": source.get("unchecked_dimensions") or []}
+
+
 def _byte_state(review: dict[str, Any]) -> dict[str, Any]:
     rep = review.get("reproduction") or {}
     return {
@@ -208,6 +226,7 @@ def _facts(review: dict[str, Any]) -> dict[str, Any]:
     return {
         "publication_bias": _publication_bias_state(review),
         "protocol_divergences": protocol_divergences(review),
+        "declared_equals_enforced": declared_equals_enforced(review),
         "byte_reproducible": _byte_state(review),
         "primary_effect_objects": primary_effect_count,
         "primary_randomisations": randomisation_count if randomisation_count is not None else primary_effect_count,
@@ -245,7 +264,8 @@ def generated_objects(review: dict[str, Any]) -> list[dict[str, Any]]:
             "declared_equals_enforced",
             "reporting/prisma_item_5",
             "/protocol_config/divergences",
-            asserted_equal=(len(divergences) == 0),
+            **declared_equals_enforced(review),
+            asserted_equal=(declared_equals_enforced(review)["state"] == "ESTABLISHED"),
             divergence_count=len(divergences),
             divergence_codes=[d.get("code") for d in divergences],
         ))
@@ -305,8 +325,23 @@ def generated_objects(review: dict[str, Any]) -> list[dict[str, Any]]:
 
 def attach(review: dict[str, Any]) -> dict[str, Any]:
     review = copy.deepcopy(review)
+    # Build-time call site: renderers consume the recorded state without filesystem reads.
+    # Do not overwrite an already recorded comparison during a later render/re-certification.
+    pc = review.get("protocol_config") or {}
+    slug = review.get("slug") or ""
+    config_path = Path(__file__).resolve().parents[1] / "topics" / (slug + ".json")
+    if "checked_dimensions" not in pc and re.fullmatch(r"[a-z0-9-]+", slug) and config_path.is_file():
+        from . import protocol_compiler
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        compared = protocol_compiler.comparison(slug, (review.get("protocol") or {}).get("text"), config)
+        compared["divergences"] = protocol_divergences(review) + [
+            d for d in compared["divergences"] if d not in protocol_divergences(review)]
+        review["protocol_config"] = dict(pc, **compared)
+    review.pop("propositions", None)
+    equality = declared_equals_enforced(review)
     review["propositions"] = {
         "version": 1,
+        "declared_equals_enforced": equality,
         "objects": generated_objects(review),
         "scope_counts": scope_counts(review),
         "not_in_scope": [
@@ -453,12 +488,13 @@ def _check_object(obj: dict[str, Any], facts: dict[str, Any]) -> list[dict[str, 
             ))
     elif kind == "declared_equals_enforced":
         divergences = facts["protocol_divergences"]
-        if obj.get("asserted_equal") is True and divergences:
+        equality = facts["declared_equals_enforced"]
+        if obj.get("asserted_equal") is True and equality["state"] != "ESTABLISHED":
             out.append(_violation(
                 "DECLARED_ENFORCED_FALSE",
                 kind,
                 obj,
-                "sentence asserts declared == enforced while protocol/config divergences exist",
+                "sentence asserts declared == enforced without a nonempty, divergence-free comparison",
                 divergence_codes=[d.get("code") for d in divergences],
             ))
     elif kind == "byte_reproducible":

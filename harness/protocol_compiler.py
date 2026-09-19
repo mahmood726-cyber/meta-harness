@@ -230,7 +230,49 @@ def compare(slug, md_text, config):
                     "prose": "PCOS in an ovulation-induction/subfertility context",
                     "config": ", ".join(inc.get("population_any") or [])})
     div.extend(_intervention_declaration_divergences(md_text, config))
+    div.extend(_eligibility_axis_checks(md_text, config)[1])
     return div
+
+
+def _eligibility_axis_checks(md_text, config):
+    """Compare only explicitly represented axes; absence is not agreement."""
+    clause = eligibility_clause(md_text)
+    inc = config.get("include") or {}
+    checked, divergences, unchecked = [], [], []
+    for axis in ("ascertainment_axis", "result_availability_not_axis"):
+        if clause is None or not isinstance(inc.get(axis), bool):
+            unchecked.append(f"{axis}: no comparable explicit protocol/include boolean")
+            continue
+        checked.append(axis)
+        if clause[axis] != inc[axis]:
+            divergences.append({"code": axis.upper() + "_DIVERGENCE", "dimension": axis,
+                                "prose": clause[axis], "config": inc[axis]})
+    return checked, divergences, unchecked
+
+
+def comparison(slug, md_text, config):
+    """Evidence for the limited protocol/config comparison, not global enforcement."""
+    prose = parse_prose(md_text)
+    primary = config.get("primary_outcome") or {}
+    inc = config.get("include") or {}
+    checked, _, unchecked = _eligibility_axis_checks(md_text, config)
+    if prose["estimand"] and _config_estimand(config):
+        checked.append("estimand")
+    if prose["population"] and primary.get("population"):
+        checked.append("analysis_set")
+    if prose["design_masking"] and inc.get("design_double_blind"):
+        checked.append("design")
+    if config.get("intervention_terms") and (
+        config.get("intervention_agents") is not None or config.get("intervention_class_terms") is not None
+    ):
+        checked.append("intervention_declaration")
+    if isinstance(config.get("intervention_agents"), dict) and config["intervention_agents"]:
+        checked.append("intervention_i_line")
+    divergences = compare(slug, md_text, config)
+    checked.extend(d["dimension"] for d in divergences)
+    return {"checked_dimensions": sorted(set(checked)), "divergences": divergences,
+            "unchecked_dimensions": unchecked,
+            "basis": "Committed protocol prose compared with executable topic fields; only listed dimensions are checked."}
 
 
 def typed_criteria(md_text):

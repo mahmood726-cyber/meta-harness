@@ -2199,23 +2199,21 @@ def _reproduction(r, neutral):
                  f"declared-absent census unless named here:<ul>{_nrows}</ul></p>")
     # PROTOCOL COMPILER (two independent sources): show where the PROSE protocol and the executable
     # config disagree. A check that reads only the config it certifies cannot fail; this reads both.
-    pc = r.get("protocol_config") or {}
-    pcd = pc.get("divergences")
-    if pcd is not None:
-        if pcd:
-            _rows = "".join(f"<li><code>{_e(x.get('code'))}</code> ({_e(x.get('dimension'))}): prose says "
-                            f"<strong>{_e(x.get('prose', x.get('protocol_value')))}</strong>, config enforces "
-                            f"<strong>{_e(x.get('config', x.get('config_value')))}</strong></li>" for x in pcd)
-            body += ("<h4>Protocol ↔ config divergences (two independent sources)</h4>"
-                     "<p>The prose protocol and the executable config are compared as SEPARATE sources "
-                     "(a conformance check derived from the config it certifies cannot fail). "
-                     f"<strong>{len(pcd)} divergence(s)</strong> — each is a defect to resolve or a dated "
-                     f"amendment to declare, never a silent widening:<ul>{_rows}</ul></p>")
-        else:
-            body += ("<h4>Protocol ↔ config (two independent sources)</h4>"
-                     "<p>The prose protocol and executable config agree on these checked dimensions: "
-                     f"<strong>{_e(', '.join(pc.get('agreed_dimensions') or []) or 'none')}</strong>. "
-                     "Compared as separate sources.</p>")
+    equality = _proposition_mod.declared_equals_enforced(r)
+    dimensions = ", ".join(equality["checked_dimensions"]) or "none"
+    state = equality["state"].replace("_", " ")
+    divergences = ", ".join(d.get("code", "unspecified") for d in equality["divergences"]) or "none"
+    body += ("<h4>Protocol/config (two independent sources)</h4>"
+             f"<p>Protocol/config checked dimensions: <strong>{_e(dimensions)}</strong> -- "
+             f"declared == enforced <strong>{_e(state)}</strong> ({_e(equality['basis'])}). "
+             f"Divergences: {_e(divergences)}. "
+             f"Unchecked dimensions: {_e('; '.join(equality['unchecked_dimensions']) or 'not recorded')}.</p>")
+    if equality["divergences"]:
+        body += "<ul>" + "".join(
+            f"<li>{_e(d.get('code'))} ({_e(d.get('dimension'))}): prose says "
+            f"{_e(d.get('prose', d.get('protocol_value')))}, config enforces "
+            f"{_e(d.get('config', d.get('config_value')))}</li>"
+            for d in equality["divergences"]) + "</ul>"
     body += ("<div class='absent'><strong>RETRACTED (round-2): reproducibility claim not currently supported.</strong> "
              "We previously claimed that re-running from the registration SHA on a fresh clone regenerates this page "
              "byte-for-byte. Direct testing falsified that: running the advertised command changed several canonical "
@@ -2249,13 +2247,14 @@ def _reporting(r, neutral):
         (prot.get("text", "") or ""))
     _pre_sha = str(_pre.get("sha") or "")[:10]
     _build_sha = str(_pre.get("build_sha") or prot.get("sha") or "")[:10]
-    _divs = _proposition_mod.protocol_divergences(r)
+    _equality = _proposition_mod.declared_equals_enforced(r)
+    _equality_state = _equality["state"].replace("_", " ")
     _eligibility_sentence = (
-        "Protocol tab - eligibility is rendered from the structured include object, but protocol/config "
-        "divergences are disclosed in Reproducibility, so declared == enforced is not asserted."
-        if _divs else
-        "Protocol tab - eligibility is rendered from the structured include object; the proposition object "
-        "records no protocol/config divergence on checked dimensions, so declared == enforced is backed."
+        "Protocol tab - eligibility is rendered from the structured include object; "
+        f"declared == enforced: {_equality_state}. "
+        f"Checked dimensions: {', '.join(_equality['checked_dimensions']) or 'none'}. "
+        f"{_equality['basis']}. Divergences: "
+        + (", ".join(d.get("code", "unspecified") for d in _equality["divergences"]) or "none") + "."
     )
     _pub = ((r.get("grade") or {}).get("domains") or {}).get("publication_bias") or {}
     _pub_reporting = (
@@ -2314,6 +2313,10 @@ def _reporting(r, neutral):
         status = "✓ present" if ok else "✗ absent"
         txt = present_txt if ok else absent_txt
         cls = "dec-include" if ok else "dec-exclude"
+        if label == "5 Eligibility criteria":
+            status = _e(_equality_state)
+            txt = _eligibility_sentence if ok else "eligibility not declared; " + _eligibility_sentence
+            cls = "dec-include" if _equality["state"] == "ESTABLISHED" else "dec-exclude"
         rows.append(f"<tr><td>{_e(label)}</td><td class='{cls}'>{status}</td><td>{_e(txt)}</td></tr>")
     return ("<p>Compliance with the PRISMA 2020 reporting items, derived from the review object so it "
             "cannot drift from the page. Every item is rendered or declared absent with a reason.</p>"
