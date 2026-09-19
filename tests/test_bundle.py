@@ -716,3 +716,20 @@ def test_clean_negative_is_recorded_as_a_negative_with_its_scope(bundle):
     cn = bundle["clean_negatives"][0]
     assert cn["result"].startswith("8 of 8") and "says nothing about the defect" in cn["meaning"] and "95.03" in cn["meaning"]
     assert "constant across every row" in cn["why_the_field_stays"]
+
+
+# ------------------------------------------------------------------ 3.13: mentioning what is excluded must never make it included
+
+def test_exclusion_scopes_are_cut_before_membership_is_read():
+    S = lambda span, defn=DEFN: build_bundle.span_target_mention(span, [0.87, 0.78, 0.97], defn, CC)
+    excl = S("The primary outcome was cardiovascular death only, excluding nonfatal myocardial infarction and nonfatal stroke, and occurred less often (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).")
+    assert excl["state"] == "ENDPOINT_INCOMPATIBLE" and excl["excluded_components"] == ["MYOCARDIAL_INFARCTION", "STROKE"]     # three components named; refused
+    assert S("The primary outcome was cardiovascular death and occurred less often (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).")["state"] == "ENDPOINT_INCOMPATIBLE"   # the contrast
+    ctrl = S("The primary outcome was 3-point MACE excluding unstable angina and occurred less often (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).")
+    assert ctrl["state"] == "PASS"                                                                                                  # false-refusal control
+    assert S("The primary composite outcome of cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke occurred less often (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).")["state"] == "PASS"
+    # an exclusion in the row's DEFINITION span cannot be rescued by the primary-outcome name in the clause
+    assert S("The primary outcome occurred less often (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).",
+             "The primary outcome was cardiovascular death only, excluding nonfatal myocardial infarction and nonfatal stroke.")["state"] == "ENDPOINT_INCOMPATIBLE"
+    inc, exc = build_bundle.split_exclusions("cardiovascular death only, excluding nonfatal myocardial infarction and nonfatal stroke, and occurred less often (hazard ratio, 0.87)")
+    assert "myocardial" in exc and "myocardial" not in inc and "hazard ratio" in inc

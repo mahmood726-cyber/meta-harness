@@ -284,41 +284,74 @@ def clause_with_effect(span, values):
     return None
 
 
+_EXCLUSION = re.compile(r"\b(excluding|except(?:ing)?|exclusive of|but not|other than|not including|without)\b\s*", re.I)
+_EXCLUSION_STOP = re.compile(r",\s*(?:and|which|that|the|was|were|occurred|did|with)\b|;|\(")
+_DEFINES = re.compile(r"(primary (?:composite )?(?:outcome|end ?point)|primary cardiovascular (?:composite )?(?:outcome|end-?point)|composite (?:outcome|end ?point))"
+                      r"\s+(?:was|were|is|are|consisted of|consists of|defined as|comprised|comprising|included|includes)\b", re.I)
+
+
+def split_exclusions(text):
+    """Relational, not a blacklist: the segment governed by an exclusion cue is cut out BEFORE membership is read. Returns
+    (included_text, excluded_text). 'cardiovascular death only, excluding nonfatal MI and nonfatal stroke' -> included names
+    one component, excluded names two; '3-point MACE excluding unstable angina' -> included keeps the target phrase."""
+    m = _EXCLUSION.search(text)
+    if not m:
+        return text, ""
+    rest = text[m.end():]
+    stop = _EXCLUSION_STOP.search(rest)
+    excluded = rest[:stop.start()] if stop else rest
+    included = text[:m.start()] + " " + (rest[stop.start():] if stop else "")
+    return included, excluded
+
+
 def span_target_mention(span, values, definition_span, canonical_components):
     """POSITIVE binding. The tuple's own clause must carry a TARGET mention: a target phrase, a target DEFINITION (>= 2 canonical
     components AND a definitional cue -- co-occurrence of component words is not ownership), or a primary-outcome name that the
-    row's definition span binds to the target. A clause that ALSO carries a non-target mention (or a lone component) is
-    AMBIGUOUS_ENDPOINT_BINDING, never a pass; a clause with only a non-target mention is ENDPOINT_INCOMPATIBLE; a clause with no
-    recognised mention is AMBIGUOUS_ENDPOINT_BINDING. Never a fallback to the definition span."""
+    row's definition span binds to the target. Exclusion scopes ('excluding X') are removed before membership is read and the
+    excluded components are reported -- mentioning what is excluded must never make it included. A clause that itself DEFINES the
+    primary outcome as something other than the target is not rescued by the row's definition span. A clause that ALSO carries a
+    non-target mention (or a lone component) is AMBIGUOUS_ENDPOINT_BINDING, never a pass; only a non-target mention is
+    ENDPOINT_INCOMPATIBLE; no recognised mention is AMBIGUOUS_ENDPOINT_BINDING. Never a fallback to the definition span."""
     clause = clause_with_effect(span, values)
     if clause is None:
         return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no clause of the span carries the tuple's numbers by numeric equality",
                 "witness": span, "clause": None}
-    c, d = normalize(clause).lower(), normalize(definition_span or "").lower()
+    c_all, d_all = normalize(clause).lower(), normalize(definition_span or "").lower()
+    c, c_exc = split_exclusions(c_all)
+    d, d_exc = split_exclusions(d_all)
     named = lambda text: sorted(k for k, ws in COMPONENT_WORDS.items() if any(w in text for w in ws))
     comps_c, comps_d = named(c), named(d)
+    excluded_c, excluded_d = named(c_exc), named(d_exc)
     canon = set(canonical_components or [])
     primary_named = any(n in c for n in PRIMARY_NAMES)
     cue = any(k in c for k in DEFINITION_CUES)
+    clause_defines = bool(_DEFINES.search(c))
     target = []
     if any(ph in c for ph in TARGET_PHRASES):
         target.append({"kind": "target phrase", "witness": [ph for ph in TARGET_PHRASES if ph in c]})
-    if len(set(comps_c) & canon) >= 2 and cue:
+    if len(set(comps_c) & canon) >= 2 and cue and not (set(excluded_c) & canon):
         target.append({"kind": "target definition in clause", "witness": comps_c})
-    if primary_named and "primary" in d and len(set(comps_d) & canon) >= 2:
+    # the row's definition span binds a primary-outcome NAME to the target -- unless the clause itself defines the primary differently,
+    # or the definition span excludes a target component
+    if (primary_named and "primary" in d and len(set(comps_d) & canon) >= 2 and not (set(excluded_d) & canon)
+            and not (clause_defines and len(set(comps_c) & canon) < 2 and not any(ph in c for ph in TARGET_PHRASES))):
         target.append({"kind": "primary-outcome name bound by the row's definition span", "witness": [n for n in PRIMARY_NAMES if n in c]})
     non_target = [m for m in NON_TARGET_MENTIONS if m in c]
-    lone_component = (len(comps_c) == 1 and not primary_named and not target)
+    lone_component = (len(comps_c) == 1 and not target)
+    excluded_target = sorted(set(excluded_c) & canon) or sorted(set(excluded_d) & canon)
+    base = {"clause": clause, "excluded_components": excluded_c or excluded_d or None}
+    if excluded_target and not any(ph in c for ph in TARGET_PHRASES):
+        return {"state": "ENDPOINT_INCOMPATIBLE", "mention": "the clause (or the row's definition) EXCLUDES a target component; mentioning what is excluded does not include it",
+                "witness": {"included": comps_c, "excluded": excluded_target}, **base}
     if target and (non_target or lone_component):
         return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "clause carries BOTH a target mention and a non-target mention",
-                "witness": {"target": target, "non_target": non_target or comps_c}, "clause": clause}
+                "witness": {"target": target, "non_target": non_target or comps_c}, **base}
     if target:
-        return {"state": "PASS", "mention": target[0]["kind"], "witness": target[0]["witness"], "clause": clause}
+        return {"state": "PASS", "mention": target[0]["kind"], "witness": target[0]["witness"], **base}
     if non_target or lone_component:
-        return {"state": "ENDPOINT_INCOMPATIBLE", "mention": "recognised NON-target mention bound to the target claim",
-                "witness": non_target or comps_c, "clause": clause}
-    return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no recognised target mention in the tuple's own clause", "witness": clause, "clause": clause}
-
+        return {"state": "ENDPOINT_INCOMPATIBLE", "mention": "recognised NON-target mention bound to the target claim" if non_target else
+                "the clause defines or names a single component, not the composite", "witness": non_target or comps_c, **base}
+    return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no recognised target mention in the tuple's own clause", "witness": clause, **base}
 
 def locate_all(span, hay):
     """Zero / one / many are three states. Returns match kind, occurrence count and the first offset."""

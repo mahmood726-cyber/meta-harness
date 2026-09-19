@@ -537,3 +537,28 @@ def test_unsupported_representation_is_a_typed_state_not_a_not_found(tmp_path):
     r = next(x for x in rep["rows"] if x["pmid"] == "27633186")
     assert r["refusal"] == "UNSUPPORTED_REPRESENTATION"
     assert any(f.startswith("UNSUPPORTED_REPRESENTATION 27633186") and "no claim is made" in f for f in rep["failures"])
+
+
+
+def test_exclusion_sentence_is_refused_by_the_verifier_on_a_doctored_site(tmp_path):
+    """'cardiovascular death only, excluding nonfatal MI and nonfatal stroke' -- three components named, nothing missing by count;
+    genuine numbers; every digest recomputed. The verifier must refuse it independently of the producer's classifier."""
+    sent = "The primary outcome was cardiovascular death only, excluding nonfatal myocardial infarction and nonfatal stroke, and occurred less often (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97)."
+    def edit_records(rec):
+        r = next(x for x in rec["records"] if str(x["id"]) == "27295427"); r["abstract"] += " " + sent
+    root = _doctored_site(tmp_path, edit_records=edit_records, edit_review=lambda rev: _set_primary_row(rev, "27295427", sent, 0.87, 0.78, 0.97), edited_pmids=("27295427",))
+    rep = _verify(root)
+    row = next(r for r in rep["rows"] if r["pmid"] == "27295427")
+    assert row["predicates"]["P2_span_located"] and row["predicates"]["P3_effect_tokens_in_span"]
+    assert row["p9"]["state"] == "ENDPOINT_INCOMPATIBLE" and row["p9"]["excluded_components"] == ["MYOCARDIAL_INFARCTION", "STROKE"]
+    assert row["final"] == "INADMISSIBLE"
+
+
+def test_mace_excluding_unstable_angina_is_not_refused(tmp_path):
+    sent = "The primary outcome was 3-point MACE excluding unstable angina and occurred less often (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97)."
+    def edit_records(rec):
+        r = next(x for x in rec["records"] if str(x["id"]) == "27295427"); r["abstract"] += " " + sent
+    root = _doctored_site(tmp_path, edit_records=edit_records, edit_review=lambda rev: _set_primary_row(rev, "27295427", sent, 0.87, 0.78, 0.97), edited_pmids=("27295427",))
+    rep = _verify(root)
+    row = next(r for r in rep["rows"] if r["pmid"] == "27295427")
+    assert row["p9"]["state"] == "PASS" and row["predicates"]["P9_span_target_mention"] is True   # the anchor still fires (cache changed); binding itself must not refuse

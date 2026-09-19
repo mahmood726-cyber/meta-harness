@@ -1,7 +1,8 @@
 {
  "schema_version": 3,
- "format_revision": "3.12",
+ "format_revision": "3.13",
  "format_changelog": [
+  "3.13 (2026-09-20): P9 reads membership AFTER cutting out exclusion scopes and reports excluded_components beside included -- 'cardiovascular death only, excluding nonfatal MI and nonfatal stroke' names three components and is refused; '3-point MACE excluding unstable angina' is compatible (no keyword blacklist); a clause that itself defines the primary outcome as something other than the target is not rescued by the row's definition span.",
   "3.12 (2026-09-20): assessment_states -- every rendered row and every declared-absent row carries one of ASSESSED / UNRESOLVED / MIGRATION_STATE / WITHDRAWN / NOT_ASSESSED_BY_BUNDLE with its basis; WITHDRAWN is unassertable without a withdrawal record (ref, digest, reason, date) and the builder refuses a row that claims it without one; clean_negatives records measurements that came back constant (source_ci_pct = 95 on 8 of 8) as negatives with their scope, not as reassurance.",
   "3.11 (2026-09-19, design memo): observed and registered estimand values are separate typed fields with no conversion (an unknown observed value is never filled from the specification); location and binding results are tagged states -- LOCATED / NOT_FOUND / AMBIGUOUS (carrying every competing candidate) / UNSUPPORTED_REPRESENTATION -- so the schema distinguishes 'binding failed' from 'binding not attempted'; admission means 'admissible for this exact analysis under this policy version and evidence version', never 'verified', and carries both versions; the verifier REVALIDATES on load -- regulatory strategy from the span, estimand bases from the source -- instead of trusting a deserialised state because it parses.",
   "3.10 (2026-09-19): statistical_input.ci_level -- the CI level the source STATES in the tuple's own clause (with basis) against the level the SE derivation ASSUMED (95%, z = 1.959963984540054); a MISMATCH (e.g. a 95.03% alpha-adjusted interval, EMPEROR-Preserved) is a refusal (P12_ci_level / CI_LEVEL_MISMATCH), never a relabel; UNSTATED is recorded as an assumption. Selection rule stated: by identity, never array order; ABSTAIN where the population cannot be resolved against the registered analysis set (DELIVER carries two PRIMARY composites).",
@@ -1627,8 +1628,8 @@
   },
   {
    "path": "docs/scripts/verify_bundle.py",
-   "sha256": "8fed31d9554b035a21cf805f59430c61ae2950351781b360779a2b00d1b53b5d",
-   "bytes": 65874,
+   "sha256": "7993c24079e2f74fc2666e84c9e7e5ad37faccf66df4e7f41d0edd5c23f34dd4",
+   "bytes": 68470,
    "role": "the verifier this bundle names; standard library only"
   }
  ],
@@ -6007,7 +6008,8 @@
       "witness": [
        "major adverse cardiovascular"
       ],
-      "clause": "Major adverse cardiovascular events occurred in 61 of 1591 patients (3.8%) in the oral semaglutide group and 76 of 1592 (4.8%) in the placebo group (hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11; P<0.001 for noninferiority)."
+      "clause": "Major adverse cardiovascular events occurred in 61 of 1591 patients (3.8%) in the oral semaglutide group and 76 of 1592 (4.8%) in the placebo group (hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11; P<0.001 for noninferiority).",
+      "excluded_components": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -6032,7 +6034,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.12",
+     "format_revision": "3.13",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -6469,7 +6471,8 @@
       "witness": [
        "primary outcome"
       ],
-      "clause": "The primary outcome occurred in 108 of 1648 patients (6.6%) in the semaglutide group and in 146 of 1649 patients (8.9%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.58 to 0.95; P<0.001 for noninferiority)."
+      "clause": "The primary outcome occurred in 108 of 1648 patients (6.6%) in the semaglutide group and in 146 of 1649 patients (8.9%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.58 to 0.95; P<0.001 for noninferiority).",
+      "excluded_components": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -6494,7 +6497,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.12",
+     "format_revision": "3.13",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -6968,7 +6971,8 @@
       "witness": [
        "primary outcome"
       ],
-      "clause": "The primary outcome occurred in significantly fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97; P<0.001 for noninferiority; P=0.01 for superiority)."
+      "clause": "The primary outcome occurred in significantly fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97; P<0.001 for noninferiority; P=0.01 for superiority).",
+      "excluded_components": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -6993,7 +6997,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.12",
+     "format_revision": "3.13",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -7468,7 +7472,8 @@
       "witness": [
        "mace"
       ],
-      "clause": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority)."
+      "clause": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).",
+      "excluded_components": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -7493,7 +7498,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).[STA] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.12",
+     "format_revision": "3.13",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -7958,7 +7963,8 @@
       "witness": [
        "primary composite outcome"
       ],
-      "clause": "During a median follow-up of 5.4 years (IQR 5.1-5.9), the primary composite outcome occurred in 594 (12.0%) participants at an incidence rate of 2.4 per 100 person-years in the dulaglutide group and in 663 (13.4%) participants at an incidence rate of 2.7 per 100 person-years in the placebo group (hazard ratio [HR] 0.88, 95% CI 0.79-0.99; p=0.026)."
+      "clause": "During a median follow-up of 5.4 years (IQR 5.1-5.9), the primary composite outcome occurred in 594 (12.0%) participants at an incidence rate of 2.4 per 100 person-years in the dulaglutide group and in 663 (13.4%) participants at an incidence rate of 2.7 per 100 person-years in the placebo group (hazard ratio [HR] 0.88, 95% CI 0.79-0.99; p=0.026).",
+      "excluded_components": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -7983,7 +7989,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat[STA] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.12",
+     "format_revision": "3.13",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -8448,7 +8454,8 @@
       "witness": [
        "primary composite outcome"
       ],
-      "clause": "The primary composite outcome occurred in 338 (7%) of 4731 patients at an incidence rate of 4.6 events per 100 person-years in the albiglutide group and in 428 (9%) of 4732 patients at an incidence rate of 5.9 events per 100 person-years in the placebo group (hazard ratio 0.78, 95% CI 0.68-0.90), which indicated that albiglutide was superior to placebo (p<0.0001 for non-inferiority; p=0.0006 for superiority)."
+      "clause": "The primary composite outcome occurred in 338 (7%) of 4731 patients at an incidence rate of 4.6 events per 100 person-years in the albiglutide group and in 428 (9%) of 4732 patients at an incidence rate of 5.9 events per 100 person-years in the placebo group (hazard ratio 0.78, 95% CI 0.68-0.90), which indicated that albiglutide was superior to placebo (p<0.0001 for non-inferiority; p=0.0006 for superiority).",
+      "excluded_components": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -8473,7 +8480,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat[STA] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.12",
+     "format_revision": "3.13",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -8938,7 +8945,8 @@
       "witness": [
        "primary composite outcome"
       ],
-      "clause": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority)."
+      "clause": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority).",
+      "excluded_components": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -8963,7 +8971,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat[STA] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.12",
+     "format_revision": "3.13",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -9438,7 +9446,8 @@
       "witness": [
        "primary-outcome"
       ],
-      "clause": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006)."
+      "clause": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006).",
+      "excluded_components": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -9463,7 +9472,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.12",
+     "format_revision": "3.13",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -10054,8 +10063,8 @@
  "verifier": {
   "served_path": "scripts/verify_bundle.py",
   "served_url": "https://mahmood726-cyber.github.io/meta-harness/scripts/verify_bundle.py",
-  "sha256": "8fed31d9554b035a21cf805f59430c61ae2950351781b360779a2b00d1b53b5d",
-  "bytes": 65874,
+  "sha256": "7993c24079e2f74fc2666e84c9e7e5ad37faccf66df4e7f41d0edd5c23f34dd4",
+  "bytes": 68470,
   "requirements": "Python 3.9+ standard library only; no harness import; run: python verify_bundle.py --url https://mahmood726-cyber.github.io/meta-harness/ --slug glp1-ra-mace-t2d",
   "checks": "every artefact and supporting-file digest; release_sha256 and review_sha256; every predicate of every verification row; the selector rule; the asymmetric rule on every absence claim from a recomputed preservation record; pooled_reference.expected to 1e-9; --corrupt <pmid> <limb> shows one corrupted limb makes exactly that row inadmissible",
   "does_not_check": "that any acquired or cached representation faithfully preserves the upstream publication (SOUL's cache is known to omit the HbA1c entry range, follow-up and the safety sentence); that the source set is complete; that the clinical interpretation is right; and the PRODUCTION admission path -- no production falsification test has been executed by anyone; the verifier checks the bundle, not the producer's gate"
