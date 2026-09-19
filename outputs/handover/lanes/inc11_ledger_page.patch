@@ -1,0 +1,50 @@
+diff --git a/harness/page.py b/harness/page.py
+index c6a3994c..7ade28a5 100644
+--- a/harness/page.py
++++ b/harness/page.py
+@@ -399,6 +399,37 @@ _ROB_SENS_REFUSED_HTML = "<h4>Risk-of-bias sensitivity (re-pooled with the same
+ 
+ 
+ 
++def _trial_family_ledger_block(r: dict) -> str:
++    """The one object every count derives from: family, identifiers, screening route, analysis membership, held
++    sources, unresolved adjudications, poolability (Mahmood's review of 98726cc1, item 3)."""
++    ledger = r.get("trial_family_ledger") or {}
++    fams = ledger.get("families") or []
++    if not fams:
++        return ""
++    counts = ledger.get("counts") or {}
++    rows = "".join(
++        "<tr>"
++        f"<td><strong>{_e(f.get('family'))}</strong><div class='muted'>{_e(', '.join(f.get('ids') or []))}</div></td>"
++        f"<td>{_e(f.get('screening'))}</td>"
++        f"<td>{_e(', '.join(f.get('pooled_in') or []) or 'not pooled')}</td>"
++        f"<td><code>{_e(f.get('state'))}</code></td>"
++        f"<td>{_e('; '.join(f.get('sources_held') or []) or '-')}</td>"
++        f"<td>{_e(', '.join(f.get('unresolved_adjudications') or []) or '-')}</td>"
++        "</tr>" for f in fams)
++    extra = ""
++    if ledger.get("unidentified_rows"):
++        extra = ("<p class='note'>Panel rows naming no single trial (not counted as families): "
++                 + _e("; ".join(f"{u.get('row')} ({u.get('state')})" for u in ledger["unidentified_rows"])) + "</p>")
++    return ("<div class='kv' id='trial-family-ledger'><h3>Trial-family ledger</h3>"
++            "<p class='note'>One object links every family to its eligibility, screening route, analysis membership, held "
++            "sources, unresolved adjudications and poolability; the screening counts, the missing-evidence panel and the "
++            "declared-absent rows are derived from it, so two counts of the same thing cannot disagree. "
++            f"Families {_e(counts.get('families'))}; pooled in the primary {_e(counts.get('pooled_primary'))}; eligible but not "
++            f"pooled {_e(counts.get('eligible_not_pooled_primary'))}; unresolved adjudications {_e(counts.get('unresolved_adjudications'))}.</p>"
++            "<table class='arms'><tr><th>Family (identifiers)</th><th>Screening route</th><th>Pooled in</th><th>State</th>"
++            f"<th>Held sources</th><th>Unresolved adjudications</th></tr>{rows}</table>{extra}</div>")
++
++
+ def _known_missing_sensitivity_panel(o: dict) -> str:
+     kms = o.get("known_missing_sensitivity") or {}
+     if not kms:
+@@ -762,6 +793,7 @@ def _overview(r, neutral):
+             rows.append(("Method", prim.get("method") or r.get("method_declared")))
+             parts.append(_kv(rows))
+             parts.append(_known_missing_sensitivity_panel(prim))
++            parts.append(_trial_family_ledger_block(r))
+     if not neutral:
+         _tok, _ttot, _tcomp = _transparency_counts(r)
+         if _ttot:

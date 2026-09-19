@@ -1,0 +1,233 @@
+diff --git a/harness/identity.py b/harness/identity.py
+index 1c92b4f0..fd2aa713 100644
+--- a/harness/identity.py
++++ b/harness/identity.py
+@@ -9,6 +9,7 @@ Resolution is only as complete as the committed links. A record carrying just a
+ cannot be resolved to NCT-space from committed data alone; curated family rows fill only
+ audit-identified report/trial links and are reported, never inferred.
+ """
++import re
+ 
+ NON_TRIAL_PUBLICATION_ROLES = {"secondary", "economic", "protocol", "correction"}
+ 
+@@ -311,3 +312,179 @@ def classify_screened_in_not_pooled(review):
+                 "publication_state": rec.get("publication_state") or f"SECONDARY_PUBLICATION_OF {family}",
+             })
+     return out
++
++
++# ---------------------------------------------------------------------------------------------------------------
++# TRIAL-FAMILY LEDGER: one object linking every family to its eligibility, screening route, analysis membership,
++# held sources, unresolved adjudications and poolability. Every count a surface prints derives from it, so two
++# counts of the same thing cannot disagree (the served glp1 page said "1 trial family" declared absent in four
++# places and "3 eligible families not in the pool" in twelve -- Mahmood's review of 98726cc1, item 3: FLOW and
++# FREEDOM-CVO arrived by concept query and were never in the screening ledger, so the declared-absent rows counted
++# one family and the known-missing panel three).
++# ---------------------------------------------------------------------------------------------------------------
++
++def _family_key(item):
++    fam = item.get("trial_family_id") or item.get("name") or item.get("trial") or _norm(item.get("id") or item.get("label"))
++    return str(fam or "").strip()
++
++
++def acronym_aliases(names, rec_by_id):
++    """Resolve name-only families (an acronym such as ICAP) to the ONE committed record whose title/abstract
++    carries that token; unresolved names stay themselves. Deterministic; recorded on the ledger so the page-side
++    rebuild reproduces it without the cache."""
++    out = {}
++    for name in names:
++        tok = str(name or "").strip()
++        if not tok or " " in tok or tok.upper().startswith("NCT") or tok.isdigit() or len(tok) < 3:
++            continue
++        rx = re.compile(r"(?<![A-Za-z0-9-])" + re.escape(tok) + r"(?![A-Za-z0-9-])")
++        hits = [rid for rid, rec in (rec_by_id or {}).items()
++                if rx.search(str(rec.get("title") or "") + " " + str(rec.get("abstract") or ""))]
++        if len(hits) == 1:
++            out[tok] = _norm(hits[0])
++    return out
++
++
++def trial_family_ledger(review, aliases=None):
++    """Build the ledger from the review object (pooled rows, declared-absent rows, the known-missing panel and
++    the held regulatory facts). Pure: reads the object, never the page; `aliases` (acronym -> record id) come
++    from the build and are stored on the ledger so a rebuild from the object reproduces it."""
++    aliases = dict(aliases if aliases is not None else ((review.get("trial_family_ledger") or {}).get("aliases") or {}))
++    outcomes = review.get("outcomes") or []
++    primary = next((o for o in outcomes if o.get("primary")), None)
++    screened = {}
++    for rec in (review.get("screening") or {}).get("records") or []:
++        screened[_norm(rec.get("id"))] = rec.get("decision")
++    held = {}
++    for fact in review.get("held_regulatory_facts") or []:
++        for key in (fact.get("trial"), fact.get("trial_key"), fact.get("nct")):
++            if key:
++                held[str(key)] = fact
++    families = {}
++    id_index = {}
++    unidentified = []
++
++    def _item_ids(item, family):
++        out = [family]
++        for key in ("id", "label", "trial_key", "nct", "pmid", "name", "trial", "trial_family_id"):
++            v = item.get(key)
++            if v:
++                out.append(str(v))
++                out.append(_norm(v))
++        return [x for x in out if x]
++
++    def entry(item, family):
++        # one family per trial whatever identifier a row carries (NCT, PMID, acronym): ELIXA's absent row is
++        # keyed NCT01147250 and its known-missing row 26630143 / "ELIXA" -- they are one family
++        ids = _item_ids(item, family)
++        found = next((id_index[i] for i in ids if i in id_index), None)
++        key = found or family
++        e = families.setdefault(key, {
++            "family": key, "ids": [], "screening": None, "eligibility": "eligible", "pooled_in": [],
++            "state": None, "sources_held": [], "unresolved_adjudications": [], "poolable": False, "reasons": []})
++        for i in ids:
++            id_index.setdefault(i, key)
++            if i not in e["ids"] and i != key:
++                e["ids"].append(i)
++        return e
++
++    for outcome in outcomes:
++        name = str(outcome.get("name") or "")
++        for t in outcome.get("trials") or []:
++            fam = _family_of(t) or _family_key(t)
++            if not fam or t.get("publication_role") in NON_TRIAL_PUBLICATION_ROLES:
++                continue
++            e = entry(t, fam)
++            if t.get("label") and t["label"] != fam and t["label"] not in e["ids"]:
++                e["ids"].append(str(t["label"]))
++            if name not in e["pooled_in"]:
++                e["pooled_in"].append(name)
++    if primary:
++        pname = str(primary.get("name") or "")
++        for row in (primary.get("known_missing_sensitivity") or {}).get("rows") or []:
++            key = str(row.get("trial_family_id") or row.get("nct") or row.get("trial_key") or row.get("id") or "").strip()
++            if not key or " " in key:
++                # an aggregate panel row ("five audit-named trials") names no trial: it is not a family and is
++                # never counted as one -- it is carried beside the ledger, not inside it
++                unidentified.append({"row": row.get("trial_key") or row.get("name"), "state": row.get("value_status")})
++                continue
++            key = aliases.get(key, key)
++            fam = _norm(key) if not key.upper().startswith("NCT") else key.upper()
++            e = entry(row, fam)
++            e["state"] = row.get("value_status") or e["state"]
++            if row.get("why_eligible"):
++                e["reasons"].append(str(row["why_eligible"]))
++            fact = row.get("held_fact") or held.get(str(row.get("trial_key") or "")) or {}
++            if fact:
++                if fact.get("document_path") and fact["document_path"] not in e["sources_held"]:
++                    e["sources_held"].append(fact["document_path"])
++                adj = fact.get("adjudication") or {}
++                if adj.get("id") and adj.get("state") == "PROPOSED" and adj["id"] not in e["unresolved_adjudications"]:
++                    e["unresolved_adjudications"].append(adj["id"])
++            e["screening"] = e["screening"] or ("screened_in" if screened.get(_norm(row.get("trial_key"))) == "include"
++                                                else "eligible_via_concept_query")
++        for row in primary.get("declared_absent_trials") or []:
++            fam = _family_of(row) or _family_key(row)
++            if not fam or fam in families and families[fam]["pooled_in"]:
++                continue
++            e = entry(row, fam)
++            if e["state"] is None:
++                e["state"] = row.get("state") or row.get("absent_kind")
++            if row.get("reason") and row["reason"] not in e["reasons"]:
++                e["reasons"].append(str(row["reason"]))
++    for fam, e in families.items():
++        if e["pooled_in"]:
++            e["state"] = "POOLABLE"
++            e["poolable"] = True
++        if e["screening"] is None:
++            e["screening"] = "screened_in" if any(screened.get(_norm(i)) == "include" for i in e["ids"]) else "unknown"
++    pname = str((primary or {}).get("name") or "")
++    ordered = sorted(families.values(), key=lambda e: (not e["poolable"], e["family"]))
++    counts = {
++        "families": len(ordered),
++        "pooled_primary": sum(1 for e in ordered if pname and pname in e["pooled_in"]),
++        "eligible_not_pooled_primary": sum(1 for e in ordered if e["eligibility"] == "eligible" and pname
++                                            and pname not in e["pooled_in"]),
++        "unresolved_adjudications": sum(len(e["unresolved_adjudications"]) for e in ordered),
++    }
++    return {"families": ordered, "counts": counts, "unidentified_rows": unidentified, "aliases": aliases,
++            "source": "harness.identity.trial_family_ledger"}
++
++
++def reconcile_declared_absent_with_ledger(review, rec_by_id=None):
++    """Make the primary's declared-absent rows the ledger's view: every eligible family not pooled in the primary is a
++    typed absent row (FLOW and FREEDOM-CVO were missing), and a row whose family has a held-source state carries that
++    state (ELIXA's row said OUTCOME_NOT_IN_SOURCE beside a panel row saying EXTRACTED_SOURCE_CONFLICT)."""
++    primary = next((o for o in review.get("outcomes") or [] if o.get("primary")), None)
++    if not primary:
++        return review
++    names = [row.get("trial_key") or row.get("name") for row in (primary.get("known_missing_sensitivity") or {}).get("rows") or []]
++    aliases = acronym_aliases(names, rec_by_id or {})
++    ledger = trial_family_ledger(review, aliases)
++    pname = str(primary.get("name") or "")
++    rows = primary.setdefault("declared_absent_trials", [])
++    by_family = {}
++    for row in rows:
++        by_family.setdefault(_family_of(row) or _family_key(row), row)
++    for e in ledger["families"]:
++        if e["eligibility"] != "eligible" or pname in e["pooled_in"]:
++            continue
++        row = by_family.get(e["family"])
++        if row is None:
++            row = next((r for r in rows if any(str(i) in e["ids"] for i in (r.get("label"), r.get("id")))), None)
++        if row is None:
++            rows.append({
++                "label": e["family"], "id": e["ids"][0] if e["ids"] else e["family"], "trial_family_id": e["family"],
++                "absent_kind": "eligible_not_pooled", "state": e["state"] or "DISCOVERED_NOT_RETRIEVED",
++                "reason": "; ".join(e["reasons"]) or "eligible family not pooled in the primary outcome",
++                "screening_route": e["screening"], "sources_held": e["sources_held"],
++                "unresolved_adjudications": e["unresolved_adjudications"], "from_ledger": True,
++            })
++        elif e["state"] and row.get("state") != e["state"] and e["state"] != "POOLABLE":
++            row["machine_state"] = row.get("state")
++            row["state"] = e["state"]
++            row["sources_held"] = e["sources_held"]
++            row["unresolved_adjudications"] = e["unresolved_adjudications"]
++            row["from_ledger"] = True
++    review["trial_family_ledger"] = trial_family_ledger(review, aliases)
++    return review
+diff --git a/harness/pipeline.py b/harness/pipeline.py
+index 26ffa187..52e32ed7 100644
+--- a/harness/pipeline.py
++++ b/harness/pipeline.py
+@@ -1240,10 +1240,22 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
+         # abstract/pmc_fulltext so verify.verify_pooled checks the effect's digits against the
+         # committed source span (not the abstract). Only for the matching outcome.
+         if ve and ve.get("outcome") == spec.get("name") and ve.get("effect") is not None:
+-            trials.append({"label": label, "id": idstr, "effect": ve["effect"],
+-                           "ci_low": ve.get("ci_low"), "ci_high": ve.get("ci_high"),
+-                           "scale": ve.get("scale", "HR"), "provenance": "fulltext_verified",
+-                           "source": ve.get("source", "full-text-verified effect+CI")})
++            row = {"label": label, "id": idstr, "effect": ve["effect"],
++                   "ci_low": ve.get("ci_low"), "ci_high": ve.get("ci_high"),
++                   "scale": ve.get("scale", "HR"), "provenance": "fulltext_verified",
++                   "source": ve.get("source", "full-text-verified effect+CI")}
++            # A hand-verified row is not outside the endpoint-binding safeguard: its own numbers locate its
++            # result sentence in the held abstract, which binds to a definition span and is classified like
++            # every other route; and its provenance says where the passage IS (SOUL was pooled as
++            # UNBOUND_LEGACY, provenance "fulltext_verified", with an abstract passage -- Mahmood's review of
++            # 98726cc1, item 2). A row whose numbers are not in the abstract keeps the full-text label and the
++            # unbound_legacy state until the FACT landing binds it to a held document.
++            bound = target_endpoint_mod.bind_verified_row(spec, rec.get("abstract", ""), row)
++            if bound.get("passage_location") == "abstract":
++                row["provenance"] = "abstract_verified"
++                row.update({k: v for k, v in bound.items() if k != "passage_location"})
++            row["verified_passage_location"] = bound.get("passage_location")
++            trials.append(row)
+             continue
+         absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
+     # MANDATORY ADMISSIBILITY (every route converges here): a row is pooled only if its bound endpoint
+@@ -2087,6 +2099,9 @@ def build_review_core(slug, config, records, protocol_sha):
+     # KNOWN-MISSING SENSITIVITY: invalidation names eligible evidence outside the primary pool.
+     # This panel keeps the primary untouched and shows only source-backed re-pools as SENSITIVITY.
+     known_missing_mod.build(review, _inv_sig, rec_by_id, records)
++    # TRIAL-FAMILY LEDGER: the primary's declared-absent rows become the ledger's view (every eligible family not
++    # pooled is a typed row; held-source states win), so every count derives from one object.
++    identity_mod.reconcile_declared_absent_with_ledger(review, rec_by_id)
+     consumer_consistency_mod.annotate_review(review, slug, config, records)
+     # RX measurement layer: verify the declared reason codes and enumerate included-trial x
+     # registered-outcome values visible in held sources but not extracted. This is deliberately

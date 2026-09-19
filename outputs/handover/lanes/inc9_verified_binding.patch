@@ -1,0 +1,164 @@
+diff --git a/harness/design_key.py b/harness/design_key.py
+index 2a1909bc..9fe209f3 100644
+--- a/harness/design_key.py
++++ b/harness/design_key.py
+@@ -61,6 +61,14 @@ _REGISTRY_MAP = {
+     "CROSSOVER ASSIGNMENT": ("CROSSOVER", "UNKNOWN"),
+     "PARALLEL ASSIGNMENT": ("PARALLEL", "INDIVIDUAL"),
+     "SEQUENTIAL ASSIGNMENT": ("STEPPED_WEDGE", "CLUSTER"),
++    # ClinicalTrials.gov API v2 / AACT enumerations of the same field: every pooled glp1 row carried the
++    # registry value PARALLEL as design evidence while the decision said "no committed design evidence"
++    # (Mahmood's review of 98726cc1, item 2) because only the legacy spellings were mapped
++    "FACTORIAL": ("FACTORIAL", "INDIVIDUAL"),
++    "CROSSOVER": ("CROSSOVER", "UNKNOWN"),
++    "PARALLEL": ("PARALLEL", "INDIVIDUAL"),
++    "SEQUENTIAL": ("STEPPED_WEDGE", "CLUSTER"),
++    "SINGLE_GROUP": ("SINGLE_GROUP", "UNKNOWN"),
+ }
+ 
+ _ALT_RE = re.compile(
+@@ -520,7 +528,12 @@ def decision_for_trial(trial: dict[str, Any], declared_estimand: str | None = No
+             gate_id="design-key:design-unproven",
+             decision_state=("design not established from committed evidence; pooled through the parallel path "
+                             "on an assumption the harness could not verify"),
+-            reason="no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
++            reason=(("committed design evidence does not establish an individually randomised parallel design: "
++                     + "; ".join(f"{b.get('source')}: {b.get('span')}" for b in (d.get("basis") or [])
++                                 if b.get("source") != "trial reported estimate label"))
++                    if any(b.get("source") != "trial reported estimate label" for b in (d.get("basis") or []))
++                    else "no committed design evidence (registry intervention model or design phrase)")
++                   + "; UNKNOWN is not PARALLEL",
+         )
+     return _decision(
+         "ALLOW",
+diff --git a/harness/pipeline.py b/harness/pipeline.py
+index 26ffa187..157049b2 100644
+--- a/harness/pipeline.py
++++ b/harness/pipeline.py
+@@ -1240,10 +1240,22 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
+         # abstract/pmc_fulltext so verify.verify_pooled checks the effect's digits against the
+         # committed source span (not the abstract). Only for the matching outcome.
+         if ve and ve.get("outcome") == spec.get("name") and ve.get("effect") is not None:
+-            trials.append({"label": label, "id": idstr, "effect": ve["effect"],
+-                           "ci_low": ve.get("ci_low"), "ci_high": ve.get("ci_high"),
+-                           "scale": ve.get("scale", "HR"), "provenance": "fulltext_verified",
+-                           "source": ve.get("source", "full-text-verified effect+CI")})
++            row = {"label": label, "id": idstr, "effect": ve["effect"],
++                   "ci_low": ve.get("ci_low"), "ci_high": ve.get("ci_high"),
++                   "scale": ve.get("scale", "HR"), "provenance": "fulltext_verified",
++                   "source": ve.get("source", "full-text-verified effect+CI")}
++            # A hand-verified row is not outside the endpoint-binding safeguard: its own numbers locate its
++            # result sentence in the held abstract, which binds to a definition span and is classified like
++            # every other route; and its provenance says where the passage IS (SOUL was pooled as
++            # UNBOUND_LEGACY, provenance "fulltext_verified", with an abstract passage -- Mahmood's review of
++            # 98726cc1, item 2). A row whose numbers are not in the abstract keeps the full-text label and the
++            # unbound_legacy state until the FACT landing binds it to a held document.
++            bound = target_endpoint_mod.bind_verified_row(spec, rec.get("abstract", ""), row)
++            if bound.get("passage_location") == "abstract":
++                row["provenance"] = "abstract_verified"
++                row.update({k: v for k, v in bound.items() if k != "passage_location"})
++            row["verified_passage_location"] = bound.get("passage_location")
++            trials.append(row)
+             continue
+         absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
+     # MANDATORY ADMISSIBILITY (every route converges here): a row is pooled only if its bound endpoint
+diff --git a/harness/target_endpoint.py b/harness/target_endpoint.py
+index caf37933..7eff0d49 100644
+--- a/harness/target_endpoint.py
++++ b/harness/target_endpoint.py
+@@ -34,14 +34,15 @@ BINDING_REGISTRY = "registry_outcome_measure"
+ BINDING_NONE = "unbound"
+ 
+ _NAMED_COMPOSITE_RX = re.compile(
+-    r"\b(?:co-?primary|primary|(?:key |first |second |main )?secondary)\s+(?:[a-z][a-z-]*\s+){0,3}?"
++    # "primary-outcome event" (SOUL, NEJM house style) names the primary outcome as much as "primary outcome"
++    r"\b(?:co-?primary|primary|(?:key |first |second |main )?secondary)[\s-]+(?:[a-z][a-z-]*\s+){0,3}?"
+     r"(?:outcome|end[\s-]?point)s?\b|\bmace\b|major adverse cardiovascular event|major cardiovascular event"
+     r"|\bcomposite (?:outcome|end[\s-]?point)\b|\bprimary composite\b"
+     r"|\b(?:major|serious) (?:adverse )?vascular events?\b",
+     re.I,
+ )
+ _QUALIFIER_RX = re.compile(
+-    r"\b(?:(?P<sec>(?:key |first |second |main )?secondary)|(?P<pri>co-?primary|primary|second primary|first primary))\s+"
++    r"\b(?:(?P<sec>(?:key |first |second |main )?secondary)|(?P<pri>co-?primary|primary|second primary|first primary))[\s-]+"
+     r"(?:[a-z][a-z-]*\s+){0,3}?(?:outcome|end[\s-]?point)s?\b", re.I)
+ _MACE_RX = re.compile(r"\bmace\b|major adverse cardiovascular|major cardiovascular|(?:major|serious) (?:adverse )?vascular event", re.I)
+ 
+@@ -287,6 +288,62 @@ def classify_bound(spec: dict[str, Any], abstract: str, source: str | None) -> d
+     return cls
+ 
+ 
++def _num_forms(value) -> set[str]:
++    f = float(value)
++    return {f"{f:g}", f"{f:.1f}", f"{f:.2f}", f"{f:.3f}"}
++
++
++def locate_verified_result_sentence(abstract: str, row: dict[str, Any]) -> str | None:
++    """The ONE abstract sentence that carries a hand-verified row's own effect and both CI bounds.
++
++    A verified row's `source` is a hand-written description ("SOUL (...) abstract: primary MACE (...) 579/4825
++    vs 668/4825, hazard ratio, 0.86; ...") that the sentence locator cannot find verbatim; the row is nevertheless
++    a claim about held text, so it is located by its NUMBERS: exactly one sentence must carry the estimate and both
++    bounds inside an effect+CI pattern. None when no sentence or several do (never a guess)."""
++    if row.get("effect") is None or row.get("ci_low") is None or row.get("ci_high") is None:
++        return None
++    want = (_num_forms(row["effect"]), _num_forms(row["ci_low"]), _num_forms(row["ci_high"]))
++    hits = []
++    for sent in extract._sentences(extract._norm(abstract or "")):
++        for m in _EFFECT_RE.finditer(sent):
++            if m.group(2) in want[0] and m.group(3) in want[1] and m.group(4) in want[2]:
++                hits.append(sent.strip())
++                break
++    return hits[0] if len(hits) == 1 else None
++
++
++def bind_verified_row(spec: dict[str, Any], abstract: str, row: dict[str, Any]) -> dict[str, Any]:
++    """Bring a hand-verified row inside the endpoint-binding safeguard.
++
++    The served glp1 page pooled SOUL as `UNBOUND_LEGACY` while marked verified, with `provenance:
++    fulltext_verified` although the cited passage was the abstract (Mahmood's review of 98726cc1, item 2). The
++    row's own numbers locate its result sentence in the held abstract; the sentence binds to its definition span
++    and is classified like every other route. Returns the classification (ENDPOINT_UNBOUND with a reason when the
++    numbers are not in the abstract -- a genuinely full-text-only verification) plus `passage_location`:
++    'abstract' or 'not_in_abstract'."""
++    sentence = locate_verified_result_sentence(abstract, row)
++    if not sentence:
++        out = _unbound_classification({"binding": BINDING_NONE, "endpoint_result_span": None,
++                                       "endpoint_definition_span": None, "components": set(),
++                                       "binding_reason": "verified numbers not located in the held abstract"})
++        out["passage_location"] = "not_in_abstract"
++        return out
++    binding = bind_result_span(abstract, sentence)
++    if binding["binding"] == BINDING_NONE:
++        out = _unbound_classification(binding)
++        out["passage_location"] = "abstract"
++        return out
++    cls = _classify(spec, binding["endpoint_definition_span"], components=binding["components"])
++    cls.update({
++        "endpoint_binding": binding["binding"],
++        "endpoint_result_span": binding["endpoint_result_span"],
++        "endpoint_definition_span": binding["endpoint_definition_span"],
++        "endpoint_binding_reason": binding["binding_reason"],
++        "passage_location": "abstract",
++    })
++    return cls
++
++
+ def near_match_declared(spec: dict[str, Any]) -> bool:
+     """A near match (a SUPERSET composite) is admissible only under an explicit declaration on the
+     outcome: `allow_near_match: true`, or `component_compat_key: true` (the protocol pools each trial's
+diff --git a/harness/verify.py b/harness/verify.py
+index 32c33508..e5187ea9 100644
+--- a/harness/verify.py
++++ b/harness/verify.py
+@@ -68,7 +68,9 @@ def verify_pooled(trial: dict, abstract: str | None) -> tuple[str, str]:
+     span = trial.get("source") or ""
+     # bytes to check against: the committed abstract for abstract/full-text (the number may pair a
+     # count from one sentence with a denominator from another); else the source field itself.
+-    text = abstract if prov in ("abstract", "pmc_fulltext") else span
++    # A hand-verified row whose passage is the ABSTRACT is checked against the held abstract bytes, never
++    # against the hand-written description that carries the same digits (that is not a check).
++    text = abstract if prov in ("abstract", "pmc_fulltext", "abstract_verified") else span
+     if trial.get("ai") is not None:
+         if prov == "aact_verified":
+             return ("verified_handchecked", "AACT-derived arm entry, cross-checked to published %")

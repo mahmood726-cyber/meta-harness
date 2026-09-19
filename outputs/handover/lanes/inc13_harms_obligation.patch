@@ -1,0 +1,28 @@
+diff --git a/harness/harms.py b/harness/harms.py
+index 64f79ea3..16e39190 100644
+--- a/harness/harms.py
++++ b/harness/harms.py
+@@ -82,8 +82,21 @@ def _ladder(pid, rec_by_id, fulltext_by_pmid, trial=None):
+         if span and path.is_relative_to(root) and path.is_file():
+             checked = " ".join(span.split()) in " ".join(path.read_text(encoding="utf-8").split())
+         ladder.append({"rung": "located adjudication source: " + document,
+-                       "state": "CHECKED_LOCATED_SPAN" if checked else "SPAN_NOT_VERIFIED",
+-                       "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."})
++                       "state": "CHECKED_LOCATED_SPAN" if checked else "SPAN_NOT_VERIFIED"})
++    # THE OBLIGATION IS A STATE, NOT A SENTENCE: a typed refusal recorded on one rung (the abstract, a records.json
++    # span) never resolves the extraction obligation while a route B-prime permits -- held full text, supplement,
++    # registry results, regulatory source -- is unchecked (the served glp1 page closed PIONEER-6's GI-harms obligation
++    # on an abstract refusal with every other route NOT_CHECKED; Mahmood's review of 98726cc1, item 5).
++    unchecked = [r["rung"] for r in ladder if str(r.get("state", "")).startswith("NOT_CHECKED")]
++    located = any(r.get("state") == "CHECKED_LOCATED_SPAN" for r in ladder) and bool((trial or {}).get("harm_source_reported"))
++    if located:
++        state, text = "RESOLVED", "outcome-specific evidence located at a checked rung"
++    elif unchecked:
++        state, text = "OPEN", ("a typed refusal on a lower rung does not resolve the obligation while these routes are "
++                               "unchecked (B-prime permits each): " + "; ".join(unchecked))
++    else:
++        state, text = "RESOLVED_BY_EXHAUSTION", "every permitted route checked; a source-backed refusal stands"
++    ladder.append({"rung": "obligation", "state": state, "obligation": text})
+     return ladder
+ 
+ _INCOMPATIBLE_CODES = {

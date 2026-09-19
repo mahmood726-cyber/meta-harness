@@ -1,0 +1,45 @@
+diff --git a/harness/page.py b/harness/page.py
+index c6a3994c..99e6bdc9 100644
+--- a/harness/page.py
++++ b/harness/page.py
+@@ -2760,7 +2780,19 @@ def rob_overall_text(overall, output_family):
+     overall = "" if overall is None else str(overall)
+     if output_family != _rob2.OUTPUT_FAMILY:
+         return overall
+-    return f"FORMAL RoB 2 NOT ASSESSED (machine signal on assessed domains: {overall})"
++    # the machine aggregate ("low (on assessed domains; some domains require human judgement)") is never
++    # quoted: the served increment-2 page still printed "low (on assessed domains" eight times inside this
++    # parenthetical (Dispatch, fetched bytes, 19 Sep 2026); the signal is described, the judgement word withheld
++    lowered = overall.lower()
++    if lowered.startswith("low"):
++        signal = "consistent with low risk on the assessed domains"
++    elif lowered.startswith("some concerns"):
++        signal = "some concerns on the assessed domains"
++    elif lowered.startswith("high"):
++        signal = "high-risk signal on at least one assessed domain"
++    else:
++        signal = "no aggregate signal"
++    return f"FORMAL RoB 2 NOT ASSESSED (machine signal: {signal}; unassessed domains require human judgement)"
+ 
+ def render_page(review: dict, neutral: bool = False) -> str:
+     from .certificate import render as render_certificate
+diff --git a/tests/test_rob_cells_not_judgements.py b/tests/test_rob_cells_not_judgements.py
+index 13193e84..57116b55 100644
+--- a/tests/test_rob_cells_not_judgements.py
++++ b/tests/test_rob_cells_not_judgements.py
+@@ -61,3 +61,15 @@ def test_every_page_with_machine_signal_rob_renders_no_bare_judgement():
+         if any(c in ("low", "some concerns", "high") or c.startswith("low (on assessed") for c in cells):
+             bare.append(path.parent.name)
+     assert bare == []
++
++
++def test_overall_cell_never_quotes_the_judgement_word_in_its_parenthetical():
++    # Dispatch measured "low (on assessed domains" x8 on the served increment-2 page: the overall cell quoted the
++    # machine aggregate verbatim inside its parenthetical, so the withdrawn judgement word survived the withdrawal.
++    text = page.rob_overall_text("low (on assessed domains; some domains require human judgement)", rob2.OUTPUT_FAMILY)
++    assert text.startswith(OVERALL)
++    assert "low (on assessed domains" not in text
++    assert "consistent with low risk" in text
++    review = _review("glp1-ra-mace-t2d")
++    table = _rob_table(page.render_page(review))
++    assert "low (on assessed domains" not in table

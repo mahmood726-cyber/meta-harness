@@ -1,0 +1,94 @@
+diff --git a/harness/manuscript.py b/harness/manuscript.py
+index 6a185096..4f14f86e 100644
+--- a/harness/manuscript.py
++++ b/harness/manuscript.py
+@@ -349,10 +349,18 @@ def render(review, neutral: bool = False) -> str:
+         )
+     else:
+         pi = ""
+-        if res.get("pi_low") is not None:
++        if res.get("pi_low") is not None and not _grade_mod.membership_incomplete(review):
+             pi = f" The 95% prediction interval was {_fmt(res.get('pi_low'))} to {_fmt(res.get('pi_high'))}."
+-        result_sentence = (f"Pooling {_k_phrase(prim)} gave {scale} {est} (95% CI {lo} to {hi}), "
+-                           f"random-effects (Paule-Mandel with a Hartung-Knapp interval).{pi}")
++        if _grade_mod.membership_incomplete(review):
++            _counts = (review.get("trial_family_ledger") or {}).get("counts") or {}
++            _denom = (_counts.get("pooled_primary") or 0) + (_counts.get("eligible_not_pooled_primary") or 0)
++            _of = f" of {_denom} eligible families" if _denom else ""
++            result_sentence = (f"A subset estimate -- not the current systematic-review estimate -- from {_k_phrase(prim)}{_of} "
++                               f"gave {scale} {est} (95% CI {lo} to {hi}), random-effects (Paule-Mandel with a Hartung-Knapp "
++                               f"interval); the prediction interval is not stated while membership is incomplete.")
++        else:
++            result_sentence = (f"Pooling {_k_phrase(prim)} gave {scale} {est} (95% CI {lo} to {hi}), "
++                               f"random-effects (Paule-Mandel with a Hartung-Knapp interval).{pi}")
+ 
+     if _grade_mod.membership_incomplete(review):
+         result_sentence += " " + _e(_grade_mod.stale_heterogeneity(review))
+diff --git a/harness/page.py b/harness/page.py
+index c6a3994c..c735fd92 100644
+--- a/harness/page.py
++++ b/harness/page.py
+@@ -375,6 +375,26 @@ def _k2_ci_refusal_block(res: dict) -> str:
+     )
+ 
+ 
++def subset_headline(r: dict) -> dict | None:
++    """When the primary pool's membership is known incomplete, the headline is a SUBSET estimate: its label carries
++    the denominator from the trial-family ledger and the heterogeneity numerals are withheld from the headline (they
++    remain in the outcome audit block as descriptive values). None when membership is complete."""
++    if not _grade_mod.membership_incomplete(r):
++        return None
++    prim = next((o for o in (r.get("outcomes") or []) if o.get("primary")), None) or {}
++    k = (prim.get("result") or {}).get("k")
++    counts = (r.get("trial_family_ledger") or {}).get("counts") or {}
++    pooled = counts.get("pooled_primary", k)
++    missing = counts.get("eligible_not_pooled_primary")
++    denom = (pooled or 0) + (missing or 0) if pooled is not None and missing is not None else None
++    of = f" of {denom} eligible families" if denom else ""
++    return {
++        "label": f"Subset estimate (k={k}{of}; not the current systematic-review estimate)",
++        "withheld": ("withheld from the headline: the pool's membership is known incomplete, so tau^2, I^2 and the "
++                     "prediction interval are descriptive only (values in the outcome audit block)"),
++    }
++
++
+ def _effect_rows(res: dict) -> list[tuple[str, str]]:
+     if res.get("pooled_ci_refused"):
+         return [
+@@ -750,18 +813,28 @@ def _overview(r, neutral):
+             rows.append(("Trials pooled (k)", kdisp))
+             if recon:
+                 rows.append(("Screened-in → pooled", recon))
+-            rows.extend(_effect_rows(res))
+-            if res.get("ci_low_fixed") is not None:
+-                rows.append(_common_effect_row(res))
+-            if res.get("pi_low") is not None:
+-                rows.append(("Prediction interval", f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))} {_e(_grade_mod.stale_heterogeneity(r))}"))
+-            if res.get("tau2") is not None:
+-                rows.append(("Between-study τ²", _tau(res.get("tau2")) + " " + _e(_grade_mod.stale_heterogeneity(r))))
+-            if _grade_mod.membership_incomplete(r):
++            subset = subset_headline(r)
++            if subset:
++                # HEADLINE OF AN INCOMPLETE POOL: the estimate is labelled a subset estimate with its denominator, and
++                # the heterogeneity numerals (prediction interval, tau^2) are withheld from the headline -- they live in
++                # the outcome audit block, marked descriptive (Mahmood's review of edaf5f6b / 98726cc1, item 4)
++                effect_rows = _effect_rows(res)
++                rows.append((subset["label"], effect_rows[0][1] if effect_rows else ""))
++                rows.extend(effect_rows[1:])
++                rows.append(("Prediction interval / τ²", subset["withheld"]))
+                 rows.append(("Heterogeneity state", _grade_mod.stale_heterogeneity(r)))
++            else:
++                rows.extend(_effect_rows(res))
++                if res.get("ci_low_fixed") is not None:
++                    rows.append(_common_effect_row(res))
++                if res.get("pi_low") is not None:
++                    rows.append(("Prediction interval", f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))} {_e(_grade_mod.stale_heterogeneity(r))}"))
++                if res.get("tau2") is not None:
++                    rows.append(("Between-study τ²", _tau(res.get("tau2")) + " " + _e(_grade_mod.stale_heterogeneity(r))))
+             rows.append(("Method", prim.get("method") or r.get("method_declared")))
+             parts.append(_kv(rows))
+             parts.append(_known_missing_sensitivity_panel(prim))
++            parts.append(_trial_family_ledger_block(r))
+     if not neutral:
+         _tok, _ttot, _tcomp = _transparency_counts(r)
+         if _ttot:

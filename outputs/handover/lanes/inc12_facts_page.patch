@@ -1,0 +1,23 @@
+diff --git a/harness/page.py b/harness/page.py
+index c6a3994c..a176d91b 100644
+--- a/harness/page.py
++++ b/harness/page.py
+@@ -432,6 +463,18 @@ def _known_missing_sensitivity_panel(o: dict) -> str:
+             if counts.get("n1i") and counts.get("n2i"):
+                 val += (f"<div>Reported events: {_e(counts.get('ai'))}/{_e(counts['n1i'])} "
+                         f"vs {_e(counts.get('ci'))}/{_e(counts['n2i'])}</div>")
++            ve = fact.get("value_extraction") or {}
++            if (decision.get("effect") or {}).get("estimate") is not None:
++                if ve.get("verified"):
++                    mt = ve["matched"]
++                    val += (f"<div>value (mechanism: {_e(ve.get('mechanism'))}, read from span "
++                            f"<code>{_e(mt.get('span_kind'))}</code> p.{_e(mt.get('pdf_page'))}): {_e(decision['effect'].get('scale'))} "
++                            f"{_e(mt['estimate'])} ({_e(mt['ci_low'])}, {_e(mt['ci_high'])}) -- proposed, not pooled</div>")
++                else:
++                    # a manifest number the harness could not read from a located span is withheld: the
++                    # review notes and the manifest are not sources (Mahmood, 19 Sep 2026)
++                    val += ("<div class='absent'>value WITHHELD: the manifest's effect was not read by the harness from any "
++                            "verbatim-located span of the held document (mechanism required: regex on held bytes)</div>")
+         elif r.get("value_status") == "IN_SOURCE_DIFFERENT_ESTIMAND":
+             val = "different estimand in committed source; no target-estimand number used"
+         else:
