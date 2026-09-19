@@ -944,11 +944,17 @@ def absence_claims(slug: str, review: dict, docs_by_id: dict) -> list[dict]:
                         (" -> NOT admissible: the absence verdict is true of the cached copy and says nothing about the cited source"
                          if not admissible else " -> admissible for the abstract scope only (a full-text absence claim would need COMPLETE_SOURCE)"))
             elif kind == "POSITIVE_REFUSAL":
-                admissible = bool(d.get("source_span") or d.get("verbatim_span") or d.get("reason"))
-                rule = "a refusal grounded on located evidence is a positive claim about what the span says; admissible from an excerpt"
+                admissible = None
+                rule = ("a refusal grounded on evidence is a positive claim about what a span says and is not subject to the coverage rule; "
+                        "the bundle does NOT locate or evaluate it -- it is carried as a producer assertion (see limits L12)")
             else:
                 admissible, rule = None, "not classified by the bundle"
+            non_pubmed = bool(ref) and not ref.startswith(f"cache/{slug}/records.json")
             out.append({"outcome": o["name"], "trial": {"id": trial_id, "label": d.get("label")},
+                        "evaluated_by_bundle": kind == "NEGATIVE",
+                        "not_evaluated_because": (None if kind == "NEGATIVE" else
+                                                  ("no contractual preservation parser for FDA text extractions / PMC full text, and the refusal's span is not located by the bundle"
+                                                   if non_pubmed else "positive refusals are producer assertions; the bundle locates and evaluates negative claims only")),
                         "producer_state": state, "producer_reason": d.get("reason"), "producer_reason_code": d.get("reason_code"),
                         "searched_document_ref": ref or (f"cache/{slug}/records.json#PMID-{pmid}" if pmid else None),
                         "searched_representation": "PARSED_SOURCE", "searched_representation_coverage_status": cov,
@@ -1399,7 +1405,15 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
         "pooled_reference": pooled,
         "resolvability": walk,
         "review_files": review_files,
-        "limits": LIMITS,
+        "limits": LIMITS + [{
+            "id": "L12_positive_refusals_unevaluated",
+            "limit": (f"{sum(1 for c in aclaims if c['claim_kind'] == 'POSITIVE_REFUSAL')} of {len(aclaims)} absence claims are POSITIVE_REFUSAL and are "
+                      f"carried as producer assertions: the bundle locates and evaluates NEGATIVE claims only. "
+                      f"{sum(1 for c in aclaims if c['claim_kind'] == 'POSITIVE_REFUSAL' and c['not_evaluated_because'] and 'FDA' in c['not_evaluated_because'])} of them "
+                      "are over non-PubMed documents (FDA text extractions) for which no contractual preservation parser exists; the remaining "
+                      f"{sum(1 for c in aclaims if c['claim_kind'] == 'POSITIVE_REFUSAL' and c['not_evaluated_because'] and 'FDA' not in c['not_evaluated_because'])} "
+                      "are over PubMed records whose refusal spans the bundle does not locate."),
+        }],
         "canonical_json": "json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(',', ':')) encoded as UTF-8",
         "verifier": {
             "served_path": "scripts/verify_bundle.py",

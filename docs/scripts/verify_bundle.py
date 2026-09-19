@@ -531,8 +531,15 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                  "INADMISSIBLE")
         recorded = (br or {}).get("admission", {}).get("final")
         recorded_P = {k: v["state"] == "PASS" for k, v in ((br or {}).get("admission", {}).get("predicates") or {}).items()}
+        span_code = None
+        if not located and span:
+            container_text = json.dumps(records, ensure_ascii=False)
+            span_code = "SPAN_NOT_IN_RECORD" if (span in container_text or normalize(span) in normalize(container_text)) else "SPAN_NOT_LOCATED"
+            if not corrupt:
+                failures.append(f"{span_code} {pmid}: the quotation is {'elsewhere in the container but' if span_code == 'SPAN_NOT_IN_RECORD' else 'not'} in the selected record's representation")
         report["rows"].append({"pmid": pmid, "label": t.get("label"), "predicates": P, "final": final, "bundle_recorded": recorded,
                                "p9": p9, "refusal": (selector_refusals[pmid].code if pmid in selector_refusals else
+                                                     span_code if span_code else
                                                      p9["state"] if p9["state"] != "PASS" else None),
                                "agrees_with_bundle": (final == recorded) if not corrupt else None,
                                "predicates_agree_with_bundle": (P == recorded_P) if not corrupt else None,
