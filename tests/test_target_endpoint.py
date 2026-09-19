@@ -147,3 +147,12 @@ def test_sglt2_protocol_estimand_preference_undeclared():
         md = f.read()
     div = PC.compare("sglt2-hfref-hosp-cvdeath", md, topic)
     assert any(d["code"] == "ESTIMAND_PREFERENCE_UNDECLARED" for d in div)
+
+
+def test_hyphenated_heart_failure_parses_to_a_canonical_component():
+    """PLANT (pre-fix main fbbdc13a): 'Heart-failure hospitalization' -> [] (the hyphen defeated the vocabulary), so the iv-iron
+    selector was inert and AFFIRM-AHF's first-event registry row was never a candidate; the served page pooled k=2 while the
+    comparator pooled 3. Post-fix -> ['heart failure hospitalization']."""
+    assert TE.canonical_components({"name": "Heart-failure hospitalization"}) == ["heart failure hospitalization"]
+    assert TE.canonical_components({"name": "Composite cardiovascular death or heart-failure hospitalization"}) == [
+        "cardiovascular death", "heart failure hospitalization"]

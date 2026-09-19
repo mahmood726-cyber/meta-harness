@@ -35,13 +35,21 @@ def test_plant_prefix_affirm_refusal_reason_is_false():
     assert "RR 0.74" in classified["source_contains"]
 
 
-def test_postfix_affirm_refusal_reason_is_true():
+def test_postfix_affirm_first_event_row_is_admitted_and_recurrent_total_is_not():
+    """Since the hyphen vocabulary fix (2026-09-19) AFFIRM-AHF (33197395) is POOLED on the primary from its CT.gov row 'number of
+    participants with at least one HF hospitalisation' (time to first event), (the primary pool itself stays SUPPRESSED, INCOMPATIBLE_ESTIMANDS) so it is no longer a declared-absent row whose
+    refusal reason could be audited. The requirement that replaces the old assertion: the pooled row is the first-event participant
+    count (142/558 vs 178/550, HR 0.73) and NOT the recurrent-event total (217 vs 294, RR 0.74) the old refusal correctly refused."""
     review = json.loads((ROOT / "docs" / "reviews" / SLUG / "review.json").read_text(encoding="utf-8"))
-    outcome, row = _primary_row(review)
-    classified = sweep.classify_row(SLUG, outcome, row)
-    assert classified["verdict"] == "TRUE", classified
-    assert row["reason_code"] == absence.EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH
-    assert "217 total heart failure hospitalisations" in row["source_span"]
+    primary = next(o for o in review["outcomes"] if o.get("primary"))
+    row = next(t for t in primary["trials"] if "33197395" in str(t.get("id")))
+    assert row.get("provenance") == "ctgov_results"
+    assert row.get("target_endpoint_class") == "EXACT_TARGET"
+    assert row.get("endpoint_counts") == {"ai": 142, "n1i": 558, "ci": 178, "n2i": 550}, row.get("endpoint_counts")
+    assert (row.get("effect"), row.get("ci_low"), row.get("ci_high")) == (0.73, 0.59, 0.92)
+    assert "recurrent" not in str(row.get("registry_title", "")).lower()
+    assert "217" not in str(row.get("source", ""))
+    assert not any("33197395" in str(t.get("id")) for t in primary.get("declared_absent_trials", []))
 
 
 def test_synthetic_outcome_not_in_source_is_true():

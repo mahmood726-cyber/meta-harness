@@ -76,6 +76,9 @@ def _fold(text: str | None) -> str:
     replacements = {
         "hospitalisation": "hospitalization",
         "hospitalisations": "hospitalizations",
+        # hyphenated compound: 'Heart-failure hospitalization' (iv-iron) parsed to NO canonical component until 2026-09-19,
+        # leaving that outcome's target-endpoint selector inert (a parse gap, not a declaration)
+        "heart-failure": "heart failure",
         "cardiovascular": "cardiovascular",
         "cv ": "cardiovascular ",
         "hhf": "heart failure hospitalization",

@@ -8,7 +8,11 @@
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['heart failure']; and none of ['preserved ejection fraction', 'HFpEF', 'chronic obstructive pulmonary disease', 'COPD', 'pulmonary hypertension', 'dialysis', 'haemodialysis', 'hemodialysis', 'postpartum', 'pregnancy', 'inflammatory bowel disease', 'restless legs']; randomised intervention is one of ['ferric carboxymaltose', 'ferric derisomaltose', 'iron sucrose'] (named in title/conditions); a comparator among ['placebo', 'usual care', 'standard care', 'standard of care', 'control', 'no treatment']. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator.",
-    "text": "# Protocol - intravenous iron for heart-failure hospitalization in HFrEF with iron deficiency\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. The protocol is committed before the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure with reduced or mildly reduced ejection fraction and iron deficiency.\n- **I** - intravenous iron, including ferric carboxymaltose, ferric derisomaltose, or iron sucrose.\n- **C** - placebo, usual care, standard care, or no-treatment control.\n- **O (primary)** - heart-failure hospitalization at trial end / longest reported follow-up.\n- **O (harms)** - injection-site/administration-site reactions; hypersensitivity reactions.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), intravenous iron vs placebo/standard care.\n- **Population** - intention-to-treat as randomized.\n- **Timepoint** - trial end / longest reported follow-up.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomized controlled trial;\n- **I2** - population is heart failure with reduced or mildly reduced ejection fraction and iron deficiency;\n- **I3** - intravenous iron vs placebo, usual care, standard care, or no-treatment control;\n- **design** - placebo-controlled or standard-care-controlled RCT; double blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (for example HFpEF, COPD, pulmonary hypertension, dialysis, pregnancy/postpartum, inflammatory bowel disease, or restless legs);\n- **X3** - wrong intervention/comparison (no intravenous iron vs eligible control contrast);\n- **X5** - off-topic: a primary trial of another disease area in this set (negative control).\n\n> Eligibility is NOT on the outcome axis. Whether a trial reports heart-failure\n> hospitalization, or gives a 2x2 vs only an effect+CI, is recorded as target-result\n> status at extraction - never as an exclusion. A published effect + 95% CI is a\n> poolable input. Composite cardiovascular-death/heart-failure-hospitalization effects\n> are not treated as standalone heart-failure hospitalization for the primary outcome.\n\n## Search (fetch-once; raw results committed under cache/iv-iron-hfref-hosp/records.json; screening replays offline)\n- PubMed: targeted primary-report searches for FAIR-HF2, AFFIRM-AHF, and IRONMAN.\n- PubMed comparator-reference seeding: trials cited by the resolved comparator are fetched and screened by the same rules.\n- ClinicalTrials.gov: condition \"heart failure reduced ejection fraction iron deficiency\", intervention \"intravenous iron\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a\nstudy only if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs\nmetafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nParmananda et al., *Diseases* 2024, \"The Efficacy and Safety of Ferric\nCarboxymaltose in Heart Failure with Reduced Ejection Fraction and Iron Deficiency:\nAn Updated Systematic Review and Meta-Analysis of Randomized Controlled Trials\"\n(PMID 39727669, PMC11727542, DOI 10.3390/diseases12120339; Unpaywall is_oa=true).\nIt reports total HF hospitalizations OR 0.59 (95% CI 0.40 to 0.88) over six RCTs,\nplus serious adverse events and qualitative angioedema/hypersensitivity detail.\n\n## Controls\n- **Positive** - the search must recover FAIR-HF2 (PMID 40159390), AFFIRM-AHF\n  (PMID 33197395), and IRONMAN (PMID 36347265).\n- **Negative** - the COPD intravenous-iron RCT (PMID 32565444) must be recovered\n  and EXCLUDED as wrong population.\n"
+    "text": "# Protocol - intravenous iron for heart-failure hospitalization in HFrEF with iron deficiency\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. The protocol is committed before the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure with reduced or mildly reduced ejection fraction and iron deficiency.\n- **I** - intravenous iron, including ferric carboxymaltose, ferric derisomaltose, or iron sucrose.\n- **C** - placebo, usual care, standard care, or no-treatment control.\n- **O (primary)** - heart-failure hospitalization at trial end / longest reported follow-up.\n- **O (harms)** - injection-site/administration-site reactions; hypersensitivity reactions.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), intravenous iron vs placebo/standard care.\n- **Population** - intention-to-treat as randomized.\n- **Timepoint** - trial end / longest reported follow-up.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff **all** hold:\n- **I1** - randomized controlled trial;\n- **I2** - population is heart failure with reduced or mildly reduced ejection fraction and iron deficiency;\n- **I3** - intravenous iron vs placebo, usual care, standard care, or no-treatment control;\n- **design** - placebo-controlled or standard-care-controlled RCT; double blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only);\n- **X2** - wrong population (for example HFpEF, COPD, pulmonary hypertension, dialysis, pregnancy/postpartum, inflammatory bowel disease, or restless legs);\n- **X3** - wrong intervention/comparison (no intravenous iron vs eligible control contrast);\n- **X5** - off-topic: a primary trial of another disease area in this set (negative control).\n\n> Eligibility is NOT on the outcome axis. Whether a trial reports heart-failure\n> hospitalization, or gives a 2x2 vs only an effect+CI, is recorded as target-result\n> status at extraction - never as an exclusion. A published effect + 95% CI is a\n> poolable input. Composite cardiovascular-death/heart-failure-hospitalization effects\n> are not treated as standalone heart-failure hospitalization for the primary outcome.\n\n## Search (fetch-once; raw results committed under cache/iv-iron-hfref-hosp/records.json; screening replays offline)\n- PubMed: targeted primary-report searches for FAIR-HF2, AFFIRM-AHF, and IRONMAN.\n- PubMed comparator-reference seeding: trials cited by the resolved comparator are fetched and screened by the same rules.\n- ClinicalTrials.gov: condition \"heart failure reduced ejection fraction iron deficiency\", intervention \"intravenous iron\".\n\n## Synthesis method (DECLARED; served method must equal this - gate limb 1)\nRandom-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells of a\nstudy only if it has a zero cell. DerSimonian-Laird forbidden. Engine validated vs\nmetafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nParmananda et al., *Diseases* 2024, \"The Efficacy and Safety of Ferric\nCarboxymaltose in Heart Failure with Reduced Ejection Fraction and Iron Deficiency:\nAn Updated Systematic Review and Meta-Analysis of Randomized Controlled Trials\"\n(PMID 39727669, PMC11727542, DOI 10.3390/diseases12120339; Unpaywall is_oa=true).\nIt reports total HF hospitalizations OR 0.59 (95% CI 0.40 to 0.88) over six RCTs,\nplus serious adverse events and qualitative angioedema/hypersensitivity detail.\n\n## Controls\n- **Positive** - the search must recover FAIR-HF2 (PMID 40159390), AFFIRM-AHF\n  (PMID 33197395), and IRONMAN (PMID 36347265).\n- **Negative** - the COPD intravenous-iron RCT (PMID 32565444) must be recovered\n  and EXCLUDED as wrong population.\n",
+    "target_endpoint_selection": {
+      "summary": "Target endpoint selector: EXACT_TARGET beats NEAR_MATCH; a near-match may be pooled only when no exact target is held. Within the same endpoint class, source-reported target-estimand effects beat registry effect estimates, which beat crude reconstructions. For multiple registered primaries in the same outcome family, choose the prespecified primary whose component set is closest to the canonical review definition; ties use registration order and alternatives render as sensitivity rows. Rule applied after results were already known in this lane, so the timing is disclosed.",
+      "results_known_at_rule_time": true
+    }
   },
   "search": {
     "n_records": 39,
@@ -904,41 +908,32 @@
         {
           "label": "40159390",
           "id": "PMID 40159390",
+          "source": "abstract effect+CI (IRR): The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12",
+          "provenance": "abstract",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_endpoint_source_rank": "published_target_effect",
+          "target_endpoint_components": [
+            "heart failure hospitalization"
+          ],
+          "components": [
+            "heart failure hospitalization"
+          ],
+          "target_endpoint_extra_components": [],
+          "target_endpoint_missing_components": [],
+          "results_known_at_rule_time": true,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12).",
+          "endpoint_definition_span": "The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12).",
+          "endpoint_binding_reason": "result sentence names its own component set: heart failure hospitalization",
           "effect": 0.8,
           "ci_low": 0.6,
           "ci_high": 1.06,
           "scale": "IRR",
-          "source": "abstract effect+CI (IRR): The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12",
-          "provenance": "abstract",
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
-          "alternatives": [
-            {
-              "derivation": "reported",
-              "provenance": "abstract",
-              "source_span": "abstract effect+CI (HR): RESULTS: Of the 1105 participants (mean age, 70 years [SD, 12 years]; 33% were women), cardiovascular death or first heart failure hospitalization (first primary outcome) o...",
-              "effect": 0.79,
-              "ci_low": 0.63,
-              "ci_high": 0.99,
-              "scale": "HR",
-              "estimand_class": "FIRST_EVENT_RATIO",
-              "not_selected_reason": "source_hierarchy_lower_precedence"
-            },
-            {
-              "derivation": "reported",
-              "provenance": "abstract",
-              "source_span": "abstract effect+CI (HR): The third primary outcome (cardiovascular death or first heart failure hospitalization in patients with a transferrin saturation <20%) occurred in 103 patients in the ferri...",
-              "effect": 0.79,
-              "ci_low": 0.61,
-              "ci_high": 1.02,
-              "scale": "HR",
-              "estimand_class": "FIRST_EVENT_RATIO",
-              "not_selected_reason": "source_hierarchy_lower_precedence"
-            }
-          ],
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "alternatives": [],
           "source_hierarchy_limitations": [
             {
               "code": "MIXED_BY_SOURCE_LIMIT",
@@ -1057,6 +1052,243 @@
           "outcome_effect_id": "iv-iron-hfref-hosp::Heart-failure hospitalization::PMID 40159390::PMID 40159390"
         },
         {
+          "label": "33197395",
+          "id": "PMID 33197395",
+          "source": "ClinicalTrials.gov results (structured target endpoint): outcome 'HF Hospitalisations' HR 0.73 (95% CI 0.59 to 0.92); endpoint counts 142/558 (FCM (Ferric Carboxymaltose)) vs 178/550 (Placebo (Normal Saline (NaCl 0.9%)))",
+          "provenance": "ctgov_results",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_endpoint_source_rank": "registry_published_effect",
+          "target_endpoint_components": [
+            "heart failure hospitalization"
+          ],
+          "components": [
+            "heart failure hospitalization"
+          ],
+          "target_endpoint_extra_components": [],
+          "target_endpoint_missing_components": [],
+          "results_known_at_rule_time": true,
+          "endpoint_binding": "registry_outcome_measure",
+          "endpoint_result_span": "ClinicalTrials.gov outcome measure #6: HF Hospitalisations -- analysis: Full Analysis Set (FAS): Hazard Ratio (HR) 0.73 (95% CI 0.59 to 0.92; Regression, Cox)",
+          "endpoint_definition_span": "HF Hospitalisations HF = Heart Failure\n\nNumber of participants with at least one HF Hospitalisation up to 52 weeks after randomisation",
+          "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result",
+          "effect": 0.73,
+          "ci_low": 0.59,
+          "ci_high": 0.92,
+          "scale": "HR",
+          "endpoint_counts": {
+            "ai": 142,
+            "n1i": 558,
+            "ci": 178,
+            "n2i": 550
+          },
+          "registry_title": "HF Hospitalisations",
+          "registry_type": "OTHER_PRE_SPECIFIED",
+          "registry_measure_type": "COUNT_OF_PARTICIPANTS",
+          "registry_timeframe": "up to 52 weeks after randomisation",
+          "target_endpoint_alternatives": [
+            {
+              "candidate_id": "ctgov:0",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "HF Hospitalizations and CV Death",
+              "registry_type": "PRIMARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "extra_components": [
+                "cardiovascular death",
+                "recurrent events"
+              ],
+              "source_rank_kind": "registry_published_effect",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
+            },
+            {
+              "candidate_id": "ctgov:0",
+              "source_type": "ctgov_results",
+              "source_kind": "reconstruction",
+              "registry_title": "HF Hospitalizations and CV Death",
+              "registry_type": "PRIMARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "extra_components": [
+                "cardiovascular death",
+                "recurrent events"
+              ],
+              "source_rank_kind": "reconstruction",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
+            },
+            {
+              "candidate_id": "ctgov:2",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "HF Hospitalisations",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "extra_components": [
+                "recurrent events"
+              ],
+              "source_rank_kind": "registry_published_effect",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
+            },
+            {
+              "candidate_id": "ctgov:2",
+              "source_type": "ctgov_results",
+              "source_kind": "reconstruction",
+              "registry_title": "HF Hospitalisations",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "extra_components": [
+                "recurrent events"
+              ],
+              "source_rank_kind": "reconstruction",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
+            },
+            {
+              "candidate_id": "ctgov:4",
+              "source_type": "ctgov_results",
+              "source_kind": "registry_published_effect",
+              "registry_title": "Composite of HF Hospitalisations or CV Death",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "extra_components": [
+                "cardiovascular death"
+              ],
+              "source_rank_kind": "registry_published_effect",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
+            },
+            {
+              "candidate_id": "ctgov:4",
+              "source_type": "ctgov_results",
+              "source_kind": "reconstruction",
+              "registry_title": "Composite of HF Hospitalisations or CV Death",
+              "registry_type": "SECONDARY",
+              "target_endpoint_class": "NEAR_MATCH",
+              "extra_components": [
+                "cardiovascular death"
+              ],
+              "source_rank_kind": "reconstruction",
+              "endpoint_binding": "registry_outcome_measure",
+              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
+            }
+          ],
+          "endpoint_admissibility": "EXACT_TARGET",
+          "derivation": "reported",
+          "selection_rule": "KEEP_REPORTED_EFFECT",
+          "selected_estimator": "published_effect_ci",
+          "alternatives": [],
+          "verified": "verified",
+          "verify_basis": "effect present in committed source",
+          "design": {
+            "unit_of_randomisation": "UNKNOWN",
+            "design": "UNKNOWN",
+            "estimator_source": "PUBLISHED_HR",
+            "adjustment_status": "UNRESOLVED",
+            "adjustment_axis": {
+              "status": "UNRESOLVED"
+            },
+            "correlation_handling": {
+              "method": "none",
+              "evidence": []
+            },
+            "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
+            "basis": [
+              {
+                "source": "AACT designs.intervention_model",
+                "span": "PARALLEL"
+              },
+              {
+                "source": "trial reported estimate label",
+                "span": "HR 0.73 (95% CI 0.59 to 0.92"
+              }
+            ],
+            "published_alternative": {
+              "effect": 0.73,
+              "ci_low": 0.59,
+              "ci_high": 0.92,
+              "scale": "HR",
+              "adjusted": false,
+              "span": "HR 0.73 (95% CI 0.59 to 0.92"
+            },
+            "design_action": {
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
+              "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
+              "validity_critical": false
+            }
+          },
+          "study_effect": {
+            "effect_estimate": 0.73,
+            "standard_error": 0.11333145319187425,
+            "estimand": "HR",
+            "analysis_population": "intention-to-treat",
+            "randomisation_unit": "UNKNOWN",
+            "study_design": "UNKNOWN",
+            "estimator_method": "PUBLISHED_HR",
+            "correlation_handling": {
+              "method": "none",
+              "evidence": []
+            },
+            "source_provenance": {
+              "source": "ctgov_results",
+              "span": "ClinicalTrials.gov results (structured target endpoint): outcome 'HF Hospitalisations' HR 0.73 (95% CI 0.59 to 0.92); endpoint counts 142/558 (FCM (Ferric Carboxymaltose)) vs 178/550 (Placebo (Normal Saline (NaCl 0.9%)))"
+            },
+            "design_action": {
+              "action": "DESIGN_UNPROVEN",
+              "gate_id": "design-key:design-unproven",
+              "decision_state": "design not established from committed evidence; pooled through the parallel path on an assumption the harness could not verify",
+              "reason": "no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
+              "validity_critical": false
+            }
+          },
+          "effect_object": {
+            "reported_label": "HR",
+            "statistical_model": null,
+            "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+          },
+          "trial_family_id": "NCT02937454",
+          "publication_role": "primary",
+          "analysis_set": "intention-to-treat",
+          "follow_up_window": "trial end / longest reported follow-up",
+          "endpoint_definition": "primary outcome was a composite of total hospitalisations for heart failure and cardiovascular death up to 52 weeks after randomisation, analysed in all patients who received at least one dose of study treatment and had at least one post-randomisation data point",
+          "population_age": "not_stated",
+          "intervention_ontology": {
+            "intervention_class": null
+          },
+          "compat_dimensions": {
+            "trial_id": "33197395",
+            "trial_label": "33197395",
+            "analysis_set": {
+              "value": "intention-to-treat",
+              "source": "study_effect.analysis_population",
+              "span": "intention-to-treat"
+            },
+            "follow_up_window": {
+              "value": "trial end / longest reported follow-up",
+              "source": "outcome.timepoint",
+              "span": "trial end / longest reported follow-up"
+            },
+            "endpoint_definition": {
+              "value": "primary outcome was a composite of total hospitalisations for heart failure and cardiovascular death up to 52 weeks after randomisation, analysed in all patients who received at least one dose of study treatment and had at least one post-randomisation data point",
+              "source": "committed source text",
+              "span": "onnel, treatments were administered in black syringes by personnel not involved in any study assessments. The primary outcome was a composite of total hospitalisations for heart failure and cardiovascular death up to 52 weeks after randomisation, analysed in all patients who received at least one dose of study treatment and had at least one post-randomisation data point. Secondary outcomes were the composite of total cardiovascular hospitalisations and cardiovascular death; car"
+            },
+            "population_age": {
+              "value": "not_stated",
+              "source": "committed source text",
+              "span": ""
+            },
+            "intervention_ontology": {
+              "intervention_class": null
+            }
+          },
+          "trial_id": "PMID 33197395",
+          "report_id": "PMID 33197395",
+          "outcome_effect_id": "iv-iron-hfref-hosp::Heart-failure hospitalization::PMID 33197395::PMID 33197395"
+        },
+        {
           "label": "25176939",
           "id": "PMID 25176939",
           "effect": 0.39,
@@ -1172,55 +1404,6 @@
       ],
       "declared_absent_trials": [
         {
-          "label": "33197395",
-          "id": "PMID 33197395",
-          "absent_kind": "pooled_in_strand",
-          "reason": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
-          "trial_family_id": "NCT02937454",
-          "publication_role": "primary",
-          "completeness_state": "eligible+completed+results_available",
-          "registry_status": "COMPLETED",
-          "results_first_posted_date": "2021-06-18",
-          "completion_date": "2020-07-21",
-          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
-          "pooled_in_strands": [
-            "B",
-            "C"
-          ],
-          "state_basis": "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH: source span: \"217 total heart failure hospitalisations occurred in the ferric carboxymaltose group and 294 occurred in the placebo group ( RR 0.74; 95% CI 0.58-0.94, p=0.013).\"; effect=RR 0.74 [0.58, 0.94], class=RATE, declared_class=FIRST_EVENT_RATIO",
-          "reason_code": "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH",
-          "state": "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH",
-          "source_span": "217 total heart failure hospitalisations occurred in the ferric carboxymaltose group and 294 occurred in the placebo group ( RR 0.74; 95% CI 0.58-0.94, p=0.013).",
-          "verbatim_span": "217 total heart failure hospitalisations occurred in the ferric carboxymaltose group and 294 occurred in the placebo group ( RR 0.74; 95% CI 0.58-0.94, p=0.013).",
-          "observed_effect": {
-            "effect": 0.74,
-            "ci_low": 0.58,
-            "ci_high": 0.94,
-            "scale": "RR",
-            "class": "RATE",
-            "span": "217 total heart failure hospitalisations occurred in the ferric carboxymaltose group and 294 occurred in the placebo group ( RR 0.74; 95% CI 0.58-0.94, p=0.013)."
-          },
-          "declared_class": "FIRST_EVENT_RATIO",
-          "trial_id": "PMID 33197395",
-          "report_id": "PMID 33197395",
-          "outcome_effect_id": "iv-iron-hfref-hosp::Heart-failure hospitalization::PMID 33197395::PMID 33197395",
-          "reason_code_audit": {
-            "verdict": "REASON_FALSE_VALUE_HELD",
-            "detail": "REASON_FALSE_VALUE_HELD(abstract:33197395, \"Study treatment was started in 1110 patients, and 1108 (558 in the carboxymaltose group and 550 in the placebo group) had at least one post-randomisation value. 293 primary events (57.2 per 100 patient-years) occurred in the ferric carboxy...\")",
-            "stated_reason_code": "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH",
-            "source_id": "abstract:33197395",
-            "source_kind": "abstract",
-            "source_span": "Study treatment was started in 1110 patients, and 1108 (558 in the carboxymaltose group and 550 in the placebo group) had at least one post-randomisation value. 293 primary events (57.2 per 100 patient-years) occurred in the ferric carboxy...",
-            "source_contains": "Study treatment was started in 1110 patients, and 1108 (558 in the carboxymaltose group and 550 in the placebo group) had at least one post-randomisation value. 293 primary events (57.2 per 100 patient-years) occurred in the ferric carboxy..."
-          },
-          "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
-          "claim_id": "fd634012b45fcdad",
-          "depends_on": {
-            "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
-          },
-          "claim_kind": "membership_state"
-        },
-        {
           "label": "36347265",
           "id": "PMID 36347265",
           "absent_kind": "pooled_in_strand",
@@ -1260,10 +1443,10 @@
             "source_span": "Median follow-up was 2.7 years (IQR 1.8-3.6). 336 primary endpoints (22.4 per 100 patient-years) occurred in the ferric derisomaltose group and 411 (27.5 per 100 patient-years) occurred in the usual care group (rate ratio [RR] 0.82 [95% CI...",
             "source_contains": "Median follow-up was 2.7 years (IQR 1.8-3.6). 336 primary endpoints (22.4 per 100 patient-years) occurred in the ferric derisomaltose group and 411 (27.5 per 100 patient-years) occurred in the usual care group (rate ratio [RR] 0.82 [95% CI..."
           },
-          "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
-          "claim_id": "fd634012b45fcdad",
+          "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399",
+          "claim_id": "998873dcfb515795",
           "depends_on": {
-            "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+            "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399"
           },
           "claim_kind": "membership_state"
         },
@@ -1300,10 +1483,10 @@
             "source_span": "Death by month 12 occurred in 131 patients (8.6%) in the ferric carboxymaltose group and 158 (10.3%) in the placebo group; a total of 297 and 332 hospitalizations for heart failure, respectively, occurred by month 12; and the mean (±SD) ch...",
             "source_contains": "Death by month 12 occurred in 131 patients (8.6%) in the ferric carboxymaltose group and 158 (10.3%) in the placebo group; a total of 297 and 332 hospitalizations for heart failure, respectively, occurred by month 12; and the mean (±SD) ch..."
           },
-          "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
-          "claim_id": "fd634012b45fcdad",
+          "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399",
+          "claim_id": "998873dcfb515795",
           "depends_on": {
-            "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+            "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399"
           },
           "claim_kind": "membership_state"
         },
@@ -1334,10 +1517,10 @@
             "source_contains": "Graphical Abstract Heart failure Acute heart failure Iron deficiency Intravenous ferric carboxymaltose therapy Health-related quality of life Randomized clinical trial Vifor Pharma 10.13039/501100006484 pmc-status-qastatus 0 pmc-status-liv...",
             "value_text": "13039/501100006484"
           },
-          "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
-          "claim_id": "fd634012b45fcdad",
+          "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399",
+          "claim_id": "998873dcfb515795",
           "depends_on": {
-            "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+            "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399"
           },
           "claim_kind": "membership_state"
         },
@@ -1365,10 +1548,10 @@
             "detail": "value absent from every held source inspected; code is consistent",
             "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
           },
-          "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
-          "claim_id": "fd634012b45fcdad",
+          "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399",
+          "claim_id": "998873dcfb515795",
           "depends_on": {
-            "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+            "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399"
           },
           "claim_kind": "membership_state"
         },
@@ -1396,10 +1579,10 @@
             "detail": "value absent from every held source inspected; code is consistent",
             "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
           },
-          "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
-          "claim_id": "fd634012b45fcdad",
+          "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399",
+          "claim_id": "998873dcfb515795",
           "depends_on": {
-            "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+            "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399"
           },
           "claim_kind": "membership_state"
         },
@@ -1427,10 +1610,10 @@
             "detail": "value absent from every held source inspected; code is consistent",
             "stated_reason_code": "OUTCOME_NOT_IN_SOURCE"
           },
-          "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
-          "claim_id": "fd634012b45fcdad",
+          "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399",
+          "claim_id": "998873dcfb515795",
           "depends_on": {
-            "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+            "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399"
           },
           "claim_kind": "membership_state"
         }
@@ -1438,10 +1621,10 @@
       "membership": {
         "pooled": [
           "PMID 40159390",
+          "PMID 33197395",
           "PMID 25176939"
         ],
         "declared_absent": [
-          "PMID 33197395",
           "PMID 36347265",
           "PMID 37632463",
           "PMID 34080008",
@@ -1451,13 +1634,13 @@
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "f9b5526c2cac3a35299755af31413988a36740d846f91943a5be06876fc859f9"
+        "input_set_version": "17f5159bec8f8db04d43b502a98c777ea1f2bc80d9c6662b43c5c59fdbf902a9"
       },
       "result": {
-        "k": 2,
+        "k": 3,
         "scale": "INCOMPATIBLE (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO)",
-        "Q": 3.22148,
-        "i2": 69.0,
+        "Q": 3.22176,
+        "i2": 37.9,
         "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
         "estmeasure": {
           "status": "incompatible",
@@ -1476,9 +1659,9 @@
         },
         "counterfactual": {
           "reason_code": "INCOMPATIBLE_ESTIMANDS",
-          "would_be_estimate": 0.6064,
-          "would_be_ci_low": 0.0071,
-          "would_be_ci_high": 51.5861,
+          "would_be_estimate": 0.6862,
+          "would_be_ci_low": 0.3234,
+          "would_be_ci_high": 1.4559,
           "note": "this is what pooling these incompatible estimand classes would have yielded; it is INVALID and is shown only so the refusal is auditable, never as a result"
         },
         "scale_mixed": [
@@ -1496,17 +1679,17 @@
           "null": null,
           "direction": null
         },
-        "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
-        "claim_id": "615f3465ff9950c3",
+        "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399",
+        "claim_id": "21f5f6dc967ba42b",
         "depends_on": {
-          "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+          "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399"
         },
         "claim_kind": "outcome_result"
       },
       "known_missing_sensitivity": {
         "claim_id": "iv-iron-hfref-hosp::primary::known_missing_sensitivity",
         "depends_on": {
-          "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+          "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399"
         },
         "depends_on_detail": [
           {
@@ -1519,7 +1702,7 @@
           },
           {
             "path": "/outcomes/primary/result",
-            "k": 2,
+            "k": 3,
             "estimate": null
           }
         ],
@@ -1547,18 +1730,6 @@
             "value_status": "NOT_IN_COMMITTED_SOURCE",
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
             "why_eligible": "known_eligible_missing via concept-query",
-            "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
-          },
-          {
-            "trial_key": "33197395",
-            "name": "Ferric carboxymaltose for iron deficiency at discharge after acute heart failure: a multicentre, double-blind, randomised, controlled trial.",
-            "source_ref": "cache/iv-iron-hfref-hosp/records.json#33197395.abstract",
-            "source_span": "occurred in the ferric carboxymaltose group and 372 (72·5 per 100 patient-years) occurred in the placebo group (rate ratio [RR] 0·79, 95% CI 0·62-1·01, p=0·059). 370 total cardiovascular hospitalisations and cardiovascular deaths occurred in the ferric carboxymaltose group and 451 occurred in the placebo group (RR 0·80, 95% CI 0·64-1·00, p=0·050). There was",
-            "verify_basis": "committed source does not carry an extractable target-estimand value",
-            "value_status": "NOT_IN_COMMITTED_SOURCE",
-            "missing_class": "NOT_IN_COMMITTED_SOURCE",
-            "why_eligible": "eligible randomised controlled trial: intervention ferric carboxymaltose, comparator placebo, population heart failure — P/I/C/design met.",
             "sensitivity_label": "SENSITIVITY",
             "conclusion_effect": "NOT_COMPUTABLE"
           },
@@ -2438,7 +2609,7 @@
       "note": "same-question comparator (matching intervention level and population)"
     },
     "overlap": {
-      "ours_k": 2,
+      "ours_k": 3,
       "theirs_k": 6,
       "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
       "only_ours": [
@@ -2667,6 +2838,185 @@
           }
         ]
       },
+      "33197395": {
+        "nct": "NCT02937454",
+        "registry_in_aact": true,
+        "assessed_from": "registry+abstract",
+        "overall": "low (on assessed domains; some domains require human judgement)",
+        "domains": {
+          "D1_randomisation": {
+            "level": "low",
+            "basis": "AACT allocation = RANDOMIZED",
+            "rule_id": "registry-machine-signal-restricted:D1:allocation_v1",
+            "inputs": {
+              "AACT.designs.allocation": "RANDOMIZED",
+              "trial_text.randomized_by_text": true
+            },
+            "derived_at_build": true
+          },
+          "D2_deviations": {
+            "level": "low",
+            "basis": "trial masking = Triple (blinded); overrides per-role Booleans subject_masked=True/caregiver_masked=False (FLAGGED registry-vs-trial disagreement)",
+            "rule_id": "registry-machine-signal-restricted:D2:masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "TRIPLE",
+              "AACT.designs.subject_masked": "t",
+              "AACT.designs.caregiver_masked": "f",
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
+          },
+          "D3_missing_outcome_data": {
+            "level": "not assessed",
+            "basis": "not assessed - AACT flow shows between-arm differential attrition 2.0% (overall 23.7%), but study discontinuation is NOT outcome missingness and outcome-dependence needs human reading; the attrition figures are context, not a risk-of-bias rating",
+            "rule_id": "registry-machine-signal-restricted:D3:not_assessed_v1",
+            "inputs": {
+              "AACT.milestones.attrition": {
+                "overall_pct": 23.7,
+                "differential_pct": 2.0,
+                "groups": [
+                  [
+                    567,
+                    427
+                  ],
+                  [
+                    565,
+                    437
+                  ]
+                ]
+              }
+            },
+            "derived_at_build": true
+          },
+          "D4_outcome_measurement": {
+            "level": "low",
+            "basis": "trial masking = Triple (blinded): outcome assessment blinded",
+            "rule_id": "registry-machine-signal-restricted:D4:outcome_assessor_masking_v1",
+            "inputs": {
+              "AACT.designs.masking": "TRIPLE",
+              "AACT.designs.outcomes_assessor_masked": "t",
+              "trial_text.blinded_by_text": true
+            },
+            "derived_at_build": true
+          },
+          "D5_selective_reporting": {
+            "level": "low",
+            "basis": "the pooled outcome IS the trial's pre-registered primary outcome; registered 'HF Hospitalizations and CV Death'",
+            "rule_id": "registry-machine-signal-restricted:D5:registered_outcome_identity_v2",
+            "inputs": {
+              "pooled_outcome": "Heart-failure hospitalization",
+              "registered_primary_outcomes": [
+                {
+                  "measure": "HF Hospitalizations and CV Death",
+                  "title": "",
+                  "description": "\"HF = Heart Failure, CV = Cardiovascular.~The composite of recurrent HF hospitalizations and CV death up to 52 weeks after randomization~Total hospitalisations included first and recurrent events. If a participant was hospitalised for heart failure and died within 24 h from any cardiovascular event, this was counted as one event.\""
+                }
+              ],
+              "registered_secondary_outcomes": [
+                {
+                  "measure": "Recurrent CV Hospitalisations and CV Death",
+                  "title": "",
+                  "description": "\"CV = Cardiovascular~The composite of recurrent CV hospitalisations and CV death at 52 weeks after randomisation~Total hospitalisations included first and recurrent events. If a participant was hospitalised for a cardiovascular reason and died within 24 h of admission from any cardiovascular event, this was counted as one event.\""
+                },
+                {
+                  "measure": "HF Hospitalisations",
+                  "title": "",
+                  "description": "\"HF = Heart Failure~HF hospitalisations up to 52 weeks after randomisation analysed as recurrent event.\""
+                },
+                {
+                  "measure": "CV Mortality",
+                  "title": "",
+                  "description": "\"CV = Cardiovascular~CV mortality analysed as time to first event at 52 weeks after randomisation.\""
+                },
+                {
+                  "measure": "Composite of HF Hospitalisations or CV Death",
+                  "title": "",
+                  "description": "\"HF = Heart Failure, CV = Cardiovascular~Analysed as time to first event at 52 weeks after randomisation. The number of participants with at least one HF Hospitalisation or CV Death is presented below.\""
+                },
+                {
+                  "measure": "Days Lost Due to HF Hospitalisation or CV Death",
+                  "title": "",
+                  "description": "\"HF = Heart Failure, CV = Cardiovascular~Number of days lost due to heart failure hospitalisations or cardiovascular death corresponds to the total number of days in hospital for heart failure from randomisation to last known date. Days lost due to cardiovascular death are added to the number of days lost due to heart failure hospitalisation.\""
+                }
+              ],
+              "comparison": {
+                "registered_type": "primary",
+                "registered_label": "HF Hospitalizations and CV Death",
+                "matched": true,
+                "method": "text_identity",
+                "pooled_components": [],
+                "registered_components": [
+                  "CV_DEATH",
+                  "HF_HOSPITALISATION"
+                ],
+                "registered_text": "HF Hospitalizations and CV Death \"HF = Heart Failure, CV = Cardiovascular.~The composite of recurrent HF hospitalizations and CV death up to 52 weeks after randomization~Total hospitalisations included first and recurrent events. If a participant was hospitalised for heart failure and died within 24 h from any cardiovascular event, this was counted as one event.\""
+              }
+            },
+            "derived_at_build": true
+          }
+        },
+        "rob_basis": {
+          "output_family": "registry-machine-signal-restricted",
+          "assessed_domains": [
+            {
+              "domain": "D1_randomisation",
+              "label": "allocation sequence/randomisation",
+              "level": "low"
+            },
+            {
+              "domain": "D2_deviations",
+              "label": "masking of participants/personnel",
+              "level": "low"
+            },
+            {
+              "domain": "D4_outcome_measurement",
+              "label": "masking of outcome assessment",
+              "level": "low"
+            },
+            {
+              "domain": "D5_selective_reporting",
+              "label": "registered outcome versus pooled outcome",
+              "level": "low"
+            }
+          ],
+          "unassessed_domains": [
+            {
+              "domain": "D3_missing_outcome_data",
+              "label": "missing outcome data",
+              "level": "not assessed"
+            }
+          ]
+        },
+        "assessed_domains": [
+          {
+            "domain": "D1_randomisation",
+            "label": "allocation sequence/randomisation",
+            "level": "low"
+          },
+          {
+            "domain": "D2_deviations",
+            "label": "masking of participants/personnel",
+            "level": "low"
+          },
+          {
+            "domain": "D4_outcome_measurement",
+            "label": "masking of outcome assessment",
+            "level": "low"
+          },
+          {
+            "domain": "D5_selective_reporting",
+            "label": "registered outcome versus pooled outcome",
+            "level": "low"
+          }
+        ],
+        "unassessed_domains": [
+          {
+            "domain": "D3_missing_outcome_data",
+            "label": "missing outcome data",
+            "level": "not assessed"
+          }
+        ]
+      },
       "25176939": {
         "nct": "NCT01453608",
         "registry_in_aact": true,
@@ -2821,6 +3171,16 @@
           "saline"
         ]
       },
+      "33197395": {
+        "nct": "NCT02937454",
+        "status": "verified",
+        "basis": "parser-confirmed contrast: keyword 'ferric carboxymaltose' matched AACT arm intervention 'ferric carboxymaltose'; the intervention of interest DIFFERS across the randomised arms",
+        "common": [],
+        "differing": [
+          "ferric carboxymaltose",
+          "normal saline 0.9%"
+        ]
+      },
       "25176939": {
         "nct": "NCT01453608",
         "status": "verified",
@@ -2835,7 +3195,7 @@
   "integrity": {
     "checked_utc": "2026-09-13T08:44:18Z",
     "source": "PubMed efetch (PublicationType + CommentsCorrections)",
-    "n_pooled": 2,
+    "n_pooled": 3,
     "retracted": [],
     "concern": [],
     "retrospectively_registered": [],
@@ -2867,7 +3227,7 @@
     },
     "n_pubmed_checked": 2,
     "n_not_checkable": 0,
-    "n_not_assessed": 0,
+    "n_not_assessed": 1,
     "per_trial": {
       "PMID 40159390": {
         "trial_key": "PMID 40159390",
@@ -2877,6 +3237,13 @@
         "retracted": false,
         "concern": false,
         "evidence": "no retraction/concern notice in PubMed"
+      },
+      "PMID 33197395": {
+        "trial_key": "PMID 33197395",
+        "pubmed_key": "33197395",
+        "pubmed_checked": false,
+        "state": "NOT_ASSESSED",
+        "evidence": "NOT_ASSESSED (offline lane): no held integrity result for this PMID"
       },
       "PMID 25176939": {
         "trial_key": "PMID 25176939",
@@ -2890,6 +3257,7 @@
     },
     "membership_pooled": [
       "PMID 40159390",
+      "PMID 33197395",
       "PMID 25176939"
     ]
   },
@@ -2901,6 +3269,14 @@
       "source": "full text",
       "scanned": "full text",
       "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+    },
+    {
+      "id": "PMID 33197395",
+      "type": "industry",
+      "span": "FUNDING: Vifor Pharma.",
+      "source": "abstract",
+      "scanned": "abstract",
+      "funding_state": "INDUSTRY_SPONSORED"
     },
     {
       "id": "PMID 25176939",
@@ -2932,14 +3308,6 @@
       "span": "</p></sec><sec><title>Sources of Funding</title><p>The study was sponsored by Vifor Pharma, Switzerland.",
       "source": "full text",
       "scanned": "full text",
-      "funding_state": "INDUSTRY_SPONSORED"
-    },
-    {
-      "id": "PMID 33197395",
-      "type": "industry",
-      "span": "FUNDING: Vifor Pharma.",
-      "source": "abstract",
-      "scanned": "abstract",
       "funding_state": "INDUSTRY_SPONSORED"
     },
     {
@@ -3242,19 +3610,19 @@
   },
   "reason_code_audit": {
     "denominator_source": "declared_absent_trials reason_code/state rows on this page",
-    "N": 25,
+    "N": 24,
     "counts": {
       "REASON_TRUE": 21,
-      "REASON_FALSE_VALUE_HELD": 4,
+      "REASON_FALSE_VALUE_HELD": 3,
       "REASON_WRONG_KIND": 0,
       "NOT_VERIFIABLE": 0
     },
-    "n_false_value_held": 4,
+    "n_false_value_held": 3,
     "n_not_verifiable": 0,
     "by_code_kind": {
       "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH": {
         "REASON_TRUE": 0,
-        "REASON_FALSE_VALUE_HELD": 2,
+        "REASON_FALSE_VALUE_HELD": 1,
         "REASON_WRONG_KIND": 0,
         "NOT_VERIFIABLE": 0
       },
@@ -3272,21 +3640,6 @@
       }
     },
     "rows": [
-      {
-        "slug": "iv-iron-hfref-hosp",
-        "outcome": "Heart-failure hospitalization",
-        "outcome_kind": "primary",
-        "trial_key": "33197395",
-        "label": "33197395",
-        "id": "PMID 33197395",
-        "stated_reason_code": "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH",
-        "verdict": "REASON_FALSE_VALUE_HELD",
-        "detail": "REASON_FALSE_VALUE_HELD(abstract:33197395, \"Study treatment was started in 1110 patients, and 1108 (558 in the carboxymaltose group and 550 in the placebo group) had at least one post-randomisation value. 293 primary events (57.2 per 100 patient-years) occurred in the ferric carboxy...\")",
-        "source_id": "abstract:33197395",
-        "source_kind": "abstract",
-        "source_span": "Study treatment was started in 1110 patients, and 1108 (558 in the carboxymaltose group and 550 in the placebo group) had at least one post-randomisation value. 293 primary events (57.2 per 100 patient-years) occurred in the ferric carboxy...",
-        "source_contains": "Study treatment was started in 1110 patients, and 1108 (558 in the carboxymaltose group and 550 in the placebo group) had at least one post-randomisation value. 293 primary events (57.2 per 100 patient-years) occurred in the ferric carboxy..."
-      },
       {
         "slug": "iv-iron-hfref-hosp",
         "outcome": "Heart-failure hospitalization",
@@ -3570,16 +3923,16 @@
     "denominator_source": "included screening records x registered outcomes in this review",
     "N": 27,
     "counts": {
-      "EXTRACTED": 2,
-      "HELD_NOT_EXTRACTED": 4,
+      "EXTRACTED": 3,
+      "HELD_NOT_EXTRACTED": 3,
       "NOT_IN_HELD_SOURCES": 21,
       "ABSENT_BY_DESIGN": 0
     },
-    "n_held_not_extracted": 4,
+    "n_held_not_extracted": 3,
     "by_outcome_kind": {
       "primary": {
-        "EXTRACTED": 2,
-        "HELD_NOT_EXTRACTED": 4,
+        "EXTRACTED": 3,
+        "HELD_NOT_EXTRACTED": 3,
         "NOT_IN_HELD_SOURCES": 3,
         "ABSENT_BY_DESIGN": 0
       },
@@ -3605,10 +3958,7 @@
         "trial_label": "33197395",
         "outcome": "Heart-failure hospitalization",
         "outcome_kind": "primary",
-        "status": "HELD_NOT_EXTRACTED",
-        "source_id": "abstract:33197395",
-        "source_kind": "abstract",
-        "source_span": "Study treatment was started in 1110 patients, and 1108 (558 in the carboxymaltose group and 550 in the placebo group) had at least one post-randomisation value. 293 primary events (57.2 per 100 patient-years) occurred in the ferric carboxy..."
+        "status": "EXTRACTED"
       },
       {
         "slug": "iv-iron-hfref-hosp",
@@ -3826,11 +4176,11 @@
     "start": "high",
     "domains": {
       "risk_of_bias": {
-        "downgrade": 1,
+        "downgrade": 0,
         "coverage_incomplete": false,
         "assessed": false,
-        "n_trials": 2,
-        "n_rated": 2,
+        "n_trials": 3,
+        "n_rated": 3,
         "n_high": 0,
         "n_some": 1,
         "basis": "FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below",
@@ -3841,17 +4191,15 @@
       },
       "inconsistency": {
         "downgrade": 0,
-        "not_assessable_automatically": true,
-        "k2_not_automatic": true,
         "assessed": false,
-        "direction_conflict": false,
-        "i2": 69.0,
-        "basis": "not assessable: STALE: pooled membership known incomplete (9 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
-        "stale": true,
         "state": "NOT_ASSESSABLE",
         "missing_inputs": [
-          "not assessable: STALE: pooled membership known incomplete (9 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
-        ]
+          "ci_low",
+          "ci_high",
+          "tau2"
+        ],
+        "basis": "not assessable: STALE: pooled membership known incomplete (8 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
+        "stale": true
       },
       "imprecision": {
         "downgrade": 0,
@@ -3892,7 +4240,7 @@
         ]
       }
     },
-    "downgrades": 1,
+    "downgrades": 0,
     "certainty": "provisional",
     "certainty_state": "GRADE provisional -- not yet fully assessable",
     "unassessed_domains": [
@@ -3902,13 +4250,13 @@
       "publication_bias",
       "indirectness"
     ],
-    "rob_basis": "machine-assessed domains only; D3 unassessed on 2 of 2 trial(s)",
+    "rob_basis": "machine-assessed domains only; D3 unassessed on 3 of 3 trial(s)",
     "not_rateable_reason": "the primary pool mixes INCOMPATIBLE estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO); an overall certainty cannot be produced from an incoherent effect object — the domain signals are shown, the overall is suppressed until the estimand is made coherent (harmonise the measure or split the outcome)",
     "basis": "partial GRADE: overall certainty NOT RATEABLE (estimand-incompatible pool).",
-    "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
-    "claim_id": "d6a81a097daef750",
+    "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399",
+    "claim_id": "3f97ade806f464ba",
     "depends_on": {
-      "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+      "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399"
     },
     "claim_kind": "grade"
   },
@@ -3916,9 +4264,9 @@
     "objects": [
       {
         "kind": "manuscript_result_sentence",
-        "claim_id": "4ef3c45b6151eecc",
+        "claim_id": "f405aa8b03c6f3a8",
         "depends_on": {
-          "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+          "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399"
         }
       }
     ]
@@ -4011,8 +4359,8 @@
         "/outcomes/*/result/suppressed_incompatible",
         "/outcomes/*/result/suppressed_reason"
       ],
-      "rendered_text": "<div class='absent'><strong>Pooled result SUPPRESSED (estimand-incompatible).</strong> pooled effect SUPPRESSED: the trials mix incompatible estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO) — these effect measures are not one quantity without an explicit, source-backed conversion, so no pooled effect, CI, heterogeneity or sensitivity is valid. The per-trial estimates are shown; pool each coherent strand separately. <em>Estimand classes: HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO; the 2 eligible trials are shown individually in Results, not pooled.</em></div>",
-      "text_sha256": "d1610bfc6483b7464b9ba20f6dbc9224ffd4648a4fc972fa7d9ac53b79a660e7",
+      "rendered_text": "<div class='absent'><strong>Pooled result SUPPRESSED (estimand-incompatible).</strong> pooled effect SUPPRESSED: the trials mix incompatible estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO) — these effect measures are not one quantity without an explicit, source-backed conversion, so no pooled effect, CI, heterogeneity or sensitivity is valid. The per-trial estimates are shown; pool each coherent strand separately. <em>Estimand classes: HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO; the 3 eligible trials are shown individually in Results, not pooled.</em></div>",
+      "text_sha256": "1c4532d0eda1c9e86dca94c790150a3197d694a6d72faa7c489bff6571fcd349",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:suppressed_pool",
@@ -4169,8 +4517,8 @@
         "/outcomes/*/result/suppressed_incompatible",
         "/outcomes/*/result/suppressed_reason"
       ],
-      "rendered_text": "<div class='absent'><strong>Pooled result SUPPRESSED (estimand-incompatible).</strong> pooled effect SUPPRESSED: the trials mix incompatible estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO) — these effect measures are not one quantity without an explicit, source-backed conversion, so no pooled effect, CI, heterogeneity or sensitivity is valid. The per-trial estimates are shown; pool each coherent strand separately. <em>Estimand classes: HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO; k = 2 trials, shown individually below, not pooled.</em> <em>Refusal is reversible and auditable &mdash; reason code <code>INCOMPATIBLE_ESTIMANDS</code>; had these classes been pooled anyway the (INVALID) result would have been 0.61 (0.01&ndash;51.59) &mdash; shown only so the refusal is inspectable, never as a usable number.</em></div>",
-      "text_sha256": "cf46b5719e8726862e20dbbca2157f1df66f530b308b241d385ab31d0e56cef2",
+      "rendered_text": "<div class='absent'><strong>Pooled result SUPPRESSED (estimand-incompatible).</strong> pooled effect SUPPRESSED: the trials mix incompatible estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO) — these effect measures are not one quantity without an explicit, source-backed conversion, so no pooled effect, CI, heterogeneity or sensitivity is valid. The per-trial estimates are shown; pool each coherent strand separately. <em>Estimand classes: HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO; k = 3 trials, shown individually below, not pooled.</em> <em>Refusal is reversible and auditable &mdash; reason code <code>INCOMPATIBLE_ESTIMANDS</code>; had these classes been pooled anyway the (INVALID) result would have been 0.69 (0.32&ndash;1.46) &mdash; shown only so the refusal is inspectable, never as a usable number.</em></div>",
+      "text_sha256": "62f4b6e9a51798b7c8a543b02d5a7371722fbe87a39468aa3f86206f88e6a2a0",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:suppressed_pool",
@@ -4280,8 +4628,8 @@
       "source_fields": [
         "/arm_contrast/trials"
       ],
-      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>2 of 2</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>25176939</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;ferric carboxymaltose&#x27; matched AACT arm intervention &#x27;ferinject (ferric carboxymaltose)&#x27;; the intervention of interest DIFFERS across the randomised arms'>ferinject (ferric carboxymaltose)</td></tr><tr><td>40159390</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;iron sucrose&#x27; matched AACT arm intervention &#x27;iron&#x27;; the intervention of interest DIFFERS across the randomised arms'>iron; saline</td></tr></table></div>",
-      "text_sha256": "39164d344f684292a3dd3bd133eb43fd2b2c0f7693c7d058398c02e331d3ea81",
+      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>3 of 3</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>25176939</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;ferric carboxymaltose&#x27; matched AACT arm intervention &#x27;ferinject (ferric carboxymaltose)&#x27;; the intervention of interest DIFFERS across the randomised arms'>ferinject (ferric carboxymaltose)</td></tr><tr><td>33197395</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;ferric carboxymaltose&#x27; matched AACT arm intervention &#x27;ferric carboxymaltose&#x27;; the intervention of interest DIFFERS across the randomised arms'>ferric carboxymaltose; normal saline 0.9%</td></tr><tr><td>40159390</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;iron sucrose&#x27; matched AACT arm intervention &#x27;iron&#x27;; the intervention of interest DIFFERS across the randomised arms'>iron; saline</td></tr></table></div>",
+      "text_sha256": "1425774599a9c7c91596db76f17e91f9f1cbe8fe651009f1dbb8f345a5622427",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -4303,8 +4651,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>5 of 6 known</strong> (3 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 25176939</td><td><strong>industry</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: &lt;/ext-link&gt;&lt;/p&gt;&lt;/sec&gt;&lt;sec id=&quot;s6&quot;&gt;&lt;title&gt;Funding&lt;/title&gt;&lt;p&gt;This work was supported by Vifor Pharma Ltd., Glattbrugg, Switzerland.&lt;/p&gt;&lt;p&gt;&lt;bold&gt;Conflict of interest:&lt;/bold&gt; P.P. received honoraria from Vifor Pharma Ltd. as member of the CONFIRM-HF Steering Committee, is a consultant and has received honoraria for speaking from Vifor Pharma Ltd. and Amgen, Inc.</td></tr><tr><td>PMID 28701470</td><td><strong>industry</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;/sec&gt;&lt;sec&gt;&lt;title&gt;Sources of Funding&lt;/title&gt;&lt;p&gt;The study was sponsored by Vifor Pharma, Switzerland.</td></tr><tr><td>PMID 33197395</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: FUNDING: Vifor Pharma.</td></tr><tr><td>PMID 34080008</td><td><strong>industry</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;/caption&gt;&lt;/media&gt;&lt;/supplementary-material&gt;&lt;/sec&gt;&lt;/body&gt;&lt;back&gt;&lt;ack id=&quot;ack1&quot;&gt;&lt;title&gt;Acknowledgements&lt;/title&gt;&lt;p&gt;We are grateful to the patients, their families, and the investigators for their participation in this study; Dr Teba Haboubi, Dr Emanuele Noseda, and the respective study teams for study monitoring and management; and Dr Bridget-Anne Kirwan, Ms Caroline Gombault, Mr Robin Wegmüller (SOCAR Research), and Ms Helen Sims (AXON Communications) who provided editorial assistance with the preparation of the tables and figures, funded by Vifor Pharma.&lt;/p&gt;&lt;sec&gt;&lt;title&gt;Funding&lt;/title&gt;&lt;p&gt;The AFFIRM-AHF trial was funded by Vifor Pharma.&lt;/p&gt;&lt;p&gt; &lt;bold&gt;Conflict of interest:&lt;/bold&gt; E.A.J. has received research grants and personal fees from Vifor Pharma (co-PI of the AFFIRM trial); personal fees from Bayer, Novartis, Abbott, Boehringer Ingelheim, Pfizer, Servier, AstraZeneca, Berlin Chemie, Cardiac Dimensions, Fresenius, and Gedeon Richter.</td></tr><tr><td>PMID 37632463</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by American Regent, a Daiichi Sankyo Group company; HEART-FID ClinicalTrials.gov number, NCT03037931.).</td></tr><tr><td>PMID 36347265</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: FUNDING: British Heart Foundation and Pharmacosmos.</td></tr><tr><td>PMID 40159390</td><td><strong>not stated (full text scanned)</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 18191732</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 19920054</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
-      "text_sha256": "8d7505c17b4f107253060bae10db4deb29ce250ab3f2edb6807ec8f881c735aa",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>5 of 6 known</strong> (3 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 33197395</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: FUNDING: Vifor Pharma.</td></tr><tr><td>PMID 25176939</td><td><strong>industry</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: &lt;/ext-link&gt;&lt;/p&gt;&lt;/sec&gt;&lt;sec id=&quot;s6&quot;&gt;&lt;title&gt;Funding&lt;/title&gt;&lt;p&gt;This work was supported by Vifor Pharma Ltd., Glattbrugg, Switzerland.&lt;/p&gt;&lt;p&gt;&lt;bold&gt;Conflict of interest:&lt;/bold&gt; P.P. received honoraria from Vifor Pharma Ltd. as member of the CONFIRM-HF Steering Committee, is a consultant and has received honoraria for speaking from Vifor Pharma Ltd. and Amgen, Inc.</td></tr><tr><td>PMID 28701470</td><td><strong>industry</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;/sec&gt;&lt;sec&gt;&lt;title&gt;Sources of Funding&lt;/title&gt;&lt;p&gt;The study was sponsored by Vifor Pharma, Switzerland.</td></tr><tr><td>PMID 34080008</td><td><strong>industry</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;/caption&gt;&lt;/media&gt;&lt;/supplementary-material&gt;&lt;/sec&gt;&lt;/body&gt;&lt;back&gt;&lt;ack id=&quot;ack1&quot;&gt;&lt;title&gt;Acknowledgements&lt;/title&gt;&lt;p&gt;We are grateful to the patients, their families, and the investigators for their participation in this study; Dr Teba Haboubi, Dr Emanuele Noseda, and the respective study teams for study monitoring and management; and Dr Bridget-Anne Kirwan, Ms Caroline Gombault, Mr Robin Wegmüller (SOCAR Research), and Ms Helen Sims (AXON Communications) who provided editorial assistance with the preparation of the tables and figures, funded by Vifor Pharma.&lt;/p&gt;&lt;sec&gt;&lt;title&gt;Funding&lt;/title&gt;&lt;p&gt;The AFFIRM-AHF trial was funded by Vifor Pharma.&lt;/p&gt;&lt;p&gt; &lt;bold&gt;Conflict of interest:&lt;/bold&gt; E.A.J. has received research grants and personal fees from Vifor Pharma (co-PI of the AFFIRM trial); personal fees from Bayer, Novartis, Abbott, Boehringer Ingelheim, Pfizer, Servier, AstraZeneca, Berlin Chemie, Cardiac Dimensions, Fresenius, and Gedeon Richter.</td></tr><tr><td>PMID 37632463</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by American Regent, a Daiichi Sankyo Group company; HEART-FID ClinicalTrials.gov number, NCT03037931.).</td></tr><tr><td>PMID 36347265</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: FUNDING: British Heart Foundation and Pharmacosmos.</td></tr><tr><td>PMID 40159390</td><td><strong>not stated (full text scanned)</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 18191732</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 19920054</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
+      "text_sha256": "13f9dc805ef8b944699b0ff502db8b58f1f24b939d374eadbafde1cfac21eb81",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -4332,8 +4680,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. the primary pool mixes INCOMPATIBLE estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO); an overall certainty cannot be produced from an incoherent effect object — the domain signals are shown, the overall is suppressed until the estimand is made coherent (harmonise the measure or split the outcome)<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (9 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>95% CI [None, None]; missing/insufficient: valid confidence interval; supported effect scale; clinical threshold / MID with basis; information-size assessment with adequacy and basis</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>not auto-rated (human judgement)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>missing/invalid registry census inputs: enumerated, ongoing_or_recent, ghost_upper_bound, positive completed-trial denominator</td></tr></table></div>",
-      "text_sha256": "33e236535af59c1116c63aec2d205dcff768e98e9ba9667a51b53cdd33e4685b",
+      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. the primary pool mixes INCOMPATIBLE estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO); an overall certainty cannot be produced from an incoherent effect object — the domain signals are shown, the overall is suppressed until the estimand is made coherent (harmonise the measure or split the outcome)<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (8 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>95% CI [None, None]; missing/insufficient: valid confidence interval; supported effect scale; clinical threshold / MID with basis; information-size assessment with adequacy and basis</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>not auto-rated (human judgement)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>missing/invalid registry census inputs: enumerated, ongoing_or_recent, ghost_upper_bound, positive completed-trial denominator</td></tr></table></div>",
+      "text_sha256": "325f969e0b693902d9665b0b1e74446647cce5b0f2dbfa83713c17c80104b626",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -4466,14 +4814,14 @@
         "surface": "overview/results/manuscript",
         "source_path": "/outcomes/*[primary]/result/k",
         "subject": "primary_effect_objects",
-        "count": 2,
+        "count": 3,
         "claim_id": "5cb7cb94b7a46f28"
       },
       {
         "kind": "retracted_count",
         "surface": "riskofbias/integrity",
         "source_path": "/integrity",
-        "pooled": 2,
+        "pooled": 3,
         "retracted": 0,
         "claim_id": "03bfa63d09bd1b11"
       }
@@ -4515,7 +4863,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "a56039f46158272c40c9565150903cf87db37c3c",
-    "review_sha256": "6f5619496d09f9f08e43d144a526900a36f48f78765dbb6e07e658ffe463ac63",
+    "review_sha256": "9def8470a9f22e53fcccbf218688767adca2b8e22b8b5a02bfef53f622e21cb1",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -4525,16 +4873,22 @@
     },
     "parity": {
       "slug": "iv-iron-hfref-hosp",
-      "our_k": 2,
+      "our_k": 3,
       "comparable_comparator_k": 3,
-      "status": "OVERLAPPING",
-      "reason": "2/3. Gap = HEART-FID + AFFIRM-AHF, refused on estimand: CT.gov labels HEART-FID heart-failure hospitalizations as COUNT_OF_PARTICIPANTS (297/1532 vs 332/1533) but the publication says \"297 hospitalizations\" = RECURRENT EVENTS, not patients — pooling the CT.gov count as a binary would produce a wrong number, so the recurrent-event guard refuses it. FAIR-HF = no extractable data; EFFECT-HF = open-label (design-excluded). CONFIRM-HF recovered.",
-      "parity_relation": {
-        "relation": "OVERLAPPING",
-        "label": "INFERRED overlapping -- neither trial set contains the other",
-        "inferred": true,
+      "status": "IDENTICAL_SET",
+      "countersignature": "OWED (Mahmood) -- re-adjudication prepared by the workshop 2026-09-19; not to be landed unsigned",
+      "reason": "3/3 after the hyphen vocabulary fix (2026-09-19): the outcome name 'Heart-failure hospitalization' parsed to NO canonical component, so the target-endpoint selector could not see AFFIRM-AHF's registry row #6 'HF Hospitalisations — number of participants with at least one HF hospitalisation up to 52 weeks' (COUNT_OF_PARTICIPANTS; time to first event; HR 0.73 [0.59, 0.92]; 142/558 vs 178/550): a first-event participant count that IS the declared estimand, now pooled as an EXACT_TARGET. AFFIRM-AHF's recurrent-event measure (#2, 'analysed as recurrent event', RR 0.74) stays refused as a recurrent-event estimand. HEART-FID stays refused: CT.gov labels its heart-failure hospitalizations COUNT_OF_PARTICIPANTS (297/1532 vs 332/1533) while the title counts hospitalizations and the publication says \"297 hospitalizations\" = RECURRENT EVENTS -- typed UNIT_CONFLICT_EVENTS_VS_PARTICIPANTS, not reconstructed. FAIR-HF = no extractable data; EFFECT-HF = open-label (design-excluded). CONFIRM-HF recovered.",
+      "previous": {
+        "status": "OVERLAPPING",
         "our_k": 2,
-        "hand_our_k": 2,
+        "reason": "2/3. Gap = HEART-FID + AFFIRM-AHF, refused on estimand: CT.gov labels HEART-FID heart-failure hospitalizations as COUNT_OF_PARTICIPANTS (297/1532 vs 332/1533) but the publication says \"297 hospitalizations\" = RECURRENT EVENTS, not patients — pooling the CT.gov count as a binary would produce a wrong number, so the recurrent-event guard refuses it. FAIR-HF = no extractable data; EFFECT-HF = open-label (design-excluded). CONFIRM-HF recovered."
+      },
+      "parity_relation": {
+        "relation": "IDENTICAL_SET",
+        "label": "INFERRED arithmetic agreement -- same trials; overlapping inputs do not constitute an independent evidence set",
+        "inferred": true,
+        "our_k": 3,
+        "hand_our_k": 3,
         "hand_our_k_stale": false,
         "their_k": 3,
         "their_k_source": "comparable_comparator_k",
@@ -4542,26 +4896,27 @@
         "only_ours_n": 1,
         "only_theirs_n": 0,
         "dominance": null,
-        "hand_status": "OVERLAPPING",
-        "hand_status_normalized": "OVERLAPPING",
+        "hand_status": "IDENTICAL_SET",
+        "hand_status_normalized": "IDENTICAL_SET",
         "hand_status_disagrees": false
       },
-      "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
-      "claim_id": "fade158d52a66998",
+      "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399",
+      "claim_id": "33a52ef3397eb5f6",
       "depends_on": {
-        "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+        "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399"
       },
       "claim_kind": "parity"
     },
     "refusals": [
       {
-        "trial": "AFFIRM-AHF (PMID 33197395), HEART-FID (PMID 37632463), IRONMAN (PMID 36347265)",
-        "verified": "total HF hospitalisations located (e.g. AFFIRM-AHF 217 vs 294)",
-        "not_pooled_because": "these are RECURRENT-EVENT totals (rate ratios), not patients-with->=1-event; pooling them as a binomial 2x2 would over-count. Estimand mismatch with the count-based pool.",
-        "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
-        "claim_id": "ce933a443bbad381",
+        "trial": "HEART-FID (PMID 37632463), IRONMAN (PMID 36347265)",
+        "verified": "total HF hospitalisations located",
+        "not_pooled_because": "these are RECURRENT-EVENT totals (rate ratios), not patients-with->=1-event; pooling them as a binomial 2x2 would over-count. Estimand mismatch with the count-based pool. (Until 2026-09-19 this row also named AFFIRM-AHF, whose recurrent total 217 vs 294 is still not pooled; its separate first-event participant count from its CT.gov row 'number of participants with at least one HF hospitalisation', 142/558 vs 178/550, HR 0.73, is the declared estimand and is pooled once the hyphen vocabulary fix lands, so that trial is no longer a refusal row.)",
+        "countersignature": "OWED (Mahmood) -- re-adjudication prepared by the workshop 2026-09-19; not to be landed unsigned",
+        "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399",
+        "claim_id": "b56ea7e3e337686f",
         "depends_on": {
-          "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+          "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399"
         },
         "claim_kind": "refusal"
       },
@@ -4569,10 +4924,10 @@
         "trial": "FAIR-HF (PMID 19920054), EFFECT-HF (PMID 28701470)",
         "verified": "abstracts fetched",
         "not_pooled_because": "FAIR-HF reports only PGA/NYHA (no HF-hospitalisation counts); EFFECT-HF is open-label with peak-VO2 as primary and no HF-hospitalisation result. Named data/outcome gaps.",
-        "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf",
-        "claim_id": "ce933a443bbad381",
+        "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399",
+        "claim_id": "b56ea7e3e337686f",
         "depends_on": {
-          "input_set_version": "3e177883cc5eee5a6e729ba85918d7f57125ee10b54fd0b6abd3a66250ede1bf"
+          "input_set_version": "01887046ff4b31a3e720c1545c43b6bb6fc5572ba863545ca9f65f80d4bb5399"
         },
         "claim_kind": "refusal"
       }
@@ -4662,7 +5017,7 @@
       "screening_ledger_sha256": "278f07fedbd77ce7ae94ba9332ba09f08395ad741205fa2a07bcf47493aa86c7",
       "extraction_objects_sha256": "0ff977d0db2510dfb4ec6db72fe981055f7c39b5a46ea4ce160b7e2141ebbf98",
       "trial_family_map_sha256": "NOT_PRESENT",
-      "rob_object_sha256": "02a961fd0b5297a2f2a19b2756be2dd1d11d61118c016a466542b70cf8d556e8",
+      "rob_object_sha256": "b212c6adfb5a8110e4be511d054f2435d9add406cc2a22b811574bb3bc8e8728",
       "held_documents": [
         {
           "ref": "cache/iv-iron-hfref-hosp/aact_inputs.json",
@@ -4698,8 +5053,8 @@
         "harness/effect_type.py": "NOT_PRESENT",
         "scripts/build_topic.py": "bfd51ffd7d2d8c5296c501cade1a4f6bd19ef896"
       },
-      "manuscript_sha256": "da3ad8edd6ba53b01d280d19ac62d1e84a89c1f5312c4c6a77d2bfcdd6738b52",
-      "review_sha256": "6f5619496d09f9f08e43d144a526900a36f48f78765dbb6e07e658ffe463ac63",
+      "manuscript_sha256": "8cf41fb499b607c2fbb3703dfa3cbf0f0806791efabacaae8fa6d51324f3dee9",
+      "review_sha256": "9def8470a9f22e53fcccbf218688767adca2b8e22b8b5a02bfef53f622e21cb1",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/iv-iron-hfref-hosp.md UTF-8 text, universal newlines",
@@ -4718,7 +5073,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "1ad20292984df7df800040e656d4993f45d7c15a2f6d71db989bc258f6ac1c9b"
+      "release_sha256": "1768b6287c40b1d18d35f9f56715c550a68bcedbd8253a17f448833f96ad82d2"
     }
   }
 }

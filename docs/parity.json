@@ -13,13 +13,13 @@
   "status": "SUPERSET",
   "reason": "8 pooled including SOUL (PMID 40162642, 2025, source-verified HR 0.86) which postdates the comparator meta (k=7); the remaining gap ELIXA is a 4-point MACE (estimand) correctly declared-absent"
  },
-  {
-    "slug": "sglt2-hfref-hosp-cvdeath",
-    "our_k": 2,
-    "comparable_comparator_k": 2,
-    "status": "PARITY_REFUTED_BY_N",
-    "reason": "Pandey LVEF<=40 subgroup reports n=9199 in cached comparator text, while our shared DAPA-HF + EMPEROR-Reduced rows sum to n=8474; excess 725 indicates the comparator subgroup includes an additional reduced-EF subset outside our SGLT2-only HFrEF pool."
-  },
+ {
+  "slug": "sglt2-hfref-hosp-cvdeath",
+  "our_k": 2,
+  "comparable_comparator_k": 2,
+  "status": "PARITY_REFUTED_BY_N",
+  "reason": "Pandey LVEF<=40 subgroup reports n=9199 in cached comparator text, while our shared DAPA-HF + EMPEROR-Reduced rows sum to n=8474; excess 725 indicates the comparator subgroup includes an additional reduced-EF subset outside our SGLT2-only HFrEF pool."
+ },
  {
   "slug": "balanced-crystalloids-vs-saline-mortality",
   "our_k": 2,
@@ -71,10 +71,16 @@
  },
  {
   "slug": "iv-iron-hfref-hosp",
-  "our_k": 2,
+  "our_k": 3,
   "comparable_comparator_k": 3,
-  "status": "OVERLAPPING",
-  "reason": "2/3. Gap = HEART-FID + AFFIRM-AHF, refused on estimand: CT.gov labels HEART-FID heart-failure hospitalizations as COUNT_OF_PARTICIPANTS (297/1532 vs 332/1533) but the publication says \"297 hospitalizations\" = RECURRENT EVENTS, not patients — pooling the CT.gov count as a binary would produce a wrong number, so the recurrent-event guard refuses it. FAIR-HF = no extractable data; EFFECT-HF = open-label (design-excluded). CONFIRM-HF recovered."
+  "status": "IDENTICAL_SET",
+  "countersignature": "OWED (Mahmood) -- re-adjudication prepared by the workshop 2026-09-19; not to be landed unsigned",
+  "reason": "3/3 after the hyphen vocabulary fix (2026-09-19): the outcome name 'Heart-failure hospitalization' parsed to NO canonical component, so the target-endpoint selector could not see AFFIRM-AHF's registry row #6 'HF Hospitalisations — number of participants with at least one HF hospitalisation up to 52 weeks' (COUNT_OF_PARTICIPANTS; time to first event; HR 0.73 [0.59, 0.92]; 142/558 vs 178/550): a first-event participant count that IS the declared estimand, now admitted to the primary set as an EXACT_TARGET (the pool itself stays SUPPRESSED, reason code INCOMPATIBLE_ESTIMANDS: HR-first-event and IRR strands; k counts membership, as before). AFFIRM-AHF's recurrent-event measure (#2, 'analysed as recurrent event', RR 0.74) stays refused as a recurrent-event estimand. HEART-FID stays refused: CT.gov labels its heart-failure hospitalizations COUNT_OF_PARTICIPANTS (297/1532 vs 332/1533) while the title counts hospitalizations and the publication says \"297 hospitalizations\" = RECURRENT EVENTS -- typed UNIT_CONFLICT_EVENTS_VS_PARTICIPANTS, not reconstructed. FAIR-HF = no extractable data; EFFECT-HF = open-label (design-excluded). CONFIRM-HF recovered.",
+  "previous": {
+   "status": "OVERLAPPING",
+   "our_k": 2,
+   "reason": "2/3. Gap = HEART-FID + AFFIRM-AHF, refused on estimand: CT.gov labels HEART-FID heart-failure hospitalizations as COUNT_OF_PARTICIPANTS (297/1532 vs 332/1533) but the publication says \"297 hospitalizations\" = RECURRENT EVENTS, not patients — pooling the CT.gov count as a binary would produce a wrong number, so the recurrent-event guard refuses it. FAIR-HF = no extractable data; EFFECT-HF = open-label (design-excluded). CONFIRM-HF recovered."
+  }
  },
  {
   "slug": "omega3-cardiovascular-events",
