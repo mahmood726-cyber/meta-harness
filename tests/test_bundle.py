@@ -362,3 +362,34 @@ def test_verifier_is_served_byte_identical_at_the_path_the_bundle_names(bundle):
     assert any(f["path"] == "docs/scripts/verify_bundle.py" and f["sha256"] == v["sha256"] for f in bundle["supporting_files"])
     assert "PRODUCTION admission path" in v["does_not_check"] and "HbA1c" in v["does_not_check"]
     assert "digest_mismatch_policy" in bundle["package_semantics"]
+
+
+# ------------------------------------------------------------------ 3.2: extraction coverage, anchors, limits
+
+def test_extraction_object_coverage_is_stated_not_discovered(bundle):
+    x = bundle["extraction_objects_coverage"]
+    primary = next(o for o in x["per_outcome"] if o["primary"])
+    assert primary["pooled_rows"] == 8 and primary["pooled_rows_with_an_extraction_object"] == ["40162642"]
+    assert "1 of 8" in x["plain_statement"]
+    for r in bundle["verification_rows"]:
+        ch = r["certified_evidence_chain"]
+        if r["trial"]["id"] == "PMID 40162642":
+            assert ch["extraction_object_for_this_outcome"] != "ABSENT" and "verified_effects.json" in ch["chain"][0]
+        else:
+            assert ch["extraction_object_for_this_outcome"] == "ABSENT" and "records.json" in ch["chain"][0]
+
+
+def test_every_anchored_document_says_how_to_compare(bundle):
+    anchored = [d for d in bundle["documents"] if d.get("anchor", {}).get("anchors")]
+    assert len(anchored) == 11
+    for d in anchored:
+        an = d["anchor"]
+        assert os.path.exists(os.path.join(ROOT, *an["acquired_ref"].split("/")))
+        assert "AbstractText" in an["how_to_compare"] and an["external"]["uri"].startswith("https://eutils")
+        assert "recomputed" in an["what_it_catches"]
+
+
+def test_limits_section_prints_the_closed_vocabulary_and_self_consistency_limits(bundle):
+    ids = {l["id"] for l in bundle["limits"]}
+    assert {"L1_self_consistency", "L2_closed_vocabulary", "L5_extraction_object_coverage", "L9_production_path"} <= ids
+    assert any("closed list" in l["limit"] for l in bundle["limits"])

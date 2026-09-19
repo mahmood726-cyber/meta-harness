@@ -14,7 +14,13 @@ Given only the served tree (a directory that mirrors the site root, or the site 
        Q/(k-1) floor -- Student-t quantile by regularized incomplete beta, no scipy -- compared to 1e-9;
   2. with --corrupt <pmid> <limb>, mutates ONE limb of ONE row in memory (span | effect | components | eligibility |
      conflict | container) and reports which rows changed admissibility, so "an executable gate refuses when the
-     evidence is damaged" is demonstrated rather than asserted.
+     evidence is damaged" is demonstrated rather than asserted;
+  3. for EVERY document with a retained acquisition, recomputes the preservation record (cached abstract vs the
+     retained EFetch XML, unit by unit) and FAILS if the bundle's coverage_status disagrees -- a self-consistent
+     package that deleted a sentence and recomputed every digest is caught here, provided the XML was not altered too;
+  4. with --anchor live, re-fetches EFetch XML from PubMed NOW for every pooled record and compares its abstract units
+     to BOTH the retained XML and the cached abstract. That is the external observation nothing inside the package can
+     substitute for; a difference is reported as a discrepancy (with DateRevised), not attributed.
 
 What a PASS here establishes: identity (bytes hash as declared, under the canonicalisation the bundle publishes:
 Python json.dumps sort_keys / compact separators / ensure_ascii=False, NOT RFC 8785), selection (every #PMID selector
@@ -263,7 +269,35 @@ def preservation(cached: str, xml_bytes: bytes):
     return {"units": len(units), "preserved": states.count("PRESERVED"), "missing": states.count("MISSING"), "extra_chars": len(resid), "verdict": verdict}
 
 
-def run(store: Store, slug: str, corrupt: tuple[str, str] | None):
+def live_anchor(pmid: str, retained_xml: bytes, cached_abstract: str) -> dict:
+    """External observation: EFetch NOW, compare abstract units with the retained XML and with the cached abstract."""
+    url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={pmid}&retmode=xml&tool=verify_bundle&email=meta-harness@example.org"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "verify_bundle/1"})
+        with urllib.request.urlopen(req, timeout=120) as r:
+            live = r.read()
+    except Exception as exc:  # network is an external dependency; report, do not pretend
+        return {"fetched": False, "error": str(exc)[:200]}
+
+    def units(b):
+        root = ET.fromstring(b)
+        return [_WS.sub(" ", "".join(a.itertext())).strip() for a in root.findall(".//Abstract/AbstractText")]
+
+    def revised(b):
+        d = ET.fromstring(b).find(".//MedlineCitation/DateRevised")
+        return f"{d.findtext('Year')}-{d.findtext('Month')}-{d.findtext('Day')}" if d is not None else None
+
+    lu, ru = units(live), units(retained_xml)
+    c = _WS.sub(" ", cached_abstract or "").strip()
+    return {"fetched": True, "live_sha256": sha256(live), "live_bytes": len(live), "live_date_revised": revised(live), "retained_date_revised": revised(retained_xml),
+            "live_units": len(lu), "retained_units": len(ru),
+            "units_in_live_not_in_retained": [u[:120] for u in lu if u not in ru],
+            "units_in_retained_not_in_live": [u[:120] for u in ru if u not in lu],
+            "live_units_missing_from_cached_abstract": sum(1 for u in lu if u and u not in c),
+            "live_equals_retained_bytes": sha256(live) == sha256(retained_xml)}
+
+
+def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: bool = False):
     R = f"reviews/{slug}/"
     bundle = store.json(R + "BUNDLE.json")
     report = {"slug": slug, "schema_version": bundle.get("schema_version"), "artefacts": [], "supporting": [], "certificate": {},
@@ -399,12 +433,30 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None):
         if not corrupt and final != recorded:
             failures.append(f"row {pmid}: verifier says {final}, bundle recorded {recorded}")
 
-    # 5. absence claims: recompute coverage from acquisitions ------------------------------------------------------
+    # 5. anchors: every document with a retained acquisition -- recompute preservation, compare to recorded coverage ----
     acq_by_pmid = {}
+    report["anchors"] = []
     for d in bundle.get("documents", []):
         ac = (d.get("representations") or {}).get("ACQUIRED_SOURCE") or {}
         if d["document_id"].startswith("pubmed:") and ac.get("ref"):
-            acq_by_pmid[d["document_id"].split(":")[1]] = ac["ref"].removeprefix("docs/")
+            pmid = d["document_id"].split(":")[1]
+            acq_by_pmid[pmid] = ac["ref"].removeprefix("docs/")
+            xml_bytes = store.get(acq_by_pmid[pmid])
+            xml_ok = sha256(xml_bytes) == ac.get("sha256_original")
+            pres = preservation((rec_by_pmid.get(pmid) or {}).get("abstract") or "", xml_bytes)
+            recorded = (d.get("coverage_status") or {}).get("value")
+            recomputed = "COMPLETE_ABSTRACT" if pres["verdict"] == "PRESERVED" else "EXCERPT_ONLY"
+            row = {"pmid": pmid, "acquired_xml_sha256_ok": xml_ok, "preservation": pres, "coverage_recomputed": recomputed,
+                   "coverage_recorded": recorded, "agrees": recomputed == recorded}
+            if anchor_live:
+                row["live"] = live_anchor(pmid, xml_bytes, (rec_by_pmid.get(pmid) or {}).get("abstract") or "")
+                if row["live"].get("units_in_live_not_in_retained") or row["live"].get("units_in_retained_not_in_live"):
+                    row["live"]["discrepancy"] = "RECORDED (not attributed): live PubMed and the retained acquisition differ; see DateRevised"
+            report["anchors"].append(row)
+            if not xml_ok:
+                failures.append(f"anchor {pmid}: retained XML does not hash to ACQUIRED_SOURCE.sha256_original")
+            if recomputed != recorded:
+                failures.append(f"anchor {pmid}: coverage recomputed {recomputed} vs recorded {recorded} -- the cached abstract does not preserve the retained XML as the bundle claims")
     for c in bundle.get("absence_claims", []):
         pmid = c["trial"]["id"].replace("PMID ", "")
         row = {"outcome": c["outcome"], "pmid": pmid, "producer_state": c["producer_state"], "claim_kind": c["claim_kind"]}
@@ -454,10 +506,11 @@ def main(argv=None):
     g.add_argument("--url", help="site root URL")
     ap.add_argument("--slug", required=True)
     ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|container")
+    ap.add_argument("--anchor", choices=["live"], help="live: re-fetch EFetch XML from PubMed now and compare to the retained acquisition and the cached abstract")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
     store = Store(a.root, a.url)
-    rep = run(store, a.slug, tuple(a.corrupt) if a.corrupt else None)
+    rep = run(store, a.slug, tuple(a.corrupt) if a.corrupt else None, anchor_live=(a.anchor == "live"))
     if a.json:
         print(json.dumps(rep, indent=1, ensure_ascii=False))
     else:
@@ -475,6 +528,14 @@ def main(argv=None):
               f"tau2 {p['recomputed']['tau2']:.16e}  reproduced_to_1e-9={p['reproduced_to_1e-9']}  admissible rows {p['admissible_rows']}")
         print(f"endpoint_compatibility {rep['endpoint_compatibility']['state']} {rep['endpoint_compatibility']['per_trial']}")
         print("statistical_input: " + "; ".join(f"{k}={v['interval_construction']}" for k, v in rep["statistical_input"].items() if v["interval_construction"] != "UNSTATED_IN_HELD_REPRESENTATION") + " (others UNSTATED_IN_HELD_REPRESENTATION; all SE DERIVED_FROM_CI)")
+        for an in rep.get("anchors", []):
+            live = an.get("live")
+            extra = (f" live: fetched={live.get('fetched')} equal_bytes={live.get('live_equals_retained_bytes')} "
+                     f"revised live={live.get('live_date_revised')} retained={live.get('retained_date_revised')} "
+                     f"units +{len(live.get('units_in_live_not_in_retained', []))}/-{len(live.get('units_in_retained_not_in_live', []))} "
+                     f"live_units_missing_from_cache={live.get('live_units_missing_from_cached_abstract')}") if live else ""
+            print(f"  anchor {an['pmid']} xml_ok={an['acquired_xml_sha256_ok']} preservation={an['preservation']['verdict']} "
+                  f"({an['preservation']['preserved']}/{an['preservation']['units']}) coverage {an['coverage_recomputed']} recorded {an['coverage_recorded']}{extra}")
         print("NOT checked: " + "; ".join(rep["not_checked"]))
         if rep["corruption"]:
             print(f"corruption {rep['corruption']}: rows now inadmissible = {[r['pmid'] for r in rep['rows'] if r['final'] == 'INADMISSIBLE']}")

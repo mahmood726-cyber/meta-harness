@@ -1,7 +1,8 @@
 {
  "schema_version": 3,
- "format_revision": "3.1",
+ "format_revision": "3.2",
  "format_changelog": [
+  "3.2 (2026-09-19, verifier panel round 2): extraction_objects_coverage states that verified_effects.json holds the primary outcome for SOUL alone (an override) and harms refusals for the rest -- the primary-outcome evidence chain for the other seven rows is records.json (records_file_sha256) -> analysis code blobs -> review.json (review_sha256), and every verification row names which; an explicit `anchor` block per document makes the retained EFetch XML mechanically comparable to the cached abstract (the only thing that can catch a self-consistent deletion), and the verifier gains --anchor live (re-fetch EFetch now and compare units: the external observation); a `limits` section prints what the bundle cannot establish, including the closed-list endpoint vocabulary.",
   "3.1 (2026-09-19, ninth audit): canonicalisation scheme published beside every canonical digest and both digest scopes of records.json stated (raw file vs canonical JSON -- same object, different procedures; a shared container digest across rows is correct, identity = container digest + deterministic selector); selector resolution rule stated and enforced (0 or >=2 matches refuse); per-evidence-object digest descriptors (subject / procedure / selector / representation the quotation must occur in); coordinate units on every location; endpoint_compatibility COMPATIBLE_WITH_DECLARED_VARIATION with per-trial undetermined_death_counted_as_cv; statistical_input per row (interval construction, SE reported vs derived, approximation named); heterogeneity precision statement; the verifier served at the path this file names, with its non-claims stated.",
   "3   (2026-09-19): recursive resolvability, four representations, preservation-backed coverage_status, per-row admission objects, stdlib verifier",
   "2   (2026-09-19): two identities per document, value_index span-match ladder, source block",
@@ -643,8 +644,8 @@
   },
   {
    "path": "docs/scripts/verify_bundle.py",
-   "sha256": "7c96a33d12aceb1c51661ccb05e0ea710a82c2c594bcc7b2c9b49509a035da17",
-   "bytes": 26112,
+   "sha256": "b96af76af3cf95a8a44a9ff1868344e2629b6951ea5f0dc5dedd330701652d7e",
+   "bytes": 31054,
    "role": "the verifier this bundle names; standard library only"
   }
  ],
@@ -793,6 +794,18 @@
     "scope": "abstract",
     "basis": "all 4 AbstractText units of the retained EFetch acquisition are PRESERVED verbatim in PARSED_SOURCE and PARSED_SOURCE carries no text outside them",
     "backed_by": "preservation_record"
+   },
+   "anchor": {
+    "anchors": "PARSED_SOURCE (the cached abstract in records.json) against ACQUIRED_SOURCE (retained EFetch XML)",
+    "acquired_ref": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/31185157.xml",
+    "acquired_sha256": "133f6072252b660f1b2f80f3d0806fab14fd1a1ac29623e3cbfd115655a88e52",
+    "external": {
+     "uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=31185157&retmode=xml&tool=meta-harness-bundle&email=meta-harness%40example.org",
+     "note": "re-fetch and compare units to BOTH the retained XML and the cached abstract; record DateRevised; a difference is a discrepancy to record, not to attribute"
+    },
+    "how_to_compare": "parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, join its text nodes, collapse whitespace runs to one space and strip; that unit must be a substring of PARSED_SOURCE (the cached abstract string, whitespace-collapsed); after removing every located unit and its 'Label:' prefix the residual must be empty. All units present and no residual => PRESERVED; otherwise FAILURE. A checker that cannot do this comparison has no anchor.",
+    "what_it_catches": "a deletion or rephrasing in the cached abstract even when every digest in the package has been recomputed to match",
+    "what_it_cannot_catch": "an alteration applied to the retained XML as well (only the external re-fetch can), or a record PubMed itself has revised"
    },
    "which_representation": {
     "hashed_by_certificate": "the container file cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256): PARSED_SOURCE for every record at once",
@@ -963,6 +976,18 @@
     "basis": "all 4 AbstractText units of the retained EFetch acquisition are PRESERVED verbatim in PARSED_SOURCE and PARSED_SOURCE carries no text outside them",
     "backed_by": "preservation_record"
    },
+   "anchor": {
+    "anchors": "PARSED_SOURCE (the cached abstract in records.json) against ACQUIRED_SOURCE (retained EFetch XML)",
+    "acquired_ref": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/27633186.xml",
+    "acquired_sha256": "f736e5b2dce4dc42e61e257f760434dd5f4343043f1839a731d6bcf31602772b",
+    "external": {
+     "uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=27633186&retmode=xml&tool=meta-harness-bundle&email=meta-harness%40example.org",
+     "note": "re-fetch and compare units to BOTH the retained XML and the cached abstract; record DateRevised; a difference is a discrepancy to record, not to attribute"
+    },
+    "how_to_compare": "parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, join its text nodes, collapse whitespace runs to one space and strip; that unit must be a substring of PARSED_SOURCE (the cached abstract string, whitespace-collapsed); after removing every located unit and its 'Label:' prefix the residual must be empty. All units present and no residual => PRESERVED; otherwise FAILURE. A checker that cannot do this comparison has no anchor.",
+    "what_it_catches": "a deletion or rephrasing in the cached abstract even when every digest in the package has been recomputed to match",
+    "what_it_cannot_catch": "an alteration applied to the retained XML as well (only the external re-fetch can), or a record PubMed itself has revised"
+   },
    "which_representation": {
     "hashed_by_certificate": "the container file cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256): PARSED_SOURCE for every record at once",
     "searched_by_page": "PARSED_SOURCE (the page's verify_basis 'effect present in committed source' is a search of this file); where the displayed span is NORMALISED the page compared after normalization",
@@ -1132,6 +1157,18 @@
     "basis": "all 4 AbstractText units of the retained EFetch acquisition are PRESERVED verbatim in PARSED_SOURCE and PARSED_SOURCE carries no text outside them",
     "backed_by": "preservation_record"
    },
+   "anchor": {
+    "anchors": "PARSED_SOURCE (the cached abstract in records.json) against ACQUIRED_SOURCE (retained EFetch XML)",
+    "acquired_ref": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/27295427.xml",
+    "acquired_sha256": "d86dca944a90d406ed7a98e6e46eb8d9774504c7746b167351df04f923325e26",
+    "external": {
+     "uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=27295427&retmode=xml&tool=meta-harness-bundle&email=meta-harness%40example.org",
+     "note": "re-fetch and compare units to BOTH the retained XML and the cached abstract; record DateRevised; a difference is a discrepancy to record, not to attribute"
+    },
+    "how_to_compare": "parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, join its text nodes, collapse whitespace runs to one space and strip; that unit must be a substring of PARSED_SOURCE (the cached abstract string, whitespace-collapsed); after removing every located unit and its 'Label:' prefix the residual must be empty. All units present and no residual => PRESERVED; otherwise FAILURE. A checker that cannot do this comparison has no anchor.",
+    "what_it_catches": "a deletion or rephrasing in the cached abstract even when every digest in the package has been recomputed to match",
+    "what_it_cannot_catch": "an alteration applied to the retained XML as well (only the external re-fetch can), or a record PubMed itself has revised"
+   },
    "which_representation": {
     "hashed_by_certificate": "the container file cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256): PARSED_SOURCE for every record at once",
     "searched_by_page": "PARSED_SOURCE (the page's verify_basis 'effect present in committed source' is a search of this file); where the displayed span is NORMALISED the page compared after normalization",
@@ -1300,6 +1337,18 @@
     "scope": "abstract",
     "basis": "all 4 AbstractText units of the retained EFetch acquisition are PRESERVED verbatim in PARSED_SOURCE and PARSED_SOURCE carries no text outside them",
     "backed_by": "preservation_record"
+   },
+   "anchor": {
+    "anchors": "PARSED_SOURCE (the cached abstract in records.json) against ACQUIRED_SOURCE (retained EFetch XML)",
+    "acquired_ref": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/34215025.xml",
+    "acquired_sha256": "ea1d144ea6140302d5b7b08d174f66b4404fccb2c1e9d22d766f139580127d96",
+    "external": {
+     "uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=34215025&retmode=xml&tool=meta-harness-bundle&email=meta-harness%40example.org",
+     "note": "re-fetch and compare units to BOTH the retained XML and the cached abstract; record DateRevised; a difference is a discrepancy to record, not to attribute"
+    },
+    "how_to_compare": "parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, join its text nodes, collapse whitespace runs to one space and strip; that unit must be a substring of PARSED_SOURCE (the cached abstract string, whitespace-collapsed); after removing every located unit and its 'Label:' prefix the residual must be empty. All units present and no residual => PRESERVED; otherwise FAILURE. A checker that cannot do this comparison has no anchor.",
+    "what_it_catches": "a deletion or rephrasing in the cached abstract even when every digest in the package has been recomputed to match",
+    "what_it_cannot_catch": "an alteration applied to the retained XML as well (only the external re-fetch can), or a record PubMed itself has revised"
    },
    "which_representation": {
     "hashed_by_certificate": "the container file cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256): PARSED_SOURCE for every record at once",
@@ -1481,6 +1530,18 @@
     "basis": "all 5 AbstractText units of the retained EFetch acquisition are PRESERVED verbatim in PARSED_SOURCE and PARSED_SOURCE carries no text outside them",
     "backed_by": "preservation_record"
    },
+   "anchor": {
+    "anchors": "PARSED_SOURCE (the cached abstract in records.json) against ACQUIRED_SOURCE (retained EFetch XML)",
+    "acquired_ref": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/31189511.xml",
+    "acquired_sha256": "935add390b4c371ea1cc07cd33e4e8ced2482ff54ebdbca13b79c8f5e499402a",
+    "external": {
+     "uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=31189511&retmode=xml&tool=meta-harness-bundle&email=meta-harness%40example.org",
+     "note": "re-fetch and compare units to BOTH the retained XML and the cached abstract; record DateRevised; a difference is a discrepancy to record, not to attribute"
+    },
+    "how_to_compare": "parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, join its text nodes, collapse whitespace runs to one space and strip; that unit must be a substring of PARSED_SOURCE (the cached abstract string, whitespace-collapsed); after removing every located unit and its 'Label:' prefix the residual must be empty. All units present and no residual => PRESERVED; otherwise FAILURE. A checker that cannot do this comparison has no anchor.",
+    "what_it_catches": "a deletion or rephrasing in the cached abstract even when every digest in the package has been recomputed to match",
+    "what_it_cannot_catch": "an alteration applied to the retained XML as well (only the external re-fetch can), or a record PubMed itself has revised"
+   },
    "which_representation": {
     "hashed_by_certificate": "the container file cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256): PARSED_SOURCE for every record at once",
     "searched_by_page": "PARSED_SOURCE (the page's verify_basis 'effect present in committed source' is a search of this file); where the displayed span is NORMALISED the page compared after normalization",
@@ -1661,6 +1722,18 @@
     "basis": "all 5 AbstractText units of the retained EFetch acquisition are PRESERVED verbatim in PARSED_SOURCE and PARSED_SOURCE carries no text outside them",
     "backed_by": "preservation_record"
    },
+   "anchor": {
+    "anchors": "PARSED_SOURCE (the cached abstract in records.json) against ACQUIRED_SOURCE (retained EFetch XML)",
+    "acquired_ref": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/30291013.xml",
+    "acquired_sha256": "26dec5e3f1513cad142a2af9941f6ca6cab39e51b704d1310a819ecb7f12d8d3",
+    "external": {
+     "uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=30291013&retmode=xml&tool=meta-harness-bundle&email=meta-harness%40example.org",
+     "note": "re-fetch and compare units to BOTH the retained XML and the cached abstract; record DateRevised; a difference is a discrepancy to record, not to attribute"
+    },
+    "how_to_compare": "parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, join its text nodes, collapse whitespace runs to one space and strip; that unit must be a substring of PARSED_SOURCE (the cached abstract string, whitespace-collapsed); after removing every located unit and its 'Label:' prefix the residual must be empty. All units present and no residual => PRESERVED; otherwise FAILURE. A checker that cannot do this comparison has no anchor.",
+    "what_it_catches": "a deletion or rephrasing in the cached abstract even when every digest in the package has been recomputed to match",
+    "what_it_cannot_catch": "an alteration applied to the retained XML as well (only the external re-fetch can), or a record PubMed itself has revised"
+   },
    "which_representation": {
     "hashed_by_certificate": "the container file cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256): PARSED_SOURCE for every record at once",
     "searched_by_page": "PARSED_SOURCE (the page's verify_basis 'effect present in committed source' is a search of this file); where the displayed span is NORMALISED the page compared after normalization",
@@ -1830,6 +1903,18 @@
     "basis": "all 4 AbstractText units of the retained EFetch acquisition are PRESERVED verbatim in PARSED_SOURCE and PARSED_SOURCE carries no text outside them",
     "backed_by": "preservation_record"
    },
+   "anchor": {
+    "anchors": "PARSED_SOURCE (the cached abstract in records.json) against ACQUIRED_SOURCE (retained EFetch XML)",
+    "acquired_ref": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/28910237.xml",
+    "acquired_sha256": "63ec335a3a836425cbeda76243629bf58816c0c94abb17e82892e75e64dd09ce",
+    "external": {
+     "uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=28910237&retmode=xml&tool=meta-harness-bundle&email=meta-harness%40example.org",
+     "note": "re-fetch and compare units to BOTH the retained XML and the cached abstract; record DateRevised; a difference is a discrepancy to record, not to attribute"
+    },
+    "how_to_compare": "parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, join its text nodes, collapse whitespace runs to one space and strip; that unit must be a substring of PARSED_SOURCE (the cached abstract string, whitespace-collapsed); after removing every located unit and its 'Label:' prefix the residual must be empty. All units present and no residual => PRESERVED; otherwise FAILURE. A checker that cannot do this comparison has no anchor.",
+    "what_it_catches": "a deletion or rephrasing in the cached abstract even when every digest in the package has been recomputed to match",
+    "what_it_cannot_catch": "an alteration applied to the retained XML as well (only the external re-fetch can), or a record PubMed itself has revised"
+   },
    "which_representation": {
     "hashed_by_certificate": "the container file cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256): PARSED_SOURCE for every record at once",
     "searched_by_page": "PARSED_SOURCE (the page's verify_basis 'effect present in committed source' is a search of this file); where the displayed span is NORMALISED the page compared after normalization",
@@ -1990,6 +2075,18 @@
     "scope": "abstract",
     "basis": "all 4 AbstractText units of the retained EFetch acquisition are PRESERVED verbatim in PARSED_SOURCE and PARSED_SOURCE carries no text outside them",
     "backed_by": "preservation_record"
+   },
+   "anchor": {
+    "anchors": "PARSED_SOURCE (the cached abstract in records.json) against ACQUIRED_SOURCE (retained EFetch XML)",
+    "acquired_ref": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/26630143.xml",
+    "acquired_sha256": "115be31c54d4952d6d390218d4c3015c727c520d819e34874e529579c32c2176",
+    "external": {
+     "uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=26630143&retmode=xml&tool=meta-harness-bundle&email=meta-harness%40example.org",
+     "note": "re-fetch and compare units to BOTH the retained XML and the cached abstract; record DateRevised; a difference is a discrepancy to record, not to attribute"
+    },
+    "how_to_compare": "parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, join its text nodes, collapse whitespace runs to one space and strip; that unit must be a substring of PARSED_SOURCE (the cached abstract string, whitespace-collapsed); after removing every located unit and its 'Label:' prefix the residual must be empty. All units present and no residual => PRESERVED; otherwise FAILURE. A checker that cannot do this comparison has no anchor.",
+    "what_it_catches": "a deletion or rephrasing in the cached abstract even when every digest in the package has been recomputed to match",
+    "what_it_cannot_catch": "an alteration applied to the retained XML as well (only the external re-fetch can), or a record PubMed itself has revised"
    },
    "which_representation": {
     "hashed_by_certificate": "the container file cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256): PARSED_SOURCE for every record at once",
@@ -2152,6 +2249,18 @@
     "basis": "all 4 AbstractText units of the retained EFetch acquisition are PRESERVED verbatim in PARSED_SOURCE and PARSED_SOURCE carries no text outside them",
     "backed_by": "preservation_record"
    },
+   "anchor": {
+    "anchors": "PARSED_SOURCE (the cached abstract in records.json) against ACQUIRED_SOURCE (retained EFetch XML)",
+    "acquired_ref": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/37952131.xml",
+    "acquired_sha256": "dabd7cd9d6c08b9c07da39a19d0b48266bfb7ddbbaacefe2e11025d105708245",
+    "external": {
+     "uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=37952131&retmode=xml&tool=meta-harness-bundle&email=meta-harness%40example.org",
+     "note": "re-fetch and compare units to BOTH the retained XML and the cached abstract; record DateRevised; a difference is a discrepancy to record, not to attribute"
+    },
+    "how_to_compare": "parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, join its text nodes, collapse whitespace runs to one space and strip; that unit must be a substring of PARSED_SOURCE (the cached abstract string, whitespace-collapsed); after removing every located unit and its 'Label:' prefix the residual must be empty. All units present and no residual => PRESERVED; otherwise FAILURE. A checker that cannot do this comparison has no anchor.",
+    "what_it_catches": "a deletion or rephrasing in the cached abstract even when every digest in the package has been recomputed to match",
+    "what_it_cannot_catch": "an alteration applied to the retained XML as well (only the external re-fetch can), or a record PubMed itself has revised"
+   },
    "which_representation": {
     "hashed_by_certificate": "the container file cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256): PARSED_SOURCE for every record at once",
     "searched_by_page": "PARSED_SOURCE (the page's verify_basis 'effect present in committed source' is a search of this file); where the displayed span is NORMALISED the page compared after normalization",
@@ -2312,6 +2421,18 @@
     "scope": "abstract",
     "basis": "all 4 AbstractText units of the retained EFetch acquisition are PRESERVED verbatim in PARSED_SOURCE and PARSED_SOURCE carries no text outside them",
     "backed_by": "preservation_record"
+   },
+   "anchor": {
+    "anchors": "PARSED_SOURCE (the cached abstract in records.json) against ACQUIRED_SOURCE (retained EFetch XML)",
+    "acquired_ref": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/34526024.xml",
+    "acquired_sha256": "6fd7fc3e9b8778ee5eb0a3e14dd251cefde8926b516d9d306c8558c02c28c918",
+    "external": {
+     "uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=34526024&retmode=xml&tool=meta-harness-bundle&email=meta-harness%40example.org",
+     "note": "re-fetch and compare units to BOTH the retained XML and the cached abstract; record DateRevised; a difference is a discrepancy to record, not to attribute"
+    },
+    "how_to_compare": "parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, join its text nodes, collapse whitespace runs to one space and strip; that unit must be a substring of PARSED_SOURCE (the cached abstract string, whitespace-collapsed); after removing every located unit and its 'Label:' prefix the residual must be empty. All units present and no residual => PRESERVED; otherwise FAILURE. A checker that cannot do this comparison has no anchor.",
+    "what_it_catches": "a deletion or rephrasing in the cached abstract even when every digest in the package has been recomputed to match",
+    "what_it_cannot_catch": "an alteration applied to the retained XML as well (only the external re-fetch can), or a record PubMed itself has revised"
    },
    "which_representation": {
     "hashed_by_certificate": "the container file cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256): PARSED_SOURCE for every record at once",
@@ -2481,6 +2602,18 @@
     "scope": "abstract",
     "basis": "4 of 4 AbstractText units of the retained acquisition are MISSING from PARSED_SOURCE; 1180 chars of PARSED_SOURCE occur in no acquired unit (rephrased or stitched text)",
     "backed_by": "preservation_record"
+   },
+   "anchor": {
+    "anchors": "PARSED_SOURCE (the cached abstract in records.json) against ACQUIRED_SOURCE (retained EFetch XML)",
+    "acquired_ref": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/40162642.xml",
+    "acquired_sha256": "8f1a9f6bd3f02b08b986a1a9dbbaf7a1f4199191ebc0809907b7b0bf1d8be375",
+    "external": {
+     "uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=40162642&retmode=xml&tool=meta-harness-bundle&email=meta-harness%40example.org",
+     "note": "re-fetch and compare units to BOTH the retained XML and the cached abstract; record DateRevised; a difference is a discrepancy to record, not to attribute"
+    },
+    "how_to_compare": "parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, join its text nodes, collapse whitespace runs to one space and strip; that unit must be a substring of PARSED_SOURCE (the cached abstract string, whitespace-collapsed); after removing every located unit and its 'Label:' prefix the residual must be empty. All units present and no residual => PRESERVED; otherwise FAILURE. A checker that cannot do this comparison has no anchor.",
+    "what_it_catches": "a deletion or rephrasing in the cached abstract even when every digest in the package has been recomputed to match",
+    "what_it_cannot_catch": "an alteration applied to the retained XML as well (only the external re-fetch can), or a record PubMed itself has revised"
    },
    "which_representation": {
     "hashed_by_certificate": "the container file cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256): PARSED_SOURCE for every record at once",
@@ -3144,6 +3277,83 @@
   "page_direction_audit": "ASSERTED_HOMOGENEOUS_UNDERLYING_HETEROGENEOUS",
   "note": "the page collapses an accepted variation into HOMOGENEOUS while its own direction audit says ASSERTED_HOMOGENEOUS_UNDERLYING_HETEROGENEOUS; those are different things. The bundle records the variation per trial from each trial's OWN definition span, so an authorised difference stays distinguishable from literal identity and from an unauthorised difference. Attribution is per span: the 'including unknown causes' wording is REWIND's (31189511), 'cardiovascular or undetermined causes' is AMPLITUDE-O's (34215025)."
  },
+ "extraction_objects_coverage": {
+  "files": [
+   "cache/glp1-ra-mace-t2d/verified_arms.json",
+   "cache/glp1-ra-mace-t2d/verified_effects.json"
+  ],
+  "certificate_key": "extraction_objects_sha256",
+  "per_outcome": [
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "primary": true,
+    "pooled_rows": 8,
+    "pooled_rows_with_an_extraction_object": [
+     "40162642"
+    ],
+    "declared_absent_rows": 1,
+    "declared_absent_rows_with_an_extraction_object": [],
+    "trials_with_any_entry_for_this_outcome": [
+     "40162642"
+    ]
+   },
+   {
+    "outcome": "Gastrointestinal adverse events",
+    "primary": false,
+    "pooled_rows": 1,
+    "pooled_rows_with_an_extraction_object": [
+     "31189511"
+    ],
+    "declared_absent_rows": 8,
+    "declared_absent_rows_with_an_extraction_object": [
+     "26630143",
+     "27295427",
+     "27633186",
+     "28910237",
+     "30291013",
+     "31185157",
+     "34215025"
+    ],
+    "trials_with_any_entry_for_this_outcome": [
+     "26630143",
+     "27295427",
+     "27633186",
+     "28910237",
+     "30291013",
+     "31185157",
+     "31189511",
+     "34215025"
+    ]
+   },
+   {
+    "outcome": "Adverse events leading to discontinuation",
+    "primary": false,
+    "pooled_rows": 1,
+    "pooled_rows_with_an_extraction_object": [
+     "27295427"
+    ],
+    "declared_absent_rows": 8,
+    "declared_absent_rows_with_an_extraction_object": [
+     "26630143",
+     "27633186",
+     "28910237",
+     "30291013",
+     "31185157",
+     "31189511"
+    ],
+    "trials_with_any_entry_for_this_outcome": [
+     "26630143",
+     "27295427",
+     "27633186",
+     "28910237",
+     "30291013",
+     "31185157",
+     "31189511"
+    ]
+   }
+  ],
+  "plain_statement": "glp1-ra-mace-t2d: verified_effects.json holds the PRIMARY outcome for 1 of 8 pooled rows (40162642: an override entry) and harms refusals for the rest. The primary-outcome evidence chain for the OTHER pooled rows is: records.json (certified as records_file_sha256 / retrieved_corpus_sha256) -> the certified analysis code blobs (analysis_code_sha256) -> the review.json trial rows (certified as review_sha256), which verification_rows[*].source binds to the container + selector + span. An auditor who follows extraction_objects_sha256 alone will find the primary outcome for one trial; that is a fact about which certified input carries which evidence, not a missing row."
+ },
  "verification_rows": [
   {
    "outcome_effect_id": "glp1-ra-mace-t2d::3-point major adverse cardiovascular events::PMID 31185157::PMID 31185157",
@@ -3285,6 +3495,14 @@
       "validity_critical": false
      }
     }
+   },
+   "certified_evidence_chain": {
+    "extraction_object_for_this_outcome": "ABSENT",
+    "chain": [
+     "cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256)",
+     "analysis code blobs (analysis_code_sha256)",
+     "reviews/glp1-ra-mace-t2d/review.json trial row (review_sha256)"
+    ]
    },
    "statistical_input": {
     "se_source": "DERIVED_FROM_CI",
@@ -3523,6 +3741,14 @@
      }
     }
    },
+   "certified_evidence_chain": {
+    "extraction_object_for_this_outcome": "ABSENT",
+    "chain": [
+     "cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256)",
+     "analysis code blobs (analysis_code_sha256)",
+     "reviews/glp1-ra-mace-t2d/review.json trial row (review_sha256)"
+    ]
+   },
    "statistical_input": {
     "se_source": "DERIVED_FROM_CI",
     "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
@@ -3760,6 +3986,14 @@
      }
     }
    },
+   "certified_evidence_chain": {
+    "extraction_object_for_this_outcome": "ABSENT",
+    "chain": [
+     "cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256)",
+     "analysis code blobs (analysis_code_sha256)",
+     "reviews/glp1-ra-mace-t2d/review.json trial row (review_sha256)"
+    ]
+   },
    "statistical_input": {
     "se_source": "DERIVED_FROM_CI",
     "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
@@ -3996,6 +4230,14 @@
       "validity_critical": false
      }
     }
+   },
+   "certified_evidence_chain": {
+    "extraction_object_for_this_outcome": "ABSENT",
+    "chain": [
+     "cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256)",
+     "analysis code blobs (analysis_code_sha256)",
+     "reviews/glp1-ra-mace-t2d/review.json trial row (review_sha256)"
+    ]
    },
    "statistical_input": {
     "se_source": "DERIVED_FROM_CI",
@@ -4236,6 +4478,14 @@
       "validity_critical": false
      }
     }
+   },
+   "certified_evidence_chain": {
+    "extraction_object_for_this_outcome": "ABSENT",
+    "chain": [
+     "cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256)",
+     "analysis code blobs (analysis_code_sha256)",
+     "reviews/glp1-ra-mace-t2d/review.json trial row (review_sha256)"
+    ]
    },
    "statistical_input": {
     "se_source": "DERIVED_FROM_CI",
@@ -4481,6 +4731,14 @@
      }
     }
    },
+   "certified_evidence_chain": {
+    "extraction_object_for_this_outcome": "ABSENT",
+    "chain": [
+     "cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256)",
+     "analysis code blobs (analysis_code_sha256)",
+     "reviews/glp1-ra-mace-t2d/review.json trial row (review_sha256)"
+    ]
+   },
    "statistical_input": {
     "se_source": "DERIVED_FROM_CI",
     "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
@@ -4722,6 +4980,14 @@
      }
     }
    },
+   "certified_evidence_chain": {
+    "extraction_object_for_this_outcome": "ABSENT",
+    "chain": [
+     "cache/glp1-ra-mace-t2d/records.json (records_file_sha256 / retrieved_corpus_sha256)",
+     "analysis code blobs (analysis_code_sha256)",
+     "reviews/glp1-ra-mace-t2d/review.json trial row (review_sha256)"
+    ]
+   },
    "statistical_input": {
     "se_source": "DERIVED_FROM_CI",
     "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
@@ -4958,6 +5224,17 @@
       "validity_critical": false
      }
     }
+   },
+   "certified_evidence_chain": {
+    "extraction_object_for_this_outcome": {
+     "file": "cache/glp1-ra-mace-t2d/verified_effects.json",
+     "provenance": null
+    },
+    "chain": [
+     "cache/glp1-ra-mace-t2d/verified_effects.json override entry (extraction_objects_sha256)",
+     "cache/glp1-ra-mace-t2d/records.json record (records_file_sha256)",
+     "reviews/glp1-ra-mace-t2d/review.json trial row (review_sha256)"
+    ]
    },
    "statistical_input": {
     "se_source": "DERIVED_FROM_CI",
@@ -5528,12 +5805,50 @@
    "git_blob_sha1": "ec8acf593ed83a2088d2a3434cbf0dc2a4132706"
   }
  ],
+ "limits": [
+  {
+   "id": "L1_self_consistency",
+   "limit": "a package can be internally consistent and wrong: delete a sentence from a cached abstract, recompute every digest including both certificate scopes, and nothing INSIDE the package detects it (the SOUL defect as an experiment). Detection needs an anchor OUTSIDE the recomputable set: documents[*].anchor names the retained EFetch XML and how to compare; the verifier's --anchor live re-fetches from PubMed. Without one of those, coverage_status is a claim about two files that were packaged together."
+  },
+  {
+   "id": "L2_closed_vocabulary",
+   "limit": "endpoint mention vocabulary is a closed list in code (harness/target_endpoint.py). An unlisted non-target endpoint phrase can bind to the definition-span target mention and pass P4; 'died from cardiovascular causes' had to be added by hand after reading LEADER. This cannot be closed by extending the list; it is carried, not solved."
+  },
+  {
+   "id": "L3_p4_not_rederivable",
+   "limit": "P4 compares producer-canonicalised component tokens; an independent verifier cannot re-derive the mapping from the stated strings because the lexicon is code, not data."
+  },
+  {
+   "id": "L4_container_level_identity",
+   "limit": "P1 binds each row to the container digest + selector; a corruption of the container fails every row that depends on it (correct) and a per-record digest does not exist as a certified quantity."
+  },
+  {
+   "id": "L5_extraction_object_coverage",
+   "limit": "verified_effects.json, a certified extraction input, carries the primary outcome for one trial only; see extraction_objects_coverage for where the other rows' evidence chain lives. An auditor who follows extraction_objects_sha256 alone will find 1 of 9."
+  },
+  {
+   "id": "L6_upstream_fidelity",
+   "limit": "a retained acquisition and its digest establish what was saved, not that it came from the claimed publisher; the live anchor is one observation at one time, and PubMed records are revised (DateRevised is recorded)."
+  },
+  {
+   "id": "L7_ci_to_se",
+   "limit": "every SE is derived from a published CI under a Wald assumption; SOUL's interval is group-sequential-adjusted; appropriateness is NOT_ESTABLISHED and no sensitivity analysis exists."
+  },
+  {
+   "id": "L8_fda_extraction",
+   "limit": "FDA PDF -> text extraction tool is unrecorded and no page-level preservation record exists; those documents are UNKNOWN_COMPLETENESS."
+  },
+  {
+   "id": "L9_production_path",
+   "limit": "nothing here tests the producer's admission gate; no production falsification test has been executed by anyone."
+  }
+ ],
  "canonical_json": "json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(',', ':')) encoded as UTF-8",
  "verifier": {
   "served_path": "scripts/verify_bundle.py",
   "served_url": "https://mahmood726-cyber.github.io/meta-harness/scripts/verify_bundle.py",
-  "sha256": "7c96a33d12aceb1c51661ccb05e0ea710a82c2c594bcc7b2c9b49509a035da17",
-  "bytes": 26112,
+  "sha256": "b96af76af3cf95a8a44a9ff1868344e2629b6951ea5f0dc5dedd330701652d7e",
+  "bytes": 31054,
   "requirements": "Python 3.9+ standard library only; no harness import; run: python verify_bundle.py --url https://mahmood726-cyber.github.io/meta-harness/ --slug glp1-ra-mace-t2d",
   "checks": "every artefact and supporting-file digest; release_sha256 and review_sha256; every predicate of every verification row; the selector rule; the asymmetric rule on every absence claim from a recomputed preservation record; pooled_reference.expected to 1e-9; --corrupt <pmid> <limb> shows one corrupted limb makes exactly that row inadmissible",
   "does_not_check": "that any acquired or cached representation faithfully preserves the upstream publication (SOUL's cache is known to omit the HbA1c entry range, follow-up and the safety sentence); that the source set is complete; that the clinical interpretation is right; and the PRODUCTION admission path -- no production falsification test has been executed by anyone; the verifier checks the bundle, not the producer's gate"

@@ -82,4 +82,82 @@ def test_verifier_reports_its_non_claims_and_reproduces_digest_scopes(baseline):
     assert baseline["statistical_input"]["PMID 40162642"]["interval_construction"] == "GROUP_SEQUENTIAL_ADJUSTED"
     src = open(VERIFIER, encoding="utf-8").read()
     assert "does NOT check" in src and "PRODUCTION admission path" in src
-    assert len(src.splitlines()) <= 500
+    assert len(src.splitlines()) <= 600   # 548 with the live anchor; the panel's 200-500 was for a minimal verifier
+
+
+def _copy_served_tree(bundle, dst):
+    """Copy only what the verifier reads: artefacts, supporting files, review-dir files."""
+    import shutil
+    paths = {a["served_path"] for a in bundle["artefacts"] if a["state"] == "SERVED"}
+    paths |= {f["path"].removeprefix("docs/") for f in bundle["supporting_files"]}
+    paths |= {r["served_path"] for r in bundle["review_files"]} | {f"reviews/{SLUG}/BUNDLE.json"}
+    for p in paths:
+        src = os.path.join(ROOT, "docs", *p.split("/"))
+        out = os.path.join(dst, *p.split("/"))
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        shutil.copyfile(src, out)
+
+
+def test_h1_delete_a_sentence_and_recompute_every_digest_is_caught_by_the_anchor(tmp_path):
+    """The panel's H1: delete a sentence from a cached abstract, recompute EVERY digest (artefact, digest_scopes, both
+    certificate scopes, release_sha256) so the package is perfectly self-consistent. Inside the recomputable set nothing
+    can notice. The retained EFetch XML is outside it: the verifier's preservation recomputation must FAIL the run."""
+    import hashlib
+    from harness.canonical import canonical_json, sha256_text   # test-side helper only; the verifier itself imports nothing
+    bundle = json.load(open(os.path.join(ROOT, "docs", "reviews", SLUG, "BUNDLE.json"), encoding="utf-8"))
+    root = str(tmp_path / "site")
+    _copy_served_tree(bundle, root)
+    rec_path = os.path.join(root, "cache", SLUG, "records.json")
+    records = json.load(open(rec_path, encoding="utf-8"))
+    victim = next(r for r in records["records"] if str(r["id"]) == "27295427")          # LEADER, currently COMPLETE_ABSTRACT
+    sentences = victim["abstract"].split(". ")
+    assert len(sentences) > 6
+    dropped = sentences.pop(-2)                                                          # an interior sentence, not the result span
+    victim["abstract"] = ". ".join(sentences)
+    new_raw = json.dumps(records, ensure_ascii=False, indent=1).encode("utf-8")
+    open(rec_path, "wb").write(new_raw)
+    raw_sha, canon_sha = hashlib.sha256(new_raw).hexdigest(), sha256_text(canonical_json(json.loads(new_raw)))
+    corpus_sha = sha256_text(canonical_json(json.loads(new_raw)["records"]))
+    cert_path = os.path.join(root, "reviews", SLUG, "CERTIFICATE.json")
+    cert = json.load(open(cert_path, encoding="utf-8"))
+    cert["records_file_sha256"], cert["retrieved_corpus_sha256"] = canon_sha, corpus_sha
+    cert.pop("release_sha256")
+    cert["release_sha256"] = sha256_text(canonical_json(cert))
+    cert_bytes = json.dumps(cert, ensure_ascii=False, indent=2).encode("utf-8") + b"\n"
+    open(cert_path, "wb").write(cert_bytes)
+    b = json.load(open(os.path.join(root, "reviews", SLUG, "BUNDLE.json"), encoding="utf-8"))
+    for a in b["artefacts"]:
+        if a["ref"].endswith("records.json"):
+            a["sha256"], a["bytes"], a["declared_digest"] = raw_sha, len(new_raw), canon_sha
+    for sc in b["digest_scopes"][0]["scopes"]:
+        sc["value"] = {"raw served bytes": raw_sha, "whole file as JSON object": canon_sha, "obj['records'] only": corpus_sha}[sc["subject"]]
+    b["certificate"]["sha256_of_file"], b["certificate"]["bytes"], b["certificate"]["release_sha256"] = hashlib.sha256(cert_bytes).hexdigest(), len(cert_bytes), cert["release_sha256"]
+    parsed_sha = sha256_text(victim["abstract"])
+    for r in b["verification_rows"]:
+        r["source"]["source_sha256"] = raw_sha
+        for d in r["source"]["digests"]:
+            d["value"] = {"container file": raw_sha, "container as JSON object": canon_sha}.get(d["subject"], d["value"])
+        if r["trial"]["id"] == "PMID 27295427":
+            r["source"]["representation_sha256"] = parsed_sha
+            r["span"]["representation_sha256"] = parsed_sha
+            i = victim["abstract"].find(r["span"]["text"])
+            assert i >= 0, "the result span must survive the deletion for H1 to be the right experiment"
+            r["span"]["start"], r["span"]["end"] = i, i + len(r["span"]["text"])
+    for rf in b["review_files"]:
+        if rf["file"] == "CERTIFICATE.json":
+            rf["sha256"], rf["bytes"] = hashlib.sha256(cert_bytes).hexdigest(), len(cert_bytes)
+    doc = next(d for d in b["documents"] if d["document_id"] == "pubmed:27295427")
+    doc["representations"]["PARSED_SOURCE"]["container_sha256"] = raw_sha
+    doc["representations"]["PARSED_SOURCE"]["sha256_parsed"] = parsed_sha
+    json.dump(b, open(os.path.join(root, "reviews", SLUG, "BUNDLE.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+
+    p = subprocess.run([sys.executable, VERIFIER, "--root", root, "--slug", SLUG, "--json"], cwd=ROOT,
+                       capture_output=True, text=True, encoding="utf-8", stdin=subprocess.DEVNULL)
+    rep = json.loads(p.stdout)
+    assert all(a.get("bytes_ok") and a.get("declared_digest_ok") for a in rep["artefacts"] if "bytes_ok" in a)   # every digest layer green
+    assert rep["certificate"]["release_sha256_recomputed"] and rep["digest_scopes_reproduced"]
+    assert next(r for r in rep["rows"] if r["pmid"] == "27295427")["final"] == "ADMISSIBLE"                     # positive claim still stands
+    anchor = next(a for a in rep["anchors"] if a["pmid"] == "27295427")                                          # ...and the anchor notices
+    assert anchor["preservation"]["verdict"] == "FAILURE" and anchor["coverage_recomputed"] == "EXCERPT_ONLY" and anchor["coverage_recorded"] == "COMPLETE_ABSTRACT"
+    assert rep["verdict"] == "FAIL" and any("anchor 27295427" in f for f in rep["failures"]), rep["failures"]
+    assert dropped

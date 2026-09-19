@@ -65,8 +65,9 @@ from harness.canonical import canonical_json, review_core, sha256_text  # noqa: 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.1"
+FORMAT_REVISION = "3.2"
 FORMAT_CHANGELOG = [
+    "3.2 (2026-09-19, verifier panel round 2): extraction_objects_coverage states that verified_effects.json holds the primary outcome for SOUL alone (an override) and harms refusals for the rest -- the primary-outcome evidence chain for the other seven rows is records.json (records_file_sha256) -> analysis code blobs -> review.json (review_sha256), and every verification row names which; an explicit `anchor` block per document makes the retained EFetch XML mechanically comparable to the cached abstract (the only thing that can catch a self-consistent deletion), and the verifier gains --anchor live (re-fetch EFetch now and compare units: the external observation); a `limits` section prints what the bundle cannot establish, including the closed-list endpoint vocabulary.",
     "3.1 (2026-09-19, ninth audit): canonicalisation scheme published beside every canonical digest and both digest scopes of "
     "records.json stated (raw file vs canonical JSON -- same object, different procedures; a shared container digest across rows is "
     "correct, identity = container digest + deterministic selector); selector resolution rule stated and enforced (0 or >=2 matches "
@@ -102,6 +103,32 @@ COORDINATES = {
     "encoding_for_digests": "UTF-8 encoding of the str; representation_sha256 is over those bytes",
     "note": "text position (code points) and data position (bytes) are not interchangeable; every location names its representation digest",
 }
+LIMITS = [
+    {"id": "L1_self_consistency", "limit": "a package can be internally consistent and wrong: delete a sentence from a cached abstract, "
+     "recompute every digest including both certificate scopes, and nothing INSIDE the package detects it (the SOUL defect as an experiment). "
+     "Detection needs an anchor OUTSIDE the recomputable set: documents[*].anchor names the retained EFetch XML and how to compare; the verifier's "
+     "--anchor live re-fetches from PubMed. Without one of those, coverage_status is a claim about two files that were packaged together."},
+    {"id": "L2_closed_vocabulary", "limit": "endpoint mention vocabulary is a closed list in code (harness/target_endpoint.py). An unlisted non-target "
+     "endpoint phrase can bind to the definition-span target mention and pass P4; 'died from cardiovascular causes' had to be added by hand after "
+     "reading LEADER. This cannot be closed by extending the list; it is carried, not solved."},
+    {"id": "L3_p4_not_rederivable", "limit": "P4 compares producer-canonicalised component tokens; an independent verifier cannot re-derive the mapping "
+     "from the stated strings because the lexicon is code, not data."},
+    {"id": "L4_container_level_identity", "limit": "P1 binds each row to the container digest + selector; a corruption of the container fails every row "
+     "that depends on it (correct) and a per-record digest does not exist as a certified quantity."},
+    {"id": "L5_extraction_object_coverage", "limit": "verified_effects.json, a certified extraction input, carries the primary outcome for one trial only; "
+     "see extraction_objects_coverage for where the other rows' evidence chain lives. An auditor who follows extraction_objects_sha256 alone "
+     "will find 1 of 9."},
+    {"id": "L6_upstream_fidelity", "limit": "a retained acquisition and its digest establish what was saved, not that it came from the claimed "
+     "publisher; the live anchor is one observation at one time, and PubMed records are revised (DateRevised is recorded)."},
+    {"id": "L7_ci_to_se", "limit": "every SE is derived from a published CI under a Wald assumption; SOUL's interval is group-sequential-adjusted; "
+     "appropriateness is NOT_ESTABLISHED and no sensitivity analysis exists."},
+    {"id": "L8_fda_extraction", "limit": "FDA PDF -> text extraction tool is unrecorded and no page-level preservation record exists; those documents are UNKNOWN_COMPLETENESS."},
+    {"id": "L9_production_path", "limit": "nothing here tests the producer's admission gate; no production falsification test has been executed by anyone."},
+]
+ANCHOR_HOWTO = ("parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, "
+                "join its text nodes, collapse whitespace runs to one space and strip; that unit must be a substring of PARSED_SOURCE (the cached "
+                "abstract string, whitespace-collapsed); after removing every located unit and its 'Label:' prefix the residual must be empty. "
+                "All units present and no residual => PRESERVED; otherwise FAILURE. A checker that cannot do this comparison has no anchor.")
 DIGEST_MISMATCH_POLICY = ("never resolve a digest mismatch by replacing the stored digest with the current one. Establish what changed "
                           "first: a formatting-only change and the deletion of a safety paragraph require opposite responses. A decision may "
                           "legitimately stay bound to an older retrievable source; what must never happen is silently substituting a new "
@@ -490,6 +517,14 @@ def documents(slug: str, records: dict, acq: dict, art_by_ref: dict, reg: dict, 
             {"from": "PARSED_SOURCE", "to": "NORMALIZED_SOURCE", "operation": "normalization", "detail": NORMALIZATION_MANIFEST},
             {"from": "PARSED_SOURCE|NORMALIZED_SOURCE", "to": "EXCERPT", "operation": "selection", "detail": "offsets recorded per excerpt"}]
         entry["coverage_status"] = {"value": coverage, "scope": "abstract", "basis": basis, "backed_by": "preservation_record" if a else None}
+        entry["anchor"] = ({"anchors": "PARSED_SOURCE (the cached abstract in records.json) against ACQUIRED_SOURCE (retained EFetch XML)",
+                            "acquired_ref": a["path"], "acquired_sha256": a["sha256"],
+                            "external": {"uri": a["requested_url"], "note": "re-fetch and compare units to BOTH the retained XML and the cached abstract; "
+                                                                             "record DateRevised; a difference is a discrepancy to record, not to attribute"},
+                            "how_to_compare": ANCHOR_HOWTO,
+                            "what_it_catches": "a deletion or rephrasing in the cached abstract even when every digest in the package has been recomputed to match",
+                            "what_it_cannot_catch": "an alteration applied to the retained XML as well (only the external re-fetch can), or a record PubMed itself has revised"}
+                           if a else {"anchors": None, "note": "no retained acquisition: this document has no anchor and its coverage is UNKNOWN_COMPLETENESS"})
         entry["which_representation"] = {
             "hashed_by_certificate": f"the container file {rec_ref} (records_file_sha256 / retrieved_corpus_sha256): PARSED_SOURCE for every record at once",
             "searched_by_page": "PARSED_SOURCE (the page's verify_basis 'effect present in committed source' is a search of this file); "
@@ -649,8 +684,52 @@ def _tokens(x) -> list[str]:
     return [s[:-2] if s.endswith(".0") else s]
 
 
+def _extraction_entries(slug: str) -> dict:
+    """{pmid: [(file, outcome, provenance, has_effect)]} across the certified extraction objects."""
+    out = {}
+    for name in ("verified_effects.json", "verified_arms.json"):
+        path = ROOT / "cache" / slug / name
+        if not path.exists():
+            continue
+        for pmid, e in _read_json(path).items():
+            for x in (e if isinstance(e, list) else [e]):
+                out.setdefault(str(pmid), []).append({"file": f"cache/{slug}/{name}", "outcome": x.get("outcome"),
+                                                      "provenance": x.get("provenance"), "has_effect": "effect" in x})
+    return out
+
+
+def extraction_objects_coverage(slug: str, review: dict, cert: dict) -> dict:
+    """What the certified extraction objects (extraction_objects_sha256) actually cover, per outcome, so nobody has to
+    discover '1 of 9' by following the certificate."""
+    entries = _extraction_entries(slug)
+    per_outcome = []
+    for o in review.get("outcomes", []):
+        pooled = [str(t["id"]).replace("PMID ", "") for t in o.get("trials", [])]
+        absent = [str(d["id"]).replace("PMID ", "") for d in (o.get("declared_absent_trials") or [])]
+        with_entry = sorted({p for p, es in entries.items() if any(e["outcome"] == o["name"] for e in es)})
+        per_outcome.append({"outcome": o["name"], "primary": bool(o.get("primary")),
+                            "pooled_rows": len(pooled), "pooled_rows_with_an_extraction_object": sorted(p for p in pooled if p in with_entry),
+                            "declared_absent_rows": len(absent), "declared_absent_rows_with_an_extraction_object": sorted(p for p in absent if p in with_entry),
+                            "trials_with_any_entry_for_this_outcome": with_entry})
+    primary = next(x for x in per_outcome if x["primary"])
+    return {
+        "files": sorted({e["file"] for es in entries.values() for e in es}),
+        "certificate_key": "extraction_objects_sha256",
+        "per_outcome": per_outcome,
+        "plain_statement": (f"{cert.get('slug')}: verified_effects.json holds the PRIMARY outcome for "
+                            f"{len(primary['pooled_rows_with_an_extraction_object'])} of {primary['pooled_rows']} pooled rows "
+                            f"({', '.join(primary['pooled_rows_with_an_extraction_object'])}: an override entry) and harms refusals for the rest. "
+                            "The primary-outcome evidence chain for the OTHER pooled rows is: records.json (certified as records_file_sha256 / "
+                            "retrieved_corpus_sha256) -> the certified analysis code blobs (analysis_code_sha256) -> the review.json trial rows "
+                            "(certified as review_sha256), which verification_rows[*].source binds to the container + selector + span. "
+                            "An auditor who follows extraction_objects_sha256 alone will find the primary outcome for one trial; that is a fact "
+                            "about which certified input carries which evidence, not a missing row."),
+    }
+
+
 def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dict, records: dict) -> tuple[list[dict], dict]:
     primary = next(o for o in review["outcomes"] if o.get("primary"))
+    extraction = _extraction_entries(slug)
     canonical_components = sorted((primary.get("endpoint_canonical") or {}).get("components") or [])
     lexicon_blob = _git("rev-parse", "HEAD:harness/target_endpoint.py")
     fam_by_id = {f.get("family_id"): f for f in review.get("trial_families", []) if isinstance(f, dict)}
@@ -729,6 +808,17 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                          "intervention": t.get("intervention_ontology"), "comparator": "placebo (topic config)", "timepoint": t.get("follow_up_window"),
                          "estimand": (t.get("effect_object") or {}).get("canonical_estimand"), "endpoint_definition": t.get("endpoint_definition")},
             "effect": {**effect, "number_tokens": tokens, "study_effect": t.get("study_effect")},
+            "certified_evidence_chain": {
+                "extraction_object_for_this_outcome": next(({"file": e["file"], "provenance": e["provenance"]} for e in extraction.get(pmid, [])
+                                                            if e["outcome"] == primary["name"]), "ABSENT"),
+                "chain": ["cache/%s/records.json (records_file_sha256 / retrieved_corpus_sha256)" % slug,
+                          "analysis code blobs (analysis_code_sha256)",
+                          "reviews/%s/review.json trial row (review_sha256)" % slug]
+                         if not any(e["outcome"] == primary["name"] for e in extraction.get(pmid, []))
+                         else ["cache/%s/verified_effects.json override entry (extraction_objects_sha256)" % slug,
+                               "cache/%s/records.json record (records_file_sha256)" % slug,
+                               "reviews/%s/review.json trial row (review_sha256)" % slug],
+            },
             "statistical_input": statistical_input(t, pmid),
             "decision": {"selected_candidate": t.get("selected_estimator"), "selection_rule": t.get("selection_rule"), "rejected_alternatives": t.get("alternatives"),
                          "endpoint_binding": t.get("endpoint_binding"), "endpoint_binding_reason": t.get("endpoint_binding_reason"),
@@ -1064,6 +1154,7 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
     aclaims = absence_claims(slug, review, docs_by_id)
     pooled = pooled_reference(review)
     compat = endpoint_compatibility(review, vrows)
+    xcov = extraction_objects_coverage(slug, review, cert)
     walk = resolvability_walk(slug, art_by_ref, acq, supporting, reg)
 
     # the verifier must be fetchable from the surface the bundle is served from, byte-identical to the repository copy
@@ -1162,11 +1253,13 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
         "supporting_files": acq["files"] + [verifier_file],
         "documents": docs,
         "endpoint_compatibility": compat,
+        "extraction_objects_coverage": xcov,
         "verification_rows": vrows,
         "absence_claims": aclaims,
         "pooled_reference": pooled,
         "resolvability": walk,
         "review_files": review_files,
+        "limits": LIMITS,
         "canonical_json": "json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(',', ':')) encoded as UTF-8",
         "verifier": {
             "served_path": "scripts/verify_bundle.py",
