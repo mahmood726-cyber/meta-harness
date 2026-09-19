@@ -439,3 +439,29 @@ def test_eligibility_is_read_from_the_certified_copy_and_named(bundle):
 
 def test_l11_coacquisition_rewrite_limit_is_printed(bundle):
     assert any(l["id"] == "L11_coacquisition_rewrite" and "signed release" in l["limit"] for l in bundle["limits"])
+
+
+# ------------------------------------------------------------------ 3.6: analysis identity, multi-span, producer label scope
+
+def test_every_row_carries_analysis_identity_not_only_endpoint_identity(bundle):
+    for r in bundle["verification_rows"]:
+        ai = r["analysis_identity"]
+        assert set(ai) >= {"analysis_set", "treatment_strategy", "follow_up_window", "comparator_direction", "estimator", "analysis_identity_key"}
+        assert ai["comparator_direction"]["comparator"].startswith("placebo") and ai["estimator"]["method"]
+        assert ai["analysis_identity_key"].count("|") == 3
+
+
+def test_rows_carry_spans_with_roles_and_the_vocabulary_admits_table_roles(bundle):
+    roles = set(bundle["vocabulary"]["span_roles"])
+    assert {"result", "definition", "column_header", "section_heading", "analysis_method", "footnote"} <= roles
+    for r in bundle["verification_rows"]:
+        got = [s["role"] for s in r["spans"]]
+        assert got[:2] == ["result", "definition"], r["trial"]["id"]
+        assert all(s["match"] in ("VERBATIM", "NORMALISED") for s in r["spans"]), r["trial"]["id"]
+    unbound = [b for b in bundle["binding_states"]["rows"] if b["binding_class"] != "BOUND"]
+    assert all("column_header" in b["observations"]["what_would_bind_it"] and b["observations"]["spans_present"] == [] for b in unbound)
+
+
+def test_producer_verified_label_is_scoped_to_what_it_checked(bundle):
+    assert "point estimate" in bundle["vocabulary"]["producer_label_scope"]["verified"].lower()
+    assert all("point estimate" in r["producer_label_scope"] for r in bundle["verification_rows"])

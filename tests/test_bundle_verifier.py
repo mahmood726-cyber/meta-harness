@@ -411,3 +411,19 @@ def test_h2_held_pdf_removed_is_reported_and_the_run_completes(tmp_path):
 
 def test_baseline_p9_passes_all_eight_genuine_spans(baseline):
     assert all(r["p9"]["state"] == "PASS" for r in baseline["rows"]), [(r["pmid"], r["p9"]) for r in baseline["rows"] if r["p9"]["state"] != "PASS"]
+
+
+
+def test_upper_limit_swapped_for_another_endpoints_genuine_limit_is_refused_by_p3(tmp_path):
+    """The producer's verify_pooled checks the point estimate only: LEADER 0.87 (0.78-0.97) with the upper limit replaced by
+    0.93 -- the genuine upper limit of the cardiovascular-death endpoint in the same abstract -- still earns its label.
+    P3 checks estimate AND both limits against the clause; the row must be refused."""
+    def edit(rev):
+        o = next(x for x in rev["outcomes"] if x.get("primary"))
+        t = next(x for x in o["trials"] if str(x["id"]).endswith("27295427"))
+        t["ci_high"] = 0.93
+    root = _doctored_site(tmp_path, edit_review=edit, edited_pmids=("27295427",))
+    rep = _verify(root)
+    row = next(r for r in rep["rows"] if r["pmid"] == "27295427")
+    assert row["predicates"]["P2_span_located"] is True and row["predicates"]["P3_effect_tokens_in_span"] is False
+    assert row["final"] == "INADMISSIBLE" and rep["verdict"] == "FAIL"

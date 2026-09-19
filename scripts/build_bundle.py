@@ -65,8 +65,10 @@ from harness.canonical import canonical_json, review_core, sha256_text  # noqa: 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.4"
+FORMAT_REVISION = "3.6"
 FORMAT_CHANGELOG = [
+    "3.6 (2026-09-19): analysis_identity per row (analysis set, follow-up / treatment strategy, comparator direction, estimator) because endpoint identity is not estimand identity -- ELIXA's FDA document holds on-study 1.02 (0.89-1.18) and on-treatment 1.01 (0.87-1.17) for the same 3-point endpoint; spans[] with roles (result, definition, column_header, section_heading, analysis_method, footnote) so table-sourced evidence can be bound by more than one span instead of being refused; producer_label_scope states that the page's 'verified' (verify_pooled) checks the point estimate only while P3 checks estimate AND both limits.",
+    "3.5 (2026-09-19): five verifier defects measured before/after on doctored sites; SPAN_NOT_IN_RECORD; positive refusals marked unevaluated (L12).",
     "3.4 (2026-09-19, panel run of verify_bundle.py against 21 mutations): P9_span_target_mention -- a POSITIVE binding requirement read from the tuple's own clause (target phrase, target definition, or a name bound to one), refusing ENDPOINT_INCOMPATIBLE on a recognised non-target mention and AMBIGUOUS_ENDPOINT_BINDING on no recognised mention (never a fallback to the definition span); eligibility read from the CERTIFIED families.json (trial_family_map_sha256) and named authoritative, the rendered copy cross-checked; selector resolved from the document_ref fragment; the verifier never crashes -- every refusal is a JSON verdict with a code; L11 states that acquisition digests inside the package can be rewritten together (H1c) and only a signed release, a third-party timestamp or a fetch at verification time closes it.",
     "3.3 (2026-09-19, admit_rows fail-open audit): UNBOUND_LEGACY surfaced as its own state -- a MIGRATION state, not an admissible one and not a refusal. binding_states lists every rendered row of every outcome with its binding class; P8_endpoint_bound joins the admission predicates and a row that fails only P8 by unbound_legacy gets final MIGRATION_STATE_UNBOUND_LEGACY (counted separately from admissible_rows); the verifier gains the same predicate, a `binding` corruption limb and named refusal codes.",
     "3.2 (2026-09-19, verifier panel round 2): extraction_objects_coverage states that verified_effects.json holds the primary outcome for SOUL alone (an override) and harms refusals for the rest -- the primary-outcome evidence chain for the other seven rows is records.json (records_file_sha256) -> analysis code blobs -> review.json (review_sha256), and every verification row names which; an explicit `anchor` block per document makes the retained EFetch XML mechanically comparable to the cached abstract (the only thing that can catch a self-consistent deletion), and the verifier gains --anchor live (re-fetch EFetch now and compare units: the external observation); a `limits` section prints what the bundle cannot establish, including the closed-list endpoint vocabulary.",
@@ -238,6 +240,22 @@ VOCABULARY = {
         "IN_REPOSITORY_NOT_PACKAGE": "the repository holds the file but this package does not serve it (not a certificate input)",
         "DIGEST_WITHOUT_BODY": "a reference that terminates in a digest with no retrievable body -- a promise, reported as such",
         "DANGLING": "a reference to nothing the package or the repository holds",
+    },
+    "span_roles": {
+        "result": "the clause carrying the effect tuple",
+        "definition": "the clause defining the endpoint the tuple belongs to",
+        "column_header": "for a table cell: the column header that names the arm / statistic",
+        "section_heading": "for a table cell: the table caption or parent heading that names the outcome and population",
+        "analysis_method": "the clause stating the analysis set, model or censoring rule the tuple was computed under",
+        "footnote": "a footnote that qualifies the cell (e.g. on-treatment, per-protocol, imputation)",
+    },
+    "span_binding_rule": "a value is bound by its spans[] jointly; an abstract-sourced value needs result + definition; a table-sourced value "
+                         "needs result (the cell/row) + column_header + section_heading, plus analysis_method or footnote where the table carries one. "
+                         "A single span is a partial binding for table evidence and must be recorded as such, not refused.",
+    "producer_label_scope": {
+        "verified": "the page's 'verified' / 'numerically verified' comes from the producer's verify_pooled, which checks that the POINT ESTIMATE occurs "
+                    "in the committed source; it does NOT check the confidence limits. A row whose upper limit was replaced by another endpoint's genuine "
+                    "limit would still carry that label. The bundle's P3_effect_tokens_in_span checks the estimate AND both limits against the clause.",
     },
     "binding_classes": {
         "BOUND": "endpoint_binding == named_endpoint_resolved_to_definition_span: the row's value is bound to a definition span of the target endpoint",
@@ -806,6 +824,45 @@ def extraction_objects_coverage(slug: str, review: dict, cert: dict) -> dict:
     }
 
 
+def _analysis_identity(t: dict, review: dict) -> dict:
+    """Endpoint identity is not estimand identity: two authentic rows can share components, trial and document and answer
+    different questions (ELIXA on-study vs on-treatment). Everything an outsider needs to tell which analysis a value came
+    from, drawn from the row's own fields; UNSTATED where the held representation does not say."""
+    se = t.get("study_effect") or {}
+    design = t.get("design") or {}
+    cd = t.get("compat_dimensions") or {}
+    fu = (cd.get("follow_up_window") or {}).get("value") or t.get("follow_up_window")
+    strategy = "UNSTATED"
+    low = " ".join(str(x) for x in (t.get("endpoint_result_span"), t.get("endpoint_definition_span"), se.get("analysis_population"))).lower()
+    if "on-treatment" in low or "per-protocol" in low:
+        strategy = "on-treatment / per-protocol"
+    elif "intention-to-treat" in low or "time-to-event" in low or "time to first" in low:
+        strategy = "treatment-policy (intention-to-treat, on-study)"
+    ident = {
+        "analysis_set": se.get("analysis_population") or t.get("analysis_set") or "UNSTATED",
+        "treatment_strategy": strategy,
+        "follow_up_window": fu or "UNSTATED",
+        "comparator_direction": {"experimental": review.get("question", {}).get("intervention") if isinstance(review.get("question"), dict) else "GLP-1 receptor agonist (topic config)",
+                                 "comparator": "placebo (topic config)", "effect_less_than_1_favours": "experimental"},
+        "estimator": {"method": se.get("estimator_method") or design.get("estimator_source") or "UNSTATED", "reported_label": (t.get("effect_object") or {}).get("reported_label"),
+                      "canonical_estimand": (t.get("effect_object") or {}).get("canonical_estimand"), "adjustment_status": design.get("adjustment_status")},
+        "event_time": (t.get("effect_object") or {}).get("canonical_estimand"),
+    }
+    ident["analysis_identity_key"] = " | ".join(str(ident[k]) if not isinstance(ident[k], dict) else str(ident[k].get("method", ident[k])) for k in ("analysis_set", "treatment_strategy", "follow_up_window", "estimator"))
+    return ident
+
+
+def _spans_for_row(t: dict, span: str, loc: dict, parsed: str) -> list[dict]:
+    """Multi-span binding record. Abstract-sourced rows carry result + definition; the structure admits column_header /
+    section_heading / analysis_method / footnote so table-sourced evidence can be expressed rather than refused."""
+    out = [{"role": "result", "text": span, "parent_representation": loc.get("parent"), "start": loc.get("start"), "end": loc.get("end"), "match": loc.get("match")}]
+    d = t.get("endpoint_definition_span")
+    if d:
+        dl = locate(d, parsed)
+        out.append({"role": "definition", "text": d, "parent_representation": dl.get("parent"), "start": dl.get("start"), "end": dl.get("end"), "match": dl.get("match")})
+    return out
+
+
 def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dict, records: dict) -> tuple[list[dict], dict]:
     primary = next(o for o in review["outcomes"] if o.get("primary"))
     extraction = _extraction_entries(slug)
@@ -900,6 +957,9 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                          "intervention": t.get("intervention_ontology"), "comparator": "placebo (topic config)", "timepoint": t.get("follow_up_window"),
                          "estimand": (t.get("effect_object") or {}).get("canonical_estimand"), "endpoint_definition": t.get("endpoint_definition")},
             "effect": {**effect, "number_tokens": tokens, "study_effect": t.get("study_effect")},
+            "analysis_identity": _analysis_identity(t, review),
+            "spans": _spans_for_row(t, span, loc, parsed),
+            "producer_label_scope": "the page's 'verified' checks the point estimate only (verify_pooled); P3 below checks estimate and both limits",
             "certified_evidence_chain": {
                 "extraction_object_for_this_outcome": next(({"file": e["file"], "provenance": e["provenance"]} for e in extraction.get(pmid, [])
                                                             if e["outcome"] == primary["name"]), "ABSENT"),
@@ -991,8 +1051,10 @@ def binding_states(review: dict, primary_ids: set) -> dict:
                     "endpoint_definition_carried": defn[:200],
                     "definition_names_another_outcome": bool(defn and not o.get("primary") and _CV_WORDS.search(defn) and not _CV_WORDS.search(o["name"])),
                     "table_sourced": src.lstrip().startswith("<table-wrap") or "<table" in src[:200],
-                    "what_would_bind_it": "multi-span binding: the table row, its column header, the parent heading and any footnote, each located in a "
-                                          "named representation with offsets; not a single definition span",
+                    "what_would_bind_it": "spans[] with roles result (the table row/cell) + column_header + section_heading (+ analysis_method / footnote "
+                                          "where present), each located in a named representation with offsets -- see vocabulary.span_binding_rule; "
+                                          "a single definition span cannot bind a table cell and its absence must not refuse the row",
+                    "spans_present": [],
                 }
             rows.append(row)
     n_unb = sum(1 for r in rows if r["binding_class"] == "MIGRATION_STATE_UNBOUND_LEGACY")

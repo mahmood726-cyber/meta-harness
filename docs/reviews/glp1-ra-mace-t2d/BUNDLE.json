@@ -1,7 +1,9 @@
 {
  "schema_version": 3,
- "format_revision": "3.4",
+ "format_revision": "3.6",
  "format_changelog": [
+  "3.6 (2026-09-19): analysis_identity per row (analysis set, follow-up / treatment strategy, comparator direction, estimator) because endpoint identity is not estimand identity -- ELIXA's FDA document holds on-study 1.02 (0.89-1.18) and on-treatment 1.01 (0.87-1.17) for the same 3-point endpoint; spans[] with roles (result, definition, column_header, section_heading, analysis_method, footnote) so table-sourced evidence can be bound by more than one span instead of being refused; producer_label_scope states that the page's 'verified' (verify_pooled) checks the point estimate only while P3 checks estimate AND both limits.",
+  "3.5 (2026-09-19): five verifier defects measured before/after on doctored sites; SPAN_NOT_IN_RECORD; positive refusals marked unevaluated (L12).",
   "3.4 (2026-09-19, panel run of verify_bundle.py against 21 mutations): P9_span_target_mention -- a POSITIVE binding requirement read from the tuple's own clause (target phrase, target definition, or a name bound to one), refusing ENDPOINT_INCOMPATIBLE on a recognised non-target mention and AMBIGUOUS_ENDPOINT_BINDING on no recognised mention (never a fallback to the definition span); eligibility read from the CERTIFIED families.json (trial_family_map_sha256) and named authoritative, the rendered copy cross-checked; selector resolved from the document_ref fragment; the verifier never crashes -- every refusal is a JSON verdict with a code; L11 states that acquisition digests inside the package can be rewritten together (H1c) and only a signed release, a third-party timestamp or a fetch at verification time closes it.",
   "3.3 (2026-09-19, admit_rows fail-open audit): UNBOUND_LEGACY surfaced as its own state -- a MIGRATION state, not an admissible one and not a refusal. binding_states lists every rendered row of every outcome with its binding class; P8_endpoint_bound joins the admission predicates and a row that fails only P8 by unbound_legacy gets final MIGRATION_STATE_UNBOUND_LEGACY (counted separately from admissible_rows); the verifier gains the same predicate, a `binding` corruption limb and named refusal codes.",
   "3.2 (2026-09-19, verifier panel round 2): extraction_objects_coverage states that verified_effects.json holds the primary outcome for SOUL alone (an override) and harms refusals for the rest -- the primary-outcome evidence chain for the other seven rows is records.json (records_file_sha256) -> analysis code blobs -> review.json (review_sha256), and every verification row names which; an explicit `anchor` block per document makes the retained EFetch XML mechanically comparable to the cached abstract (the only thing that can catch a self-consistent deletion), and the verifier gains --anchor live (re-fetch EFetch now and compare units: the external observation); a `limits` section prints what the bundle cannot establish, including the closed-list endpoint vocabulary.",
@@ -185,6 +187,18 @@
    "IN_REPOSITORY_NOT_PACKAGE": "the repository holds the file but this package does not serve it (not a certificate input)",
    "DIGEST_WITHOUT_BODY": "a reference that terminates in a digest with no retrievable body -- a promise, reported as such",
    "DANGLING": "a reference to nothing the package or the repository holds"
+  },
+  "span_roles": {
+   "result": "the clause carrying the effect tuple",
+   "definition": "the clause defining the endpoint the tuple belongs to",
+   "column_header": "for a table cell: the column header that names the arm / statistic",
+   "section_heading": "for a table cell: the table caption or parent heading that names the outcome and population",
+   "analysis_method": "the clause stating the analysis set, model or censoring rule the tuple was computed under",
+   "footnote": "a footnote that qualifies the cell (e.g. on-treatment, per-protocol, imputation)"
+  },
+  "span_binding_rule": "a value is bound by its spans[] jointly; an abstract-sourced value needs result + definition; a table-sourced value needs result (the cell/row) + column_header + section_heading, plus analysis_method or footnote where the table carries one. A single span is a partial binding for table evidence and must be recorded as such, not refused.",
+  "producer_label_scope": {
+   "verified": "the page's 'verified' / 'numerically verified' comes from the producer's verify_pooled, which checks that the POINT ESTIMATE occurs in the committed source; it does NOT check the confidence limits. A row whose upper limit was replaced by another endpoint's genuine limit would still carry that label. The bundle's P3_effect_tokens_in_span checks the estimate AND both limits against the clause."
   },
   "binding_classes": {
    "BOUND": "endpoint_binding == named_endpoint_resolved_to_definition_span: the row's value is bound to a definition span of the target endpoint",
@@ -4463,7 +4477,8 @@
      "endpoint_definition_carried": "primary outcome was the first occurrence of the composite endpoint of non-fatal myocardial infarction, non-fatal stroke, or death from cardiovascular causes (including unknown causes), which was asses",
      "definition_names_another_outcome": true,
      "table_sourced": false,
-     "what_would_bind_it": "multi-span binding: the table row, its column header, the parent heading and any footnote, each located in a named representation with offsets; not a single definition span"
+     "what_would_bind_it": "spans[] with roles result (the table row/cell) + column_header + section_heading (+ analysis_method / footnote where present), each located in a named representation with offsets -- see vocabulary.span_binding_rule; a single definition span cannot bind a table cell and its absence must not refuse the row",
+     "spans_present": []
     }
    },
    {
@@ -4489,7 +4504,8 @@
      "endpoint_definition_carried": "Adverse events leading to discontinuation",
      "definition_names_another_outcome": false,
      "table_sourced": true,
-     "what_would_bind_it": "multi-span binding: the table row, its column header, the parent heading and any footnote, each located in a named representation with offsets; not a single definition span"
+     "what_would_bind_it": "spans[] with roles result (the table row/cell) + column_header + section_heading (+ analysis_method / footnote where present), each located in a named representation with offsets -- see vocabulary.span_binding_rule; a single definition span cannot bind a table cell and its absence must not refuse the row",
+     "spans_present": []
     }
    }
   ],
@@ -4643,6 +4659,43 @@
      }
     }
    },
+   "analysis_identity": {
+    "analysis_set": "intention-to-treat",
+    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
+    "follow_up_window": "trial end",
+    "comparator_direction": {
+     "experimental": "GLP-1 receptor agonist (topic config)",
+     "comparator": "placebo (topic config)",
+     "effect_less_than_1_favours": "experimental"
+    },
+    "estimator": {
+     "method": "PUBLISHED_HR",
+     "reported_label": "HR",
+     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
+     "adjustment_status": "UNRESOLVED"
+    },
+    "event_time": "HAZARD_RATIO_FIRST_EVENT",
+    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | trial end | PUBLISHED_HR"
+   },
+   "spans": [
+    {
+     "role": "result",
+     "text": "Major adverse cardiovascular events occurred in 61 of 1591 patients (3.8%) in the oral semaglutide group and 76 of 1592 (4.8%) in the placebo group (hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11; P<0.001 for noninferiority).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 1289,
+     "end": 1530,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "definition",
+     "text": "The primary outcome in a time-to-event analysis was the first occurrence of a major adverse cardiovascular event (death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 578,
+     "end": 778,
+     "match": "VERBATIM"
+    }
+   ],
+   "producer_label_scope": "the page's 'verified' checks the point estimate only (verify_pooled); P3 below checks estimate and both limits",
    "certified_evidence_chain": {
     "extraction_object_for_this_outcome": "ABSENT",
     "chain": [
@@ -4904,6 +4957,43 @@
      }
     }
    },
+   "analysis_identity": {
+    "analysis_set": "intention-to-treat",
+    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
+    "follow_up_window": "trial end",
+    "comparator_direction": {
+     "experimental": "GLP-1 receptor agonist (topic config)",
+     "comparator": "placebo (topic config)",
+     "effect_less_than_1_favours": "experimental"
+    },
+    "estimator": {
+     "method": "PUBLISHED_HR",
+     "reported_label": "HR",
+     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
+     "adjustment_status": "UNRESOLVED"
+    },
+    "event_time": "HAZARD_RATIO_FIRST_EVENT",
+    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | trial end | PUBLISHED_HR"
+   },
+   "spans": [
+    {
+     "role": "result",
+     "text": "The primary outcome occurred in 108 of 1648 patients (6.6%) in the semaglutide group and in 146 of 1649 patients (8.9%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.58 to 0.95; P<0.001 for noninferiority).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 992,
+     "end": 1226,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "definition",
+     "text": "The primary composite outcome was the first occurrence of cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke.",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 537,
+     "end": 668,
+     "match": "VERBATIM"
+    }
+   ],
+   "producer_label_scope": "the page's 'verified' checks the point estimate only (verify_pooled); P3 below checks estimate and both limits",
    "certified_evidence_chain": {
     "extraction_object_for_this_outcome": "ABSENT",
     "chain": [
@@ -5172,6 +5262,43 @@
      }
     }
    },
+   "analysis_identity": {
+    "analysis_set": "intention-to-treat",
+    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
+    "follow_up_window": "trial end",
+    "comparator_direction": {
+     "experimental": "GLP-1 receptor agonist (topic config)",
+     "comparator": "placebo (topic config)",
+     "effect_less_than_1_favours": "experimental"
+    },
+    "estimator": {
+     "method": "PUBLISHED_HR",
+     "reported_label": "HR",
+     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
+     "adjustment_status": "UNRESOLVED"
+    },
+    "event_time": "HAZARD_RATIO_FIRST_EVENT",
+    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | trial end | PUBLISHED_HR"
+   },
+   "spans": [
+    {
+     "role": "result",
+     "text": "The primary outcome occurred in significantly fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97; P<0.001 for noninferiority; P=0.01 for superiority).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 889,
+     "end": 1171,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "definition",
+     "text": "The primary composite outcome in the time-to-event analysis was the first occurrence of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke.",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 321,
+     "end": 494,
+     "match": "VERBATIM"
+    }
+   ],
+   "producer_label_scope": "the page's 'verified' checks the point estimate only (verify_pooled); P3 below checks estimate and both limits",
    "certified_evidence_chain": {
     "extraction_object_for_this_outcome": "ABSENT",
     "chain": [
@@ -5440,6 +5567,43 @@
      }
     }
    },
+   "analysis_identity": {
+    "analysis_set": "intention-to-treat",
+    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
+    "follow_up_window": "1.81 years",
+    "comparator_direction": {
+     "experimental": "GLP-1 receptor agonist (topic config)",
+     "comparator": "placebo (topic config)",
+     "effect_less_than_1_favours": "experimental"
+    },
+    "estimator": {
+     "method": "PUBLISHED_HR",
+     "reported_label": "HR",
+     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
+     "adjustment_status": "UNRESOLVED"
+    },
+    "event_time": "HAZARD_RATIO_FIRST_EVENT",
+    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | 1.81 years | PUBLISHED_HR"
+   },
+   "spans": [
+    {
+     "role": "result",
+     "text": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 1392,
+     "end": 1764,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "definition",
+     "text": "The primary outcome was the first major adverse cardiovascular event (MACE; a composite of nonfatal myocardial infarction, nonfatal stroke, or death from cardiovascular or undetermined causes).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 1072,
+     "end": 1265,
+     "match": "VERBATIM"
+    }
+   ],
+   "producer_label_scope": "the page's 'verified' checks the point estimate only (verify_pooled); P3 below checks estimate and both limits",
    "certified_evidence_chain": {
     "extraction_object_for_this_outcome": "ABSENT",
     "chain": [
@@ -5704,6 +5868,43 @@
      }
     }
    },
+   "analysis_identity": {
+    "analysis_set": "intention-to-treat",
+    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
+    "follow_up_window": "5.4 years",
+    "comparator_direction": {
+     "experimental": "GLP-1 receptor agonist (topic config)",
+     "comparator": "placebo (topic config)",
+     "effect_less_than_1_favours": "experimental"
+    },
+    "estimator": {
+     "method": "PUBLISHED_HR",
+     "reported_label": "HR",
+     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
+     "adjustment_status": "UNRESOLVED"
+    },
+    "event_time": "HAZARD_RATIO_FIRST_EVENT",
+    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | 5.4 years | PUBLISHED_HR"
+   },
+   "spans": [
+    {
+     "role": "result",
+     "text": "During a median follow-up of 5.4 years (IQR 5.1-5.9), the primary composite outcome occurred in 594 (12.0%) participants at an incidence rate of 2.4 per 100 person-years in the dulaglutide group and in 663 (13.4%) participants at an incidence rate of 2.7 per 100 person-years in the placebo group (hazard ratio [HR] 0.88, 95% CI 0.79-0.99; p=0.026).",
+     "parent_representation": "NORMALIZED_SOURCE",
+     "start": 1704,
+     "end": 2053,
+     "match": "NORMALISED"
+    },
+    {
+     "role": "definition",
+     "text": "The primary outcome was the first occurrence of the composite endpoint of non-fatal myocardial infarction, non-fatal stroke, or death from cardiovascular causes (including unknown causes), which was assessed in the intention-to-treat population.",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 1147,
+     "end": 1392,
+     "match": "VERBATIM"
+    }
+   ],
+   "producer_label_scope": "the page's 'verified' checks the point estimate only (verify_pooled); P3 below checks estimate and both limits",
    "certified_evidence_chain": {
     "extraction_object_for_this_outcome": "ABSENT",
     "chain": [
@@ -5979,6 +6180,43 @@
      }
     }
    },
+   "analysis_identity": {
+    "analysis_set": "intention-to-treat",
+    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
+    "follow_up_window": "trial end",
+    "comparator_direction": {
+     "experimental": "GLP-1 receptor agonist (topic config)",
+     "comparator": "placebo (topic config)",
+     "effect_less_than_1_favours": "experimental"
+    },
+    "estimator": {
+     "method": "PUBLISHED_HR",
+     "reported_label": "HR",
+     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
+     "adjustment_status": "UNRESOLVED"
+    },
+    "event_time": "HAZARD_RATIO_FIRST_EVENT",
+    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | trial end | PUBLISHED_HR"
+   },
+   "spans": [
+    {
+     "role": "result",
+     "text": "The primary composite outcome occurred in 338 (7%) of 4731 patients at an incidence rate of 4.6 events per 100 person-years in the albiglutide group and in 428 (9%) of 4732 patients at an incidence rate of 5.9 events per 100 person-years in the placebo group (hazard ratio 0.78, 95% CI 0.68-0.90), which indicated that albiglutide was superior to placebo (p<0.0001 for non-inferiority; p=0.0006 for superiority).",
+     "parent_representation": "NORMALIZED_SOURCE",
+     "start": 2089,
+     "end": 2501,
+     "match": "NORMALISED"
+    },
+    {
+     "role": "definition",
+     "text": "We hypothesised that albiglutide would be non-inferior to placebo for the primary outcome of the first occurrence of cardiovascular death, myocardial infarction, or stroke, which was assessed in the intention-to-treat population.",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 976,
+     "end": 1205,
+     "match": "VERBATIM"
+    }
+   ],
+   "producer_label_scope": "the page's 'verified' checks the point estimate only (verify_pooled); P3 below checks estimate and both limits",
    "certified_evidence_chain": {
     "extraction_object_for_this_outcome": "ABSENT",
     "chain": [
@@ -6251,6 +6489,43 @@
      }
     }
    },
+   "analysis_identity": {
+    "analysis_set": "intention-to-treat",
+    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
+    "follow_up_window": "3.2 years",
+    "comparator_direction": {
+     "experimental": "GLP-1 receptor agonist (topic config)",
+     "comparator": "placebo (topic config)",
+     "effect_less_than_1_favours": "experimental"
+    },
+    "estimator": {
+     "method": "PUBLISHED_HR",
+     "reported_label": "HR",
+     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
+     "adjustment_status": "UNRESOLVED"
+    },
+    "event_time": "HAZARD_RATIO_FIRST_EVENT",
+    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | 3.2 years | PUBLISHED_HR"
+   },
+   "spans": [
+    {
+     "role": "result",
+     "text": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 862,
+     "end": 1400,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "definition",
+     "text": "The primary composite outcome was the first occurrence of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke.",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 372,
+     "end": 515,
+     "match": "VERBATIM"
+    }
+   ],
+   "producer_label_scope": "the page's 'verified' checks the point estimate only (verify_pooled); P3 below checks estimate and both limits",
    "certified_evidence_chain": {
     "extraction_object_for_this_outcome": "ABSENT",
     "chain": [
@@ -6519,6 +6794,43 @@
      }
     }
    },
+   "analysis_identity": {
+    "analysis_set": "intention-to-treat",
+    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
+    "follow_up_window": "trial end",
+    "comparator_direction": {
+     "experimental": "GLP-1 receptor agonist (topic config)",
+     "comparator": "placebo (topic config)",
+     "effect_less_than_1_favours": "experimental"
+    },
+    "estimator": {
+     "method": "PUBLISHED_HR",
+     "reported_label": "HR",
+     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
+     "adjustment_status": "UNRESOLVED"
+    },
+    "event_time": "HAZARD_RATIO_FIRST_EVENT",
+    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | trial end | PUBLISHED_HR"
+   },
+   "spans": [
+    {
+     "role": "result",
+     "text": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 568,
+     "end": 879,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "definition",
+     "text": "The primary outcome was major adverse cardiovascular events (a composite of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke), assessed in a time-to-first-event analysis.",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 361,
+     "end": 567,
+     "match": "VERBATIM"
+    }
+   ],
+   "producer_label_scope": "the page's 'verified' checks the point estimate only (verify_pooled); P3 below checks estimate and both limits",
    "certified_evidence_chain": {
     "extraction_object_for_this_outcome": {
      "file": "cache/glp1-ra-mace-t2d/verified_effects.json",
