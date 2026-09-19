@@ -48,8 +48,8 @@ def missing_state(fact=None, *, discovered=True):
     if decision.get("source_conflict"):
         return EXTRACTED_SOURCE_CONFLICT
     if decision.get("decision") == "EXTRACTED":
-        adj = fact.get("adjudication") or {}
-        if fact.get("admissible") and adj.get("countersigned") and adj.get("state") != "PROPOSED":
+        adj = fact.get("adjudication") or {}  # a content reference (harness.adjudication.reference) or None
+        if fact.get("admissible") and adj.get("countersigned") and adj.get("status") == "COUNTERSIGNED":
             return POOLABLE
         return EXTRACTED_NOT_ADMISSIBLE
     return SOURCE_RETRIEVED_NOT_EXTRACTED

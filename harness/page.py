@@ -417,10 +417,16 @@ def _known_missing_sensitivity_panel(o: dict) -> str:
                     f"<div class='muted'>{_e(r.get('verify_basis'))}</div>")
         elif r.get("held_fact"):
             fact = r["held_fact"]
-            adj = fact.get("adjudication") or {}
+            adj = fact.get("adjudication")
+            if adj:
+                adj_line = (f"adjudication: {_e(adj.get('adjudication_id'))} {_e(adj.get('status'))} "
+                            f"(record sha256 {_e(str(adj.get('adjudication_sha256'))[:12])}; "
+                            f"{'countersigned' if adj.get('countersigned') else 'not countersigned'})")
+            else:
+                adj_line = "adjudication: none recorded for this decision"
             val = (f"<code>{_e(fact['document_path'])}</code>"
                    f"<div>sha256: {_e(fact['document_sha256'])}</div>"
-                   f"<div>adjudication: {_e(adj.get('id'))} PROPOSED (not countersigned)</div>"
+                   f"<div>{adj_line}</div>"
                    "<div>Not pooled. Endpoint identity follows the definition span, never a CI fingerprint.</div>")
             for span in fact.get("spans", []):
                 val += (f"<div>{_e(span['kind'])}; PDF page {_e(span['pdf_page'])}</div>"

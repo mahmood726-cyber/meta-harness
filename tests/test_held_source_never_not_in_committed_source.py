@@ -55,7 +55,9 @@ def test_elixa_conflict_spans_primary_unchanged():
     assert 'definition_3p' in {s['kind'] for s in row['held_fact']['spans']}
     page = html.unescape((ROOT / 'docs/reviews' / SLUG / 'index.html').read_text(encoding='utf-8'))
     assert row['held_fact']['document_sha256'] in page
-    assert 'ADJ-GLP1-005 PROPOSED (not countersigned)' in page
+    adj = row['held_fact']['adjudication']
+    assert adj['adjudication_id'] == 'ADJ-GLP1-005' and adj['status'] == 'PROPOSED' and adj['countersigned'] is False
+    assert f"ADJ-GLP1-005 PROPOSED (record sha256 {adj['adjudication_sha256'][:12]}; not countersigned)" in page
     for span in row['held_fact']['spans']:
         assert span['span'] in page
         assert span['pdf_page'] > 0
@@ -96,9 +98,9 @@ def test_state_derivation_proposed_cannot_promote():
     assert missing_state() == 'DISCOVERED_NOT_RETRIEVED'
     assert missing_state({'document_path': 'held'}) == 'SOURCE_RETRIEVED_NOT_EXTRACTED'
     fact = {'decision': {'decision': 'EXTRACTED'}, 'admissible': True,
-            'adjudication': {'state': 'PROPOSED', 'countersigned': True}}
+            'adjudication': {'status': 'PROPOSED', 'countersigned': True}}
     assert missing_state(fact) == 'EXTRACTED_NOT_ADMISSIBLE'
-    fact['adjudication']['state'] = 'ACCEPTED'
+    fact['adjudication']['status'] = 'COUNTERSIGNED'
     assert missing_state(fact) == 'POOLABLE'
     fact['decision']['source_conflict'] = {'state': 'SOURCE_CONFLICT'}
     assert missing_state(fact) == 'EXTRACTED_SOURCE_CONFLICT'
@@ -114,7 +116,8 @@ def test_flow_and_freedom_held_but_not_admitted():
         assert not row.get('sensitivity')
         assert row['held_fact']['trial_key'] not in {t['id'].replace('PMID ', '') for t in outcome['trials']}
     flow = next(r['held_fact'] for r in rows if r['name'] == 'FLOW')
-    assert flow['adjudication']['id'] == 'ADJ-GLP1-003'
-    assert flow['adjudication']['state'] == 'PROPOSED'
+    assert flow['adjudication']['adjudication_id'] == 'ADJ-GLP1-003'
+    assert flow['adjudication']['status'] == 'PROPOSED'
+    assert len(flow['adjudication']['adjudication_sha256']) == 64
     assert flow['spans'][0]['pdf_page'] == 25
     assert flow['spans'][0]['verbatim_located'] is True

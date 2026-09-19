@@ -269,6 +269,20 @@ def limb_gate_scorecard():
     return REFUSED, _append_target(target_line, scorecard_target + "\n" + "\n".join(reasons))
 
 
+def limb_adjudication_refs():
+    paths = ["registry/adjudications.json", "harness/adjudication.py"]
+    target_line, err = _target("verify_all.limb_adjudication_refs", paths)
+    if err:
+        return NOEXEC, target_line
+    from harness import adjudication
+    ok, reasons = adjudication.check(ROOT)
+    if ok:
+        s = adjudication.summary(ROOT)
+        return PASS, _append_target(target_line, f"{s['records']} records ({s['by_status']}); {s['citations']} citations "
+                                                 f"to {s['records_cited']} records, every one at the record's content hash")
+    return REFUSED, _append_target(target_line, "\n".join(reasons))
+
+
 def limb_gate_gaps():
     rc, out = _run([sys.executable, os.path.join("scripts", "render_gate_gaps.py"), "--check"])
     tail = "\n".join(out.strip().splitlines()[-10:])
@@ -287,6 +301,7 @@ LIMBS = [
     ("honest-state ratchet (no page may get quieter)", limb_honest_ratchet),
     ("gate scorecard (every gate accounted for)", limb_gate_scorecard),
     ("gate gaps table (sealed what-it-would-not-stop rows)", limb_gate_gaps),
+    ("adjudication references (every cited ADJ id resolves to a registry record at its content hash)", limb_adjudication_refs),
 ]
 
 

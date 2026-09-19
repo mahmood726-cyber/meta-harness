@@ -178,6 +178,13 @@ def regulatory_fact(root, source, decision, adjudications):
 
     Off-tree documents cannot establish held custody. Digests and verbatim
     conflict spans fail closed. PDF pages are derived from extraction markers.
+
+    `adjudications` is the registry ({id: record}, harness.adjudication.load). The decision names the
+    adjudication it was decided by (`adjudication_id`); the fact carries a content reference to that record
+    (id + sha256 + status read from the record). A decision that names an id the registry does not hold
+    refuses the build; a decision that names none carries `adjudication: None`, never a synthetic
+    PROPOSED. Until 2026-09-19 this joined by NCT and took the LAST proposal for the trial, and the state
+    and countersignature were literals -- a citation by name, whose bytes did not move when the decision did.
     """
     from pathlib import Path
     import subprocess
@@ -217,13 +224,17 @@ def regulatory_fact(root, source, decision, adjudications):
         spans.append({"kind": "result", "span": span,
                       "pdf_page": page_at(offset) if offset >= 0 else decision["span_page_pdf"],
                       "verbatim_located": offset >= 0})
-    proposals = [a for a in adjudications if a.get("nct") == decision.get("nct")]
-    adj = proposals[-1] if proposals else {}
+    from . import adjudication as adjudication_mod
+    adj_id = decision.get("adjudication_id")
+    if adj_id:
+        adj = adjudication_mod.reference(adjudication_mod.resolve(adj_id, adjudications))
+    else:
+        adj = None
     return {"trial": decision["trial"], "trial_key": _norm_id(decision.get("trial_key")),
             "nct": decision.get("nct"), "document_path": path, "document_sha256": digest,
             "extracted_text_path": text_path, "extracted_text_sha256": source["extracted_text_sha256"],
             "decision": decision, "spans": spans,
-            "adjudication": {"id": adj.get("id"), "state": "PROPOSED", "countersigned": False},
+            "adjudication": adj,
             "admissible": False}
 
 
@@ -235,8 +246,8 @@ def regulatory_facts(root, slug):
         manifest = json.loads(path.read_text(encoding="utf-8"))
         if manifest.get("slug") != slug:
             continue
-        adj_path = path.parent / "ADJUDICATIONS.json"
-        adjudications = json.loads(adj_path.read_text(encoding="utf-8")).get("decisions", []) if adj_path.exists() else []
+        from . import adjudication as adjudication_mod
+        adjudications = adjudication_mod.load(root)
         for source in manifest.get("sources", []):
             for decision in source.get("decisions", []):
                 fact = regulatory_fact(root, source, decision, adjudications)
