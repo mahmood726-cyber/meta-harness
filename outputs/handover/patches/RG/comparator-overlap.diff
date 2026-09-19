@@ -1,0 +1,54 @@
+--- a/harness/comparator_second_pass.py
++++ b/harness/comparator_second_pass.py
+@@ -228,10 +228,10 @@
+                 "k": len(found),
+                 "trials": found,
+                 "source_snippet": _snippet(text, term),
+-                "shared_k": profile.get("shared_k", len(found)),
+-                "shared_trials": profile.get("shared_trials", found),
+-                "only_ours": profile.get("only_ours", []),
+-                "only_theirs": profile.get("only_theirs", []),
++                "shared_k": None,
++                "shared_trials": [],
++                "only_ours": [],
++                "only_theirs": [],
+             }
+         return {
+             "status": "NOT_EXPOSED",
+@@ -253,8 +253,8 @@
+             "source_snippet": _snippet(text, profile.get("source_term") or row_terms[0]),
+             "shared_k": profile.get("shared_k"),
+             "shared_trials": profile.get("shared_trials", []),
+-            "only_ours": profile.get("only_ours", []),
+-            "only_theirs": profile.get("only_theirs", []),
++            "only_ours": [],
++            "only_theirs": [],
+         }
+ 
+     count_terms = profile.get("count_terms") or []
+@@ -267,8 +267,8 @@
+             "trials": [],
+             "source_snippet": _snippet(text, count_terms[0]),
+             "shared_k": profile.get("shared_k"),
+-            "only_ours": profile.get("only_ours", []),
+-            "only_theirs": profile.get("only_theirs", []),
++            "only_ours": [],
++            "only_theirs": [],
+         }
+ 
+     return {
+@@ -349,6 +349,14 @@
+     elif trial_set.get("status") == "NOT_EXPOSED":
+         ov["shared_k"] = NOT_EXPOSED
+         ov["shared_k_measurement"] = "MEASURED_ABSENCE"
++    else:
++        ov["shared_k"] = "UNMEASURED_CURRENT_POOL"
++        ov["shared_k_measurement"] = "NOT_MEASURED"
++        ov["shared_trials"] = []
++        ov["only_ours"] = []
++        ov["only_theirs"] = []
++        ov["method"] = "current-pool intersection not supplied"
++        ov["note"] = "Comparator enumeration alone cannot establish current-pool overlap."
+     out["overlap"] = ov
+ 
+     _apply_reported_overrides(out, slug, text)

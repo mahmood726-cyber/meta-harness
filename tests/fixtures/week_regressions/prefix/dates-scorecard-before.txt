@@ -1,0 +1,133 @@
+FFFFFFF                                                                  [100%]
+================================== FAILURES ===================================
+_________________ test_refresh_cli_uses_explicit_current_date _________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B6D2A089D0>
+
+    def test_refresh_cli_uses_explicit_current_date(monkeypatch):
+        monkeypatch.setattr(live.datetime, "datetime", FutureClock)
+        seen = {}
+        monkeypatch.setattr(live, "refresh", lambda *a, **kw: seen.update(kw) or 0)
+        monkeypatch.setattr(live, "_topics_arg", lambda value: [])
+>       assert live.main(["refresh", "--label", "r9", "--topics", "all", "--run-date", "2031-02-03"]) == 0
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_week_regressions_dates.py:21: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\search_v2_run.py:371: in main
+    args = ap.parse_args(argv)
+           ^^^^^^^^^^^^^^^^^^^
+C:\Users\mahmo\AppData\Local\Programs\Python\Python313\Lib\argparse.py:1930: in parse_args
+    self.error(msg)
+C:\Users\mahmo\AppData\Local\Programs\Python\Python313\Lib\argparse.py:2686: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='__main__.py', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '__main__.py: error: unrecognized arguments: --run-date 2031-02-03\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+C:\Users\mahmo\AppData\Local\Programs\Python\Python313\Lib\argparse.py:2673: SystemExit
+---------------------------- Captured stderr call -----------------------------
+usage: __main__.py [-h] {refresh,status} ...
+__main__.py: error: unrecognized arguments: --run-date 2031-02-03
+__________________ test_refresh_refuses_stale_date_before_io __________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B6C0CC8510>
+
+    def test_refresh_refuses_stale_date_before_io(monkeypatch):
+        monkeypatch.setattr(live.datetime, "datetime", FutureClock)
+        monkeypatch.setattr(live, "_split", lambda: pytest.fail("I/O reached before date validation"))
+        with pytest.raises(SystemExit, match="UTC"):
+>           live.refresh("r9", [], "all", "unused", None, ("ctgov",), run_date="2026-09-15")
+E           TypeError: refresh() got an unexpected keyword argument 'run_date'
+
+tests\test_week_regressions_dates.py:29: TypeError
+____________ test_dated_label_is_not_prefixed_with_first_run_date _____________
+
+    def test_dated_label_is_not_prefixed_with_first_run_date():
+>       assert Path(live._candidate_path("2031-02-03r9", "all")).name == "candidates-2031-02-03r9-all.json"
+E       AssertionError: assert 'candidates-2...03r9-all.json' == 'candidates-2...03r9-all.json'
+E         
+E         - candidates-2031-02-03r9-all.json
+E         + candidates-2026-09-152031-02-03r9-all.json
+E         ?            ++++++++++
+
+tests\test_week_regressions_dates.py:33: AssertionError
+_____________ test_sealed_first_run_refuses_later_clock_before_io _____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B6D2AB87C0>
+
+    def test_sealed_first_run_refuses_later_clock_before_io(monkeypatch):
+        monkeypatch.setattr(sealed.dt, "datetime", FutureClock)
+        monkeypatch.setattr(sealed, "_validate_measurement_split", lambda: pytest.fail("sealed run reached I/O on a different date"))
+        with pytest.raises(SystemExit, match="sealed"):
+>           sealed.refresh_measurement()
+
+tests\test_week_regressions_dates.py:41: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\measure_search_v2_measurement.py:335: in refresh_measurement
+    _validate_measurement_split()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   monkeypatch.setattr(sealed, "_validate_measurement_split", lambda: pytest.fail("sealed run reached I/O on a different date"))
+                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: sealed run reached I/O on a different date
+
+tests\test_week_regressions_dates.py:39: Failed
+_____________ test_sealed_artifact_identity_does_not_follow_clock _____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B6D29AB8A0>
+
+    def test_sealed_artifact_identity_does_not_follow_clock(monkeypatch):
+        monkeypatch.setattr(sealed.dt, "datetime", FutureClock)
+>       assert sealed.FIRST_RUN_DATE in sealed.CANDIDATE_PATH.name
+               ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'scripts.measure_search_v2_measurement' has no attribute 'FIRST_RUN_DATE'
+
+tests\test_week_regressions_dates.py:46: AttributeError
+________________ test_production_registration_merges_gate_ids _________________
+
+tmp_path = WindowsPath('C:/mh-w-RG/.tmp/pytest-of-mahmo/pytest-1/test_production_registration_m0')
+
+    def test_production_registration_merges_gate_ids(tmp_path):
+        target = tmp_path / scorecard.REGISTRY_PATH
+        target.parent.mkdir(parents=True)
+        a = {"schema_version": 2, "gates": [{"gate_id": "plant-a", "events": []}]}
+        b = {"schema_version": 2, "gates": [{"gate_id": "plant-b", "events": []}]}
+        target.write_text(json.dumps(a), encoding="utf-8")
+>       scorecard.register_gates(tmp_path, b)
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'harness.gate_scorecard' has no attribute 'register_gates'
+
+tests\test_week_regressions_scorecard.py:13: AttributeError
+_____________ test_registration_conflict_preserves_original_bytes _____________
+
+tmp_path = WindowsPath('C:/mh-w-RG/.tmp/pytest-of-mahmo/pytest-1/test_registration_conflict_pre0')
+
+    def test_registration_conflict_preserves_original_bytes(tmp_path):
+        target = tmp_path / scorecard.REGISTRY_PATH
+        target.parent.mkdir(parents=True)
+        target.write_text(json.dumps({"gates": [{"gate_id": "plant-a", "events": []}]}))
+        before = target.read_bytes()
+        with pytest.raises(ValueError, match="conflict"):
+>           scorecard.register_gates(tmp_path, {"gates": [{"gate_id": "plant-a", "events": [{"event_id": "different"}]}]})
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: module 'harness.gate_scorecard' has no attribute 'register_gates'
+
+tests\test_week_regressions_scorecard.py:25: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/test_week_regressions_dates.py::test_refresh_cli_uses_explicit_current_date
+FAILED tests/test_week_regressions_dates.py::test_refresh_refuses_stale_date_before_io
+FAILED tests/test_week_regressions_dates.py::test_dated_label_is_not_prefixed_with_first_run_date
+FAILED tests/test_week_regressions_dates.py::test_sealed_first_run_refuses_later_clock_before_io
+FAILED tests/test_week_regressions_dates.py::test_sealed_artifact_identity_does_not_follow_clock
+FAILED tests/test_week_regressions_scorecard.py::test_production_registration_merges_gate_ids
+FAILED tests/test_week_regressions_scorecard.py::test_registration_conflict_preserves_original_bytes
+7 failed in 9.10s

@@ -1,0 +1,27 @@
+F..                                                                      [100%]
+================================== FAILURES ===================================
+_______________ test_inventory_stamp_has_build_input_provenance _______________
+
+    @pytest.mark.xfail(strict=True, reason='READY-BEHIND-INTEGRATOR: .tmp/patches/generated-on.diff')
+    def test_inventory_stamp_has_build_input_provenance():
+>       validate_stamp(json.loads((ROOT / 'docs/model_stage_inventory.json').read_text(encoding='utf-8')), ROOT)
+
+tests\test_week_regressions_generation_stamp.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+document = {'_doc': 'Inventory of model-derived stages and artifacts. The ordinary verify/page build does not make live model cal...utputs and write committed summaries.', 'model_identifier': 'GPT-5 as documented in docs/crossfamily.json', ...}, ...]}
+root = WindowsPath('C:/mh-w-RG')
+
+    def validate_stamp(document, root):
+        if 'generated_on' not in document:
+            return
+        binding = document.get('generation_input')
+>       assert isinstance(binding, dict), 'generated_on lacks a build-input binding'
+E       AssertionError: generated_on lacks a build-input binding
+E       assert False
+E        +  where False = isinstance(None, dict)
+
+tests\test_week_regressions_generation_stamp.py:14: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_week_regressions_generation_stamp.py::test_inventory_stamp_has_build_input_provenance
+1 failed, 2 passed in 2.98s

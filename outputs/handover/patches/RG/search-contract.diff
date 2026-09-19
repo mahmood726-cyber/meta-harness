@@ -1,0 +1,14 @@
+--- a/harness/fetch.py
++++ b/harness/fetch.py
+@@ -700,7 +700,10 @@
+     path = cache_path(config["slug"])
+     if os.path.exists(path):
+         with open(path, encoding="utf-8") as f:
+-            return json.load(f)
++            data = json.load(f)
++        if data.get("pubmed_queries") != config.get("pubmed_queries"):
++            raise ValueError("cached query contract differs from requested PubMed queries; explicit refresh required")
++        return data
+     config = dict(config, _now=now)
+     data = run(config)
+     ledger = data.get("retrieval_ledger")

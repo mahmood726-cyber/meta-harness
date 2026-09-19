@@ -1,0 +1,12 @@
+--- a/harness/reason_audit.py
++++ b/harness/reason_audit.py
+@@ -249,6 +249,9 @@
+     for src in sources or []:
+         text = src.get("text") or ""
+         for sent in _candidate_sentences(text, keywords, outcome_name):
++            if "major adverse cardiovascular" in (outcome_name or "").lower():
++                if not any(term in sent.lower() for term in ("mace", "major adverse cardiovascular")):
++                    continue
+             if not _has_numeric_outcome(sent):
+                 continue
+             out = {

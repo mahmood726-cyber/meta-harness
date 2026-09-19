@@ -155,6 +155,12 @@ def reporting_signal(text: str | None, spec: dict[str, Any]) -> dict[str, Any] |
     if not terms:
         return None
     for sent in extract._sentences(extract._norm(text)):
+        name = str(spec.get("name") or "").lower()
+        folded = lexicon.fold(sent).lower()
+        if "gastro" in name and not any(t in folded for t in ("gastrointestinal", "nausea", "vomiting", "diarrh")):
+            continue
+        if "discontinu" in name and not (any(t in folded for t in ("discontinu", "withdraw")) and any(t in folded for t in ("adverse", "side effect", "toxicity"))):
+            continue
         if not _matches(sent, terms):
             continue
         compact = re.sub(r"\s+", " ", sent).strip()
@@ -203,7 +209,7 @@ def _hm_state_for_absent(row: dict[str, Any], spec: dict[str, Any],
         out["harm_source_span"] = sig["span"]
         out["harm_source_signal"] = sig["kind"]
     else:
-        out["harm_source_reported"] = state in _REPORTED_STATES
+        out["harm_source_reported"] = code != absence.SIGNAL_SPURIOUS and state in _REPORTED_STATES
     return out
 
 

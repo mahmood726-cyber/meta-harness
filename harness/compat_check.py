@@ -648,7 +648,7 @@ def enrich(
     _comparator_age_scope(review, records)
     after = check(review, records, definition_audit)
     review["compat_underlying"] = {
-        "checked": True,
+        "checked": not after,
         "n_pre_fix_asserted_not_underlying": sum(1 for v in before if v.get("code") == ASSERTED_NOT_UNDERLYING),
         "n_post_fix_asserted_not_underlying": sum(1 for v in after if v.get("code") == ASSERTED_NOT_UNDERLYING),
         "pre_fix_violations": before,

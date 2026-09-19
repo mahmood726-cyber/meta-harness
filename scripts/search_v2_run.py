@@ -13,7 +13,7 @@ RAN_ERROR, named), RAN_ZERO (ran, zero candidates), RAN_ERROR (the refresh raise
 NOT_RUN (not attempted in this run).
 
 Usage:
-  python scripts/search_v2_run.py refresh --label r2 --topics all|measurement|development|<slug,...>
+  python scripts/search_v2_run.py refresh --run-date <today-UTC> --label r2 --topics all|measurement|development|<slug,...>
         [--registries ctgov,isrctn] [--release raw-archive-2026-09-15r2-search_v2]
         [--archive-root C:/claude-tmp/arch] [--no-upload] [--tar-only]
   python scripts/search_v2_run.py status --label r2
@@ -40,7 +40,7 @@ from harness import search_v2  # noqa: E402
 from scripts import archive_raw_bodies  # noqa: E402
 from scripts.measure_search_v2_measurement import ROUTE_LABELS  # noqa: E402  (one route vocabulary for both runs)
 
-RUN_DATE = "2026-09-15"
+FIRST_RUN_DATE = "2026-09-15"
 SPLIT_PATH = os.path.join(ROOT, "registry", "search_benchmark_split.json")
 FIRST_RUN_CANDIDATES = {
     "MEASUREMENT": os.path.join(ROOT, "outputs", "search_v2", "candidates-2026-09-15-measurement.json"),
@@ -117,12 +117,22 @@ def _registries_arg(value: str) -> tuple[str, ...]:
     return registries
 
 
+def _dated_label(label: str) -> str:
+    if len(label) > 10:
+        try:
+            datetime.date.fromisoformat(label[:10])
+            return label
+        except ValueError:
+            pass
+    return FIRST_RUN_DATE + label
+
+
 def _snapshot_name(label: str) -> str:
-    return f"{RUN_DATE}{label}-{search_v2.SNAPSHOT_SUFFIX}"
+    return f"{_dated_label(label)}-{search_v2.SNAPSHOT_SUFFIX}"
 
 
 def _candidate_path(label: str, scope: str) -> str:
-    return os.path.join(ROOT, "outputs", "search_v2", f"candidates-{RUN_DATE}{label}-{scope}.json")
+    return os.path.join(ROOT, "outputs", "search_v2", f"candidates-{_dated_label(label)}-{scope}.json")
 
 
 def _previous_row(slug: str, split: str) -> dict | None:
@@ -272,7 +282,15 @@ def refresh(
     registries: tuple[str, ...],
     *,
     tar_only: bool = False,
+    run_date: str | None = None,
 ) -> int:
+    today = datetime.datetime.now(datetime.UTC).date().isoformat()
+    if run_date != today:
+        raise SystemExit(f"REFUSED: --run-date must equal today's UTC date {today}")
+    dated = _dated_label(label)
+    if dated != FIRST_RUN_DATE + label and dated[:10] != run_date:
+        raise SystemExit("REFUSED: date-prefixed label disagrees with UTC run date")
+    label = label if dated != FIRST_RUN_DATE + label else run_date + label
     split = _split()
     snapshot_name = _snapshot_name(label)
     out_path = _candidate_path(label, scope)
@@ -280,7 +298,7 @@ def refresh(
     payload = json.load(open(out_path, encoding="utf-8")) if os.path.exists(out_path) else {
         "_doc": ("search_v2 labelled run. One engine blob for every topic in the run; each topic's previous-run row is "
                  "carried in topics[slug].previous_run; RAN_ERROR is recorded with its traceback and never re-run patched."),
-        "run_label": label, "snapshot_name": snapshot_name, "snapshot_date": RUN_DATE, "scope": scope,
+        "run_label": label, "snapshot_name": snapshot_name, "snapshot_date": run_date, "scope": scope,
         "registries": registries,
         "engine_sha": _git("hash-object", "--", "harness/search_v2.py"), "base_commit": _git("rev-parse", "HEAD"),
         "guard_protocol": "docs/evidence/search-v2-guard-2026-09-15/PROTOCOL.md",
@@ -292,7 +310,7 @@ def refresh(
     if payload["engine_sha"] != engine_now:
         raise SystemExit(f"REFUSED: engine blob changed mid-run ({payload['engine_sha'][:12]} -> {engine_now[:12]}); "
                          f"a run is one engine. Start a new label.")
-    log_path = os.path.join(ROOT, "outputs", "search_v2", f"run-{RUN_DATE}{label}.log")
+    log_path = os.path.join(ROOT, "outputs", "search_v2", f"run-{label}.log")
 
     def log(msg: str) -> None:
         line = f"{_utc()} {msg}"
@@ -306,10 +324,10 @@ def refresh(
             log(f"skip {slug}: already {prev['state']} in this run")
             continue
         snapshot_dir = os.path.join(ROOT, "cache", slug, "snapshots", snapshot_name)
-        existing = search_v2.load_snapshot(slug, RUN_DATE + label)
+        existing = search_v2.load_snapshot(slug, label)
         log(f"refresh {slug} ({split[slug]}) -> {snapshot_name}" + (" [reusing existing snapshot]" if existing else ""))
         try:
-            row = existing or search_v2.refresh_topic(slug, RUN_DATE, snapshot_name=snapshot_name, registries=registries)
+            row = existing or search_v2.refresh_topic(slug, run_date, snapshot_name=snapshot_name, registries=registries)
             candidates, meta = _topic_row(slug, split[slug], row, snapshot_dir)
         except Exception as exc:  # noqa: BLE001 - lane rule: record the row, never patch and rerun.
             candidates, meta = [], {"split": split[slug], "state": "RAN_ERROR", "error": str(exc),
@@ -358,6 +376,7 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("refresh")
     r.add_argument("--label", required=True)
+    r.add_argument("--run-date", required=True, help="must equal today in UTC")
     r.add_argument("--topics", required=True)
     r.add_argument("--scope", default=None, help="name for the candidate file (default: the --topics word)")
     r.add_argument("--registries", default="ctgov", help="comma-separated registry adapters to run: ctgov,isrctn")
@@ -379,6 +398,7 @@ def main(argv=None) -> int:
             None if args.no_upload else args.release,
             _registries_arg(args.registries),
             tar_only=args.tar_only,
+            run_date=args.run_date,
         )
     if args.cmd == "status":
         return status(args.label, args.scope)

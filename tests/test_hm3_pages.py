@@ -44,7 +44,22 @@ def test_primary_trial_values_and_membership_are_unchanged():
         assert snap['pinned_commit'] == BASE
         before = snap['pages'][slug]
         after = json.loads((ROOT/rel).read_text(encoding='utf-8'))
-        assert before['screening_records'] == after['screening']['records'], slug
+        old_records = {row['id']: row for row in before['screening_records']}
+        new_records = {row['id']: row for row in after['screening']['records']}
+        assert old_records.keys() == new_records.keys(), slug
+        # A title omission may now request manual review. It must not admit new trials,
+        # alter source identities, or weaken the pinned primary-value contract below.
+        assert {key for key, row in old_records.items() if row['decision'] == 'include'} == {
+            key for key, row in new_records.items() if row['decision'] == 'include'}, slug
+        for key, old_row in old_records.items():
+            new_row = new_records[key]
+            if old_row == new_row:
+                continue
+            assert old_row['decision'] == 'exclude' and old_row['rule_id'] in ('X2', 'X3'), (slug, key)
+            assert new_row['decision'] == 'review' and new_row['rule_id'] == 'MANUAL_REVIEW', (slug, key)
+            mutable = {'decision', 'rule_id', 'reason', 'span'}
+            assert {k: v for k, v in old_row.items() if k not in mutable} == {
+                k: v for k, v in new_row.items() if k not in mutable}, (slug, key)
         b = next(o for o in after['outcomes'] if o.get('primary'))
         values = lambda o: [{k:t.get(k) for k in fields} for t in o['trials']]
         sup = (snap.get('superseded') or {}).get(slug)

@@ -29,10 +29,11 @@ sys.path.insert(0, str(ROOT))
 from harness import gitblob, http, search_v2  # noqa: E402
 
 
-RUN_DATE = "2026-09-15"
+# Historical sealed artefact identity, not a live generation stamp.
+FIRST_RUN_DATE = "2026-09-15"
 FIX_ID = "MEASURE-search-v2-recall-2026-09-15"
 EVIDENCE_DIR = ROOT / "docs" / "evidence" / "search-v2-measurement-2026-09-15"
-CANDIDATE_PATH = ROOT / "outputs" / "search_v2" / f"candidates-{RUN_DATE}-measurement.json"
+CANDIDATE_PATH = ROOT / "outputs" / "search_v2" / f"candidates-{FIRST_RUN_DATE}-measurement.json"
 REPORT_PATH = ROOT / "LANE-S3-REPORT.md"
 BENCHMARK_PATH = ROOT / "registry" / "search_benchmark.json"
 SPLIT_PATH = ROOT / "registry" / "search_benchmark_split.json"
@@ -332,6 +333,8 @@ def _topic_candidates(row: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[s
 
 
 def refresh_measurement() -> int:
+    if dt.datetime.now(dt.timezone.utc).date().isoformat() != FIRST_RUN_DATE:
+        raise SystemExit("REFUSED: sealed first-run measurement may only run on " + FIRST_RUN_DATE)
     _validate_measurement_split()
     base_commit = _git("rev-parse", "HEAD")
     engine_sha = _git("hash-object", "--", "harness/search_v2.py")
@@ -340,7 +343,7 @@ def refresh_measurement() -> int:
     for slug in MEASUREMENT_TOPICS:
         print(f"[measurement] refresh {slug}", flush=True)
         try:
-            row = search_v2.refresh_topic(slug, RUN_DATE)
+            row = search_v2.refresh_topic(slug, FIRST_RUN_DATE)
             items, meta = _topic_candidates(row)
             candidates[slug] = items
             topics[slug] = meta
@@ -367,7 +370,7 @@ def refresh_measurement() -> int:
                 "base_commit": base_commit,
                 "run_utc": _utc_now(),
                 "split": "MEASUREMENT",
-                "snapshot_date": RUN_DATE,
+                "snapshot_date": FIRST_RUN_DATE,
                 "measurement_topics": MEASUREMENT_TOPICS,
                 "candidates": candidates,
                 "topics": topics,
@@ -1099,14 +1102,14 @@ def _update_fixes(score: dict[str, Any]) -> None:
         "verification": "NONE",
         "scope": "CORPUS",
         "author": "Codex lane S3",
-        "opened_utc": f"{RUN_DATE}T00:00:00Z",
+        "opened_utc": f"{FIRST_RUN_DATE}T00:00:00Z",
         "evidence_dir": "docs/evidence/search-v2-measurement-2026-09-15",
         "events": [
             {
                 "implementation": "LANDED",
                 "verification": "NONE",
                 "scope": "CORPUS",
-                "when_utc": f"{RUN_DATE}T00:00:00Z",
+                "when_utc": f"{FIRST_RUN_DATE}T00:00:00Z",
                 "by": "Codex lane S3",
                 "commit": payload.get("base_commit") or _git("rev-parse", "HEAD"),
                 "evidence": event_evidence,
@@ -1135,7 +1138,7 @@ def _update_fixes(score: dict[str, Any]) -> None:
                 "schema": "fixes-v3",
                 "lane": "S3",
                 "split": "MEASUREMENT",
-                "snapshot_date": RUN_DATE,
+                "snapshot_date": FIRST_RUN_DATE,
                 "topics": "21 named",
                 "engine_sha": payload.get("engine_sha"),
                 "corpus_line": _corpus_line(score, heldout),

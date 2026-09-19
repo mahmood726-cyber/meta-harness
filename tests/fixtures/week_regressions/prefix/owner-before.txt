@@ -1,0 +1,156 @@
+FFFFF..F.FF.F.                                                           [100%]
+================================== FAILURES ===================================
+_ test_generic_adverse_events_do_not_prove_specific_harm[Gastrointestinal adverse events] _
+
+name = 'Gastrointestinal adverse events'
+
+    @pytest.mark.xfail(strict=True, reason='READY-BEHIND-INTEGRATOR: .tmp/patches/harm-endpoint.diff')
+    @pytest.mark.parametrize('name', ['Gastrointestinal adverse events', 'Adverse events leading to discontinuation'])
+    def test_generic_adverse_events_do_not_prove_specific_harm(name):
+>       assert harms.reporting_signal('Serious adverse events were similar between the two groups.', {'name': name}) is None
+E       AssertionError: assert {'kind': 'term_signal', 'reported': True, 'span': 'Serious adverse events were similar between the two groups.'} is None
+E        +  where {'kind': 'term_signal', 'reported': True, 'span': 'Serious adverse events were similar between the two groups.'} = <function reporting_signal at 0x0000017BAF78DF80>('Serious adverse events were similar between the two groups.', {'name': 'Gastrointestinal adverse events'})
+E        +    where <function reporting_signal at 0x0000017BAF78DF80> = harms.reporting_signal
+
+tests\test_week_regressions_audit.py:21: AssertionError
+_ test_generic_adverse_events_do_not_prove_specific_harm[Adverse events leading to discontinuation] _
+
+name = 'Adverse events leading to discontinuation'
+
+    @pytest.mark.xfail(strict=True, reason='READY-BEHIND-INTEGRATOR: .tmp/patches/harm-endpoint.diff')
+    @pytest.mark.parametrize('name', ['Gastrointestinal adverse events', 'Adverse events leading to discontinuation'])
+    def test_generic_adverse_events_do_not_prove_specific_harm(name):
+>       assert harms.reporting_signal('Serious adverse events were similar between the two groups.', {'name': name}) is None
+E       AssertionError: assert {'kind': 'term_signal', 'reported': True, 'span': 'Serious adverse events were similar between the two groups.'} is None
+E        +  where {'kind': 'term_signal', 'reported': True, 'span': 'Serious adverse events were similar between the two groups.'} = <function reporting_signal at 0x0000017BAF78DF80>('Serious adverse events were similar between the two groups.', {'name': 'Adverse events leading to discontinuation'})
+E        +    where <function reporting_signal at 0x0000017BAF78DF80> = harms.reporting_signal
+
+tests\test_week_regressions_audit.py:21: AssertionError
+__________ test_missing_candidates_merge_family_and_report_identity ___________
+
+    @pytest.mark.xfail(strict=True, reason='READY-BEHIND-INTEGRATOR: .tmp/patches/missing-family.diff')
+    def test_missing_candidates_merge_family_and_report_identity():
+        review = {'screening': {'records': [{'id': 'report-a', 'trial_family_id': 'PLANT', 'decision': 'include'}]},
+                  'outcomes': [{'primary': True, 'declared_absent_trials': [{'id': 'report-a'}]}]}
+        rows = known_missing._missing_candidates(review, {'known_eligible_missing': [{'trial': 'PLANT'}]})
+>       assert len(rows) == 1, 'one family must not be counted twice'
+E       AssertionError: one family must not be counted twice
+E       assert 2 == 1
+E        +  where 2 = len([{'note': '', 'trial': 'PLANT', 'why_eligible': 'known_eligible_missing via None'}, {'id': 'report-a', 'why_eligible': 'screened in but not pooled'}])
+
+tests\test_week_regressions_audit.py:29: AssertionError
+_______ test_comparator_only_text_cannot_establish_current_pool_overlap _______
+
+    @pytest.mark.xfail(strict=True, reason='READY-BEHIND-INTEGRATOR: .tmp/patches/comparator-overlap.diff')
+    def test_comparator_only_text_cannot_establish_current_pool_overlap():
+        profile = comparator_second_pass.PROFILES['glp1-ra-mace-t2d']['trial_set']
+        text = profile['source_term'] + ' ' + ' '.join(t['aliases'][0] for t in profile['trials'])
+        result = comparator_second_pass.parse_trial_set('glp1-ra-mace-t2d', text)
+        assert result['k'] == len(profile['trials'])
+>       assert result.get('shared_k') is None, 'current pool is not an input to this parser'
+E       AssertionError: current pool is not an input to this parser
+E       assert 7 is None
+E        +  where 7 = <built-in method get of dict object at 0x0000017BC1058980>('shared_k')
+E        +    where <built-in method get of dict object at 0x0000017BC1058980> = {'k': 8, 'measurement': 'MEASURED', 'only_ours': ['SOUL'], 'only_theirs': ['ELIXA'], ...}.get
+
+tests\test_week_regressions_audit.py:38: AssertionError
+____________ test_title_omission_requires_review_not_ineligibility ____________
+
+    @pytest.mark.xfail(strict=True, reason='READY-BEHIND-INTEGRATOR: .tmp/patches/screen-title.diff')
+    def test_title_omission_requires_review_not_ineligibility():
+        record = {'id': 'plant', 'id_type': 'pmid', 'title': 'Cardiovascular outcomes',
+                  'abstract': 'Adults with diabetes were randomly assigned to liraglutide or placebo in a double-blind trial.',
+                  'pubtypes': ['Randomized Controlled Trial'], 'conditions': [], 'interventions': []}
+        inc = {'population_any': ['diabetes'], 'intervention_any': ['liraglutide'], 'intervention_in_title': True}
+        result = screen.screen_record(record, inc, set())
+>       assert result[0] != 'exclude', result
+E       AssertionError: ('exclude', 'X2', "population not on-topic: title/conditions do not mention any of ['diabetes'] (an incidental abstract mention does not qualify).", 'examined title/conditions: “Cardiovascular outcomes”')
+E       assert 'exclude' != 'exclude'
+
+tests\test_week_regressions_audit.py:48: AssertionError
+___________ test_kidney_and_cv_death_values_do_not_prove_mace_value ___________
+
+    @pytest.mark.xfail(strict=True, reason='READY-BEHIND-INTEGRATOR: .tmp/patches/reason-endpoint.diff')
+    def test_kidney_and_cv_death_values_do_not_prove_mace_value():
+        sources = [{'source_id': 'synthetic-plant', 'text': 'Results were similar for a composite of the kidney-specific components of the primary outcome (hazard ratio, 0.79; 95% CI, 0.66 to 0.94) and for death from cardiovascular causes (hazard ratio, 0.71; 95% CI, 0.56 to 0.89).'}]
+>       assert reason_audit.find_value_in_sources(sources, ['major adverse cardiovascular events', 'death from cardiovascular causes'], 'Major adverse cardiovascular events') is None
+E       AssertionError: assert {'source_id': 'synthetic-plant', 'source_kind': 'held', 'span': 'Results were similar for a composite of the kidney-sp...tio, 0.79; 95% CI, 0.66 to 0.94) and for death from cardiovascular causes (hazard ratio, 0.71; 95% CI, 0.56 to 0.89).'} is None
+E        +  where {'source_id': 'synthetic-plant', 'source_kind': 'held', 'span': 'Results were similar for a composite of the kidney-sp...tio, 0.79; 95% CI, 0.66 to 0.94) and for death from cardiovascular causes (hazard ratio, 0.71; 95% CI, 0.56 to 0.89).'} = <function find_value_in_sources at 0x0000017BC101BB00>([{'source_id': 'synthetic-plant', 'text': 'Results were similar for a composite of the kidney-specific components of t...io, 0.79; 95% CI, 0.66 to 0.94) and for death from cardiovascular causes (hazard ratio, 0.71; 95% CI, 0.56 to 0.89).'}], ['major adverse cardiovascular events', 'death from cardiovascular causes'], 'Major adverse cardiovascular events')
+E        +    where <function find_value_in_sources at 0x0000017BC101BB00> = reason_audit.find_value_in_sources
+
+tests\test_week_regressions_audit.py:70: AssertionError
+_____________ test_every_held_provenance_digest_and_git_attribute _____________
+
+    @pytest.mark.xfail(strict=True, reason='READY-BEHIND-INTEGRATOR: .tmp/patches/held-bytes.diff')
+    def test_every_held_provenance_digest_and_git_attribute():
+        pairs = set()
+        for record in (ROOT / 'outputs/handover').rglob('*.json'):
+            pairs.update(source_pairs(json.loads(record.read_text(encoding='utf-8'))))
+        assert pairs, 'no provenance records discovered'
+        errors = []
+        for rel, digest in sorted(pairs):
+            attr = subprocess.check_output(['git', 'check-attr', 'text', '--', rel], cwd=ROOT, text=True).strip().rsplit(': ', 1)[-1]
+            try:
+                verify_bytes(ROOT / rel, digest, attr)
+            except (AssertionError, OSError) as exc:
+                errors.append(str(exc))
+>       assert not errors, '\n'.join(errors)
+E       AssertionError: C:\mh-w-RG\outputs\handover\rob2_method\rob2_cribsheet.pdf.txt: held bytes require -text
+E         assert 'auto' == 'unset'
+E           
+E           - unset
+E           + auto
+E         C:\mh-w-RG\outputs\handover\rob2_method\rob2_full_guidance.pdf.txt: held bytes require -text
+E         assert 'auto' == 'unset'
+E           
+E           - unset
+E           + auto
+E       assert not ["C:\\mh-w-RG\\outputs\\handover\\rob2_method\\rob2_cribsheet.pdf.txt: held bytes require -text\nassert 'auto' == 'uns...\rob2_method\\rob2_full_guidance.pdf.txt: held bytes require -text\nassert 'auto' == 'unset'\n  \n  - unset\n  + auto"]
+
+tests\test_week_regressions_custody.py:59: AssertionError
+______________ test_selected_endpoint_controls_composite_warning ______________
+
+    @pytest.mark.xfail(strict=True, reason='READY-BEHIND-INTEGRATOR: .tmp/patches/composite-selection.diff')
+    def test_selected_endpoint_controls_composite_warning():
+>       assert not disclosure(ROOT / 'harness/pipeline.py')
+E       assert not "pooled trials use each trial's OWN primary composite; component sets differ across trials (varying extra components across trials: unstable angina) — the pooled estimate mixes composite definitions (disclosed, not adjusted)"
+E        +  where "pooled trials use each trial's OWN primary composite; component sets differ across trials (varying extra components across trials: unstable angina) — the pooled estimate mixes composite definitions (disclosed, not adjusted)" = disclosure((WindowsPath('C:/mh-w-RG') / 'harness/pipeline.py'))
+
+tests\test_week_regressions_composite.py:31: AssertionError
+______________ test_cached_queries_must_match_requested_contract ______________
+
+tmp_path = WindowsPath('C:/mh-w-RG/.tmp/pytest-of-mahmo/pytest-6/test_cached_queries_must_match0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000017BC1099310>
+
+    @pytest.mark.xfail(strict=True, reason='READY-BEHIND-INTEGRATOR: .tmp/patches/search-contract.diff')
+    def test_cached_queries_must_match_requested_contract(tmp_path, monkeypatch):
+>       requirement(fetch, tmp_path, monkeypatch)
+
+tests\test_week_regressions_search_contract.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = <module 'harness.fetch' from 'C:\\mh-w-RG\\harness\\fetch.py'>
+tmp_path = WindowsPath('C:/mh-w-RG/.tmp/pytest-of-mahmo/pytest-6/test_cached_queries_must_match0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000017BC1099310>
+
+    def requirement(module, tmp_path, monkeypatch):
+        path = tmp_path / 'records.json'
+        path.write_text(json.dumps({'records': [], 'pubmed_queries': ['12345678[uid]']}), encoding='utf-8')
+        monkeypatch.setattr(module, 'cache_path', lambda slug: str(path))
+        monkeypatch.setattr(module, 'run', lambda config: pytest.fail('network acquisition attempted'))
+>       with pytest.raises(ValueError, match='query contract'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+tests\test_week_regressions_search_contract.py:13: Failed
+=========================== short test summary info ===========================
+FAILED tests/test_week_regressions_audit.py::test_generic_adverse_events_do_not_prove_specific_harm[Gastrointestinal adverse events]
+FAILED tests/test_week_regressions_audit.py::test_generic_adverse_events_do_not_prove_specific_harm[Adverse events leading to discontinuation]
+FAILED tests/test_week_regressions_audit.py::test_missing_candidates_merge_family_and_report_identity
+FAILED tests/test_week_regressions_audit.py::test_comparator_only_text_cannot_establish_current_pool_overlap
+FAILED tests/test_week_regressions_audit.py::test_title_omission_requires_review_not_ineligibility
+FAILED tests/test_week_regressions_audit.py::test_kidney_and_cv_death_values_do_not_prove_mace_value
+FAILED tests/test_week_regressions_custody.py::test_every_held_provenance_digest_and_git_attribute
+FAILED tests/test_week_regressions_composite.py::test_selected_endpoint_controls_composite_warning
+FAILED tests/test_week_regressions_search_contract.py::test_cached_queries_must_match_requested_contract
+9 failed, 5 passed in 22.93s

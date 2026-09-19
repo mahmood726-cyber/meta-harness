@@ -52,8 +52,10 @@ def test_PLANT_noac_not_machine_exposed_refused_when_text_enumerates_four_trials
     fixed = _applied_to_prefix("noac-vs-warfarin-af-stroke")
     assert fixed["comparator_trial_set"]["status"] == "MEASURED"
     assert fixed["comparator_trial_set"]["k"] == 4
-    assert fixed["overlap"]["shared_k"] == 4
-    assert fixed["overlap"]["shared_k_measurement"] == "MEASURED"
+    # Enumeration proves the comparator set, not its intersection with a current pool.
+    assert fixed["overlap"]["shared_k"] == comparator_second_pass.UNMEASURED_CURRENT_POOL
+    assert fixed["overlap"]["shared_k"].startswith("not exactly verifiable")
+    assert fixed["overlap"]["shared_k_measurement"] == "NOT_MEASURED"
     assert fixed["quantity_match"]["status"] == "SAME_SET_DIFFERENT_QUANTITY"
 
 

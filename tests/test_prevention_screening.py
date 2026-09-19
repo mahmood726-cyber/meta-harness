@@ -32,9 +32,12 @@ def test_PLANT_title_omits_population_excluded_without_flag():
     # A trial whose title names only the drug, with the enrolled population in the ABSTRACT only.
     rec = _rec("Colchicine to Prevent Postoperative Arrhythmias",
                "In adults undergoing cardiac surgery, colchicine vs placebo reduced POAF.")
-    # PLANT: without the prevention flag, the population is sought in title/conditions only -> X2.
+    # Preserve the pre-fix plant: title omission alone used to produce X2.
+    from test_week_regressions_audit import load_pin
+    assert load_pin('base/harness/screen.py').screen_record(rec, _INC_NO_FLAG, [])[:2] == ('exclude', 'X2')
+    # Without the prevention flag, abstract-only eligibility now requires adjudication.
     d, rule, reason, span = S.screen_record(rec, _INC_NO_FLAG, [])
-    assert d == "exclude" and rule == "X2", (d, rule)
+    assert d == "review" and rule == "MANUAL_REVIEW", (d, rule)
 
 
 def test_prevention_flag_includes_via_abstract_population():
@@ -47,11 +50,12 @@ def test_prevention_flag_includes_via_abstract_population():
 
 def test_intervention_anchor_still_blocks_incidental():
     # prevention override must NOT let in a trial that is not actually OF the intervention: the
-    # intervention-in-title anchor still applies (drug not in title -> X3).
+    # intervention-in-title anchor still prevents automatic inclusion. An abstract-only
+    # mention now requires adjudication rather than establishing an exclusion.
     rec = _rec("A Trial of Beta-Blockers After Cardiac Surgery",
                "Colchicine was mentioned as prior therapy; cardiac surgery patients enrolled.")
     d, rule, reason, span = S.screen_record(rec, _INC_PREVENTION, [])
-    assert d == "exclude" and rule == "X3", (d, rule)
+    assert d == "review" and rule == "MANUAL_REVIEW", (d, rule)
 
 
 def test_colchicine_postop_config_models_enrolled_population():

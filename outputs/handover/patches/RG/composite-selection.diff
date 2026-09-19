@@ -1,0 +1,11 @@
+--- a/harness/pipeline.py
++++ b/harness/pipeline.py
+@@ -1556,7 +1556,7 @@
+             _pid = str(t.get("id", "")).replace("PMID ", "").strip() or str(t.get("label", ""))
+             _ab = (rec_by_id.get(_pid) or rec_by_id.get(t.get("label")) or {}).get("abstract", "")
+             _ch_srcs.append({
+-                "source": (_ab or "") + " " + (t.get("source", "") or ""),
++                "source": t.get('endpoint_definition_span') or t.get('source') or '',
+                 "endpoint_definition": t.get("endpoint_definition"),
+             })
+         _ch = extract.composite_heterogeneity(spec.get("name", ""), _ch_srcs)

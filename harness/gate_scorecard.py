@@ -328,6 +328,21 @@ def _registry_data(root: str) -> dict[str, Any]:
     return data
 
 
+def register_gates(root, incoming: dict[str, Any]) -> None:
+    """Merge a lane registry by identity; refuse conflicting rows before writing."""
+    root = _root_path(root)
+    current = _registry_data(root)
+    merged = _entries_by_id(current)
+    for gid, entry in _entries_by_id(incoming).items():
+        if gid in merged and merged[gid] != entry:
+            raise ValueError(f"gate scorecard conflict: {gid}")
+        merged[gid] = entry
+    current["gates"] = [merged[gid] for gid in sorted(merged)]
+    path = os.path.join(root, *REGISTRY_PATH.split("/"))
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(json.dumps(current, indent=1, sort_keys=True) + "\n")
+
+
 def _target_paths(root: str) -> list[str]:
     _ = root
     return [
@@ -1129,9 +1144,14 @@ def _print_migration_report(report: dict[str, Any]) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Check or migrate the gate scorecard.")
     parser.add_argument("--migrate-v1-to-v2", action="store_true", help="Mechanically migrate registry/gate_scorecard.json.")
+    parser.add_argument("--merge-registry", help="Merge lane gates by gate_id; refuse conflicting rows.")
     args = parser.parse_args(argv)
 
     root = _root_path(os.getcwd())
+    if args.merge_registry:
+        with open(args.merge_registry, encoding="utf-8") as f:
+            register_gates(root, json.load(f))
+        return 0
     if args.migrate_v1_to_v2:
         _print_migration_report(migrate_v1_to_v2(root))
         return 0

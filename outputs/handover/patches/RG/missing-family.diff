@@ -1,0 +1,24 @@
+--- a/harness/known_missing.py
++++ b/harness/known_missing.py
+@@ -24,7 +24,7 @@
+ 
+ 
+ def _clean_id(value: Any) -> str:
+-    return str(value or "").replace("PMID ", "").strip()
++    return str(value or "").replace("PMID ", "").split(" · ")[-1].strip()
+ 
+ 
+ def _record_for(row: dict[str, Any], rec_by_id: dict[str, dict[str, Any]]) -> dict[str, Any]:
+@@ -199,10 +199,12 @@
+         for x in ((review.get("screening") or {}).get("records") or [])
+         if x.get("decision") == "include"
+     }
++    aliases = {str(row.get("trial_family_id")): key for key, row in screen.items() if row.get("trial_family_id")}
+     out: list[dict[str, Any]] = []
+     seen: set[str] = set()
+     for x in signals.get("known_eligible_missing") or []:
+         key = str(x.get("trial") or "").strip()
++        key = aliases.get(key, key)
+         if key and key not in seen:
+             seen.add(key)
+             out.append({

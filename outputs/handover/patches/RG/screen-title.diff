@@ -1,0 +1,20 @@
+--- a/harness/screen.py
++++ b/harness/screen.py
+@@ -426,6 +426,8 @@
+                 _span(pop_haystack_raw, bad))
+     population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
+     popok = _has(pop_haystack, population_any)
++    if population_any and not popok and _has(_text(rec), population_any):
++        return ("review", "MANUAL_REVIEW", "Population appears in abstract; source eligibility adjudication required.", raw_all)
+     if population_any and not popok:
+         _where = "title/conditions/abstract" if inc.get("prevention") else "title/conditions"
+         return ("exclude", "X2",
+@@ -440,6 +442,8 @@
+     itext = _poptext(rec) if anchor else text
+     itext_raw = raw_pop if anchor else raw_all
+     matched_int = matched_intervention(rec, inc)
++    if inc.get("intervention_any") and not matched_int and _has_intervention(text, inc["intervention_any"]):
++        return ("review", "MANUAL_REVIEW", "Intervention appears in abstract; source eligibility adjudication required.", raw_all)
+     if inc.get("intervention_any") and not matched_int:
+         return ("exclude", "X3",
+                 f"the randomised intervention is not {inc['intervention_any']} "

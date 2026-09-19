@@ -38,7 +38,8 @@ from harness.pipeline import _dedup  # noqa: E402
 from scripts import measure_search_v2_measurement as m1  # noqa: E402
 from scripts.measure_search_recall import _score_topic  # noqa: E402
 
-RUN_DATE = m1.RUN_DATE
+RUN_DATE = m1.FIRST_RUN_DATE
+from scripts.search_v2_run import _dated_label
 EVD = m1.EVIDENCE_DIR
 FIRST_MEASUREMENT = m1.CANDIDATE_PATH
 FIRST_DEVELOPMENT = ROOT / "outputs" / "search_v2" / f"candidates-{RUN_DATE}.json"
@@ -367,7 +368,7 @@ def update_fixes(label: str, payload: dict, line2: str, register: dict | None) -
     files = [f"docs/evidence/search-v2-measurement-2026-09-15/{n}" for n in (
         "README.md", f"06-run-{label}-states.txt", f"07-recall-21-{label}.txt", f"08-routes-{label}.txt",
         f"09-register-search-v2-{label}.txt", f"10-reverse-direction-{label}.txt", f"11-before-after-32-{label}.txt")]
-    cand = f"outputs/search_v2/candidates-{RUN_DATE}{label}-all.json"
+    cand = f"outputs/search_v2/candidates-{_dated_label(label)}-all.json"
     store = _load(m1.FIXES_PATH)
     entry = next(e for e in store["entries"] if e.get("fix_id") == m1.FIX_ID)
     head = _git("rev-parse", "HEAD")
@@ -413,7 +414,7 @@ def main(argv=None) -> int:
     line1 = next((e["seal"]["configuration"]["corpus_line"] for e in line1["entries"] if e.get("fix_id") == m1.FIX_ID), "run 1 corpus line not found in registry/fixes.json")
     runs = []
     for label in labels:
-        cand_path = ROOT / "outputs" / "search_v2" / f"candidates-{RUN_DATE}{label}-all.json"
+        cand_path = ROOT / "outputs" / "search_v2" / f"candidates-{_dated_label(label)}-all.json"
         payload = _load(cand_path)
         score2 = m1.score_candidate_file(cand_path)
         # one register artefact per run label, kept beside each other
@@ -421,7 +422,7 @@ def main(argv=None) -> int:
         register = _load(reg_path) if reg_path.exists() else None
         if register is None and REGISTER_V2.exists():
             cur = _load(REGISTER_V2)
-            if str(cur.get("summary", {}).get("snapshot", "")).startswith(f"{RUN_DATE}{label}-"):
+            if str(cur.get("summary", {}).get("snapshot", "")).startswith(f"{_dated_label(label)}-"):
                 register = cur
         line = corpus_line(score2, payload, label, register)
         _write(EVD / f"06-run-{label}-states.txt", render_states(payload, label))

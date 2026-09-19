@@ -1,0 +1,323 @@
+{
+  "_doc": "Inventory of model-derived stages and artifacts. The ordinary verify/page build does not make live model calls; it reads committed artifacts and deterministic code paths. Some scripts can call models when manually invoked, especially on cache misses or explicit Codex execution.",
+  "generated_on": "2026-09-14",
+  "stages": [
+    {
+      "name": "embedding_candidate_generation",
+      "where": "harness/embed.py:embed; harness/embed.py:rank; scripts/dual_screen.py:main; scripts/deficit.py:_classify; scripts/rob2_build.py:_match",
+      "provider": "Hugging Face sentence-transformers local runtime",
+      "model_identifier": "sentence-transformers/all-MiniLM-L6-v2",
+      "live_at_build_time": false,
+      "live_call_path": "Only manual scripts using harness.embed with allow_model=True can load the model on cache miss.",
+      "snapshot_pinning": {
+        "pinned": false,
+        "reason": "MODEL_ID has no Hugging Face revision or weights digest; cache misses load the current resolved model."
+      },
+      "parameters": {
+        "dimension": 384,
+        "normalize": true,
+        "dual_screen_threshold": 0.3,
+        "deficit_and_rob_match_threshold": 0.45
+      },
+      "tool_config": {
+        "cache": "cache/embeddings.json",
+        "cache_key": "sha1(MODEL_ID + '|' + text)"
+      },
+      "prompt_in_tree": false,
+      "prompt_digest": null,
+      "archive": {
+        "archived": true,
+        "location": "cache/embeddings.json",
+        "request_archive": false,
+        "response_archive": "committed embedding vectors"
+      }
+    },
+    {
+      "name": "screening_model_adjudication",
+      "where": "harness/pipeline.py:_with_model_adjudication; scripts/screen_adjudicate.py:main",
+      "provider": "external/manual adjudicator record",
+      "model_identifier": "adjudicator",
+      "live_at_build_time": false,
+      "live_call_path": "scripts/screen_adjudicate.py writes supplied judgments; it does not call a model itself.",
+      "snapshot_pinning": {
+        "pinned": false,
+        "reason": "Committed records identify only 'adjudicator' and do not include provider snapshot or immutable version."
+      },
+      "parameters": {
+        "eligible_if_judgment": "include",
+        "conflict_review": true
+      },
+      "tool_config": {
+        "cache_pattern": "cache/<topic>/screen_adjudication.json",
+        "consumed_by": "harness.pipeline._with_model_adjudication"
+      },
+      "prompt_in_tree": false,
+      "prompt_digest": null,
+      "archive": {
+        "archived": true,
+        "location": "cache/*/screen_adjudication.json",
+        "request_archive": false,
+        "response_archive": "committed adjudication JSON"
+      }
+    },
+    {
+      "name": "outcome_identity_codex",
+      "where": "scripts/outcome_judgments.py:_ask_codex; harness/pipeline.py:_load_outcome_judgments",
+      "provider": "OpenAI Codex CLI",
+      "model_identifier": "codex-default unless --model is supplied",
+      "live_at_build_time": false,
+      "live_call_path": "Live call only when scripts/outcome_judgments.py is invoked with --codex.",
+      "snapshot_pinning": {
+        "pinned": false,
+        "reason": "Default Codex model is resolved by the CLI unless --model is supplied; committed cache does not include immutable snapshot."
+      },
+      "parameters": {
+        "temperature": "not recorded",
+        "mode": "codex exec -s read-only --skip-git-repo-check",
+        "output_contract": "JSON object with answer and reason"
+      },
+      "tool_config": {
+        "cache_pattern": "cache/<topic>/outcome_judgments.json",
+        "prompt_template_source": "scripts/outcome_judgments.py:build_prompt"
+      },
+      "prompt_in_tree": false,
+      "prompt_digest": null,
+      "archive": {
+        "archived": true,
+        "location": "cache/balanced-crystalloids-vs-saline-mortality/outcome_judgments.json",
+        "request_archive": false,
+        "response_archive": "committed judgment JSON"
+      }
+    },
+    {
+      "name": "locate_span_identity_fable",
+      "where": "harness/locate.py:load_judgments; harness/pipeline.py evidence-span consumers",
+      "provider": "Fable",
+      "model_identifier": "fable-5.1",
+      "live_at_build_time": false,
+      "live_call_path": "No live call in harness/locate.py; committed locate_judgments.json files are replayed.",
+      "snapshot_pinning": {
+        "pinned": false,
+        "reason": "Artifacts record fable-5.1 but no immutable provider snapshot or model weights digest."
+      },
+      "parameters": {
+        "temperature": "not recorded",
+        "date_recorded": "2026-09-12 in committed artifacts"
+      },
+      "tool_config": {
+        "cache_pattern": "cache/<topic>/locate_judgments.json"
+      },
+      "prompt_in_tree": false,
+      "prompt_digest": null,
+      "archive": {
+        "archived": true,
+        "location": "cache/*/locate_judgments.json",
+        "request_archive": false,
+        "response_archive": "committed location judgments with prompt_hash fields"
+      }
+    },
+    {
+      "name": "dual_extraction_fable",
+      "where": "scripts/dual_assemble.py:main; scripts/dual_collect.py:main; scripts/dual_compare.py:main; docs/dual_extraction.json",
+      "provider": "Fable",
+      "model_identifier": "Fable family, exact snapshot not recorded in committed output",
+      "live_at_build_time": false,
+      "live_call_path": "Scripts assemble and collect files; raw model work happened outside the committed tree under ignored scratchpad files.",
+      "snapshot_pinning": {
+        "pinned": false,
+        "reason": "Committed dual extraction output does not include immutable model snapshot, prompt archive, or request archive."
+      },
+      "parameters": {
+        "task": "blind dual extraction of spans and numeric fields",
+        "seed": "not recorded"
+      },
+      "tool_config": {
+        "derived_outputs": [
+          "docs/dual_extraction.json",
+          "docs/dual_extract.json"
+        ],
+        "scratchpad_inputs": "scratchpad/dual_* (not committed)"
+      },
+      "prompt_in_tree": false,
+      "prompt_digest": null,
+      "archive": {
+        "archived": true,
+        "location": "docs/dual_extraction.json and docs/dual_extract.json",
+        "request_archive": false,
+        "response_archive": "derived committed outputs only"
+      }
+    },
+    {
+      "name": "blind_error_rate_codex_checker",
+      "where": "scripts/error_rate_compare.py:main; scripts/error_rate_pass2.py:main; docs/error_rate.json; docs/error_rate_sample.json",
+      "provider": "OpenAI Codex",
+      "model_identifier": "GPT-5 as documented in docs/crossfamily.json",
+      "live_at_build_time": false,
+      "live_call_path": "No live model call in compare scripts; they read ignored scratchpad checker outputs and write committed summaries.",
+      "snapshot_pinning": {
+        "pinned": false,
+        "reason": "The checker model snapshot and raw request/response archive are not committed."
+      },
+      "parameters": {
+        "sample_method": "blind offline checker records",
+        "temperature": "not recorded"
+      },
+      "tool_config": {
+        "scratchpad_inputs": "scratchpad/errorrate/* (not committed)",
+        "derived_outputs": [
+          "docs/error_rate.json",
+          "docs/error_rate_sample.json"
+        ]
+      },
+      "prompt_in_tree": false,
+      "prompt_digest": null,
+      "archive": {
+        "archived": true,
+        "location": "docs/error_rate.json and docs/error_rate_sample.json",
+        "request_archive": false,
+        "response_archive": "committed summary outputs only"
+      }
+    },
+    {
+      "name": "crossfamily_gemini_reextraction",
+      "where": "scripts/crossfamily_compare.py:main; docs/crossfamily_raw.json; docs/crossfamily.json",
+      "provider": "Google Gemini via AGY",
+      "model_identifier": "Gemini 3.1 Pro (High) via AGY",
+      "live_at_build_time": false,
+      "live_call_path": "No live call in the compare script; it consumes committed or scratchpad raw outputs.",
+      "snapshot_pinning": {
+        "pinned": false,
+        "reason": "Model label is provider/version text, not an immutable snapshot digest; prompts in scratchpad are not committed."
+      },
+      "parameters": {
+        "reasoning_level": "High",
+        "blinding": "blind re-extraction against page values"
+      },
+      "tool_config": {
+        "raw_output": "docs/crossfamily_raw.json",
+        "derived_output": "docs/crossfamily.json",
+        "prompt_archive": "scratchpad/xfam/prompts (not committed)"
+      },
+      "prompt_in_tree": false,
+      "prompt_digest": null,
+      "archive": {
+        "archived": true,
+        "location": "docs/crossfamily_raw.json and docs/crossfamily.json",
+        "request_archive": false,
+        "response_archive": "committed raw and derived JSON"
+      }
+    },
+    {
+      "name": "crossfamily_blind_judge_gemini",
+      "where": "docs/crossfamily_judge.json; docs/fair_judge.json",
+      "provider": "Google Gemini via AGY",
+      "model_identifier": "Gemini 3.1 Pro (High) via AGY",
+      "live_at_build_time": false,
+      "live_call_path": "No live call in build; committed judge artifacts are replayed.",
+      "snapshot_pinning": {
+        "pinned": false,
+        "reason": "Judge artifacts do not bind an immutable provider snapshot or raw request archive."
+      },
+      "parameters": {
+        "reasoning_level": "High",
+        "blinding": "same blinded page-vs-comparator pairs"
+      },
+      "tool_config": {
+        "outputs": [
+          "docs/crossfamily_judge.json",
+          "docs/fair_judge.json"
+        ],
+        "scratchpad_inputs": "scratchpad/xjudge (not committed)"
+      },
+      "prompt_in_tree": false,
+      "prompt_digest": null,
+      "archive": {
+        "archived": true,
+        "location": "docs/crossfamily_judge.json and docs/fair_judge.json",
+        "request_archive": false,
+        "response_archive": "committed judge JSON"
+      }
+    },
+    {
+      "name": "definition_audit_gemini_fable",
+      "where": "docs/definition_audit.json",
+      "provider": "Google Gemini via AGY and Fable",
+      "model_identifier": "Gemini 3.1 Pro (High) via AGY plus Fable",
+      "live_at_build_time": false,
+      "live_call_path": "No live call in build; committed definition audit artifact is replayed.",
+      "snapshot_pinning": {
+        "pinned": false,
+        "reason": "Audit artifact names model families but does not pin immutable snapshots or commit raw prompts."
+      },
+      "parameters": {
+        "scope": "every pooled row",
+        "raw_outputs": "scratchpad/defaudit (not committed)"
+      },
+      "tool_config": {
+        "output": "docs/definition_audit.json"
+      },
+      "prompt_in_tree": false,
+      "prompt_digest": null,
+      "archive": {
+        "archived": true,
+        "location": "docs/definition_audit.json",
+        "request_archive": false,
+        "response_archive": "committed audit JSON"
+      }
+    },
+    {
+      "name": "rob_spancheck_fable",
+      "where": "docs/rob_spancheck.json; harness/index.py render consumers",
+      "provider": "Fable",
+      "model_identifier": "Fable cross-family checker",
+      "live_at_build_time": false,
+      "live_call_path": "No live call in build; committed RoB span-check artifact is replayed.",
+      "snapshot_pinning": {
+        "pinned": false,
+        "reason": "Artifact identifies Fable checker but not an immutable model snapshot."
+      },
+      "parameters": {
+        "seed": 20260912,
+        "sample": "cross-family RoB span-check sample"
+      },
+      "tool_config": {
+        "output": "docs/rob_spancheck.json"
+      },
+      "prompt_in_tree": false,
+      "prompt_digest": null,
+      "archive": {
+        "archived": true,
+        "location": "docs/rob_spancheck.json",
+        "request_archive": false,
+        "response_archive": "committed span-check JSON"
+      }
+    },
+    {
+      "name": "blind_screen_reproducibility",
+      "where": "scripts/screen_reproducibility.py:main; docs/screen_reproducibility.json",
+      "provider": "model-assisted external screener",
+      "model_identifier": "not recorded in committed artifact",
+      "live_at_build_time": false,
+      "live_call_path": "No live call in script; it reads ignored scratchpad screen outputs and writes a committed summary.",
+      "snapshot_pinning": {
+        "pinned": false,
+        "reason": "Model/provider identifier, snapshot, and raw prompts are not recorded in the committed artifact."
+      },
+      "parameters": {
+        "task": "independent blind screener versus committed rule screener",
+        "raw_outputs": "scratchpad/screen/out_scr_*.json (not committed)"
+      },
+      "tool_config": {
+        "output": "docs/screen_reproducibility.json"
+      },
+      "prompt_in_tree": false,
+      "prompt_digest": null,
+      "archive": {
+        "archived": true,
+        "location": "docs/screen_reproducibility.json",
+        "request_archive": false,
+        "response_archive": "committed summary JSON"
+      }
+    }
+  ]
+}

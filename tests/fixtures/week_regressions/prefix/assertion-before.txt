@@ -1,0 +1,30 @@
+FF.                                                                      [100%]
+================================== FAILURES ===================================
+_______________ test_proposition_status_reflects_contradictions _______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001A2DC129810>
+
+    def test_proposition_status_reflects_contradictions(monkeypatch):
+        monkeypatch.setattr(propositions, 'check_propositions', lambda review: [{'code': 'PLANT_CONTRADICTION'}])
+        result = propositions.check_document({})
+        assert result['contradictions']
+>       assert result['checked'] is False
+E       assert True is False
+
+tests\test_week_regressions_assertion_status.py:9: AssertionError
+___________ test_compatibility_status_reflects_remaining_violations ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001A2DC129220>
+
+    def test_compatibility_status_reflects_remaining_violations(monkeypatch):
+        monkeypatch.setattr(compat_check, 'check', lambda *args: [{'code': 'PLANT_CONTRADICTION'}])
+        result = compat_check.enrich({})['compat_underlying']
+        assert result['post_fix_violations']
+>       assert result['checked'] is False
+E       assert True is False
+
+tests\test_week_regressions_assertion_status.py:16: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_week_regressions_assertion_status.py::test_proposition_status_reflects_contradictions
+FAILED tests/test_week_regressions_assertion_status.py::test_compatibility_status_reflects_remaining_violations
+2 failed, 1 passed in 6.36s
