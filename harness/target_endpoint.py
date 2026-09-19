@@ -35,14 +35,14 @@ BINDING_NONE = "unbound"
 
 _NAMED_COMPOSITE_RX = re.compile(
     r"\b(?:co-?primary|primary|(?:key |first |second |main )?secondary)\s+(?:[a-z][a-z-]*\s+){0,3}?"
-    r"(?:outcome|end[\s-]?point)s?\b|\bmace\b|major adverse cardiovascular event|major cardiovascular event"
+    r"(?:outcome|end[\s-]?point|measure|variable)s?\b|\bmace\b|major adverse cardiovascular event|major cardiovascular event"
     r"|\bcomposite (?:outcome|end[\s-]?point)\b|\bprimary composite\b"
     r"|\b(?:major|serious) (?:adverse )?vascular events?\b",
     re.I,
 )
 _QUALIFIER_RX = re.compile(
     r"\b(?:(?P<sec>(?:key |first |second |main )?secondary)|(?P<pri>co-?primary|primary|second primary|first primary))\s+"
-    r"(?:[a-z][a-z-]*\s+){0,3}?(?:outcome|end[\s-]?point)s?\b", re.I)
+    r"(?:[a-z][a-z-]*\s+){0,3}?(?:outcome|end[\s-]?point|measure|variable)s?\b", re.I)
 _MACE_RX = re.compile(r"\bmace\b|major adverse cardiovascular|major cardiovascular|(?:major|serious) (?:adverse )?vascular event", re.I)
 
 PUBLISHED_TARGET_EFFECT = "published_target_effect"
@@ -194,7 +194,7 @@ def _definition_sentences(abstract: str) -> list[dict[str, Any]]:
         out.append({
             "span": x.strip(),
             "components": comps,
-            "primary": bool(q and q.group("pri")) or bool(extract._ANCHOR_RX.search(xl)),
+            "primary": bool(q and q.group("pri")) or bool(extract._ANCHOR_RX.search(xl)) or bool(re.search(r"\bprimary (?:[a-z-]+ ){0,3}?(?:measure|variable)s?\b", xl)),
             "secondary": bool(q and q.group("sec")),
             "mace": bool(_MACE_RX.search(xl)),
         })
@@ -232,12 +232,20 @@ def bind_result_span(abstract: str, result_span: str | None) -> dict[str, Any]:
         wants_secondary = bool(q and q.group("sec"))
         wants_primary = (not wants_secondary) and (bool(extract._ANCHOR_RX.search(rl)) or "primary composite" in rl)
         pool = defs
-        if wants_mace and any(d["mace"] for d in defs):
+        if wants_mace:
             pool = [d for d in defs if d["mace"]]
-        elif wants_secondary and any(d["secondary"] for d in defs):
+        elif wants_secondary:
             pool = [d for d in defs if d["secondary"]]
-        elif wants_primary and any(d["primary"] and not d["secondary"] for d in defs):
+        elif wants_primary:
             pool = [d for d in defs if d["primary"] and not d["secondary"]]
+        if not pool and (wants_mace or wants_secondary or wants_primary):
+            # the result names a specific endpoint and the held text defines no such endpoint: UNBOUND. The
+            # earlier fallback to ALL definitions bound STRENGTH's "primary end point" result to a CONCLUSIONS
+            # sentence naming MACE (served 237e9094 as EXACT 3-point while the abstract's primary measure is a
+            # 5-point composite) and ORIGIN's "major vascular events" result to the CV-death primary.
+            return {"binding": BINDING_NONE, "endpoint_result_span": rs,
+                    "endpoint_definition_span": None, "components": set(),
+                    "binding_reason": "named endpoint has no definition span in the held text"}
         sets = {frozenset(d["components"]) for d in pool}
         if len(sets) == 1:
             d = pool[0]
