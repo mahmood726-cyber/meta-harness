@@ -144,6 +144,9 @@ def attach_strands(review: dict[str, Any], root: str) -> None:
     changing any strand number.
     """
     slug = review.get("slug")
+    facts = regulatory_facts(root, slug)
+    if facts:
+        review["held_regulatory_facts"] = facts
     for path in glob.glob(os.path.join(root, "docs", "*_strands.json")):
         try:
             doc = json.load(open(path, encoding="utf-8"))
@@ -168,6 +171,78 @@ def attach_strands(review: dict[str, Any], root: str) -> None:
                                               f" | not pooled on this outcome; pooled in declared strand(s) "
                                               f"{', '.join(strands)}").strip(" |")
         break
+
+
+def regulatory_fact(root, source, decision, adjudications):
+    """Held custody, extraction and proposal; never an admission to a pool.
+
+    Off-tree documents cannot establish held custody. Digests and verbatim
+    conflict spans fail closed. PDF pages are derived from extraction markers.
+    """
+    from pathlib import Path
+    import subprocess
+    path = source.get("document_path") or (source.get("held") or {}).get("held_in_tree")
+    if not path:
+        return None
+    data = subprocess.check_output(["git", "show", "HEAD:" + path], cwd=root)
+    digest = hashlib.sha256(data).hexdigest()
+    if digest != source.get("document_sha256") or hashlib.sha256((Path(root) / path).read_bytes()).hexdigest() != digest:
+        raise ValueError(f"held document digest mismatch: {path}")
+    text_path = source.get("extracted_text_path") or (source.get("held") or {}).get("extracted_text")
+    raw = (Path(root) / text_path).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != source.get("extracted_text_sha256"):
+        raise ValueError(f"extracted text digest mismatch: {text_path}")
+    # Offsets in the handover use universal-newline text, while the digest
+    # above covers the original bytes (including CRLF where present).
+    text = raw.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    def page_at(offset):
+        pages = re.findall(r"^(?:### PAGE |===== page )(\d+)(?: =====)?\s*$", text[:offset], re.M)
+        if not pages:
+            raise ValueError(f"no PDF page marker before span: {text_path}")
+        return int(pages[-1])
+    spans = []
+    preserved = (decision.get("source_conflict") or {}).get("spans_preserved") or {}
+    for kind, item in preserved.items():
+        span = item["span"]
+        offset = item["offset"]
+        if text[offset:offset + len(span)] != span:
+            raise ValueError(f"source span mismatch: {path} {kind}")
+        spans.append({"kind": kind, "span": span, "offset": offset,
+                      "pdf_page": page_at(offset)})
+    if not spans and decision.get("span"):
+        span = decision.get("table_span_verbatim_lines") or decision["span"]
+        offset = text.find(span)
+        # Older extraction records serialize tables with pipes; retain them
+        # explicitly as transcriptions, without claiming verbatim validation.
+        spans.append({"kind": "result", "span": span,
+                      "pdf_page": page_at(offset) if offset >= 0 else decision["span_page_pdf"],
+                      "verbatim_located": offset >= 0})
+    proposals = [a for a in adjudications if a.get("nct") == decision.get("nct")]
+    adj = proposals[-1] if proposals else {}
+    return {"trial": decision["trial"], "trial_key": _norm_id(decision.get("trial_key")),
+            "nct": decision.get("nct"), "document_path": path, "document_sha256": digest,
+            "extracted_text_path": text_path, "extracted_text_sha256": source["extracted_text_sha256"],
+            "decision": decision, "spans": spans,
+            "adjudication": {"id": adj.get("id"), "state": "PROPOSED", "countersigned": False},
+            "admissible": False}
+
+
+def regulatory_facts(root, slug):
+    """Read topic-matched manifests only; do not infer custody from trial names."""
+    from pathlib import Path
+    facts = []
+    for path in sorted((Path(root) / "outputs/handover").glob("*/regulatory_sources*.json")):
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        if manifest.get("slug") != slug:
+            continue
+        adj_path = path.parent / "ADJUDICATIONS.json"
+        adjudications = json.loads(adj_path.read_text(encoding="utf-8")).get("decisions", []) if adj_path.exists() else []
+        for source in manifest.get("sources", []):
+            for decision in source.get("decisions", []):
+                fact = regulatory_fact(root, source, decision, adjudications)
+                if fact:
+                    facts.append(fact)
+    return facts
 
 
 def _strand_names_by_member(strands_doc: dict[str, Any] | None) -> dict[str, list[str]]:

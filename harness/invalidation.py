@@ -32,6 +32,28 @@ from . import design_key
 from . import identity as identity_mod
 from . import missing_effect
 
+NOT_DISCOVERED = "NOT_DISCOVERED"
+DISCOVERED_NOT_RETRIEVED = "DISCOVERED_NOT_RETRIEVED"
+SOURCE_RETRIEVED_NOT_EXTRACTED = "SOURCE_RETRIEVED_NOT_EXTRACTED"
+HELD_NOT_YET_EXTRACTED = SOURCE_RETRIEVED_NOT_EXTRACTED
+EXTRACTED_SOURCE_CONFLICT = "EXTRACTED_SOURCE_CONFLICT"
+EXTRACTED_NOT_ADMISSIBLE = "EXTRACTED_NOT_ADMISSIBLE"
+POOLABLE = "POOLABLE"
+
+
+def missing_state(fact=None, *, discovered=True):
+    if not fact:
+        return DISCOVERED_NOT_RETRIEVED if discovered else NOT_DISCOVERED
+    decision = fact.get("decision") or {}
+    if decision.get("source_conflict"):
+        return EXTRACTED_SOURCE_CONFLICT
+    if decision.get("decision") == "EXTRACTED":
+        adj = fact.get("adjudication") or {}
+        if fact.get("admissible") and adj.get("countersigned") and adj.get("state") != "PROPOSED":
+            return POOLABLE
+        return EXTRACTED_NOT_ADMISSIBLE
+    return SOURCE_RETRIEVED_NOT_EXTRACTED
+
 
 def _primary(core):
     outs = core.get("outcomes") or []
@@ -323,6 +345,15 @@ def assess(core, signals=None):
     #     pooled estimate is known-incomplete). Names carried even before external PMID verification.
     kem = [x for x in (signals.get("known_eligible_missing") or [])
            if x.get("status") != "verification_failed"]
+    held = core.get("held_regulatory_facts") or []
+    held_keys = {str(f.get(k)) for f in held for k in ("trial", "trial_key", "nct") if f.get(k)}
+    kem = [x for x in kem if not any(_norm_id(x.get(k)) in held_keys for k in ("trial", "id", "pmid", "nct"))]
+    for fact in held:
+        state = missing_state(fact)
+        if state != POOLABLE:
+            reasons.append({"code": state, "trial": fact["trial"],
+                            "detail": f"{fact['trial']}: committed source held; extraction/adjudication pending; not pooled",
+                            "document_path": fact["document_path"], "document_sha256": fact["document_sha256"]})
     if kem:
         kem_with_effect = [
             x for x in kem

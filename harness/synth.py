@@ -62,6 +62,18 @@ def method_text(scale: str) -> str:
     return METHOD_RATIO
 
 
+def membership_demonstration(studies, proposed, scale):
+    """Production estimator, with proposed membership kept outside the primary."""
+    def result(rows):
+        r = pool(rows, scale=scale)
+        values = {k: getattr(r, k) for k in
+                  ("k", "estimate", "ci_low", "ci_high", "tau2", "Q", "pi_low", "pi_high", "ci_provenance")}
+        values["i2"] = max(0, (r.Q - (r.k - 1)) / r.Q) * 100 if r.Q else 0
+        return values
+    return {"state": "HETEROGENEITY_MEMBERSHIP_SENSITIVE", "label": "DEMONSTRATION",
+            "primary": result(studies), "proposed": result([*studies, proposed])}
+
+
 @dataclass
 class Study:
     """A poolable study. Provide EITHER a 2x2 (ai,n1i,ci,n2i) OR an effect+CI.

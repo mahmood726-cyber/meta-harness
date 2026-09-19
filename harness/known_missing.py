@@ -248,6 +248,14 @@ def build(review: dict[str, Any], signals: dict[str, Any],
         row = _source_value(review.get("slug", ""), primary, cand, rec_by_id, records)
         row["why_eligible"] = cand.get("why_eligible") or cand.get("reason") or ""
         row["sensitivity_label"] = "SENSITIVITY"
+        from .invalidation import missing_state
+        fact = next((f for f in review.get("held_regulatory_facts", [])
+                     if row["trial_key"] in {f.get("trial"), f.get("trial_key"), f.get("nct")}), None)
+        if fact:
+            row.update(value_status=missing_state(fact), missing_class=missing_state(fact),
+                       held_fact=fact, name=fact["trial"],
+                       verify_basis="held document digest verified; proposed adjudication is not admission",
+                       why_eligible="eligible trial with a held regulatory source; not pooled pending adjudication")
         if row["value_status"] == IN_COMMITTED_SOURCE and base_studies:
             study = _study_from_trial(row, scale)
             sens = _pool_result(base_studies + [study], scale)
@@ -285,3 +293,12 @@ def build(review: dict[str, Any], signals: dict[str, Any],
     else:
         panel["headline_conclusion_effect"] = "NOT_COMPUTABLE"
     primary["known_missing_sensitivity"] = panel
+    for row in rows:
+        fact = row.get("held_fact") or {}
+        if (fact.get("decision") or {}).get("source_conflict") and base_studies:
+            effect = fact["decision"]["effect"]
+            from .synth import membership_demonstration
+            panel["membership_demonstration"] = membership_demonstration(
+                base_studies, Study(label=fact["trial"], effect=effect["estimate"],
+                                    ci_low=effect["ci_low"], ci_high=effect["ci_high"], measure=scale), scale)
+            panel["membership_demonstration"]["adjudication"] = fact["adjudication"]

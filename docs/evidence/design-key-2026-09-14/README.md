@@ -1,6 +1,6 @@
 # Design key tranche (2026-09-14)
 
-**Fix state (orthogonal fields rule): LANDED / NONE / INSTANCE / STALE** - generated from TRANCHE-design-key; stale dependencies: GATE_GAPS.md, README.md, docs/evidence/CAPTIONS.json, +15 more
+**Fix state (orthogonal fields rule): LANDED / NONE / INSTANCE / STALE** - generated from TRANCHE-design-key; stale dependencies: GATE_GAPS.md, README.md, docs/evidence/CAPTIONS.json, +16 more
 
 Base commit: `4a2283e9f6bca55101bc918bd5319a963ca7e4ec`.
 

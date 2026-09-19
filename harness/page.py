@@ -415,6 +415,23 @@ def _known_missing_sensitivity_panel(o: dict) -> str:
                 val = "source-backed value"
             val += (f"<div class='muted'>{_e(r.get('source_ref'))}: {_e(r.get('source_span'))}</div>"
                     f"<div class='muted'>{_e(r.get('verify_basis'))}</div>")
+        elif r.get("held_fact"):
+            fact = r["held_fact"]
+            adj = fact.get("adjudication") or {}
+            val = (f"<code>{_e(fact['document_path'])}</code>"
+                   f"<div>sha256: {_e(fact['document_sha256'])}</div>"
+                   f"<div>adjudication: {_e(adj.get('id'))} PROPOSED (not countersigned)</div>"
+                   "<div>Not pooled. Endpoint identity follows the definition span, never a CI fingerprint.</div>")
+            for span in fact.get("spans", []):
+                val += (f"<div>{_e(span['kind'])}; PDF page {_e(span['pdf_page'])}</div>"
+                        "<pre class='source-span'>" + _e(span['span']).replace(" \n", "&#32;\n") + "</pre>")
+                if span.get("verbatim_located") is False:
+                    val += "<div>Table transcription; not a verbatim-located span.</div>"
+            decision = fact.get("decision") or {}
+            counts = decision.get("counts") or {}
+            if counts.get("n1i") and counts.get("n2i"):
+                val += (f"<div>Reported events: {_e(counts.get('ai'))}/{_e(counts['n1i'])} "
+                        f"vs {_e(counts.get('ci'))}/{_e(counts['n2i'])}</div>")
         elif r.get("value_status") == "IN_SOURCE_DIFFERENT_ESTIMAND":
             val = "different estimand in committed source; no target-estimand number used"
         else:
@@ -453,6 +470,24 @@ def _known_missing_sensitivity_panel(o: dict) -> str:
             combined_html += (f"<p class='note'>Prediction interval "
                               f"{_num(combined.get('pi_low'))}-{_num(combined.get('pi_high'))}.</p>")
     comp = f"<p class='note'>Endpoint components: <code>{_e(kms.get('components'))}</code></p>" if kms.get("components") else ""
+    demo = kms.get("membership_demonstration")
+    if demo:
+        metrics = ("k", "estimate", "ci_low", "ci_high", "tau2", "i2", "pi_low", "pi_high")
+        combined_html += ("<section class='membership-demonstration'><h4>DEMONSTRATION: "
+                          f"{_e(demo['state'])}</h4>"
+                          f"<p>under the PROPOSED adjudication -- not a result; the primary k={_e(demo['primary']['k'])} pool is unchanged</p>"
+                          "<p>Paule-Mandel tau²; HKSJ on t with k-1 df, log scale. I² is a percentage.</p>"
+                          "<table><tr><th>Metric</th><th>Primary</th><th>Primary plus proposed ELIXA</th></tr>")
+        def _demo_num(v, metric):
+            # rendering precision only: the object keeps the full floats the regression test recomputes
+            if v is None or isinstance(v, int):
+                return _e(v)
+            return _e(f"{float(v):.4g}" if metric == "tau2" else f"{float(v):.3f}")
+        for metric in metrics:
+            combined_html += (f"<tr><th>{_e(metric)}</th>"
+                              f"<td>{_demo_num(demo['primary'][metric], metric)}</td>"
+                              f"<td>{_demo_num(demo['proposed'][metric], metric)}</td></tr>")
+        combined_html += "</table></section>"
     return (
         "<div class='kms-panel' id='known-missing-sensitivity'>"
         f"<h3>{_e(kms.get('heading') or 'Known eligible trials not in this pool, and what they would do')}</h3>"
