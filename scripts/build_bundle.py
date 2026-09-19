@@ -46,7 +46,9 @@ import argparse
 import hashlib
 import json
 import os
+import random
 import re
+import shutil
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -63,6 +65,48 @@ from harness.canonical import canonical_json, review_core, sha256_text  # noqa: 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
+FORMAT_REVISION = "3.1"
+FORMAT_CHANGELOG = [
+    "3.1 (2026-09-19, ninth audit): canonicalisation scheme published beside every canonical digest and both digest scopes of "
+    "records.json stated (raw file vs canonical JSON -- same object, different procedures; a shared container digest across rows is "
+    "correct, identity = container digest + deterministic selector); selector resolution rule stated and enforced (0 or >=2 matches "
+    "refuse); per-evidence-object digest descriptors (subject / procedure / selector / representation the quotation must occur in); "
+    "coordinate units on every location; endpoint_compatibility COMPATIBLE_WITH_DECLARED_VARIATION with per-trial "
+    "undetermined_death_counted_as_cv; statistical_input per row (interval construction, SE reported vs derived, approximation "
+    "named); heterogeneity precision statement; the verifier served at the path this file names, with its non-claims stated.",
+    "3   (2026-09-19): recursive resolvability, four representations, preservation-backed coverage_status, per-row admission objects, stdlib verifier",
+    "2   (2026-09-19): two identities per document, value_index span-match ladder, source block",
+    "1   (2026-09-19): every certificate input served byte-identical; licence-held inputs declared",
+]
+CANONICALISATION = {
+    "scheme": "Python json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(',', ':')), encoded as UTF-8",
+    "not": "RFC 8785 (JCS). Differences that matter: number formatting follows Python repr (e.g. 1e-05, 0.1), ensure_ascii=False keeps "
+           "non-ASCII code points literal, key order is Python's default string sort (code point order).",
+    "applies_to": "every digest whose digest_method says 'canonical JSON': records_file_sha256, retrieved_corpus_sha256, "
+                  "retrieval_ledger_sha256, trial_family_map_sha256, rob_object_sha256, config_sha256, extraction_objects_sha256, "
+                  "analysis_code_sha256, screening_ledger_sha256, review_sha256, release_sha256, and the AACT row_hash_method",
+    "warning": "an auditor who assumes a different canonicalisation gets a mismatch and reports a defect that is not there; "
+               "reproduce with the scheme above before concluding anything",
+}
+SELECTOR_RULE = {
+    "scheme": "<container ref>#PMID-<identifier>",
+    "resolution": "the UNIQUE element of container['records'] whose id_type == 'pmid' and str(id) == <identifier>",
+    "zero_matches": "REFUSE",
+    "two_or_more_matches": "REFUSE -- never silently take the first",
+    "quotation_scope": "a quotation attributed to the selected record must occur in THAT record's designated representation "
+                       "(PARSED_SOURCE = the record's 'abstract' string, or NORMALIZED_SOURCE derived from it), not merely somewhere in the container",
+}
+COORDINATES = {
+    "unit": "Unicode code points of the decoded Python str (NOT bytes)",
+    "range": "half-open [start, end): representation[start:end] == text",
+    "encoding_for_digests": "UTF-8 encoding of the str; representation_sha256 is over those bytes",
+    "note": "text position (code points) and data position (bytes) are not interchangeable; every location names its representation digest",
+}
+DIGEST_MISMATCH_POLICY = ("never resolve a digest mismatch by replacing the stored digest with the current one. Establish what changed "
+                          "first: a formatting-only change and the deletion of a safety paragraph require opposite responses. A decision may "
+                          "legitimately stay bound to an older retrievable source; what must never happen is silently substituting a new "
+                          "source while keeping the old verification claim.")
+Z975 = 1.959963984540054
 GENERATED_FILES = ("review.json", "index.html", "CERTIFICATE.json", "REPRODUCTION.json")
 
 # Inputs we hold but may not redistribute. PMC separates ACCESS from REUSE: the reference and the verification
@@ -135,6 +179,19 @@ VOCABULARY = {
         "outcome_understood": "the interpretation is supported by context and adjudication (NOT: that a matching hash makes the clinical judgment true)",
     },
     "question_states": ["PASS", "FAIL", "NOT_RETAINED", "NOT_ASSESSED_BY_BUNDLE", "PRODUCER_ASSERTION"],
+    "endpoint_compatibility_states": {
+        "HOMOGENEOUS": "every pooled row states literally the same definition on the dimension",
+        "COMPATIBLE_WITH_DECLARED_VARIATION": "rows differ on a dimension the protocol explicitly permits to vary; the variation is recorded per "
+                                              "trial so an authorised difference stays distinguishable from literal identity and from an "
+                                              "unauthorised difference",
+        "HETEROGENEOUS_UNAUTHORISED": "rows differ on a dimension the protocol does not permit to vary",
+    },
+    "statistical_input": {
+        "interval_construction": ["WALD", "GROUP_SEQUENTIAL_ADJUSTED", "EXACT", "UNSTATED_IN_HELD_REPRESENTATION"],
+        "se_source": ["REPORTED_BY_SOURCE", "DERIVED_FROM_CI"],
+        "rule": "a CI-to-SE conversion silently assumes the interval's construction method; where the construction is not Wald or is "
+                "unstated, the appropriateness of the conversion is NOT_ESTABLISHED and is recorded, not resolved, here",
+    },
     "resolvability_states": {
         "RESOLVED_IN_PACKAGE": "the referenced bytes are served by this package at the stated path",
         "RESOLVED_BODY_IN_ACQUISITIONS": "a digest-only reference whose body is served under acquisitions/ and re-hashes to the digest",
@@ -541,6 +598,50 @@ def documents(slug: str, records: dict, acq: dict, art_by_ref: dict, reg: dict, 
 # verification rows (primary pool) and absence claims
 # ----------------------------------------------------------------------------------------------------------------
 
+def resolve_selector(records: dict, pmid: str) -> dict:
+    """Apply SELECTOR_RULE: the unique record with id_type pmid and id == pmid. Raises on 0 or >=2 matches."""
+    matches = [r for r in records.get("records", []) if str(r.get("id_type", "pmid")).lower() == "pmid" and str(r.get("id")) == str(pmid)]
+    if len(matches) != 1:
+        raise ValueError(f"selector #PMID-{pmid} resolves to {len(matches)} records; the rule refuses anything but exactly one")
+    return matches[0]
+
+
+_UNDETERMINED = re.compile(r"(undetermined|unknown)[^.;]{0,40}(cause|death)|death[^.;]{0,60}(undetermined|unknown)", re.I)
+
+
+def undetermined_death_field(definition_span) -> dict:
+    """Per-trial `undetermined_death_counted_as_cv` read mechanically from the trial's OWN definition span: 'yes' when the
+    span says undetermined/unknown-cause death is counted; 'unstated' otherwise. Never 'no' from an abstract that is silent."""
+    m = _UNDETERMINED.search(definition_span or "")
+    return {"value": "yes" if m else "unstated", "evidence": m.group(0) if m else None,
+            "basis": "trial's own endpoint_definition_span" if definition_span else "no definition span held"}
+
+
+def statistical_input(t: dict, pmid: str) -> dict:
+    """What the CI-to-SE conversion assumed for this row, and whether that assumption is established."""
+    se = ((t.get("study_effect") or {}).get("standard_error"))
+    rec = {
+        "se_source": "DERIVED_FROM_CI",
+        "approximation": f"Wald: SE_log = (ln ci_high - ln ci_low) / (2 * {Z975}) -- assumes a normal-theory interval",
+        "se_log_used": se,
+        "interval_construction": "UNSTATED_IN_HELD_REPRESENTATION",
+        "construction_basis": "the held representation (abstract) does not state how the interval was constructed",
+        "approximation_appropriate": "NOT_ESTABLISHED",
+        "standing_rule": "do not replace a source's adjusted interval with an unadjusted analysis to obtain a convenient SE; obtain a "
+                         "compatible source-reported estimate/SE pair, or justify the approximation with a sensitivity analysis",
+    }
+    if pmid == "40162642":
+        rec.update({
+            "interval_construction": "GROUP_SEQUENTIAL_ADJUSTED",
+            "construction_basis": "ninth external audit, from the publication's Statistical Analysis section (PDF p.3): primary HR, CI and "
+                                  "P were adjusted for the group-sequential design using likelihood-ratio ordering. NOT verified by this "
+                                  "bundle against a held representation (the full text is not held); recorded as an external observation",
+            "approximation_appropriate": "NOT_ESTABLISHED -- the Wald conversion assumes a construction the source did not use; no "
+                                         "numerical distortion of the pool has been quantified; sensitivity analysis NOT_DONE (recorded, not resolved)",
+        })
+    return rec
+
+
 def _tokens(x) -> list[str]:
     if x is None:
         return []
@@ -554,13 +655,15 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
     lexicon_blob = _git("rev-parse", "HEAD:harness/target_endpoint.py")
     fam_by_id = {f.get("family_id"): f for f in review.get("trial_families", []) if isinstance(f, dict)}
     rec_ref = f"cache/{slug}/records.json"
-    by_pmid = {str(r["id"]): r for r in records.get("records", [])}
+    rec_raw_sha = art_by_ref[rec_ref]["sha256"]
+    rec_canon_sha = art_by_ref[rec_ref]["declared_digest"]
     rows = []
     for t in primary["trials"]:
         trial_id = str(t.get("id") or "")
         pmid = trial_id.replace("PMID ", "")
         doc = docs_by_id.get(f"pubmed:{pmid}") or {}
-        parsed = (by_pmid.get(pmid) or {}).get("abstract") or ""
+        selected = resolve_selector(records, pmid)      # refuses on 0 or >=2 matches
+        parsed = selected.get("abstract") or ""
         span = t.get("endpoint_result_span") or ""
         loc = locate(span, parsed)
         fam = fam_by_id.get(t.get("family_id")) or {}
@@ -596,19 +699,37 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
         rows.append({
             "outcome_effect_id": t.get("outcome_effect_id"),
             "trial": {"label": t.get("label"), "id": trial_id, "family_id": t.get("family_id"), "trial_family_id": t.get("trial_family_id")},
-            "source": {"source_id": f"pubmed:{pmid}", "document_ref": f"{rec_ref}#PMID-{pmid}", "source_sha256": art_by_ref[rec_ref]["sha256"],
+            "source": {"source_id": f"pubmed:{pmid}", "document_ref": f"{rec_ref}#PMID-{pmid}",
+                       "selector": {"scheme": SELECTOR_RULE["scheme"], "resolution": SELECTOR_RULE["resolution"], "matches": 1,
+                                    "selected_identifier": {"id_type": selected.get("id_type", "pmid"), "id": str(selected.get("id"))}},
+                       "identity": "container digest + deterministic selector (rows drawn from one container legitimately share its digest)",
+                       "digests": [
+                           {"subject": "container file", "ref": rec_ref, "procedure": "sha256 of the raw served bytes", "value": rec_raw_sha,
+                            "shared_by": "every row whose document_ref names this container"},
+                           {"subject": "container as JSON object", "ref": rec_ref, "procedure": "sha256 of canonical JSON (see canonicalisation)",
+                            "value": rec_canon_sha, "certificate_key": "records_file_sha256"},
+                           {"subject": "selected record's decoded abstract text (PARSED_SOURCE)", "procedure": "sha256 of the UTF-8 encoding of the str",
+                            "value": sha256_text(parsed)},
+                           {"subject": "selected record's NORMALIZED_SOURCE", "procedure": "sha256 of UTF-8 of normalize(PARSED_SOURCE) per the transformation manifest",
+                            "value": sha256_text(normalize(parsed))}],
+                       "source_sha256": rec_raw_sha,
                        "representation": "PARSED_SOURCE", "representation_sha256": sha256_text(parsed),
+                       "quotation_must_occur_in": "the selected record's PARSED_SOURCE (or its NORMALIZED_SOURCE with the manifest applied), never elsewhere in the container",
+                       "parent_evidence": (doc.get("representations", {}).get("ACQUIRED_SOURCE") or {}).get("ref"),
                        "acquisition_uri": f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={pmid}&retmode=xml",
                        "coverage_status": cov},
             "span": {"source_id": f"pubmed:{pmid}", "parent_representation": loc.get("parent"),
                      "representation_sha256": sha256_text(parsed) if loc.get("parent") == "PARSED_SOURCE" else sha256_text(normalize(parsed)),
-                     "start": loc.get("start"), "end": loc.get("end"), "text": span, "match": loc["match"], "normalisation": loc.get("normalisation"),
+                     "start": loc.get("start"), "end": loc.get("end"), "coordinates": COORDINATES,
+                     "text": span, "match": loc["match"], "normalisation": loc.get("normalisation"),
                      "definition_span": t.get("endpoint_definition_span")},
             "endpoint": {"components": components, "components_canonical": components_canonical, "canonical_components": canonical_components, "target_endpoint_class": t.get("target_endpoint_class"),
+                         "undetermined_death_counted_as_cv": undetermined_death_field(t.get("endpoint_definition_span")),
                          "population": {"analysis_set": t.get("analysis_set"), "population_age": t.get("population_age")},
                          "intervention": t.get("intervention_ontology"), "comparator": "placebo (topic config)", "timepoint": t.get("follow_up_window"),
                          "estimand": (t.get("effect_object") or {}).get("canonical_estimand"), "endpoint_definition": t.get("endpoint_definition")},
             "effect": {**effect, "number_tokens": tokens, "study_effect": t.get("study_effect")},
+            "statistical_input": statistical_input(t, pmid),
             "decision": {"selected_candidate": t.get("selected_estimator"), "selection_rule": t.get("selection_rule"), "rejected_alternatives": t.get("alternatives"),
                          "endpoint_binding": t.get("endpoint_binding"), "endpoint_binding_reason": t.get("endpoint_binding_reason"),
                          "adjudication_status": t.get("endpoint_admissibility"), "family_identity_state": t.get("family_identity_state"),
@@ -659,11 +780,73 @@ def absence_claims(slug: str, review: dict, docs_by_id: dict) -> list[dict]:
 # pooled reference (canonical path) and resolvability walk
 # ----------------------------------------------------------------------------------------------------------------
 
+def endpoint_compatibility(review: dict, rows: list) -> dict:
+    primary = next(o for o in review["outcomes"] if o.get("primary"))
+    proto_path = ROOT / "protocols" / (review["slug"] + ".md")
+    protocol = proto_path.read_text(encoding="utf-8") if proto_path.exists() else ""
+    line = next((ln.strip() for ln in protocol.splitlines() if "undetermined death as cardiovascular death" in ln), "NOT FOUND IN PROTOCOL TEXT")
+    per_trial = {r["trial"]["id"]: r["endpoint"]["undetermined_death_counted_as_cv"] for r in rows}
+    values = {v["value"] for v in per_trial.values()}
+    direction = next((d for d in ((primary.get("compat_direction") or {}).get("dimensions") or []) if d.get("dimension") == "endpoint_definition"), {})
+    return {
+        "dimension": "endpoint_definition / undetermined_death_counted_as_cv",
+        "state": "COMPATIBLE_WITH_DECLARED_VARIATION" if len(values) > 1 else "HOMOGENEOUS",
+        "declared_variation": "undetermined_death_counted_as_cv: yes/no/unstated",
+        "protocol_permission": line,
+        "per_trial": per_trial,
+        "trials_stay_pooled": True,
+        "page_label": (primary.get("endpoint_canonical") or {}).get("status"),
+        "page_direction_audit": direction.get("key_direction"),
+        "note": "the page collapses an accepted variation into HOMOGENEOUS while its own direction audit says " + str(direction.get("key_direction")) +
+                "; those are different things. The bundle records the variation per trial from each trial's OWN definition span, so an authorised "
+                "difference stays distinguishable from literal identity and from an unauthorised difference. Attribution is per span: the "
+                "'including unknown causes' wording is REWIND's (31189511), 'cardiovascular or undetermined causes' is AMPLITUDE-O's (34215025).",
+    }
+
+
+def heterogeneity_statement(primary: dict, res, inputs: list) -> dict:
+    """The page says 'tau^2 = 4.448e-05 (non-zero; not 0)'. tau^2 is positive only because Q exceeds df by a hair, and the
+    inputs are two-decimal published limits. Measured here: re-pool over inputs perturbed uniformly within their printed
+    rounding (+/- half a unit in the last printed place), seeded, and report how often Paule-Mandel returns tau^2 = 0."""
+    k = res.k
+    rng = random.Random(20260919)
+    n, zero, hrs, uppers = 2000, 0, [], []
+
+    def places(x):
+        sx = repr(float(x))
+        return len(sx.split(".")[1]) if "." in sx else 0
+
+    for _ in range(n):
+        studies = []
+        for i in inputs:
+            e, lo, hi = i["effect"], i["ci_low"], i["ci_high"]
+            he, hl, hh = 0.5 * 10 ** -max(places(e), 2), 0.5 * 10 ** -max(places(lo), 2), 0.5 * 10 ** -max(places(hi), 2)
+            studies.append(synth.Study(label=i["id"], effect=e + rng.uniform(-he, he), ci_low=lo + rng.uniform(-hl, hl), ci_high=hi + rng.uniform(-hh, hh)))
+        r = synth.pool(studies, scale=res.scale)
+        zero += (r.tau2 == 0.0)
+        hrs.append(r.estimate)
+        uppers.append(r.ci_high)
+    return {
+        "page_statement": f"tau^2 = {primary['result'].get('tau2')} (rendered as non-zero)",
+        "Q": res.Q, "df": k - 1, "Q_minus_df": res.Q - (k - 1),
+        "input_precision": "published point estimates and 95% limits printed to two decimals (one limit to one decimal); the pool inherits that precision",
+        "rounding_sensitivity": {"method": f"{n} seeded (20260919) uniform perturbations of every input within +/- half a unit of its printed last place (minimum two decimals), re-pooled by the canonical path",
+                                 "fraction_tau2_zero": zero / n, "pooled_hr_range": [min(hrs), max(hrs)], "max_ci_upper": max(uppers),
+                                 "finding_untouched": max(uppers) < 1.0},
+        "honest_statement": f"tau^2 ~= {res.tau2:.3g} from published rounded inputs; effectively zero and rounding-sensitive (Q exceeds df by "
+                            f"{res.Q - (k - 1):.3f}; {100 * zero / n:.0f}% of within-rounding input sets give tau^2 = 0 under Paule-Mandel). "
+                            "The pooled HR and the CI below 1 are not sensitive to this.",
+        "rule": "the precision of an output cannot exceed the precision of its inputs; a boundary estimator (tau^2 >= 0) turns input rounding into a categorical claim",
+    }
+
+
 def pooled_reference(review: dict) -> dict:
     primary = next(o for o in review["outcomes"] if o.get("primary"))
     studies = [synth.Study(label=str(t["id"]), effect=t["effect"], ci_low=t["ci_low"], ci_high=t["ci_high"]) for t in primary["trials"]]
     res = synth.pool(studies, scale=primary["trials"][0].get("scale", "HR"))
+    inputs = [{"id": str(t["id"]), "effect": t["effect"], "ci_low": t["ci_low"], "ci_high": t["ci_high"]} for t in primary["trials"]]
     return {"outcome": primary["name"], "k": res.k, "scale": res.scale,
+            "heterogeneity": heterogeneity_statement(primary, res, inputs),
             "inputs": [{"id": str(t["id"]), "effect": t["effect"], "ci_low": t["ci_low"], "ci_high": t["ci_high"]} for t in primary["trials"]],
             "method": "log-scale inverse-variance random effects; yi = ln(effect), se = (ln(ci_high) - ln(ci_low)) / (2 * 1.959963984540054); "
                       "Paule-Mandel tau^2 by bisection on Q_gen(tau^2) = k-1 (tol 1e-10; upper bound doubled from 1 until F(hi) <= 0; 200 iterations); "
@@ -855,6 +1038,7 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
         if _text_attr(f["path"]) != "unset":
             problems.append(f"{f['path']}: acquisition file is not -text")
     supporting = {f["path"].removeprefix("docs/"): f for f in acq["files"]}
+    supporting["scripts/verify_bundle.py"] = {"path": "docs/scripts/verify_bundle.py"}
 
     if not problems:
         for dst, data in to_write:
@@ -879,7 +1063,32 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
     vrows, vmeta = verification_rows(slug, review, docs_by_id, art_by_ref, records)
     aclaims = absence_claims(slug, review, docs_by_id)
     pooled = pooled_reference(review)
+    compat = endpoint_compatibility(review, vrows)
     walk = resolvability_walk(slug, art_by_ref, acq, supporting, reg)
+
+    # the verifier must be fetchable from the surface the bundle is served from, byte-identical to the repository copy
+    ver_src = ROOT / "scripts" / "verify_bundle.py"
+    ver_dst = ROOT / "docs" / "scripts" / "verify_bundle.py"
+    ver_bytes = ver_src.read_bytes()
+    if not ver_dst.exists() or ver_dst.read_bytes() != ver_bytes:
+        if check_only:
+            problems.append("docs/scripts/verify_bundle.py is absent or differs from scripts/verify_bundle.py -- the verifier the bundle names must be served byte-identical")
+        elif not problems:
+            ver_dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ver_src, ver_dst)
+    if _text_attr("docs/scripts/verify_bundle.py") != "unset":
+        problems.append("docs/scripts/verify_bundle.py is not -text")
+    verifier_file = {"path": "docs/scripts/verify_bundle.py", "sha256": _sha256(ver_bytes), "bytes": len(ver_bytes), "role": "the verifier this bundle names; standard library only"}
+    rec_raw = (ROOT / "cache" / slug / "records.json").read_bytes()
+    digest_scopes = {
+        "object": f"cache/{slug}/records.json",
+        "note": "three independently reproducible digests over one file; a reader who applies the wrong one gets a mismatch and reports a defect that is not there",
+        "scopes": [
+            {"subject": "raw served bytes", "procedure": "sha256(bytes)", "value": _sha256(rec_raw), "appears_as": "artefacts[].sha256; verification_rows[].source.source_sha256; verified_*.json document_sha256"},
+            {"subject": "whole file as JSON object", "procedure": "sha256(canonical JSON)", "value": sha256_text(canonical_json(json.loads(rec_raw))), "appears_as": "CERTIFICATE.json records_file_sha256"},
+            {"subject": "obj['records'] only", "procedure": "sha256(canonical JSON)", "value": sha256_text(canonical_json(json.loads(rec_raw)["records"])), "appears_as": "CERTIFICATE.json retrieved_corpus_sha256; retrieval_ledger.json snapshot.records_sha256"},
+        ],
+    }
 
     review_files = []
     for name in sorted(os.listdir(review_dir)):
@@ -897,7 +1106,13 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
     n_lic = sum(1 for a in artefacts if a["state"] == "NOT_IN_PACKAGE_LICENCE")
     bundle = {
         "schema_version": SCHEMA_VERSION,
+        "format_revision": FORMAT_REVISION,
+        "format_changelog": FORMAT_CHANGELOG,
         "slug": slug,
+        "canonicalisation": CANONICALISATION,
+        "selector_rule": SELECTOR_RULE,
+        "coordinates": COORDINATES,
+        "digest_scopes": [digest_scopes],
         "purpose": "The input to an independent verifier: every object CERTIFICATE.json commits a digest to (declared digest, served path, "
                    "byte length); every evidential document in four immutable representations with the transforms named and a "
                    "preservation record where an acquisition is retained; every primary-pool row as source/span/endpoint/effect/"
@@ -922,6 +1137,7 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
             "independence": "copies produced from the same cached representation are not independent confirmations; where a publisher and an "
                             "indexing-service version differ, both are preserved and the discrepancy recorded (documents[*].preservation_record)",
             "immutability": "acquisition objects are append-only; a correction is a new dated directory; decisions keep the evidence they were made against",
+            "digest_mismatch_policy": DIGEST_MISMATCH_POLICY,
         },
         "certificate_unmodified": True,
         "certificate": {"served_path": f"reviews/{slug}/CERTIFICATE.json", "bytes": len(cert_bytes), "sha256_of_file": _sha256(cert_bytes),
@@ -943,17 +1159,28 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
                    "resolvability": walk["edge_counts"]},
         "artefacts": artefacts,
         "acquisitions": acq["manifests"],
-        "supporting_files": acq["files"],
+        "supporting_files": acq["files"] + [verifier_file],
         "documents": docs,
+        "endpoint_compatibility": compat,
         "verification_rows": vrows,
         "absence_claims": aclaims,
         "pooled_reference": pooled,
         "resolvability": walk,
         "review_files": review_files,
         "canonical_json": "json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(',', ':')) encoded as UTF-8",
-        "verifier": "scripts/verify_bundle.py (standard library only; no harness import): checks every artefact and supporting-file digest, every "
-                    "predicate of every verification row, the asymmetric rule on every absence claim, reproduces pooled_reference.expected to 1e-9, "
-                    "and with --corrupt <pmid> <limb> demonstrates that one corrupted limb makes exactly that row inadmissible",
+        "verifier": {
+            "served_path": "scripts/verify_bundle.py",
+            "served_url": SITE_ROOT + "scripts/verify_bundle.py",
+            "sha256": verifier_file["sha256"], "bytes": verifier_file["bytes"],
+            "requirements": "Python 3.9+ standard library only; no harness import; run: python verify_bundle.py --url " + SITE_ROOT + " --slug " + slug,
+            "checks": "every artefact and supporting-file digest; release_sha256 and review_sha256; every predicate of every verification row; the "
+                      "selector rule; the asymmetric rule on every absence claim from a recomputed preservation record; pooled_reference.expected to 1e-9; "
+                      "--corrupt <pmid> <limb> shows one corrupted limb makes exactly that row inadmissible",
+            "does_not_check": "that any acquired or cached representation faithfully preserves the upstream publication (SOUL's cache is known to omit "
+                              "the HbA1c entry range, follow-up and the safety sentence); that the source set is complete; that the clinical "
+                              "interpretation is right; and the PRODUCTION admission path -- no production falsification test has been executed by "
+                              "anyone; the verifier checks the bundle, not the producer's gate",
+        },
         "regenerate": f"python scripts/acquire_bundle_evidence.py {slug} (only if new acquisitions are needed); commit any page rebuild; "
                       f"python scripts/build_bundle.py {slug}; tests/test_bundle.py refuses a stale bundle",
     }

@@ -73,3 +73,13 @@ def test_corrupting_the_shared_container_fails_every_row_that_depends_on_it(base
     """records.json is one container for all abstracts; damaging it must not be silent for any row."""
     rep = _run("--corrupt", "40162642", "container")
     assert all(r["final"] == "INADMISSIBLE" for r in rep["rows"])
+
+
+def test_verifier_reports_its_non_claims_and_reproduces_digest_scopes(baseline):
+    assert baseline["digest_scopes_reproduced"] is True
+    assert "the production admission path" in baseline["not_checked"]
+    assert baseline["endpoint_compatibility"]["state"] == "COMPATIBLE_WITH_DECLARED_VARIATION"
+    assert baseline["statistical_input"]["PMID 40162642"]["interval_construction"] == "GROUP_SEQUENTIAL_ADJUSTED"
+    src = open(VERIFIER, encoding="utf-8").read()
+    assert "does NOT check" in src and "PRODUCTION admission path" in src
+    assert len(src.splitlines()) <= 500

@@ -1,6 +1,58 @@
 {
  "schema_version": 3,
+ "format_revision": "3.1",
+ "format_changelog": [
+  "3.1 (2026-09-19, ninth audit): canonicalisation scheme published beside every canonical digest and both digest scopes of records.json stated (raw file vs canonical JSON -- same object, different procedures; a shared container digest across rows is correct, identity = container digest + deterministic selector); selector resolution rule stated and enforced (0 or >=2 matches refuse); per-evidence-object digest descriptors (subject / procedure / selector / representation the quotation must occur in); coordinate units on every location; endpoint_compatibility COMPATIBLE_WITH_DECLARED_VARIATION with per-trial undetermined_death_counted_as_cv; statistical_input per row (interval construction, SE reported vs derived, approximation named); heterogeneity precision statement; the verifier served at the path this file names, with its non-claims stated.",
+  "3   (2026-09-19): recursive resolvability, four representations, preservation-backed coverage_status, per-row admission objects, stdlib verifier",
+  "2   (2026-09-19): two identities per document, value_index span-match ladder, source block",
+  "1   (2026-09-19): every certificate input served byte-identical; licence-held inputs declared"
+ ],
  "slug": "glp1-ra-mace-t2d",
+ "canonicalisation": {
+  "scheme": "Python json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(',', ':')), encoded as UTF-8",
+  "not": "RFC 8785 (JCS). Differences that matter: number formatting follows Python repr (e.g. 1e-05, 0.1), ensure_ascii=False keeps non-ASCII code points literal, key order is Python's default string sort (code point order).",
+  "applies_to": "every digest whose digest_method says 'canonical JSON': records_file_sha256, retrieved_corpus_sha256, retrieval_ledger_sha256, trial_family_map_sha256, rob_object_sha256, config_sha256, extraction_objects_sha256, analysis_code_sha256, screening_ledger_sha256, review_sha256, release_sha256, and the AACT row_hash_method",
+  "warning": "an auditor who assumes a different canonicalisation gets a mismatch and reports a defect that is not there; reproduce with the scheme above before concluding anything"
+ },
+ "selector_rule": {
+  "scheme": "<container ref>#PMID-<identifier>",
+  "resolution": "the UNIQUE element of container['records'] whose id_type == 'pmid' and str(id) == <identifier>",
+  "zero_matches": "REFUSE",
+  "two_or_more_matches": "REFUSE -- never silently take the first",
+  "quotation_scope": "a quotation attributed to the selected record must occur in THAT record's designated representation (PARSED_SOURCE = the record's 'abstract' string, or NORMALIZED_SOURCE derived from it), not merely somewhere in the container"
+ },
+ "coordinates": {
+  "unit": "Unicode code points of the decoded Python str (NOT bytes)",
+  "range": "half-open [start, end): representation[start:end] == text",
+  "encoding_for_digests": "UTF-8 encoding of the str; representation_sha256 is over those bytes",
+  "note": "text position (code points) and data position (bytes) are not interchangeable; every location names its representation digest"
+ },
+ "digest_scopes": [
+  {
+   "object": "cache/glp1-ra-mace-t2d/records.json",
+   "note": "three independently reproducible digests over one file; a reader who applies the wrong one gets a mismatch and reports a defect that is not there",
+   "scopes": [
+    {
+     "subject": "raw served bytes",
+     "procedure": "sha256(bytes)",
+     "value": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+     "appears_as": "artefacts[].sha256; verification_rows[].source.source_sha256; verified_*.json document_sha256"
+    },
+    {
+     "subject": "whole file as JSON object",
+     "procedure": "sha256(canonical JSON)",
+     "value": "1f575452770dd41d7a869da195ba681639360a8e4e17765fb407f92e272ce1d7",
+     "appears_as": "CERTIFICATE.json records_file_sha256"
+    },
+    {
+     "subject": "obj['records'] only",
+     "procedure": "sha256(canonical JSON)",
+     "value": "1e0282f50c1503c213da9b4ec3a608ac22d639a17f8bffacc5c7474b43c1056e",
+     "appears_as": "CERTIFICATE.json retrieved_corpus_sha256; retrieval_ledger.json snapshot.records_sha256"
+    }
+   ]
+  }
+ ],
  "purpose": "The input to an independent verifier: every object CERTIFICATE.json commits a digest to (declared digest, served path, byte length); every evidential document in four immutable representations with the transforms named and a preservation record where an acquisition is retained; every primary-pool row as source/span/endpoint/effect/decision/admission objects whose predicates a stranger can recompute; every absence claim with the coverage_status of the representation that was searched; and a walk from this file reporting every reference that still ends in a digest with no body.",
  "package_semantics": {
   "complete": "all required files are present and valid (BagIt sense)",
@@ -32,7 +84,8 @@
   ],
   "origin_authentication": "a saved response and its hash establish what was saved, not that it came from the claimed publisher; each ACQUISITION manifest states its trust assumption",
   "independence": "copies produced from the same cached representation are not independent confirmations; where a publisher and an indexing-service version differ, both are preserved and the discrepancy recorded (documents[*].preservation_record)",
-  "immutability": "acquisition objects are append-only; a correction is a new dated directory; decisions keep the evidence they were made against"
+  "immutability": "acquisition objects are append-only; a correction is a new dated directory; decisions keep the evidence they were made against",
+  "digest_mismatch_policy": "never resolve a digest mismatch by replacing the stored digest with the current one. Establish what changed first: a formatting-only change and the deletion of a safety paragraph require opposite responses. A decision may legitimately stay bound to an older retrievable source; what must never happen is silently substituting a new source while keeping the old verification claim."
  },
  "certificate_unmodified": true,
  "certificate": {
@@ -98,6 +151,24 @@
    "NOT_ASSESSED_BY_BUNDLE",
    "PRODUCER_ASSERTION"
   ],
+  "endpoint_compatibility_states": {
+   "HOMOGENEOUS": "every pooled row states literally the same definition on the dimension",
+   "COMPATIBLE_WITH_DECLARED_VARIATION": "rows differ on a dimension the protocol explicitly permits to vary; the variation is recorded per trial so an authorised difference stays distinguishable from literal identity and from an unauthorised difference",
+   "HETEROGENEOUS_UNAUTHORISED": "rows differ on a dimension the protocol does not permit to vary"
+  },
+  "statistical_input": {
+   "interval_construction": [
+    "WALD",
+    "GROUP_SEQUENTIAL_ADJUSTED",
+    "EXACT",
+    "UNSTATED_IN_HELD_REPRESENTATION"
+   ],
+   "se_source": [
+    "REPORTED_BY_SOURCE",
+    "DERIVED_FROM_CI"
+   ],
+   "rule": "a CI-to-SE conversion silently assumes the interval's construction method; where the construction is not Wald or is unstated, the appropriateness of the conversion is NOT_ESTABLISHED and is recorded, not resolved, here"
+  },
   "resolvability_states": {
    "RESOLVED_IN_PACKAGE": "the referenced bytes are served by this package at the stated path",
    "RESOLVED_BODY_IN_ACQUISITIONS": "a digest-only reference whose body is served under acquisitions/ and re-hashes to the digest",
@@ -569,6 +640,12 @@
    "path": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/40162642.xml",
    "sha256": "8f1a9f6bd3f02b08b986a1a9dbbaf7a1f4199191ebc0809907b7b0bf1d8be375",
    "bytes": 76119
+  },
+  {
+   "path": "docs/scripts/verify_bundle.py",
+   "sha256": "7c96a33d12aceb1c51661ccb05e0ea710a82c2c594bcc7b2c9b49509a035da17",
+   "bytes": 26112,
+   "role": "the verifier this bundle names; standard library only"
   }
  ],
  "documents": [
@@ -3015,6 +3092,58 @@
    }
   }
  ],
+ "endpoint_compatibility": {
+  "dimension": "endpoint_definition / undetermined_death_counted_as_cv",
+  "state": "COMPATIBLE_WITH_DECLARED_VARIATION",
+  "declared_variation": "undetermined_death_counted_as_cv: yes/no/unstated",
+  "protocol_permission": "- **Estimand.** Intention-to-treat effect of assignment to GLP-1 RA versus placebo on **time to first** occurrence of cardiovascular death, nonfatal myocardial infarction or nonfatal stroke during the prespecified randomised cardiovascular follow-up. Trial definitions that count **undetermined death as cardiovascular death** are accepted as each trial's prespecified adjudicated definition and recorded per trial in the compatibility key (`undetermined_death_counted_as_cv: yes/no/unstated`); no re-adjudication is attempted.",
+  "per_trial": {
+   "PMID 31185157": {
+    "value": "unstated",
+    "evidence": null,
+    "basis": "trial's own endpoint_definition_span"
+   },
+   "PMID 27633186": {
+    "value": "unstated",
+    "evidence": null,
+    "basis": "trial's own endpoint_definition_span"
+   },
+   "PMID 27295427": {
+    "value": "unstated",
+    "evidence": null,
+    "basis": "trial's own endpoint_definition_span"
+   },
+   "PMID 34215025": {
+    "value": "yes",
+    "evidence": "death from cardiovascular or undetermined",
+    "basis": "trial's own endpoint_definition_span"
+   },
+   "PMID 31189511": {
+    "value": "yes",
+    "evidence": "death from cardiovascular causes (including unknown",
+    "basis": "trial's own endpoint_definition_span"
+   },
+   "PMID 30291013": {
+    "value": "unstated",
+    "evidence": null,
+    "basis": "trial's own endpoint_definition_span"
+   },
+   "PMID 28910237": {
+    "value": "unstated",
+    "evidence": null,
+    "basis": "trial's own endpoint_definition_span"
+   },
+   "PMID 40162642": {
+    "value": "unstated",
+    "evidence": null,
+    "basis": "trial's own endpoint_definition_span"
+   }
+  },
+  "trials_stay_pooled": true,
+  "page_label": "HOMOGENEOUS",
+  "page_direction_audit": "ASSERTED_HOMOGENEOUS_UNDERLYING_HETEROGENEOUS",
+  "note": "the page collapses an accepted variation into HOMOGENEOUS while its own direction audit says ASSERTED_HOMOGENEOUS_UNDERLYING_HETEROGENEOUS; those are different things. The bundle records the variation per trial from each trial's OWN definition span, so an authorised difference stays distinguishable from literal identity and from an unauthorised difference. Attribution is per span: the 'including unknown causes' wording is REWIND's (31189511), 'cardiovascular or undetermined causes' is AMPLITUDE-O's (34215025)."
+ },
  "verification_rows": [
   {
    "outcome_effect_id": "glp1-ra-mace-t2d::3-point major adverse cardiovascular events::PMID 31185157::PMID 31185157",
@@ -3027,9 +3156,47 @@
    "source": {
     "source_id": "pubmed:31185157",
     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-31185157",
+    "selector": {
+     "scheme": "<container ref>#PMID-<identifier>",
+     "resolution": "the UNIQUE element of container['records'] whose id_type == 'pmid' and str(id) == <identifier>",
+     "matches": 1,
+     "selected_identifier": {
+      "id_type": "pmid",
+      "id": "31185157"
+     }
+    },
+    "identity": "container digest + deterministic selector (rows drawn from one container legitimately share its digest)",
+    "digests": [
+     {
+      "subject": "container file",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of the raw served bytes",
+      "value": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+      "shared_by": "every row whose document_ref names this container"
+     },
+     {
+      "subject": "container as JSON object",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of canonical JSON (see canonicalisation)",
+      "value": "1f575452770dd41d7a869da195ba681639360a8e4e17765fb407f92e272ce1d7",
+      "certificate_key": "records_file_sha256"
+     },
+     {
+      "subject": "selected record's decoded abstract text (PARSED_SOURCE)",
+      "procedure": "sha256 of the UTF-8 encoding of the str",
+      "value": "3e485a263b7cfdbb60ca961b99e6defb00a0001f85a22d009fccd34a1326842c"
+     },
+     {
+      "subject": "selected record's NORMALIZED_SOURCE",
+      "procedure": "sha256 of UTF-8 of normalize(PARSED_SOURCE) per the transformation manifest",
+      "value": "dc016e1af22bae0a9dbd0755c88cf46de3b7b90239fdad9ef24914c82d42d16a"
+     }
+    ],
     "source_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
     "representation": "PARSED_SOURCE",
     "representation_sha256": "3e485a263b7cfdbb60ca961b99e6defb00a0001f85a22d009fccd34a1326842c",
+    "quotation_must_occur_in": "the selected record's PARSED_SOURCE (or its NORMALIZED_SOURCE with the manifest applied), never elsewhere in the container",
+    "parent_evidence": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/31185157.xml",
     "acquisition_uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=31185157&retmode=xml",
     "coverage_status": "COMPLETE_ABSTRACT"
    },
@@ -3039,6 +3206,12 @@
     "representation_sha256": "3e485a263b7cfdbb60ca961b99e6defb00a0001f85a22d009fccd34a1326842c",
     "start": 1289,
     "end": 1530,
+    "coordinates": {
+     "unit": "Unicode code points of the decoded Python str (NOT bytes)",
+     "range": "half-open [start, end): representation[start:end] == text",
+     "encoding_for_digests": "UTF-8 encoding of the str; representation_sha256 is over those bytes",
+     "note": "text position (code points) and data position (bytes) are not interchangeable; every location names its representation digest"
+    },
     "text": "Major adverse cardiovascular events occurred in 61 of 1591 patients (3.8%) in the oral semaglutide group and 76 of 1592 (4.8%) in the placebo group (hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11; P<0.001 for noninferiority).",
     "match": "VERBATIM",
     "normalisation": null,
@@ -3061,6 +3234,11 @@
      "STROKE"
     ],
     "target_endpoint_class": "EXACT_TARGET",
+    "undetermined_death_counted_as_cv": {
+     "value": "unstated",
+     "evidence": null,
+     "basis": "trial's own endpoint_definition_span"
+    },
     "population": {
      "analysis_set": "intention-to-treat",
      "population_age": "not_stated"
@@ -3107,6 +3285,15 @@
       "validity_critical": false
      }
     }
+   },
+   "statistical_input": {
+    "se_source": "DERIVED_FROM_CI",
+    "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
+    "se_log_used": 0.17002326030857837,
+    "interval_construction": "UNSTATED_IN_HELD_REPRESENTATION",
+    "construction_basis": "the held representation (abstract) does not state how the interval was constructed",
+    "approximation_appropriate": "NOT_ESTABLISHED",
+    "standing_rule": "do not replace a source's adjusted interval with an unadjusted analysis to obtain a convenient SE; obtain a compatible source-reported estimate/SE pair, or justify the approximation with a sensitivity analysis"
    },
    "decision": {
     "selected_candidate": "published_effect_ci",
@@ -3206,9 +3393,47 @@
    "source": {
     "source_id": "pubmed:27633186",
     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-27633186",
+    "selector": {
+     "scheme": "<container ref>#PMID-<identifier>",
+     "resolution": "the UNIQUE element of container['records'] whose id_type == 'pmid' and str(id) == <identifier>",
+     "matches": 1,
+     "selected_identifier": {
+      "id_type": "pmid",
+      "id": "27633186"
+     }
+    },
+    "identity": "container digest + deterministic selector (rows drawn from one container legitimately share its digest)",
+    "digests": [
+     {
+      "subject": "container file",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of the raw served bytes",
+      "value": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+      "shared_by": "every row whose document_ref names this container"
+     },
+     {
+      "subject": "container as JSON object",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of canonical JSON (see canonicalisation)",
+      "value": "1f575452770dd41d7a869da195ba681639360a8e4e17765fb407f92e272ce1d7",
+      "certificate_key": "records_file_sha256"
+     },
+     {
+      "subject": "selected record's decoded abstract text (PARSED_SOURCE)",
+      "procedure": "sha256 of the UTF-8 encoding of the str",
+      "value": "c8c2fcddf975c0a31e4a75009214e500044ecf42af90e22710c6d0d9468a80c9"
+     },
+     {
+      "subject": "selected record's NORMALIZED_SOURCE",
+      "procedure": "sha256 of UTF-8 of normalize(PARSED_SOURCE) per the transformation manifest",
+      "value": "c8c2fcddf975c0a31e4a75009214e500044ecf42af90e22710c6d0d9468a80c9"
+     }
+    ],
     "source_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
     "representation": "PARSED_SOURCE",
     "representation_sha256": "c8c2fcddf975c0a31e4a75009214e500044ecf42af90e22710c6d0d9468a80c9",
+    "quotation_must_occur_in": "the selected record's PARSED_SOURCE (or its NORMALIZED_SOURCE with the manifest applied), never elsewhere in the container",
+    "parent_evidence": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/27633186.xml",
     "acquisition_uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=27633186&retmode=xml",
     "coverage_status": "COMPLETE_ABSTRACT"
    },
@@ -3218,6 +3443,12 @@
     "representation_sha256": "c8c2fcddf975c0a31e4a75009214e500044ecf42af90e22710c6d0d9468a80c9",
     "start": 992,
     "end": 1226,
+    "coordinates": {
+     "unit": "Unicode code points of the decoded Python str (NOT bytes)",
+     "range": "half-open [start, end): representation[start:end] == text",
+     "encoding_for_digests": "UTF-8 encoding of the str; representation_sha256 is over those bytes",
+     "note": "text position (code points) and data position (bytes) are not interchangeable; every location names its representation digest"
+    },
     "text": "The primary outcome occurred in 108 of 1648 patients (6.6%) in the semaglutide group and in 146 of 1649 patients (8.9%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.58 to 0.95; P<0.001 for noninferiority).",
     "match": "VERBATIM",
     "normalisation": null,
@@ -3240,6 +3471,11 @@
      "STROKE"
     ],
     "target_endpoint_class": "EXACT_TARGET",
+    "undetermined_death_counted_as_cv": {
+     "value": "unstated",
+     "evidence": null,
+     "basis": "trial's own endpoint_definition_span"
+    },
     "population": {
      "analysis_set": "intention-to-treat",
      "population_age": "not_stated"
@@ -3286,6 +3522,15 @@
       "validity_critical": false
      }
     }
+   },
+   "statistical_input": {
+    "se_source": "DERIVED_FROM_CI",
+    "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
+    "se_log_used": 0.12587830310818593,
+    "interval_construction": "UNSTATED_IN_HELD_REPRESENTATION",
+    "construction_basis": "the held representation (abstract) does not state how the interval was constructed",
+    "approximation_appropriate": "NOT_ESTABLISHED",
+    "standing_rule": "do not replace a source's adjusted interval with an unadjusted analysis to obtain a convenient SE; obtain a compatible source-reported estimate/SE pair, or justify the approximation with a sensitivity analysis"
    },
    "decision": {
     "selected_candidate": "published_effect_ci",
@@ -3385,9 +3630,47 @@
    "source": {
     "source_id": "pubmed:27295427",
     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-27295427",
+    "selector": {
+     "scheme": "<container ref>#PMID-<identifier>",
+     "resolution": "the UNIQUE element of container['records'] whose id_type == 'pmid' and str(id) == <identifier>",
+     "matches": 1,
+     "selected_identifier": {
+      "id_type": "pmid",
+      "id": "27295427"
+     }
+    },
+    "identity": "container digest + deterministic selector (rows drawn from one container legitimately share its digest)",
+    "digests": [
+     {
+      "subject": "container file",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of the raw served bytes",
+      "value": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+      "shared_by": "every row whose document_ref names this container"
+     },
+     {
+      "subject": "container as JSON object",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of canonical JSON (see canonicalisation)",
+      "value": "1f575452770dd41d7a869da195ba681639360a8e4e17765fb407f92e272ce1d7",
+      "certificate_key": "records_file_sha256"
+     },
+     {
+      "subject": "selected record's decoded abstract text (PARSED_SOURCE)",
+      "procedure": "sha256 of the UTF-8 encoding of the str",
+      "value": "e62b48ed840c00e59d254d7b6115fd52491a16958151de09e0a5bdf4f71bbb8c"
+     },
+     {
+      "subject": "selected record's NORMALIZED_SOURCE",
+      "procedure": "sha256 of UTF-8 of normalize(PARSED_SOURCE) per the transformation manifest",
+      "value": "e62b48ed840c00e59d254d7b6115fd52491a16958151de09e0a5bdf4f71bbb8c"
+     }
+    ],
     "source_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
     "representation": "PARSED_SOURCE",
     "representation_sha256": "e62b48ed840c00e59d254d7b6115fd52491a16958151de09e0a5bdf4f71bbb8c",
+    "quotation_must_occur_in": "the selected record's PARSED_SOURCE (or its NORMALIZED_SOURCE with the manifest applied), never elsewhere in the container",
+    "parent_evidence": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/27295427.xml",
     "acquisition_uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=27295427&retmode=xml",
     "coverage_status": "COMPLETE_ABSTRACT"
    },
@@ -3397,6 +3680,12 @@
     "representation_sha256": "e62b48ed840c00e59d254d7b6115fd52491a16958151de09e0a5bdf4f71bbb8c",
     "start": 889,
     "end": 1171,
+    "coordinates": {
+     "unit": "Unicode code points of the decoded Python str (NOT bytes)",
+     "range": "half-open [start, end): representation[start:end] == text",
+     "encoding_for_digests": "UTF-8 encoding of the str; representation_sha256 is over those bytes",
+     "note": "text position (code points) and data position (bytes) are not interchangeable; every location names its representation digest"
+    },
     "text": "The primary outcome occurred in significantly fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97; P<0.001 for noninferiority; P=0.01 for superiority).",
     "match": "VERBATIM",
     "normalisation": null,
@@ -3419,6 +3708,11 @@
      "STROKE"
     ],
     "target_endpoint_class": "EXACT_TARGET",
+    "undetermined_death_counted_as_cv": {
+     "value": "unstated",
+     "evidence": null,
+     "basis": "trial's own endpoint_definition_span"
+    },
     "population": {
      "analysis_set": "intention-to-treat",
      "population_age": "not_stated"
@@ -3465,6 +3759,15 @@
       "validity_critical": false
      }
     }
+   },
+   "statistical_input": {
+    "se_source": "DERIVED_FROM_CI",
+    "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
+    "se_log_used": 0.05561381574696377,
+    "interval_construction": "UNSTATED_IN_HELD_REPRESENTATION",
+    "construction_basis": "the held representation (abstract) does not state how the interval was constructed",
+    "approximation_appropriate": "NOT_ESTABLISHED",
+    "standing_rule": "do not replace a source's adjusted interval with an unadjusted analysis to obtain a convenient SE; obtain a compatible source-reported estimate/SE pair, or justify the approximation with a sensitivity analysis"
    },
    "decision": {
     "selected_candidate": "published_effect_ci",
@@ -3564,9 +3867,47 @@
    "source": {
     "source_id": "pubmed:34215025",
     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-34215025",
+    "selector": {
+     "scheme": "<container ref>#PMID-<identifier>",
+     "resolution": "the UNIQUE element of container['records'] whose id_type == 'pmid' and str(id) == <identifier>",
+     "matches": 1,
+     "selected_identifier": {
+      "id_type": "pmid",
+      "id": "34215025"
+     }
+    },
+    "identity": "container digest + deterministic selector (rows drawn from one container legitimately share its digest)",
+    "digests": [
+     {
+      "subject": "container file",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of the raw served bytes",
+      "value": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+      "shared_by": "every row whose document_ref names this container"
+     },
+     {
+      "subject": "container as JSON object",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of canonical JSON (see canonicalisation)",
+      "value": "1f575452770dd41d7a869da195ba681639360a8e4e17765fb407f92e272ce1d7",
+      "certificate_key": "records_file_sha256"
+     },
+     {
+      "subject": "selected record's decoded abstract text (PARSED_SOURCE)",
+      "procedure": "sha256 of the UTF-8 encoding of the str",
+      "value": "f643b36fd627d61f757af2cd8cc4595d9ede8816c75c1a0c209a809e225f14e1"
+     },
+     {
+      "subject": "selected record's NORMALIZED_SOURCE",
+      "procedure": "sha256 of UTF-8 of normalize(PARSED_SOURCE) per the transformation manifest",
+      "value": "5b731f477c4c2bec682b70810850d5d79c1c658e54d5716d39da4689b872cd6d"
+     }
+    ],
     "source_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
     "representation": "PARSED_SOURCE",
     "representation_sha256": "f643b36fd627d61f757af2cd8cc4595d9ede8816c75c1a0c209a809e225f14e1",
+    "quotation_must_occur_in": "the selected record's PARSED_SOURCE (or its NORMALIZED_SOURCE with the manifest applied), never elsewhere in the container",
+    "parent_evidence": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/34215025.xml",
     "acquisition_uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=34215025&retmode=xml",
     "coverage_status": "COMPLETE_ABSTRACT"
    },
@@ -3576,6 +3917,12 @@
     "representation_sha256": "f643b36fd627d61f757af2cd8cc4595d9ede8816c75c1a0c209a809e225f14e1",
     "start": 1392,
     "end": 1764,
+    "coordinates": {
+     "unit": "Unicode code points of the decoded Python str (NOT bytes)",
+     "range": "half-open [start, end): representation[start:end] == text",
+     "encoding_for_digests": "UTF-8 encoding of the str; representation_sha256 is over those bytes",
+     "note": "text position (code points) and data position (bytes) are not interchangeable; every location names its representation digest"
+    },
     "text": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).",
     "match": "VERBATIM",
     "normalisation": null,
@@ -3598,6 +3945,11 @@
      "STROKE"
     ],
     "target_endpoint_class": "EXACT_TARGET",
+    "undetermined_death_counted_as_cv": {
+     "value": "yes",
+     "evidence": "death from cardiovascular or undetermined",
+     "basis": "trial's own endpoint_definition_span"
+    },
     "population": {
      "analysis_set": "intention-to-treat",
      "population_age": "not_stated"
@@ -3644,6 +3996,15 @@
       "validity_critical": false
      }
     }
+   },
+   "statistical_input": {
+    "se_source": "DERIVED_FROM_CI",
+    "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
+    "se_log_used": 0.11769235816108259,
+    "interval_construction": "UNSTATED_IN_HELD_REPRESENTATION",
+    "construction_basis": "the held representation (abstract) does not state how the interval was constructed",
+    "approximation_appropriate": "NOT_ESTABLISHED",
+    "standing_rule": "do not replace a source's adjusted interval with an unadjusted analysis to obtain a convenient SE; obtain a compatible source-reported estimate/SE pair, or justify the approximation with a sensitivity analysis"
    },
    "decision": {
     "selected_candidate": "published_effect_ci",
@@ -3743,9 +4104,47 @@
    "source": {
     "source_id": "pubmed:31189511",
     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-31189511",
+    "selector": {
+     "scheme": "<container ref>#PMID-<identifier>",
+     "resolution": "the UNIQUE element of container['records'] whose id_type == 'pmid' and str(id) == <identifier>",
+     "matches": 1,
+     "selected_identifier": {
+      "id_type": "pmid",
+      "id": "31189511"
+     }
+    },
+    "identity": "container digest + deterministic selector (rows drawn from one container legitimately share its digest)",
+    "digests": [
+     {
+      "subject": "container file",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of the raw served bytes",
+      "value": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+      "shared_by": "every row whose document_ref names this container"
+     },
+     {
+      "subject": "container as JSON object",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of canonical JSON (see canonicalisation)",
+      "value": "1f575452770dd41d7a869da195ba681639360a8e4e17765fb407f92e272ce1d7",
+      "certificate_key": "records_file_sha256"
+     },
+     {
+      "subject": "selected record's decoded abstract text (PARSED_SOURCE)",
+      "procedure": "sha256 of the UTF-8 encoding of the str",
+      "value": "84dcca43260715d79b202fc84b962d8ce9158fb321e7198a00014a1d66ad2fa1"
+     },
+     {
+      "subject": "selected record's NORMALIZED_SOURCE",
+      "procedure": "sha256 of UTF-8 of normalize(PARSED_SOURCE) per the transformation manifest",
+      "value": "0376ec39c33b8a3d9ca3318f88f9615153f1242b827b57c2b82c6792d6eb22ac"
+     }
+    ],
     "source_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
     "representation": "PARSED_SOURCE",
     "representation_sha256": "84dcca43260715d79b202fc84b962d8ce9158fb321e7198a00014a1d66ad2fa1",
+    "quotation_must_occur_in": "the selected record's PARSED_SOURCE (or its NORMALIZED_SOURCE with the manifest applied), never elsewhere in the container",
+    "parent_evidence": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/31189511.xml",
     "acquisition_uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=31189511&retmode=xml",
     "coverage_status": "COMPLETE_ABSTRACT"
    },
@@ -3755,6 +4154,12 @@
     "representation_sha256": "0376ec39c33b8a3d9ca3318f88f9615153f1242b827b57c2b82c6792d6eb22ac",
     "start": 1704,
     "end": 2053,
+    "coordinates": {
+     "unit": "Unicode code points of the decoded Python str (NOT bytes)",
+     "range": "half-open [start, end): representation[start:end] == text",
+     "encoding_for_digests": "UTF-8 encoding of the str; representation_sha256 is over those bytes",
+     "note": "text position (code points) and data position (bytes) are not interchangeable; every location names its representation digest"
+    },
     "text": "During a median follow-up of 5.4 years (IQR 5.1-5.9), the primary composite outcome occurred in 594 (12.0%) participants at an incidence rate of 2.4 per 100 person-years in the dulaglutide group and in 663 (13.4%) participants at an incidence rate of 2.7 per 100 person-years in the placebo group (hazard ratio [HR] 0.88, 95% CI 0.79-0.99; p=0.026).",
     "match": "NORMALISED",
     "normalisation": [
@@ -3780,6 +4185,11 @@
      "STROKE"
     ],
     "target_endpoint_class": "EXACT_TARGET",
+    "undetermined_death_counted_as_cv": {
+     "value": "yes",
+     "evidence": "death from cardiovascular causes (including unknown",
+     "basis": "trial's own endpoint_definition_span"
+    },
     "population": {
      "analysis_set": "intention-to-treat",
      "population_age": "not_stated"
@@ -3826,6 +4236,15 @@
       "validity_critical": false
      }
     }
+   },
+   "statistical_input": {
+    "se_source": "DERIVED_FROM_CI",
+    "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
+    "se_log_used": 0.057570445030531256,
+    "interval_construction": "UNSTATED_IN_HELD_REPRESENTATION",
+    "construction_basis": "the held representation (abstract) does not state how the interval was constructed",
+    "approximation_appropriate": "NOT_ESTABLISHED",
+    "standing_rule": "do not replace a source's adjusted interval with an unadjusted analysis to obtain a convenient SE; obtain a compatible source-reported estimate/SE pair, or justify the approximation with a sensitivity analysis"
    },
    "decision": {
     "selected_candidate": "published_effect_ci",
@@ -3929,9 +4348,47 @@
    "source": {
     "source_id": "pubmed:30291013",
     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-30291013",
+    "selector": {
+     "scheme": "<container ref>#PMID-<identifier>",
+     "resolution": "the UNIQUE element of container['records'] whose id_type == 'pmid' and str(id) == <identifier>",
+     "matches": 1,
+     "selected_identifier": {
+      "id_type": "pmid",
+      "id": "30291013"
+     }
+    },
+    "identity": "container digest + deterministic selector (rows drawn from one container legitimately share its digest)",
+    "digests": [
+     {
+      "subject": "container file",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of the raw served bytes",
+      "value": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+      "shared_by": "every row whose document_ref names this container"
+     },
+     {
+      "subject": "container as JSON object",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of canonical JSON (see canonicalisation)",
+      "value": "1f575452770dd41d7a869da195ba681639360a8e4e17765fb407f92e272ce1d7",
+      "certificate_key": "records_file_sha256"
+     },
+     {
+      "subject": "selected record's decoded abstract text (PARSED_SOURCE)",
+      "procedure": "sha256 of the UTF-8 encoding of the str",
+      "value": "d3222437561d4a752161a4460d131bba777fc5130eec99d18dba7f402f6e862d"
+     },
+     {
+      "subject": "selected record's NORMALIZED_SOURCE",
+      "procedure": "sha256 of UTF-8 of normalize(PARSED_SOURCE) per the transformation manifest",
+      "value": "735d31fbc1262b971de7c8821c350c8ef5800b2db4119032e37cb89c2c156372"
+     }
+    ],
     "source_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
     "representation": "PARSED_SOURCE",
     "representation_sha256": "d3222437561d4a752161a4460d131bba777fc5130eec99d18dba7f402f6e862d",
+    "quotation_must_occur_in": "the selected record's PARSED_SOURCE (or its NORMALIZED_SOURCE with the manifest applied), never elsewhere in the container",
+    "parent_evidence": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/30291013.xml",
     "acquisition_uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=30291013&retmode=xml",
     "coverage_status": "COMPLETE_ABSTRACT"
    },
@@ -3941,6 +4398,12 @@
     "representation_sha256": "735d31fbc1262b971de7c8821c350c8ef5800b2db4119032e37cb89c2c156372",
     "start": 2089,
     "end": 2501,
+    "coordinates": {
+     "unit": "Unicode code points of the decoded Python str (NOT bytes)",
+     "range": "half-open [start, end): representation[start:end] == text",
+     "encoding_for_digests": "UTF-8 encoding of the str; representation_sha256 is over those bytes",
+     "note": "text position (code points) and data position (bytes) are not interchangeable; every location names its representation digest"
+    },
     "text": "The primary composite outcome occurred in 338 (7%) of 4731 patients at an incidence rate of 4.6 events per 100 person-years in the albiglutide group and in 428 (9%) of 4732 patients at an incidence rate of 5.9 events per 100 person-years in the placebo group (hazard ratio 0.78, 95% CI 0.68-0.90), which indicated that albiglutide was superior to placebo (p<0.0001 for non-inferiority; p=0.0006 for superiority).",
     "match": "NORMALISED",
     "normalisation": [
@@ -3966,6 +4429,11 @@
      "STROKE"
     ],
     "target_endpoint_class": "EXACT_TARGET",
+    "undetermined_death_counted_as_cv": {
+     "value": "unstated",
+     "evidence": null,
+     "basis": "trial's own endpoint_definition_span"
+    },
     "population": {
      "analysis_set": "intention-to-treat",
      "population_age": "not_stated"
@@ -4012,6 +4480,15 @@
       "validity_critical": false
      }
     }
+   },
+   "statistical_input": {
+    "se_source": "DERIVED_FROM_CI",
+    "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
+    "se_log_used": 0.07150691731203851,
+    "interval_construction": "UNSTATED_IN_HELD_REPRESENTATION",
+    "construction_basis": "the held representation (abstract) does not state how the interval was constructed",
+    "approximation_appropriate": "NOT_ESTABLISHED",
+    "standing_rule": "do not replace a source's adjusted interval with an unadjusted analysis to obtain a convenient SE; obtain a compatible source-reported estimate/SE pair, or justify the approximation with a sensitivity analysis"
    },
    "decision": {
     "selected_candidate": "published_effect_ci",
@@ -4115,9 +4592,47 @@
    "source": {
     "source_id": "pubmed:28910237",
     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-28910237",
+    "selector": {
+     "scheme": "<container ref>#PMID-<identifier>",
+     "resolution": "the UNIQUE element of container['records'] whose id_type == 'pmid' and str(id) == <identifier>",
+     "matches": 1,
+     "selected_identifier": {
+      "id_type": "pmid",
+      "id": "28910237"
+     }
+    },
+    "identity": "container digest + deterministic selector (rows drawn from one container legitimately share its digest)",
+    "digests": [
+     {
+      "subject": "container file",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of the raw served bytes",
+      "value": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+      "shared_by": "every row whose document_ref names this container"
+     },
+     {
+      "subject": "container as JSON object",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of canonical JSON (see canonicalisation)",
+      "value": "1f575452770dd41d7a869da195ba681639360a8e4e17765fb407f92e272ce1d7",
+      "certificate_key": "records_file_sha256"
+     },
+     {
+      "subject": "selected record's decoded abstract text (PARSED_SOURCE)",
+      "procedure": "sha256 of the UTF-8 encoding of the str",
+      "value": "1ab8b392f11138e08447c364fa0ad75c18a027b3766f2375b2ece0cf01980fa8"
+     },
+     {
+      "subject": "selected record's NORMALIZED_SOURCE",
+      "procedure": "sha256 of UTF-8 of normalize(PARSED_SOURCE) per the transformation manifest",
+      "value": "1ab8b392f11138e08447c364fa0ad75c18a027b3766f2375b2ece0cf01980fa8"
+     }
+    ],
     "source_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
     "representation": "PARSED_SOURCE",
     "representation_sha256": "1ab8b392f11138e08447c364fa0ad75c18a027b3766f2375b2ece0cf01980fa8",
+    "quotation_must_occur_in": "the selected record's PARSED_SOURCE (or its NORMALIZED_SOURCE with the manifest applied), never elsewhere in the container",
+    "parent_evidence": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/28910237.xml",
     "acquisition_uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=28910237&retmode=xml",
     "coverage_status": "COMPLETE_ABSTRACT"
    },
@@ -4127,6 +4642,12 @@
     "representation_sha256": "1ab8b392f11138e08447c364fa0ad75c18a027b3766f2375b2ece0cf01980fa8",
     "start": 862,
     "end": 1400,
+    "coordinates": {
+     "unit": "Unicode code points of the decoded Python str (NOT bytes)",
+     "range": "half-open [start, end): representation[start:end] == text",
+     "encoding_for_digests": "UTF-8 encoding of the str; representation_sha256 is over those bytes",
+     "note": "text position (code points) and data position (bytes) are not interchangeable; every location names its representation digest"
+    },
     "text": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority).",
     "match": "VERBATIM",
     "normalisation": null,
@@ -4149,6 +4670,11 @@
      "STROKE"
     ],
     "target_endpoint_class": "EXACT_TARGET",
+    "undetermined_death_counted_as_cv": {
+     "value": "unstated",
+     "evidence": null,
+     "basis": "trial's own endpoint_definition_span"
+    },
     "population": {
      "analysis_set": "intention-to-treat",
      "population_age": "not_stated"
@@ -4195,6 +4721,15 @@
       "validity_critical": false
      }
     }
+   },
+   "statistical_input": {
+    "se_source": "DERIVED_FROM_CI",
+    "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
+    "se_log_used": 0.04753392910819725,
+    "interval_construction": "UNSTATED_IN_HELD_REPRESENTATION",
+    "construction_basis": "the held representation (abstract) does not state how the interval was constructed",
+    "approximation_appropriate": "NOT_ESTABLISHED",
+    "standing_rule": "do not replace a source's adjusted interval with an unadjusted analysis to obtain a convenient SE; obtain a compatible source-reported estimate/SE pair, or justify the approximation with a sensitivity analysis"
    },
    "decision": {
     "selected_candidate": "published_effect_ci",
@@ -4294,9 +4829,47 @@
    "source": {
     "source_id": "pubmed:40162642",
     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-40162642",
+    "selector": {
+     "scheme": "<container ref>#PMID-<identifier>",
+     "resolution": "the UNIQUE element of container['records'] whose id_type == 'pmid' and str(id) == <identifier>",
+     "matches": 1,
+     "selected_identifier": {
+      "id_type": "pmid",
+      "id": "40162642"
+     }
+    },
+    "identity": "container digest + deterministic selector (rows drawn from one container legitimately share its digest)",
+    "digests": [
+     {
+      "subject": "container file",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of the raw served bytes",
+      "value": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+      "shared_by": "every row whose document_ref names this container"
+     },
+     {
+      "subject": "container as JSON object",
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "procedure": "sha256 of canonical JSON (see canonicalisation)",
+      "value": "1f575452770dd41d7a869da195ba681639360a8e4e17765fb407f92e272ce1d7",
+      "certificate_key": "records_file_sha256"
+     },
+     {
+      "subject": "selected record's decoded abstract text (PARSED_SOURCE)",
+      "procedure": "sha256 of the UTF-8 encoding of the str",
+      "value": "c838eb2a5e3921a0c227faea8627b26be53b7b6e03cc0a0d3f660baa16a3e800"
+     },
+     {
+      "subject": "selected record's NORMALIZED_SOURCE",
+      "procedure": "sha256 of UTF-8 of normalize(PARSED_SOURCE) per the transformation manifest",
+      "value": "c838eb2a5e3921a0c227faea8627b26be53b7b6e03cc0a0d3f660baa16a3e800"
+     }
+    ],
     "source_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
     "representation": "PARSED_SOURCE",
     "representation_sha256": "c838eb2a5e3921a0c227faea8627b26be53b7b6e03cc0a0d3f660baa16a3e800",
+    "quotation_must_occur_in": "the selected record's PARSED_SOURCE (or its NORMALIZED_SOURCE with the manifest applied), never elsewhere in the container",
+    "parent_evidence": "docs/acquisitions/glp1-ra-mace-t2d/pubmed_efetch_2026-09-19/40162642.xml",
     "acquisition_uri": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=40162642&retmode=xml",
     "coverage_status": "EXCERPT_ONLY"
    },
@@ -4306,6 +4879,12 @@
     "representation_sha256": "c838eb2a5e3921a0c227faea8627b26be53b7b6e03cc0a0d3f660baa16a3e800",
     "start": 568,
     "end": 879,
+    "coordinates": {
+     "unit": "Unicode code points of the decoded Python str (NOT bytes)",
+     "range": "half-open [start, end): representation[start:end] == text",
+     "encoding_for_digests": "UTF-8 encoding of the str; representation_sha256 is over those bytes",
+     "note": "text position (code points) and data position (bytes) are not interchangeable; every location names its representation digest"
+    },
     "text": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006).",
     "match": "VERBATIM",
     "normalisation": null,
@@ -4328,6 +4907,11 @@
      "STROKE"
     ],
     "target_endpoint_class": "EXACT_TARGET",
+    "undetermined_death_counted_as_cv": {
+     "value": "unstated",
+     "evidence": null,
+     "basis": "trial's own endpoint_definition_span"
+    },
     "population": {
      "analysis_set": "intention-to-treat",
      "population_age": "not_stated"
@@ -4374,6 +4958,15 @@
       "validity_critical": false
      }
     }
+   },
+   "statistical_input": {
+    "se_source": "DERIVED_FROM_CI",
+    "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
+    "se_log_used": 0.0562619444422871,
+    "interval_construction": "GROUP_SEQUENTIAL_ADJUSTED",
+    "construction_basis": "ninth external audit, from the publication's Statistical Analysis section (PDF p.3): primary HR, CI and P were adjusted for the group-sequential design using likelihood-ratio ordering. NOT verified by this bundle against a held representation (the full text is not held); recorded as an external observation",
+    "approximation_appropriate": "NOT_ESTABLISHED -- the Wald conversion assumes a construction the source did not use; no numerical distortion of the pool has been quantified; sensitivity analysis NOT_DONE (recorded, not resolved)",
+    "standing_rule": "do not replace a source's adjusted interval with an unadjusted analysis to obtain a convenient SE; obtain a compatible source-reported estimate/SE pair, or justify the approximation with a sensitivity analysis"
    },
    "decision": {
     "selected_candidate": "published_effect_ci",
@@ -4758,6 +5351,25 @@
   "outcome": "3-point major adverse cardiovascular events",
   "k": 8,
   "scale": "HR",
+  "heterogeneity": {
+   "page_statement": "tau^2 = 4e-05 (rendered as non-zero)",
+   "Q": 7.060721196954362,
+   "df": 7,
+   "Q_minus_df": 0.06072119695436218,
+   "input_precision": "published point estimates and 95% limits printed to two decimals (one limit to one decimal); the pool inherits that precision",
+   "rounding_sensitivity": {
+    "method": "2000 seeded (20260919) uniform perturbations of every input within +/- half a unit of its printed last place (minimum two decimals), re-pooled by the canonical path",
+    "fraction_tau2_zero": 0.3855,
+    "pooled_hr_range": [
+     0.85088276846361,
+     0.8599909913673264
+    ],
+    "max_ci_upper": 0.9104814921628906,
+    "finding_untouched": true
+   },
+   "honest_statement": "tau^2 ~= 4.45e-05 from published rounded inputs; effectively zero and rounding-sensitive (Q exceeds df by 0.061; 39% of within-rounding input sets give tau^2 = 0 under Paule-Mandel). The pooled HR and the CI below 1 are not sensitive to this.",
+   "rule": "the precision of an output cannot exceed the precision of its inputs; a boundary estimator (tau^2 >= 0) turns input rounding into a categorical claim"
+  },
   "inputs": [
    {
     "id": "PMID 31185157",
@@ -4917,6 +5529,14 @@
   }
  ],
  "canonical_json": "json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(',', ':')) encoded as UTF-8",
- "verifier": "scripts/verify_bundle.py (standard library only; no harness import): checks every artefact and supporting-file digest, every predicate of every verification row, the asymmetric rule on every absence claim, reproduces pooled_reference.expected to 1e-9, and with --corrupt <pmid> <limb> demonstrates that one corrupted limb makes exactly that row inadmissible",
+ "verifier": {
+  "served_path": "scripts/verify_bundle.py",
+  "served_url": "https://mahmood726-cyber.github.io/meta-harness/scripts/verify_bundle.py",
+  "sha256": "7c96a33d12aceb1c51661ccb05e0ea710a82c2c594bcc7b2c9b49509a035da17",
+  "bytes": 26112,
+  "requirements": "Python 3.9+ standard library only; no harness import; run: python verify_bundle.py --url https://mahmood726-cyber.github.io/meta-harness/ --slug glp1-ra-mace-t2d",
+  "checks": "every artefact and supporting-file digest; release_sha256 and review_sha256; every predicate of every verification row; the selector rule; the asymmetric rule on every absence claim from a recomputed preservation record; pooled_reference.expected to 1e-9; --corrupt <pmid> <limb> shows one corrupted limb makes exactly that row inadmissible",
+  "does_not_check": "that any acquired or cached representation faithfully preserves the upstream publication (SOUL's cache is known to omit the HbA1c entry range, follow-up and the safety sentence); that the source set is complete; that the clinical interpretation is right; and the PRODUCTION admission path -- no production falsification test has been executed by anyone; the verifier checks the bundle, not the producer's gate"
+ },
  "regenerate": "python scripts/acquire_bundle_evidence.py glp1-ra-mace-t2d (only if new acquisitions are needed); commit any page rebuild; python scripts/build_bundle.py glp1-ra-mace-t2d; tests/test_bundle.py refuses a stale bundle"
 }

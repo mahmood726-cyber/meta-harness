@@ -281,3 +281,84 @@ def test_pooled_reference_matches_the_settled_value(bundle):
     assert abs(e["estimate"] - 0.8559934175938467) < 1e-9
     assert abs(e["ci_low"] - 0.8086248326601262) < 1e-9 and abs(e["ci_high"] - 0.9061368157017332) < 1e-9
     assert abs(e["tau2"] - 0.00004447972517261924) < 1e-9
+
+
+# ------------------------------------------------------------------ 3.1: canonicalisation, selector, coordinates, variation, inputs
+
+def test_canonicalisation_is_published_and_all_three_records_scopes_reproduce(bundle):
+    """Two valid scopes over one file are not a defect; an auditor who assumes the wrong scheme reports one that isn't there."""
+    from harness.canonical import canonical_json, sha256_text
+    assert "RFC 8785" in bundle["canonicalisation"]["not"] and "sort_keys=True" in bundle["canonicalisation"]["scheme"]
+    raw = _bytes(os.path.join(ROOT, "cache", SLUG, "records.json"))
+    scopes = {s["subject"]: s["value"] for s in bundle["digest_scopes"][0]["scopes"]}
+    assert scopes["raw served bytes"] == hashlib.sha256(raw).hexdigest()
+    assert scopes["whole file as JSON object"] == sha256_text(canonical_json(json.loads(raw))) == _load(CERT)["records_file_sha256"]
+    assert scopes["obj['records'] only"] == sha256_text(canonical_json(json.loads(raw)["records"])) == _load(CERT)["retrieved_corpus_sha256"]
+    # rows drawn from the one container legitimately share its raw digest -- and say so
+    shared = {r["source"]["source_sha256"] for r in bundle["verification_rows"]}
+    assert shared == {scopes["raw served bytes"]}
+    assert all("container digest + deterministic selector" in r["source"]["identity"] for r in bundle["verification_rows"])
+
+
+def test_selector_rule_is_stated_enforced_and_refuses_ambiguity(bundle):
+    assert bundle["selector_rule"]["two_or_more_matches"].startswith("REFUSE")
+    for r in bundle["verification_rows"]:
+        assert r["source"]["selector"]["matches"] == 1
+        assert r["source"]["selector"]["selected_identifier"]["id"] == r["trial"]["id"].replace("PMID ", "")
+    good = {"records": [{"id": "1", "id_type": "pmid"}, {"id": "2", "id_type": "pmid"}]}
+    assert build_bundle.resolve_selector(good, "1")["id"] == "1"
+    with pytest.raises(ValueError):
+        build_bundle.resolve_selector({"records": [{"id": "1", "id_type": "pmid"}, {"id": "1", "id_type": "pmid"}]}, "1")
+    with pytest.raises(ValueError):
+        build_bundle.resolve_selector(good, "3")
+
+
+def test_every_location_states_its_coordinate_convention(bundle):
+    for r in bundle["verification_rows"]:
+        c = r["span"]["coordinates"]
+        assert "code points" in c["unit"] and "half-open" in c["range"]
+        digests = {d["subject"]: d["value"] for d in r["source"]["digests"]}
+        assert r["span"]["representation_sha256"] in digests.values()
+
+
+def test_declared_variation_is_recorded_per_trial_not_collapsed(bundle):
+    c = bundle["endpoint_compatibility"]
+    assert c["state"] == "COMPATIBLE_WITH_DECLARED_VARIATION" and c["trials_stay_pooled"] is True
+    assert "undetermined death as cardiovascular death" in c["protocol_permission"]
+    pt = {k: v["value"] for k, v in c["per_trial"].items()}
+    assert pt["PMID 34215025"] == "yes" and pt["PMID 31189511"] == "yes"          # AMPLITUDE-O, REWIND -- from their own spans
+    assert pt["PMID 30291013"] == "unstated"                                       # HARMONY: the 'unknown causes' phrase is not its
+    assert "no" not in pt.values(), "an abstract that is silent never yields 'no'"
+    assert c["page_label"] == "HOMOGENEOUS" and c["page_direction_audit"] == "ASSERTED_HOMOGENEOUS_UNDERLYING_HETEROGENEOUS"
+    assert build_bundle.undetermined_death_field("death from cardiovascular or undetermined causes")["value"] == "yes"
+    assert build_bundle.undetermined_death_field("cardiovascular death, nonfatal MI or nonfatal stroke")["value"] == "unstated"
+
+
+def test_statistical_input_records_construction_and_does_not_replace_the_se(bundle):
+    review = _load(os.path.join(REVIEW_DIR, "review.json"))
+    se_page = {t["id"]: t["study_effect"]["standard_error"] for t in next(o for o in review["outcomes"] if o["primary"])["trials"]}
+    for r in bundle["verification_rows"]:
+        si = r["statistical_input"]
+        assert si["se_source"] == "DERIVED_FROM_CI" and si["se_log_used"] == se_page[r["trial"]["id"]]
+        assert si["interval_construction"] in bundle["vocabulary"]["statistical_input"]["interval_construction"]
+        assert si["approximation_appropriate"].startswith("NOT_ESTABLISHED")
+    soul = next(r for r in bundle["verification_rows"] if r["trial"]["id"] == "PMID 40162642")["statistical_input"]
+    assert soul["interval_construction"] == "GROUP_SEQUENTIAL_ADJUSTED" and "NOT verified by this bundle" in soul["construction_basis"]
+
+
+def test_heterogeneity_statement_carries_input_precision_not_a_categorical_claim(bundle):
+    h = bundle["pooled_reference"]["heterogeneity"]
+    assert abs(h["Q"] - 7.06072) < 1e-4 and h["df"] == 7 and 0 < h["Q_minus_df"] < 0.1
+    rs = h["rounding_sensitivity"]
+    assert 0.2 < rs["fraction_tau2_zero"] < 0.8 and rs["finding_untouched"] is True and rs["max_ci_upper"] < 1.0
+    assert "effectively zero and rounding-sensitive" in h["honest_statement"]
+
+
+def test_verifier_is_served_byte_identical_at_the_path_the_bundle_names(bundle):
+    v = bundle["verifier"]
+    served = os.path.join(ROOT, "docs", *v["served_path"].split("/"))
+    src = os.path.join(ROOT, "scripts", "verify_bundle.py")
+    assert _bytes(served) == _bytes(src) and hashlib.sha256(_bytes(served)).hexdigest() == v["sha256"]
+    assert any(f["path"] == "docs/scripts/verify_bundle.py" and f["sha256"] == v["sha256"] for f in bundle["supporting_files"])
+    assert "PRODUCTION admission path" in v["does_not_check"] and "HbA1c" in v["does_not_check"]
+    assert "digest_mismatch_policy" in bundle["package_semantics"]
