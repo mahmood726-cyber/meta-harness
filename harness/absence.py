@@ -225,7 +225,14 @@ def _effect_candidates(sentences, terms=None):
                 primary.append(cand)
             else:
                 fallback.append(cand)
-    return primary or fallback
+    # Only effects whose own clause names the requested outcome. Until 2026-09-19 an empty match fell
+    # back to EVERY effect in the candidate sentences, so a served declared-absent row printed another
+    # outcome's number beside this outcome's name ("effect present, wrong estimand class": SMART's
+    # MAKE30 OR 0.91 beside Acute kidney injury and New renal-replacement therapy; a risk-factor OR 5.04
+    # beside AAD; IRONMAN's composite rate ratio 0.82 beside Heart-failure hospitalization). A failed
+    # specific match refuses; it never widens (the STRENGTH class, harness/target_endpoint.py).
+    del fallback
+    return primary
 
 
 def _count_candidates(sentences, terms=None):
@@ -237,7 +244,8 @@ def _count_candidates(sentences, terms=None):
                 out.append(_clip(span))
         for m in _BARE_OUTCOME_COUNTS.finditer(extract._norm(s)):
             span = s[max(0, m.start() - 80):m.end() + 120]
-            out.append(_clip(span))
+            if not terms or _matches_term(span, terms):  # same rule as the percentage counts: no bare count from another outcome's clause
+                out.append(_clip(span))
     return out
 
 
