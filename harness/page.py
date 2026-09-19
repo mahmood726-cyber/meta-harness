@@ -1354,6 +1354,10 @@ def _trial_inputs(o):
             if t.get("endpoint_result_span") and t.get("endpoint_result_span") != t.get("endpoint_definition_span"):
                 src += (f"<br><span class='muted'>result span: "
                         f"{_e(' '.join(str(t.get('endpoint_result_span')).split()))}</span>")
+            for key in ("binding_document", "binding_document_sha256", "binding_offsets",
+                        "binding_offset_basis", "endpoint_binding_reason", "binding_searched"):
+                if t.get(key) is not None:
+                    src += f"<br><span class='muted'>{_e(key)}: {_e(str(t[key]))}</span>"
             src += "</div>"
         # DERIVATION provenance: is this the trial's OWN reported effect, or a harness reconstruction
         # from arm-level data? Both legitimate; labelling prevents 'the trial's own effect' on a number

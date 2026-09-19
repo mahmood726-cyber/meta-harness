@@ -1250,7 +1250,9 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     # is the declared outcome. Exact targets pass; a near match passes only under the outcome's explicit
     # `allow_near_match` declaration with nothing missing; unbound/different/component-only rows are
     # refused with the number they carried and both spans, so a reader sees what was refused and why.
-    trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
+    from .legacy_binding import admit_legacy_rows
+    trials, _inadmissible = admit_legacy_rows(
+        spec, trials, rec_by_id, verified_effects, verified_arms, dose_selection, ROOT)
     absent.extend(_inadmissible)
     if eligibility_contract:
         kept = []
