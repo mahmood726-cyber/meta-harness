@@ -279,9 +279,7 @@ def limb_held_digests():
     summary = ", ".join(f"{k} {v}" for k, v in sorted(counts.items()))
     if ok:
         return PASS, _append_target(target_line, f"every held-bytes digest equals the bytes it names ({summary})")
-    return REFUSED, _append_target(target_line, f"{summary}
-" + "
-".join(reasons))
+    return REFUSED, _append_target(target_line, f"{summary}" + chr(10) + chr(10).join(reasons))
 
 
 def limb_gate_gaps():

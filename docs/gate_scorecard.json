@@ -4095,6 +4095,81 @@
     "adjudicated_precision": null,
     "adjudicated_production_refusals": 0,
     "adjudication_coverage": null,
+    "adjudications": 1,
+    "adjudicator_independence": 0.0,
+    "external_auditor_adjudications": 0,
+    "false_positive_production_refusals": 0,
+    "miss_events": 0,
+    "plant_events": 1,
+    "plant_validations": 1,
+    "production_refusals": 0,
+    "production_status": "UNVALIDATED",
+    "status_gap_events": 1,
+    "true_misses": 0,
+    "true_positive_production_refusals": 0,
+    "unresolved": 1,
+    "unvalidated": true,
+    "validation": "UNVALIDATED"
+   },
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": "37b4fc644b6834f93a3aba29dd039d4dfc03fe596643269ef5912c522a1f1c40",
+      "evidence": [
+       "tests/test_held_digests.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-held-digests-v1-plant-validations-1",
+     "evidence": [
+      "tests/test_held_digests.py"
+     ],
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "what_refused": "held-bytes digest plants: a digest of the CRLF form of committed bytes and the digest of an unheld original recorded against its extracted text are refused by name in a throwaway tree; main 8c8874b4's pcsk9 CRLF digest read from git",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_held_digests"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "verify-all-limb-held-digests-v1-unresolved-1",
+     "evidence": [
+      "GATE_GAPS.md"
+     ],
+     "kind": "PRODUCTION",
+     "source_list": "unresolved",
+     "status_gap": true,
+     "what_refused": "Only plant validations were found; no dated production true/false refusal was located.",
+     "when_utc": null,
+     "where": "scripts/verify_all.py:limb_held_digests"
+    }
+   ],
+   "gate_id": "verify_all.limb_held_digests",
+   "scorecard_line": "adjudicated precision TP/(TP+FP) = no adjudicated production refusal - UNVALIDATED, not green (0 adjudicated of 0 production refusals = coverage no production refusals); plants: 1; UNRESOLVED: 1",
+   "what_it_refuses": "held-bytes digests (every recorded sha256 that names a file equals that file's bytes)",
+   "where": "scripts/verify_all.py:limb_held_digests"
+  },
+  {
+   "computed": {
+    "adjudicated_precision": null,
+    "adjudicated_production_refusals": 0,
+    "adjudication_coverage": null,
     "adjudications": 2,
     "adjudicator_independence": 0.0,
     "external_auditor_adjudications": 0,
@@ -4849,17 +4924,17 @@
  "schema_version": 2,
  "source": "registry/gate_scorecard.json",
  "summary": {
-  "adjudications": 59,
+  "adjudications": 60,
   "adjudicator_independence": 0.0,
   "adjudicator_independence_sentence": "adjudicator_independence is the share of adjudications made by an external_auditor; today it is expected to be 0 because no external-auditor adjudication is recorded",
   "auditor_sentence": "If the same environment labels its own gate outputs true or false, that is: system produces output -> system labels its own output correct -> agreement read as validation (the 6/6 recall shape). So every refusal is an EVENT with an ADJUDICATION OBJECT, and a gate's numbers are computed only from those objects.",
-  "event_count": 131,
+  "event_count": 133,
   "external_auditor_adjudications": 0,
   "false_refusal_gate_count": 1,
   "false_refusal_gates": [
    "verify_all.limb_fixstate"
   ],
-  "gate_count": 61,
+  "gate_count": 62,
   "gate_lines": [
    {
     "computed": {
@@ -6162,6 +6237,30 @@
      "adjudicated_precision": null,
      "adjudicated_production_refusals": 0,
      "adjudication_coverage": null,
+     "adjudications": 1,
+     "adjudicator_independence": 0.0,
+     "external_auditor_adjudications": 0,
+     "false_positive_production_refusals": 0,
+     "miss_events": 0,
+     "plant_events": 1,
+     "plant_validations": 1,
+     "production_refusals": 0,
+     "production_status": "UNVALIDATED",
+     "status_gap_events": 1,
+     "true_misses": 0,
+     "true_positive_production_refusals": 0,
+     "unresolved": 1,
+     "unvalidated": true,
+     "validation": "UNVALIDATED"
+    },
+    "gate_id": "verify_all.limb_held_digests",
+    "line": "adjudicated precision TP/(TP+FP) = no adjudicated production refusal - UNVALIDATED, not green (0 adjudicated of 0 production refusals = coverage no production refusals); plants: 1; UNRESOLVED: 1"
+   },
+   {
+    "computed": {
+     "adjudicated_precision": null,
+     "adjudicated_production_refusals": 0,
+     "adjudication_coverage": null,
      "adjudications": 2,
      "adjudicator_independence": 0.0,
      "external_auditor_adjudications": 0,
@@ -6327,9 +6426,9 @@
    }
   ],
   "overall_adjudication": {
-   "adjudicated": 59,
-   "adjudication_coverage": 0.45038167938931295,
-   "events": 131,
+   "adjudicated": 60,
+   "adjudication_coverage": 0.45112781954887216,
+   "events": 133,
    "independent_adjudication_coverage": 0.0,
    "independently_adjudicated": 0,
    "production_adjudicated": 1,
@@ -6380,6 +6479,7 @@
    "pipeline.structural_query_classifier",
    "verify_all.limb_gate_every_page",
    "verify_all.limb_gate_scorecard",
+   "verify_all.limb_held_digests",
    "verify_all.limb_heldout",
    "verify_all.limb_honest_ratchet",
    "verify_all.limb_leak_scan",
@@ -6387,8 +6487,8 @@
    "verify_all.limb_search_completeness",
    "verify_all.limb_unit_tests"
   ],
-  "plant_only_count": 47,
-  "plant_validation_count": 58,
+  "plant_only_count": 48,
+  "plant_validation_count": 59,
   "precision_coverage_sentence": "precision is reported only beside its adjudication coverage; an UNRESOLVED refusal is neither",
   "production_refusal_gate_count": 3,
   "production_refusal_gates": [
@@ -6398,7 +6498,7 @@
   ],
   "production_true_refusal_gate_count": 0,
   "production_true_refusal_gates": [],
-  "unresolved_event_count": 72,
+  "unresolved_event_count": 73,
   "unvalidated": [
    "census.claim_check",
    "census.compatibility_check",
@@ -6454,6 +6554,7 @@
    "verify_all.limb_gate_every_page",
    "verify_all.limb_gate_gaps",
    "verify_all.limb_gate_scorecard",
+   "verify_all.limb_held_digests",
    "verify_all.limb_heldout",
    "verify_all.limb_honest_ratchet",
    "verify_all.limb_index_currency",
@@ -6462,7 +6563,7 @@
    "verify_all.limb_search_completeness",
    "verify_all.limb_unit_tests"
   ],
-  "unvalidated_count": 61,
+  "unvalidated_count": 62,
   "unvalidated_sentence": "a gate with no adjudicated true refusal in production is UNVALIDATED, not green"
  },
  "unvalidated_sentence": "a gate with no adjudicated true refusal in production is UNVALIDATED, not green"
