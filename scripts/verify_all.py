@@ -269,6 +269,21 @@ def limb_gate_scorecard():
     return REFUSED, _append_target(target_line, scorecard_target + "\n" + "\n".join(reasons))
 
 
+def limb_held_digests():
+    paths = ["harness/held_digests.py"]
+    target_line, err = _target("verify_all.limb_held_digests", paths)
+    if err:
+        return NOEXEC, target_line
+    from harness import held_digests
+    ok, reasons, counts = held_digests.check(ROOT)
+    summary = ", ".join(f"{k} {v}" for k, v in sorted(counts.items()))
+    if ok:
+        return PASS, _append_target(target_line, f"every held-bytes digest equals the bytes it names ({summary})")
+    return REFUSED, _append_target(target_line, f"{summary}
+" + "
+".join(reasons))
+
+
 def limb_gate_gaps():
     rc, out = _run([sys.executable, os.path.join("scripts", "render_gate_gaps.py"), "--check"])
     tail = "\n".join(out.strip().splitlines()[-10:])
@@ -287,6 +302,7 @@ LIMBS = [
     ("honest-state ratchet (no page may get quieter)", limb_honest_ratchet),
     ("gate scorecard (every gate accounted for)", limb_gate_scorecard),
     ("gate gaps table (sealed what-it-would-not-stop rows)", limb_gate_gaps),
+    ("held-bytes digests (every recorded sha256 that names a file equals that file's bytes)", limb_held_digests),
 ]
 
 
