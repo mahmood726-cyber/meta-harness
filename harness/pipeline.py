@@ -1746,6 +1746,8 @@ def _source_status(slug, config, records, merged, ledger=None):
 def build_review_core(slug, config, records, protocol_sha):
     merged = _dedup(records, config.get("pivotal_trials"))
     retrieval_ledger = _load_retrieval_ledger(slug)
+    from . import trial_family as trial_family_mod
+    family_nodes = trial_family_mod.prepare(ROOT, slug, list(records.get('records') or []) + list(records.get('ctgov') or []), config, retrieval_ledger)
     retrieval_records = (retrieval_ledger.get("records") or {}) if retrieval_ledger else {}
     # ARMCONTRAST INTO SCREENING: inject this topic's committed, audit-confirmed non-contrast
     # evictions so screening excludes them at eligibility (not after pooling). Deterministic from
@@ -2152,6 +2154,10 @@ def build_review_core(slug, config, records, protocol_sha):
         review.setdefault("protocol", {})["target_endpoint_selection"] = (
             target_endpoint_mod.protocol_rule_object()
         )
+    # Scientific consumers above join held report-keyed RoB/GRADE evidence.
+    # Family identity is additive; regenerate the dependent sensitivity stamp afterwards.
+    trial_family_mod.attach_review(review, family_nodes)
+    known_missing_mod.build(review, _inv_sig, rec_by_id, records)
     claimgraph_mod.stamp_review(review)
     _cg_bad = claimgraph_mod.check(review)
     if _cg_bad:

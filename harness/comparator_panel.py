@@ -102,9 +102,18 @@ def overlaps(comparator, review):
             aliases[canon] = family
     theirs = {t["family_id"] for t in trials}
     out = []
+    def _resolve(t):
+        # A pooled row carries several identities (family id, report id, label); the comparator's alias list may
+        # know any of them. Try each before falling back to the family id -- keying on the family id alone made
+        # every glp1 row "harness only" once rows carried registry-first family ids (Jaccard 0.78 -> 0.0).
+        keys = [t.get("family_id"), t.get("id"), t.get("label")]
+        for k in keys:
+            ck = canonical_trial_key(k) if k else ""
+            if ck and ck in aliases:
+                return aliases[ck]
+        return canonical_trial_key(t.get("family_id") or t.get("id"))
     for name, rows, endpoint, result in pools(review):
-        ours = {aliases.get(canonical_trial_key(t.get("family_id") or t.get("id")),
-                            canonical_trial_key(t.get("family_id") or t.get("id"))) for t in rows}
+        ours = {_resolve(t) for t in rows}
         ours.discard("")
         shared = ours & theirs
         compatible, unknown = [], []

@@ -48,7 +48,7 @@ def _git_fixture(tmp: Path) -> None:
            "HOME": str(tmp), "USERPROFILE": str(tmp)}
     import os
     import subprocess
-    full_env = {**os.environ, **env}
+    full_env = {**{k: v for k, v in os.environ.items() if not k.startswith("GIT_")}, **env}  # never a hook GIT_DIR
     for cmd in (["git", "init", "-q"], ["git", "add", "-A"], ["git", "commit", "-q", "-m", "fixture"]):
         subprocess.run(cmd, cwd=tmp, check=True, capture_output=True, env=full_env)
 def _replace_commit_evidence(tmp: Path, data: dict) -> None:

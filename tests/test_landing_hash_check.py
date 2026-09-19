@@ -22,7 +22,13 @@ PREFIX_SHA = "237e90946f5b257265b0a3b1c986a8907d12eded"
 
 
 def _git(cwd, *args):
-    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
+    # never inherit a hook's GIT_DIR / GIT_INDEX_FILE / GIT_WORK_TREE: a `git init` in a temp dir under a
+    # pre-commit hook re-initialised the LIVE repository as bare (2026-09-19, C:\mh-int core.bare=true, hooksPath=nul)
+    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, env=_clean_env())
+
+
+def _clean_env():
+    return {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
 
 
 def _write(cwd, rel, text):

@@ -29,6 +29,11 @@ def trial_key(trial: dict[str, Any]) -> str:
     return str((trial or {}).get("id") or "").strip()
 
 
+def pool_is_refused(outcome: dict[str, Any]) -> bool:
+    result = outcome.get('result') or {}
+    return result.get('present') is False or bool(result.get('suppressed_incompatible') or result.get('pool_refused'))
+
+
 def canonical_trial_key(value: Any) -> str:
     s = str(value or "").strip()
     if not s:
@@ -102,6 +107,14 @@ def build_outcome_membership(
     outcome: dict[str, Any],
     included: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    all_ids = [t['family_id'] for t in outcome.get('trials', []) if t.get('family_id')]
+    family_ids = [t['family_id'] for t in outcome.get('trials', []) if t.get('family_id')
+                  and t.get('family_identity_state') != 'UNRESOLVED_REPORT_CANDIDATE']
+    analysis_family_ids = sorted(set(family_ids))
+    if pool_is_refused(outcome):
+        family_ids = []
+    if len(all_ids) != len(set(all_ids)):
+        raise ValueError('DUPLICATE_FAMILY: '+str(outcome.get('name')))
     pooled = _unique([trial_key(t) for t in outcome.get("trials", []) or []])
     declared_absent = _unique([
         str(a.get("id") or "").strip()
@@ -123,6 +136,8 @@ def build_outcome_membership(
     accounted = {canonical_trial_key(k) for k in (pooled + declared_absent + refused) if k}
     screened_in_not_pooled = [k for k in screened if canonical_trial_key(k) not in accounted]
     seed = {
+        'pooled_family_ids': sorted(set(family_ids)),
+        'pooled_family_count': len(set(family_ids)),
         "outcome": outcome.get("name"),
         "pooled": pooled,
         "declared_absent": declared_absent,
@@ -130,7 +145,11 @@ def build_outcome_membership(
         "screened_in": screened,
     }
     return {
+        'analysis_input_family_ids': analysis_family_ids,
+        'pooled_family_ids': sorted(set(family_ids)),
+        'pooled_family_count': len(set(family_ids)),
         "pooled": pooled,
+        'unresolved_pooled_candidate_ids': [] if pool_is_refused(outcome) else sorted(set(all_ids)-set(analysis_family_ids)),
         "declared_absent": declared_absent,
         "refused": refused,
         "screened_in_not_pooled": screened_in_not_pooled,

@@ -94,6 +94,20 @@ def _parity_section(docs_dir: str) -> str:
     return body + "</table></div>"
 
 
+def _family_ledger_section(docs_dir):
+    from .trial_family import derive_count_chain, count_sentence
+    rows = []
+    for path in sorted(glob.glob(os.path.join(docs_dir, 'reviews', '*', 'review.json'))):
+        with open(path, encoding='utf8') as handle:
+            review = json.load(handle)
+        if review.get('trial_families'):
+            rows.append('<tr><td>'+_E(review['slug'])+'</td><td>'+
+                        _E(count_sentence(derive_count_chain(review['trial_families'])))+'</td></tr>')
+    return ('<section id="family-ledger-overview"><h2>Trial-family screening ledger</h2>'
+            '<table><tr><th>Topic</th><th>Counts from held family ledger</th></tr>'+
+            ''.join(rows)+'</table></section>') if rows else ''
+
+
 def _currency_section(docs_dir: str) -> str:
     """Corpus currency, published as it falls: how many topics carry an invalidation flag (STALE)
     and why. Self-counting from each review's committed invalidation verdict, so the number cannot
@@ -1293,7 +1307,7 @@ def build_index(docs_dir: str) -> str:
                  "<a href='gate_scorecard.json'>gate_scorecard.json</a>; the per-file digests of this deployment in "
                  "<a href='_production/manifest.json'>_production/manifest.json</a>.</p></div>")
     body = (_evidence + _decoupling_universal_section(docs_dir) + _external_findings_section(docs_dir) + _thesis + _erate + _xfam + _defaudit + _extval + _cont + _spec + _screen + _prov + _verification_section(docs_dir)
-            + _currency_section(docs_dir) + _recovery_section(docs_dir)
+            + _family_ledger_section(docs_dir) + _currency_section(docs_dir) + _recovery_section(docs_dir)
             + _participant_flow_section(docs_dir) + _iv_iron_strands_section(docs_dir)
             + _search_recall_section(docs_dir)
             + _gate_scorecard_section(docs_dir)

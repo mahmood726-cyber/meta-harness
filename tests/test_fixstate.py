@@ -28,6 +28,7 @@ def _git(root: Path, *args: str) -> str:
         capture_output=True,
         text=True,
         encoding="utf-8",
+        env={k: v for k, v in os.environ.items() if not k.startswith("GIT_")},  # never a hook GIT_DIR
         errors="replace",
     ).stdout.strip()
 

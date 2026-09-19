@@ -1,0 +1,27 @@
+TARGET verify_all: head=32b99a388daeb4e42a792dc2e4c78cb89054dde0 base=none tree=clean files=1 scripts/verify_all.py
+VERIFY-ALL: 11 limbs, all run, fail-closed. root=C:\mh-ws-TF
+  [             PASS] unit tests (pytest tests/)  (807s)
+        TARGET verify_all.limb_unit_tests: head=32b99a388daeb4e42a792dc2e4c78cb89054dde0 base=none tree=clean files=160 tests/conftest.py tests/test_aact_cache.py tests/test_aact_recurrent_guard.py ...
+  [             PASS] offline reproduction (every live page replays from committed cache)  (86s)
+        TARGET verify_all.limb_reproduction: head=32b99a388daeb4e42a792dc2e4c78cb89054dde0 base=none tree=clean files=33 scripts/reproduce_review.py docs/reviews/balanced-crystalloids-vs-saline-mortality/review.json docs/reviews/colchicine-postop-af/review.json ...
+  [             PASS] publication gate on every live review page  (140s)
+        TARGET verify_all.limb_gate_every_page: head=32b99a388daeb4e42a792dc2e4c78cb89054dde0 base=none tree=clean files=32 docs/reviews/balanced-crystalloids-vs-saline-mortality/review.json docs/reviews/colchicine-postop-af/review.json docs/reviews/colchicine-recurrent-pericarditis/review.json ...
+  [             PASS] index currency (generated == committed docs/index.html)  (9s)
+        TARGET verify_all.limb_index_currency: head=32b99a388daeb4e42a792dc2e4c78cb89054dde0 base=none tree=clean files=696 docs/index.html docs/evidence/CAPTIONS.json docs/evidence/CAPTIONS.json ...
+  [             PASS] served-artefact leak scan (docs/*.json)  (2s)
+        TARGET verify_all.limb_leak_scan: head=32b99a388daeb4e42a792dc2e4c78cb89054dde0 base=none tree=clean files=122 docs/adjustment_label_sweep.json docs/arm_object_sweep.json docs/class_discovery.json ...
+  [             PASS] held-out leak detector (registry/heldout_sealed.json)  (1052s)
+        TARGET verify_all.limb_heldout: head=32b99a388daeb4e42a792dc2e4c78cb89054dde0 base=none tree=clean files=3 registry/heldout_sealed.json docs/search_recall_regression_corpus.json harness/acquisition.py
+  [             PASS] search completeness (search_v2 measurement current; every state explicit; no zero from an exit code)  (2s)
+        TARGET verify_all.limb_search_completeness: head=32b99a388daeb4e42a792dc2e4c78cb89054dde0 base=none tree=clean files=3 registry/search_completeness.json harness/search_v2.py harness/search_completeness.py
+  [             PASS] fix-state discipline (registry/fixes.json)  (95s)
+        TARGET verify_all.limb_fixstate: head=32b99a388daeb4e42a792dc2e4c78cb89054dde0 base=none tree=clean files=3 registry/fixes.json docs/fix_ledger.json scripts/render_fix_ledger.py
+  [             PASS] honest-state ratchet (no page may get quieter)  (17s)
+        TARGET verify_all.limb_honest_ratchet: head=32b99a388daeb4e42a792dc2e4c78cb89054dde0 base=none tree=clean files=34 docs/index.html docs/ratchet_acknowledgements.json docs/reviews/balanced-crystalloids-vs-saline-mortality/index.html ...
+        TARGET honest_ratchet: head=32b99a388daeb4e42a792dc2e4c78cb89054dde0 base=237e90946f5b257265b0a3b1c986a8907d12eded tree=clean files=34 docs/index.html docs/reviews/balanced-crystalloids-vs-saline-mortality/index.html docs/reviews/colchicine-postop-af/index.html ... base_resolution=merge-base origin/main pages=33 block_floor_refs=237e90946f5b257265b0a3b1c986a8907d12eded,50f5a67b4fb19ada4716a0df6e6b68c2e4618304
+  [             PASS] gate scorecard (every gate accounted for)  (1s)
+        TARGET verify_all.limb_gate_scorecard: head=32b99a388daeb4e42a792dc2e4c78cb89054dde0 base=none tree=clean files=3 registry/gate_scorecard.json docs/gate_scorecard.json harness/gate_scorecard.py
+        TARGET gate_scorecard: head=32b99a388daeb4e42a792dc2e4c78cb89054dde0 base=none tree=clean files=6 registry/gate_scorecard.json docs/gate_scorecard.json scripts/verify_all.py ...
+  [             PASS] gate gaps table (sealed what-it-would-not-stop rows)  (6s)
+VERIFY-ALL: all 11 limbs PASS.
+VERIFY_RC=0

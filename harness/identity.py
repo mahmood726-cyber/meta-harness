@@ -40,7 +40,7 @@ def _ids_of(rec):
     return ids
 
 
-def build_identities(records):
+def build_identities(records, *, strict=False):
     """Union-find over records sharing any identifier.
 
     Returns a list of identity dicts:
@@ -60,7 +60,23 @@ def build_identities(records):
 
     seen = {}
     for i, r in enumerate(records):
-        for tag, val in _ids_of(r):
+        keys = _ids_of(r)
+        if strict:
+            # An acronym alone is not trial identity. Require the same held arm structure.
+            keys = {(t, v) for t, v in keys if t != 'acronym'}
+            import json
+            if r.get('acronym') and r.get('arms'):
+                keys.add(('acronym_arms', (str(r['acronym']).lower(),
+                          json.dumps(r['arms'], sort_keys=True))))
+            for value in r.get('registry_ids') or []:
+                keys.add(('registry', str(value).upper()))
+            for value in r.get('related_dois') or []:
+                keys.add(('doi', str(value).lower().removeprefix('https://doi.org/')))
+            for value in r.get('related_report_ids') or []:
+                keys.add(('id', _norm(value)))
+            keys = {(t, str(v).lower().removeprefix('https://doi.org/') if t == 'doi' else v)
+                    for t, v in keys}
+        for tag, val in keys:
             key = (tag, val)
             if key in seen:
                 union(i, seen[key])

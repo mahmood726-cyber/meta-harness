@@ -65,7 +65,11 @@ def test_elixa_conflict_spans_primary_unchanged():
         'primary_4p_table6': 22, 'primary_4p_text': 35, 'primary_4p_unrounded_text': 8}
     base = json.loads(subprocess.check_output(['git', 'show', f'237e9094:docs/reviews/{SLUG}/review.json']))
     assert outcome['result']['k'] == 8
-    assert outcome['result'] == primary(base)['result']
+    # the primary RESULT is unchanged: every scientific field equal; the dependency stamps (input_set_version,
+    # claim_id, depends_on) are re-derived by later landings (ws/TF widened the input set) and are not the result
+    _stamps = {'input_set_version', 'claim_id', 'depends_on', 'claim_kind'}
+    scientific = lambda res: {k: v for k, v in res.items() if k not in _stamps}
+    assert scientific(outcome['result']) == scientific(primary(base)['result'])
     from harness.page import _stale_topic_overview
     assert '1.02' not in _stale_topic_overview(review)
 

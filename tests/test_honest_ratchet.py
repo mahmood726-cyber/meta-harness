@@ -130,7 +130,8 @@ def test_compare_blocks_follows_a_transitive_acknowledgement_chain():
 
 
 def _git(root, *args):
-    return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True)
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}  # never a hook's GIT_DIR
+    return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True, env=env)
 
 
 def test_check_refuses_when_working_tree_drops_pinned_identity():
