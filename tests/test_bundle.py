@@ -689,3 +689,30 @@ def test_admission_carries_its_meaning_policy_and_evidence_versions(bundle):
     assert all(r["admission"]["predicates"]["P2_span_located"]["typed_state"] == "LOCATED" for r in bundle["verification_rows"])
     for rf in bundle["regulatory_facts"]:
         assert "competing_candidates" in rf and rf["competing_candidates"] == []
+
+
+# ------------------------------------------------------------------ 3.12: five assessment states; withdrawn needs its record; clean negatives
+
+def test_assessment_states_cover_every_row_and_never_render_alike(bundle):
+    a = bundle["assessment_states"]
+    review = _load(os.path.join(REVIEW_DIR, "review.json"))
+    n_rows = sum(len(o["trials"]) + len(o.get("declared_absent_trials") or []) for o in review["outcomes"])
+    assert len(a["rows"]) == n_rows
+    assert set(a["counts"]) <= set(bundle["vocabulary"]["assessment_states"]) - {"rule"}
+    assert a["counts"]["ASSESSED"] >= 8 + 4 and a["counts"]["MIGRATION_STATE"] == 2 and a["counts"]["NOT_ASSESSED_BY_BUNDLE"] == 13
+    assert "WITHDRAWN" not in a["counts"]
+
+
+def test_withdrawn_is_unassertable_without_its_record():
+    with pytest.raises(ValueError):
+        build_bundle.assessment_state({"id": "PMID 1", "state": "WITHDRAWN"}, "x", False, False, False)                # declared but empty
+    with pytest.raises(ValueError):
+        build_bundle.assessment_state({"id": "PMID 1", "withdrawal_record": {"ref": "notices/x.json"}}, "x", False, False, False)   # record without digest/reason
+    ok = build_bundle.assessment_state({"id": "PMID 1", "state": "WITHDRAWN", "withdrawal_record": {"ref": "notices/x.json", "sha256": "a" * 64, "reason": "wrong-target binding", "date": "2026-09-20"}}, "x", False, False, False)
+    assert ok["state"] == "WITHDRAWN" and ok["basis"]["withdrawal_record"]["sha256"] == "a" * 64
+
+
+def test_clean_negative_is_recorded_as_a_negative_with_its_scope(bundle):
+    cn = bundle["clean_negatives"][0]
+    assert cn["result"].startswith("8 of 8") and "says nothing about the defect" in cn["meaning"] and "95.03" in cn["meaning"]
+    assert "constant across every row" in cn["why_the_field_stays"]

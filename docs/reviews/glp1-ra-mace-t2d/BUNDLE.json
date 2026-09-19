@@ -1,7 +1,8 @@
 {
  "schema_version": 3,
- "format_revision": "3.11",
+ "format_revision": "3.12",
  "format_changelog": [
+  "3.12 (2026-09-20): assessment_states -- every rendered row and every declared-absent row carries one of ASSESSED / UNRESOLVED / MIGRATION_STATE / WITHDRAWN / NOT_ASSESSED_BY_BUNDLE with its basis; WITHDRAWN is unassertable without a withdrawal record (ref, digest, reason, date) and the builder refuses a row that claims it without one; clean_negatives records measurements that came back constant (source_ci_pct = 95 on 8 of 8) as negatives with their scope, not as reassurance.",
   "3.11 (2026-09-19, design memo): observed and registered estimand values are separate typed fields with no conversion (an unknown observed value is never filled from the specification); location and binding results are tagged states -- LOCATED / NOT_FOUND / AMBIGUOUS (carrying every competing candidate) / UNSUPPORTED_REPRESENTATION -- so the schema distinguishes 'binding failed' from 'binding not attempted'; admission means 'admissible for this exact analysis under this policy version and evidence version', never 'verified', and carries both versions; the verifier REVALIDATES on load -- regulatory strategy from the span, estimand bases from the source -- instead of trusting a deserialised state because it parses.",
   "3.10 (2026-09-19): statistical_input.ci_level -- the CI level the source STATES in the tuple's own clause (with basis) against the level the SE derivation ASSUMED (95%, z = 1.959963984540054); a MISMATCH (e.g. a 95.03% alpha-adjusted interval, EMPEROR-Preserved) is a refusal (P12_ci_level / CI_LEVEL_MISMATCH), never a relabel; UNSTATED is recorded as an assumption. Selection rule stated: by identity, never array order; ABSTAIN where the population cannot be resolved against the registered analysis set (DELIVER carries two PRIMARY composites).",
   "3.9 (2026-09-19): analysis_identity is no longer a set of bare values. Each of analysis_set, treatment_strategy, follow_up_window, comparator_direction and estimator is {value, basis, span, start, end, parent_representation} with basis STATED_IN_OWNING_EVIDENCE / REGISTERED_DEFAULT / UNRESOLVED (a default never renders as a statement); the review-target fallback ('trial end' on every row) is gone; stated fields also appear in spans[] with role analysis_method; regulatory candidates carry their (on-study)/(on-treatment) row label as a column_header span with offsets into the served text; the verifier refuses ESTIMAND_EVIDENCE_MISMATCH when a stated field does not reproduce at its offsets or a default carries a span.",
@@ -169,6 +170,14 @@
   ],
   "ci_level_rule": "the interval level the source states is part of the analysis identity; the SE derivation assumes 95%; a stated level that differs (e.g. 95.03%, alpha-adjusted for interim looks) is CI_LEVEL_MISMATCH and the row is refused -- a mismatch is never resolved by relabelling",
   "selection_rule_for_multiple_candidates": "selection by identity (endpoint components, population / analysis set, treatment strategy, CI level), never by array order or first match; where the population cannot be resolved against the registered analysis set the answer is ABSTAIN, not the first primary (DELIVER NCT03619213 carries two PRIMARY composites, 0.82 (0.73-0.92) and 0.83 (0.73-0.95), differing by population)",
+  "assessment_states": {
+   "ASSESSED": "the row was run through the admission predicates (verification_rows) or the absence rule (absence_claims); its result stands beside it",
+   "UNRESOLVED": "assessed and left open as a scientific output: two plausible analyses, numerical ownership unresolved, comparison direction not established, or source acquired but the relevant table context missing (AMBIGUOUS / UNRESOLVED / ESTIMAND_UNBOUND carry the candidates)",
+   "MIGRATION_STATE": "rendered under the producer's UNBOUND_LEGACY fail-open; neither admitted nor refused; counted separately",
+   "WITHDRAWN": "a served conclusion withdrawn by a notice; asserting it REQUIRES withdrawal_record {ref, sha256, reason, date} -- a declared-but-empty or declared-but-contradicted withdrawal is refused by the builder, so 'withdrawn' cannot be said without the record that justifies it",
+   "NOT_ASSESSED_BY_BUNDLE": "the bundle makes no claim (e.g. a POSITIVE_REFUSAL carried as a producer assertion; a text-artefact source this checker cannot search)",
+   "rule": "these are five different states; a bundle that rendered them alike would undo the point of a withdrawal notice"
+  },
   "typed_states": {
    "LOCATED": "exactly one occurrence, or offsets pin one; offsets and parent representation present",
    "NOT_FOUND": "the search ran against the named representation and found nothing (distinct from not attempted)",
@@ -4558,6 +4567,231 @@
   },
   "statement": "2 rendered row(s) carry UNBOUND_LEGACY. The producer's admit_rows returns admissible=True for them through a fail-open (external audit, ELIXA 4-point demonstration). This bundle counts them as a migration state: not in admissible_rows, not refused. Whether the LIVE build behaves as the audited code does is UNVERIFIABLE from here until target_endpoint.py is pinned in the certificate and generating_commit is recorded (the certificate lane's closure)."
  },
+ "assessment_states": {
+  "rows": [
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "trial": "PMID 31185157",
+    "kind": "rendered_row",
+    "state": "ASSESSED",
+    "basis": "verification_rows: ADMISSIBLE"
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "trial": "PMID 27633186",
+    "kind": "rendered_row",
+    "state": "ASSESSED",
+    "basis": "verification_rows: ADMISSIBLE"
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "trial": "PMID 27295427",
+    "kind": "rendered_row",
+    "state": "ASSESSED",
+    "basis": "verification_rows: ADMISSIBLE"
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "trial": "PMID 34215025",
+    "kind": "rendered_row",
+    "state": "ASSESSED",
+    "basis": "verification_rows: ADMISSIBLE"
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "trial": "PMID 31189511",
+    "kind": "rendered_row",
+    "state": "ASSESSED",
+    "basis": "verification_rows: ADMISSIBLE"
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "trial": "PMID 30291013",
+    "kind": "rendered_row",
+    "state": "ASSESSED",
+    "basis": "verification_rows: INADMISSIBLE"
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "trial": "PMID 28910237",
+    "kind": "rendered_row",
+    "state": "ASSESSED",
+    "basis": "verification_rows: ADMISSIBLE"
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "trial": "PMID 40162642",
+    "kind": "rendered_row",
+    "state": "ASSESSED",
+    "basis": "verification_rows: ADMISSIBLE"
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "trial": "PMID 26630143",
+    "kind": "declared_absent",
+    "producer_state": "OUTCOME_NOT_IN_SOURCE",
+    "state": "ASSESSED",
+    "basis": "absence_claims: negative claim evaluated"
+   },
+   {
+    "outcome": "Gastrointestinal adverse events",
+    "trial": "PMID 31189511",
+    "kind": "rendered_row",
+    "state": "MIGRATION_STATE",
+    "basis": "endpoint_binding == unbound_legacy (producer fail-open); see binding_states"
+   },
+   {
+    "outcome": "Gastrointestinal adverse events",
+    "trial": "PMID 31185157",
+    "kind": "declared_absent",
+    "producer_state": "REFUSED_ON_EVIDENCE",
+    "state": "NOT_ASSESSED_BY_BUNDLE",
+    "basis": "absence_claims: producer assertion, not evaluated"
+   },
+   {
+    "outcome": "Gastrointestinal adverse events",
+    "trial": "PMID 27633186",
+    "kind": "declared_absent",
+    "producer_state": "REFUSED_ON_EVIDENCE",
+    "state": "NOT_ASSESSED_BY_BUNDLE",
+    "basis": "absence_claims: producer assertion, not evaluated"
+   },
+   {
+    "outcome": "Gastrointestinal adverse events",
+    "trial": "PMID 27295427",
+    "kind": "declared_absent",
+    "producer_state": "REFUSED_ON_EVIDENCE",
+    "state": "NOT_ASSESSED_BY_BUNDLE",
+    "basis": "absence_claims: producer assertion, not evaluated"
+   },
+   {
+    "outcome": "Gastrointestinal adverse events",
+    "trial": "PMID 34215025",
+    "kind": "declared_absent",
+    "producer_state": "REFUSED_ON_EVIDENCE",
+    "state": "NOT_ASSESSED_BY_BUNDLE",
+    "basis": "absence_claims: producer assertion, not evaluated"
+   },
+   {
+    "outcome": "Gastrointestinal adverse events",
+    "trial": "PMID 30291013",
+    "kind": "declared_absent",
+    "producer_state": "REFUSED_ON_EVIDENCE",
+    "state": "NOT_ASSESSED_BY_BUNDLE",
+    "basis": "absence_claims: producer assertion, not evaluated"
+   },
+   {
+    "outcome": "Gastrointestinal adverse events",
+    "trial": "PMID 28910237",
+    "kind": "declared_absent",
+    "producer_state": "REFUSED_ON_EVIDENCE",
+    "state": "NOT_ASSESSED_BY_BUNDLE",
+    "basis": "absence_claims: producer assertion, not evaluated"
+   },
+   {
+    "outcome": "Gastrointestinal adverse events",
+    "trial": "PMID 26630143",
+    "kind": "declared_absent",
+    "producer_state": "REFUSED_ON_EVIDENCE",
+    "state": "NOT_ASSESSED_BY_BUNDLE",
+    "basis": "absence_claims: producer assertion, not evaluated"
+   },
+   {
+    "outcome": "Gastrointestinal adverse events",
+    "trial": "PMID 40162642",
+    "kind": "declared_absent",
+    "producer_state": "OUTCOME_NOT_IN_SOURCE",
+    "state": "ASSESSED",
+    "basis": "absence_claims: negative claim evaluated"
+   },
+   {
+    "outcome": "Adverse events leading to discontinuation",
+    "trial": "PMID 27295427",
+    "kind": "rendered_row",
+    "state": "MIGRATION_STATE",
+    "basis": "endpoint_binding == unbound_legacy (producer fail-open); see binding_states"
+   },
+   {
+    "outcome": "Adverse events leading to discontinuation",
+    "trial": "PMID 31185157",
+    "kind": "declared_absent",
+    "producer_state": "REFUSED_ON_EVIDENCE",
+    "state": "NOT_ASSESSED_BY_BUNDLE",
+    "basis": "absence_claims: producer assertion, not evaluated"
+   },
+   {
+    "outcome": "Adverse events leading to discontinuation",
+    "trial": "PMID 27633186",
+    "kind": "declared_absent",
+    "producer_state": "REFUSED_ON_EVIDENCE",
+    "state": "NOT_ASSESSED_BY_BUNDLE",
+    "basis": "absence_claims: producer assertion, not evaluated"
+   },
+   {
+    "outcome": "Adverse events leading to discontinuation",
+    "trial": "PMID 34215025",
+    "kind": "declared_absent",
+    "producer_state": "OUTCOME_NOT_IN_SOURCE",
+    "state": "ASSESSED",
+    "basis": "absence_claims: negative claim evaluated"
+   },
+   {
+    "outcome": "Adverse events leading to discontinuation",
+    "trial": "PMID 31189511",
+    "kind": "declared_absent",
+    "producer_state": "SIGNAL_SPURIOUS",
+    "state": "NOT_ASSESSED_BY_BUNDLE",
+    "basis": "absence_claims: producer assertion, not evaluated"
+   },
+   {
+    "outcome": "Adverse events leading to discontinuation",
+    "trial": "PMID 30291013",
+    "kind": "declared_absent",
+    "producer_state": "SIGNAL_SPURIOUS",
+    "state": "NOT_ASSESSED_BY_BUNDLE",
+    "basis": "absence_claims: producer assertion, not evaluated"
+   },
+   {
+    "outcome": "Adverse events leading to discontinuation",
+    "trial": "PMID 28910237",
+    "kind": "declared_absent",
+    "producer_state": "REFUSED_ON_EVIDENCE",
+    "state": "NOT_ASSESSED_BY_BUNDLE",
+    "basis": "absence_claims: producer assertion, not evaluated"
+   },
+   {
+    "outcome": "Adverse events leading to discontinuation",
+    "trial": "PMID 26630143",
+    "kind": "declared_absent",
+    "producer_state": "REFUSED_ON_EVIDENCE",
+    "state": "NOT_ASSESSED_BY_BUNDLE",
+    "basis": "absence_claims: producer assertion, not evaluated"
+   },
+   {
+    "outcome": "Adverse events leading to discontinuation",
+    "trial": "PMID 40162642",
+    "kind": "declared_absent",
+    "producer_state": "OUTCOME_NOT_IN_SOURCE",
+    "state": "ASSESSED",
+    "basis": "absence_claims: negative claim evaluated"
+   }
+  ],
+  "counts": {
+   "ASSESSED": 12,
+   "MIGRATION_STATE": 2,
+   "NOT_ASSESSED_BY_BUNDLE": 13
+  },
+  "statement": "five states, counted separately; WITHDRAWN appears only with the record that justifies it (none in this review at this revision)"
+ },
+ "clean_negatives": [
+  {
+   "measurement": "source_ci_pct across the pooled rows",
+   "result": "8 of 8 tuple clauses state 95%; se_log_at_stated_level reproduces se_log_used on every row",
+   "meaning": "a clean NEGATIVE: the GLP-1 derivations are currently safe at the level they assume. It says nothing about the defect, which is in the registry route (EMPEROR-Preserved's primary is reported at 95.03%, alpha-adjusted) on a topic this bundle does not cover -- which is itself the finding.",
+   "why_the_field_stays": "a field that is constant across every row you can see is exactly the field nobody notices is wrong when it varies; source_ci_pct is carried, compared to the level the derivation assumed, and a mismatch refuses the row (P12) rather than re-deriving or relabelling",
+   "scope": "glp1-ra-mace-t2d, abstract-sourced rows"
+  }
+ ],
  "regulatory_facts": [
   {
    "trial": "ELIXA",
@@ -5798,7 +6032,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.11",
+     "format_revision": "3.12",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -6260,7 +6494,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.11",
+     "format_revision": "3.12",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -6759,7 +6993,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.11",
+     "format_revision": "3.12",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -7259,7 +7493,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).[STA] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.11",
+     "format_revision": "3.12",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -7749,7 +7983,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat[STA] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.11",
+     "format_revision": "3.12",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -8239,7 +8473,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat[STA] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.11",
+     "format_revision": "3.12",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -8729,7 +8963,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat[STA] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.11",
+     "format_revision": "3.12",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -9229,7 +9463,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.11",
+     "format_revision": "3.12",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",

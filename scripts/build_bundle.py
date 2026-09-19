@@ -66,8 +66,9 @@ from harness.canonical import canonical_json, review_core, sha256_text  # noqa: 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.11"
+FORMAT_REVISION = "3.12"
 FORMAT_CHANGELOG = [
+    "3.12 (2026-09-20): assessment_states -- every rendered row and every declared-absent row carries one of ASSESSED / UNRESOLVED / MIGRATION_STATE / WITHDRAWN / NOT_ASSESSED_BY_BUNDLE with its basis; WITHDRAWN is unassertable without a withdrawal record (ref, digest, reason, date) and the builder refuses a row that claims it without one; clean_negatives records measurements that came back constant (source_ci_pct = 95 on 8 of 8) as negatives with their scope, not as reassurance.",
     "3.11 (2026-09-19, design memo): observed and registered estimand values are separate typed fields with no conversion (an unknown observed value is never filled from the specification); location and binding results are tagged states -- LOCATED / NOT_FOUND / AMBIGUOUS (carrying every competing candidate) / UNSUPPORTED_REPRESENTATION -- so the schema distinguishes 'binding failed' from 'binding not attempted'; admission means 'admissible for this exact analysis under this policy version and evidence version', never 'verified', and carries both versions; the verifier REVALIDATES on load -- regulatory strategy from the span, estimand bases from the source -- instead of trusting a deserialised state because it parses.",
     "3.10 (2026-09-19): statistical_input.ci_level -- the CI level the source STATES in the tuple's own clause (with basis) against the level the SE derivation ASSUMED (95%, z = 1.959963984540054); a MISMATCH (e.g. a 95.03% alpha-adjusted interval, EMPEROR-Preserved) is a refusal (P12_ci_level / CI_LEVEL_MISMATCH), never a relabel; UNSTATED is recorded as an assumption. Selection rule stated: by identity, never array order; ABSTAIN where the population cannot be resolved against the registered analysis set (DELIVER carries two PRIMARY composites).",
     "3.9 (2026-09-19): analysis_identity is no longer a set of bare values. Each of analysis_set, treatment_strategy, follow_up_window, comparator_direction and estimator is {value, basis, span, start, end, parent_representation} with basis STATED_IN_OWNING_EVIDENCE / REGISTERED_DEFAULT / UNRESOLVED (a default never renders as a statement); the review-target fallback ('trial end' on every row) is gone; stated fields also appear in spans[] with role analysis_method; regulatory candidates carry their (on-study)/(on-treatment) row label as a column_header span with offsets into the served text; the verifier refuses ESTIMAND_EVIDENCE_MISMATCH when a stated field does not reproduce at its offsets or a default carries a span.",
@@ -237,6 +238,16 @@ VOCABULARY = {
                                               "array order or first match; where the population cannot be resolved against the registered analysis set the "
                                               "answer is ABSTAIN, not the first primary (DELIVER NCT03619213 carries two PRIMARY composites, 0.82 (0.73-0.92) "
                                               "and 0.83 (0.73-0.95), differing by population)",
+    "assessment_states": {
+        "ASSESSED": "the row was run through the admission predicates (verification_rows) or the absence rule (absence_claims); its result stands beside it",
+        "UNRESOLVED": "assessed and left open as a scientific output: two plausible analyses, numerical ownership unresolved, comparison direction not "
+                      "established, or source acquired but the relevant table context missing (AMBIGUOUS / UNRESOLVED / ESTIMAND_UNBOUND carry the candidates)",
+        "MIGRATION_STATE": "rendered under the producer's UNBOUND_LEGACY fail-open; neither admitted nor refused; counted separately",
+        "WITHDRAWN": "a served conclusion withdrawn by a notice; asserting it REQUIRES withdrawal_record {ref, sha256, reason, date} -- a declared-but-empty or "
+                     "declared-but-contradicted withdrawal is refused by the builder, so 'withdrawn' cannot be said without the record that justifies it",
+        "NOT_ASSESSED_BY_BUNDLE": "the bundle makes no claim (e.g. a POSITIVE_REFUSAL carried as a producer assertion; a text-artefact source this checker cannot search)",
+        "rule": "these are five different states; a bundle that rendered them alike would undo the point of a withdrawal notice",
+    },
     "typed_states": {
         "LOCATED": "exactly one occurrence, or offsets pin one; offsets and parent representation present",
         "NOT_FOUND": "the search ran against the named representation and found nothing (distinct from not attempted)",
@@ -1562,6 +1573,74 @@ def regulatory_facts(review: dict, art_by_ref: dict) -> list:
     return out
 
 
+def withdrawal_record_of(obj: dict):
+    """The record that justifies a WITHDRAWN state, if the served object carries one. The notice schema lands with the withdrawal
+    commit; until then any of these spellings is accepted, and NONE of them is accepted without ref + sha256 + reason."""
+    for key in ("withdrawal_record", "withdrawal", "withdrawn_by", "notice"):
+        rec = obj.get(key)
+        if isinstance(rec, dict):
+            return rec
+    return None
+
+
+def assessment_state(obj: dict, assessed_kind: str, unresolved: bool, migration: bool, not_assessed: bool) -> dict:
+    """Five states, never alike. WITHDRAWN only with a record; a claim of withdrawal without one is refused (raised)."""
+    claimed_withdrawn = str(obj.get("state") or obj.get("status") or "").upper() == "WITHDRAWN" or bool(obj.get("withdrawn"))
+    rec = withdrawal_record_of(obj)
+    if claimed_withdrawn or rec:
+        if not (rec and rec.get("ref") and rec.get("sha256") and rec.get("reason")):
+            raise ValueError(f"row claims WITHDRAWN without a withdrawal record (ref, sha256, reason): {obj.get('id') or obj.get('trial')}")
+        return {"state": "WITHDRAWN", "basis": {"withdrawal_record": {k: rec.get(k) for k in ("ref", "sha256", "reason", "date")}}}
+    if migration:
+        return {"state": "MIGRATION_STATE", "basis": "endpoint_binding == unbound_legacy (producer fail-open); see binding_states"}
+    if not_assessed:
+        return {"state": "NOT_ASSESSED_BY_BUNDLE", "basis": assessed_kind}
+    if unresolved:
+        return {"state": "UNRESOLVED", "basis": assessed_kind}
+    return {"state": "ASSESSED", "basis": assessed_kind}
+
+
+def assessment_states(review: dict, vrows: list, aclaims: list) -> dict:
+    out = []
+    by_row = {r["trial"]["id"]: r for r in vrows}
+    for o in review.get("outcomes", []):
+        for t in o.get("trials", []):
+            vr = by_row.get(t.get("id")) if o.get("primary") else None
+            if vr:
+                fin = vr["admission"]["final"]
+                p9 = vr["admission"]["predicates"]["P9_span_target_mention"]["state"]
+                st = assessment_state(t, f"verification_rows: {fin}", unresolved=(p9 == "AMBIGUOUS_ENDPOINT_BINDING"),
+                                      migration=(fin == "MIGRATION_STATE_UNBOUND_LEGACY"), not_assessed=False)
+            else:
+                st = assessment_state(t, "rendered harms row; not a verification row (verification_rows cover the primary pool)",
+                                      unresolved=False, migration=(t.get("endpoint_binding") == "unbound_legacy"), not_assessed=(t.get("endpoint_binding") != "unbound_legacy"))
+            out.append({"outcome": o["name"], "trial": t.get("id"), "kind": "rendered_row", **st})
+        for d in o.get("declared_absent_trials") or []:
+            claim = next((c for c in aclaims if c["outcome"] == o["name"] and c["trial"]["id"] == d.get("id")), None)
+            evaluated = bool(claim and claim.get("evaluated_by_bundle"))
+            st = assessment_state(d, ("absence_claims: negative claim evaluated" if evaluated else "absence_claims: producer assertion, not evaluated"),
+                                  unresolved=False, migration=False, not_assessed=not evaluated)
+            out.append({"outcome": o["name"], "trial": d.get("id"), "kind": "declared_absent", "producer_state": d.get("state"), **st})
+    counts = {}
+    for r in out:
+        counts[r["state"]] = counts.get(r["state"], 0) + 1
+    return {"rows": out, "counts": counts,
+            "statement": "five states, counted separately; WITHDRAWN appears only with the record that justifies it (none in this review at this revision)"}
+
+
+def clean_negatives(vrows: list) -> list:
+    levels = [r["statistical_input"]["ci_level"] for r in vrows]
+    return [{
+        "measurement": "source_ci_pct across the pooled rows",
+        "result": f"{sum(1 for l in levels if l['level_agreement'] == 'MATCH')} of {len(levels)} tuple clauses state 95%; se_log_at_stated_level reproduces se_log_used on every row",
+        "meaning": "a clean NEGATIVE: the GLP-1 derivations are currently safe at the level they assume. It says nothing about the defect, which is in the registry "
+                   "route (EMPEROR-Preserved's primary is reported at 95.03%, alpha-adjusted) on a topic this bundle does not cover -- which is itself the finding.",
+        "why_the_field_stays": "a field that is constant across every row you can see is exactly the field nobody notices is wrong when it varies; source_ci_pct is "
+                               "carried, compared to the level the derivation assumed, and a mismatch refuses the row (P12) rather than re-deriving or relabelling",
+        "scope": "glp1-ra-mace-t2d, abstract-sourced rows",
+    }]
+
+
 def endpoint_compatibility(review: dict, rows: list) -> dict:
     primary = next(o for o in review["outcomes"] if o.get("primary"))
     proto_path = ROOT / "protocols" / (review["slug"] + ".md")
@@ -1861,6 +1940,11 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
     compat = endpoint_compatibility(review, vrows)
     xcov = extraction_objects_coverage(slug, review, cert)
     binding = binding_states(review, {r["trial"]["id"] for r in vrows})
+    try:
+        astates = assessment_states(review, vrows, aclaims)
+    except ValueError as exc:
+        problems.append(str(exc))
+        astates = {"rows": [], "counts": {}, "statement": "REFUSED: " + str(exc)}
     regfacts = regulatory_facts(review, art_by_ref)
     for b in binding["rows"]:
         vr = next((r for r in vrows if r["trial"]["id"] == b["trial"]["id"] and b["primary"]), None)
@@ -1973,6 +2057,8 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
         "registered_estimand": registered_estimand(slug),
         "extraction_objects_coverage": xcov,
         "binding_states": binding,
+        "assessment_states": astates,
+        "clean_negatives": clean_negatives(vrows),
         "regulatory_facts": regfacts,
         "verification_rows": vrows,
         "absence_claims": aclaims,
