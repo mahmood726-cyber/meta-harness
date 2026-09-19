@@ -9,10 +9,59 @@ import html
 import json
 import os
 import re
+from collections import Counter
 
 from . import parity_relation
 
 _E = lambda x: html.escape("" if x is None else str(x), quote=True)
+
+
+def _read_object(docs_dir, relative, default=None):
+    try:
+        with open(os.path.join(docs_dir, relative), encoding="utf-8") as stream:
+            return json.load(stream)
+    except (OSError, ValueError):
+        return default
+
+
+def _recovery_attempts(docs_dir, attempts):
+    parity = _read_object(docs_dir, "parity.json", [])
+    for attempt in attempts:
+        row = dict(attempt)
+        trial = row.get("trial", "")
+        topics = {r["slug"] for r in parity if trial and
+                  re.search(r"\b" + re.escape(trial) + r"\b", r.get("reason", ""), re.I)}
+        if topics and row.get("topic") not in topics:
+            yield {"trial": trial, "topic": "withheld", "status": "TOPIC_MISMATCH",
+                   "note": "Parity attribution: " + ", ".join(sorted(topics))}
+            continue
+        review = _read_object(docs_dir, os.path.join("reviews", row.get("topic", ""), "review.json"), {})
+        pmid = str(row.get("pmid", ""))
+        records = (review.get("screening") or {}).get("records", [])
+        screen = next((r for r in records if str(r.get("id")) == pmid), {})
+        primary = next((o for o in review.get("outcomes", []) if o.get("primary")), {})
+        absent = next((t for t in primary.get("declared_absent_trials", [])
+                       if str(t.get("id")) in (pmid, "PMID " + pmid)), {})
+        pooled = any(str(t.get("id")) in (pmid, "PMID " + pmid) for t in primary.get("trials", []))
+        if screen or absent or pooled:
+            row.pop("before", None)
+            row.pop("after", None)
+            row["status"] = ("POOLED" if pooled else "DECLARED_ABSENT" if absent else
+                             "EXCLUDED" if screen.get("decision") == "exclude" else "SCREENED_IN")
+            row["note"] = ("Current review: screening=" + str(screen.get("decision", "unrecorded"))
+                           + "; state=" + str(absent.get("state", row["status"]))
+                           + "; reason audit=" + str((absent.get("reason_code_audit") or {}).get("verdict", "unrecorded")))
+        yield row
+
+
+def _method_display(docs_dir, method):
+    # A manifest records a method, not evidence of universal gate enforcement.
+    method = re.sub(r"Validated vs metafor[^.]*5\.0\.1.*?\)\.", "", method or "")
+    scorecard = _read_object(docs_dir, "gate_scorecard.json", {})
+    gate = next((g for g in scorecard.get("gates", [])
+                 if g.get("gate_id") == "census.interval_provenance"), {})
+    state = (gate.get("computed") or {}).get("validation", "UNPROVEN")
+    return method.strip() + " Interval provenance gate: " + str(state) + "."
 
 _FRONT = """<div class="banner"><h2>What this is</h2>
 <p>A harness for generating meta-analysis pages from committed inputs. Gate results
@@ -128,16 +177,23 @@ def _recovery_section(docs_dir: str) -> str:
     except (OSError, ValueError):
         return ""
     sb = d.get("scoreboard") or {}
+    attempts = list(_recovery_attempts(docs_dir, d.get("attempts") or []))
+    states = Counter(a.get("status", "UNRECORDED") for a in attempts)
+    state_line = "; ".join(f"{_E(state)}: {count}" for state, count in sorted(states.items()))
     rows = "".join(
         f"<li><strong>{_E(a.get('trial'))}</strong> &rarr; {_E(a.get('topic'))}: "
         f"<code>{_E(a.get('status'))}</code>"
         + (f" &mdash; {_E(a.get('before'))} &rarr; {_E(a.get('after'))}" if a.get('before') else "")
         + (f" <span class='muted'>{_E(a.get('note'))}</span>" if a.get('note') else "") + "</li>"
-        for a in (d.get("attempts") or []))
+        for a in attempts)
     rd = d.get("recall_denominator") or {}
     recall_line = (f"<p><strong>Baseline unaided search recall: {_E(rd.get('baseline_unaided_recall'))}</strong> &mdash; against the {_E(rd.get('clean_eligible_denominator'))} entries labelled source-verified-eligible in the historical recovery record. CURRENT_RECALL_UNPROVEN: this snapshot does not establish misses of the current search; its recorded test-set error count is {_E(sb.get('test_set_errors_found') or 0)} errors, caught by source verification.</p>"
                    if rd else "")
-    return (f"<div class='banner'><h2>Recovery scoreboard &mdash; corrections are not systematically flattering</h2>{recall_line}<p><strong>{sb.get('recovered')} recovered of {sb.get('attempted')} attempted</strong>: {sb.get('tightened')} tightened, {sb.get('cost_significance')} lost significance, {sb.get('toward_null_stayed_nonsig')} moved toward the null; {sb.get('refused_on_source')} refused on source, {sb.get('scope_pending')} held on scope. SOURCE_VERIFICATION_UNPROVEN: recovery status alone does not establish source verification; consult each attempt and its source evidence.<ul>{rows}</ul></p></div>")
+    return (f"<div class='banner'><h2>Recovery inventory</h2>{recall_line}"
+            f"<p>{len(attempts)} recorded attempts; current review state where linked, otherwise historical recovery state: "
+            f"{state_line}. NOT_FOUND identifies an unresolved recovery search; EXCLUDED and DECLARED_ABSENT "
+            "are distinct dispositions. State labels do not establish source verification.</p>"
+            f"<ul>{rows}</ul></div>")
 
 
 def _participant_flow_section(docs_dir: str) -> str:
@@ -214,7 +270,7 @@ def _search_recall_section(docs_dir: str) -> str:
                 f"<tr><td>{_E(r.get('slug'))}</td><td><code>{_E(r.get('state'))}</code></td>"
                 f"<td>{_E(r.get('hits_in_boolean_set') if r.get('hits_in_boolean_set') is not None else 'unknown')}</td>"
                 f"<td>{_E(r.get('recalled'))} of {_E(r.get('denominator'))}"
-                + (f" ({_E(len(r.get('missed_pmids') or []))} missed)" if r.get('missed_pmids') else "")
+                + (f" ({_E(len(r.get('missed_pmids') or []))} absent from historical Boolean set: {_E(', '.join(r['missed_pmids']))}; not a current recovery-state count)" if r.get('missed_pmids') else "")
                 + (f" &mdash; <span class='muted'>{_E(r.get('error'))}</span>" if r.get('error') else "") + "</td></tr>"
                 for r in (h.get("per_topic") or []))
             hist = "".join(f"<li>{_E(e.get('measured_utc'))}: {_E(e.get('recall_text'))} (engine <code>{_E(str(e.get('engine_sha'))[:12])}</code>)</li>"
@@ -374,42 +430,19 @@ def _verification_section(docs_dir: str) -> str:
 
 
 def _error_coverage_section(docs_dir: str) -> str:
-    """Render the meta-analysis error-library coverage from docs/error_coverage.json: how many
-    documented meta-analysis mistakes every live review is screened against, and which remain
-    unchecked (the work queue). A claim no published meta-analysis makes, and exactly measurable."""
-    p = os.path.join(docs_dir, "error_coverage.json")
-    if not os.path.exists(p):
+    ledger = _read_object(docs_dir, "fix_ledger.json", {})
+    entries = ledger.get("fixes", [])
+    if not entries:
         return ""
-    try:
-        d = json.load(open(p, encoding="utf-8"))
-    except (OSError, ValueError):
-        return ""
-    per = d.get("per_review") or []
-    if not per:
-        return ""
-    checkable = per[0].get("checkable_total")
-    lo, hi = d.get("min_screened"), d.get("max_screened")
-    rng = f"{lo}" if lo == hi else f"{lo}–{hi}"
-    kinds = d.get("by_kind", {})
-    nc = d.get("not_checked", [])
-    body = (f"<div class='banner'><h2>Screened against a meta-analysis error library "
-            f"(measured, not asserted)</h2>"
-            f"<p>Every documented meta-analysis mistake is converted into one of: a <strong>gate limb</strong> "
-            f"that refuses a finished review, a <strong>regression test</strong> with a plant that fires "
-            f"pre-fix, or a <strong>rendered disclosure</strong> when it is a judgement the harness cannot "
-            f"make. Of <strong>{d.get('library_size')}</strong> documented errors catalogued "
-            f"({kinds.get('GATE_LIMB',0)} gate limbs, {kinds.get('REGRESSION_TEST',0)} regression tests, "
-            f"{kinds.get('RENDERED',0)} rendered disclosures), <strong>{checkable}</strong> have an enforced "
-            f"mechanism, and <strong>every live review is screened against {rng} of {checkable}</strong> of "
-            f"them. This is a claim no published meta-analysis makes about itself, and it is directly "
-            f"checkable (each entry names its mechanism in <code>harness/error_library.py</code>; the count "
-            f"regenerates via <code>scripts/error_coverage.py</code>).</p>")
-    if nc:
-        items = "; ".join(f"{e.get('id')} {e.get('label')}" for e in nc)
-        body += (f"<p><strong>Not yet checked (the work queue, stated not hidden):</strong> {_E(items)}. "
-                 f"These are the next checks to build, in severity order &mdash; chiefly unit-of-analysis "
-                 f"errors (shared-control double-counting, cluster design effect, crossover).</p>")
-    return body + "</div>"
+    counts = []
+    for axis in ("kind", "implementation", "verification", "scope", "freshness"):
+        values = Counter(str(row.get(axis, "UNRECORDED")) for row in entries)
+        counts.append(f"<li>{_E(axis)}: " + "; ".join(
+            f"{_E(key)}: {value}" for key, value in sorted(values.items())) + "</li>")
+    return (f"<div class='banner'><h2>Fix ledger</h2><p>{len(entries)} ledger entries, "
+            "recounted from fix_ledger.json. These include findings and controls as well as fixes; "
+            "ledger counts do not measure per-review screening or enforcement.</p><ul>"
+            + "".join(counts) + "</ul></div>")
 
 
 def _error_rate_section(docs_dir: str) -> str:
@@ -958,21 +991,23 @@ def _continuous_section(docs_dir: str) -> str:
             rev = json.load(open(p, encoding="utf-8"))
             res = next((o["result"] for o in rev.get("outcomes", []) if o.get("primary")), {})
             k, md, lo, hi = res.get("k"), res.get("estimate"), res.get("ci_low"), res.get("ci_high")
-            refused = res.get("pooled_ci_refused")
+            refused = (res.get("pooled_ci_refused") or not (res.get("claim") or {}).get("present")
+                       or res.get("present") is False or not res.get("ci_provenance")
+                       or lo is None or hi is None)
         except (OSError, ValueError, KeyError):
             pass
     if k is None or md is None:
-        sema = "a single Week-68 pool after a timepoint-consistency guard removed off-timepoint trials"
+        sema = "current primary result unavailable; no pooled significance or null-crossing claim"
     elif refused:
         sema = (f"it went from <strong>k=4, a tight and statistically significant pool</strong>, to "
-                f"<strong>k={k}, MD &minus;{abs(round(md,2))}%</strong>; the registered PM/HKSJ CI is "
-                "refused at k=2, so the index makes no pooled significance or null-crossing claim, after "
+                f"<strong>k={k}, MD {round(md,2)}%</strong>; the registered PM/HKSJ CI is "
+                "unavailable for a served claim, so the index makes no pooled significance or null-crossing claim, after "
                 "a timepoint-consistency guard refused to pool two Week-44 trials into a pre-registered "
                 "Week-68 outcome")
     else:
         sema = (f"it went from <strong>k=4, a tight and statistically significant pool</strong>, to "
-                f"<strong>k={k}, MD &minus;{abs(round(md,2))}% (95% CI &minus;{abs(round(lo,2))} to "
-                f"{round(hi,2)})</strong> &mdash; an interval that now crosses zero &mdash; because a "
+                f"<strong>k={k}, MD {round(md,2)}% (95% CI {round(lo,2)} to "
+                f"{round(hi,2)})</strong> &mdash; null-crossing state: {_E((res.get('claim') or {}).get('crosses_null'))} &mdash; after a "
                 "timepoint-consistency guard refused to pool two Week-44 trials into a pre-registered "
                 "Week-68 outcome")
     return (
@@ -989,19 +1024,21 @@ def _continuous_section(docs_dir: str) -> str:
         "timepoints). A topic builds cleanly here only when one registered outcome with raw per-arm mean&plusmn;SD "
         "is reported at one common timepoint across same-scope two-arm trials &mdash; a rare alignment. "
         f"<strong>Semaglutide is the clearest single illustration of the standard:</strong> {sema}. "
-        "<strong>We gave up significance to keep the timepoints consistent.</strong> No comparator reports "
-        "having made that trade. Together with the paragraph above this makes one claim: <strong>where we pool "
-        "less, it is because of a stated bar &mdash; and the bar is shown, not asserted.</strong></p></div>")
+        "The served claim state comes from the primary outcome in review.json.</p></div>")
 
 
 def build_index(docs_dir: str) -> str:
     rows = []
+    parity_by_slug = {r['slug']: r for r in _read_object(docs_dir, 'parity.json', [])}
     for mpath in sorted(glob.glob(os.path.join(docs_dir, "reviews", "*", "manifest.json"))):
         with open(mpath, encoding="utf-8") as f:
             m = json.load(f)
         slug = m.get("slug") or os.path.basename(os.path.dirname(mpath))
         comp = m.get("comparator") or {}
         ov = comp.get("overlap") or {}
+        parity = parity_by_slug.get(slug, {})
+        if parity.get("comparable_comparator_k") is not None:
+            ov = dict(ov, theirs_k=f"{parity['comparable_comparator_k']} (comparable; parity status {parity.get('status', 'UNRECORDED')})")
         ident = comp.get("pmid") and f"PMID {comp['pmid']}" or (comp.get("doi") and f"DOI {comp['doi']}") or "—"
         rows.append((slug, m, comp, ov, ident))
 
@@ -1011,7 +1048,7 @@ def build_index(docs_dir: str) -> str:
         for slug, m, comp, ov, ident in rows:
             body += (
                 f"<tr><td><a href='reviews/{_E(slug)}/index.html'>{_E(m.get('title') or slug)}</a></td>"
-                f"<td>{_E(m.get('served_method'))}</td>"
+                f"<td>{_E(_method_display(docs_dir, m.get('served_method')))}</td>"
                 f"<td>{_E(comp.get('name'))} ({_E(ident)})</td>"
                 f"<td>{_E(ov.get('ours_k'))} / {_E(ov.get('theirs_k'))} / {_E(ov.get('shared_k'))}</td></tr>"
             )
