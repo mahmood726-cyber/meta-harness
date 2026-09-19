@@ -1,8 +1,16 @@
 diff --git a/harness/design_key.py b/harness/design_key.py
-index 2a1909bc..9fe209f3 100644
+index 2a1909bc..a19b9a01 100644
 --- a/harness/design_key.py
 +++ b/harness/design_key.py
-@@ -61,6 +61,14 @@ _REGISTRY_MAP = {
+@@ -56,11 +56,22 @@ _TEXT_MAP = {
+     "stepped-wedge": ("STEPPED_WEDGE", "CLUSTER"),
+ }
+ 
++# the order a conflict resolves in: the design that carries the greater validity hazard wins
++_DESIGN_SEVERITY = {"PARALLEL": 1, "SINGLE_GROUP": 2, "FACTORIAL": 3, "CROSSOVER": 4, "CLUSTER": 5, "STEPPED_WEDGE": 6, "CLUSTER_CROSSOVER": 7}
++
+ _REGISTRY_MAP = {
+     "FACTORIAL ASSIGNMENT": ("FACTORIAL", "INDIVIDUAL"),
      "CROSSOVER ASSIGNMENT": ("CROSSOVER", "UNKNOWN"),
      "PARALLEL ASSIGNMENT": ("PARALLEL", "INDIVIDUAL"),
      "SEQUENTIAL ASSIGNMENT": ("STEPPED_WEDGE", "CLUSTER"),
@@ -17,7 +25,7 @@ index 2a1909bc..9fe209f3 100644
  }
  
  _ALT_RE = re.compile(
-@@ -520,7 +528,12 @@ def decision_for_trial(trial: dict[str, Any], declared_estimand: str | None = No
+@@ -520,7 +531,12 @@ def decision_for_trial(trial: dict[str, Any], declared_estimand: str | None = No
              gate_id="design-key:design-unproven",
              decision_state=("design not established from committed evidence; pooled through the parallel path "
                              "on an assumption the harness could not verify"),
@@ -31,6 +39,23 @@ index 2a1909bc..9fe209f3 100644
          )
      return _decision(
          "ALLOW",
+@@ -564,8 +580,14 @@ def key_for_trial(trial: dict[str, Any], rec: dict[str, Any] | None = None,
+     candidates = [(d, u) for d, u in ((text_design, text_unit), (reg_design, reg_unit)) if d]
+     conflict = len({d for d, _ in candidates}) > 1
+     if conflict:
+-        design, unit = "UNKNOWN", "UNKNOWN"
+-        basis.append({"source": "design-key conflict", "span": " | ".join(d for d, _ in candidates)})
++        # Two sources disagree. The conflict is recorded, and the design resolves to the MOST RESTRICTIVE candidate:
++        # a conflict must never be more permissive than either source. Resolving it to UNKNOWN let SMART and SALT-ED
++        # (abstract: "cluster-randomized, multiple-crossover"; registry: PARALLEL) fall from REFUSE into the parallel
++        # path on the crystalloids page (k 2 -> 4) the moment the registry enumeration was mapped -- the deletion
++        # invariant inside the design key (2026-09-19).
++        design, unit = max(candidates, key=lambda du: _DESIGN_SEVERITY.get(du[0], 0))
++        basis.append({"source": "design-key conflict", "span": " | ".join(d for d, _ in candidates)
++                      + f" -> resolved to the most restrictive ({design})"})
+     elif candidates:
+         design, unit = candidates[0]
+     else:
 diff --git a/harness/pipeline.py b/harness/pipeline.py
 index 26ffa187..157049b2 100644
 --- a/harness/pipeline.py
@@ -63,7 +88,7 @@ index 26ffa187..157049b2 100644
          absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
      # MANDATORY ADMISSIBILITY (every route converges here): a row is pooled only if its bound endpoint
 diff --git a/harness/target_endpoint.py b/harness/target_endpoint.py
-index caf37933..7eff0d49 100644
+index 1d7d3bab..678144f7 100644
 --- a/harness/target_endpoint.py
 +++ b/harness/target_endpoint.py
 @@ -34,14 +34,15 @@ BINDING_REGISTRY = "registry_outcome_measure"

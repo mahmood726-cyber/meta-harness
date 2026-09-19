@@ -80,3 +80,15 @@ def test_design_unproven_reason_names_the_evidence_it_saw():
     action = design_key.decision_for_trial(trial)
     assert action["action"] == "DESIGN_UNPROVEN"
     assert "SINGLE_GROUP" in action["reason"] and "no committed design evidence" not in action["reason"]
+
+
+def test_a_design_conflict_resolves_to_the_most_restrictive_source_never_to_unknown():
+    # SMART / SALT-ED: abstract says cluster-randomized multiple-crossover, registry says PARALLEL. Resolving the
+    # conflict to UNKNOWN pooled both through the parallel path (crystalloids k 2 -> 4) the moment the registry
+    # enumeration was mapped; a conflict may never be more permissive than either source.
+    rec = {"nct": "NCT02444988", "title": "Balanced crystalloids versus saline",
+           "abstract": "In a pragmatic, cluster-randomized, multiple-crossover trial conducted in five ICUs."}
+    out = design_key.key_for_trial({"id": "PMID 29485925", "ai": 1, "n1i": 10, "ci": 1, "n2i": 10},
+                                   rec, {"NCT02444988": {"intervention_model": "PARALLEL"}})
+    assert out["design"] == "CLUSTER_CROSSOVER" and out.get("conflict") is True
+    assert out["design_action"]["action"] == "REFUSE"

@@ -1,8 +1,48 @@
+diff --git a/harness/limitations.py b/harness/limitations.py
+index 396c406d..38f470ee 100644
+--- a/harness/limitations.py
++++ b/harness/limitations.py
+@@ -23,6 +23,7 @@ from typing import Any
+ from . import claimgraph
+ from . import hazard_consumers as _hazard_consumers
+ from . import page as _page
++from . import propositions as _proposition_mod
+ from . import rob_sensitivity as _rob_sensitivity_mod
+ from . import funding as _funding_mod
+ 
+@@ -50,6 +51,7 @@ class LimitationKind(str, Enum):
+     ROB_SPANCHECK = "ROB_SPANCHECK"
+     SEARCH_PROVENANCE = "SEARCH_PROVENANCE"
+     ELIGIBILITY_CHAIN = "ELIGIBILITY_CHAIN"
++    PROTOCOL_COMPLIANCE = "PROTOCOL_COMPLIANCE"
+ 
+ 
+ class Severity(str, Enum):
+@@ -1056,6 +1058,19 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
+                 "Nothing was pooled on this page, so the canonical-claim contradiction gate has nothing "
+                 "to check here &mdash; this is a limitation, not a clean result.</div>",
+             )
++        _pcs = _proposition_mod.protocol_compliance_state(review)
++        if _pcs["state"] == "NOT_ESTABLISHED":
++            # an empty divergence list over zero checked dimensions is not compliance: the state is an OBJECT
++            # (rendered as an absent block by the page), never prose (Mahmood's review of 98726cc1, item 1)
++            add(
++                "reproduction:protocol-compliance-not-established",
++                LimitationKind.PROTOCOL_COMPLIANCE,
++                Severity.QUALIFIES_CLAIM,
++                "declared == enforced (protocol/config compliance)",
++                "NOT_ESTABLISHED",
++                ["/protocol_config/compliance", "/protocol_config/divergences", "/protocol_config/agreed_dimensions"],
++                _page.protocol_compliance_not_established_html(),
++            )
+         add(
+             "reproduction:round-2-retraction",
+             LimitationKind.REPRODUCTION_RETRACTION,
 diff --git a/harness/page.py b/harness/page.py
-index c6a3994c..3f6f9c93 100644
+index c6a3994c..bcfeaf05 100644
 --- a/harness/page.py
 +++ b/harness/page.py
-@@ -1214,6 +1214,11 @@ def _alternative_label(alt):
+@@ -1214,6 +1214,19 @@ def _alternative_label(alt):
      return f"{_e(alt.get('derivation'))}: {txt}{reason}.{span}"
  
  
@@ -11,10 +51,18 @@ index c6a3994c..3f6f9c93 100644
 +    return _proposition_mod.protocol_compliance_state(r)
 +
 +
++def protocol_compliance_not_established_html() -> str:
++    """The ONE rendering of the NOT_ESTABLISHED state: the limitation object (harness.limitations) and the
++    Reproducibility site print this same block, so the page's absent block IS the object."""
++    return ("<div class='absent'><strong>Protocol/config compliance NOT ESTABLISHED.</strong> No dimension of the "
++            "prose protocol was compared with the executable config on this page, so the empty divergence "
++            "list establishes nothing; declared == enforced is not asserted until the checks exist.</div>")
++
++
  def _eligibility_chain_block(r):
      ec = r.get("eligibility_chain") or {}
      if not ec:
-@@ -2247,10 +2252,18 @@ def _reproduction(r, neutral):
+@@ -2247,10 +2260,16 @@ def _reproduction(r, neutral):
                       f"<strong>{len(pcd)} divergence(s)</strong> — each is a defect to resolve or a dated "
                       f"amendment to declare, never a silent widening:<ul>{_rows}</ul></p>")
          else:
@@ -31,13 +79,11 @@ index c6a3994c..3f6f9c93 100644
 +                # an empty divergence list over zero checked dimensions is not compliance: absence must not
 +                # produce assurance (Mahmood's review of 98726cc1, item 1)
 +                body += ("<h4>Protocol ↔ config (two independent sources)</h4>"
-+                         "<div class='absent'><strong>Protocol/config compliance NOT ESTABLISHED.</strong> No dimension of the "
-+                         "prose protocol was compared with the executable config on this page, so the empty divergence "
-+                         "list establishes nothing; declared == enforced is not asserted until the checks exist.</div>")
++                         + protocol_compliance_not_established_html())
      body += ("<div class='absent'><strong>RETRACTED (round-2): reproducibility claim not currently supported.</strong> "
               "We previously claimed that re-running from the registration SHA on a fresh clone regenerates this page "
               "byte-for-byte. Direct testing falsified that: running the advertised command changed several canonical "
-@@ -2285,13 +2298,20 @@ def _reporting(r, neutral):
+@@ -2285,13 +2304,20 @@ def _reporting(r, neutral):
      _pre_sha = str(_pre.get("sha") or "")[:10]
      _build_sha = str(_pre.get("build_sha") or prot.get("sha") or "")[:10]
      _divs = _proposition_mod.protocol_divergences(r)
