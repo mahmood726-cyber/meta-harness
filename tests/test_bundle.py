@@ -661,3 +661,31 @@ def test_ci_level_mismatch_is_detected_and_z_recomputed_by_stdlib():
 
 def bundle_vocab():
     return _load(BUNDLE)["vocabulary"]
+
+
+# ------------------------------------------------------------------ 3.11: observed vs registered, typed states, admission meaning
+
+def test_observed_is_never_filled_from_registered(bundle):
+    for r in bundle["verification_rows"]:
+        for f in ("analysis_set", "treatment_strategy", "follow_up_window", "comparator_direction", "estimator"):
+            fv = r["analysis_identity"][f]
+            assert "observed" in fv and "registered" in fv, (r["trial"]["id"], f)
+            if fv["basis"] == "REGISTERED_DEFAULT":
+                assert fv["observed"] is None and fv["registered"], (r["trial"]["id"], f)     # the requirement stands in, visibly, and observed stays unknown
+            if fv["basis"] == "STATED_IN_OWNING_EVIDENCE":
+                assert fv["observed"]["span"] and fv["observed"]["start"] is not None, (r["trial"]["id"], f)
+    assert "never filled" in bundle["vocabulary"]["observed_vs_registered"].lower() or "NEVER filled" in bundle["vocabulary"]["observed_vs_registered"]
+
+
+def test_admission_carries_its_meaning_policy_and_evidence_versions(bundle):
+    for r in bundle["verification_rows"]:
+        adm = r["admission"]
+        assert "NOT 'verified'" in adm["meaning"] and adm["analysis_identity_key"] == r["analysis_identity"]["analysis_identity_key"]
+        assert adm["policy_version"]["format_revision"] == bundle["format_revision"] and set(adm["policy_version"]["predicates"]) == set(adm["predicates"])
+        assert adm["evidence_version"]["certificate_release_sha256"] == bundle["certificate"]["release_sha256"]
+        assert adm["evidence_version"]["review_blob"] == bundle["source"]["served_blob_git_sha1"]["review.json"]
+        assert adm["evidence_version"]["records_json_sha256"] == next(a["sha256"] for a in bundle["artefacts"] if a["ref"].endswith("records.json"))
+    assert set(bundle["vocabulary"]["typed_states"]) == {"LOCATED", "NOT_FOUND", "AMBIGUOUS", "UNSUPPORTED_REPRESENTATION", "NOT_ATTEMPTED"}
+    assert all(r["admission"]["predicates"]["P2_span_located"]["typed_state"] == "LOCATED" for r in bundle["verification_rows"])
+    for rf in bundle["regulatory_facts"]:
+        assert "competing_candidates" in rf and rf["competing_candidates"] == []

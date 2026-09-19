@@ -603,6 +603,9 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         pmid = br["trial"]["id"].replace("PMID ", "")
         frag = (br["source"].get("document_ref") or "").split("#PMID-")[-1] if "#PMID-" in (br["source"].get("document_ref") or "") else None
         try:
+            dref = br["source"].get("document_ref") or ""
+            if dref and not dref.split("#")[0].endswith("records.json"):
+                raise Refusal("UNSUPPORTED_REPRESENTATION", f"{pmid}: source {dref.split('#')[0]} is a text artefact; this checker binds pooled rows to PubMed records only (bundle limit L14) -- no claim is made")
             if frag is None:
                 raise Refusal("SELECTOR_REFUSED", f"{pmid}: document_ref carries no #PMID fragment")
             if frag != pmid:
@@ -681,6 +684,10 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             for fname, fv in br["analysis_identity"].items():
                 if isinstance(fv, dict) and fv.get("basis") == "REGISTERED_DEFAULT":
                     fv["span"] = "intention-to-treat"; break
+        elif limb == "served_basis_lie":   # the bundle says REGISTERED_DEFAULT where the source states on-treatment (a deserialised state must not be trusted)
+            rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=rec_by_pmid[pmid]["abstract"].replace("intention-to-treat", "on-treatment population"))
+            br["source"]["representation_sha256"] = sha256_text(rec_by_pmid[pmid]["abstract"])
+            br["span"]["representation_sha256"] = sha256_text(rec_by_pmid[pmid]["abstract"]) if br["span"].get("parent_representation") == "PARSED_SOURCE" else sha256_text(normalize(rec_by_pmid[pmid]["abstract"]))
         elif limb == "container":
             rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=rec_by_pmid[pmid]["abstract"] + " ")
             container_sha = sha256(container_sha.encode())  # the container bytes would differ; represent that
@@ -765,15 +772,25 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         P["P12_ci_level"] = cil["level_agreement"] != "MISMATCH"
         if cil["level_agreement"] == "MISMATCH" and not corrupt:
             failures.append(f"CI_LEVEL_MISMATCH {pmid}: the clause states a {cil['source_ci_pct']}% interval; the SE was derived at the 95% level (z {Z_ASSUMED_BY_DERIVATION})")
-        # P11: the bound identity must be the REGISTERED one
+        # REVALIDATE ON LOAD: recompute the estimand bases from the source and compare with what the bundle recorded
         regd = bundle.get("registered_estimand") or {}
         ai = (br or {}).get("analysis_identity") or {}
+        ee_re = estimand_evidence(parsed, eff_clause)
+        basis_map = {"analysis_set": "analysis_set", "treatment_strategy": "analysis_window", "follow_up_window": "analysis_window", "estimator": "estimator", "comparator_direction": "contrast"}
+        for fname, src in basis_map.items():
+            fv = ai.get(fname)
+            if isinstance(fv, dict) and fv.get("basis") in ("STATED_IN_OWNING_EVIDENCE", "REGISTERED_DEFAULT", "UNRESOLVED") and ee_re.get(src, {}).get("state") != fv.get("basis"):
+                ee_ok = False
+                if not corrupt:
+                    failures.append(f"ESTIMAND_BASIS_DISAGREES {pmid}/{fname}: served basis {fv.get('basis')}, recomputed from the source {ee_re.get(src, {}).get('state')}")
+        P["P10_estimand_evidence"] = ee_ok
+        # P11: the bound identity must be the REGISTERED one -- from the RECOMPUTED evidence
         dep = []
-        if isinstance(ai.get("analysis_set"), dict) and ai["analysis_set"].get("basis") == "STATED_IN_OWNING_EVIDENCE" and ai["analysis_set"].get("value") != regd.get("analysis_set"):
+        if ee_re["analysis_set"]["state"] == "STATED_IN_OWNING_EVIDENCE" and ee_re["analysis_set"]["value"] != regd.get("analysis_set"):
             dep.append("analysis_set")
-        if isinstance(ai.get("treatment_strategy"), dict) and ai["treatment_strategy"].get("basis") == "STATED_IN_OWNING_EVIDENCE" and ai["treatment_strategy"].get("value") == "on-treatment":
+        if ee_re["analysis_window"]["state"] == "STATED_IN_OWNING_EVIDENCE" and ee_re["analysis_window"].get("value") == "on-treatment":
             dep.append("treatment_strategy")
-        if any(isinstance(x, dict) and x.get("basis") == "UNRESOLVED" for x in ai.values()):
+        if ee_re["analysis_set"]["state"] == "UNRESOLVED" or ee_re["analysis_window"]["state"] == "UNRESOLVED":
             dep.append("UNRESOLVED")
         P["P11_registered_estimand"] = not dep
         if dep and not corrupt:
@@ -792,6 +809,7 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                 failures.append(f"{span_code} {pmid}: " + ("the quotation occurs more than once and no offsets pin an occurrence" if span_code == "SPAN_LOCATION_AMBIGUOUS" else
                                 f"the quotation is {'elsewhere in the container but' if span_code == 'SPAN_NOT_IN_RECORD' else 'not'} in the selected record's representation"))
         report["rows"].append({"pmid": pmid, "label": t.get("label"), "predicates": P, "final": final, "bundle_recorded": recorded,
+                               "revalidated_on_load": True, "served_state_trusted": False,
                                "p9": p9, "refusal": (selector_refusals[pmid].code if pmid in selector_refusals else
                                                      span_code if span_code else
                                                      p9["state"] if p9["state"] != "PASS" else None),
@@ -862,7 +880,19 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                 if len(pieces) >= 2:
                     n = sum(1 for pc in pieces if locate(pc, text)["match"] != "NOT_LOCATED")
                     state = f"PARTIAL_TABLE_BINDING {n}/{len(pieces)} pieces" if n else "NOT_LOCATED"
-            found[a["kind"]] = {"located": state, "strategy": a["analysis_identity"]["treatment_strategy"], "endpoint": a["analysis_identity"]["endpoint"]}
+            flat = a["text"].replace("\n", " ")
+            words = {("on-treatment" if "treatment" in m.lower() else "on-study (ITT)") for m in re.findall(r"on-?\s?study|on-?\s?treatment|end of study|\bEOS\b", flat, re.I)}
+            recomputed = (next(iter(words)) if len(words) == 1 else "UNRESOLVED" if len(words) > 1 else None)
+            served = a["analysis_identity"]["treatment_strategy"]
+            ev_state = (a.get("strategy_evidence") or {}).get("state")
+            if recomputed is None and ev_state in ("BOUND_VIA_COUNTS", "BOUND_VIA_ROUNDING"):
+                # inherited from a labelled candidate: revalidate the inheritance -- the cited labelled span must exist and carry that strategy
+                cited = (a.get("strategy_evidence") or {}).get("labelled_span") or ""
+                recomputed = served if cited and ("treatment" in cited.lower()) == ("treatment" in served.lower()) else "UNRESOLVED"
+            strategy = recomputed if recomputed is not None else served if ev_state == "REGISTERED_DEFAULT" else "UNRESOLVED"
+            if recomputed is not None and recomputed != served and not corrupt:
+                failures.append(f"IDENTITY_REVALIDATION_DISAGREES {rf['trial']}/{a['kind']}: served strategy {served!r}, recomputed from the span {recomputed!r}")
+            found[a["kind"]] = {"located": state, "strategy": strategy, "served_strategy": served, "endpoint": a["analysis_identity"]["endpoint"]}
         eff = rf["decision"]["effect"]
         etoks = [str(eff.get("estimate")), str(eff.get("ci_low")), str(eff.get("ci_high"))]
         claimed = rf["decision"]["claimed_treatment_strategy"]
@@ -874,7 +904,9 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         holders = [a["kind"] for a in rf["candidate_analyses"] if _holds(a)]
         holder_ids = {(found[k]["strategy"], found[k]["endpoint"]) for k in holders}
         regd = bundle.get("registered_estimand") or {}
-        if not holders:
+        if len(holder_ids) > 1:
+            code = "AMBIGUOUS"
+        elif not holders:
             code = "TUPLE_NOT_IN_ANY_CANDIDATE_SPAN"
         elif holder_ids <= {(claimed, claimed_ep)} or (claimed == "UNSTATED" and {h[1] for h in holder_ids} <= {claimed_ep} and {h[0] for h in holder_ids} <= {"UNSTATED", regd.get("treatment_strategy")}):
             code = "BOUND" if claimed in (regd.get("treatment_strategy"), "UNSTATED") else "BOUND_TO_UNREGISTERED_ESTIMAND"
@@ -891,7 +923,8 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             report.setdefault("partial_table_bindings", []).append({"trial": rf["trial"], "kinds": partial,
                                                                     "note": "a linearised table span located piece-wise; recorded as a partial binding, not refused"})
         if code != "BOUND":
-            failures.append(f"{code} {rf['trial']}: decision tuple {etoks} claims ({claimed}, {claimed_ep}); found in {holders} ({sorted(holder_ids)})")
+            failures.append(f"{code} {rf['trial']}: decision tuple {etoks} claims ({claimed}, {claimed_ep}); found in {holders} ({sorted(holder_ids)})"
+                            + ("; competing candidates carried" if code == "AMBIGUOUS" else ""))
         elif code != rf["tuple_to_identity_binding"] and not corrupt:
             failures.append(f"ROW_VERDICT_DISAGREES regulatory {rf['trial']}: verifier {code} vs bundle {rf['tuple_to_identity_binding']}")
 
@@ -937,7 +970,7 @@ def main(argv=None):
     g.add_argument("--root", help="directory mirroring the site root (e.g. docs)")
     g.add_argument("--url", help="site root URL")
     ap.add_argument("--slug", required=True)
-    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|nontarget_span|unlisted_span|fragment|ci_high_rounded|ci_low_truncated|duplicate_span_no_offsets|default_as_statement|regulatory_strategy_swap|regulatory_consistent_swap|container")
+    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|nontarget_span|unlisted_span|fragment|ci_high_rounded|ci_low_truncated|duplicate_span_no_offsets|default_as_statement|served_basis_lie|regulatory_strategy_swap|regulatory_consistent_swap|container")
     ap.add_argument("--anchor", choices=["live"], help="live: re-fetch EFetch XML from PubMed now and compare to the retained acquisition and the cached abstract")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)

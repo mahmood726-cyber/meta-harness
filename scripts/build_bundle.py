@@ -66,8 +66,9 @@ from harness.canonical import canonical_json, review_core, sha256_text  # noqa: 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.10"
+FORMAT_REVISION = "3.11"
 FORMAT_CHANGELOG = [
+    "3.11 (2026-09-19, design memo): observed and registered estimand values are separate typed fields with no conversion (an unknown observed value is never filled from the specification); location and binding results are tagged states -- LOCATED / NOT_FOUND / AMBIGUOUS (carrying every competing candidate) / UNSUPPORTED_REPRESENTATION -- so the schema distinguishes 'binding failed' from 'binding not attempted'; admission means 'admissible for this exact analysis under this policy version and evidence version', never 'verified', and carries both versions; the verifier REVALIDATES on load -- regulatory strategy from the span, estimand bases from the source -- instead of trusting a deserialised state because it parses.",
     "3.10 (2026-09-19): statistical_input.ci_level -- the CI level the source STATES in the tuple's own clause (with basis) against the level the SE derivation ASSUMED (95%, z = 1.959963984540054); a MISMATCH (e.g. a 95.03% alpha-adjusted interval, EMPEROR-Preserved) is a refusal (P12_ci_level / CI_LEVEL_MISMATCH), never a relabel; UNSTATED is recorded as an assumption. Selection rule stated: by identity, never array order; ABSTAIN where the population cannot be resolved against the registered analysis set (DELIVER carries two PRIMARY composites).",
     "3.9 (2026-09-19): analysis_identity is no longer a set of bare values. Each of analysis_set, treatment_strategy, follow_up_window, comparator_direction and estimator is {value, basis, span, start, end, parent_representation} with basis STATED_IN_OWNING_EVIDENCE / REGISTERED_DEFAULT / UNRESOLVED (a default never renders as a statement); the review-target fallback ('trial end' on every row) is gone; stated fields also appear in spans[] with role analysis_method; regulatory candidates carry their (on-study)/(on-treatment) row label as a column_header span with offsets into the served text; the verifier refuses ESTIMAND_EVIDENCE_MISMATCH when a stated field does not reproduce at its offsets or a default carries a span.",
     "3.8 (2026-09-19, panel round 4 + 37-variant run): P9 rewritten to the panel's rule -- clause boundaries at sentence ends AND semicolons outside brackets; a target DEFINITION requires a definitional cue (component co-occurrence is not ownership); a clause carrying both a target and a non-target mention is AMBIGUOUS_ENDPOINT_BINDING, never a pass; P3 by NUMERIC equality (0.80 == 0.8 accepted; 0.96 vs 1.0 and 0.8 vs 0.84 refused); zero / one / many span occurrences are three states (SPAN_NOT_IN_SOURCE / located / SPAN_LOCATION_AMBIGUOUS, offsets pin one); estimand_evidence per row -- analysis_set, analysis_window, contrast, estimator each STATED with a located span and offsets, DEFAULT_REGISTERED when the held representation is silent, ESTIMAND_UNBOUND when the same source states two values; regulatory candidates carry strategy evidence (label / counts / unbound); the source stamp is content-addressed (blob ids computed from the working tree) and content_commit is informational (PENDING_COMMIT before the bytes are committed) so the stamp no longer needs its own commit to exist; L13/L14 stated.",
@@ -236,6 +237,20 @@ VOCABULARY = {
                                               "array order or first match; where the population cannot be resolved against the registered analysis set the "
                                               "answer is ABSTAIN, not the first primary (DELIVER NCT03619213 carries two PRIMARY composites, 0.82 (0.73-0.92) "
                                               "and 0.83 (0.73-0.95), differing by population)",
+    "typed_states": {
+        "LOCATED": "exactly one occurrence, or offsets pin one; offsets and parent representation present",
+        "NOT_FOUND": "the search ran against the named representation and found nothing (distinct from not attempted)",
+        "AMBIGUOUS": "more than one candidate; the competing candidates are carried (occurrence offsets, or the target/non-target mentions, or the two analyses)",
+        "UNSUPPORTED_REPRESENTATION": "the source kind cannot be searched by this checker (e.g. a pooled row sourced from a text artefact); no claim is made",
+        "NOT_ATTEMPTED": "the check was not run for this object (stated, never implied by a missing field)",
+    },
+    "observed_vs_registered": "every estimand field carries `observed` (from the row's own evidence, with span and offsets, or null) and `registered` "
+                              "(the protocol's requirement) as SEPARATE typed values; an unknown observed value is NEVER filled from the registered one -- "
+                              "otherwise the system manufactures compatibility by reading its own specification. Compatibility is established only when "
+                              "observed equals registered, or is left open when observed is null.",
+    "admission_meaning": "ADMISSIBLE means: admissible for THIS analysis (analysis_identity_key), under THIS policy_version (the predicate set) and THIS "
+                         "evidence_version (the served bytes' digests). It never means 'verified' and it is not to be trusted on read-back: a verifier "
+                         "revalidates every predicate from the served bytes.",
     "estimand_basis": {
         "STATED_IN_OWNING_EVIDENCE": "the value is read from a located span of the row's own evidence; span, start, end and parent_representation are present",
         "BOUND_VIA_COUNTS": "regulatory only: an unlabelled span whose event counts equal those of a labelled candidate inherits its strategy; the labelled span is cited",
@@ -1030,9 +1045,17 @@ def extraction_objects_coverage(slug: str, review: dict, cert: dict) -> dict:
 def _analysis_identity(t: dict, review: dict, ee: dict) -> dict:
     """Endpoint identity is not estimand identity -- and an estimand field without evidence is a producer assertion. Every field
     here is {value, basis, span, start, end, parent_representation}; the review-target fallback ('trial end' on every row) is gone."""
+    reg = registered_estimand(review["slug"])
+    reg_value = {"analysis_set": reg["analysis_set"], "treatment_strategy": reg["treatment_strategy"], "follow_up_window": "prespecified randomised follow-up to end of blinded follow-up (on-study)",
+                 "comparator_direction": reg["contrast"], "estimator": reg["estimator"]}
+
     def field(name, ev, value=None):
         basis = ev["state"]
-        out = {"value": value if value is not None else ev.get("value"), "basis": basis}
+        eff = value if value is not None else ev.get("value")
+        out = {"value": eff, "basis": basis, "registered": reg_value.get(name),
+               "observed": None if basis != "STATED_IN_OWNING_EVIDENCE" else {"value": eff, "span": ev.get("span"), "start": ev.get("start"),
+                                                                             "end": ev.get("end"), "parent_representation": ev.get("parent_representation")},
+               "note": "observed is never filled from registered; a REGISTERED_DEFAULT is the requirement standing in for an unknown observation, and says so"}
         if basis == "STATED_IN_OWNING_EVIDENCE":
             out.update({"span": ev.get("span"), "start": ev.get("start"), "end": ev.get("end"), "parent_representation": ev.get("parent_representation")})
         elif basis == "UNRESOLVED":
@@ -1111,6 +1134,10 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
             "P1_source_bytes": {"state": "PASS" if art_by_ref[rec_ref]["sha256"] == (doc.get("representations", {}).get("PARSED_SOURCE", {}).get("container_sha256")) else "FAIL",
                                 "declared": art_by_ref[rec_ref]["sha256"], "container": rec_ref},
             "P2_span_located": {"state": "PASS" if located else "FAIL", **loc,
+                                "typed_state": ("LOCATED" if located and loc.get("occurrences", 0) == 1 else
+                                                "LOCATED" if located and loc.get("occurrences", 0) > 1 else
+                                                "NOT_FOUND" if span else "NOT_ATTEMPTED"),
+                                "competing_candidates": ([m.start() for m in re.finditer(re.escape(span), parsed)] if loc.get("occurrences", 0) > 1 else []),
                                 "occurrence_rule": "0 = SPAN_NOT_IN_SOURCE; 1 = located; >1 = SPAN_LOCATION_AMBIGUOUS unless offsets pin one occurrence (they do here)"},
             "P3_effect_tokens_in_span": {"state": "PASS" if tokens and all(tokens_in.values()) else "FAIL", "tokens": tokens_in,
                                          "rule": "NUMERIC equality against the numbers of the tuple's own clause (0.80 == 0.8 accepted; 0.96 vs 1.0 refused; "
@@ -1210,7 +1237,12 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                          "narrowed_states": {
                              "result_concordant_with_located_span": "SUPPORTED" if located and predicates["P3_effect_tokens_in_span"]["state"] == "PASS" else "NOT_SUPPORTED",
                              "cached_representation_faithful_and_complete": {"COMPLETE_ABSTRACT": "SUPPORTED (abstract scope)", "COMPLETE_SOURCE": "SUPPORTED"}.get(cov, "NOT_SUPPORTED: " + str(cov))}},
-            "admission": {"required_predicates": list(predicates), "predicates": predicates, "final": final},
+            "admission": {"required_predicates": list(predicates), "predicates": predicates, "final": final,
+                          "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
+                          "analysis_identity_key": None,   # filled below once analysis_identity exists
+                          "policy_version": {"format_revision": FORMAT_REVISION, "predicates": sorted(predicates)},
+                          "evidence_version": {"records_json_sha256": art_by_ref[rec_ref]["sha256"], "certificate_release_sha256": None,
+                                               "review_blob": None}},
         })
     return rows, {"canonical_components": canonical_components, "k": len(rows)}
 
@@ -1492,9 +1524,12 @@ def regulatory_facts(review: dict, art_by_ref: dict) -> list:
                                              a["analysis_identity"]["endpoint"] == claimed_endpoint for a in selected)
         selected_unresolved = any((a.get("strategy_evidence") or {}).get("state") == "UNRESOLVED" for a in selected)
         registered_ok = (claimed_strategy == reg["treatment_strategy"]) or (claimed_strategy == "UNSTATED" and not selected_unresolved)   # an unstated claim defaults to the registered estimand
-        binding = ("BOUND" if consistent and registered_ok else
+        holder_ids = {(a["analysis_identity"]["treatment_strategy"], a["analysis_identity"]["endpoint"]) for a in selected}
+        binding = ("AMBIGUOUS" if len(holder_ids) > 1 else
+                   "BOUND" if consistent and registered_ok else
                    "BOUND_TO_UNREGISTERED_ESTIMAND" if consistent else
                    "ANALYSIS_IDENTITY_MISMATCH" if selected else "TUPLE_NOT_IN_ANY_CANDIDATE_SPAN")
+        competing = [{"kind": a["kind"], "identity": a["analysis_identity"]["analysis_identity_key"]} for a in selected] if len(holder_ids) > 1 else []
         # the same analysis under different representations may disagree by rounding -- record it, do not resolve it
         by_strategy = {}
         for a in analyses:
@@ -1515,6 +1550,7 @@ def regulatory_facts(review: dict, art_by_ref: dict) -> list:
             "candidate_analyses": analyses,
             "selected_analysis_kinds": [a["kind"] for a in selected],
             "tuple_to_identity_binding": binding,
+            "competing_candidates": competing,
             "registered_estimand": {"treatment_strategy": reg["treatment_strategy"], "analysis_set": reg["analysis_set"], "protocol_ref": reg["protocol_ref"],
                                     "protocol_span_start": reg["start"], "claimed_matches_registered": registered_ok},
             "distinct_analysis_identity_keys": sorted({a["analysis_identity"]["analysis_identity_key"] for a in analyses}),
@@ -1816,6 +1852,10 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
     docs = documents(slug, records, acq, art_by_ref, reg, review) if acq["pubmed"] else []
     docs_by_id = {d["document_id"]: d for d in docs}
     vrows, vmeta = verification_rows(slug, review, docs_by_id, art_by_ref, records)
+    review_blob = _git_blob_sha1((review_dir / "review.json").read_bytes())
+    for r in vrows:
+        r["admission"]["analysis_identity_key"] = r["analysis_identity"]["analysis_identity_key"]
+        r["admission"]["evidence_version"].update({"certificate_release_sha256": cert["release_sha256"], "review_blob": review_blob})
     aclaims = absence_claims(slug, review, docs_by_id)
     pooled = pooled_reference(review)
     compat = endpoint_compatibility(review, vrows)

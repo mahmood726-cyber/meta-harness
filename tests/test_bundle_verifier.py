@@ -514,3 +514,26 @@ def test_alpha_adjusted_interval_level_is_refused_not_relabelled(tmp_path):
     assert row["predicates"]["P2_span_located"] and row["predicates"]["P3_effect_tokens_in_span"] and row["predicates"]["P9_span_target_mention"]
     assert row["ci_level"]["source_ci_pct"] == 95.03 and row["predicates"]["P12_ci_level"] is False and row["final"] == "INADMISSIBLE"
     assert any(f.startswith("CI_LEVEL_MISMATCH 28910237") for f in rep["failures"])
+
+
+
+def test_verifier_revalidates_served_states_instead_of_trusting_them(baseline):
+    assert all(r["revalidated_on_load"] is True and r["served_state_trusted"] is False for r in baseline["rows"])
+    rep = _run("--corrupt", "28910237", "served_basis_lie")
+    row = next(r for r in rep["rows"] if r["pmid"] == "28910237")
+    assert row["predicates"]["P10_estimand_evidence"] is False and row["final"] == "INADMISSIBLE"
+
+
+def test_unsupported_representation_is_a_typed_state_not_a_not_found(tmp_path):
+    bundle = json.load(open(os.path.join(ROOT, "docs", "reviews", SLUG, "BUNDLE.json"), encoding="utf-8"))
+    root = str(tmp_path / "site")
+    _copy_served_tree(bundle, root)
+    bpath = os.path.join(root, "reviews", SLUG, "BUNDLE.json")
+    b = json.load(open(bpath, encoding="utf-8"))
+    row = next(r for r in b["verification_rows"] if r["trial"]["id"] == "PMID 27633186")
+    row["source"]["document_ref"] = "outputs/handover/glp1_regulatory/208471Orig1s000StatR.pdf.txt#p23"    # a pooled row sourced from a text artefact (C-class)
+    json.dump(b, open(bpath, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    rep = _verify(root)
+    r = next(x for x in rep["rows"] if x["pmid"] == "27633186")
+    assert r["refusal"] == "UNSUPPORTED_REPRESENTATION"
+    assert any(f.startswith("UNSUPPORTED_REPRESENTATION 27633186") and "no claim is made" in f for f in rep["failures"])
