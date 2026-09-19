@@ -14,6 +14,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SLUG = "glp1-ra-mace-t2d"
 VERIFIER = os.path.join(ROOT, "scripts", "verify_bundle.py")
 PER_ROW_LIMBS = ("span", "effect", "components", "eligibility", "conflict")
+MIGRATION_LIMB = "binding"
 
 
 def _run(*extra):
@@ -69,6 +70,34 @@ def test_one_corrupted_limb_makes_exactly_that_row_inadmissible(baseline, pmid, 
     assert now_bad == base_bad | {pmid}, (limb, sorted(now_bad))
 
 
+@pytest.mark.parametrize("pmid", ["40162642", "27295427"])
+def test_unbinding_a_row_makes_it_a_migration_state_not_admissible_and_not_refused(baseline, pmid):
+    """The admit_rows fail-open, as the bundle must render it: an unbound_legacy row leaves the admissible set but is
+    NOT INADMISSIBLE -- it is MIGRATION_STATE_UNBOUND_LEGACY, and exactly that row changes."""
+    base_states = {r["pmid"]: r["final"] for r in baseline["rows"]}
+    rep = _run("--corrupt", pmid, MIGRATION_LIMB)
+    states = {r["pmid"]: r["final"] for r in rep["rows"]}
+    assert states[pmid] == "MIGRATION_STATE_UNBOUND_LEGACY"
+    assert {k: v for k, v in states.items() if k != pmid} == {k: v for k, v in base_states.items() if k != pmid}
+    assert rep["pool"]["admissible_rows"] == baseline["pool"]["admissible_rows"] - 1
+
+
+def test_rendered_unbound_legacy_rows_are_reported_and_never_counted_admissible(baseline):
+    bs = baseline["binding_states"]
+    assert bs["migration_state_unbound_legacy"] == 2
+    unbound = {(r["outcome"], r["id"]) for r in bs["rendered_rows"] if r["binding_class"] != "BOUND"}
+    assert unbound == {("Gastrointestinal adverse events", "PMID 31189511"), ("Adverse events leading to discontinuation", "PMID 27295427")}
+    assert bs["migration_rows_counted_admissible"] == 0
+    assert all(r["final"] == "ADMISSIBLE" for r in baseline["rows"] if r["predicates"]["P8_endpoint_bound"] and all(r["predicates"].values()))
+
+
+def test_failures_carry_named_codes():
+    src = open(VERIFIER, encoding="utf-8").read()
+    for code in ("ANCHOR_PRESERVATION_FAILURE", "ANCHOR_XML_DIGEST_MISMATCH", "ARTEFACT_DIGEST_MISMATCH", "CERTIFICATE_MISMATCH",
+                 "DIGEST_SCOPE_MISMATCH", "ROW_VERDICT_DISAGREES", "ABSENCE_CLAIM_DISAGREES", "POOL_NOT_REPRODUCED", "SELECTOR_REFUSED"):
+        assert code in src, code
+
+
 def test_corrupting_the_shared_container_fails_every_row_that_depends_on_it(baseline):
     """records.json is one container for all abstracts; damaging it must not be silent for any row."""
     rep = _run("--corrupt", "40162642", "container")
@@ -111,8 +140,9 @@ def test_h1_delete_a_sentence_and_recompute_every_digest_is_caught_by_the_anchor
     records = json.load(open(rec_path, encoding="utf-8"))
     victim = next(r for r in records["records"] if str(r["id"]) == "27295427")          # LEADER, currently COMPLETE_ABSTRACT
     sentences = victim["abstract"].split(". ")
-    assert len(sentences) > 6
-    dropped = sentences.pop(-2)                                                          # an interior sentence, not the result span
+    idx = next(i for i, x in enumerate(sentences) if "adverse events" in x.lower())      # LEADER's safety sentence
+    dropped = sentences.pop(idx)
+    assert "gastrointestinal" in dropped.lower(), dropped
     victim["abstract"] = ". ".join(sentences)
     new_raw = json.dumps(records, ensure_ascii=False, indent=1).encode("utf-8")
     open(rec_path, "wb").write(new_raw)
@@ -159,5 +189,6 @@ def test_h1_delete_a_sentence_and_recompute_every_digest_is_caught_by_the_anchor
     assert next(r for r in rep["rows"] if r["pmid"] == "27295427")["final"] == "ADMISSIBLE"                     # positive claim still stands
     anchor = next(a for a in rep["anchors"] if a["pmid"] == "27295427")                                          # ...and the anchor notices
     assert anchor["preservation"]["verdict"] == "FAILURE" and anchor["coverage_recomputed"] == "EXCERPT_ONLY" and anchor["coverage_recorded"] == "COMPLETE_ABSTRACT"
-    assert rep["verdict"] == "FAIL" and any("anchor 27295427" in f for f in rep["failures"]), rep["failures"]
+    assert rep["verdict"] == "FAIL" and any(f.startswith("ANCHOR_PRESERVATION_FAILURE 27295427") for f in rep["failures"]), rep["failures"]
+    assert anchor["preservation"]["missing"] == 1 and anchor["preservation"]["preserved"] == 3
     assert dropped

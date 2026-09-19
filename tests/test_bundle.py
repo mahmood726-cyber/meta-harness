@@ -248,8 +248,8 @@ def test_verification_rows_cover_the_pool_and_carry_all_six_objects(bundle):
     assert [r["trial"]["id"] for r in bundle["verification_rows"]] == [t["id"] for t in primary["trials"]]
     for r in bundle["verification_rows"]:
         assert set(r) >= {"source", "span", "endpoint", "effect", "decision", "admission"}
-        assert set(r["admission"]["predicates"]) == set(bundle["vocabulary"]["admission_predicates"]) - {"ADMISSIBLE"}
-        assert r["admission"]["final"] in ("ADMISSIBLE", "INADMISSIBLE")
+        assert set(r["admission"]["predicates"]) == set(bundle["vocabulary"]["admission_predicates"]) - {"ADMISSIBLE", "MIGRATION_STATE_UNBOUND_LEGACY", "INADMISSIBLE"}
+        assert r["admission"]["final"] in ("ADMISSIBLE", "MIGRATION_STATE_UNBOUND_LEGACY", "INADMISSIBLE")
 
 
 def test_harmony_is_inadmissible_because_its_family_eligibility_is_unknown(bundle):
@@ -393,3 +393,22 @@ def test_limits_section_prints_the_closed_vocabulary_and_self_consistency_limits
     ids = {l["id"] for l in bundle["limits"]}
     assert {"L1_self_consistency", "L2_closed_vocabulary", "L5_extraction_object_coverage", "L9_production_path"} <= ids
     assert any("closed list" in l["limit"] for l in bundle["limits"])
+
+
+# ------------------------------------------------------------------ 3.3: the admit_rows fail-open as a visible migration state
+
+def test_unbound_legacy_rows_are_a_migration_state_outside_the_admissible_count(bundle):
+    bs = bundle["binding_states"]
+    assert bs["counts"]["migration_state_unbound_legacy"] == 2 and bs["counts"]["rows"] == 10
+    unbound = [r for r in bs["rows"] if r["binding_class"] == "MIGRATION_STATE_UNBOUND_LEGACY"]
+    assert {(r["outcome"], r["trial"]["id"]) for r in unbound} == {("Gastrointestinal adverse events", "PMID 31189511"), ("Adverse events leading to discontinuation", "PMID 27295427")}
+    assert all(r["counted_in_admissible_rows"] is False and r["producer_labels"]["verified"] == "verified" for r in unbound)
+    rewind = next(r for r in unbound if r["trial"]["id"] == "PMID 31189511")
+    assert rewind["observations"]["definition_names_another_outcome"] is True          # the CV primary definition on a GI row
+    leader = next(r for r in unbound if r["trial"]["id"] == "PMID 27295427")
+    assert leader["observations"]["table_sourced"] is True                              # the multi-span case
+    assert bundle["counts"]["unbound_legacy_rows_inside_admissible_rows"] == 0
+    assert bundle["counts"]["admissible_rows"] + bundle["counts"]["migration_state_rows_in_primary_pool"] + bundle["counts"]["inadmissible_rows_in_primary_pool"] == 8
+    assert all(r["admission"]["predicates"]["P8_endpoint_bound"]["state"] == "PASS" for r in bundle["verification_rows"])
+    assert any(l["id"] == "L10_admit_rows_fail_open" for l in bundle["limits"])
+    assert "not refused" in bs["statement"] and "UNVERIFIABLE" in bs["statement"]

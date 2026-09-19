@@ -1,7 +1,8 @@
 {
  "schema_version": 3,
- "format_revision": "3.2",
+ "format_revision": "3.3",
  "format_changelog": [
+  "3.3 (2026-09-19, admit_rows fail-open audit): UNBOUND_LEGACY surfaced as its own state -- a MIGRATION state, not an admissible one and not a refusal. binding_states lists every rendered row of every outcome with its binding class; P8_endpoint_bound joins the admission predicates and a row that fails only P8 by unbound_legacy gets final MIGRATION_STATE_UNBOUND_LEGACY (counted separately from admissible_rows); the verifier gains the same predicate, a `binding` corruption limb and named refusal codes.",
   "3.2 (2026-09-19, verifier panel round 2): extraction_objects_coverage states that verified_effects.json holds the primary outcome for SOUL alone (an override) and harms refusals for the rest -- the primary-outcome evidence chain for the other seven rows is records.json (records_file_sha256) -> analysis code blobs -> review.json (review_sha256), and every verification row names which; an explicit `anchor` block per document makes the retained EFetch XML mechanically comparable to the cached abstract (the only thing that can catch a self-consistent deletion), and the verifier gains --anchor live (re-fetch EFetch now and compare units: the external observation); a `limits` section prints what the bundle cannot establish, including the closed-list endpoint vocabulary.",
   "3.1 (2026-09-19, ninth audit): canonicalisation scheme published beside every canonical digest and both digest scopes of records.json stated (raw file vs canonical JSON -- same object, different procedures; a shared container digest across rows is correct, identity = container digest + deterministic selector); selector resolution rule stated and enforced (0 or >=2 matches refuse); per-evidence-object digest descriptors (subject / procedure / selector / representation the quotation must occur in); coordinate units on every location; endpoint_compatibility COMPATIBLE_WITH_DECLARED_VARIATION with per-trial undetermined_death_counted_as_cv; statistical_input per row (interval construction, SE reported vs derived, approximation named); heterogeneity precision statement; the verifier served at the path this file names, with its non-claims stated.",
   "3   (2026-09-19): recursive resolvability, four representations, preservation-backed coverage_status, per-row admission objects, stdlib verifier",
@@ -179,6 +180,11 @@
    "DIGEST_WITHOUT_BODY": "a reference that terminates in a digest with no retrievable body -- a promise, reported as such",
    "DANGLING": "a reference to nothing the package or the repository holds"
   },
+  "binding_classes": {
+   "BOUND": "endpoint_binding == named_endpoint_resolved_to_definition_span: the row's value is bound to a definition span of the target endpoint",
+   "MIGRATION_STATE_UNBOUND_LEGACY": "the producer's target_endpoint.admit_rows returned admissible=True with verdict UNBOUND_LEGACY because the row has no endpoint class and fell through a narrow keyword check (fail-open demonstrated by an external audit with an authentic ELIXA 4-point row: classified DIFFERENT_OUTCOME it is refused; with the class stripped the same row is admitted). In this bundle such a row is NEITHER admissible NOR refused: table-sourced harms need multi-span binding (row, column header, parent heading, footnote) that does not exist yet, and blanket refusal would strip exactly the evidence that is hardest to recover. It is a migration state and is counted on its own.",
+   "OTHER": "any other binding value; reported verbatim"
+  },
   "admission_predicates": {
    "P1_source_bytes": "sha256(served source bytes) == declared digest for the container of the representation the span is located in",
    "P2_span_located": "span text == representation[start:end] in the named representation (VERBATIM in PARSED_SOURCE, or in NORMALIZED_SOURCE with the transform manifest applied)",
@@ -187,7 +193,10 @@
    "P5_family_eligible": "the trial family's eligibility state == ELIGIBLE",
    "P6_no_unresolved_conflict": "no unresolved source conflict is recorded for the row's family",
    "P7_coverage_adequate_for_claim": "a positive claim: the excerpt is located (P2); a negative claim: coverage_status of the searched representation is COMPLETE_*",
-   "ADMISSIBLE": "all predicates PASS"
+   "P8_endpoint_bound": "endpoint_binding == named_endpoint_resolved_to_definition_span (an unbound_legacy row is a migration state, see binding_classes)",
+   "ADMISSIBLE": "all predicates PASS",
+   "MIGRATION_STATE_UNBOUND_LEGACY": "P8 is the ONLY failing predicate and the binding is unbound_legacy: not admissible, not refused, counted separately",
+   "INADMISSIBLE": "any other failing predicate"
   }
  },
  "counts": {
@@ -205,6 +214,10 @@
   },
   "primary_pool_rows": 8,
   "admissible_rows": 7,
+  "migration_state_rows_in_primary_pool": 0,
+  "inadmissible_rows_in_primary_pool": 1,
+  "unbound_legacy_rows_rendered_anywhere": 2,
+  "unbound_legacy_rows_inside_admissible_rows": 0,
   "absence_claims": 17,
   "negative_claims_not_admissible": 2,
   "resolvability": {
@@ -1556,8 +1569,8 @@
   },
   {
    "path": "docs/scripts/verify_bundle.py",
-   "sha256": "b96af76af3cf95a8a44a9ff1868344e2629b6951ea5f0dc5dedd330701652d7e",
-   "bytes": 31054,
+   "sha256": "4ce9f3ddb8acc7064b7adf286daf045d8c97da48477e832e912acbbc1fb58933",
+   "bytes": 32914,
    "role": "the verifier this bundle names; standard library only"
   }
  ],
@@ -4266,6 +4279,221 @@
   ],
   "plain_statement": "glp1-ra-mace-t2d: verified_effects.json holds the PRIMARY outcome for 1 of 8 pooled rows (40162642: an override entry) and harms refusals for the rest. The primary-outcome evidence chain for the OTHER pooled rows is: records.json (certified as records_file_sha256 / retrieved_corpus_sha256) -> the certified analysis code blobs (analysis_code_sha256) -> the review.json trial rows (certified as review_sha256), which verification_rows[*].source binds to the container + selector + span. An auditor who follows extraction_objects_sha256 alone will find the primary outcome for one trial; that is a fact about which certified input carries which evidence, not a missing row."
  },
+ "binding_states": {
+  "rows": [
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "primary": true,
+    "trial": {
+     "id": "PMID 31185157",
+     "label": "31185157"
+    },
+    "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+    "endpoint_admissibility": "EXACT_TARGET",
+    "target_endpoint_class": "EXACT_TARGET",
+    "binding_class": "BOUND",
+    "producer_labels": {
+     "verified": "verified",
+     "verify_basis": "effect present in committed source",
+     "provenance": "abstract"
+    },
+    "in_verification_rows": true,
+    "counted_in_admissible_rows": true
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "primary": true,
+    "trial": {
+     "id": "PMID 27633186",
+     "label": "27633186"
+    },
+    "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+    "endpoint_admissibility": "EXACT_TARGET",
+    "target_endpoint_class": "EXACT_TARGET",
+    "binding_class": "BOUND",
+    "producer_labels": {
+     "verified": "verified",
+     "verify_basis": "effect present in committed source",
+     "provenance": "abstract"
+    },
+    "in_verification_rows": true,
+    "counted_in_admissible_rows": true
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "primary": true,
+    "trial": {
+     "id": "PMID 27295427",
+     "label": "27295427"
+    },
+    "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+    "endpoint_admissibility": "EXACT_TARGET",
+    "target_endpoint_class": "EXACT_TARGET",
+    "binding_class": "BOUND",
+    "producer_labels": {
+     "verified": "verified",
+     "verify_basis": "effect present in committed source",
+     "provenance": "abstract"
+    },
+    "in_verification_rows": true,
+    "counted_in_admissible_rows": true
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "primary": true,
+    "trial": {
+     "id": "PMID 34215025",
+     "label": "34215025"
+    },
+    "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+    "endpoint_admissibility": "EXACT_TARGET",
+    "target_endpoint_class": "EXACT_TARGET",
+    "binding_class": "BOUND",
+    "producer_labels": {
+     "verified": "verified",
+     "verify_basis": "effect present in committed source",
+     "provenance": "abstract"
+    },
+    "in_verification_rows": true,
+    "counted_in_admissible_rows": true
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "primary": true,
+    "trial": {
+     "id": "PMID 31189511",
+     "label": "31189511"
+    },
+    "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+    "endpoint_admissibility": "EXACT_TARGET",
+    "target_endpoint_class": "EXACT_TARGET",
+    "binding_class": "BOUND",
+    "producer_labels": {
+     "verified": "verified",
+     "verify_basis": "effect present in committed source",
+     "provenance": "abstract"
+    },
+    "in_verification_rows": true,
+    "counted_in_admissible_rows": true
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "primary": true,
+    "trial": {
+     "id": "PMID 30291013",
+     "label": "30291013"
+    },
+    "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+    "endpoint_admissibility": "EXACT_TARGET",
+    "target_endpoint_class": "EXACT_TARGET",
+    "binding_class": "BOUND",
+    "producer_labels": {
+     "verified": "verified",
+     "verify_basis": "effect present in committed source",
+     "provenance": "abstract"
+    },
+    "in_verification_rows": true,
+    "counted_in_admissible_rows": false
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "primary": true,
+    "trial": {
+     "id": "PMID 28910237",
+     "label": "28910237"
+    },
+    "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+    "endpoint_admissibility": "EXACT_TARGET",
+    "target_endpoint_class": "EXACT_TARGET",
+    "binding_class": "BOUND",
+    "producer_labels": {
+     "verified": "verified",
+     "verify_basis": "effect present in committed source",
+     "provenance": "abstract"
+    },
+    "in_verification_rows": true,
+    "counted_in_admissible_rows": true
+   },
+   {
+    "outcome": "3-point major adverse cardiovascular events",
+    "primary": true,
+    "trial": {
+     "id": "PMID 40162642",
+     "label": "SOUL"
+    },
+    "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+    "endpoint_admissibility": "EXACT_TARGET",
+    "target_endpoint_class": "EXACT_TARGET",
+    "binding_class": "BOUND",
+    "producer_labels": {
+     "verified": "verified",
+     "verify_basis": "effect present in committed source",
+     "provenance": "abstract_verified"
+    },
+    "in_verification_rows": true,
+    "counted_in_admissible_rows": true
+   },
+   {
+    "outcome": "Gastrointestinal adverse events",
+    "primary": false,
+    "trial": {
+     "id": "PMID 31189511",
+     "label": "31189511"
+    },
+    "endpoint_binding": "unbound_legacy",
+    "endpoint_admissibility": "UNBOUND_LEGACY",
+    "target_endpoint_class": null,
+    "binding_class": "MIGRATION_STATE_UNBOUND_LEGACY",
+    "producer_labels": {
+     "verified": "verified",
+     "verify_basis": "arm counts present in committed source",
+     "provenance": "abstract_verified"
+    },
+    "in_verification_rows": false,
+    "counted_in_admissible_rows": false,
+    "observations": {
+     "definition_span": null,
+     "endpoint_definition_carried": "primary outcome was the first occurrence of the composite endpoint of non-fatal myocardial infarction, non-fatal stroke, or death from cardiovascular causes (including unknown causes), which was asses",
+     "definition_names_another_outcome": true,
+     "table_sourced": false,
+     "what_would_bind_it": "multi-span binding: the table row, its column header, the parent heading and any footnote, each located in a named representation with offsets; not a single definition span"
+    }
+   },
+   {
+    "outcome": "Adverse events leading to discontinuation",
+    "primary": false,
+    "trial": {
+     "id": "PMID 27295427",
+     "label": "27295427"
+    },
+    "endpoint_binding": "unbound_legacy",
+    "endpoint_admissibility": "UNBOUND_LEGACY",
+    "target_endpoint_class": null,
+    "binding_class": "MIGRATION_STATE_UNBOUND_LEGACY",
+    "producer_labels": {
+     "verified": "verified",
+     "verify_basis": "arm counts present in committed source",
+     "provenance": "fulltext_verified_arms"
+    },
+    "in_verification_rows": false,
+    "counted_in_admissible_rows": false,
+    "observations": {
+     "definition_span": null,
+     "endpoint_definition_carried": "Adverse events leading to discontinuation",
+     "definition_names_another_outcome": false,
+     "table_sourced": true,
+     "what_would_bind_it": "multi-span binding: the table row, its column header, the parent heading and any footnote, each located in a named representation with offsets; not a single definition span"
+    }
+   }
+  ],
+  "counts": {
+   "rows": 10,
+   "bound": 8,
+   "migration_state_unbound_legacy": 2,
+   "other": 0
+  },
+  "statement": "2 rendered row(s) carry UNBOUND_LEGACY. The producer's admit_rows returns admissible=True for them through a fail-open (external audit, ELIXA 4-point demonstration). This bundle counts them as a migration state: not in admissible_rows, not refused. Whether the LIVE build behaves as the audited code does is UNVERIFIABLE from here until target_endpoint.py is pinned in the certificate and generating_commit is recorded (the certificate lane's closure)."
+ },
  "verification_rows": [
   {
    "outcome_effect_id": "glp1-ra-mace-t2d::3-point major adverse cardiovascular events::PMID 31185157::PMID 31185157",
@@ -4451,7 +4679,8 @@
      "P4_endpoint_components",
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
-     "P7_coverage_adequate_for_claim"
+     "P7_coverage_adequate_for_claim",
+     "P8_endpoint_bound"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -4507,6 +4736,11 @@
       "state": "PASS",
       "claim_kind": "POSITIVE",
       "rule": "positive claim: a located excerpt suffices; coverage_status of the source is COMPLETE_ABSTRACT"
+     },
+     "P8_endpoint_bound": {
+      "state": "PASS",
+      "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+      "endpoint_admissibility": "EXACT_TARGET"
      }
     },
     "final": "ADMISSIBLE"
@@ -4696,7 +4930,8 @@
      "P4_endpoint_components",
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
-     "P7_coverage_adequate_for_claim"
+     "P7_coverage_adequate_for_claim",
+     "P8_endpoint_bound"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -4752,6 +4987,11 @@
       "state": "PASS",
       "claim_kind": "POSITIVE",
       "rule": "positive claim: a located excerpt suffices; coverage_status of the source is COMPLETE_ABSTRACT"
+     },
+     "P8_endpoint_bound": {
+      "state": "PASS",
+      "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+      "endpoint_admissibility": "EXACT_TARGET"
      }
     },
     "final": "ADMISSIBLE"
@@ -4941,7 +5181,8 @@
      "P4_endpoint_components",
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
-     "P7_coverage_adequate_for_claim"
+     "P7_coverage_adequate_for_claim",
+     "P8_endpoint_bound"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -4997,6 +5238,11 @@
       "state": "PASS",
       "claim_kind": "POSITIVE",
       "rule": "positive claim: a located excerpt suffices; coverage_status of the source is COMPLETE_ABSTRACT"
+     },
+     "P8_endpoint_bound": {
+      "state": "PASS",
+      "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+      "endpoint_admissibility": "EXACT_TARGET"
      }
     },
     "final": "ADMISSIBLE"
@@ -5186,7 +5432,8 @@
      "P4_endpoint_components",
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
-     "P7_coverage_adequate_for_claim"
+     "P7_coverage_adequate_for_claim",
+     "P8_endpoint_bound"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -5242,6 +5489,11 @@
       "state": "PASS",
       "claim_kind": "POSITIVE",
       "rule": "positive claim: a located excerpt suffices; coverage_status of the source is COMPLETE_ABSTRACT"
+     },
+     "P8_endpoint_bound": {
+      "state": "PASS",
+      "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+      "endpoint_admissibility": "EXACT_TARGET"
      }
     },
     "final": "ADMISSIBLE"
@@ -5434,7 +5686,8 @@
      "P4_endpoint_components",
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
-     "P7_coverage_adequate_for_claim"
+     "P7_coverage_adequate_for_claim",
+     "P8_endpoint_bound"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -5494,6 +5747,11 @@
       "state": "PASS",
       "claim_kind": "POSITIVE",
       "rule": "positive claim: a located excerpt suffices; coverage_status of the source is COMPLETE_ABSTRACT"
+     },
+     "P8_endpoint_bound": {
+      "state": "PASS",
+      "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+      "endpoint_admissibility": "EXACT_TARGET"
      }
     },
     "final": "ADMISSIBLE"
@@ -5686,7 +5944,8 @@
      "P4_endpoint_components",
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
-     "P7_coverage_adequate_for_claim"
+     "P7_coverage_adequate_for_claim",
+     "P8_endpoint_bound"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -5746,6 +6005,11 @@
       "state": "PASS",
       "claim_kind": "POSITIVE",
       "rule": "positive claim: a located excerpt suffices; coverage_status of the source is COMPLETE_ABSTRACT"
+     },
+     "P8_endpoint_bound": {
+      "state": "PASS",
+      "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+      "endpoint_admissibility": "EXACT_TARGET"
      }
     },
     "final": "INADMISSIBLE"
@@ -5935,7 +6199,8 @@
      "P4_endpoint_components",
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
-     "P7_coverage_adequate_for_claim"
+     "P7_coverage_adequate_for_claim",
+     "P8_endpoint_bound"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -5991,6 +6256,11 @@
       "state": "PASS",
       "claim_kind": "POSITIVE",
       "rule": "positive claim: a located excerpt suffices; coverage_status of the source is COMPLETE_ABSTRACT"
+     },
+     "P8_endpoint_bound": {
+      "state": "PASS",
+      "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+      "endpoint_admissibility": "EXACT_TARGET"
      }
     },
     "final": "ADMISSIBLE"
@@ -6183,7 +6453,8 @@
      "P4_endpoint_components",
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
-     "P7_coverage_adequate_for_claim"
+     "P7_coverage_adequate_for_claim",
+     "P8_endpoint_bound"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -6239,6 +6510,11 @@
       "state": "PASS",
       "claim_kind": "POSITIVE",
       "rule": "positive claim: a located excerpt suffices; coverage_status of the source is EXCERPT_ONLY"
+     },
+     "P8_endpoint_bound": {
+      "state": "PASS",
+      "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+      "endpoint_admissibility": "EXACT_TARGET"
      }
     },
     "final": "ADMISSIBLE"
@@ -6751,6 +7027,10 @@
    "limit": "FDA PDF -> text extraction tool is unrecorded and no page-level preservation record exists; those documents are UNKNOWN_COMPLETENESS."
   },
   {
+   "id": "L10_admit_rows_fail_open",
+   "limit": "the producer's target_endpoint.admit_rows admits a row with no endpoint class as UNBOUND_LEGACY (external audit: an authentic ELIXA 4-point row is refused when classified DIFFERENT_OUTCOME and admitted when the class is stripped). Two rendered harms rows carry it. The bundle counts them as a migration state; it cannot say whether the live build behaves as the audited code does, because target_endpoint.py is not pinned in the certificate and generating_commit is NOT_RECORDED."
+  },
+  {
    "id": "L9_production_path",
    "limit": "nothing here tests the producer's admission gate; no production falsification test has been executed by anyone."
   }
@@ -6759,8 +7039,8 @@
  "verifier": {
   "served_path": "scripts/verify_bundle.py",
   "served_url": "https://mahmood726-cyber.github.io/meta-harness/scripts/verify_bundle.py",
-  "sha256": "b96af76af3cf95a8a44a9ff1868344e2629b6951ea5f0dc5dedd330701652d7e",
-  "bytes": 31054,
+  "sha256": "4ce9f3ddb8acc7064b7adf286daf045d8c97da48477e832e912acbbc1fb58933",
+  "bytes": 32914,
   "requirements": "Python 3.9+ standard library only; no harness import; run: python verify_bundle.py --url https://mahmood726-cyber.github.io/meta-harness/ --slug glp1-ra-mace-t2d",
   "checks": "every artefact and supporting-file digest; release_sha256 and review_sha256; every predicate of every verification row; the selector rule; the asymmetric rule on every absence claim from a recomputed preservation record; pooled_reference.expected to 1e-9; --corrupt <pmid> <limb> shows one corrupted limb makes exactly that row inadmissible",
   "does_not_check": "that any acquired or cached representation faithfully preserves the upstream publication (SOUL's cache is known to omit the HbA1c entry range, follow-up and the safety sentence); that the source set is complete; that the clinical interpretation is right; and the PRODUCTION admission path -- no production falsification test has been executed by anyone; the verifier checks the bundle, not the producer's gate"

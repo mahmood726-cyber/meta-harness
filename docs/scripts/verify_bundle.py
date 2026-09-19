@@ -13,7 +13,7 @@ Given only the served tree (a directory that mirrors the site root, or the site 
      - the pooled estimate: log-scale inverse-variance random effects, Paule-Mandel tau^2, HKSJ on t_{k-1} with the
        Q/(k-1) floor -- Student-t quantile by regularized incomplete beta, no scipy -- compared to 1e-9;
   2. with --corrupt <pmid> <limb>, mutates ONE limb of ONE row in memory (span | effect | components | eligibility |
-     conflict | container) and reports which rows changed admissibility, so "an executable gate refuses when the
+     conflict | binding | container) and reports which rows changed admissibility, so "an executable gate refuses when the
      evidence is damaged" is demonstrated rather than asserted;
   3. for EVERY document with a retained acquisition, recomputes the preservation record (cached abstract vs the
      retained EFetch XML, unit by unit) and FAILS if the bundle's coverage_status disagrees -- a self-consistent
@@ -226,7 +226,7 @@ def resolve_selector(records, pmid):
     """The bundle's selector rule: the UNIQUE record with id_type pmid and id == pmid; 0 or >=2 matches refuse."""
     m = [r for r in records["records"] if str(r.get("id_type", "pmid")).lower() == "pmid" and str(r.get("id")) == str(pmid)]
     if len(m) != 1:
-        raise SystemExit(f"SELECTOR REFUSED: #PMID-{pmid} resolves to {len(m)} records (rule requires exactly one)")
+        raise SystemExit(f"SELECTOR_REFUSED #PMID-{pmid}: resolves to {len(m)} records (rule requires exactly one)")
     return m[0]
 
 
@@ -325,13 +325,13 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         ok_decl = a.get("declared_digest") is None or got == a["declared_digest"]
         report["artefacts"].append({"ref": a["ref"], "bytes_ok": ok_bytes, "declared_digest_ok": ok_decl})
         if not (ok_bytes and ok_decl):
-            failures.append(f"artefact {a['ref']}: bytes_ok={ok_bytes} declared_digest_ok={ok_decl}")
+            failures.append(f"ARTEFACT_DIGEST_MISMATCH {a['ref']}: bytes_ok={ok_bytes} declared_digest_ok={ok_decl}")
     for f in bundle.get("supporting_files", []):
         data = store.get(f["path"].removeprefix("docs/"))
         ok = sha256(data) == f["sha256"] and len(data) == f["bytes"]
         report["supporting"].append({"path": f["path"], "ok": ok})
         if not ok:
-            failures.append(f"supporting file {f['path']} digest mismatch")
+            failures.append(f"SUPPORTING_FILE_DIGEST_MISMATCH {f['path']}")
 
     # 2. certificate and review core --------------------------------------------------------------------------
     cert_bytes = store.get(R + "CERTIFICATE.json")
@@ -344,7 +344,7 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                              "release_sha256": cert["release_sha256"]}
     for name, ok in report["certificate"].items():
         if ok is False:
-            failures.append(f"certificate: {name}")
+            failures.append(f"CERTIFICATE_MISMATCH {name}")
 
     # 3. load records / families; apply corruption in memory ----------------------------------------------------
     records = store.json(f"cache/{slug}/records.json")
@@ -362,7 +362,7 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                "obj['records'] only": sha256_text(canonical(json.loads(raw.decode("utf-8"))["records"]))}
         for k, v in scopes.items():
             if got.get(k) != v:
-                failures.append(f"digest scope '{k}' does not reproduce under the published canonicalisation")
+                failures.append(f"DIGEST_SCOPE_MISMATCH '{k}' does not reproduce under the published canonicalisation")
         report["digest_scopes_reproduced"] = all(got.get(k) == v for k, v in scopes.items())
     container_sha = sha256(store.get(f"cache/{slug}/records.json"))
     families = {f.get("family_id"): f for f in review.get("trial_families", []) if isinstance(f, dict)}
@@ -384,6 +384,8 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             families[t["family_id"]] = dict(families[t["family_id"]], eligibility={"state": "UNKNOWN", "absence_code": "CORRUPTED_BY_VERIFIER"})
         elif limb == "conflict":
             families[t["family_id"]] = dict(families[t["family_id"]], conflicts=[{"state": "UNRESOLVED", "note": "planted by verifier"}])
+        elif limb == "binding":
+            t["endpoint_binding"] = "unbound_legacy"
         elif limb == "container":
             rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=rec_by_pmid[pmid]["abstract"] + " ")
             container_sha = sha256(container_sha.encode())  # the container bytes would differ; represent that
@@ -422,8 +424,12 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             "P5_family_eligible": elig == "ELIGIBLE",
             "P6_no_unresolved_conflict": not unresolved,
             "P7_coverage_adequate_for_claim": located,
+            "P8_endpoint_bound": t.get("endpoint_binding") == "named_endpoint_resolved_to_definition_span",
         }
-        final = "ADMISSIBLE" if all(P.values()) else "INADMISSIBLE"
+        failing = [k for k, ok in P.items() if not ok]
+        final = ("ADMISSIBLE" if not failing else
+                 "MIGRATION_STATE_UNBOUND_LEGACY" if failing == ["P8_endpoint_bound"] and t.get("endpoint_binding") == "unbound_legacy" else
+                 "INADMISSIBLE")
         recorded = (br or {}).get("admission", {}).get("final")
         recorded_P = {k: v["state"] == "PASS" for k, v in ((br or {}).get("admission", {}).get("predicates") or {}).items()}
         report["rows"].append({"pmid": pmid, "label": t.get("label"), "predicates": P, "final": final, "bundle_recorded": recorded,
@@ -431,7 +437,7 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                                "predicates_agree_with_bundle": (P == recorded_P) if not corrupt else None,
                                "span_match": loc["match"], "offsets_reproduce_span": offsets_ok})
         if not corrupt and final != recorded:
-            failures.append(f"row {pmid}: verifier says {final}, bundle recorded {recorded}")
+            failures.append(f"ROW_VERDICT_DISAGREES {pmid}: verifier says {final}, bundle recorded {recorded}")
 
     # 5. anchors: every document with a retained acquisition -- recompute preservation, compare to recorded coverage ----
     acq_by_pmid = {}
@@ -454,9 +460,11 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                     row["live"]["discrepancy"] = "RECORDED (not attributed): live PubMed and the retained acquisition differ; see DateRevised"
             report["anchors"].append(row)
             if not xml_ok:
-                failures.append(f"anchor {pmid}: retained XML does not hash to ACQUIRED_SOURCE.sha256_original")
+                failures.append(f"ANCHOR_XML_DIGEST_MISMATCH {pmid}: retained XML does not hash to ACQUIRED_SOURCE.sha256_original")
             if recomputed != recorded:
-                failures.append(f"anchor {pmid}: coverage recomputed {recomputed} vs recorded {recorded} -- the cached abstract does not preserve the retained XML as the bundle claims")
+                failures.append(f"ANCHOR_PRESERVATION_FAILURE {pmid}: {pres['missing']} of {pres['units']} retained-XML abstract units MISSING from the cached "
+                                f"abstract (extra chars {pres['extra_chars']}); coverage recomputed {recomputed} vs recorded {recorded} -- the cached "
+                                f"abstract does not preserve the retained XML as the bundle claims")
     for c in bundle.get("absence_claims", []):
         pmid = c["trial"]["id"].replace("PMID ", "")
         row = {"outcome": c["outcome"], "pmid": pmid, "producer_state": c["producer_state"], "claim_kind": c["claim_kind"]}
@@ -467,7 +475,7 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             row.update({"preservation": pres, "coverage_recomputed": coverage, "negative_claim_admissible": admissible,
                         "bundle_recorded": c["negative_claim_admissible"], "agrees": admissible == c["negative_claim_admissible"]})
             if admissible != c["negative_claim_admissible"]:
-                failures.append(f"absence claim {pmid}/{c['outcome']}: verifier {admissible} vs bundle {c['negative_claim_admissible']}")
+                failures.append(f"ABSENCE_CLAIM_DISAGREES {pmid}/{c['outcome']}: verifier {admissible} vs bundle {c['negative_claim_admissible']}")
         elif c["claim_kind"] == "NEGATIVE":
             row.update({"coverage_recomputed": "UNKNOWN_COMPLETENESS", "negative_claim_admissible": False, "bundle_recorded": c["negative_claim_admissible"]})
         report["absence_claims"].append(row)
@@ -479,12 +487,21 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
     deltas = {k: abs(got[k] - exp[k]) for k in ("estimate", "ci_low", "ci_high", "tau2")}
     pool_ok = all(d < 1e-9 for d in deltas.values())
     adm = [i for i in inputs if any(r["pmid"] == i["id"].replace("PMID ", "") and r["final"] == "ADMISSIBLE" for r in report["rows"])]
+    report["binding_states"] = {"rendered_rows": [], "migration_state_unbound_legacy": 0}
+    for o in review.get("outcomes", []):
+        for t in o.get("trials", []):
+            b = t.get("endpoint_binding")
+            cls = "BOUND" if b == "named_endpoint_resolved_to_definition_span" else "MIGRATION_STATE_UNBOUND_LEGACY" if b == "unbound_legacy" else "OTHER"
+            report["binding_states"]["rendered_rows"].append({"outcome": o["name"], "id": t.get("id"), "binding_class": cls})
+            report["binding_states"]["migration_state_unbound_legacy"] += (cls == "MIGRATION_STATE_UNBOUND_LEGACY")
+    report["binding_states"]["migration_rows_counted_admissible"] = sum(
+        1 for r in report["rows"] if r["final"] == "MIGRATION_STATE_UNBOUND_LEGACY")  # by construction never in admissible set
     report["pool"] = {"k_declared": len(inputs), "recomputed": got, "declared": exp, "abs_deltas": deltas, "reproduced_to_1e-9": pool_ok,
                       "t_crit_recomputed": got["t_crit"], "admissible_rows": len(adm),
                       "admissible_only_pool_for_information": pool(adm) if len(adm) >= 2 and len(adm) != len(inputs) else None,
                       "note": "the declared pool is the page's; admissible_only_pool is a verifier sensitivity, not a replacement result"}
     if not pool_ok:
-        failures.append(f"pool not reproduced: {deltas}")
+        failures.append(f"POOL_NOT_REPRODUCED {deltas}")
 
     report["endpoint_compatibility"] = {"state": (bundle.get("endpoint_compatibility") or {}).get("state"),
                                         "per_trial": {k: v["value"] for k, v in ((bundle.get("endpoint_compatibility") or {}).get("per_trial") or {}).items()}}
@@ -505,7 +522,7 @@ def main(argv=None):
     g.add_argument("--root", help="directory mirroring the site root (e.g. docs)")
     g.add_argument("--url", help="site root URL")
     ap.add_argument("--slug", required=True)
-    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|container")
+    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|container")
     ap.add_argument("--anchor", choices=["live"], help="live: re-fetch EFetch XML from PubMed now and compare to the retained acquisition and the cached abstract")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
@@ -536,9 +553,12 @@ def main(argv=None):
                      f"live_units_missing_from_cache={live.get('live_units_missing_from_cached_abstract')}") if live else ""
             print(f"  anchor {an['pmid']} xml_ok={an['acquired_xml_sha256_ok']} preservation={an['preservation']['verdict']} "
                   f"({an['preservation']['preserved']}/{an['preservation']['units']}) coverage {an['coverage_recomputed']} recorded {an['coverage_recorded']}{extra}")
+        bs = rep["binding_states"]
+        print(f"binding: {bs['migration_state_unbound_legacy']} rendered row(s) UNBOUND_LEGACY = migration state, not admissible, not refused: "
+              + ", ".join(f"{r['id']} ({r['outcome'][:28]})" for r in bs["rendered_rows"] if r["binding_class"] != "BOUND"))
         print("NOT checked: " + "; ".join(rep["not_checked"]))
         if rep["corruption"]:
-            print(f"corruption {rep['corruption']}: rows now inadmissible = {[r['pmid'] for r in rep['rows'] if r['final'] == 'INADMISSIBLE']}")
+            print(f"corruption {rep['corruption']}: rows no longer ADMISSIBLE = {[(r['pmid'], r['final']) for r in rep['rows'] if r['final'] != 'ADMISSIBLE']}")
         for f in rep["failures"]:
             print("  FAIL:", f)
     return 0 if rep["verdict"] == "PASS" else 1

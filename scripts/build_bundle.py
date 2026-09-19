@@ -65,8 +65,9 @@ from harness.canonical import canonical_json, review_core, sha256_text  # noqa: 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.2"
+FORMAT_REVISION = "3.3"
 FORMAT_CHANGELOG = [
+    "3.3 (2026-09-19, admit_rows fail-open audit): UNBOUND_LEGACY surfaced as its own state -- a MIGRATION state, not an admissible one and not a refusal. binding_states lists every rendered row of every outcome with its binding class; P8_endpoint_bound joins the admission predicates and a row that fails only P8 by unbound_legacy gets final MIGRATION_STATE_UNBOUND_LEGACY (counted separately from admissible_rows); the verifier gains the same predicate, a `binding` corruption limb and named refusal codes.",
     "3.2 (2026-09-19, verifier panel round 2): extraction_objects_coverage states that verified_effects.json holds the primary outcome for SOUL alone (an override) and harms refusals for the rest -- the primary-outcome evidence chain for the other seven rows is records.json (records_file_sha256) -> analysis code blobs -> review.json (review_sha256), and every verification row names which; an explicit `anchor` block per document makes the retained EFetch XML mechanically comparable to the cached abstract (the only thing that can catch a self-consistent deletion), and the verifier gains --anchor live (re-fetch EFetch now and compare units: the external observation); a `limits` section prints what the bundle cannot establish, including the closed-list endpoint vocabulary.",
     "3.1 (2026-09-19, ninth audit): canonicalisation scheme published beside every canonical digest and both digest scopes of "
     "records.json stated (raw file vs canonical JSON -- same object, different procedures; a shared container digest across rows is "
@@ -123,6 +124,10 @@ LIMITS = [
     {"id": "L7_ci_to_se", "limit": "every SE is derived from a published CI under a Wald assumption; SOUL's interval is group-sequential-adjusted; "
      "appropriateness is NOT_ESTABLISHED and no sensitivity analysis exists."},
     {"id": "L8_fda_extraction", "limit": "FDA PDF -> text extraction tool is unrecorded and no page-level preservation record exists; those documents are UNKNOWN_COMPLETENESS."},
+    {"id": "L10_admit_rows_fail_open", "limit": "the producer's target_endpoint.admit_rows admits a row with no endpoint class as UNBOUND_LEGACY "
+     "(external audit: an authentic ELIXA 4-point row is refused when classified DIFFERENT_OUTCOME and admitted when the class is stripped). Two rendered "
+     "harms rows carry it. The bundle counts them as a migration state; it cannot say whether the live build behaves as the audited code does, because "
+     "target_endpoint.py is not pinned in the certificate and generating_commit is NOT_RECORDED."},
     {"id": "L9_production_path", "limit": "nothing here tests the producer's admission gate; no production falsification test has been executed by anyone."},
 ]
 ANCHOR_HOWTO = ("parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, "
@@ -228,6 +233,16 @@ VOCABULARY = {
         "DIGEST_WITHOUT_BODY": "a reference that terminates in a digest with no retrievable body -- a promise, reported as such",
         "DANGLING": "a reference to nothing the package or the repository holds",
     },
+    "binding_classes": {
+        "BOUND": "endpoint_binding == named_endpoint_resolved_to_definition_span: the row's value is bound to a definition span of the target endpoint",
+        "MIGRATION_STATE_UNBOUND_LEGACY": "the producer's target_endpoint.admit_rows returned admissible=True with verdict UNBOUND_LEGACY because the row has "
+                                          "no endpoint class and fell through a narrow keyword check (fail-open demonstrated by an external audit with an "
+                                          "authentic ELIXA 4-point row: classified DIFFERENT_OUTCOME it is refused; with the class stripped the same row is "
+                                          "admitted). In this bundle such a row is NEITHER admissible NOR refused: table-sourced harms need multi-span binding "
+                                          "(row, column header, parent heading, footnote) that does not exist yet, and blanket refusal would strip exactly the "
+                                          "evidence that is hardest to recover. It is a migration state and is counted on its own.",
+        "OTHER": "any other binding value; reported verbatim",
+    },
     "admission_predicates": {
         "P1_source_bytes": "sha256(served source bytes) == declared digest for the container of the representation the span is located in",
         "P2_span_located": "span text == representation[start:end] in the named representation (VERBATIM in PARSED_SOURCE, or in NORMALIZED_SOURCE with the transform manifest applied)",
@@ -236,7 +251,10 @@ VOCABULARY = {
         "P5_family_eligible": "the trial family's eligibility state == ELIGIBLE",
         "P6_no_unresolved_conflict": "no unresolved source conflict is recorded for the row's family",
         "P7_coverage_adequate_for_claim": "a positive claim: the excerpt is located (P2); a negative claim: coverage_status of the searched representation is COMPLETE_*",
+        "P8_endpoint_bound": "endpoint_binding == named_endpoint_resolved_to_definition_span (an unbound_legacy row is a migration state, see binding_classes)",
         "ADMISSIBLE": "all predicates PASS",
+        "MIGRATION_STATE_UNBOUND_LEGACY": "P8 is the ONLY failing predicate and the binding is unbound_legacy: not admissible, not refused, counted separately",
+        "INADMISSIBLE": "any other failing predicate",
     },
 }
 
@@ -774,7 +792,13 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
             "P6_no_unresolved_conflict": {"state": "PASS" if not unresolved else "FAIL", "unresolved": unresolved},
             "P7_coverage_adequate_for_claim": {"state": "PASS" if located else "FAIL", "claim_kind": "POSITIVE",
                                                "rule": "positive claim: a located excerpt suffices; coverage_status of the source is " + str(cov)},
+            "P8_endpoint_bound": {"state": "PASS" if t.get("endpoint_binding") == "named_endpoint_resolved_to_definition_span" else "FAIL",
+                                  "endpoint_binding": t.get("endpoint_binding"), "endpoint_admissibility": t.get("endpoint_admissibility")},
         }
+        failing = [k for k, v in predicates.items() if v["state"] != "PASS"]
+        final = ("ADMISSIBLE" if not failing else
+                 "MIGRATION_STATE_UNBOUND_LEGACY" if failing == ["P8_endpoint_bound"] and t.get("endpoint_binding") == "unbound_legacy" else
+                 "INADMISSIBLE")
         rows.append({
             "outcome_effect_id": t.get("outcome_effect_id"),
             "trial": {"label": t.get("label"), "id": trial_id, "family_id": t.get("family_id"), "trial_family_id": t.get("trial_family_id")},
@@ -827,8 +851,7 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                          "narrowed_states": {
                              "result_concordant_with_located_span": "SUPPORTED" if located and predicates["P3_effect_tokens_in_span"]["state"] == "PASS" else "NOT_SUPPORTED",
                              "cached_representation_faithful_and_complete": {"COMPLETE_ABSTRACT": "SUPPORTED (abstract scope)", "COMPLETE_SOURCE": "SUPPORTED"}.get(cov, "NOT_SUPPORTED: " + str(cov))}},
-            "admission": {"required_predicates": list(predicates), "predicates": predicates,
-                          "final": "ADMISSIBLE" if all(p["state"] == "PASS" for p in predicates.values()) else "INADMISSIBLE"},
+            "admission": {"required_predicates": list(predicates), "predicates": predicates, "final": final},
         })
     return rows, {"canonical_components": canonical_components, "k": len(rows)}
 
@@ -869,6 +892,43 @@ def absence_claims(slug: str, review: dict, docs_by_id: dict) -> list[dict]:
 # ----------------------------------------------------------------------------------------------------------------
 # pooled reference (canonical path) and resolvability walk
 # ----------------------------------------------------------------------------------------------------------------
+
+_CV_WORDS = re.compile(r"myocardial infarction|stroke|cardiovascular", re.I)
+
+
+def binding_states(review: dict, primary_ids: set) -> dict:
+    """Every rendered row of every outcome with its binding class, so a migration state is visible where an outsider
+    looks, and never folded into an admissible count."""
+    rows = []
+    for o in review.get("outcomes", []):
+        for t in o.get("trials", []):
+            b = t.get("endpoint_binding")
+            cls = "BOUND" if b == "named_endpoint_resolved_to_definition_span" else "MIGRATION_STATE_UNBOUND_LEGACY" if b == "unbound_legacy" else "OTHER"
+            row = {"outcome": o["name"], "primary": bool(o.get("primary")), "trial": {"id": t.get("id"), "label": t.get("label")},
+                   "endpoint_binding": b, "endpoint_admissibility": t.get("endpoint_admissibility"), "target_endpoint_class": t.get("target_endpoint_class"),
+                   "binding_class": cls, "producer_labels": {"verified": t.get("verified"), "verify_basis": t.get("verify_basis"), "provenance": t.get("provenance")},
+                   "in_verification_rows": bool(o.get("primary")) and t.get("id") in primary_ids,
+                   "counted_in_admissible_rows": False}
+            if cls != "BOUND":
+                defn = t.get("endpoint_definition") or ""
+                src = str(t.get("source") or "")
+                row["observations"] = {
+                    "definition_span": t.get("endpoint_definition_span"),
+                    "endpoint_definition_carried": defn[:200],
+                    "definition_names_another_outcome": bool(defn and not o.get("primary") and _CV_WORDS.search(defn) and not _CV_WORDS.search(o["name"])),
+                    "table_sourced": src.lstrip().startswith("<table-wrap") or "<table" in src[:200],
+                    "what_would_bind_it": "multi-span binding: the table row, its column header, the parent heading and any footnote, each located in a "
+                                          "named representation with offsets; not a single definition span",
+                }
+            rows.append(row)
+    n_unb = sum(1 for r in rows if r["binding_class"] == "MIGRATION_STATE_UNBOUND_LEGACY")
+    return {"rows": rows, "counts": {"rows": len(rows), "bound": sum(1 for r in rows if r["binding_class"] == "BOUND"),
+                                      "migration_state_unbound_legacy": n_unb, "other": sum(1 for r in rows if r["binding_class"] == "OTHER")},
+            "statement": (f"{n_unb} rendered row(s) carry UNBOUND_LEGACY. The producer's admit_rows returns admissible=True for them through a fail-open "
+                          "(external audit, ELIXA 4-point demonstration). This bundle counts them as a migration state: not in admissible_rows, not refused. "
+                          "Whether the LIVE build behaves as the audited code does is UNVERIFIABLE from here until target_endpoint.py is pinned in the "
+                          "certificate and generating_commit is recorded (the certificate lane's closure).")}
+
 
 def endpoint_compatibility(review: dict, rows: list) -> dict:
     primary = next(o for o in review["outcomes"] if o.get("primary"))
@@ -1155,6 +1215,10 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
     pooled = pooled_reference(review)
     compat = endpoint_compatibility(review, vrows)
     xcov = extraction_objects_coverage(slug, review, cert)
+    binding = binding_states(review, {r["trial"]["id"] for r in vrows})
+    for b in binding["rows"]:
+        vr = next((r for r in vrows if r["trial"]["id"] == b["trial"]["id"] and b["primary"]), None)
+        b["counted_in_admissible_rows"] = bool(vr and vr["admission"]["final"] == "ADMISSIBLE")
     walk = resolvability_walk(slug, art_by_ref, acq, supporting, reg)
 
     # the verifier must be fetchable from the surface the bundle is served from, byte-identical to the repository copy
@@ -1245,6 +1309,10 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
                    "acquisition_files": len(acq["files"]), "acquisition_bytes": sum(f["bytes"] for f in acq["files"]),
                    "documents": len(docs), "documents_by_coverage_status": cov_counts,
                    "primary_pool_rows": vmeta["k"], "admissible_rows": sum(1 for r in vrows if r["admission"]["final"] == "ADMISSIBLE"),
+                   "migration_state_rows_in_primary_pool": sum(1 for r in vrows if r["admission"]["final"] == "MIGRATION_STATE_UNBOUND_LEGACY"),
+                   "inadmissible_rows_in_primary_pool": sum(1 for r in vrows if r["admission"]["final"] == "INADMISSIBLE"),
+                   "unbound_legacy_rows_rendered_anywhere": binding["counts"]["migration_state_unbound_legacy"],
+                   "unbound_legacy_rows_inside_admissible_rows": sum(1 for b in binding["rows"] if b["binding_class"] != "BOUND" and b["counted_in_admissible_rows"]),
                    "absence_claims": len(aclaims),
                    "negative_claims_not_admissible": sum(1 for c in aclaims if c["claim_kind"] == "NEGATIVE" and c["negative_claim_admissible"] is False),
                    "resolvability": walk["edge_counts"]},
@@ -1254,6 +1322,7 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
         "documents": docs,
         "endpoint_compatibility": compat,
         "extraction_objects_coverage": xcov,
+        "binding_states": binding,
         "verification_rows": vrows,
         "absence_claims": aclaims,
         "pooled_reference": pooled,
