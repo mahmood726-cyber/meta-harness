@@ -1,26 +1,54 @@
 {
- "schema_version": 1,
+ "schema_version": 2,
  "slug": "glp1-ra-mace-t2d",
- "purpose": "Every object CERTIFICATE.json commits a digest to, with its declared digest, served path and byte length -- so a reader can start here and reach each one without guessing a path, and can tell 'not served because we may not' (WITHHELD, reason given) from 'not served because we forgot' (which this file makes impossible: every certificate input appears below, in one state or the other).",
+ "purpose": "Every object CERTIFICATE.json commits a digest to, with its declared digest, served path and byte length -- so a reader can start here and reach each one without guessing a path, and can tell 'not served because we may not' (WITHHELD, reason given) from 'not served because we forgot' (which this file makes impossible: every certificate input appears below, in one state or the other). Each artefact carries two identities where two exist: the acquired original and the representation derived from it, with the transform named; value_index goes from a rendered value to its document digest in one hop and states whether the rendered span is verbatim in that document.",
  "certificate_unmodified": true,
  "certificate": {
   "served_path": "reviews/glp1-ra-mace-t2d/CERTIFICATE.json",
   "bytes": 5531,
   "sha256_of_file": "dd46ee4d8ca5c4a1f3d776ef6484f49e31863af1a477d25d241e55850b577fd9",
+  "git_blob_sha1": "30d0bdcbd65f787fd2a6ee2fc4d204b2f2eb873b",
   "release_sha256": "177e2d4c646830ecd9fa4570dbd6ebe079660c9f91e9d99a59dce5291690685d",
   "note": "left byte-identical; an external auditor has reproduced release_sha256 and analysis_code_sha256 from the listed inputs with an isolated standard-library script, and that result must survive this bundle"
+ },
+ "source": {
+  "content_commit": "663d43db52944909a8d5e992499170b0bb63e559",
+  "content_commit_meaning": "the most recent commit that changed any of review.json, index.html, CERTIFICATE.json, REPRODUCTION.json in this review directory; NOT necessarily the commit the generator ran at",
+  "generating_commit": "NOT_RECORDED",
+  "generating_commit_meaning": "the generator does not record the commit it ran at; build_utc records when the build metadata was authored, not what the bytes were built from, and is not evidence of either",
+  "served_blob_git_sha1": {
+   "review.json": "ec8acf593ed83a2088d2a3434cbf0dc2a4132706",
+   "index.html": "9a8dd57f01caf0ed183014218694874831baf113",
+   "CERTIFICATE.json": "30d0bdcbd65f787fd2a6ee2fc4d204b2f2eb873b",
+   "REPRODUCTION.json": "fcb0af3a3ee65d553cfca8944f43b9f9256cfd5b"
+  },
+  "how_to_check_currency": [
+   "git ls-remote https://github.com/mahmood726-cyber/meta-harness.git refs/heads/main   -> the current main commit",
+   "git rev-parse <that commit>:docs/reviews/glp1-ra-mace-t2d/review.json   (or the GitHub contents API 'sha') -> the blob id main serves from",
+   "git hash-object review.json   on the bytes you fetched -> must equal served_blob_git_sha1.review.json above AND the blob at main; if it equals the former but not the latter, you hold a stale edge copy or a superseded build"
+  ],
+  "served_copy_may_lag": "The served copy of this directory may lag the repository. GitHub Pages serves through a CDN: a fetch with cache:'no-store' bypasses the browser cache only, and two readers can hold different versions of the same URL at the same moment. Before treating these bytes as current, compute the git blob id of the review.json you hold (git hash-object review.json) and compare it with the blob at refs/heads/main (GET https://api.github.com/repos/mahmood726-cyber/meta-harness/contents/docs/reviews/glp1-ra-mace-t2d/review.json?ref=main returns it as 'sha'); a mismatch means you are holding a stale edge copy or a superseded build."
  },
  "path_scheme": {
   "rule": "each `ref` is repository-root-relative exactly as the certificate spells it; the same bytes are served at <site_root>/<ref> (from this file's directory: ../../<ref>)",
   "site_root": "https://mahmood726-cyber.github.io/meta-harness/",
-  "source_commit": "4d33b7af1cbdd746e8324b6aaf45c5da9d7919ef  (the commit whose tree the mirrored bytes were copied from)",
   "byte_identity": "mirror paths carry `-text` in .gitattributes so git never normalises line endings on checkin; three held text exports contain CRLF and would otherwise be served off their digest"
+ },
+ "representation_kinds": {
+  "ACQUIRED_AS_STORED": "the bytes as received from the upstream source; whether a digest was taken at acquisition is stated",
+  "DERIVED": "a representation produced from an acquired original by a named transform; whether the original was retained, and where, is stated; if it was not retained the entry says so rather than presenting the derived copy as the original",
+  "AUTHORED": "an object authored in this project; it is its own original"
  },
  "counts": {
   "certificate_inputs": 24,
   "served": 22,
   "withheld": 2,
-  "served_bytes": 12708686
+  "served_bytes": 12708686,
+  "value_index_trial_rows_by_span_match": {
+   "VERBATIM": 6,
+   "NORMALISED": 2,
+   "NO_SPAN": 2
+  }
  },
  "artefacts": [
   {
@@ -28,161 +56,326 @@
    "role": "protocol_text_sha256",
    "bytes": 13295,
    "sha256": "d7208503c823d1b4f10fb8e356b69d30b3f25874420a8b678d25319811a7ae4c",
+   "git_blob_sha1": "0029d1654eced35d0699ef5b472aaf7bdb27d709",
    "declared_digest": "d7208503c823d1b4f10fb8e356b69d30b3f25874420a8b678d25319811a7ae4c",
    "digest_method": "sha256 of the file decoded as UTF-8 with universal newlines (bytes identical here: no CR present)",
    "state": "SERVED",
    "served_path": "protocols/glp1-ra-mace-t2d.md",
-   "served_url": "https://mahmood726-cyber.github.io/meta-harness/protocols/glp1-ra-mace-t2d.md"
+   "served_url": "https://mahmood726-cyber.github.io/meta-harness/protocols/glp1-ra-mace-t2d.md",
+   "representation": {
+    "kind": "AUTHORED",
+    "description": "an object authored inside this project (configuration, protocol, analysis code, ledger, verified extraction, family map, risk-of-bias object or source manifest); it is its own original and has no upstream document",
+    "acquired_original": {
+     "is_this_file": true
+    },
+    "derived_representations": [],
+    "upstream_identity": "NOT_APPLICABLE"
+   }
   },
   {
    "ref": "cache/glp1-ra-mace-t2d/records.json",
    "role": "records_file_sha256",
    "bytes": 50567,
    "sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+   "git_blob_sha1": "d3dda368f0625bc624b9a98bb9b12f933f29010c",
    "declared_digest": "1f575452770dd41d7a869da195ba681639360a8e4e17765fb407f92e272ce1d7",
    "digest_method": "sha256 of canonical JSON (sorted keys, separators (',',':'), ensure_ascii=False, UTF-8) of the whole file; ['records'] alone feeds retrieved_corpus_sha256",
    "state": "SERVED",
    "served_path": "cache/glp1-ra-mace-t2d/records.json",
-   "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/records.json"
+   "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/records.json",
+   "representation": {
+    "kind": "DERIVED",
+    "description": "projection of PubMed efetch XML: per record {id, id_type, title, abstract, pubtypes, year, journal, doi, nct}; the abstract is the AbstractText sections joined as 'Label: text' with single spaces (harness/fetch.py::_efetch). Also embeds comparator_fulltext (see that entry).",
+    "acquired_from": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&retmode=xml (fetched_utc 2026-09-11)",
+    "acquired_original": {
+     "retained": false,
+     "note": "the efetch XML response bodies were not retained and were not digested at acquisition; this file is the only representation held"
+    },
+    "derived_representations": [
+     {
+      "ref": "cache/glp1-ra-mace-t2d/records.json",
+      "is_this_file": true,
+      "transform": "XML -> field projection; AbstractText sections joined with labels"
+     }
+    ],
+    "upstream_identity": "NOT_PROVEN -- PubMed abstracts are revised upstream; a 2026-09-19 audit found the current PubMed abstract for PMID 40162642 (SOUL) contains clauses absent from this cached copy. 'verified' on the page means located in THIS file, not in the publisher's document."
+   }
   },
   {
    "ref": "cache/glp1-ra-mace-t2d/retrieval_ledger.json",
    "role": "retrieval_ledger_sha256",
    "bytes": 3559,
    "sha256": "6dae89c73d9f21297a39304d84ac16d49c803246b18c9b331a094fd8e77b1f88",
+   "git_blob_sha1": "28bc3691cfcf199b7fb810598ea11f52b4abdb31",
    "declared_digest": "086d3d2a49915105d185efb1b2b19131747af65bcf5ed0920edd1a6516a8294d",
    "digest_method": "sha256 of canonical JSON of the whole file; its [{source_id, query}] list, in order, feeds search_query_sha256",
    "state": "SERVED",
    "served_path": "cache/glp1-ra-mace-t2d/retrieval_ledger.json",
-   "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/retrieval_ledger.json"
+   "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/retrieval_ledger.json",
+   "representation": {
+    "kind": "AUTHORED",
+    "description": "an object authored inside this project (configuration, protocol, analysis code, ledger, verified extraction, family map, risk-of-bias object or source manifest); it is its own original and has no upstream document",
+    "acquired_original": {
+     "is_this_file": true
+    },
+    "derived_representations": [],
+    "upstream_identity": "NOT_APPLICABLE"
+   }
   },
   {
    "ref": "cache/glp1-ra-mace-t2d/families.json",
    "role": "trial_family_map_sha256",
    "bytes": 370365,
    "sha256": "49f7522c9228442c9695ce108aa3c2ba6e104b89c4b0f74f0f8389b45c965d97",
+   "git_blob_sha1": "a36f6b14465b452a3801611cebc11c33f1483694",
    "declared_digest": "5d3ff2ee9e8d394851b06088fedd6e72f1cf7d23b0352d1b663712a50bbd693b",
    "digest_method": "sha256 of canonical JSON",
    "state": "SERVED",
    "served_path": "cache/glp1-ra-mace-t2d/families.json",
-   "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/families.json"
+   "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/families.json",
+   "representation": {
+    "kind": "AUTHORED",
+    "description": "an object authored inside this project (configuration, protocol, analysis code, ledger, verified extraction, family map, risk-of-bias object or source manifest); it is its own original and has no upstream document",
+    "acquired_original": {
+     "is_this_file": true
+    },
+    "derived_representations": [],
+    "upstream_identity": "NOT_APPLICABLE"
+   }
   },
   {
    "ref": "cache/glp1-ra-mace-t2d/rob2.json",
    "role": "rob_object_sha256",
    "bytes": 117600,
    "sha256": "4362473c7827cc1441246fc3e9c5fd4c68ce4a2208310f0048ad49da4d14ed14",
+   "git_blob_sha1": "3c0be5f894852f444f2a8b36d0ef944e95ed0320",
    "declared_digest": "9fa7cca178c82dbae7d8926d98d4d1fa7fb6d5204373c448c97120fd7bc5da23",
    "digest_method": "sha256 of canonical JSON",
    "state": "SERVED",
    "served_path": "cache/glp1-ra-mace-t2d/rob2.json",
-   "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/rob2.json"
+   "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/rob2.json",
+   "representation": {
+    "kind": "AUTHORED",
+    "description": "an object authored inside this project (configuration, protocol, analysis code, ledger, verified extraction, family map, risk-of-bias object or source manifest); it is its own original and has no upstream document",
+    "acquired_original": {
+     "is_this_file": true
+    },
+    "derived_representations": [],
+    "upstream_identity": "NOT_APPLICABLE"
+   }
   },
   {
    "ref": "topics/glp1-ra-mace-t2d.json",
    "role": "config_sha256",
    "bytes": 6319,
    "sha256": "24906081db55b12398ca14c6fe2321f3fc939eb8136ef8bbaecb6af2f0e31d7f",
+   "git_blob_sha1": "3fafcd798ebea345856ebdff357090be86572cfe",
    "declared_digest": "4682a204621b79916bea4ec8872b447500c5ef1350cfeef06f38269e7db04875",
    "digest_method": "sha256 of canonical JSON",
    "state": "SERVED",
    "served_path": "topics/glp1-ra-mace-t2d.json",
-   "served_url": "https://mahmood726-cyber.github.io/meta-harness/topics/glp1-ra-mace-t2d.json"
+   "served_url": "https://mahmood726-cyber.github.io/meta-harness/topics/glp1-ra-mace-t2d.json",
+   "representation": {
+    "kind": "AUTHORED",
+    "description": "an object authored inside this project (configuration, protocol, analysis code, ledger, verified extraction, family map, risk-of-bias object or source manifest); it is its own original and has no upstream document",
+    "acquired_original": {
+     "is_this_file": true
+    },
+    "derived_representations": [],
+    "upstream_identity": "NOT_APPLICABLE"
+   }
   },
   {
    "ref": "cache/glp1-ra-mace-t2d/verified_arms.json",
    "role": "extraction_objects_sha256",
    "bytes": 36556,
    "sha256": "75a63049401ffb141cb420be9c17ed99326c7e539928f0bee0a085cf74cb55a6",
+   "git_blob_sha1": "6fd225b21ef738c28d0f96cb35e4bdac2297f727",
    "declared_digest": null,
    "digest_method": "one member of the canonical ref-to-JSON map {ref: parsed JSON} whose canonical JSON is hashed",
    "state": "SERVED",
    "served_path": "cache/glp1-ra-mace-t2d/verified_arms.json",
-   "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/verified_arms.json"
+   "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/verified_arms.json",
+   "representation": {
+    "kind": "AUTHORED",
+    "description": "an object authored inside this project (configuration, protocol, analysis code, ledger, verified extraction, family map, risk-of-bias object or source manifest); it is its own original and has no upstream document",
+    "acquired_original": {
+     "is_this_file": true
+    },
+    "derived_representations": [],
+    "upstream_identity": "NOT_APPLICABLE"
+   }
   },
   {
    "ref": "cache/glp1-ra-mace-t2d/verified_effects.json",
    "role": "extraction_objects_sha256",
    "bytes": 39890,
    "sha256": "12460587badf709bb33321679ff0fe001ceb81eed2c600413ce8bc4cb1d65054",
+   "git_blob_sha1": "04840105cdd016a712d60f5d9eb7ca22b92f0cba",
    "declared_digest": null,
    "digest_method": "one member of the canonical ref-to-JSON map {ref: parsed JSON} whose canonical JSON is hashed",
    "state": "SERVED",
    "served_path": "cache/glp1-ra-mace-t2d/verified_effects.json",
-   "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/verified_effects.json"
+   "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/verified_effects.json",
+   "representation": {
+    "kind": "AUTHORED",
+    "description": "an object authored inside this project (configuration, protocol, analysis code, ledger, verified extraction, family map, risk-of-bias object or source manifest); it is its own original and has no upstream document",
+    "acquired_original": {
+     "is_this_file": true
+    },
+    "derived_representations": [],
+    "upstream_identity": "NOT_APPLICABLE"
+   }
   },
   {
    "ref": "harness/synth.py",
    "role": "analysis_code_sha256",
    "bytes": 14976,
    "sha256": "735d9793ed5e28119be22390e73daea3c74732291c3279687abc8cc3028532dc",
+   "git_blob_sha1": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
    "declared_digest": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
    "digest_method": "Git blob SHA-1 of LF-normalised bytes: sha1(b'blob <len>\\0' + bytes); the map of these feeds analysis_code_sha256",
    "state": "SERVED",
    "served_path": "harness/synth.py",
-   "served_url": "https://mahmood726-cyber.github.io/meta-harness/harness/synth.py"
+   "served_url": "https://mahmood726-cyber.github.io/meta-harness/harness/synth.py",
+   "representation": {
+    "kind": "AUTHORED",
+    "description": "an object authored inside this project (configuration, protocol, analysis code, ledger, verified extraction, family map, risk-of-bias object or source manifest); it is its own original and has no upstream document",
+    "acquired_original": {
+     "is_this_file": true
+    },
+    "derived_representations": [],
+    "upstream_identity": "NOT_APPLICABLE"
+   }
   },
   {
    "ref": "harness/pipeline.py",
    "role": "analysis_code_sha256",
    "bytes": 121836,
    "sha256": "f8a0259fc8a2e65bccd9c7f4555316b2e8f43875e8937d030797e8943515d43c",
+   "git_blob_sha1": "b6c50b2797d9ff6b5ad3ea78e7f1fe561555dd35",
    "declared_digest": "b6c50b2797d9ff6b5ad3ea78e7f1fe561555dd35",
    "digest_method": "Git blob SHA-1 of LF-normalised bytes: sha1(b'blob <len>\\0' + bytes); the map of these feeds analysis_code_sha256",
    "state": "SERVED",
    "served_path": "harness/pipeline.py",
-   "served_url": "https://mahmood726-cyber.github.io/meta-harness/harness/pipeline.py"
+   "served_url": "https://mahmood726-cyber.github.io/meta-harness/harness/pipeline.py",
+   "representation": {
+    "kind": "AUTHORED",
+    "description": "an object authored inside this project (configuration, protocol, analysis code, ledger, verified extraction, family map, risk-of-bias object or source manifest); it is its own original and has no upstream document",
+    "acquired_original": {
+     "is_this_file": true
+    },
+    "derived_representations": [],
+    "upstream_identity": "NOT_APPLICABLE"
+   }
   },
   {
    "ref": "harness/grade.py",
    "role": "analysis_code_sha256",
    "bytes": 26621,
    "sha256": "21dba68e8e90ee39b3864f412dd77216c50fc37d21c7ccde2dc2f51335049718",
+   "git_blob_sha1": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
    "declared_digest": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
    "digest_method": "Git blob SHA-1 of LF-normalised bytes: sha1(b'blob <len>\\0' + bytes); the map of these feeds analysis_code_sha256",
    "state": "SERVED",
    "served_path": "harness/grade.py",
-   "served_url": "https://mahmood726-cyber.github.io/meta-harness/harness/grade.py"
+   "served_url": "https://mahmood726-cyber.github.io/meta-harness/harness/grade.py",
+   "representation": {
+    "kind": "AUTHORED",
+    "description": "an object authored inside this project (configuration, protocol, analysis code, ledger, verified extraction, family map, risk-of-bias object or source manifest); it is its own original and has no upstream document",
+    "acquired_original": {
+     "is_this_file": true
+    },
+    "derived_representations": [],
+    "upstream_identity": "NOT_APPLICABLE"
+   }
   },
   {
    "ref": "scripts/build_topic.py",
    "role": "analysis_code_sha256",
    "bytes": 5081,
    "sha256": "ff4258e735777f77bbb1bee551711636866ce309558b4fb79b2e1e573966cb4c",
+   "git_blob_sha1": "bfd51ffd7d2d8c5296c501cade1a4f6bd19ef896",
    "declared_digest": "bfd51ffd7d2d8c5296c501cade1a4f6bd19ef896",
    "digest_method": "Git blob SHA-1 of LF-normalised bytes: sha1(b'blob <len>\\0' + bytes); the map of these feeds analysis_code_sha256",
    "state": "SERVED",
    "served_path": "scripts/build_topic.py",
-   "served_url": "https://mahmood726-cyber.github.io/meta-harness/scripts/build_topic.py"
+   "served_url": "https://mahmood726-cyber.github.io/meta-harness/scripts/build_topic.py",
+   "representation": {
+    "kind": "AUTHORED",
+    "description": "an object authored inside this project (configuration, protocol, analysis code, ledger, verified extraction, family map, risk-of-bias object or source manifest); it is its own original and has no upstream document",
+    "acquired_original": {
+     "is_this_file": true
+    },
+    "derived_representations": [],
+    "upstream_identity": "NOT_APPLICABLE"
+   }
   },
   {
    "ref": "cache/glp1-ra-mace-t2d/aact_inputs.json",
    "role": "held_documents",
    "bytes": 30602,
    "sha256": "8aec1c466649588c71e7728572abefd8cc218c7303d6c6b0b6bef9e1b5e4ffd5",
+   "git_blob_sha1": "2e2bf3aff65de4cbd5cd5d826620d401f84538c4",
    "declared_digest": "8aec1c466649588c71e7728572abefd8cc218c7303d6c6b0b6bef9e1b5e4ffd5",
    "digest_method": "sha256 of exact file bytes",
    "state": "SERVED",
    "served_path": "cache/glp1-ra-mace-t2d/aact_inputs.json",
-   "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/aact_inputs.json"
+   "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/aact_inputs.json",
+   "representation": {
+    "kind": "DERIVED",
+    "description": "header-keyed rows selected from a local AACT (ClinicalTrials.gov) snapshot, each row digested as sha256(canonical_json(row)) inside the file (its own row_hash_method field)",
+    "acquired_from": "AACT snapshot 2026-08-30",
+    "acquired_original": {
+     "retained": false,
+     "note": "the snapshot tables are not part of the bundle; per-row digests inside the file are the only tie to them"
+    },
+    "derived_representations": [
+     {
+      "ref": "cache/glp1-ra-mace-t2d/aact_inputs.json",
+      "is_this_file": true,
+      "transform": "SQL row selection -> JSON"
+     }
+    ],
+    "upstream_identity": "NOT_PROVEN against the live registry; the snapshot date is stated"
+   }
   },
   {
    "ref": "cache/glp1-ra-mace-t2d/comparator_fulltext.txt",
    "role": "held_documents",
    "bytes": 19849,
    "sha256": "121cdc10e190b0b431ce0b0a6c9c073930be685cd6f5c9e2271af91c4db312fe",
+   "git_blob_sha1": "4293339a44b6ccb6619edd7f11c899426f5109ea",
    "declared_digest": "121cdc10e190b0b431ce0b0a6c9c073930be685cd6f5c9e2271af91c4db312fe",
    "digest_method": "sha256 of exact file bytes",
    "state": "SERVED",
    "served_path": "cache/glp1-ra-mace-t2d/comparator_fulltext.txt",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/cache/glp1-ra-mace-t2d/comparator_fulltext.txt",
-   "licence": "Giugliano 2021, Cardiovasc Diabetol, DOI 10.1186/s12933-021-01366-8; Crossref licence CC BY 4.0."
+   "licence": "Giugliano 2021, Cardiovasc Diabetol, DOI 10.1186/s12933-021-01366-8; Crossref licence CC BY 4.0.",
+   "representation": {
+    "kind": "DERIVED",
+    "description": "prose text of the comparator meta-analysis (PMID 34526024) produced by harness.fetch._pmc_fulltext: PMC JATS XML -> body prose + structured tables (harness/fulltext.py parse_pmc_xml/combined_text)",
+    "acquired_from": "PMC efetch for the comparator PMID; open-access location per Unpaywall: https://cardiab.biomedcentral.com/track/pdf/10.1186/s12933-021-01366-8",
+    "acquired_original": {
+     "retained": false,
+     "note": "the PMC XML for the comparator was not retained; this text is the only representation held"
+    },
+    "derived_representations": [
+     {
+      "ref": "cache/glp1-ra-mace-t2d/comparator_fulltext.txt",
+      "is_this_file": true,
+      "transform": "JATS XML -> prose + table rows (whitespace collapsed)"
+     }
+    ],
+    "upstream_identity": "NOT_PROVEN -- the article is CC BY 4.0; re-derive from PMC and compare"
+   }
   },
   {
    "ref": "cache/glp1-ra-mace-t2d/ft_27295427.txt",
    "role": "held_documents",
    "bytes": 93734,
    "sha256": "ded4c69e559446cef815ae8e2362600a39121c758bead7aefc9babd9f779f7db",
+   "git_blob_sha1": "4592f0526b1babff279911bb20421737fa00958d",
    "declared_digest": "ded4c69e559446cef815ae8e2362600a39121c758bead7aefc9babd9f779f7db",
    "digest_method": "sha256 of exact file bytes",
    "state": "WITHHELD",
@@ -193,13 +386,26 @@
     "pmid": "27295427",
     "pmcid": "PMC4985288"
    },
-   "verification": "fetch the bytes from obtain_from, confirm sha256 == this entry's sha256, then treat as served; the certificate digest above is over those bytes"
+   "verification": "fetch the bytes from obtain_from, confirm sha256 == this entry's sha256, then treat as served; the certificate digest above is over those bytes",
+   "representation": {
+    "kind": "ACQUIRED_AS_STORED",
+    "description": "PMC efetch response body (JATS XML) as written to the cache by harness.fetch; no separate digest was taken of the HTTP response at acquisition, so byte identity with what PMC served is asserted by the storing code path, not proven",
+    "acquired_from": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id=<pmcid for PMID 27295427>&retmode=xml",
+    "acquired_original": {
+     "retained": true,
+     "is_this_file": true,
+     "acquisition_digest_recorded": false
+    },
+    "derived_representations": [],
+    "upstream_identity": "NOT_PROVEN -- re-fetch from acquired_from and compare digests; PMC may re-render"
+   }
   },
   {
    "ref": "cache/glp1-ra-mace-t2d/ft_28910237.txt",
    "role": "held_documents",
    "bytes": 80502,
    "sha256": "9f474e106015e4baf4c65922739d6dc0075de967ee80e43665106db06ad01563",
+   "git_blob_sha1": "54faa1862c2c4b79e5c4e523c18e2415180e055d",
    "declared_digest": "9f474e106015e4baf4c65922739d6dc0075de967ee80e43665106db06ad01563",
    "digest_method": "sha256 of exact file bytes",
    "state": "WITHHELD",
@@ -210,103 +416,283 @@
     "pmid": "28910237",
     "pmcid": "PMC9792409"
    },
-   "verification": "fetch the bytes from obtain_from, confirm sha256 == this entry's sha256, then treat as served; the certificate digest above is over those bytes"
+   "verification": "fetch the bytes from obtain_from, confirm sha256 == this entry's sha256, then treat as served; the certificate digest above is over those bytes",
+   "representation": {
+    "kind": "ACQUIRED_AS_STORED",
+    "description": "PMC efetch response body (JATS XML) as written to the cache by harness.fetch; no separate digest was taken of the HTTP response at acquisition, so byte identity with what PMC served is asserted by the storing code path, not proven",
+    "acquired_from": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id=<pmcid for PMID 28910237>&retmode=xml",
+    "acquired_original": {
+     "retained": true,
+     "is_this_file": true,
+     "acquisition_digest_recorded": false
+    },
+    "derived_representations": [],
+    "upstream_identity": "NOT_PROVEN -- re-fetch from acquired_from and compare digests; PMC may re-render"
+   }
   },
   {
    "ref": "outputs/handover/glp1_regulatory/208471Orig1s000MedR.pdf.txt",
    "role": "held_documents",
    "bytes": 1311600,
    "sha256": "448150daf6667013259e6e4c741aba8a60153af651d5d04886455d3b8e595c22",
+   "git_blob_sha1": "3b52cc0f8b122d4a5db4633691d5828ebf094d74",
    "declared_digest": "448150daf6667013259e6e4c741aba8a60153af651d5d04886455d3b8e595c22",
    "digest_method": "sha256 of exact file bytes",
    "state": "SERVED",
    "served_path": "outputs/handover/glp1_regulatory/208471Orig1s000MedR.pdf.txt",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/outputs/handover/glp1_regulatory/208471Orig1s000MedR.pdf.txt",
-   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution."
+   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution.",
+   "representation": {
+    "kind": "DERIVED",
+    "description": "text extraction of an FDA PDF",
+    "acquired_original": {
+     "sha256": "80d91f3cdaea588b845de18d3ef9b254936ec8768305bd91e554d9de3f39acc3",
+     "bytes": 37422229,
+     "acquired_from": "https://www.accessdata.fda.gov/drugsatfda_docs/nda/2016/208471Orig1s000MedR.pdf (Adlyxin / lixisenatide NDA 208471, Clinical Review, Suchitra Balakrishnan)",
+     "fetched_utc": "2026-09-16T18:33:00Z",
+     "acquisition_digest_recorded": true,
+     "retained": true,
+     "ref": null,
+     "served": false,
+     "location": "off-repository raw archive, custody = author's machine (the source manifest regulatory_sources_glp1.json records the archive path; a local path is not reproduced here)",
+     "note": "original held OFF the repository (size); its digest was recorded at acquisition and is stated here so a reader who fetches the FDA document from acquired_from can check it, but the bytes are not served by this bundle"
+    },
+    "derived_representations": [
+     {
+      "ref": "outputs/handover/glp1_regulatory/208471Orig1s000MedR.pdf.txt",
+      "is_this_file": true,
+      "transform": "PDF -> text; the extraction tool is not recorded in regulatory_sources_glp1.json (stated, not guessed)",
+      "sha256_recorded_at_extraction": "448150daf6667013259e6e4c741aba8a60153af651d5d04886455d3b8e595c22"
+     }
+    ],
+    "upstream_identity": "the ORIGINAL's digest was recorded at acquisition; this derived text has no upstream counterpart to compare against"
+   }
   },
   {
    "ref": "outputs/handover/glp1_regulatory/208471Orig1s000StatR.pdf.txt",
    "role": "held_documents",
    "bytes": 329298,
    "sha256": "952b8088e14b457d97364f13bb0f9407803bf875faed5fa30d995972e2687a26",
+   "git_blob_sha1": "b6ea880bf802ad49505f9b60fcb630903cc9be3c",
    "declared_digest": "952b8088e14b457d97364f13bb0f9407803bf875faed5fa30d995972e2687a26",
    "digest_method": "sha256 of exact file bytes",
    "state": "SERVED",
    "served_path": "outputs/handover/glp1_regulatory/208471Orig1s000StatR.pdf.txt",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/outputs/handover/glp1_regulatory/208471Orig1s000StatR.pdf.txt",
-   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution."
+   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution.",
+   "representation": {
+    "kind": "DERIVED",
+    "description": "text extraction of an FDA PDF",
+    "acquired_original": {
+     "sha256": "cf2b3ef92247b85e7be7c3b56c3cc4fc0af007b3950acee95eea9c995653db38",
+     "bytes": 6307791,
+     "acquired_from": "https://www.accessdata.fda.gov/drugsatfda_docs/nda/2016/208471Orig1s000StatR.pdf (Adlyxin / lixisenatide NDA 208471, Statistical Review, reviewer Yueqin Zhao)",
+     "fetched_utc": "2026-09-16T18:33:00Z",
+     "acquisition_digest_recorded": true,
+     "retained": true,
+     "ref": "outputs/handover/glp1_regulatory/held/208471Orig1s000StatR.pdf",
+     "served": true
+    },
+    "derived_representations": [
+     {
+      "ref": "outputs/handover/glp1_regulatory/208471Orig1s000StatR.pdf.txt",
+      "is_this_file": true,
+      "transform": "PDF -> text; the extraction tool is not recorded in regulatory_sources_glp1.json (stated, not guessed)",
+      "sha256_recorded_at_extraction": "952b8088e14b457d97364f13bb0f9407803bf875faed5fa30d995972e2687a26"
+     }
+    ],
+    "upstream_identity": "the ORIGINAL's digest was recorded at acquisition; this derived text has no upstream counterpart to compare against"
+   }
   },
   {
    "ref": "outputs/handover/glp1_regulatory/209637s025lbl.pdf.txt",
    "role": "held_documents",
    "bytes": 100904,
    "sha256": "8882f70933720c2ae710adfe512e8c1cf3a24968f3d7153ece6184af186d068f",
+   "git_blob_sha1": "dd2b4c3c5ccc5fc015da77781c788cad81fc8264",
    "declared_digest": "8882f70933720c2ae710adfe512e8c1cf3a24968f3d7153ece6184af186d068f",
    "digest_method": "sha256 of exact file bytes",
    "state": "SERVED",
    "served_path": "outputs/handover/glp1_regulatory/209637s025lbl.pdf.txt",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/outputs/handover/glp1_regulatory/209637s025lbl.pdf.txt",
-   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution."
+   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution.",
+   "representation": {
+    "kind": "DERIVED",
+    "description": "text extraction of an FDA PDF",
+    "acquired_original": {
+     "sha256": "547606a71cf2cee768b1f98848be7ed53c06ea640bc6968f485c0fa3da455c42",
+     "bytes": 1269082,
+     "acquired_from": "Drugs@FDA NDA 209637 (Ozempic / semaglutide) -> supplement S-025 (new indication: reduce the risk of sustained eGFR decline, ESKD and CV death in adults with T2D and CKD; approval letter dated 2025, sNDA received March 28, 2024) -> Label (PDF) https://www.accessdata.fda.gov/drugsatfda_docs/label/2025/209637s025lbl.pdf ; the S-025 review package is NOT posted (nda/2025/209637Orig1s025.pdf and nda/2026/... both 404 on 2026-09-18); s032/s035/s037 reviews are labeling-safety supplements, not FLOW",
+     "fetched_utc": "2026-09-18T07:58:00Z",
+     "acquisition_digest_recorded": true,
+     "retained": true,
+     "ref": "outputs/handover/glp1_regulatory/held/209637s025lbl.pdf",
+     "served": true
+    },
+    "derived_representations": [
+     {
+      "ref": "outputs/handover/glp1_regulatory/209637s025lbl.pdf.txt",
+      "is_this_file": true,
+      "transform": "PDF -> text; the extraction tool is not recorded in regulatory_sources_glp1.json (stated, not guessed)",
+      "sha256_recorded_at_extraction": "8882f70933720c2ae710adfe512e8c1cf3a24968f3d7153ece6184af186d068f"
+     }
+    ],
+    "upstream_identity": "the ORIGINAL's digest was recorded at acquisition; this derived text has no upstream counterpart to compare against"
+   }
   },
   {
    "ref": "outputs/handover/glp1_regulatory/fda_media_172242_ITCA650.pdf.txt",
    "role": "held_documents",
    "bytes": 261283,
    "sha256": "e27b9985959e139b9c84f15b7e364d3c82a2fed861819e2b777f6b3f5aef963e",
+   "git_blob_sha1": "ca71bc677f7cc7933317e7af51eeb95020a0b3aa",
    "declared_digest": "e27b9985959e139b9c84f15b7e364d3c82a2fed861819e2b777f6b3f5aef963e",
    "digest_method": "sha256 of exact file bytes",
    "state": "SERVED",
    "served_path": "outputs/handover/glp1_regulatory/fda_media_172242_ITCA650.pdf.txt",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/outputs/handover/glp1_regulatory/fda_media_172242_ITCA650.pdf.txt",
-   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution."
+   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution.",
+   "representation": {
+    "kind": "DERIVED",
+    "description": "text extraction of an FDA PDF",
+    "acquired_original": {
+     "sha256": "719362393b2029c2d4a081ab1bc69647034b2168efe686808d419f16177f0103",
+     "bytes": 2253251,
+     "acquired_from": "https://www.fda.gov/media/172242/download (FDA Briefing Document, NDA 209053, ITCA 650 (exenatide in DUROS device), Endocrinologic and Metabolic Drugs Advisory Committee, 21 Sep 2023)",
+     "fetched_utc": "2026-09-16T18:36:00Z",
+     "acquisition_digest_recorded": true,
+     "retained": true,
+     "ref": "outputs/handover/glp1_regulatory/held/fda_media_172242_ITCA650.pdf",
+     "served": true
+    },
+    "derived_representations": [
+     {
+      "ref": "outputs/handover/glp1_regulatory/fda_media_172242_ITCA650.pdf.txt",
+      "is_this_file": true,
+      "transform": "PDF -> text; the extraction tool is not recorded in regulatory_sources_glp1.json (stated, not guessed)",
+      "sha256_recorded_at_extraction": "e27b9985959e139b9c84f15b7e364d3c82a2fed861819e2b777f6b3f5aef963e"
+     }
+    ],
+    "upstream_identity": "the ORIGINAL's digest was recorded at acquisition; this derived text has no upstream counterpart to compare against"
+   }
   },
   {
    "ref": "outputs/handover/glp1_regulatory/held/208471Orig1s000StatR.pdf",
    "role": "held_documents",
    "bytes": 6307791,
    "sha256": "cf2b3ef92247b85e7be7c3b56c3cc4fc0af007b3950acee95eea9c995653db38",
+   "git_blob_sha1": "a21ddd4b9b77889a3f71f21b73e7ec7d0738ce43",
    "declared_digest": "cf2b3ef92247b85e7be7c3b56c3cc4fc0af007b3950acee95eea9c995653db38",
    "digest_method": "sha256 of exact file bytes",
    "state": "SERVED",
    "served_path": "outputs/handover/glp1_regulatory/held/208471Orig1s000StatR.pdf",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/outputs/handover/glp1_regulatory/held/208471Orig1s000StatR.pdf",
-   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution."
+   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution.",
+   "representation": {
+    "kind": "ACQUIRED_AS_STORED",
+    "description": "FDA document bytes as downloaded",
+    "acquired_from": "https://www.accessdata.fda.gov/drugsatfda_docs/nda/2016/208471Orig1s000StatR.pdf (Adlyxin / lixisenatide NDA 208471, Statistical Review, reviewer Yueqin Zhao)",
+    "acquired_original": {
+     "retained": true,
+     "is_this_file": true,
+     "acquisition_digest_recorded": true,
+     "sha256_recorded_at_acquisition": "cf2b3ef92247b85e7be7c3b56c3cc4fc0af007b3950acee95eea9c995653db38",
+     "fetched_utc": "2026-09-16T18:33:00Z"
+    },
+    "derived_representations": [
+     {
+      "ref": "outputs/handover/glp1_regulatory/208471Orig1s000StatR.pdf.txt",
+      "transform": "PDF -> text (tool not recorded)"
+     }
+    ],
+    "upstream_identity": "digest recorded at acquisition by the acquiring agent and equal to the served bytes; independent check = re-fetch acquired_from and compare"
+   }
   },
   {
    "ref": "outputs/handover/glp1_regulatory/held/209637s025lbl.pdf",
    "role": "held_documents",
    "bytes": 1269082,
    "sha256": "547606a71cf2cee768b1f98848be7ed53c06ea640bc6968f485c0fa3da455c42",
+   "git_blob_sha1": "84047625077802eac6a53877cc75831541ae6c83",
    "declared_digest": "547606a71cf2cee768b1f98848be7ed53c06ea640bc6968f485c0fa3da455c42",
    "digest_method": "sha256 of exact file bytes",
    "state": "SERVED",
    "served_path": "outputs/handover/glp1_regulatory/held/209637s025lbl.pdf",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/outputs/handover/glp1_regulatory/held/209637s025lbl.pdf",
-   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution."
+   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution.",
+   "representation": {
+    "kind": "ACQUIRED_AS_STORED",
+    "description": "FDA document bytes as downloaded",
+    "acquired_from": "Drugs@FDA NDA 209637 (Ozempic / semaglutide) -> supplement S-025 (new indication: reduce the risk of sustained eGFR decline, ESKD and CV death in adults with T2D and CKD; approval letter dated 2025, sNDA received March 28, 2024) -> Label (PDF) https://www.accessdata.fda.gov/drugsatfda_docs/label/2025/209637s025lbl.pdf ; the S-025 review package is NOT posted (nda/2025/209637Orig1s025.pdf and nda/2026/... both 404 on 2026-09-18); s032/s035/s037 reviews are labeling-safety supplements, not FLOW",
+    "acquired_original": {
+     "retained": true,
+     "is_this_file": true,
+     "acquisition_digest_recorded": true,
+     "sha256_recorded_at_acquisition": "547606a71cf2cee768b1f98848be7ed53c06ea640bc6968f485c0fa3da455c42",
+     "fetched_utc": "2026-09-18T07:58:00Z"
+    },
+    "derived_representations": [
+     {
+      "ref": "outputs/handover/glp1_regulatory/209637s025lbl.pdf.txt",
+      "transform": "PDF -> text (tool not recorded)"
+     }
+    ],
+    "upstream_identity": "digest recorded at acquisition by the acquiring agent and equal to the served bytes; independent check = re-fetch acquired_from and compare"
+   }
   },
   {
    "ref": "outputs/handover/glp1_regulatory/held/fda_media_172242_ITCA650.pdf",
    "role": "held_documents",
    "bytes": 2253251,
    "sha256": "719362393b2029c2d4a081ab1bc69647034b2168efe686808d419f16177f0103",
+   "git_blob_sha1": "2e26e94acf4f4d4fb9a6fa1472f3ead777ce1d56",
    "declared_digest": "719362393b2029c2d4a081ab1bc69647034b2168efe686808d419f16177f0103",
    "digest_method": "sha256 of exact file bytes",
    "state": "SERVED",
    "served_path": "outputs/handover/glp1_regulatory/held/fda_media_172242_ITCA650.pdf",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/outputs/handover/glp1_regulatory/held/fda_media_172242_ITCA650.pdf",
-   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution."
+   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution.",
+   "representation": {
+    "kind": "ACQUIRED_AS_STORED",
+    "description": "FDA document bytes as downloaded",
+    "acquired_from": "https://www.fda.gov/media/172242/download (FDA Briefing Document, NDA 209053, ITCA 650 (exenatide in DUROS device), Endocrinologic and Metabolic Drugs Advisory Committee, 21 Sep 2023)",
+    "acquired_original": {
+     "retained": true,
+     "is_this_file": true,
+     "acquisition_digest_recorded": true,
+     "sha256_recorded_at_acquisition": "719362393b2029c2d4a081ab1bc69647034b2168efe686808d419f16177f0103",
+     "fetched_utc": "2026-09-16T18:36:00Z"
+    },
+    "derived_representations": [
+     {
+      "ref": "outputs/handover/glp1_regulatory/fda_media_172242_ITCA650.pdf.txt",
+      "transform": "PDF -> text (tool not recorded)"
+     }
+    ],
+    "upstream_identity": "digest recorded at acquisition by the acquiring agent and equal to the served bytes; independent check = re-fetch acquired_from and compare"
+   }
   },
   {
    "ref": "outputs/handover/glp1_regulatory/regulatory_sources_glp1.json",
    "role": "held_documents",
    "bytes": 18361,
    "sha256": "0696a732384857bef85daf6cd1d8515a8880f21373a15400c09bd6ac16605011",
+   "git_blob_sha1": "ab312ebdd460ec24f6954b0f70584b492b75a96b",
    "declared_digest": "0696a732384857bef85daf6cd1d8515a8880f21373a15400c09bd6ac16605011",
    "digest_method": "sha256 of exact file bytes",
    "state": "SERVED",
    "served_path": "outputs/handover/glp1_regulatory/regulatory_sources_glp1.json",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/outputs/handover/glp1_regulatory/regulatory_sources_glp1.json",
-   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution."
+   "licence": "US FDA review documents, briefing material and approved labelling: works of the United States Government / FDA-published, not subject to copyright restriction on redistribution.",
+   "representation": {
+    "kind": "AUTHORED",
+    "description": "an object authored inside this project (configuration, protocol, analysis code, ledger, verified extraction, family map, risk-of-bias object or source manifest); it is its own original and has no upstream document",
+    "acquired_original": {
+     "is_this_file": true
+    },
+    "derived_representations": [],
+    "upstream_identity": "NOT_APPLICABLE"
+   }
   }
  ],
  "review_files": [
@@ -315,35 +701,436 @@
    "served_path": "reviews/glp1-ra-mace-t2d/CERTIFICATE.json",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/reviews/glp1-ra-mace-t2d/CERTIFICATE.json",
    "bytes": 5531,
-   "sha256": "dd46ee4d8ca5c4a1f3d776ef6484f49e31863af1a477d25d241e55850b577fd9"
+   "sha256": "dd46ee4d8ca5c4a1f3d776ef6484f49e31863af1a477d25d241e55850b577fd9",
+   "git_blob_sha1": "30d0bdcbd65f787fd2a6ee2fc4d204b2f2eb873b"
   },
   {
    "file": "REPRODUCTION.json",
    "served_path": "reviews/glp1-ra-mace-t2d/REPRODUCTION.json",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/reviews/glp1-ra-mace-t2d/REPRODUCTION.json",
    "bytes": 9480,
-   "sha256": "fd6191c5da06fb0d1aa6a669ba8a9b534abf1ef8058297aee183cbb21f7ae0d8"
+   "sha256": "fd6191c5da06fb0d1aa6a669ba8a9b534abf1ef8058297aee183cbb21f7ae0d8",
+   "git_blob_sha1": "fcb0af3a3ee65d553cfca8944f43b9f9256cfd5b"
   },
   {
    "file": "index.html",
    "served_path": "reviews/glp1-ra-mace-t2d/index.html",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/reviews/glp1-ra-mace-t2d/index.html",
    "bytes": 2043500,
-   "sha256": "0858d12ea19a8e4000b87d1c656be7a29f67e42d84fa2937aa75a0b3449213cd"
+   "sha256": "0858d12ea19a8e4000b87d1c656be7a29f67e42d84fa2937aa75a0b3449213cd",
+   "git_blob_sha1": "9a8dd57f01caf0ed183014218694874831baf113"
   },
   {
    "file": "manifest.json",
    "served_path": "reviews/glp1-ra-mace-t2d/manifest.json",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/reviews/glp1-ra-mace-t2d/manifest.json",
-   "bytes": 2483,
-   "sha256": "77fea9e010950f8181c38f435bf6839a60eb743498356c7c8c80fa4dbecbc7fd"
+   "bytes": 4529,
+   "sha256": "fdd2751b5e8712da42545e559a856015597b248274576005b33f2c53e78ce923",
+   "git_blob_sha1": "19b55dd498841fcd27cb34c47a67bbcc460d19e5"
   },
   {
    "file": "review.json",
    "served_path": "reviews/glp1-ra-mace-t2d/review.json",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/reviews/glp1-ra-mace-t2d/review.json",
    "bytes": 27956696,
-   "sha256": "2b27f6911bcf3ae11fd7a40eb812a8e46aab3992d94274d2687096ccd9912449"
+   "sha256": "2b27f6911bcf3ae11fd7a40eb812a8e46aab3992d94274d2687096ccd9912449",
+   "git_blob_sha1": "ec8acf593ed83a2088d2a3434cbf0dc2a4132706"
+  }
+ ],
+ "value_index": [
+  {
+   "entry": "POOLED",
+   "outcome": "3-point major adverse cardiovascular events",
+   "primary": true,
+   "k": 8,
+   "value": {
+    "estimate": 0.856,
+    "ci_low": 0.8086,
+    "ci_high": 0.9061,
+    "tau2": 4e-05,
+    "pi_low": 0.8069,
+    "pi_high": 0.9081,
+    "scale": "HR"
+   },
+   "derived_from": "the per-trial rows below, by the method stated in manifest.json (served_method); the pooled numbers are recomputable from review.json alone"
+  },
+  {
+   "entry": "TRIAL_ROW",
+   "outcome_effect_id": "glp1-ra-mace-t2d::3-point major adverse cardiovascular events::PMID 31185157::PMID 31185157",
+   "outcome": "3-point major adverse cardiovascular events",
+   "trial": {
+    "label": "31185157",
+    "id": "PMID 31185157"
+   },
+   "value": {
+    "scale": "HR",
+    "effect": 0.79,
+    "ci_low": 0.57,
+    "ci_high": 1.11
+   },
+   "page_labels": {
+    "verified": "verified",
+    "verify_basis": "effect present in committed source",
+    "provenance": "abstract"
+   },
+   "endpoint_result_span": "Major adverse cardiovascular events occurred in 61 of 1591 patients (3.8%) in the oral semaglutide group and 76 of 1592 (4.8%) in the placebo group (hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11; P<0.001 for noninferiority).",
+   "span_location": [
+    {
+     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-31185157",
+     "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+     "served_path": "cache/glp1-ra-mace-t2d/records.json",
+     "representation": "DERIVED (PubMed abstract projection; upstream identity NOT_PROVEN)",
+     "match": "VERBATIM"
+    }
+   ],
+   "span_match": "VERBATIM",
+   "what_verified_means_here": "the span was located in the served representation named above; that is a fact about our copy, not about the publisher's document (see the representation's upstream_identity)"
+  },
+  {
+   "entry": "TRIAL_ROW",
+   "outcome_effect_id": "glp1-ra-mace-t2d::3-point major adverse cardiovascular events::PMID 27633186::PMID 27633186",
+   "outcome": "3-point major adverse cardiovascular events",
+   "trial": {
+    "label": "27633186",
+    "id": "PMID 27633186"
+   },
+   "value": {
+    "scale": "HR",
+    "effect": 0.74,
+    "ci_low": 0.58,
+    "ci_high": 0.95
+   },
+   "page_labels": {
+    "verified": "verified",
+    "verify_basis": "effect present in committed source",
+    "provenance": "abstract"
+   },
+   "endpoint_result_span": "The primary outcome occurred in 108 of 1648 patients (6.6%) in the semaglutide group and in 146 of 1649 patients (8.9%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.58 to 0.95; P<0.001 for noninferiority).",
+   "span_location": [
+    {
+     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-27633186",
+     "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+     "served_path": "cache/glp1-ra-mace-t2d/records.json",
+     "representation": "DERIVED (PubMed abstract projection; upstream identity NOT_PROVEN)",
+     "match": "VERBATIM"
+    }
+   ],
+   "span_match": "VERBATIM",
+   "what_verified_means_here": "the span was located in the served representation named above; that is a fact about our copy, not about the publisher's document (see the representation's upstream_identity)"
+  },
+  {
+   "entry": "TRIAL_ROW",
+   "outcome_effect_id": "glp1-ra-mace-t2d::3-point major adverse cardiovascular events::PMID 27295427::PMID 27295427",
+   "outcome": "3-point major adverse cardiovascular events",
+   "trial": {
+    "label": "27295427",
+    "id": "PMID 27295427"
+   },
+   "value": {
+    "scale": "HR",
+    "effect": 0.87,
+    "ci_low": 0.78,
+    "ci_high": 0.97
+   },
+   "page_labels": {
+    "verified": "verified",
+    "verify_basis": "effect present in committed source",
+    "provenance": "abstract"
+   },
+   "endpoint_result_span": "The primary outcome occurred in significantly fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97; P<0.001 for noninferiority; P=0.01 for superiority).",
+   "span_location": [
+    {
+     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-27295427",
+     "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+     "served_path": "cache/glp1-ra-mace-t2d/records.json",
+     "representation": "DERIVED (PubMed abstract projection; upstream identity NOT_PROVEN)",
+     "match": "VERBATIM"
+    },
+    {
+     "document_ref": "cache/glp1-ra-mace-t2d/ft_27295427.txt",
+     "document_sha256": "ded4c69e559446cef815ae8e2362600a39121c758bead7aefc9babd9f779f7db",
+     "served_path": null,
+     "state": "WITHHELD",
+     "representation": "ACQUIRED_AS_STORED (PMC JATS XML; upstream identity NOT_PROVEN)",
+     "match": "NOT_LOCATED",
+     "tried": [
+      "whitespace collapsed",
+      "unicode punctuation folded (middle dot -> '.', dashes -> '-', NBSP -> ' ', curly quotes)"
+     ]
+    }
+   ],
+   "span_match": "VERBATIM",
+   "what_verified_means_here": "the span was located in the served representation named above; that is a fact about our copy, not about the publisher's document (see the representation's upstream_identity)"
+  },
+  {
+   "entry": "TRIAL_ROW",
+   "outcome_effect_id": "glp1-ra-mace-t2d::3-point major adverse cardiovascular events::PMID 34215025::PMID 34215025",
+   "outcome": "3-point major adverse cardiovascular events",
+   "trial": {
+    "label": "34215025",
+    "id": "PMID 34215025"
+   },
+   "value": {
+    "scale": "HR",
+    "effect": 0.73,
+    "ci_low": 0.58,
+    "ci_high": 0.92
+   },
+   "page_labels": {
+    "verified": "verified",
+    "verify_basis": "effect present in committed source",
+    "provenance": "abstract"
+   },
+   "endpoint_result_span": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).",
+   "span_location": [
+    {
+     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-34215025",
+     "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+     "served_path": "cache/glp1-ra-mace-t2d/records.json",
+     "representation": "DERIVED (PubMed abstract projection; upstream identity NOT_PROVEN)",
+     "match": "VERBATIM"
+    }
+   ],
+   "span_match": "VERBATIM",
+   "what_verified_means_here": "the span was located in the served representation named above; that is a fact about our copy, not about the publisher's document (see the representation's upstream_identity)"
+  },
+  {
+   "entry": "TRIAL_ROW",
+   "outcome_effect_id": "glp1-ra-mace-t2d::3-point major adverse cardiovascular events::PMID 31189511::PMID 31189511",
+   "outcome": "3-point major adverse cardiovascular events",
+   "trial": {
+    "label": "31189511",
+    "id": "PMID 31189511"
+   },
+   "value": {
+    "scale": "HR",
+    "effect": 0.88,
+    "ci_low": 0.79,
+    "ci_high": 0.99
+   },
+   "page_labels": {
+    "verified": "verified",
+    "verify_basis": "effect present in committed source",
+    "provenance": "abstract"
+   },
+   "endpoint_result_span": "During a median follow-up of 5.4 years (IQR 5.1-5.9), the primary composite outcome occurred in 594 (12.0%) participants at an incidence rate of 2.4 per 100 person-years in the dulaglutide group and in 663 (13.4%) participants at an incidence rate of 2.7 per 100 person-years in the placebo group (hazard ratio [HR] 0.88, 95% CI 0.79-0.99; p=0.026).",
+   "span_location": [
+    {
+     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-31189511",
+     "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+     "served_path": "cache/glp1-ra-mace-t2d/records.json",
+     "representation": "DERIVED (PubMed abstract projection; upstream identity NOT_PROVEN)",
+     "match": "NORMALISED",
+     "normalisation": [
+      "whitespace collapsed",
+      "unicode punctuation folded (middle dot -> '.', dashes -> '-', NBSP -> ' ', curly quotes)"
+     ]
+    }
+   ],
+   "span_match": "NORMALISED",
+   "what_verified_means_here": "the span was located in the served representation named above; that is a fact about our copy, not about the publisher's document (see the representation's upstream_identity)"
+  },
+  {
+   "entry": "TRIAL_ROW",
+   "outcome_effect_id": "glp1-ra-mace-t2d::3-point major adverse cardiovascular events::PMID 30291013::PMID 30291013",
+   "outcome": "3-point major adverse cardiovascular events",
+   "trial": {
+    "label": "30291013",
+    "id": "PMID 30291013"
+   },
+   "value": {
+    "scale": "HR",
+    "effect": 0.78,
+    "ci_low": 0.68,
+    "ci_high": 0.9
+   },
+   "page_labels": {
+    "verified": "verified",
+    "verify_basis": "effect present in committed source",
+    "provenance": "abstract"
+   },
+   "endpoint_result_span": "The primary composite outcome occurred in 338 (7%) of 4731 patients at an incidence rate of 4.6 events per 100 person-years in the albiglutide group and in 428 (9%) of 4732 patients at an incidence rate of 5.9 events per 100 person-years in the placebo group (hazard ratio 0.78, 95% CI 0.68-0.90), which indicated that albiglutide was superior to placebo (p<0.0001 for non-inferiority; p=0.0006 for superiority).",
+   "span_location": [
+    {
+     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-30291013",
+     "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+     "served_path": "cache/glp1-ra-mace-t2d/records.json",
+     "representation": "DERIVED (PubMed abstract projection; upstream identity NOT_PROVEN)",
+     "match": "NORMALISED",
+     "normalisation": [
+      "whitespace collapsed",
+      "unicode punctuation folded (middle dot -> '.', dashes -> '-', NBSP -> ' ', curly quotes)"
+     ]
+    }
+   ],
+   "span_match": "NORMALISED",
+   "what_verified_means_here": "the span was located in the served representation named above; that is a fact about our copy, not about the publisher's document (see the representation's upstream_identity)"
+  },
+  {
+   "entry": "TRIAL_ROW",
+   "outcome_effect_id": "glp1-ra-mace-t2d::3-point major adverse cardiovascular events::PMID 28910237::PMID 28910237",
+   "outcome": "3-point major adverse cardiovascular events",
+   "trial": {
+    "label": "28910237",
+    "id": "PMID 28910237"
+   },
+   "value": {
+    "scale": "HR",
+    "effect": 0.91,
+    "ci_low": 0.83,
+    "ci_high": 1.0
+   },
+   "page_labels": {
+    "verified": "verified",
+    "verify_basis": "effect present in committed source",
+    "provenance": "abstract"
+   },
+   "endpoint_result_span": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority).",
+   "span_location": [
+    {
+     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-28910237",
+     "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+     "served_path": "cache/glp1-ra-mace-t2d/records.json",
+     "representation": "DERIVED (PubMed abstract projection; upstream identity NOT_PROVEN)",
+     "match": "VERBATIM"
+    },
+    {
+     "document_ref": "cache/glp1-ra-mace-t2d/ft_28910237.txt",
+     "document_sha256": "9f474e106015e4baf4c65922739d6dc0075de967ee80e43665106db06ad01563",
+     "served_path": null,
+     "state": "WITHHELD",
+     "representation": "ACQUIRED_AS_STORED (PMC JATS XML; upstream identity NOT_PROVEN)",
+     "match": "NOT_LOCATED",
+     "tried": [
+      "whitespace collapsed",
+      "unicode punctuation folded (middle dot -> '.', dashes -> '-', NBSP -> ' ', curly quotes)"
+     ]
+    }
+   ],
+   "span_match": "VERBATIM",
+   "what_verified_means_here": "the span was located in the served representation named above; that is a fact about our copy, not about the publisher's document (see the representation's upstream_identity)"
+  },
+  {
+   "entry": "TRIAL_ROW",
+   "outcome_effect_id": "glp1-ra-mace-t2d::3-point major adverse cardiovascular events::PMID 40162642::PMID 40162642",
+   "outcome": "3-point major adverse cardiovascular events",
+   "trial": {
+    "label": "SOUL",
+    "id": "PMID 40162642"
+   },
+   "value": {
+    "scale": "HR",
+    "effect": 0.86,
+    "ci_low": 0.77,
+    "ci_high": 0.96
+   },
+   "page_labels": {
+    "verified": "verified",
+    "verify_basis": "effect present in committed source",
+    "provenance": "abstract_verified"
+   },
+   "endpoint_result_span": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006).",
+   "span_location": [
+    {
+     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-40162642",
+     "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+     "served_path": "cache/glp1-ra-mace-t2d/records.json",
+     "representation": "DERIVED (PubMed abstract projection; upstream identity NOT_PROVEN)",
+     "match": "VERBATIM"
+    }
+   ],
+   "span_match": "VERBATIM",
+   "what_verified_means_here": "the span was located in the served representation named above; that is a fact about our copy, not about the publisher's document (see the representation's upstream_identity)"
+  },
+  {
+   "entry": "POOLED",
+   "outcome": "Gastrointestinal adverse events",
+   "primary": false,
+   "k": 1,
+   "value": {
+    "estimate": 1.3921,
+    "ci_low": 1.326,
+    "ci_high": 1.4614,
+    "scale": "RR"
+   },
+   "derived_from": "the per-trial rows below, by the method stated in manifest.json (served_method); the pooled numbers are recomputable from review.json alone"
+  },
+  {
+   "entry": "TRIAL_ROW",
+   "outcome_effect_id": "glp1-ra-mace-t2d::Gastrointestinal adverse events::PMID 31189511::PMID 31189511",
+   "outcome": "Gastrointestinal adverse events",
+   "trial": {
+    "label": "31189511",
+    "id": "PMID 31189511"
+   },
+   "value": {
+    "scale": null,
+    "effect": null,
+    "ci_low": null,
+    "ci_high": null
+   },
+   "page_labels": {
+    "verified": "verified",
+    "verify_basis": "arm counts present in committed source",
+    "provenance": "abstract_verified"
+   },
+   "endpoint_result_span": null,
+   "span_location": [
+    {
+     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-31189511",
+     "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+     "served_path": "cache/glp1-ra-mace-t2d/records.json",
+     "representation": "DERIVED (PubMed abstract projection; upstream identity NOT_PROVEN)",
+     "match": "NO_SPAN"
+    }
+   ],
+   "span_match": "NO_SPAN",
+   "what_verified_means_here": "the span was located in the served representation named above; that is a fact about our copy, not about the publisher's document (see the representation's upstream_identity)"
+  },
+  {
+   "entry": "POOLED",
+   "outcome": "Adverse events leading to discontinuation",
+   "primary": false,
+   "k": 1,
+   "value": {
+    "estimate": 1.3109,
+    "ci_low": 1.1448,
+    "ci_high": 1.501,
+    "scale": "RR"
+   },
+   "derived_from": "the per-trial rows below, by the method stated in manifest.json (served_method); the pooled numbers are recomputable from review.json alone"
+  },
+  {
+   "entry": "TRIAL_ROW",
+   "outcome_effect_id": "glp1-ra-mace-t2d::Adverse events leading to discontinuation::PMID 27295427::PMID 27295427",
+   "outcome": "Adverse events leading to discontinuation",
+   "trial": {
+    "label": "27295427",
+    "id": "PMID 27295427"
+   },
+   "value": {
+    "scale": null,
+    "effect": null,
+    "ci_low": null,
+    "ci_high": null
+   },
+   "page_labels": {
+    "verified": "verified",
+    "verify_basis": "arm counts present in committed source",
+    "provenance": "fulltext_verified_arms"
+   },
+   "endpoint_result_span": null,
+   "span_location": [
+    {
+     "document_ref": "cache/glp1-ra-mace-t2d/records.json#PMID-27295427",
+     "document_sha256": "1d6aa330b31138916d05f14c939d6e621dc711b0f41cc9089e9263b2ab973750",
+     "served_path": "cache/glp1-ra-mace-t2d/records.json",
+     "representation": "DERIVED (PubMed abstract projection; upstream identity NOT_PROVEN)",
+     "match": "NO_SPAN"
+    }
+   ],
+   "span_match": "NO_SPAN",
+   "what_verified_means_here": "the span was located in the served representation named above; that is a fact about our copy, not about the publisher's document (see the representation's upstream_identity)"
   }
  ],
  "derived_digests": {

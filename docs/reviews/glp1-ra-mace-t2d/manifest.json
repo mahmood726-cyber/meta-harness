@@ -40,5 +40,23 @@
       ]
     }
   },
-  "build_utc": "2026-09-11"
+  "build_utc": "2026-09-11",
+  "source": {
+    "content_commit": "663d43db52944909a8d5e992499170b0bb63e559",
+    "content_commit_meaning": "the most recent commit that changed any of review.json, index.html, CERTIFICATE.json, REPRODUCTION.json in this review directory; NOT necessarily the commit the generator ran at",
+    "generating_commit": "NOT_RECORDED",
+    "generating_commit_meaning": "the generator does not record the commit it ran at; build_utc records when the build metadata was authored, not what the bytes were built from, and is not evidence of either",
+    "served_blob_git_sha1": {
+      "review.json": "ec8acf593ed83a2088d2a3434cbf0dc2a4132706",
+      "index.html": "9a8dd57f01caf0ed183014218694874831baf113",
+      "CERTIFICATE.json": "30d0bdcbd65f787fd2a6ee2fc4d204b2f2eb873b",
+      "REPRODUCTION.json": "fcb0af3a3ee65d553cfca8944f43b9f9256cfd5b"
+    },
+    "how_to_check_currency": [
+      "git ls-remote https://github.com/mahmood726-cyber/meta-harness.git refs/heads/main   -> the current main commit",
+      "git rev-parse <that commit>:docs/reviews/glp1-ra-mace-t2d/review.json   (or the GitHub contents API 'sha') -> the blob id main serves from",
+      "git hash-object review.json   on the bytes you fetched -> must equal served_blob_git_sha1.review.json above AND the blob at main; if it equals the former but not the latter, you hold a stale edge copy or a superseded build"
+    ],
+    "served_copy_may_lag": "The served copy of this directory may lag the repository. GitHub Pages serves through a CDN: a fetch with cache:'no-store' bypasses the browser cache only, and two readers can hold different versions of the same URL at the same moment. Before treating these bytes as current, compute the git blob id of the review.json you hold (git hash-object review.json) and compare it with the blob at refs/heads/main (GET https://api.github.com/repos/mahmood726-cyber/meta-harness/contents/docs/reviews/glp1-ra-mace-t2d/review.json?ref=main returns it as 'sha'); a mismatch means you are holding a stale edge copy or a superseded build."
+  }
 }

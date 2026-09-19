@@ -148,3 +148,110 @@ def test_path_scheme_resolves_from_review_root(bundle):
         if a["state"] == "SERVED":
             assert a["served_url"] == bundle["path_scheme"]["site_root"] + a["ref"]
             assert ".." not in a["ref"] and not a["ref"].startswith("/")
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# fourth audit (2026-09-19): two identities per document, value -> digest in one hop, source identity of served bytes
+# ---------------------------------------------------------------------------------------------------------------
+
+def test_every_artefact_names_its_representation(bundle):
+    """A single document_sha256 conflates the acquired original with a representation derived from it. Every entry
+    must say which it is; a DERIVED entry must name its transform and say whether the original was retained."""
+    kinds = set(bundle["representation_kinds"])
+    for a in bundle["artefacts"]:
+        rep = a["representation"]
+        assert rep["kind"] in kinds, a["ref"]
+        orig = rep["acquired_original"]
+        if rep["kind"] == "DERIVED":
+            assert "retained" in orig, a["ref"]
+            assert rep["derived_representations"] and all(d.get("transform") for d in rep["derived_representations"]), a["ref"]
+            if orig["retained"] is False:
+                assert orig.get("note"), a["ref"] + ": an unretained original must be stated, not implied"
+        if rep["kind"] == "ACQUIRED_AS_STORED":
+            assert orig.get("is_this_file") is True and "acquisition_digest_recorded" in orig, a["ref"]
+        assert rep["upstream_identity"], a["ref"]
+
+
+def test_derived_text_points_at_an_original_with_the_recorded_digest(bundle):
+    """The FDA text exports are derived from PDFs whose digests were recorded at acquisition. Where the PDF is served,
+    its served bytes must carry that digest; where it is held off-tree (MedR, 37 MB), the entry must say so and still
+    state the digest."""
+    by_ref = {a["ref"]: a for a in bundle["artefacts"]}
+    exports = [a for a in bundle["artefacts"] if a["ref"].endswith(".pdf.txt")]
+    assert len(exports) == 4
+    off_tree = 0
+    for a in exports:
+        orig = a["representation"]["acquired_original"]
+        assert orig["sha256"] and orig["acquisition_digest_recorded"] is True, a["ref"]
+        if orig["ref"]:
+            assert by_ref[orig["ref"]]["sha256"] == orig["sha256"], a["ref"]
+        else:
+            off_tree += 1
+            assert orig["served"] is False and orig["location"] and orig["note"], a["ref"]
+    assert off_tree == 1, "exactly the MedR original is held off-tree"
+
+
+def test_value_index_reaches_a_document_digest_in_one_hop(bundle):
+    """Every rendered per-trial row of every outcome is present, carries the value the page shows, and points at a
+    served document digest (or says NO_DOCUMENT_IN_BUNDLE); nothing here claims 'verified' without saying against
+    which representation."""
+    review = _load(os.path.join(ROOT, "docs", "reviews", SLUG, "review.json"))
+    expected = {(o["name"], t["id"]) for o in review["outcomes"] for t in o["trials"]}
+    rows = [v for v in bundle["value_index"] if v["entry"] == "TRIAL_ROW"]
+    assert {(v["outcome"], v["trial"]["id"]) for v in rows} == expected
+    by_key = {(o["name"], t["id"]): t for o in review["outcomes"] for t in o["trials"]}
+    for v in rows:
+        t = by_key[(v["outcome"], v["trial"]["id"])]
+        assert v["value"] == {"scale": t.get("scale"), "effect": t.get("effect"), "ci_low": t.get("ci_low"), "ci_high": t.get("ci_high")}
+        assert v["span_match"] in ("VERBATIM", "NORMALISED", "NOT_LOCATED", "NO_SPAN")
+        assert v["span_location"], v["outcome_effect_id"]
+        for d in v["span_location"]:
+            if d.get("document_ref"):
+                assert len(d["document_sha256"]) == 64 and d["served_path"] or d.get("state") == "WITHHELD", d
+    pooled = [v for v in bundle["value_index"] if v["entry"] == "POOLED" and v["primary"]]
+    assert len(pooled) == 1 and pooled[0]["k"] == 8
+
+
+def test_value_index_records_non_verbatim_spans_instead_of_calling_them_verified(bundle):
+    """The auditor's class, made mechanical: REWIND (31189511) and Harmony (30291013) render Lancet spans with the
+    middle-dot decimals normalised; they must be reported NORMALISED, never VERBATIM. If a rebuild makes them
+    verbatim, update this deliberately -- it is the record of what the page did."""
+    rows = {v["trial"]["id"]: v for v in bundle["value_index"]
+            if v["entry"] == "TRIAL_ROW" and v["outcome"].startswith("3-point")}
+    assert rows["PMID 31189511"]["span_match"] == "NORMALISED"
+    assert rows["PMID 30291013"]["span_match"] == "NORMALISED"
+    assert all("middle dot" in step for v in (rows["PMID 31189511"], rows["PMID 30291013"])
+               for d in v["span_location"] if d.get("match") == "NORMALISED" for step in d["normalisation"][-1:])
+    assert rows["PMID 40162642"]["span_match"] == "VERBATIM"   # SOUL: verbatim in OUR cache -- the cache itself is stitched
+    assert "our copy" in rows["PMID 40162642"]["what_verified_means_here"]
+
+
+def test_locate_ladder():
+    assert build_bundle.locate("HR 0.88 (0.79-0.99)", "... HR 0.88 (0.79-0.99) ...")["match"] == "VERBATIM"
+    r = build_bundle.locate("HR 0.88 (0.79-0.99)", "... HR 0·88 (0·79–0·99) ...")
+    assert r["match"] == "NORMALISED" and "middle dot" in r["normalisation"][-1]
+    assert build_bundle.locate("HR 0.88 (0.79-0.99)", "... HR 0.86 (0.77-0.96) ...")["match"] == "NOT_LOCATED"
+    assert build_bundle.locate("", "anything")["match"] == "NO_SPAN"
+
+
+def test_source_block_names_a_commit_that_holds_the_served_bytes(bundle):
+    """content_commit must contain exactly the served blobs (checkable by anyone with the repository), and the
+    generating commit must be stated as NOT_RECORDED rather than borrowed from build_utc or packaging HEAD."""
+    src = bundle["source"]
+    assert src["generating_commit"] == "NOT_RECORDED"
+    for name, blob in src["served_blob_git_sha1"].items():
+        at = subprocess.run(["git", "rev-parse", f"{src['content_commit']}:docs/reviews/{SLUG}/{name}"],
+                            cwd=ROOT, capture_output=True, text=True).stdout.strip()
+        assert at == blob, (name, at, blob)
+        with open(os.path.join(ROOT, "docs", "reviews", SLUG, name), "rb") as f:
+            data = f.read()
+        assert hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest() == blob, name
+    assert "may lag" in src["served_copy_may_lag"] and "refs/heads/main" in " ".join(src["how_to_check_currency"])
+
+
+def test_manifest_carries_the_same_source_block(bundle):
+    manifest = _load(os.path.join(ROOT, "docs", "reviews", SLUG, "manifest.json"))
+    assert manifest["source"] == bundle["source"]
+    assert manifest["build_utc"] and manifest["build_utc"] not in manifest["source"].values(), "build_utc is not repurposed"
+    for k in ("review_sha256", "html_sha256", "protocol_sha"):
+        assert manifest[k], k
