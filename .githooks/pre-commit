@@ -14,6 +14,10 @@
 set -u
 ROOT="$(git rev-parse --show-toplevel)" || { echo "GATE: not in a repo - refusing"; exit 1; }
 cd "$ROOT" || { echo "GATE: cannot cd to repo root - refusing"; exit 1; }
+# git exports GIT_DIR/GIT_INDEX_FILE to this hook. Everything below spawns git against explicit roots
+# (temporary fixture repositories, the held-out canary self-test); inheriting these would make those
+# commands act on THIS repository (2026-09-19: eleven fixture commits landed on a workshop branch).
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR
 PY="python"
 command -v "$PY" >/dev/null 2>&1 || { echo "GATE: 'python' not found - refusing (fail closed)"; exit 1; }
 [ -f scripts/verify_all.py ] || { echo "GATE: scripts/verify_all.py missing - refusing (fail closed)"; exit 1; }

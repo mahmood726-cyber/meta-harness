@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 
 from harness import honest_ratchet
+from harness import gitenv
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -130,7 +131,17 @@ def test_compare_blocks_follows_a_transitive_acknowledgement_chain():
 
 
 def _git(root, *args):
-    return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True)
+    return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True,
+                          env=gitenv.clean_env())
+
+
+def _temp_repo_commit(root):
+    """Entry point for tests/test_git_env_isolation.py: init + one commit in `root`."""
+    root = Path(root)
+    _git(root, "init", "-q")
+    (root / "page.html").write_text("<p>fixture</p>\n", encoding="utf-8", newline="\n")
+    _git(root, "add", "-A")
+    _git(root, "-c", "user.name=Ratchet Test", "-c", "user.email=ratchet@example.test", "commit", "-q", "-m", "fixture")
 
 
 def test_check_refuses_when_working_tree_drops_pinned_identity():

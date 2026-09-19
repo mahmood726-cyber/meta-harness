@@ -33,6 +33,8 @@ import json
 import os
 import re
 import subprocess
+
+from . import gitenv
 import sys
 import tempfile
 from typing import Iterable
@@ -64,6 +66,7 @@ def _run_git(root: str, args: list[str]) -> str:
         text=True,
         encoding="utf-8",
         errors="replace",
+        env=gitenv.clean_env(),  # never the repository a hook's GIT_DIR names (see gitenv)
     )
     if proc.returncode != 0:
         detail = (proc.stderr or proc.stdout or "").strip()

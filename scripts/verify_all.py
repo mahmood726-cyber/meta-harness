@@ -24,13 +24,17 @@ SCRIPT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.abspath(os.getcwd())
 sys.path.insert(0, SCRIPT_ROOT)
 from harness.target import TargetUnresolvable, describe_target, refusal as target_refusal  # noqa: E402
+from harness import gitenv  # noqa: E402
 
 PASS, REFUSED, NOEXEC = "PASS", "REFUSED", "COULD-NOT-EXECUTE"
 
 
 def _run(cmd):
-    """Run a subprocess from ROOT; return (returncode, combined output)."""
-    p = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    """Run a subprocess from ROOT; return (returncode, combined output). The environment never carries a
+    hook's GIT_DIR/GIT_INDEX_FILE: a temporary `git init` in a limb would otherwise act on the branch
+    being committed (harness/gitenv.py, 2026-09-19)."""
+    p = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       env=gitenv.clean_env())
     return p.returncode, (p.stdout or "") + (p.stderr or "")
 
 
@@ -291,6 +295,9 @@ LIMBS = [
 
 
 def main():
+    scrubbed = gitenv.scrub_process_env()
+    if scrubbed:
+        print(f"VERIFY-ALL: removed inherited {', '.join(scrubbed)} from the environment (hook context); every git call targets ROOT explicitly.")
     top_target, top_err = _target("verify_all", [os.path.join("scripts", "verify_all.py")])
     print(top_target)
     if top_err:

@@ -6,8 +6,14 @@ import subprocess
 import pytest
 
 from harness import search_completeness as sc
+from harness import gitenv
 
 ENGINE_TEXT = "def refresh_topic(slug):\n    return slug\n"
+
+
+def _temp_repo_init(root):
+    """Entry point for tests/test_git_env_isolation.py: a fresh repository in `root` and nowhere else."""
+    subprocess.run(["git", "init", "-q", str(root)], check=True, env=gitenv.clean_env())
 
 
 def _fixture(tmp_path, *, engine_sha=None, mutate=None, register=True, readme=True):
@@ -16,9 +22,10 @@ def _fixture(tmp_path, *, engine_sha=None, mutate=None, register=True, readme=Tr
     (root / "registry").mkdir()
     (root / "outputs").mkdir()
     (root / "docs").mkdir()
-    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    _temp_repo_init(root)
     (root / "harness" / "search_v2.py").write_text(ENGINE_TEXT, encoding="utf-8")
-    sha = engine_sha or subprocess.check_output(["git", "-C", str(root), "hash-object", "harness/search_v2.py"], text=True).strip()
+    sha = engine_sha or subprocess.check_output(["git", "-C", str(root), "hash-object", "harness/search_v2.py"],
+                                                text=True, env=gitenv.clean_env()).strip()
     split = {"assignments": {"a": {"set": "MEASUREMENT"}, "b": {"set": "MEASUREMENT"}, "d": {"set": "DEVELOPMENT"}}}
     (root / "registry" / "search_benchmark_split.json").write_text(json.dumps(split), encoding="utf-8")
     cand = {

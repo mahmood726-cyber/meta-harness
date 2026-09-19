@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from harness.target import TargetUnresolvable, describe_target
+from harness import gitenv
 
 
 def _git(root: Path, *args: str) -> str:
@@ -17,6 +18,7 @@ def _git(root: Path, *args: str) -> str:
         text=True,
         encoding="utf-8",
         errors="replace",
+        env=gitenv.clean_env(),
     ).stdout.strip()
 
 

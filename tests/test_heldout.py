@@ -11,6 +11,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from harness import gitenv
+
 from harness import heldout  # noqa: E402
 
 
@@ -28,6 +30,7 @@ def _git(root, *args):
         text=True,
         encoding="utf-8",
         errors="replace",
+        env=gitenv.clean_env(),
     ).stdout.strip()
 
 
@@ -48,6 +51,14 @@ def _commit(root, message):
     _git(root, "add", "-A")
     _git(root, "commit", "-m", message)
     return _git(root, "rev-parse", "HEAD")
+
+
+def _temp_repo_commit(root):
+    """Entry point for tests/test_git_env_isolation.py: init + one commit in `root`."""
+    root = Path(root)
+    _init_repo(root)
+    _write(root, "notes.txt", "start\n")
+    return _commit(root, "initial clean fixture")
 
 
 def _token(identifier):

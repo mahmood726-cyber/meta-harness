@@ -11,6 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from harness import gitenv
+
 from harness import gate_scorecard  # noqa: E402
 
 
@@ -48,9 +50,15 @@ def _git_fixture(tmp: Path) -> None:
            "HOME": str(tmp), "USERPROFILE": str(tmp)}
     import os
     import subprocess
-    full_env = {**os.environ, **env}
+    full_env = gitenv.clean_env(**env)
     for cmd in (["git", "init", "-q"], ["git", "add", "-A"], ["git", "commit", "-q", "-m", "fixture"]):
         subprocess.run(cmd, cwd=tmp, check=True, capture_output=True, env=full_env)
+
+
+def _temp_repo_commit(root: Path) -> None:
+    """Entry point for tests/test_git_env_isolation.py: init + one commit in `root`."""
+    (Path(root) / "f.txt").write_text("fixture\n", encoding="utf-8", newline="\n")
+    _git_fixture(Path(root))
 def _replace_commit_evidence(tmp: Path, data: dict) -> None:
     def replace_list(values, stamp: str | None, gate_id: str) -> list:
         out = []

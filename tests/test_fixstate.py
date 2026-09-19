@@ -11,6 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from harness import gitenv
+
 from harness import fixstate  # noqa: E402
 from scripts import render_fix_ledger  # noqa: E402
 
@@ -27,6 +29,7 @@ def _git(root: Path, *args: str) -> str:
         check=True,
         capture_output=True,
         text=True,
+        env=gitenv.clean_env(),
         encoding="utf-8",
         errors="replace",
     ).stdout.strip()
@@ -199,6 +202,14 @@ def _write_store(root: Path, store: dict) -> None:
 
 def _render_views(root: Path) -> None:
     render_fix_ledger.render(root)
+
+
+def _temp_repo_commit(root: Path) -> str:
+    """Entry point for tests/test_git_env_isolation.py: init + one commit in `root`."""
+    root = Path(root)
+    _git(root, "init", "-q")
+    (root / "README.md").write_text("fixture\n", encoding="utf-8", newline="\n")
+    return _commit(root, "initial")
 
 
 def _repo(tmp_path: Path) -> Path:
