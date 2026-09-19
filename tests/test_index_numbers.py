@@ -88,8 +88,10 @@ def test_no_stale_hardcoded_fair_counts_slip_back_in():
     UNLESS they equal the derived value. Guards against a re-hardcode regression."""
     html = IDX.build_index(DOCS)
     n = IDX._fair_numbers(DOCS)
-    # '95 of 95' was the original drift; it must never appear now (verification count is self-counted elsewhere)
-    assert "95 of 95" not in html
+    # '95 of 95' was the original drift ("All 95 of 95 pooled trial-outcome numbers ... verified"); that CLAIM must never
+    # reappear. The bare string may legitimately occur as a derived count elsewhere (the trial-family count chain renders
+    # "Families screened 95 of 95" for sglt2-primary-prevention-hf), so the guard is on the drifted claim, not the digits.
+    assert "All 95 of 95" not in html and "95 of 95 pooled" not in html
     # if the derived judge total is not 8, the old '8 of 8' phrasing must be gone
     if n["judge_total"] != 8:
         assert "8 of 8" not in html
