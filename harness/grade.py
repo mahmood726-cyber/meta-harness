@@ -56,11 +56,13 @@ def membership_incomplete(review):
 
 
 def stale_heterogeneity(review):
+    """The ONE canonical STALE sentence (the surface-agreement gate compares every rendered copy to this string).
+    Since lane CNT (2026-09-19) its counts come from the outcome membership object via invalidation.stale_heterogeneity;
+    this function must never compute its own count (the 3-vs-1 contradiction was exactly two arithmetics)."""
     if not membership_incomplete(review):
         return ""
-    n = missing_family_count(review)
-    count = f"{n} eligible families not in the pool" if n is not None else "eligible families not in the pool; count not established"
-    return f"STALE: pooled membership known incomplete ({count}); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
+    from . import invalidation as _invalidation
+    return _invalidation.stale_heterogeneity(review)
 
 
 def machine_rob(review):

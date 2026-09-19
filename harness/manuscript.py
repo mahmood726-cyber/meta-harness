@@ -371,7 +371,7 @@ def render(review, neutral: bool = False) -> str:
         f"page; it does not validate search completeness or extraction, and byte-for-byte reproduction from "
         f"the protocol SHA is not currently claimed — see Data availability.)</p>"
         f"<p><strong>Results.</strong> {result_sentence} "
-        + (f"{absent_phrase}."
+        + (f"{absent_phrase}; the screened-in families were declared absent for this outcome (reported reason on each)."
            if n_absent else "")
         + "</p>"
         f"<p><strong>Certainty.</strong> "
