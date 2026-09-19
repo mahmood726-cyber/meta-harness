@@ -33,10 +33,11 @@ def test_glp1_rob_cells_render_machine_signal_not_judgement():
     review = _review("glp1-ra-mace-t2d")
     assert review["rob2"]["output_family"] == rob2.OUTPUT_FAMILY  # the machine-signal family
     table = _rob_table(page.render_page(review))
-    cells = re.findall(r"<td[^>]*>(?:<strong>)?([^<]*)", table)
+    # verdict-position text = the first text node of every cell (the rendering binds signal and verdict to one object)
+    cells = [re.sub(r"<[^>]+>", "", c).strip() for c in re.findall(r"<td[^>]*>(.*?)(?:<br>|</td>)", table, re.S)]
     assert "low" not in cells, "a bare RoB 2 judgement word rendered as a cell"
     assert not any(c.startswith("low (on assessed domains") for c in cells)
-    assert QUALIFIED_LOW in cells
+    assert "formal RoB 2 not assessed" in cells
     assert any(c.startswith(OVERALL) for c in cells)
 
 
@@ -57,7 +58,7 @@ def test_every_page_with_machine_signal_rob_renders_no_bare_judgement():
         rb = review.get("rob2") or {}
         if not rb.get("trials") or rb.get("output_family") != rob2.OUTPUT_FAMILY:
             continue
-        cells = re.findall(r"<td[^>]*>(?:<strong>)?([^<]*)", _rob_table(page.render_page(review)))
+        cells = [re.sub(r"<[^>]+>", "", c).strip() for c in re.findall(r"<td[^>]*>(.*?)(?:<br>|</td>)", _rob_table(page.render_page(review)), re.S)]
         if any(c in ("low", "some concerns", "high") or c.startswith("low (on assessed") for c in cells):
             bare.append(path.parent.name)
     assert bare == []

@@ -276,6 +276,13 @@ def build_review_dir(
         "build_utc": manifest_meta.get("build_utc"),
     }
 
+    # RoB gate: every rendered verdict must resolve to the canonical object (a bare judgement word in a verdict
+    # position, or a cell with no binding, refuses the page -- the served page carried 48 unresolved cells)
+    from . import rob2 as _rob2
+    _rob_violations = _rob2.verify_rendered_verdicts(html, review_core_obj.get("rob2") or {})
+    if _rob_violations:
+        raise ValueError("ROB_VERDICT_UNRESOLVED: " + "; ".join(
+            f"{v['trial']}#{v['cell']} {v['code']}: {v['detail']}" for v in _rob_violations[:5]) + f" ({len(_rob_violations)} total)")
     with open(os.path.join(out_dir, "index.html"), "w", encoding="utf-8", newline="") as f:
         f.write(html)
     with open(os.path.join(out_dir, "review.json"), "w", encoding="utf-8", newline="") as f:

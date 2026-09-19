@@ -331,6 +331,9 @@ def attach(review: dict[str, Any]) -> dict[str, Any]:
     pc = dict(review.get("protocol_config") or {})
     pc["compliance"] = protocol_compliance_state(review)
     review["protocol_config"] = pc
+    if isinstance(review.get("rob2"), dict) and review["rob2"].get("trials"):
+        from . import rob2 as _rob2
+        review["rob2"] = dict(review["rob2"], canonical=_rob2.canonical(review["rob2"]))
     review["propositions"] = {
         "version": 1,
         "objects": generated_objects(review),

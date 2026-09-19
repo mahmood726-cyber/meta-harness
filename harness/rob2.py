@@ -453,3 +453,108 @@ def rederivation_violations(review: dict[str, Any], matches: Callable[[str, str]
                     "expected_inputs": expected.get("inputs"),
                 })
     return violations
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# CANONICAL RoB OBJECT (Mahmood's adjudication, 19 Sep 2026): the served page rendered "formal RoB 2 not assessed"
+# x41 and "low (on assessed domains" x8 for the same trials -- one quantity from two sources. Both the signal and
+# the verdict now render from THIS object: the machine signals stay (they are real registry-derived information),
+# labelled as signals with their basis; the verdict is stated separately; the bare judgement word never stands in a
+# verdict position because no verdict exists under the registry machine-signal family.
+# ---------------------------------------------------------------------------------------------------------------
+
+VERDICT_NOT_ASSESSED = "NOT_ASSESSED"
+
+
+def _signal_overall(overall):
+    o = str(overall or "").lower()
+    if o.startswith("low"):
+        return "consistent with low risk on the assessed domains"
+    if o.startswith("some concerns"):
+        return "some concerns on the assessed domains"
+    if o.startswith("high"):
+        return "high-risk signal on at least one assessed domain"
+    return "no aggregate signal"
+
+
+def canonical(rob2_obj):
+    """One object per trial: {verdict, verdict_basis, signal_overall, domains: {k: {signal, signal_basis, verdict}}}.
+    Under the registry machine-signal output family every verdict is NOT_ASSESSED; a formal RoB 2 assessment object
+    (a different output family, adjudicated) would carry its judgements as verdicts."""
+    rob2_obj = rob2_obj or {}
+    formal = rob2_obj.get("output_family") not in (None, OUTPUT_FAMILY)
+    out = {}
+    for pid, a in (rob2_obj.get("trials") or {}).items():
+        domains = {}
+        for k, d in (a.get("domains") or {}).items():
+            level = str((d or {}).get("level") or "")
+            domains[k] = {
+                "signal": level,
+                "signal_basis": (d or {}).get("basis") or "",
+                "signal_source": a.get("assessed_from") or rob2_obj.get("source") or "registry",
+                "verdict": (level if formal else VERDICT_NOT_ASSESSED),
+            }
+        out[str(pid)] = {
+            "verdict": (str(a.get("overall") or "") if formal else VERDICT_NOT_ASSESSED),
+            "verdict_basis": ("formal RoB 2 assessment" if formal
+                              else "formal RoB 2 not assessed: the registry machine-signal family carries no judgement (B-prime withdrew RoB 2 judgements)"),
+            "signal_overall": _signal_overall(a.get("overall")),
+            "signal_overall_raw": str(a.get("overall") or ""),
+            "domains": domains,
+        }
+    return {"output_family": rob2_obj.get("output_family"), "formal": formal, "trials": out}
+
+
+_JUDGEMENT_WORDS = {"low", "some concerns", "high", "moderate", "unclear"}
+
+
+def verify_rendered_verdicts(html, rob2_obj):
+    """The gate: every cell in a verdict position of the rendered RoB table must carry `data-rob-verdict` equal to the
+    canonical verdict for its trial (and domain); a verdict-position cell whose visible text is a bare judgement word,
+    or which starts with a judgement word followed by a qualifier ("low (on assessed domains"), is ROB_VERDICT_UNRESOLVED.
+    Returns the list of violations (empty = resolved). Run against the served 8c8874b4 page it reports the eight
+    Overall cells that quoted the machine aggregate -- the blindness this gate closes."""
+    import re as _re
+    import html as _html
+    canon = canonical(rob2_obj)["trials"]
+    i = html.find("<th>Overall</th>")
+    if i < 0:
+        return []
+    table = html[i: html.find("</table>", i)]
+    violations = []
+    for row in _re.findall(r"<tr>(.*?)</tr>", table, _re.S):
+        cells = _re.findall(r"<td([^>]*)>(.*?)</td>", row, _re.S)
+        if not cells:
+            continue
+        pid = _re.sub(r"<[^>]+>", "", cells[0][1]).strip()
+        trial = canon.get(pid)
+        for idx, (attrs, inner) in enumerate(cells[1:], start=1):
+            text = _html.unescape(_re.sub(r"<[^>]+>", " ", inner))
+            text = _re.sub(r"\s+", " ", text).strip().lower()
+            m = _re.search(r"data-rob-verdict=['\"]([^'\"]+)['\"]", attrs)
+            expected = None
+            if trial is not None:
+                if idx == 1:
+                    expected = trial["verdict"]
+                else:
+                    dkeys = list(trial["domains"].keys())
+                    if idx - 2 < len(dkeys):
+                        expected = trial["domains"][dkeys[idx - 2]]["verdict"]
+            if trial is None:
+                # a pooled trial with no canonical object: allowed only as an explicit not-assessed row
+                if text not in ("not assessed", "") and not m:
+                    violations.append({"code": "ROB_VERDICT_UNRESOLVED", "trial": pid, "cell": idx,
+                                       "detail": f"no canonical object for {pid}; cell text {text[:60]!r}"})
+                continue
+            if not m:
+                violations.append({"code": "ROB_VERDICT_UNRESOLVED", "trial": pid, "cell": idx,
+                                   "detail": f"verdict-position cell carries no data-rob-verdict; text {text[:60]!r}"})
+                continue
+            if expected is not None and m.group(1) != expected:
+                violations.append({"code": "ROB_VERDICT_MISMATCH", "trial": pid, "cell": idx,
+                                   "detail": f"rendered {m.group(1)} but the canonical object says {expected}"})
+            first = _re.split(r"[;:(\-–—]", text)[0].strip()
+            if expected == VERDICT_NOT_ASSESSED and first in _JUDGEMENT_WORDS:
+                violations.append({"code": "ROB_SIGNAL_IN_VERDICT_POSITION", "trial": pid, "cell": idx,
+                                   "detail": f"a judgement word stands in a verdict position: {text[:60]!r}"})
+    return violations

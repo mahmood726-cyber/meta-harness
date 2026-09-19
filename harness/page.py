@@ -25,6 +25,7 @@ from . import rob_sensitivity as _rob_sensitivity_mod
 from . import claimgraph as _claimgraph_mod
 from . import identity as _identity_mod
 from . import propositions as _proposition_mod
+from . import rob2 as _rob2_mod
 from . import funding as _funding_mod
 from . import scope_identity as _scope_identity_mod
 
@@ -2456,9 +2457,31 @@ def _riskofbias(r, neutral):
     head = "<tr><th>Trial</th><th>Overall</th>" + "".join(f"<th>{_e(l)}</th>" for _, l in dom_labels) + "</tr>"
     rows = []
     family = rb.get("output_family")
+    # ONE canonical object renders both the machine signal and the verdict (Mahmood's adjudication, 19 Sep 2026):
+    # the signal stays visible and labelled with its source; the verdict is stated separately; the bare judgement
+    # word never stands in a verdict position; every verdict cell carries data-rob-verdict so the gate
+    # (rob2.verify_rendered_verdicts) can resolve it against the object.
+    canon = (rb.get("canonical") or _rob2_mod.canonical(rb)).get("trials") or {}
     for pid, a in sorted(assessed.items()):  # stable order (canonical_json sorts keys; render must too)
-        cells = "".join(f"<td title='{_e(a['domains'][k]['basis'])}'>{_e(rob_cell_text(a['domains'][k]['level'], family))}</td>" for k, _ in dom_labels)
-        rows.append(f"<tr><td>{_e(pid)}</td><td><strong>{_e(rob_overall_text(a.get('overall'), family))}</strong></td>{cells}</tr>")
+        c = canon.get(str(pid)) or {}
+        cells = ""
+        for k, _ in dom_labels:
+            d = (c.get("domains") or {}).get(k) or {}
+            sig = d.get("signal") or a["domains"][k]["level"]
+            verdict = d.get("verdict") or _rob2_mod.VERDICT_NOT_ASSESSED
+            if verdict == _rob2_mod.VERDICT_NOT_ASSESSED:
+                vtext = "formal RoB 2 not assessed"
+                stext = ("no machine signal" if sig in _rob2_mod.NOT_ASSESSED_LEVELS or sig == "not assessed"
+                         else f"machine signal: {sig}")
+            else:
+                vtext, stext = verdict, f"signal: {sig}"
+            cells += (f"<td data-rob-verdict='{_e(verdict)}' data-rob-signal='{_e(sig)}' title='{_e(d.get('signal_basis') or a['domains'][k]['basis'])}'>"
+                      f"<span class='rob-verdict'>{_e(vtext)}</span><br><span class='rob-signal muted'>{_e(stext)}"
+                      f" (from {_e(d.get('signal_source') or 'registry')})</span></td>")
+        ov = c.get("verdict") or _rob2_mod.VERDICT_NOT_ASSESSED
+        ov_text = "FORMAL RoB 2 NOT ASSESSED" if ov == _rob2_mod.VERDICT_NOT_ASSESSED else ov
+        rows.append(f"<tr><td>{_e(pid)}</td><td data-rob-verdict='{_e(ov)}'><strong class='rob-verdict'>{_e(ov_text)}</strong><br>"
+                    f"<span class='rob-signal muted'>machine signal: {_e(c.get('signal_overall') or 'no aggregate signal')}</span></td>{cells}</tr>")
     # Pooled trials with NO registry match: render as explicit not-assessed rows, with the reason, so
     # coverage is visible. D1/D2/D4 here are auto-derived from AACT registry fields keyed on NCT;
     # a trial with no NCT/AACT match cannot be machine-assessed and is not guessed.
