@@ -303,8 +303,34 @@ def generated_objects(review: dict[str, Any]) -> list[dict[str, Any]]:
     return out
 
 
+def protocol_compliance_state(r: dict[str, Any]) -> dict[str, Any]:
+    """Declared-versus-enforced compliance, derived from the protocol_config object and nothing else.
+    ESTABLISHED only when at least one dimension was actually compared and none diverged; DISCLOSED_DIVERGENCE when
+    the comparison found divergences; NOT_ESTABLISHED when no dimension was checked -- an empty divergence list is
+    not evidence of compliance (the served glp1 page said "agree on these checked dimensions: none" and then
+    "declared == enforced is backed"; Mahmood's review of 98726cc1, item 1: absence producing assurance)."""
+    pc = r.get("protocol_config") or {}
+    divergences = [d for d in (pc.get("divergences") or []) if isinstance(d, dict)]
+    agreed = [str(x) for x in (pc.get("agreed_dimensions") or []) if x]
+    if divergences:
+        state = "DISCLOSED_DIVERGENCE"
+    elif agreed:
+        state = "ESTABLISHED"
+    else:
+        state = "NOT_ESTABLISHED"
+    return {"state": state, "agreed_dimensions": agreed, "divergences": divergences,
+            "sentence": {
+                "ESTABLISHED": "declared == enforced on the checked dimensions (" + ", ".join(agreed) + ")",
+                "DISCLOSED_DIVERGENCE": f"{len(divergences)} protocol/config divergence(s) disclosed; declared == enforced is not asserted",
+                "NOT_ESTABLISHED": "NOT ESTABLISHED: no protocol/config dimension was checked, so declared == enforced is not asserted",
+            }[state]}
+
+
 def attach(review: dict[str, Any]) -> dict[str, Any]:
     review = copy.deepcopy(review)
+    pc = dict(review.get("protocol_config") or {})
+    pc["compliance"] = protocol_compliance_state(review)
+    review["protocol_config"] = pc
     review["propositions"] = {
         "version": 1,
         "objects": generated_objects(review),

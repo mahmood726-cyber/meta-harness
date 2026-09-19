@@ -23,6 +23,7 @@ from typing import Any
 from . import claimgraph
 from . import hazard_consumers as _hazard_consumers
 from . import page as _page
+from . import propositions as _proposition_mod
 from . import rob_sensitivity as _rob_sensitivity_mod
 from . import funding as _funding_mod
 
@@ -50,6 +51,7 @@ class LimitationKind(str, Enum):
     ROB_SPANCHECK = "ROB_SPANCHECK"
     SEARCH_PROVENANCE = "SEARCH_PROVENANCE"
     ELIGIBILITY_CHAIN = "ELIGIBILITY_CHAIN"
+    PROTOCOL_COMPLIANCE = "PROTOCOL_COMPLIANCE"
 
 
 class Severity(str, Enum):
@@ -1055,6 +1057,19 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
                 "<div class='absent'><strong>No checkable pooled claim (Claims checked: 0).</strong> "
                 "Nothing was pooled on this page, so the canonical-claim contradiction gate has nothing "
                 "to check here &mdash; this is a limitation, not a clean result.</div>",
+            )
+        _pcs = _proposition_mod.protocol_compliance_state(review)
+        if _pcs["state"] == "NOT_ESTABLISHED":
+            # an empty divergence list over zero checked dimensions is not compliance: the state is an OBJECT
+            # (rendered as an absent block by the page), never prose (Mahmood's review of 98726cc1, item 1)
+            add(
+                "reproduction:protocol-compliance-not-established",
+                LimitationKind.PROTOCOL_COMPLIANCE,
+                Severity.QUALIFIES_CLAIM,
+                "declared == enforced (protocol/config compliance)",
+                "NOT_ESTABLISHED",
+                ["/protocol_config/compliance", "/protocol_config/divergences", "/protocol_config/agreed_dimensions"],
+                _page.protocol_compliance_not_established_html(),
             )
         add(
             "reproduction:round-2-retraction",

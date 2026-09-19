@@ -1214,6 +1214,19 @@ def _alternative_label(alt):
     return f"{_e(alt.get('derivation'))}: {txt}{reason}.{span}"
 
 
+def protocol_compliance_state(r):
+    """Derived in the object layer (harness.propositions); the page only renders it."""
+    return _proposition_mod.protocol_compliance_state(r)
+
+
+def protocol_compliance_not_established_html() -> str:
+    """The ONE rendering of the NOT_ESTABLISHED state: the limitation object (harness.limitations) and the
+    Reproducibility site print this same block, so the page's absent block IS the object."""
+    return ("<div class='absent'><strong>Protocol/config compliance NOT ESTABLISHED.</strong> No dimension of the "
+            "prose protocol was compared with the executable config on this page, so the empty divergence "
+            "list establishes nothing; declared == enforced is not asserted until the checks exist.</div>")
+
+
 def _eligibility_chain_block(r):
     ec = r.get("eligibility_chain") or {}
     if not ec:
@@ -2247,10 +2260,16 @@ def _reproduction(r, neutral):
                      f"<strong>{len(pcd)} divergence(s)</strong> — each is a defect to resolve or a dated "
                      f"amendment to declare, never a silent widening:<ul>{_rows}</ul></p>")
         else:
-            body += ("<h4>Protocol ↔ config (two independent sources)</h4>"
-                     "<p>The prose protocol and executable config agree on these checked dimensions: "
-                     f"<strong>{_e(', '.join(pc.get('agreed_dimensions') or []) or 'none')}</strong>. "
-                     "Compared as separate sources.</p>")
+            _pcs = protocol_compliance_state(r)
+            if _pcs["state"] == "ESTABLISHED":
+                body += ("<h4>Protocol ↔ config (two independent sources)</h4>"
+                         "<p>The prose protocol and executable config agree on these checked dimensions: "
+                         f"<strong>{_e(', '.join(_pcs['agreed_dimensions']))}</strong>. Compared as separate sources.</p>")
+            else:
+                # an empty divergence list over zero checked dimensions is not compliance: absence must not
+                # produce assurance (Mahmood's review of 98726cc1, item 1)
+                body += ("<h4>Protocol ↔ config (two independent sources)</h4>"
+                         + protocol_compliance_not_established_html())
     body += ("<div class='absent'><strong>RETRACTED (round-2): reproducibility claim not currently supported.</strong> "
              "We previously claimed that re-running from the registration SHA on a fresh clone regenerates this page "
              "byte-for-byte. Direct testing falsified that: running the advertised command changed several canonical "
@@ -2285,13 +2304,20 @@ def _reporting(r, neutral):
     _pre_sha = str(_pre.get("sha") or "")[:10]
     _build_sha = str(_pre.get("build_sha") or prot.get("sha") or "")[:10]
     _divs = _proposition_mod.protocol_divergences(r)
-    _eligibility_sentence = (
-        "Protocol tab - eligibility is rendered from the structured include object, but protocol/config "
-        "divergences are disclosed in Reproducibility, so declared == enforced is not asserted."
-        if _divs else
-        "Protocol tab - eligibility is rendered from the structured include object; the proposition object "
-        "records no protocol/config divergence on checked dimensions, so declared == enforced is backed."
-    )
+    _pcs = protocol_compliance_state(r)
+    if _divs or _pcs["state"] == "DISCLOSED_DIVERGENCE":
+        _eligibility_sentence = (
+            "Protocol tab - eligibility is rendered from the structured include object, but protocol/config "
+            "divergences are disclosed in Reproducibility, so declared == enforced is not asserted.")
+    elif _pcs["state"] == "ESTABLISHED":
+        _eligibility_sentence = (
+            "Protocol tab - eligibility is rendered from the structured include object; the protocol/config comparison "
+            f"checked {_e(', '.join(_pcs['agreed_dimensions']))} and found no divergence, so declared == enforced is backed "
+            "on those dimensions.")
+    else:
+        _eligibility_sentence = (
+            "Protocol tab - eligibility is rendered from the structured include object; protocol/config compliance is "
+            "NOT ESTABLISHED (no dimension was checked), so declared == enforced is not asserted.")
     _pub = ((r.get("grade") or {}).get("domains") or {}).get("publication_bias") or {}
     _pub_reporting = (
         "publication bias is NOT ASSESSED automatically; any registry ghost census is descriptive until "
