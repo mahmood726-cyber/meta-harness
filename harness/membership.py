@@ -129,18 +129,54 @@ def build_outcome_membership(
         "refused": refused,
         "screened_in": screened,
     }
-    return {
+    result = {
         "pooled": pooled,
         "declared_absent": declared_absent,
         "refused": refused,
         "screened_in_not_pooled": screened_in_not_pooled,
         "input_set_version": _input_set_version(seed),
     }
+    result.update(_family_sets(outcome))
+    return result
+
+
+def _family_sets(outcome):
+    """Outcome-specific family view; aliases come only from held row identities."""
+    rows = (outcome.get("trials") or []) + (outcome.get("declared_absent_trials") or [])
+    aliases = {}
+    for row in rows:
+        key = str(row.get("trial_family_id") or canonical_trial_key(row.get("id") or row.get("label")))
+        for field in ("id", "label", "trial_family_id"):
+            if row.get(field):
+                aliases[canonical_trial_key(row[field])] = key
+    def key(row):
+        raw = canonical_trial_key(row.get("trial_family_id") or row.get("id") or row.get("trial_key") or row.get("label"))
+        if not raw:
+            raise ValueError("Membership row has no source-backed identifier")
+        return aliases.get(raw, raw)
+    pooled = {key(r) for r in outcome.get("trials") or []}
+    absent = {key(r) for r in outcome.get("declared_absent_trials") or []} - pooled
+    known = {key(r) for r in (outcome.get("known_missing_sensitivity") or {}).get("rows") or []}
+    missing = known - pooled - absent
+    sets = {"pooled": sorted(pooled), "screened_in_not_poolable": sorted(absent),
+            "eligible_not_retrieved": sorted(missing), "eligible_not_in_pool": sorted(absent | missing)}
+    return {"sets": sets, "counts": {name: len(values) for name, values in sets.items()},
+            "denominators": {"pooled": "outcome trial families with pooled rows",
+                "screened_in_not_poolable": "screened-in trial families with declared-absent outcome rows",
+                "eligible_not_retrieved": "known eligible outcome families outside pooled and screened-in absent sets",
+                "eligible_not_in_pool": "union of screened_in_not_poolable and eligible_not_retrieved"}}
+
+
+def membership_sentence(outcome, review=None):
+    counts = outcome_membership(outcome, review)["counts"]
+    return (f"{counts['eligible_not_in_pool']} eligible families not in the pool: "
+            f"{counts['screened_in_not_poolable']} screened-in with no poolable value, "
+            f"{counts['eligible_not_retrieved']} known eligible but not retrieved")
 
 
 def outcome_membership(outcome: dict[str, Any], review: dict[str, Any] | None = None) -> dict[str, Any]:
     membership = outcome.get("membership")
-    if isinstance(membership, dict) and "pooled" in membership:
+    if isinstance(membership, dict) and "sets" in membership:
         return membership
     included = ((review or {}).get("screening") or {}).get("records") or []
     return build_outcome_membership(outcome, included)

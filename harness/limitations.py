@@ -13,6 +13,7 @@ lane switches rendering authority.
 """
 from __future__ import annotations
 from . import grade as _grade_mod
+from . import invalidation as _invalidation_mod
 
 import hashlib
 import json
@@ -688,7 +689,7 @@ def _rob_sensitivity_block(sens: dict[str, Any]) -> str:
     )
 
 
-def _grade_block(grade: dict[str, Any]) -> str:
+def _grade_block(grade: dict[str, Any], review=None) -> str:
     domains = grade.get("domains", {})
     order = [
         ("risk_of_bias", "Risk of bias"),
@@ -705,6 +706,8 @@ def _grade_block(grade: dict[str, Any]) -> str:
             mark = "human judgement" if value.get("not_auto_rated") else "<strong>NOT ASSESSED</strong>"
         else:
             mark = "&minus;1" if downgrade == 1 else f"&minus;{downgrade}" if downgrade else "not downgraded"
+        if review is not None and "STALE: pooled membership" in value.get("basis", ""):
+            value = dict(value, basis="not assessable: " + _invalidation_mod.stale_heterogeneity(review))
         rows.append(f"<tr><td>{_e(label)}</td><td>{mark}</td><td>{_e(value.get('basis',''))}</td></tr>")
     certainty = _e(_grade_mod.render_certainty(grade))
     unassessed = ", ".join(grade.get("unassessed_domains") or [])
@@ -850,7 +853,7 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
                 "primary pooled estimate",
                 EvidenceState.SUPPRESSED,
                 ["/outcomes/*/result/pool_refused", "/outcomes/*/result/k2_trial_diagnostics"],
-                _k2_pool_refusal_block(pres, _grade_mod.stale_heterogeneity(review)),
+                _k2_pool_refusal_block(pres, _invalidation_mod.stale_heterogeneity(review)),
             )
         if pres.get("suppressed_incompatible"):
             add(
@@ -1127,7 +1130,7 @@ def _add_outcome_limitations(add: Any, outcome: dict[str, Any], prefix: str, rev
             f"pooled estimate: {outcome.get('name')}",
             EvidenceState.SUPPRESSED,
             ["/outcomes/*/result/pool_refused", "/outcomes/*/result/k2_trial_diagnostics"],
-            _k2_pool_refusal_block(result, _grade_mod.stale_heterogeneity(review or {"outcomes": [outcome]}) if outcome.get("primary") else ""),
+            _k2_pool_refusal_block(result, _invalidation_mod.stale_heterogeneity(review or {"outcomes": [outcome]}) if outcome.get("primary") else ""),
         )
     elif result.get("pooled_ci_refused"):
         add(
@@ -1279,7 +1282,7 @@ def _add_risk_of_bias_limitations(add: Any, review: dict[str, Any]) -> None:
             "overall GRADE certainty",
             state,
             ["/grade/certainty", "/grade/domains"],
-            _grade_block(grade),
+            _grade_block(grade, review),
         )
 
 

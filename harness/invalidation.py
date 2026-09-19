@@ -33,6 +33,15 @@ from . import identity as identity_mod
 from . import missing_effect
 
 
+def stale_heterogeneity(core, outcome=None):
+    from .membership import membership_sentence, outcome_membership
+    outcome = outcome if outcome is not None else (_primary(core) or {})
+    if not outcome_membership(outcome, core)["counts"]["eligible_not_in_pool"]:
+        return ""
+    return ("STALE: pooled membership known incomplete (" + membership_sentence(outcome, core)
+            + "); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.")
+
+
 def _primary(core):
     outs = core.get("outcomes") or []
     return next((o for o in outs if o.get("primary")), (outs[0] if outs else None))

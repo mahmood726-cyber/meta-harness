@@ -21,6 +21,9 @@ from typing import Any
 
 from . import manuscript as _manuscript_mod
 from . import grade as _grade_mod
+from . import invalidation as _invalidation_mod
+from .membership import membership_sentence, outcome_membership
+from .consumer_consistency import check_membership_counts
 from . import rob_sensitivity as _rob_sensitivity_mod
 from . import claimgraph as _claimgraph_mod
 from . import identity as _identity_mod
@@ -657,7 +660,7 @@ def _overview(r, neutral):
         res = prim.get("result") or {}
         if res.get("pool_refused"):
             parts.append("<h3>Primary outcome</h3>")
-            parts.append(_k2_pool_refusal_block(res, _grade_mod.stale_heterogeneity(r)))
+            parts.append(_k2_pool_refusal_block(res, _invalidation_mod.stale_heterogeneity(r)))
         elif res.get("suppressed_incompatible"):
             # FAIL CLOSED (audit 23): the overview summary must not present a suppressed-incompatible primary
             # as pooled — no "Trials pooled (k)", no "Pooled effect" row (even with the number popped, the
@@ -685,15 +688,12 @@ def _overview(r, neutral):
                 scope_identity = r.get("scope_identity") or {}
                 scoped = _scope_identity_mod.requires_qualification(scope_identity)
                 if inc_counts["trials"] != k:
-                    absent_counts = _outcome_unit_counts(prim, has_units=has_units)["absent"]
                     if scoped:
                         prefix = _scope_identity_mod.qualification_text(scope_identity, inc_counts["trials"])
                     else:
                         prefix = f"{_identity_mod.count_phrase(inc_counts, count_noun)} met P/I/C/design (screening)"
-                    recon = (f"{prefix}; {k} reported this "
-                             f"outcome with an extractable number and were pooled; the remaining "
-                             f"{_identity_mod.count_phrase(absent_counts, count_noun)} are listed as declared-absent in Results (they were "
-                             f"included but reported no poolable value for this outcome).")
+                    recon = (f"{prefix}; {k} reported this outcome with an extractable number and were pooled; "
+                             + membership_sentence(prim, r).replace(": ", ": the remaining ", 1) + ".")
                 else:
                     if scoped:
                         recon = _scope_identity_mod.qualification_text(scope_identity, inc_counts["trials"])
@@ -719,11 +719,11 @@ def _overview(r, neutral):
             if res.get("ci_low_fixed") is not None:
                 rows.append(_common_effect_row(res))
             if res.get("pi_low") is not None:
-                rows.append(("Prediction interval", f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))} {_e(_grade_mod.stale_heterogeneity(r))}"))
+                rows.append(("Prediction interval", f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))} {_e(_invalidation_mod.stale_heterogeneity(r))}"))
             if res.get("tau2") is not None:
-                rows.append(("Between-study τ²", _tau(res.get("tau2")) + " " + _e(_grade_mod.stale_heterogeneity(r))))
+                rows.append(("Between-study τ²", _tau(res.get("tau2")) + " " + _e(_invalidation_mod.stale_heterogeneity(r))))
             if _grade_mod.membership_incomplete(r):
-                rows.append(("Heterogeneity state", _grade_mod.stale_heterogeneity(r)))
+                rows.append(("Heterogeneity state", _invalidation_mod.stale_heterogeneity(r)))
             rows.append(("Method", prim.get("method") or r.get("method_declared")))
             parts.append(_kv(rows))
             parts.append(_known_missing_sensitivity_panel(prim))
@@ -1010,34 +1010,7 @@ def _screening(r, neutral):
     rule_counts = _C(x.get("rule_id") for x in recs if x.get("decision") == "exclude")
     prim = next((o for o in (r.get("outcomes") or []) if o.get("primary")), None)
     pooled_k = ((prim or {}).get("result") or {}).get("k") if prim else None
-    if show_units:
-        absent_counts = (_outcome_unit_counts(prim, has_units=True)["absent"]
-                         if prim else {"trials": max(inc_counts["trials"] - (pooled_k or 0), 0),
-                                       "publications": max(inc_counts["publications"] - (pooled_k or 0), 0)})
-        eligible_display = _identity_mod.count_phrase(inc_counts, "trial family")
-        absent_display = _identity_mod.count_phrase(absent_counts, "trial family")
-    else:
-        eligible_display = n_inc
-        absent_display = n_inc - (pooled_k or 0)
-    engine_refused = sum(
-        1 for x in ((prim or {}).get("declared_absent_trials") or [])
-        if x.get("state") == "ENGINE_CANNOT_CONSUME"
-    )
-    if show_units:
-        retrieved_refused_display = _identity_mod.count_phrase(
-            {"trials": engine_refused, "publications": engine_refused},
-            "trial family",
-        )
-        not_extracted_display = absent_display
-    else:
-        retrieved_refused_display = engine_refused
-        not_extracted_display = max((absent_display or 0) - engine_refused, 0)
-    refused_row = (
-        "<tr><td>Eligible with outcome retrieved but refused "
-        "(engine cannot consume design variance)</td>"
-        f"<td>{_e(retrieved_refused_display)}</td></tr>"
-        if engine_refused else ""
-    )
+    eligible_display = (_identity_mod.count_phrase(inc_counts, "trial family") if show_units else n_inc)
     n_identified = ((r.get("search") or {}).get("n_records")) or len(recs)
     excl_bits = " · ".join(f"{rid} {n}" for rid, n in sorted(rule_counts.items()))
     flow = ("<h4>Study selection flow (PRISMA 2020)</h4>"
@@ -1047,8 +1020,7 @@ def _screening(r, neutral):
             f"<tr><td>Excluded at screening — by rule</td><td>{_e(sum(rule_counts.values()))} ({_e(excl_bits)})</td></tr>"
             f"<tr><td>Met eligibility (P/I/C/design)</td><td>{_e(eligible_display)}</td></tr>"
             f"<tr><td><strong>Pooled in the primary outcome (k)</strong></td><td><strong>{_e(pooled_k)}</strong></td></tr>"
-            + refused_row
-            + f"<tr><td>Eligible but outcome not extracted from the abstract (full-text pass pending)</td><td>{_e(not_extracted_display)}</td></tr>"
+            + f"<tr><td>Primary outcome membership</td><td>{_e(membership_sentence(prim or {}, r))}</td></tr>"
             "</table>"
             "<p class='note'>Every excluded record's rule id, reason and verbatim span are listed below "
             "(PRISMA item 16b: exclusions with reasons).</p>")
@@ -1559,7 +1531,7 @@ def _outcome_block(o, show_inputs=True, review=None):
     elif res.get("unrenderable"):
         body += _unrenderable_block(res)
     elif res.get("pool_refused"):
-        body += _k2_pool_refusal_block(res, _grade_mod.stale_heterogeneity(r))
+        body += _k2_pool_refusal_block(res, _invalidation_mod.stale_heterogeneity(r))
     elif res.get("suppressed_incompatible"):
         # FAIL CLOSED (audit 23): detected-invalid means NOTHING pooled is rendered — no effect, CI, tau^2,
         # prediction interval, common-effect sensitivity, forest or leave-one-out. Only the reason + the
@@ -1641,10 +1613,10 @@ def _outcome_block(o, show_inputs=True, review=None):
                 f"tau^2={_tau(pool.get('tau2'))}. {_e(sens.get('rule'))}",
             ))
         rows.extend([
-            ("Prediction interval", (f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))} {_e(_grade_mod.stale_heterogeneity(r))}" if res.get('pi_low') is not None else None)),
-            ("τ²", _tau(res.get("tau2")) + " " + _e(_grade_mod.stale_heterogeneity(r)) if res.get("tau2") is not None else None),
-            ("I²", str(res.get("i2")) + "% " + _grade_mod.stale_heterogeneity(r) if res.get("i2") is not None else None),
-            ("Note", _grade_mod.stale_heterogeneity(r) or res.get("pi_note")),
+            ("Prediction interval", (f"{_num(res.get('pi_low'))}–{_num(res.get('pi_high'))} {_e(_invalidation_mod.stale_heterogeneity(r))}" if res.get('pi_low') is not None else None)),
+            ("τ²", _tau(res.get("tau2")) + " " + _e(_invalidation_mod.stale_heterogeneity(r)) if res.get("tau2") is not None else None),
+            ("I²", str(res.get("i2")) + "% " + _invalidation_mod.stale_heterogeneity(r) if res.get("i2") is not None else None),
+            ("Note", _invalidation_mod.stale_heterogeneity(r) or res.get("pi_note")),
             ("Small-k note", res.get("fixed_note")),
             ("Composite heterogeneity", res.get("composite_heterogeneity")),
             ("Leave-one-out (influence)", _loo_text(res.get("leave_one_out"))),
@@ -1767,16 +1739,9 @@ def _outcome_block(o, show_inputs=True, review=None):
         if n_abs and n_pool:
             _states = collections.Counter((t.get("state") or "") for t in (o.get("declared_absent_trials") or []))
             _nd = _states.get("NO_OUTCOME_DATA_IN_SOURCE", 0)
-            unitized = any((t.get("trial_family_id") for t in (o.get("trials") or []))) or any(
-                (t.get("trial_family_id") for t in (o.get("declared_absent_trials") or [])))
-            absent_display = (
-                "a further " + _identity_mod.count_phrase(_outcome_unit_counts(o, has_units=True)["absent"],
-                                                           "trial family")
-                if unitized else f"{n_abs} further screened-in trial(s)"
-            )
             body += (f"<p class='note'>k = {_k_display(o)}: the {n_pool} trial(s) named below were "
-                     f"pooled; {absent_display} had no poolable value for this "
-                     f"outcome and are listed below with an explicit <em>absence/refusal state</em>. These "
+                     f"pooled; {membership_sentence(o, review)}. Screened-in families without a poolable value "
+                     f"are listed below with an explicit <em>absence/refusal state</em>. These "
                      f"typed states distinguish source silence from effect-present estimand mismatches, "
                      f"uncorroborated counts, multi-arm/timepoint/population mismatches, missing cached "
                      f"abstracts, and other evidence refusals; only <em>no outcome data in source</em> "
@@ -1785,7 +1750,9 @@ def _outcome_block(o, show_inputs=True, review=None):
         body += _trial_inputs(o)
     if o.get("kind") == "harm":
         body += _harms_ledger_block(o)
-    return ("<div data-primary-result='true'>" + body + "</div>") if o.get("primary") else body
+    check_membership_counts(review or {"outcomes": [o]}, body, o)
+    body = ("<div data-primary-result='true'>" + body + "</div>") if o.get("primary") else body
+    return f'<section data-membership-outcome="{_e(o.get("name"))}">{body}</section>'
 
 
 def _definition_audit_block(r):
@@ -2292,7 +2259,7 @@ def _reporting(r, neutral):
          "hand-verified AACT arms), round-trip validation on every extraction, outcome-identity gating; refuse on ambiguity.",
          ""),
         ("15 Certainty assessment", bool(res.get("k")),
-         _grade_mod.render_certainty(r.get("grade") or {}) + "; see the domain table for assessed and unassessed domains. " + _grade_mod.stale_heterogeneity(r),
+         _grade_mod.render_certainty(r.get("grade") or {}) + "; see the domain table for assessed and unassessed domains. " + _invalidation_mod.stale_heterogeneity(r),
          ""),
         ("16a Flow with counts at every stage", bool(scr.get("records")),
          "Screening tab — PRISMA flow: identified -> screened -> excluded-by-rule (counts) -> eligible -> pooled k -> declared-absent.",
@@ -2608,7 +2575,7 @@ def _riskofbias(r, neutral):
     if sens.get("full"):
         sens_html = "<h4>Risk-of-bias sensitivity</h4>" + _rob_sensitivity_block(dict(sens, formally_assessed=_grade_mod._rob_domain(r).get("assessed")))
     g = r.get("grade") or {}
-    grade_html = (f"<h4 data-grade-certainty='true'>{_e(_grade_mod.render_certainty(g))}</h4>" + _grade_block(g)) if g else ""
+    grade_html = (f"<h4 data-grade-certainty='true'>{_e(_grade_mod.render_certainty(g))}</h4>" + _grade_block(g, r)) if g else ""
     rsc = r.get("rob_spancheck") or {}
     rsc_html = ""
     if rsc.get("agreement_rate") is not None:
@@ -2703,6 +2670,7 @@ def _eligibility_screen_sentence(r):
     return "Eligibility is on P/I/C/design (the registered rule);"
 
 def render_page(review: dict, neutral: bool = False) -> str:
+    check_membership_counts(review)
     from .certificate import render as render_certificate
     tabs_spec = [(tid, lbl) for tid, lbl in TABS if not (neutral and tid in NEUTRAL_DROP)]
     nav = "".join(f'<button data-t="{tid}" onclick="show(\'{tid}\')">{_e(lbl)}</button>' for tid, lbl in tabs_spec)
@@ -2731,6 +2699,7 @@ def render_page(review: dict, neutral: bool = False) -> str:
                 "exact served bytes are attested separately (html_sha256 in manifest.json and the production "
                 "record on the production-records branch). Cite this hash when auditing; a different hash is "
                 "a different version of this page.</div>")
+    check_membership_counts(review, body)
     return ("<!doctype html><html lang=en><head><meta charset=utf-8>"
             "<meta name=viewport content='width=device-width,initial-scale=1'>"
             f"<title>{title}</title><style>{_CSS}</style></head><body>"

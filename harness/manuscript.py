@@ -8,6 +8,8 @@ A gate limb (harness.gate.check_manuscript_numbers) enforces this by extracting 
 rendered manuscript and refusing any that is not in object_numerals(review)."""
 from __future__ import annotations
 from . import grade as _grade_mod
+from . import invalidation as _invalidation_mod
+from .membership import membership_sentence, outcome_membership
 
 import html as _html
 
@@ -301,13 +303,8 @@ def render(review, neutral: bool = False) -> str:
         _search_phrase = (f"The registry-first (AACT) adapter did NOT complete for this topic (status "
                           f"{_e(_aact)}); the evidence set was assembled by known-item retrieval, NOT a completed "
                           f"registry-first or systematic search (retracted claim).")
-    if review.get("publication_units"):
-        absent_counts = _identity_mod.outcome_counts(prim)["absent"]
-        n_absent = absent_counts.get("trials", 0)
-        absent_phrase = _identity_mod.count_phrase(absent_counts, "trial family")
-    else:
-        n_absent = len(prim.get("declared_absent_trials", []) or [])
-        absent_phrase = f"{n_absent} eligible trial(s)"
+    n_absent = outcome_membership(prim, review)["counts"]["eligible_not_in_pool"]
+    absent_phrase = membership_sentence(prim, review)
 
     # ---- structured abstract ----
     if res.get("pool_refused"):
@@ -355,7 +352,7 @@ def render(review, neutral: bool = False) -> str:
                            f"random-effects (Paule-Mandel with a Hartung-Knapp interval).{pi}")
 
     if _grade_mod.membership_incomplete(review):
-        result_sentence += " " + _e(_grade_mod.stale_heterogeneity(review))
+        result_sentence += " " + _e(_invalidation_mod.stale_heterogeneity(review))
 
     _pub = (g.get("domains") or {}).get("publication_bias") or {}
     _pub_certainty_phrase = (
@@ -374,7 +371,7 @@ def render(review, neutral: bool = False) -> str:
         f"page; it does not validate search completeness or extraction, and byte-for-byte reproduction from "
         f"the protocol SHA is not currently claimed — see Data availability.)</p>"
         f"<p><strong>Results.</strong> {result_sentence} "
-        + (f"{absent_phrase} were declared absent for this outcome (reported reason on each)."
+        + (f"{absent_phrase}."
            if n_absent else "")
         + "</p>"
         f"<p><strong>Certainty.</strong> "
@@ -431,7 +428,7 @@ def render(review, neutral: bool = False) -> str:
     elif not g.get("domains", {}).get("imprecision", {}).get("assessed", True):
         lim_bits.append("imprecision is not machine-assessed because the pooled k=2 CI is refused")
     if g.get("domains", {}).get("inconsistency", {}).get("stale"):
-        lim_bits.append(_grade_mod.stale_heterogeneity(review))
+        lim_bits.append(_invalidation_mod.stale_heterogeneity(review))
     elif g.get("domains", {}).get("inconsistency", {}).get("downgrade"):
         lim_bits.append("between-trial heterogeneity was detected (inconsistency)")
     elif not g.get("domains", {}).get("inconsistency", {}).get("assessed", True):

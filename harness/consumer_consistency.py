@@ -560,6 +560,10 @@ def annotate_reconstruction_with_published_effect(review: dict[str, Any]) -> Non
 
 def annotate_review(review: dict[str, Any], slug: str, config: dict[str, Any],
                     records_blob: dict[str, Any]) -> dict[str, Any]:
+    from .membership import build_outcome_membership
+    for outcome in review.get("outcomes") or []:
+        outcome["membership"] = build_outcome_membership(
+            outcome, (review.get("screening") or {}).get("records") or [])
     stamp_identity_fields(review)
     annotate_reconstruction_with_published_effect(review)
     specs = {sp.get("name"): sp for sp, _ in outcome_specs(config)}
@@ -618,6 +622,43 @@ def annotate_review(review: dict[str, Any], slug: str, config: dict[str, Any],
     if by_id:
         review["funding"] = list(by_id.values())
     return review
+
+
+def check_membership_counts(review, rendered=None, outcome=None):
+    """Fail closed on row/set drift and on conflicting named rendered counts."""
+    from html import unescape
+    from .membership import _family_sets, outcome_membership
+    outcomes = [outcome] if outcome is not None else review.get("outcomes") or []
+    for item in outcomes:
+        member = outcome_membership(item, review)
+        expected = _family_sets(item)
+        for field in ("sets", "counts", "denominators"):
+            if member.get(field) != expected[field]:
+                raise ValueError(f"MEMBERSHIP_COUNT_MISMATCH: {item.get('name')} {field} disagree with rows")
+    if rendered is None:
+        return
+    if outcome is None:
+        by_name = {str(o.get("name") or ""): o for o in outcomes}
+        def check_block(match):
+            name = unescape(match.group(1))
+            if name not in by_name:
+                raise ValueError("MEMBERSHIP_RENDER_UNKNOWN_OUTCOME: " + name)
+            check_membership_counts(review, match.group(2), by_name[name])
+            return ""
+        rendered = re.sub(r'<section data-membership-outcome="([^"]*)">(.*?)</section>',
+                          check_block, rendered, flags=re.S)
+    item = outcome if outcome is not None else next((o for o in outcomes if o.get("primary")), {})
+    counts = outcome_membership(item, review)["counts"]
+    text = unescape(re.sub(r"<[^>]*>", " ", rendered))
+    patterns = {"eligible_not_in_pool": r"(\d+) eligible families not in the pool",
+                "screened_in_not_poolable": r"(\d+) screened-in with no poolable value",
+                "eligible_not_retrieved": r"(\d+) known eligible but not retrieved"}
+    for name, pattern in patterns.items():
+        values = [int(n) for n in re.findall(pattern, text)]
+        if any(n != counts[name] for n in values):
+            raise ValueError(f"MEMBERSHIP_RENDER_MISMATCH: {name}: {values} vs {counts[name]}")
+    if re.search(r"further\s+\d+\s+trial famil", text):
+        raise ValueError("MEMBERSHIP_RENDER_AMBIGUOUS: further trial family count has no named set")
 
 
 def included_trial_ids(review: dict[str, Any]) -> list[str]:
