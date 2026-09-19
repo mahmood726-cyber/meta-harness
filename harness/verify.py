@@ -68,7 +68,9 @@ def verify_pooled(trial: dict, abstract: str | None) -> tuple[str, str]:
     span = trial.get("source") or ""
     # bytes to check against: the committed abstract for abstract/full-text (the number may pair a
     # count from one sentence with a denominator from another); else the source field itself.
-    text = abstract if prov in ("abstract", "pmc_fulltext") else span
+    # A hand-verified row whose passage is the ABSTRACT is checked against the held abstract bytes, never
+    # against the hand-written description that carries the same digits (that is not a check).
+    text = abstract if prov in ("abstract", "pmc_fulltext", "abstract_verified") else span
     if trial.get("ai") is not None:
         if prov == "aact_verified":
             return ("verified_handchecked", "AACT-derived arm entry, cross-checked to published %")

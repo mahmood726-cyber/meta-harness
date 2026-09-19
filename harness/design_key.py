@@ -56,11 +56,22 @@ _TEXT_MAP = {
     "stepped-wedge": ("STEPPED_WEDGE", "CLUSTER"),
 }
 
+# the order a conflict resolves in: the design that carries the greater validity hazard wins
+_DESIGN_SEVERITY = {"PARALLEL": 1, "SINGLE_GROUP": 2, "FACTORIAL": 3, "CROSSOVER": 4, "CLUSTER": 5, "STEPPED_WEDGE": 6, "CLUSTER_CROSSOVER": 7}
+
 _REGISTRY_MAP = {
     "FACTORIAL ASSIGNMENT": ("FACTORIAL", "INDIVIDUAL"),
     "CROSSOVER ASSIGNMENT": ("CROSSOVER", "UNKNOWN"),
     "PARALLEL ASSIGNMENT": ("PARALLEL", "INDIVIDUAL"),
     "SEQUENTIAL ASSIGNMENT": ("STEPPED_WEDGE", "CLUSTER"),
+    # ClinicalTrials.gov API v2 / AACT enumerations of the same field: every pooled glp1 row carried the
+    # registry value PARALLEL as design evidence while the decision said "no committed design evidence"
+    # (Mahmood's review of 98726cc1, item 2) because only the legacy spellings were mapped
+    "FACTORIAL": ("FACTORIAL", "INDIVIDUAL"),
+    "CROSSOVER": ("CROSSOVER", "UNKNOWN"),
+    "PARALLEL": ("PARALLEL", "INDIVIDUAL"),
+    "SEQUENTIAL": ("STEPPED_WEDGE", "CLUSTER"),
+    "SINGLE_GROUP": ("SINGLE_GROUP", "UNKNOWN"),
 }
 
 _ALT_RE = re.compile(
@@ -520,7 +531,12 @@ def decision_for_trial(trial: dict[str, Any], declared_estimand: str | None = No
             gate_id="design-key:design-unproven",
             decision_state=("design not established from committed evidence; pooled through the parallel path "
                             "on an assumption the harness could not verify"),
-            reason="no committed design evidence (registry intervention model or design phrase); UNKNOWN is not PARALLEL",
+            reason=(("committed design evidence does not establish an individually randomised parallel design: "
+                     + "; ".join(f"{b.get('source')}: {b.get('span')}" for b in (d.get("basis") or [])
+                                 if b.get("source") != "trial reported estimate label"))
+                    if any(b.get("source") != "trial reported estimate label" for b in (d.get("basis") or []))
+                    else "no committed design evidence (registry intervention model or design phrase)")
+                   + "; UNKNOWN is not PARALLEL",
         )
     return _decision(
         "ALLOW",
@@ -564,8 +580,14 @@ def key_for_trial(trial: dict[str, Any], rec: dict[str, Any] | None = None,
     candidates = [(d, u) for d, u in ((text_design, text_unit), (reg_design, reg_unit)) if d]
     conflict = len({d for d, _ in candidates}) > 1
     if conflict:
-        design, unit = "UNKNOWN", "UNKNOWN"
-        basis.append({"source": "design-key conflict", "span": " | ".join(d for d, _ in candidates)})
+        # Two sources disagree. The conflict is recorded, and the design resolves to the MOST RESTRICTIVE candidate:
+        # a conflict must never be more permissive than either source. Resolving it to UNKNOWN let SMART and SALT-ED
+        # (abstract: "cluster-randomized, multiple-crossover"; registry: PARALLEL) fall from REFUSE into the parallel
+        # path on the crystalloids page (k 2 -> 4) the moment the registry enumeration was mapped -- the deletion
+        # invariant inside the design key (2026-09-19).
+        design, unit = max(candidates, key=lambda du: _DESIGN_SEVERITY.get(du[0], 0))
+        basis.append({"source": "design-key conflict", "span": " | ".join(d for d, _ in candidates)
+                      + f" -> resolved to the most restrictive ({design})"})
     elif candidates:
         design, unit = candidates[0]
     else:

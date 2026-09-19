@@ -1240,10 +1240,22 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
         # abstract/pmc_fulltext so verify.verify_pooled checks the effect's digits against the
         # committed source span (not the abstract). Only for the matching outcome.
         if ve and ve.get("outcome") == spec.get("name") and ve.get("effect") is not None:
-            trials.append({"label": label, "id": idstr, "effect": ve["effect"],
-                           "ci_low": ve.get("ci_low"), "ci_high": ve.get("ci_high"),
-                           "scale": ve.get("scale", "HR"), "provenance": "fulltext_verified",
-                           "source": ve.get("source", "full-text-verified effect+CI")})
+            row = {"label": label, "id": idstr, "effect": ve["effect"],
+                   "ci_low": ve.get("ci_low"), "ci_high": ve.get("ci_high"),
+                   "scale": ve.get("scale", "HR"), "provenance": "fulltext_verified",
+                   "source": ve.get("source", "full-text-verified effect+CI")}
+            # A hand-verified row is not outside the endpoint-binding safeguard: its own numbers locate its
+            # result sentence in the held abstract, which binds to a definition span and is classified like
+            # every other route; and its provenance says where the passage IS (SOUL was pooled as
+            # UNBOUND_LEGACY, provenance "fulltext_verified", with an abstract passage -- Mahmood's review of
+            # 98726cc1, item 2). A row whose numbers are not in the abstract keeps the full-text label and the
+            # unbound_legacy state until the FACT landing binds it to a held document.
+            bound = target_endpoint_mod.bind_verified_row(spec, rec.get("abstract", ""), row)
+            if bound.get("passage_location") == "abstract":
+                row["provenance"] = "abstract_verified"
+                row.update({k: v for k, v in bound.items() if k != "passage_location"})
+            row["verified_passage_location"] = bound.get("passage_location")
+            trials.append(row)
             continue
         absent.append({"label": label, "id": idstr, "absent_kind": "machine_absent", "reason": ex["reason"]})
     # MANDATORY ADMISSIBILITY (every route converges here): a row is pooled only if its bound endpoint

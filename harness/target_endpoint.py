@@ -34,14 +34,15 @@ BINDING_REGISTRY = "registry_outcome_measure"
 BINDING_NONE = "unbound"
 
 _NAMED_COMPOSITE_RX = re.compile(
-    r"\b(?:co-?primary|primary|(?:key |first |second |main )?secondary)\s+(?:[a-z][a-z-]*\s+){0,3}?"
+    # "primary-outcome event" (SOUL, NEJM house style) names the primary outcome as much as "primary outcome"
+    r"\b(?:co-?primary|primary|(?:key |first |second |main )?secondary)[\s-]+(?:[a-z][a-z-]*\s+){0,3}?"
     r"(?:outcome|end[\s-]?point)s?\b|\bmace\b|major adverse cardiovascular event|major cardiovascular event"
     r"|\bcomposite (?:outcome|end[\s-]?point)\b|\bprimary composite\b"
     r"|\b(?:major|serious) (?:adverse )?vascular events?\b",
     re.I,
 )
 _QUALIFIER_RX = re.compile(
-    r"\b(?:(?P<sec>(?:key |first |second |main )?secondary)|(?P<pri>co-?primary|primary|second primary|first primary))\s+"
+    r"\b(?:(?P<sec>(?:key |first |second |main )?secondary)|(?P<pri>co-?primary|primary|second primary|first primary))[\s-]+"
     r"(?:[a-z][a-z-]*\s+){0,3}?(?:outcome|end[\s-]?point)s?\b", re.I)
 _MACE_RX = re.compile(r"\bmace\b|major adverse cardiovascular|major cardiovascular|(?:major|serious) (?:adverse )?vascular event", re.I)
 
@@ -283,6 +284,62 @@ def classify_bound(spec: dict[str, Any], abstract: str, source: str | None) -> d
         "endpoint_result_span": binding["endpoint_result_span"],
         "endpoint_definition_span": binding["endpoint_definition_span"],
         "endpoint_binding_reason": binding["binding_reason"],
+    })
+    return cls
+
+
+def _num_forms(value) -> set[str]:
+    f = float(value)
+    return {f"{f:g}", f"{f:.1f}", f"{f:.2f}", f"{f:.3f}"}
+
+
+def locate_verified_result_sentence(abstract: str, row: dict[str, Any]) -> str | None:
+    """The ONE abstract sentence that carries a hand-verified row's own effect and both CI bounds.
+
+    A verified row's `source` is a hand-written description ("SOUL (...) abstract: primary MACE (...) 579/4825
+    vs 668/4825, hazard ratio, 0.86; ...") that the sentence locator cannot find verbatim; the row is nevertheless
+    a claim about held text, so it is located by its NUMBERS: exactly one sentence must carry the estimate and both
+    bounds inside an effect+CI pattern. None when no sentence or several do (never a guess)."""
+    if row.get("effect") is None or row.get("ci_low") is None or row.get("ci_high") is None:
+        return None
+    want = (_num_forms(row["effect"]), _num_forms(row["ci_low"]), _num_forms(row["ci_high"]))
+    hits = []
+    for sent in extract._sentences(extract._norm(abstract or "")):
+        for m in _EFFECT_RE.finditer(sent):
+            if m.group(2) in want[0] and m.group(3) in want[1] and m.group(4) in want[2]:
+                hits.append(sent.strip())
+                break
+    return hits[0] if len(hits) == 1 else None
+
+
+def bind_verified_row(spec: dict[str, Any], abstract: str, row: dict[str, Any]) -> dict[str, Any]:
+    """Bring a hand-verified row inside the endpoint-binding safeguard.
+
+    The served glp1 page pooled SOUL as `UNBOUND_LEGACY` while marked verified, with `provenance:
+    fulltext_verified` although the cited passage was the abstract (Mahmood's review of 98726cc1, item 2). The
+    row's own numbers locate its result sentence in the held abstract; the sentence binds to its definition span
+    and is classified like every other route. Returns the classification (ENDPOINT_UNBOUND with a reason when the
+    numbers are not in the abstract -- a genuinely full-text-only verification) plus `passage_location`:
+    'abstract' or 'not_in_abstract'."""
+    sentence = locate_verified_result_sentence(abstract, row)
+    if not sentence:
+        out = _unbound_classification({"binding": BINDING_NONE, "endpoint_result_span": None,
+                                       "endpoint_definition_span": None, "components": set(),
+                                       "binding_reason": "verified numbers not located in the held abstract"})
+        out["passage_location"] = "not_in_abstract"
+        return out
+    binding = bind_result_span(abstract, sentence)
+    if binding["binding"] == BINDING_NONE:
+        out = _unbound_classification(binding)
+        out["passage_location"] = "abstract"
+        return out
+    cls = _classify(spec, binding["endpoint_definition_span"], components=binding["components"])
+    cls.update({
+        "endpoint_binding": binding["binding"],
+        "endpoint_result_span": binding["endpoint_result_span"],
+        "endpoint_definition_span": binding["endpoint_definition_span"],
+        "endpoint_binding_reason": binding["binding_reason"],
+        "passage_location": "abstract",
     })
     return cls
 
