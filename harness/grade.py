@@ -10,8 +10,8 @@ Domains:
                    caps the rating (cannot be 'high certainty' if RoB is unassessed for pooled trials).
   inconsistency  : from tau2 / the I2 implied by the pool. k<2 -> not estimable (single trial: no
                    inconsistency, but see imprecision). tau2 large relative to effect / wide PI -> down 1.
-  imprecision    : from k, total N (optimal information size) and whether the 95% CI crosses the null
-                   (ratio 1.0 / MD 0). CI crosses null -> down 1; very wide CI or k==1 small N -> down 1.
+  imprecision    : clinical decision boundaries and explicit information-size support; ratio null
+                   crossings retain the GRADE default 0.75/1.25 downgrade when no threshold is registered.
   publication_bias: NOVEL — from the registry ghost census (ghost.json), NOT funnel asymmetry. a high
                    proportion of completed-but-unpublished registered trials -> down 1. Better than
                    funnel plots at our small k.
@@ -109,7 +109,7 @@ def _rob_domain(review):
     n_high = sum(1 for x in rated if x == "high")
     n_some = sum(1 for x in rated if x == "some_concerns")
     down = 0
-    assessed = n_rated > 0
+    assessed = n > 0 and n_rated == n and "other" not in rated
     if n_rated == 0 and n > 0:
         # External audit (C-ROB-1): zero assessed CANNOT establish low risk. "No assessed trial at
         # high risk" is not a clean bill when nothing was assessed -- it is no information. Coverage
@@ -180,6 +180,14 @@ def _inconsistency_domain(res, review=None):
                 "k2_not_automatic": True, "assessed": False,
                 "direction_conflict": conflict, "i2": round(float(i2), 1) if i2 is not None else None,
                 "basis": basis}
+    missing = [key for key in ("ci_low", "ci_high") if res.get(key) is None]
+    if tau2 is None:
+        missing.append("tau2")
+    if tau2 is not None and tau2 > 0:
+        missing.extend(key for key in ("pi_low", "pi_high") if res.get(key) is None)
+    if missing:
+        return {"downgrade": 0, "assessed": False, "state": "NOT_ASSESSABLE",
+                "missing_inputs": missing, "basis": "missing inconsistency support: " + ", ".join(missing)}
     # PI substantially wider than CI (on the log scale for ratios) signals real heterogeneity.
     down = 0
     basis = f"tau^2={tau2}"
@@ -203,92 +211,93 @@ def _inconsistency_domain(res, review=None):
 
 
 def _imprecision_domain(res, scale):
-    """GRADE imprecision. External audit (C-GRADE-1): a CI that crosses the null is NOT automatically
-    imprecise -- a tight interval around no-effect (e.g. RR 0.91-1.08) is PRECISION about no effect and
-    excludes an appreciable effect in both directions. Downgrade only when the CI is wide enough to be
-    consistent with BOTH an appreciable benefit AND an appreciable harm (a decision-relevant span), or
-    for a single small trial. Appreciable effect on a ratio scale = a 25% relative change (0.75 / 1.25),
-    a conventional GRADE default; the threshold is stated so a reader can substitute a topic-specific
-    minimally-important difference."""
-    k = res.get("k")
-    if res.get("pool_refused"):
-        return {"downgrade": 0, "assessed": False, "not_assessable_automatically": True,
-                "basis": ("pooled row refused ("
-                          f"{(res.get('pool_refused') or {}).get('code')}); imprecision cannot be "
-                          "machine-rated from a non-served pooled CI")}
-    if res.get("pooled_ci_refused"):
-        return {"downgrade": 0, "assessed": False, "not_assessable_automatically": True,
-                "basis": ("registered pooled CI refused at k=2 ("
-                          f"{(res.get('pooled_ci_refused') or {}).get('code')}); imprecision requires "
-                          "human judgement and is not read from the quarantined HKSJ interval")}
-    cil, cih = res.get("ci_low"), res.get("ci_high")
-    if cil is None or cih is None:
-        return {"downgrade": 0, "assessed": False, "basis": "no confidence interval available"}
-    is_md = (scale or "").upper() == "MD"
-    null = 0.0 if is_md else 1.0
-    # ROUNDED-CI precision hierarchy (tranexamic-acid cold audit): a CI bound printed EXACTLY on the null
-    # (RR/OR/HR upper or lower limit == 1.00; MD == 0.00) is almost always a ROUNDED publication limit --
-    # WOMAN prints 0.65-1.00 while the count-recomputed interval is 0.6544-0.9961, which does NOT cross 1.
-    # A limit exactly on the null is treated as uncertain-due-to-rounding, NOT a definite crossing: require
-    # a STRICT cross (cil < null < cih) to flag imprecision, so a rounded boundary no longer forces a
-    # spurious downgrade. (The stronger fix, preferring count-recomputed CIs, is in extraction.)
-    eps = 1e-9
-    strict_cross = bool(cil < null - eps and cih > null + eps)
-    touches_null = bool(abs(cih - null) <= eps or abs(cil - null) <= eps)
-    crosses = strict_cross
-    down = 0
-    basis = f"95% CI [{cil}, {cih}]"
-    if touches_null and not strict_cross:
-        basis += ("; a CI limit is printed exactly on the null -> null_crossing=uncertain_due_to_rounding "
-                  "(likely a rounded publication limit; not treated as crossing, not downgraded for it)")
-    if is_md:
-        # No committed minimally-important difference for continuous outcomes -> retain the
-        # conservative crossing rule but DISCLOSE that a clinical threshold was not applied.
-        if crosses:
-            down += 1
-            basis += (f"; crosses the null ({null:g}) and no minimally-important difference is committed "
-                      f"for this continuous outcome, so imprecision is flagged conservatively")
+    """Preserve default downgrade signals; missing support cannot establish precision.
+
+    A registered clinical_threshold supplies a positive value and source basis;
+    MD/SMD use symmetric MID boundaries. Information adequacy is explicit.
+    """
+    import math
+
+    def finite(value):
+        return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+    low, high = res.get("ci_low"), res.get("ci_high")
+    scale = (scale or "").upper()
+    continuous = scale in {"MD", "SMD"}
+    null = 0.0 if continuous else 1.0
+    valid = finite(low) and finite(high) and low < high and (continuous or low > 0)
+    missing = []
+    if not valid:
+        missing.append("valid confidence interval")
+    if scale not in {"MD", "SMD", "HR", "RR", "OR", "IRR"}:
+        missing.append("supported effect scale")
+    refused = bool(res.get("pool_refused") or res.get("pooled_ci_refused"))
+    if refused:
+        missing.append("served pooled CI (refused)")
+    threshold = res.get("clinical_threshold")
+    threshold = threshold if isinstance(threshold, dict) else {}
+    value = threshold.get("value")
+    registered = finite(value) and value > 0 and bool(threshold.get("basis"))
+    if not registered:
+        missing.append("clinical threshold / MID with basis")
+    info = res.get("information_size_assessment")
+    info = info if isinstance(info, dict) else {}
+    info_valid = (info.get("assessed") is True and isinstance(info.get("adequate"), bool)
+                  and bool(info.get("basis")))
+    if not info_valid:
+        missing.append("information-size assessment with adequacy and basis")
+    touches = valid and (abs(low-null) <= 1e-9 or abs(high-null) <= 1e-9)
+    crosses = bool(valid and low < null - 1e-9 and high > null + 1e-9)
+    basis = f"95% CI [{low}, {high}]"
+    domain = {"downgrade": 0, "assessed": False, "state": "REQUIRES_JUDGEMENT",
+              "crosses_null": None if touches or not valid else crosses,
+              "missing_inputs": missing, "basis": basis}
+    if not valid or refused or "supported effect scale" in missing:
+        domain.update(state="NOT_ASSESSABLE", not_assessable_automatically=refused)
+    elif touches:
+        missing.append("unrounded CI limit: null_crossing=uncertain_due_to_rounding")
     else:
-        t_benefit, t_harm = 0.75, 1.25  # appreciable = 25% relative change
-        includes_benefit = cil < t_benefit
-        includes_harm = cih > t_harm
-        if crosses and (includes_benefit or includes_harm):
-            down += 1
-            side = ("an appreciable benefit (<=%g)" % t_benefit) if includes_benefit else ""
-            side2 = ("an appreciable harm (>=%g)" % t_harm) if includes_harm else ""
-            span = " and ".join(s for s in (side, side2) if s)
-            basis += (f"; crosses the null AND is compatible with {span} -> imprecise "
-                      f"(the estimate is consistent with both no effect and an appreciable effect)")
-        elif crosses:
-            basis += (f"; crosses the null but excludes an appreciable effect on BOTH sides "
-                      f"(within {t_benefit:g}-{t_harm:g}) -> precise about the absence of an appreciable effect")
-        elif cil > 0 and (cih / cil) > 3.0:
-            # Excludes the null but the interval is very wide (bounds differ by >3x): the DIRECTION is
-            # clear but the magnitude is highly uncertain (e.g. a small single trial, OR 8.25 [1.45-46.9])
-            # -> still imprecise, even though it does not cross the null.
-            down += 1
-            basis += f"; excludes the null but is very wide (upper/lower bound ratio > 3) -> imprecise magnitude"
-        else:
-            basis += "; excludes the null with a reasonably tight interval -> precise"
-    if k == 1:
-        # External audit: a single LARGE trial with a tight CI that excludes the null (SELECT:
-        # 17,604 patients, CI 0.72-0.90) is PRECISION, not imprecision — do NOT downgrade automatically
-        # for being one trial. Imprecision follows the CI (handled above): a single trial whose CI
-        # crosses the null and reaches an appreciable effect is still downgraded; a tight null-excluding
-        # CI is not. (A narrow CI is itself evidence the information size was adequate.)
-        basis += "; single trial — imprecision judged from the CI, not downgraded merely for k=1"
-    return {"downgrade": min(down, 2), "crosses_null": crosses, "assessed": True, "basis": basis}
+        boundaries = (-value, value) if registered and continuous else (value,) if registered else (0.75, 1.25)
+        threshold_basis = (f"clinical decision boundaries {boundaries} ({threshold['basis']})" if registered
+                           else "GRADE default appreciable-effect thresholds 0.75/1.25; no topic threshold registered")
+        # Evaluate adverse signals BEFORE missing-support checks: absence of a
+        # registered threshold must never erase the default appreciable-effect downgrade.
+        spans = any(low <= boundary <= high for boundary in boundaries)
+        default_down = not continuous and crosses and (low <= 0.75 or high >= 1.25)
+        clinical_down = registered and spans
+        inadequate = info_valid and not info["adequate"]
+        if clinical_down or (not registered and default_down) or inadequate:
+            domain.update(downgrade=1, assessed=True, state="ASSESSED")
+            domain["basis"] += "; " + (threshold_basis if not continuous or registered else "no registered MID")
+            domain["basis"] += "; spans clinical decisions or inadequate information -> imprecise"
+        elif not missing:
+            domain.update(assessed=True, state="ASSESSED")
+            domain["basis"] += "; " + threshold_basis + "; clears clinical boundaries with adequate information -> precise"
+        elif not continuous and crosses:
+            domain["basis"] += "; within GRADE default thresholds 0.75/1.25; no mechanical downgrade"
+        if info_valid:
+            domain["basis"] += f"; information-size assessment: {info['basis']}; adequate={info['adequate']}"
+    if missing:
+        domain["basis"] += "; missing/insufficient: " + "; ".join(missing)
+    return domain
 
 
 def _pubbias_domain(ghost):
-    if not ghost:
-        return {"downgrade": 0, "not_assessable": True, "assessed": False,
-                "basis": "no registry ghost census available for this topic"}
-    enum = ghost.get("enumerated") or 0
-    ongoing = ghost.get("ongoing_or_recent") or 0
-    ghost_ub = ghost.get("ghost_upper_bound") or 0
-    completed = max(enum - ongoing, 0)
-    frac = (ghost_ub / completed) if completed else 0.0
+    ghost = ghost or {}
+    required = ("enumerated", "ongoing_or_recent", "ghost_upper_bound")
+    missing = [key for key in required if not isinstance(ghost.get(key), int)
+               or isinstance(ghost.get(key), bool) or ghost[key] < 0]
+    completed = ghost["enumerated"] - ghost["ongoing_or_recent"] if not missing else None
+    if completed is None or completed <= 0:
+        missing.append("positive completed-trial denominator")
+    elif ghost["ghost_upper_bound"] > completed:
+        missing.append("unpublished count within completed-trial denominator")
+    if missing:
+        return {"downgrade": 0, "assessed": False, "not_assessable": True,
+                "state": "NOT_ASSESSABLE", "ghost_fraction": None, "missing_inputs": missing,
+                "basis": "missing/invalid registry census inputs: " + ", ".join(missing)}
+    ghost_ub = ghost["ghost_upper_bound"]
+    frac = ghost_ub / completed
     # CONTAMINATED DENOMINATOR (repeated across the cold audits: statins, tranexamic, +others -- now the
     # single most-repeated GRADE defect). The ghost census enumerates a BROAD condition+drug registry
     # universe ("Elderly + Atorvastatin", "postpartum haemorrhage") full of trials our PICO screens OUT
@@ -314,7 +323,7 @@ def _pubbias_domain(ghost):
 CERT = ["high", "moderate", "low", "very_low"]
 
 
-def grade(review, ghost=None):
+def _grade_assessment(review, ghost=None):
     """Compute a partial GRADE from the review object (+ optional ghost census)."""
     prim = next((o for o in review.get("outcomes", []) if o.get("primary")), None)
     if not prim or not prim.get("result"):
@@ -438,3 +447,20 @@ def grade(review, ghost=None):
         "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication "
                  "bias are computed from committed fields; indirectness is left to human judgement.",
     }
+
+
+def grade(review, ghost=None):
+    """Keep typed unassessed states and provisional certainty at the public boundary."""
+    result = _grade_assessment(review, ghost)
+    if result is None:
+        return None
+    for name, domain in result["domains"].items():
+        if domain.get("assessed") is True:
+            domain["state"] = "ASSESSED"
+        else:
+            domain.setdefault("state", "REQUIRES_JUDGEMENT" if name == "indirectness" else "NOT_ASSESSABLE")
+            domain.setdefault("missing_inputs", [domain["basis"]])
+    result["unassessed_domains"] = [name for name, d in result["domains"].items() if d["state"] != "ASSESSED"]
+    if result["unassessed_domains"]:
+        result.update(certainty="provisional", certainty_state=PROVISIONAL)
+    return result

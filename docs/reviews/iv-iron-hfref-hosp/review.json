@@ -3827,7 +3827,11 @@
         "n_rated": 2,
         "n_high": 0,
         "n_some": 1,
-        "basis": "FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below"
+        "basis": "FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below",
+        "state": "NOT_ASSESSABLE",
+        "missing_inputs": [
+          "FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below"
+        ]
       },
       "inconsistency": {
         "downgrade": 0,
@@ -3837,24 +3841,49 @@
         "direction_conflict": false,
         "i2": 69.0,
         "basis": "not assessable: STALE: pooled membership known incomplete (9 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
-        "stale": true
+        "stale": true,
+        "state": "NOT_ASSESSABLE",
+        "missing_inputs": [
+          "not assessable: STALE: pooled membership known incomplete (9 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
+        ]
       },
       "imprecision": {
         "downgrade": 0,
         "assessed": false,
-        "basis": "no confidence interval available"
+        "state": "NOT_ASSESSABLE",
+        "crosses_null": null,
+        "missing_inputs": [
+          "valid confidence interval",
+          "supported effect scale",
+          "clinical threshold / MID with basis",
+          "information-size assessment with adequacy and basis"
+        ],
+        "basis": "95% CI [None, None]; missing/insufficient: valid confidence interval; supported effect scale; clinical threshold / MID with basis; information-size assessment with adequacy and basis",
+        "not_assessable_automatically": false
       },
       "publication_bias": {
         "downgrade": 0,
-        "not_assessable": true,
         "assessed": false,
-        "basis": "no registry ghost census available for this topic"
+        "not_assessable": true,
+        "state": "NOT_ASSESSABLE",
+        "ghost_fraction": null,
+        "missing_inputs": [
+          "enumerated",
+          "ongoing_or_recent",
+          "ghost_upper_bound",
+          "positive completed-trial denominator"
+        ],
+        "basis": "missing/invalid registry census inputs: enumerated, ongoing_or_recent, ghost_upper_bound, positive completed-trial denominator"
       },
       "indirectness": {
         "downgrade": 0,
         "not_auto_rated": true,
         "assessed": false,
-        "basis": "not auto-rated (human judgement)"
+        "basis": "not auto-rated (human judgement)",
+        "state": "REQUIRES_JUDGEMENT",
+        "missing_inputs": [
+          "not auto-rated (human judgement)"
+        ]
       }
     },
     "downgrades": 1,
@@ -4297,8 +4326,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. the primary pool mixes INCOMPATIBLE estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO); an overall certainty cannot be produced from an incoherent effect object — the domain signals are shown, the overall is suppressed until the estimand is made coherent (harmonise the measure or split the outcome)<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT ASSESSED</strong></td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT ASSESSED</strong></td><td>not assessable: STALE: pooled membership known incomplete (9 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td><strong>NOT ASSESSED</strong></td><td>no confidence interval available</td></tr><tr><td>Indirectness</td><td>human judgement</td><td>not auto-rated (human judgement)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT ASSESSED</strong></td><td>no registry ghost census available for this topic</td></tr></table></div>",
-      "text_sha256": "5fb04329a72b37c415490ea3d5d9a0453674afe3297648555500b62677f275d5",
+      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. the primary pool mixes INCOMPATIBLE estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO); an overall certainty cannot be produced from an incoherent effect object — the domain signals are shown, the overall is suppressed until the estimand is made coherent (harmonise the measure or split the outcome)<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (9 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>95% CI [None, None]; missing/insufficient: valid confidence interval; supported effect scale; clinical threshold / MID with basis; information-size assessment with adequacy and basis</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>not auto-rated (human judgement)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>missing/invalid registry census inputs: enumerated, ongoing_or_recent, ghost_upper_bound, positive completed-trial denominator</td></tr></table></div>",
+      "text_sha256": "33e236535af59c1116c63aec2d205dcff768e98e9ba9667a51b53cdd33e4685b",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -4457,7 +4486,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "a56039f46158272c40c9565150903cf87db37c3c",
-    "review_sha256": "bd50b4abf4d831100bff56e4b623abeba20f45a63491bbd357dbc81ab402dcc3",
+    "review_sha256": "7ca84cf72773a39495adff0410b4339f907fa844fbe79c208370acc0004f8b0c",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -4632,16 +4661,16 @@
         }
       ],
       "config_sha256": "f09cda80d6a994f59d417d8384380d846eab17f9fa1828dad1ae2c37d17272c2",
-      "analysis_code_sha256": "fadc4657be3559f39b2310869b333d3c489db48444b91d8ffd81ec4142ef4a63",
+      "analysis_code_sha256": "59fa9aae4a4e691289953473d517014c29f2507ff6ed26e78968849265e880fc",
       "analysis_code_blobs": {
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/pipeline.py": "26ffa18734a281e8fc0330702490920bc0aa188e",
-        "harness/grade.py": "1a3b570a78889362dee00c1af59d67de9b28fce0",
+        "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
         "harness/effect_type.py": "NOT_PRESENT",
         "scripts/build_topic.py": "bfd51ffd7d2d8c5296c501cade1a4f6bd19ef896"
       },
       "manuscript_sha256": "da3ad8edd6ba53b01d280d19ac62d1e84a89c1f5312c4c6a77d2bfcdd6738b52",
-      "review_sha256": "bd50b4abf4d831100bff56e4b623abeba20f45a63491bbd357dbc81ab402dcc3",
+      "review_sha256": "7ca84cf72773a39495adff0410b4339f907fa844fbe79c208370acc0004f8b0c",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/iv-iron-hfref-hosp.md UTF-8 text, universal newlines",
@@ -4660,7 +4689,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "073eb2027c0292b2d9b54b0e58a27eea28e9135936633bcd4ddf0588fe75c8ce"
+      "release_sha256": "f7c8b3ebf725bc18c62b66f39452da292af2a1c19b47cf34f32ad8b2db665283"
     }
   }
 }

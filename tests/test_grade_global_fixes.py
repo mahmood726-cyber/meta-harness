@@ -9,7 +9,7 @@ from harness import grade, rob2  # noqa: E402
 def test_rounded_ci_limit_on_null_not_downgraded():
     # RR 0.81 (0.65, 1.00): the 1.00 is a rounded limit; count-recomputed it is 0.9961 (excludes 1).
     imp = grade._imprecision_domain({"k": 1, "ci_low": 0.65, "ci_high": 1.0}, "RR")
-    assert imp["downgrade"] == 0 and imp["crosses_null"] is False
+    assert imp["downgrade"] == 0 and imp["crosses_null"] is None
     assert "rounding" in imp["basis"]
 
 
@@ -19,10 +19,10 @@ def test_genuine_null_cross_still_downgrades():
 
 
 def test_contaminated_ghost_census_does_not_downgrade():
-    pb = grade._pubbias_domain({"enumerated": 25, "ghost_upper_bound": 11})  # 44%, not pico_scoped
+    pb = grade._pubbias_domain({"enumerated": 25, "ghost_upper_bound": 11, "ongoing_or_recent": 0})  # 44%, not pico_scoped
     assert pb["downgrade"] == 0 and pb.get("not_assessable") is True
     # a PICO-scoped census with a high fraction still downgrades
-    pbs = grade._pubbias_domain({"enumerated": 25, "ghost_upper_bound": 11, "pico_scoped": True})
+    pbs = grade._pubbias_domain({"enumerated": 25, "ghost_upper_bound": 11, "ongoing_or_recent": 0, "pico_scoped": True})
     assert pbs["downgrade"] == 1
 
 

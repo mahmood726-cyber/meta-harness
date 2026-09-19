@@ -426,10 +426,12 @@ def render(review, neutral: bool = False) -> str:
 
     # ---- limitations ----
     lim_bits = []
-    if g.get("domains", {}).get("imprecision", {}).get("downgrade"):
-        lim_bits.append("the confidence interval is wide or crosses the null (imprecision)")
-    elif not g.get("domains", {}).get("imprecision", {}).get("assessed", True):
-        lim_bits.append("imprecision is not machine-assessed because the pooled k=2 CI is refused")
+    imp = g.get("domains", {}).get("imprecision", {})
+    if not imp.get("assessed", True):
+        lim_bits.append(imp.get("state", "NOT_ASSESSABLE") + ": missing/insufficient "
+                        + "; ".join(imp.get("missing_inputs") or ["imprecision support"]))
+    elif imp.get("downgrade"):
+        lim_bits.append("the confidence interval spans clinical decisions under a registered or GRADE default threshold, or information size is inadequate (imprecision)")
     if g.get("domains", {}).get("inconsistency", {}).get("stale"):
         lim_bits.append(_grade_mod.stale_heterogeneity(review))
     elif g.get("domains", {}).get("inconsistency", {}).get("downgrade"):

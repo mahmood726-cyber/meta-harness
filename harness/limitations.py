@@ -702,9 +702,9 @@ def _grade_block(grade: dict[str, Any]) -> str:
         value = domains.get(key, {})
         downgrade = value.get("downgrade", 0)
         if not value.get("assessed", True):
-            mark = "human judgement" if value.get("not_auto_rated") else "<strong>NOT ASSESSED</strong>"
+            mark = "<strong>" + _e(value.get("state", "NOT_ASSESSABLE")) + "</strong> (NOT ASSESSED)"
         else:
-            mark = "&minus;1" if downgrade == 1 else f"&minus;{downgrade}" if downgrade else "not downgraded"
+            mark = "ASSESSED: " + ("&minus;1" if downgrade == 1 else f"&minus;{downgrade}" if downgrade else "not downgraded")
         rows.append(f"<tr><td>{_e(label)}</td><td>{mark}</td><td>{_e(value.get('basis',''))}</td></tr>")
     certainty = _e(_grade_mod.render_certainty(grade))
     unassessed = ", ".join(grade.get("unassessed_domains") or [])
