@@ -1,44 +1,44 @@
 """Serve the evidence bundle a review's CERTIFICATE.json commits to -- without touching the certificate.
 
-THE DEFECT THIS CLOSES (2026-09-19). docs/reviews/<slug>/CERTIFICATE.json commits SHA-256 digests to
-cache/<slug>/records.json, verified_*.json, families.json, rob2.json and twelve held documents, but the served
-site (GitHub Pages from docs/) carried none of them: probed from the Pages origin with cache:'no-store',
-14 of 18 candidate URLs were 404. Three independent audits stalled at exactly that edge. A digest of a file
-nobody can fetch is a promise, not a proof.
+THE BUNDLE IS THE VERIFICATION API (architectural review, 2026-09-19). Not "files an auditor can download" but the
+input to an independent checker that knows nothing about harness/pipeline.py. Per primary-pool row it carries a
+source object, a span object with offsets into a named representation, an endpoint object, an effect object, a
+decision object and an admission object, so a stdlib verifier (scripts/verify_bundle.py) can PROVE invariants rather
+than read assertions, and a single controlled corruption of any mandatory limb makes exactly that row inadmissible.
+`verified: true` is a producer assertion; this file carries the material the assertion is about.
 
-THE DESIGN. The certificate is left byte-identical (an external auditor has reproduced its release_sha256
-with an isolated standard-library script; that result must survive). Every input the certificate names is
-mirrored at docs/<repo-root-relative ref>, so the refs the certificate already carries resolve unmodified
-against the site root, and a new BUNDLE.json at the review root lets a reader start there and reach every
-object -- declared digest, served path, byte length -- without guessing a path. An input we may not
-redistribute gets an explicit WITHHELD entry naming the reason, its digest and where the same bytes come
-from, so "not served because we may not" is never confused with "not served because we forgot".
+HISTORY OF THE FORMAT (all 2026-09-19):
+  v1  CERTIFICATE.json committed digests to files that 404'd on the served site (14 of 18 probed URLs). Every input
+      is mirrored at docs/<repo-root-relative ref>; BUNDLE.json names each with digest, path and length; an input we
+      may not redistribute is declared, never silently omitted.
+  v2  A verifier proved "this quotation occurs in our cache" and reported "faithful to the source". SOUL's cached
+      span is stitched; REWIND's and Harmony's rendered spans fold Lancet middle-dot decimals. Two identities per
+      document and a mechanical span-match ladder.
+  v3  (a) Resolvability is RECURSIVE: aact_inputs.json and review.json referenced ~15,000 AACT rows by {keys, digest}
+      with no body -- a hash without its row body is a promise. Bodies are re-selected from the same-named snapshot,
+      digest-matched and published under docs/acquisitions/; a walk from this file reports every edge that still
+      ends in a digest with no body. (b) The cached SOUL abstract omits the safety sentence, so the page's
+      OUTCOME_NOT_IN_SOURCE for its gastrointestinal row is true of our cache and false of the cited abstract -- an
+      absence claim from a truncated copy is guaranteed to succeed and every cryptographic check passes. Four
+      IMMUTABLE representations per document (ACQUIRED_SOURCE / PARSED_SOURCE / NORMALIZED_SOURCE / EXCERPT), a
+      coverage_status BACKED BY A PRESERVATION RECORD against a retained EFetch acquisition (every abstract unit
+      PRESERVED or MISSING), and the asymmetric rule: a positive claim may rest on a located excerpt; a negative
+      claim only on a representation certified complete for the scope searched. (c) Four separate questions, four
+      names: acquisition_complete / content_preserved / source_set_examined / outcome_understood -- never one badge.
+      (d) Custody: the MedR original is producer-held off the package; stated with reacquisition route and expected
+      digest, distinct from a licence restriction. (e) BagIt's words: this package is COMPLETE when required files
+      are present and VALID when checksums verify -- neither means it contains complete scientific evidence.
 
-TWO IDENTITIES PER DOCUMENT (fourth audit, 2026-09-19). A verifier can prove "this quotation occurs in our
-cache" while failing to prove "our cache faithfully preserves the cited upstream source": SOUL's cached result
-span is stitched relative to the current PubMed abstract; REWIND's and Harmony's rendered spans have the
-Lancet middle-dot decimals silently normalised. A single document_sha256 cannot express the difference between
-the acquired original and a representation derived from it, so every artefact entry carries a `representation`
-block naming which of the two it is, what it was derived from, the transform, and whether the original was
-retained -- and where it was not, the entry says so instead of presenting the derived copy as the original.
-The `value_index` closes the traversal value -> span -> representation -> document digest in one hop, and
-records mechanically whether each rendered span is located VERBATIM, only after NORMALISATION, or NOT at all.
+THE SERVED SURFACE HAS ITS OWN CLOCK. Pages serves through a CDN; cache:'no-store' bypasses the browser cache only.
+manifest.json and this file carry a `source` block (git blob ids of the served files + the commit that introduced
+them; generating_commit NOT_RECORDED, stated) so a stale edge copy is checkable.
 
-THE SERVED SURFACE HAS ITS OWN CLOCK. GitHub Pages serves through a CDN; cache:'no-store' bypasses the browser
-cache only, and two readers can hold different versions of one URL at the same moment (measured: the same
-manifest.json returned two review_sha256 values 32 minutes apart with no intervening commit). Nothing in the
-served manifest tied bytes to a commit. This script stamps a `source` block into manifest.json (and BUNDLE.json)
-carrying the git blob ids of the served files and the commit that introduced them, so a reader can compare
-against the repository and tell a stale edge copy from the current one. The generating commit is NOT_RECORDED,
-because the generator does not record it; build_utc records when, not from what, and is not repurposed.
+THE TRAP. `* text=auto eol=lf` is repo-wide and three held text exports carry CRLF; mirror paths carry -text and this
+script refuses to mirror a path whose text attribute is not unset.
 
-THE TRAP. .gitattributes applies `* text=auto eol=lf` repo-wide and three held text exports carry CRLF.
-A mirror added without a `-text` rule would be normalised on checkin and served off its digest -- a bundle
-that looks complete and verifies as corrupt. This script refuses to write a mirror path whose `text`
-attribute is not unset, and tests/test_bundle.py refuses the standard if that ever regresses.
-
-Usage:  python scripts/build_bundle.py <slug>          (idempotent; rerun after any rebuild of the page)
-        python scripts/build_bundle.py <slug> --check  (verify only; exit 1 on any drift, write nothing)
+Usage:  python scripts/build_bundle.py <slug>            (idempotent; rerun after any rebuild; commit the rebuild first)
+        python scripts/build_bundle.py <slug> --check    (verify only; exit 1 on any drift, write nothing)
+Prerequisite: python scripts/acquire_bundle_evidence.py <slug>   (immutable acquisition objects under docs/acquisitions/)
 """
 from __future__ import annotations
 
@@ -49,27 +49,31 @@ import os
 import re
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harness import certificate  # noqa: E402
+from harness import synth  # noqa: E402
+from harness.target_endpoint import _components_from_text  # noqa: E402
 from harness.canonical import canonical_json, review_core, sha256_text  # noqa: E402
 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 GENERATED_FILES = ("review.json", "index.html", "CERTIFICATE.json", "REPRODUCTION.json")
 
-# Inputs we hold but may not redistribute. Keyed by repo-root-relative ref; the value is the reason an
-# auditor reads and the route to the same bytes. Anything not listed here is served.
-WITHHELD = {
+# Inputs we hold but may not redistribute. PMC separates ACCESS from REUSE: the reference and the verification
+# method are exposed, and the external-access dependency is declared. Anything not listed here is served.
+NOT_IN_PACKAGE_LICENCE = {
     "cache/glp1-ra-mace-t2d/ft_27295427.txt": {
         "reason": "PMC author manuscript (nihms809153; N Engl J Med 2016, LEADER). PMC licence text: 'This file is "
                   "available for text mining. It may also be used consistent with the principles of fair use under "
                   "the copyright law.' -- a text-mining permission, not a redistribution licence; the publisher's "
                   "copyright applies to the article text.",
+        "external_access_dependency": "PMC (open access to read; reuse restricted)",
         "obtain_from": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id=PMC4985288&retmode=xml",
         "identifiers": {"pmid": "27295427", "pmcid": "PMC4985288"},
     },
@@ -78,12 +82,12 @@ WITHHELD = {
                   "available for text mining. It may also be used consistent with the principles of fair use under "
                   "the copyright law.' -- a text-mining permission, not a redistribution licence; the publisher's "
                   "copyright applies to the article text.",
+        "external_access_dependency": "PMC (open access to read; reuse restricted)",
         "obtain_from": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id=PMC9792409&retmode=xml",
         "identifiers": {"pmid": "28910237", "pmcid": "PMC9792409"},
     },
 }
 
-# Licence notes for served held documents whose redistribution rests on something a reader should be able to check.
 SERVED_LICENCE = {
     "cache/glp1-ra-mace-t2d/comparator_fulltext.txt":
         "Giugliano 2021, Cardiovasc Diabetol, DOI 10.1186/s12933-021-01366-8; Crossref licence CC BY 4.0.",
@@ -101,6 +105,61 @@ STALENESS_NOTICE = (
     "returns it as 'sha'); a mismatch means you are holding a stale edge copy or a superseded build."
 )
 
+VOCABULARY = {
+    "representation_levels": {
+        "ACQUIRED_SOURCE": "original response / PDF / XML bytes as received; sha256_original; created before any parsing",
+        "PARSED_SOURCE": "complete text derived from the original by a named parser; sha256_parsed; parser identity and version",
+        "NORMALIZED_SOURCE": "PARSED_SOURCE after narrowly defined, documented Unicode/whitespace transforms; sha256_normalized; transformation manifest",
+        "EXCERPT": "a located span: parent representation + start/end offsets + exact text",
+    },
+    "operations": {
+        "normalization": "narrowly defined documented transforms (whitespace, Unicode punctuation); listed by name",
+        "selection": "choosing specified parts of a source (offsets into a parent representation)",
+        "summarisation": "generating a new interpretation or compression; NOT a representation of the source and never labelled as one",
+    },
+    "coverage_status": {
+        "COMPLETE_SOURCE": "full text; a preservation record shows every source unit PRESERVED or explicitly excluded",
+        "COMPLETE_ABSTRACT": "abstract scope; a preservation record against a retained acquisition shows every abstract unit PRESERVED",
+        "EXCERPT_ONLY": "a fragment or a summarisation; a preservation record shows units MISSING, or the object is not a complete unit of anything",
+        "UNKNOWN_COMPLETENESS": "no retained acquisition to build a preservation record against",
+    },
+    "asymmetric_rule": "a POSITIVE claim (a result appears in the source) is allowed from a located authenticated excerpt; a NEGATIVE / "
+                       "absence claim (an outcome is not reported) is allowed only from a representation whose coverage_status is "
+                       "COMPLETE_* for the evidential scope searched. Positive extraction can be verified from a fragment; negative "
+                       "extraction cannot. An unadjudicated deletion from a fixed source representation must not increase confidence "
+                       "that an outcome was unreported.",
+    "four_questions": {
+        "acquisition_complete": "the response was received with no detected transfer failure (NOT: that the server returned the article rather than an abstract or a login page)",
+        "content_preserved": "the representation was transformed without unexplained loss, unit by unit (NOT: that all relevant publications and supplements were acquired)",
+        "source_set_examined": "the named documents and versions were assessed (NOT: that no additional report exists elsewhere)",
+        "outcome_understood": "the interpretation is supported by context and adjudication (NOT: that a matching hash makes the clinical judgment true)",
+    },
+    "question_states": ["PASS", "FAIL", "NOT_RETAINED", "NOT_ASSESSED_BY_BUNDLE", "PRODUCER_ASSERTION"],
+    "resolvability_states": {
+        "RESOLVED_IN_PACKAGE": "the referenced bytes are served by this package at the stated path",
+        "RESOLVED_BODY_IN_ACQUISITIONS": "a digest-only reference whose body is served under acquisitions/ and re-hashes to the digest",
+        "NOT_IN_PACKAGE_LICENCE": "held; not redistributed; reference + verification method + external-access dependency stated",
+        "NOT_IN_PACKAGE_PRODUCER_HELD": "held by the producer off the package (size); reacquisition route + expected digest stated",
+        "IN_REPOSITORY_NOT_PACKAGE": "the repository holds the file but this package does not serve it (not a certificate input)",
+        "DIGEST_WITHOUT_BODY": "a reference that terminates in a digest with no retrievable body -- a promise, reported as such",
+        "DANGLING": "a reference to nothing the package or the repository holds",
+    },
+    "admission_predicates": {
+        "P1_source_bytes": "sha256(served source bytes) == declared digest for the container of the representation the span is located in",
+        "P2_span_located": "span text == representation[start:end] in the named representation (VERBATIM in PARSED_SOURCE, or in NORMALIZED_SOURCE with the transform manifest applied)",
+        "P3_effect_tokens_in_span": "every number token of the effect object (estimate, CI bounds) occurs in the selected span",
+        "P4_endpoint_components": "the row's component set equals the outcome's canonical component set",
+        "P5_family_eligible": "the trial family's eligibility state == ELIGIBLE",
+        "P6_no_unresolved_conflict": "no unresolved source conflict is recorded for the row's family",
+        "P7_coverage_adequate_for_claim": "a positive claim: the excerpt is located (P2); a negative claim: coverage_status of the searched representation is COMPLETE_*",
+        "ADMISSIBLE": "all predicates PASS",
+    },
+}
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# helpers
+# ----------------------------------------------------------------------------------------------------------------
 
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -117,7 +176,6 @@ def _git(*args: str) -> str:
 
 
 def _text_attr(path: str) -> str:
-    """The effective `text` attribute for a repo path, as git will apply it on checkin ('unset' == -text)."""
     return _git("check-attr", "text", "--", path).rsplit(":", 1)[-1].strip()
 
 
@@ -125,16 +183,49 @@ def _rel(p: Path) -> str:
     return p.relative_to(ROOT).as_posix()
 
 
+def _read_json(p: Path):
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+_WS = re.compile(r"\s+")
+NORMALIZATION_MANIFEST = [
+    {"step": "whitespace", "rule": "collapse every run of Unicode whitespace to one ASCII space; strip ends"},
+    {"step": "unicode_punctuation", "rule": "U+00B7 middle dot -> '.'; U+2013/2014/2212/2010/2011 dashes -> '-'; "
+                                            "U+00A0/2009/202F spaces -> ' '; U+2018/2019 -> \"'\"; U+201C/201D -> '\"'; "
+                                            "U+2264 -> '<='; U+2265 -> '>='"},
+]
+_UNICODE_MAP = str.maketrans({
+    "·": ".", "–": "-", "—": "-", "−": "-", "‐": "-", "‑": "-",
+    " ": " ", " ": " ", " ": " ", "‘": "'", "’": "'", "“": '"', "”": '"',
+    "≤": "<=", "≥": ">=",
+})
+
+
+def normalize(text: str) -> str:
+    return _WS.sub(" ", text).strip().translate(_UNICODE_MAP)
+
+
+def locate(span: str, hay: str) -> dict:
+    """Mechanical ladder: where, if anywhere, does this rendered span occur in the document text? Offsets are into
+    the named parent representation (PARSED_SOURCE verbatim, or NORMALIZED_SOURCE = normalize(PARSED_SOURCE))."""
+    if not span:
+        return {"match": "NO_SPAN"}
+    i = hay.find(span)
+    if i >= 0:
+        return {"match": "VERBATIM", "parent": "PARSED_SOURCE", "start": i, "end": i + len(span)}
+    s, h = normalize(span), normalize(hay)
+    i = h.find(s)
+    if i >= 0:
+        steps = ["whitespace"] if _WS.sub(" ", span).strip() in _WS.sub(" ", hay) else [m["step"] for m in NORMALIZATION_MANIFEST]
+        return {"match": "NORMALISED", "parent": "NORMALIZED_SOURCE", "start": i, "end": i + len(s), "normalisation": steps}
+    return {"match": "NOT_LOCATED", "tried": [m["step"] for m in NORMALIZATION_MANIFEST]}
+
+
 # ----------------------------------------------------------------------------------------------------------------
-# certificate inputs
+# certificate inputs (unchanged contract from v1)
 # ----------------------------------------------------------------------------------------------------------------
 
 def enumerate_inputs(slug: str, cert: dict) -> list[dict]:
-    """Every file the certificate's digests were computed from, exactly as harness.certificate.compute reads them.
-
-    Each entry: ref (repo-root-relative), role (the certificate key it feeds), digest_method (how the certificate's
-    value is derived from the file) and declared (the certificate's value, or None when the file is one of several
-    inputs to a composite digest)."""
     cache = ROOT / "cache" / slug
     protocol = ROOT / "protocols" / f"{slug}.md"
     if not protocol.exists():
@@ -151,41 +242,31 @@ def enumerate_inputs(slug: str, cert: dict) -> list[dict]:
          "digest_method": "sha256 of canonical JSON of the whole file; its [{source_id, query}] list, in order, feeds search_query_sha256",
          "declared": cert["retrieval_ledger_sha256"]},
         {"ref": _rel(cache / "families.json"), "role": "trial_family_map_sha256",
-         "digest_method": "sha256 of canonical JSON",
-         "declared": cert["trial_family_map_sha256"]},
+         "digest_method": "sha256 of canonical JSON", "declared": cert["trial_family_map_sha256"]},
         {"ref": _rel(cache / "rob2.json"), "role": "rob_object_sha256",
-         "digest_method": "sha256 of canonical JSON",
-         "declared": cert["rob_object_sha256"]},
+         "digest_method": "sha256 of canonical JSON", "declared": cert["rob_object_sha256"]},
         {"ref": _rel(ROOT / "topics" / f"{slug}.json"), "role": "config_sha256",
-         "digest_method": "sha256 of canonical JSON",
-         "declared": cert["config_sha256"]},
+         "digest_method": "sha256 of canonical JSON", "declared": cert["config_sha256"]},
     ]
-    extraction_paths = sorted(set(cache.glob("verified_*.json")) | set(cache.glob("*effect_type*.json")))
-    for p in extraction_paths:
+    for p in sorted(set(cache.glob("verified_*.json")) | set(cache.glob("*effect_type*.json"))):
         entries.append({"ref": _rel(p), "role": "extraction_objects_sha256",
                         "digest_method": "one member of the canonical ref-to-JSON map {ref: parsed JSON} whose canonical JSON is hashed",
                         "declared": None})
     for ref, blob in cert["analysis_code_blobs"].items():
-        if blob == certificate.NOT_PRESENT:
-            continue
-        entries.append({"ref": ref, "role": "analysis_code_sha256",
-                        "digest_method": "Git blob SHA-1 of LF-normalised bytes: sha1(b'blob <len>\\0' + bytes); the map of these feeds analysis_code_sha256",
-                        "declared": blob})
+        if blob != certificate.NOT_PRESENT:
+            entries.append({"ref": ref, "role": "analysis_code_sha256",
+                            "digest_method": "Git blob SHA-1 of LF-normalised bytes: sha1(b'blob <len>\\0' + bytes); the map of these feeds analysis_code_sha256",
+                            "declared": blob})
     for h in cert["held_documents"]:
-        entries.append({"ref": h["ref"], "role": "held_documents",
-                        "digest_method": "sha256 of exact file bytes",
-                        "declared": h["sha256"]})
+        entries.append({"ref": h["ref"], "role": "held_documents", "digest_method": "sha256 of exact file bytes", "declared": h["sha256"]})
     return entries
 
 
 def recompute(entry: dict, data: bytes) -> str | None:
-    """The certificate's digest for this file, from the bytes about to be served. None for composite members."""
     role = entry["role"]
     if role == "protocol_text_sha256":
-        text = data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
-        return sha256_text(text)
-    if role in ("records_file_sha256", "retrieval_ledger_sha256", "trial_family_map_sha256",
-                "rob_object_sha256", "config_sha256"):
+        return sha256_text(data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n"))
+    if role in ("records_file_sha256", "retrieval_ledger_sha256", "trial_family_map_sha256", "rob_object_sha256", "config_sha256"):
         return sha256_text(canonical_json(json.loads(data.decode("utf-8"))))
     if role == "analysis_code_sha256":
         return _git_blob_sha1(data, lf_normalise=True)
@@ -195,234 +276,468 @@ def recompute(entry: dict, data: bytes) -> str | None:
 
 
 # ----------------------------------------------------------------------------------------------------------------
-# two identities per document
+# acquisitions (immutable; produced by scripts/acquire_bundle_evidence.py)
 # ----------------------------------------------------------------------------------------------------------------
 
-def _regulatory_sources(slug: str) -> dict:
-    """Map extracted-text ref -> its source record, and held-PDF ref -> its source record, from the source manifest."""
+def load_acquisitions(slug: str) -> dict:
+    base = ROOT / "docs" / "acquisitions" / slug
+    out = {"pubmed": {}, "aact": {}, "manifests": [], "files": []}
+    if not base.exists():
+        return out
+    for man in sorted(base.glob("*/ACQUISITION*.json")):
+        m = _read_json(man)
+        raw = man.read_bytes()
+        out["manifests"].append({"path": _rel(man), "sha256": _sha256(raw), "bytes": len(raw), "kind": m.get("kind"),
+                                 "source": m.get("source"), "acquisition_date": m.get("acquisition_date"),
+                                 "origin_authentication": m.get("origin_authentication"), "relation_to_cache": m.get("relation_to_cache")})
+        out["files"].append({"path": _rel(man), "sha256": _sha256(raw), "bytes": len(raw)})
+        for e in m.get("entries", []):
+            f = man.parent / e["file"]
+            data = f.read_bytes()
+            if _sha256(data) != e["sha256"]:
+                raise ValueError(f"acquisition {f} does not hash to its manifest entry")
+            out["files"].append({"path": _rel(f), "sha256": e["sha256"], "bytes": len(data)})
+            if "identifier" in e and e["identifier"].get("pmid"):
+                out["pubmed"][e["identifier"]["pmid"]] = {**e, "path": _rel(f), "manifest": _rel(man)}
+            if e["file"] in ("rows.json", "review_source_references.json"):
+                body = json.loads(data.decode("utf-8"))
+                for table, rows in body.get("tables", {}).items():
+                    for r in rows:
+                        out["aact"][r["sha256"]] = {"table": table, "path": _rel(f), "snapshot": body.get("snapshot")}
+    return out
+
+
+def abstract_units(xml_bytes: bytes) -> list[dict]:
+    root = ET.fromstring(xml_bytes)
+    return [{"index": i, "label": a.get("Label"), "nlm_category": a.get("NlmCategory"),
+             "text": _WS.sub(" ", "".join(a.itertext())).strip()}
+            for i, a in enumerate(root.findall(".//Abstract/AbstractText"))]
+
+
+def preservation_record(cached_abstract: str, units: list[dict]) -> dict:
+    """Where did every unit of the acquired abstract go? PRESERVED (verbatim after whitespace collapse) or MISSING;
+    plus any residual text in the cached copy that no unit accounts for."""
+    cached = _WS.sub(" ", cached_abstract or "").strip()
+    rows, resid = [], cached
+    for u in units:
+        ok = bool(u["text"]) and u["text"] in cached
+        rows.append({"index": u["index"], "label": u["label"], "state": "PRESERVED" if ok else "MISSING",
+                     "chars": len(u["text"]), "text_if_missing": (u["text"] if not ok else None)})
+        if ok:
+            resid = resid.replace(u["text"], "")
+            if u["label"]:
+                resid = resid.replace(u["label"] + ":", "")
+    resid = _WS.sub(" ", resid).strip()
+    n_p = sum(1 for r in rows if r["state"] == "PRESERVED")
+    return {"units": rows, "preserved": n_p, "missing": len(rows) - n_p,
+            "extra_chars_in_cached_not_in_acquired": len(resid), "extra_text": resid[:400] if resid else None,
+            "verdict": "PRESERVED" if rows and n_p == len(rows) and not resid else "FAILURE"}
+
+
+def _date_revised(xml_bytes: bytes) -> str | None:
+    try:
+        d = ET.fromstring(xml_bytes).find(".//MedlineCitation/DateRevised")
+        return f"{d.findtext('Year')}-{d.findtext('Month')}-{d.findtext('Day')}" if d is not None else None
+    except ET.ParseError:
+        return None
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# documents: four representations, preservation, coverage, four questions
+# ----------------------------------------------------------------------------------------------------------------
+
+def _regulatory_sources() -> dict:
     path = ROOT / "outputs" / "handover" / "glp1_regulatory" / "regulatory_sources_glp1.json"
     by_text, by_pdf = {}, {}
-    if not path.exists():
-        return {"by_text": by_text, "by_pdf": by_pdf}
-    src = json.loads(path.read_text(encoding="utf-8"))
-    for s in src.get("sources", []):
-        held = s.get("held") or {}
-        text_ref = held.get("extracted_text") or s.get("extracted_text_path")
-        pdf_ref = held.get("held_in_tree") or s.get("document_path")
-        if text_ref:
-            by_text[text_ref] = s
-        if pdf_ref:
-            by_pdf[pdf_ref] = s
+    if path.exists():
+        for s in _read_json(path).get("sources", []):
+            held = s.get("held") or {}
+            t = held.get("extracted_text") or s.get("extracted_text_path")
+            p = held.get("held_in_tree") or s.get("document_path")
+            if t:
+                by_text[t] = s
+            if p:
+                by_pdf[p] = s
     return {"by_text": by_text, "by_pdf": by_pdf}
 
 
-def representation(ref: str, slug: str, records: dict, reg: dict) -> dict:
-    """Which identity this file is: the acquired original, a representation derived from one, or an authored object.
+def _not_retained(reason: str) -> dict:
+    return {"state": "NOT_RETAINED", "note": reason}
 
-    Every field here is either read from a source manifest we hold or is a statement of what was NOT retained;
-    nothing asserts upstream fidelity that was not measured."""
-    cache_prefix = f"cache/{slug}/"
-    name = ref.rsplit("/", 1)[-1]
 
-    if ref.startswith("cache/") and name.startswith("ft_"):
-        pmid = name[3:-4]
-        return {
-            "kind": "ACQUIRED_AS_STORED",
-            "description": "PMC efetch response body (JATS XML) as written to the cache by harness.fetch; no separate digest "
-                           "was taken of the HTTP response at acquisition, so byte identity with what PMC served is asserted "
-                           "by the storing code path, not proven",
-            "acquired_from": f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id=<pmcid for PMID {pmid}>&retmode=xml",
-            "acquired_original": {"retained": True, "is_this_file": True, "acquisition_digest_recorded": False},
-            "derived_representations": [],
-            "upstream_identity": "NOT_PROVEN -- re-fetch from acquired_from and compare digests; PMC may re-render",
-        }
-    if ref == cache_prefix + "records.json":
-        return {
-            "kind": "DERIVED",
-            "description": "projection of PubMed efetch XML: per record {id, id_type, title, abstract, pubtypes, year, journal, doi, "
-                           "nct}; the abstract is the AbstractText sections joined as 'Label: text' with single spaces "
-                           "(harness/fetch.py::_efetch). Also embeds comparator_fulltext (see that entry).",
-            "acquired_from": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&retmode=xml (fetched_utc "
-                             + str(records.get("fetched_utc")) + ")",
-            "acquired_original": {"retained": False, "note": "the efetch XML response bodies were not retained and were not "
-                                                             "digested at acquisition; this file is the only representation held"},
-            "derived_representations": [{"ref": ref, "is_this_file": True,
-                                         "transform": "XML -> field projection; AbstractText sections joined with labels"}],
-            "upstream_identity": "NOT_PROVEN -- PubMed abstracts are revised upstream; a 2026-09-19 audit found the current "
-                                 "PubMed abstract for PMID 40162642 (SOUL) contains clauses absent from this cached copy. "
-                                 "'verified' on the page means located in THIS file, not in the publisher's document.",
-        }
-    if ref == cache_prefix + "aact_inputs.json":
-        return {
-            "kind": "DERIVED",
-            "description": "header-keyed rows selected from a local AACT (ClinicalTrials.gov) snapshot, each row digested as "
-                           "sha256(canonical_json(row)) inside the file (its own row_hash_method field)",
-            "acquired_from": "AACT snapshot " + str(json.loads((ROOT / ref).read_text(encoding="utf-8")).get("snapshot")),
-            "acquired_original": {"retained": False, "note": "the snapshot tables are not part of the bundle; per-row digests "
-                                                             "inside the file are the only tie to them"},
-            "derived_representations": [{"ref": ref, "is_this_file": True, "transform": "SQL row selection -> JSON"}],
-            "upstream_identity": "NOT_PROVEN against the live registry; the snapshot date is stated",
-        }
-    if ref == cache_prefix + "comparator_fulltext.txt":
-        oa = records.get("comparator_oa") or {}
-        return {
-            "kind": "DERIVED",
-            "description": "prose text of the comparator meta-analysis (PMID " + str(records.get("comparator_pmid")) +
-                           ") produced by harness.fetch._pmc_fulltext: PMC JATS XML -> body prose + structured tables "
-                           "(harness/fulltext.py parse_pmc_xml/combined_text)",
-            "acquired_from": "PMC efetch for the comparator PMID; open-access location per Unpaywall: " + str(oa.get("oa_url")),
-            "acquired_original": {"retained": False, "note": "the PMC XML for the comparator was not retained; this text is the "
-                                                             "only representation held"},
-            "derived_representations": [{"ref": ref, "is_this_file": True,
-                                         "transform": "JATS XML -> prose + table rows (whitespace collapsed)"}],
-            "upstream_identity": "NOT_PROVEN -- the article is CC BY 4.0; re-derive from PMC and compare",
-        }
-    if ref in reg["by_text"]:
-        s = reg["by_text"][ref]
+def documents(slug: str, records: dict, acq: dict, art_by_ref: dict, reg: dict, review: dict) -> list[dict]:
+    docs = []
+    rec_ref = f"cache/{slug}/records.json"
+    rec_art = art_by_ref[rec_ref]
+    fetch_blob = _git("rev-parse", "HEAD:harness/fetch.py")
+    displayed = {}
+    for o in review.get("outcomes", []):
+        for t in o.get("trials", []):
+            pmid = str(t.get("id", "")).replace("PMID ", "")
+            if t.get("endpoint_result_span"):
+                displayed.setdefault(pmid, []).append({"outcome": o["name"], "span": t["endpoint_result_span"]})
+
+    # -- PubMed records -------------------------------------------------------------------------------------------
+    for r in records.get("records", []):
+        pmid = str(r["id"])
+        parsed_text = r.get("abstract") or ""
+        norm_text = normalize(parsed_text)
+        a = acq["pubmed"].get(pmid)
+        entry = {"document_id": f"pubmed:{pmid}",
+                 "identifiers": {"pmid": pmid, "doi": r.get("doi"), "nct": r.get("nct"), "title": r.get("title")},
+                 "role_in_review": "pooled-row source (abstract)" if pmid in displayed else "screened record",
+                 "representations": {}, "custody": "PACKAGE"}
+        if a:
+            xml_bytes = (ROOT / a["path"]).read_bytes()
+            pres = preservation_record(parsed_text, abstract_units(xml_bytes))
+            entry["representations"]["ACQUIRED_SOURCE"] = {
+                "state": "RETAINED_POST_HOC", "ref": a["path"], "sha256_original": a["sha256"], "bytes": a["bytes"],
+                "acquired_utc": a["acquired_utc"], "requested_url": a["requested_url"], "http_status": a["http_status"],
+                "content_type": a["content_type"], "truncation": a["truncation"], "date_revised_in_record": _date_revised(xml_bytes),
+                "note": "acquired 2026-09-19, AFTER the cache (records.json fetched_utc " + str(records.get("fetched_utc")) +
+                        "); the acquisition the cache was projected from was not retained. A difference between this and "
+                        "PARSED_SOURCE is recorded below as a discrepancy, not attributed -- except where DateRevised precedes "
+                        "the cache date, in which case the record had not changed upstream between the two."}
+            entry["preservation_record"] = pres
+            if pres["verdict"] == "PRESERVED":
+                coverage = "COMPLETE_ABSTRACT"
+                basis = (f"all {pres['preserved']} AbstractText units of the retained EFetch acquisition are PRESERVED verbatim in "
+                         "PARSED_SOURCE and PARSED_SOURCE carries no text outside them")
+            else:
+                coverage = "EXCERPT_ONLY"
+                basis = (f"{pres['missing']} of {len(pres['units'])} AbstractText units of the retained acquisition are MISSING from PARSED_SOURCE"
+                         + (f"; {pres['extra_chars_in_cached_not_in_acquired']} chars of PARSED_SOURCE occur in no acquired unit (rephrased or stitched text)"
+                            if pres["extra_chars_in_cached_not_in_acquired"] else ""))
+            q_acq = "PASS" if (a["http_status"] == 200 and not a["truncation"]["detected"] and a["truncation"]["well_formed_xml"]) else "FAIL"
+            q_pres = "PASS" if pres["verdict"] == "PRESERVED" else "FAIL"
+        else:
+            entry["representations"]["ACQUIRED_SOURCE"] = _not_retained("no retained EFetch response for this record")
+            coverage, basis = "UNKNOWN_COMPLETENESS", "no retained acquisition to build a preservation record against"
+            q_acq = q_pres = "NOT_RETAINED"
+        entry["representations"]["PARSED_SOURCE"] = {
+            "state": "SERVED", "container_ref": rec_ref, "container_sha256": rec_art["sha256"], "selector": f"#PMID-{pmid} .abstract",
+            "sha256_parsed": sha256_text(parsed_text), "chars": len(parsed_text),
+            "parser": {"identity": "harness/fetch.py::_efetch -- AbstractText sections joined as 'Label: text' with single spaces",
+                       "version": f"git blob {fetch_blob} of harness/fetch.py at the bundle's content commit"}}
+        entry["representations"]["NORMALIZED_SOURCE"] = {
+            "state": "DERIVED_BY_RULE", "sha256_normalized": sha256_text(norm_text), "chars": len(norm_text),
+            "transformation_manifest": NORMALIZATION_MANIFEST, "note": "not stored; recomputed from PARSED_SOURCE with the manifest"}
+        entry["representations"]["EXCERPT"] = [
+            {"outcome": d["outcome"], "text": d["span"], "sha256_excerpt": sha256_text(d["span"]), **locate(d["span"], parsed_text)}
+            for d in displayed.get(pmid, [])] or {"state": "NONE_DISPLAYED"}
+        summarised = coverage == "EXCERPT_ONLY"
+        entry["transforms"] = [
+            {"from": "ACQUIRED_SOURCE", "to": "PARSED_SOURCE", "operation": "summarisation" if summarised else "selection+normalization",
+             "detail": ("the cached text is neither a normalization nor a selection of the acquired units (see preservation_record); "
+                        "it is a compression/rephrasing and is labelled as such") if summarised else "XML AbstractText nodes -> labelled text"},
+            {"from": "PARSED_SOURCE", "to": "NORMALIZED_SOURCE", "operation": "normalization", "detail": NORMALIZATION_MANIFEST},
+            {"from": "PARSED_SOURCE|NORMALIZED_SOURCE", "to": "EXCERPT", "operation": "selection", "detail": "offsets recorded per excerpt"}]
+        entry["coverage_status"] = {"value": coverage, "scope": "abstract", "basis": basis, "backed_by": "preservation_record" if a else None}
+        entry["which_representation"] = {
+            "hashed_by_certificate": f"the container file {rec_ref} (records_file_sha256 / retrieved_corpus_sha256): PARSED_SOURCE for every record at once",
+            "searched_by_page": "PARSED_SOURCE (the page's verify_basis 'effect present in committed source' is a search of this file); "
+                                "where the displayed span is NORMALISED the page compared after normalization",
+            "displayed_by_page": "EXCERPT as rendered (representations.EXCERPT[*].match is VERBATIM or NORMALISED relative to PARSED_SOURCE)"}
+        entry["four_questions"] = {
+            "acquisition_complete": {"state": q_acq, "basis": "HTTP 200, Content-Length == received, well-formed XML" if a else "no retained acquisition"},
+            "content_preserved": {"state": q_pres, "basis": "preservation_record" if a else "no retained acquisition"},
+            "source_set_examined": {"state": "NOT_ASSESSED_BY_BUNDLE", "basis": "lives in retrieval_ledger.json and review.json['screening']; not re-assessed here"},
+            "outcome_understood": {"state": "PRODUCER_ASSERTION", "basis": "the page's endpoint_binding / adjudication fields are the producer's; carried in verification_rows, not independently adjudicated"}}
+        docs.append(entry)
+
+    # -- comparator full text -------------------------------------------------------------------------------------
+    cref = f"cache/{slug}/comparator_fulltext.txt"
+    if cref in art_by_ref:
+        text = (ROOT / cref).read_text(encoding="utf-8", errors="replace")
+        docs.append({
+            "document_id": "comparator:PMID " + str(records.get("comparator_pmid")),
+            "identifiers": {"pmid": str(records.get("comparator_pmid")), "oa_url": (records.get("comparator_oa") or {}).get("oa_url")},
+            "role_in_review": "comparator meta-analysis (parity benchmark)",
+            "representations": {
+                "ACQUIRED_SOURCE": _not_retained("the PMC XML for the comparator was not retained"),
+                "PARSED_SOURCE": {"state": "SERVED", "ref": cref, "sha256_parsed": art_by_ref[cref]["sha256"], "bytes": art_by_ref[cref]["bytes"],
+                                  "parser": {"identity": "harness.fetch._pmc_fulltext -> harness/fulltext.py parse_pmc_xml/combined_text (JATS XML -> body prose + table rows)",
+                                             "version": "harness/fulltext.py at the content commit"}},
+                "NORMALIZED_SOURCE": {"state": "DERIVED_BY_RULE", "sha256_normalized": sha256_text(normalize(text)), "transformation_manifest": NORMALIZATION_MANIFEST},
+                "EXCERPT": {"state": "NONE_DISPLAYED_BY_THIS_BUNDLE", "note": "comparator_panel spans are the producer's; not re-located here"}},
+            "transforms": [{"from": "ACQUIRED_SOURCE", "to": "PARSED_SOURCE", "operation": "selection+normalization", "detail": "JATS body + tables -> prose"}],
+            "coverage_status": {"value": "UNKNOWN_COMPLETENESS", "scope": "full text", "basis": "no retained acquisition; cannot be checked unit by unit", "backed_by": None},
+            "custody": "PACKAGE",
+            "which_representation": {"hashed_by_certificate": "PARSED_SOURCE (held_documents)", "searched_by_page": "PARSED_SOURCE", "displayed_by_page": "producer spans"},
+            "four_questions": {"acquisition_complete": {"state": "NOT_RETAINED"}, "content_preserved": {"state": "NOT_RETAINED"},
+                               "source_set_examined": {"state": "NOT_ASSESSED_BY_BUNDLE"}, "outcome_understood": {"state": "PRODUCER_ASSERTION"}}})
+
+    # -- FDA documents (PDF original + text export) ----------------------------------------------------------------
+    for text_ref, s in reg["by_text"].items():
         held = s.get("held") or {}
         pdf_ref = held.get("held_in_tree") or s.get("document_path")
-        original = {
-            "sha256": s.get("document_sha256"),
-            "bytes": int(s["document_bytes"]) if s.get("document_bytes") else None,
-            "acquired_from": s.get("query"),
-            "fetched_utc": s.get("fetched_utc"),
-            "acquisition_digest_recorded": True,
-        }
-        if pdf_ref:
-            original.update({"retained": True, "ref": pdf_ref, "served": pdf_ref not in WITHHELD})
+        pdf_art = art_by_ref.get(pdf_ref) if pdf_ref else None
+        txt_art = art_by_ref.get(text_ref)
+        if pdf_art:
+            acquired = {"state": "SERVED", "ref": pdf_ref, "sha256_original": pdf_art["sha256"], "bytes": pdf_art["bytes"],
+                        "acquired_from": s.get("query"), "fetched_utc": s.get("fetched_utc"),
+                        "sha256_recorded_at_acquisition": s.get("document_sha256"),
+                        "acquisition_digest_matches_served_bytes": s.get("document_sha256") == pdf_art["sha256"]}
+            custody = "PACKAGE"
         else:
-            original.update({"retained": True, "ref": None, "served": False,
-                             "location": "off-repository raw archive, custody = author's machine (the source manifest "
-                                         "regulatory_sources_glp1.json records the archive path; a local path is not "
-                                         "reproduced here)",
-                             "note": "original held OFF the repository (size); its digest was recorded at acquisition and is "
-                                     "stated here so a reader who fetches the FDA document from acquired_from can check it, "
-                                     "but the bytes are not served by this bundle"})
-        return {
-            "kind": "DERIVED",
-            "description": "text extraction of an FDA PDF",
-            "acquired_original": original,
-            "derived_representations": [{"ref": ref, "is_this_file": True,
-                                         "transform": "PDF -> text; the extraction tool is not recorded in "
-                                                      "regulatory_sources_glp1.json (stated, not guessed)",
-                                         "sha256_recorded_at_extraction": s.get("extracted_text_sha256")}],
-            "upstream_identity": "the ORIGINAL's digest was recorded at acquisition; this derived text has no upstream "
-                                 "counterpart to compare against",
-        }
-    if ref in reg["by_pdf"]:
-        s = reg["by_pdf"][ref]
-        held = s.get("held") or {}
-        text_ref = held.get("extracted_text") or s.get("extracted_text_path")
-        return {
-            "kind": "ACQUIRED_AS_STORED",
-            "description": "FDA document bytes as downloaded",
-            "acquired_from": s.get("query"),
-            "acquired_original": {"retained": True, "is_this_file": True, "acquisition_digest_recorded": True,
-                                  "sha256_recorded_at_acquisition": s.get("document_sha256"),
-                                  "fetched_utc": s.get("fetched_utc")},
-            "derived_representations": [{"ref": text_ref, "transform": "PDF -> text (tool not recorded)"}] if text_ref else [],
-            "upstream_identity": "digest recorded at acquisition by the acquiring agent and equal to the served bytes; "
-                                 "independent check = re-fetch acquired_from and compare",
-        }
-    return {
-        "kind": "AUTHORED",
-        "description": "an object authored inside this project (configuration, protocol, analysis code, ledger, verified "
-                       "extraction, family map, risk-of-bias object or source manifest); it is its own original and has "
-                       "no upstream document",
-        "acquired_original": {"is_this_file": True},
-        "derived_representations": [],
-        "upstream_identity": "NOT_APPLICABLE",
-    }
+            acquired = {"state": "NOT_IN_PACKAGE_PRODUCER_HELD", "sha256_original": s.get("document_sha256"),
+                        "bytes": int(s["document_bytes"]) if s.get("document_bytes") else None, "pages": s.get("pages"),
+                        "acquired_from": s.get("query"), "fetched_utc": s.get("fetched_utc"),
+                        "custody": "producer-held off the package (size); the source manifest records the archive location",
+                        "reacquire": "fetch the document at acquired_from (accessdata.fda.gov); sha256 of the bytes must equal sha256_original; "
+                                     "then PARSED_SOURCE below is checkable against it",
+                        "statement": "this package is NOT a complete producer-held binary archive: this original is described, digested and "
+                                     "reacquirable, but its bytes are not served"}
+            custody = "PARTIAL: original off-package (producer-held), text export in package"
+        text = (ROOT / text_ref).read_bytes().decode("utf-8", "replace") if txt_art else ""
+        docs.append({
+            "document_id": "fda:" + s.get("source_id", text_ref),
+            "identifiers": {"source_id": s.get("source_id"), "kind": s.get("kind"), "url": (s.get("query") or "").split(" ")[0]},
+            "role_in_review": "regulatory source (level 2)",
+            "representations": {
+                "ACQUIRED_SOURCE": acquired,
+                "PARSED_SOURCE": {"state": "SERVED", "ref": text_ref, "sha256_parsed": txt_art["sha256"] if txt_art else None,
+                                  "bytes": txt_art["bytes"] if txt_art else None, "sha256_recorded_at_extraction": s.get("extracted_text_sha256"),
+                                  "parser": {"identity": "PDF -> text; the extraction tool is NOT recorded in regulatory_sources_glp1.json (stated, not guessed)", "version": None}},
+                "NORMALIZED_SOURCE": {"state": "DERIVED_BY_RULE", "sha256_normalized": sha256_text(normalize(text)), "transformation_manifest": NORMALIZATION_MANIFEST},
+                "EXCERPT": [{"trial": d.get("trial"), "outcome": d.get("outcome"), "decision": d.get("decision"), "span_page_pdf": d.get("span_page_pdf"),
+                             "text": d.get("span"), **locate(d.get("span") or "", text)} for d in s.get("decisions", []) if d.get("span")]},
+            "transforms": [{"from": "ACQUIRED_SOURCE", "to": "PARSED_SOURCE", "operation": "unrecorded", "detail": "PDF text extraction; tool unrecorded; no per-page preservation record exists"}],
+            "coverage_status": {"value": "UNKNOWN_COMPLETENESS", "scope": "full document", "basis": "no page-by-page preservation record of the text extraction against the PDF", "backed_by": None},
+            "custody": custody,
+            "which_representation": {"hashed_by_certificate": "both: ACQUIRED_SOURCE (held/*.pdf) where served, and PARSED_SOURCE (*.pdf.txt)",
+                                     "searched_by_page": "PARSED_SOURCE", "displayed_by_page": "producer spans (regulatory_sources_glp1.json decisions[*].span)"},
+            "four_questions": {"acquisition_complete": {"state": "PASS" if pdf_art and acquired.get("acquisition_digest_matches_served_bytes") else "NOT_ASSESSED_BY_BUNDLE",
+                                                        "basis": "acquisition digest recorded by the acquiring agent equals served bytes" if pdf_art else "original off-package"},
+                               "content_preserved": {"state": "NOT_ASSESSED_BY_BUNDLE", "basis": "no preservation record for the PDF->text extraction"},
+                               "source_set_examined": {"state": "NOT_ASSESSED_BY_BUNDLE"}, "outcome_understood": {"state": "PRODUCER_ASSERTION"}},
+            "span_location_check_owed_by_producer": s.get("span_location_check")})
+
+    # -- PMC full texts (licence-restricted) -----------------------------------------------------------------------
+    for ref, lic in NOT_IN_PACKAGE_LICENCE.items():
+        a = art_by_ref.get(ref)
+        if not a:
+            continue
+        docs.append({
+            "document_id": "pmc:" + lic["identifiers"]["pmcid"], "identifiers": lic["identifiers"],
+            "role_in_review": "full text (PMC author manuscript) held for span checks",
+            "representations": {
+                "ACQUIRED_SOURCE": {"state": "NOT_IN_PACKAGE_LICENCE", "ref_in_repository": ref, "sha256_original": a["sha256"], "bytes": a["bytes"],
+                                    "acquisition_digest_recorded": False, "obtain_from": lic["obtain_from"],
+                                    "verification_method": "fetch obtain_from; sha256 of the response must equal sha256_original (PMC may re-render; a mismatch is a discrepancy to record)",
+                                    "external_access_dependency": lic["external_access_dependency"]},
+                "PARSED_SOURCE": _not_retained("not derived by the bundle"), "NORMALIZED_SOURCE": _not_retained("not derived by the bundle"),
+                "EXCERPT": {"state": "NONE_DISPLAYED_BY_THIS_BUNDLE"}},
+            "transforms": [],
+            "coverage_status": {"value": "UNKNOWN_COMPLETENESS", "scope": "full text", "basis": "no acquisition digest was taken; structural completeness of the stored XML not assessed", "backed_by": None},
+            "custody": "REPOSITORY_NOT_PACKAGE (licence)",
+            "which_representation": {"hashed_by_certificate": "ACQUIRED_SOURCE bytes (held_documents)", "searched_by_page": "unknown to the bundle", "displayed_by_page": "none"},
+            "four_questions": {"acquisition_complete": {"state": "NOT_ASSESSED_BY_BUNDLE"}, "content_preserved": {"state": "NOT_ASSESSED_BY_BUNDLE"},
+                               "source_set_examined": {"state": "NOT_ASSESSED_BY_BUNDLE"}, "outcome_understood": {"state": "PRODUCER_ASSERTION"}}})
+    return docs
 
 
 # ----------------------------------------------------------------------------------------------------------------
-# value -> span -> representation -> document digest, in one hop
+# verification rows (primary pool) and absence claims
 # ----------------------------------------------------------------------------------------------------------------
 
-_WS = re.compile(r"\s+")
-_UNICODE_MAP = str.maketrans({
-    "·": ".",   # middle dot (Lancet decimal)
-    "–": "-", "—": "-", "−": "-", "‐": "-", "‑": "-",
-    " ": " ", " ": " ", " ": " ",
-    "‘": "'", "’": "'", "“": '"', "”": '"',
-    "≤": "<=", "≥": ">=",
-})
+def _tokens(x) -> list[str]:
+    if x is None:
+        return []
+    s = repr(float(x)) if isinstance(x, (int, float)) else str(x)
+    return [s[:-2] if s.endswith(".0") else s]
 
 
-def locate(span: str, hay: str) -> dict:
-    """Mechanical ladder: where, if anywhere, does this rendered span occur in the document text?"""
-    if not span:
-        return {"match": "NO_SPAN"}
-    if span in hay:
-        return {"match": "VERBATIM"}
-    steps = []
-    s, h = _WS.sub(" ", span).strip(), _WS.sub(" ", hay)
-    steps.append("whitespace collapsed")
-    if s in h:
-        return {"match": "NORMALISED", "normalisation": steps}
-    s2, h2 = s.translate(_UNICODE_MAP), h.translate(_UNICODE_MAP)
-    steps.append("unicode punctuation folded (middle dot -> '.', dashes -> '-', NBSP -> ' ', curly quotes)")
-    if s2 in h2:
-        return {"match": "NORMALISED", "normalisation": steps}
-    return {"match": "NOT_LOCATED", "tried": steps}
-
-
-def value_index(slug: str, review: dict, artefact_by_ref: dict, records: dict) -> list[dict]:
-    """One entry per rendered per-trial row of every outcome, plus the pooled result per outcome."""
+def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dict, records: dict) -> tuple[list[dict], dict]:
+    primary = next(o for o in review["outcomes"] if o.get("primary"))
+    canonical_components = sorted((primary.get("endpoint_canonical") or {}).get("components") or [])
+    lexicon_blob = _git("rev-parse", "HEAD:harness/target_endpoint.py")
+    fam_by_id = {f.get("family_id"): f for f in review.get("trial_families", []) if isinstance(f, dict)}
     rec_ref = f"cache/{slug}/records.json"
-    rec_art = artefact_by_ref.get(rec_ref, {})
-    by_pmid = {str(r.get("id")): r for r in records.get("records", [])}
+    by_pmid = {str(r["id"]): r for r in records.get("records", [])}
+    rows = []
+    for t in primary["trials"]:
+        trial_id = str(t.get("id") or "")
+        pmid = trial_id.replace("PMID ", "")
+        doc = docs_by_id.get(f"pubmed:{pmid}") or {}
+        parsed = (by_pmid.get(pmid) or {}).get("abstract") or ""
+        span = t.get("endpoint_result_span") or ""
+        loc = locate(span, parsed)
+        fam = fam_by_id.get(t.get("family_id")) or {}
+        elig = (fam.get("eligibility") or {}).get("state") if fam else None
+        conflicts = fam.get("conflicts") if fam else None
+        unresolved = [c for c in conflicts if isinstance(c, dict) and str(c.get("state", "")).upper().startswith("UNRESOLVED")] if isinstance(conflicts, list) else []
+        effect = {"scale": t.get("scale"), "estimate": t.get("effect"), "ci_low": t.get("ci_low"), "ci_high": t.get("ci_high")}
+        tokens = _tokens(effect["estimate"]) + _tokens(effect["ci_low"]) + _tokens(effect["ci_high"])
+        span_norm = normalize(span)
+        tokens_in = {tok: (tok in span or tok in span_norm) for tok in tokens}
+        components = sorted(t.get("components") or [])
+        components_canonical = sorted(x.upper().replace(" ", "_") for x in
+                                      _components_from_text(" ; ".join(components), expand_named_composites=False)) if components else []
+        cov = (doc.get("coverage_status") or {}).get("value")
+        located = loc["match"] in ("VERBATIM", "NORMALISED")
+        predicates = {
+            "P1_source_bytes": {"state": "PASS" if art_by_ref[rec_ref]["sha256"] == (doc.get("representations", {}).get("PARSED_SOURCE", {}).get("container_sha256")) else "FAIL",
+                                "declared": art_by_ref[rec_ref]["sha256"], "container": rec_ref},
+            "P2_span_located": {"state": "PASS" if located else "FAIL", **loc},
+            "P3_effect_tokens_in_span": {"state": "PASS" if tokens and all(tokens_in.values()) else "FAIL", "tokens": tokens_in},
+            "P4_endpoint_components": {"state": "PASS" if components_canonical == canonical_components and components_canonical else "FAIL",
+                                       "row_components_as_stated": components, "row_components_canonical": components_canonical,
+                                       "outcome_canonical": canonical_components,
+                                       "canonicalisation": f"PRODUCER STEP: harness/target_endpoint.py::_components_from_text (git blob {lexicon_blob}); "
+                                                           "a context-sensitive lexicon in code, not data -- an independent verifier compares the shipped "
+                                                           "canonical sets mechanically but cannot re-derive the mapping from the stated strings (limitation stated)"},
+            "P5_family_eligible": {"state": "PASS" if elig == "ELIGIBLE" else "FAIL", "family_id": t.get("family_id"), "eligibility_state": elig,
+                                   "absence_code": (fam.get("eligibility") or {}).get("absence_code") if fam else None},
+            "P6_no_unresolved_conflict": {"state": "PASS" if not unresolved else "FAIL", "unresolved": unresolved},
+            "P7_coverage_adequate_for_claim": {"state": "PASS" if located else "FAIL", "claim_kind": "POSITIVE",
+                                               "rule": "positive claim: a located excerpt suffices; coverage_status of the source is " + str(cov)},
+        }
+        rows.append({
+            "outcome_effect_id": t.get("outcome_effect_id"),
+            "trial": {"label": t.get("label"), "id": trial_id, "family_id": t.get("family_id"), "trial_family_id": t.get("trial_family_id")},
+            "source": {"source_id": f"pubmed:{pmid}", "document_ref": f"{rec_ref}#PMID-{pmid}", "source_sha256": art_by_ref[rec_ref]["sha256"],
+                       "representation": "PARSED_SOURCE", "representation_sha256": sha256_text(parsed),
+                       "acquisition_uri": f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={pmid}&retmode=xml",
+                       "coverage_status": cov},
+            "span": {"source_id": f"pubmed:{pmid}", "parent_representation": loc.get("parent"),
+                     "representation_sha256": sha256_text(parsed) if loc.get("parent") == "PARSED_SOURCE" else sha256_text(normalize(parsed)),
+                     "start": loc.get("start"), "end": loc.get("end"), "text": span, "match": loc["match"], "normalisation": loc.get("normalisation"),
+                     "definition_span": t.get("endpoint_definition_span")},
+            "endpoint": {"components": components, "components_canonical": components_canonical, "canonical_components": canonical_components, "target_endpoint_class": t.get("target_endpoint_class"),
+                         "population": {"analysis_set": t.get("analysis_set"), "population_age": t.get("population_age")},
+                         "intervention": t.get("intervention_ontology"), "comparator": "placebo (topic config)", "timepoint": t.get("follow_up_window"),
+                         "estimand": (t.get("effect_object") or {}).get("canonical_estimand"), "endpoint_definition": t.get("endpoint_definition")},
+            "effect": {**effect, "number_tokens": tokens, "study_effect": t.get("study_effect")},
+            "decision": {"selected_candidate": t.get("selected_estimator"), "selection_rule": t.get("selection_rule"), "rejected_alternatives": t.get("alternatives"),
+                         "endpoint_binding": t.get("endpoint_binding"), "endpoint_binding_reason": t.get("endpoint_binding_reason"),
+                         "adjudication_status": t.get("endpoint_admissibility"), "family_identity_state": t.get("family_identity_state"),
+                         "producer_labels": {"verified": t.get("verified"), "verify_basis": t.get("verify_basis"), "provenance": t.get("provenance")},
+                         "narrowed_states": {
+                             "result_concordant_with_located_span": "SUPPORTED" if located and predicates["P3_effect_tokens_in_span"]["state"] == "PASS" else "NOT_SUPPORTED",
+                             "cached_representation_faithful_and_complete": {"COMPLETE_ABSTRACT": "SUPPORTED (abstract scope)", "COMPLETE_SOURCE": "SUPPORTED"}.get(cov, "NOT_SUPPORTED: " + str(cov))}},
+            "admission": {"required_predicates": list(predicates), "predicates": predicates,
+                          "final": "ADMISSIBLE" if all(p["state"] == "PASS" for p in predicates.values()) else "INADMISSIBLE"},
+        })
+    return rows, {"canonical_components": canonical_components, "k": len(rows)}
+
+
+def absence_claims(slug: str, review: dict, docs_by_id: dict) -> list[dict]:
     out = []
     for o in review.get("outcomes", []):
-        result = o.get("result") or {}
-        out.append({
-            "entry": "POOLED",
-            "outcome": o.get("name"),
-            "primary": bool(o.get("primary")),
-            "k": result.get("k"),
-            "value": {k: result.get(k) for k in ("estimate", "ci_low", "ci_high", "tau2", "pi_low", "pi_high", "scale") if k in result},
-            "derived_from": "the per-trial rows below, by the method stated in manifest.json (served_method); "
-                            "the pooled numbers are recomputable from review.json alone",
-        })
-        for t in o.get("trials", []):
-            trial_id = str(t.get("id") or "")
+        for d in o.get("declared_absent_trials") or []:
+            trial_id = str(d.get("id") or "")
             pmid = trial_id.replace("PMID ", "")
-            span = t.get("endpoint_result_span") or ""
-            rec = by_pmid.get(pmid)
-            docs = []
-            if rec is not None:
-                loc = locate(span, str(rec.get("abstract") or "") + "\n" + str(rec.get("title") or ""))
-                docs.append({"document_ref": f"{rec_ref}#PMID-{pmid}", "document_sha256": rec_art.get("sha256"),
-                             "served_path": rec_art.get("served_path"),
-                             "representation": "DERIVED (PubMed abstract projection; upstream identity NOT_PROVEN)",
-                             **loc})
-            ft_ref = f"cache/{slug}/ft_{pmid}.txt"
-            if ft_ref in artefact_by_ref and span:
-                ft_art = artefact_by_ref[ft_ref]
-                loc = locate(span, (ROOT / ft_ref).read_text(encoding="utf-8", errors="replace"))
-                docs.append({"document_ref": ft_ref, "document_sha256": ft_art.get("sha256"),
-                             "served_path": ft_art.get("served_path"), "state": ft_art.get("state"),
-                             "representation": "ACQUIRED_AS_STORED (PMC JATS XML; upstream identity NOT_PROVEN)", **loc})
-            if not docs:
-                docs.append({"document_ref": None, "match": "NO_DOCUMENT_IN_BUNDLE"})
-            best = "NO_SPAN" if not span else (
-                "VERBATIM" if any(d.get("match") == "VERBATIM" for d in docs) else
-                "NORMALISED" if any(d.get("match") == "NORMALISED" for d in docs) else "NOT_LOCATED")
-            out.append({
-                "entry": "TRIAL_ROW",
-                "outcome_effect_id": t.get("outcome_effect_id"),
-                "outcome": o.get("name"),
-                "trial": {"label": t.get("label"), "id": trial_id},
-                "value": {"scale": t.get("scale"), "effect": t.get("effect"), "ci_low": t.get("ci_low"), "ci_high": t.get("ci_high")},
-                "page_labels": {"verified": t.get("verified"), "verify_basis": t.get("verify_basis"), "provenance": t.get("provenance")},
-                "endpoint_result_span": span or None,
-                "span_location": docs,
-                "span_match": best,
-                "what_verified_means_here": "the span was located in the served representation named above; that is a fact "
-                                            "about our copy, not about the publisher's document (see the representation's "
-                                            "upstream_identity)",
-            })
+            ref = d.get("document_ref")
+            if ref and ref.startswith("outputs/"):
+                doc = next((x for x in docs_by_id.values() if (x["representations"].get("PARSED_SOURCE") or {}).get("ref") == ref.split("#")[0]), None)
+            else:
+                doc = docs_by_id.get(f"pubmed:{pmid}")
+            cov = ((doc or {}).get("coverage_status") or {}).get("value", "UNKNOWN_COMPLETENESS")
+            state = d.get("state") or d.get("reason_code")
+            kind = "NEGATIVE" if state == "OUTCOME_NOT_IN_SOURCE" else "POSITIVE_REFUSAL" if state in ("REFUSED_ON_EVIDENCE", "SIGNAL_SPURIOUS") else "OTHER"
+            if kind == "NEGATIVE":
+                admissible = cov in ("COMPLETE_SOURCE", "COMPLETE_ABSTRACT")
+                rule = ("negative claim requires a searched representation certified complete for the scope; coverage_status is " + cov +
+                        (" -> NOT admissible: the absence verdict is true of the cached copy and says nothing about the cited source"
+                         if not admissible else " -> admissible for the abstract scope only (a full-text absence claim would need COMPLETE_SOURCE)"))
+            elif kind == "POSITIVE_REFUSAL":
+                admissible = bool(d.get("source_span") or d.get("verbatim_span") or d.get("reason"))
+                rule = "a refusal grounded on located evidence is a positive claim about what the span says; admissible from an excerpt"
+            else:
+                admissible, rule = None, "not classified by the bundle"
+            out.append({"outcome": o["name"], "trial": {"id": trial_id, "label": d.get("label")},
+                        "producer_state": state, "producer_reason": d.get("reason"), "producer_reason_code": d.get("reason_code"),
+                        "searched_document_ref": ref or (f"cache/{slug}/records.json#PMID-{pmid}" if pmid else None),
+                        "searched_representation": "PARSED_SOURCE", "searched_representation_coverage_status": cov,
+                        "claim_kind": kind, "negative_claim_admissible": admissible, "rule_applied": rule,
+                        "preservation_verdict": ((doc or {}).get("preservation_record") or {}).get("verdict")})
     return out
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# pooled reference (canonical path) and resolvability walk
+# ----------------------------------------------------------------------------------------------------------------
+
+def pooled_reference(review: dict) -> dict:
+    primary = next(o for o in review["outcomes"] if o.get("primary"))
+    studies = [synth.Study(label=str(t["id"]), effect=t["effect"], ci_low=t["ci_low"], ci_high=t["ci_high"]) for t in primary["trials"]]
+    res = synth.pool(studies, scale=primary["trials"][0].get("scale", "HR"))
+    return {"outcome": primary["name"], "k": res.k, "scale": res.scale,
+            "inputs": [{"id": str(t["id"]), "effect": t["effect"], "ci_low": t["ci_low"], "ci_high": t["ci_high"]} for t in primary["trials"]],
+            "method": "log-scale inverse-variance random effects; yi = ln(effect), se = (ln(ci_high) - ln(ci_low)) / (2 * 1.959963984540054); "
+                      "Paule-Mandel tau^2 by bisection on Q_gen(tau^2) = k-1 (tol 1e-10; upper bound doubled from 1 until F(hi) <= 0; 200 iterations); "
+                      "HKSJ: se_HK = se_RE * sqrt(max(1, Q_gen/(k-1))); CI = mu +/- t_{0.975, k-1} * se_HK; back-transform exp",
+            "expected": {"estimate": res.estimate, "ci_low": res.ci_low, "ci_high": res.ci_high, "tau2": res.tau2, "mu_log": res.mu_log, "se_log": res.se_log, "Q": res.Q},
+            "computed_by": "harness.synth.pool (the canonical path the page's ci_provenance names); scripts/verify_bundle.py recomputes it with no harness import and compares to 1e-9",
+            "served_page_rounding": {k: primary["result"].get(k) for k in ("estimate", "ci_low", "ci_high", "tau2")}}
+
+
+REF = re.compile(r"(?:cache|outputs)/[^\s\"'<>(),;]+\.(?:json|txt|pdf|xml)")
+
+
+def _collect_source_refs(obj, out):
+    if isinstance(obj, dict):
+        if "row_sha256" in obj and "table" in obj:
+            out.append(obj)
+        for v in obj.values():
+            _collect_source_refs(v, out)
+    elif isinstance(obj, list):
+        for v in obj:
+            _collect_source_refs(v, out)
+
+
+def resolvability_walk(slug: str, art_by_ref: dict, acq: dict, supporting: dict, reg: dict) -> dict:
+    """Start at BUNDLE.json, follow every reference in every served JSON object, classify each edge."""
+    edges, seen = {}, set()
+    queue = [a["ref"] for a in art_by_ref.values() if a["state"] == "SERVED" and a["ref"].endswith(".json")] + [f"docs/reviews/{slug}/review.json"]
+
+    def classify(base: str) -> str:
+        if base in art_by_ref:
+            return "RESOLVED_IN_PACKAGE" if art_by_ref[base]["state"] == "SERVED" else art_by_ref[base]["state"]
+        if base in supporting or ("docs/" + base) in supporting:
+            return "RESOLVED_IN_PACKAGE"
+        return "IN_REPOSITORY_NOT_PACKAGE" if (ROOT / base).exists() else "DANGLING"
+
+    while queue:
+        path = queue.pop()
+        if path in seen or not (ROOT / path).exists():
+            continue
+        seen.add(path)
+        try:
+            obj = _read_json(ROOT / path)
+        except Exception:
+            continue
+        for ref in sorted(set(REF.findall(canonical_json(obj)))):
+            base = ref.split("#")[0]
+            state = classify(base)
+            edges[(path, base, "path_ref")] = state
+            if state == "RESOLVED_IN_PACKAGE" and base.endswith(".json") and base not in seen:
+                queue.append(base)
+        srefs = []
+        _collect_source_refs(obj, srefs)
+        for r in srefs:
+            edges[(path, f"AACT {r.get('table')} row_sha256 {r['row_sha256'][:12]}", "digest_ref")] = \
+                "RESOLVED_BODY_IN_ACQUISITIONS" if r["row_sha256"] in acq["aact"] else "DIGEST_WITHOUT_BODY"
+        if path.endswith("aact_inputs.json"):
+            for table, rows in obj.get("source_rows", {}).items():
+                for r in rows:
+                    edges[(path, f"AACT {table} sha256 {r['sha256'][:12]}", "digest_ref")] = \
+                        "RESOLVED_BODY_IN_ACQUISITIONS" if r["sha256"] in acq["aact"] else "DIGEST_WITHOUT_BODY"
+    for text_ref, s in reg["by_text"].items():
+        held = s.get("held") or {}
+        if not (held.get("held_in_tree") or s.get("document_path")):
+            edges[("outputs/handover/glp1_regulatory/regulatory_sources_glp1.json",
+                   f"original PDF of {text_ref} (sha256 {str(s.get('document_sha256'))[:12]})", "custody")] = "NOT_IN_PACKAGE_PRODUCER_HELD"
+    counts = {}
+    for st in edges.values():
+        counts[st] = counts.get(st, 0) + 1
+    unresolved = sorted([{"from": k[0], "to": k[1], "kind": k[2], "state": v} for k, v in edges.items()
+                         if v not in ("RESOLVED_IN_PACKAGE", "RESOLVED_BODY_IN_ACQUISITIONS")], key=lambda e: (e["state"], e["from"], e["to"]))
+    return {"start": f"reviews/{slug}/BUNDLE.json", "objects_walked": sorted(seen), "edge_counts": counts,
+            "edges_not_resolved_to_bytes_in_package": unresolved,
+            "statement": f"{counts.get('DIGEST_WITHOUT_BODY', 0)} edge(s) terminate in a digest with no retrievable body (a promise); "
+                         f"{counts.get('RESOLVED_BODY_IN_ACQUISITIONS', 0)} digest-only references resolve to bodies under acquisitions/"}
 
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -430,50 +745,35 @@ def value_index(slug: str, review: dict, artefact_by_ref: dict, records: dict) -
 # ----------------------------------------------------------------------------------------------------------------
 
 def source_block(slug: str, review_dir: Path) -> dict:
-    """What can be established about which commit the served bytes come from -- named honestly.
-
-    content_commit = the most recent commit in this history that changed any generated file of the review directory;
-    checkable: `git rev-parse <content_commit>:docs/reviews/<slug>/review.json` equals the blob id below.
-    generating_commit = NOT_RECORDED: the generator (harness.census.build_review_dir) does not record the commit it ran
-    at, and a build committed after the fact has no such commit at build time. build_utc is left as it is (when, not
-    from what)."""
     paths = [f"docs/reviews/{slug}/{n}" for n in GENERATED_FILES]
     content_commit = _git("log", "-1", "--format=%H", "--", *paths)
-    blobs = {}
-    inconsistent = []
+    blobs, inconsistent = {}, []
     for n in GENERATED_FILES:
         p = review_dir / n
         if p.exists():
             blobs[n] = _git_blob_sha1(p.read_bytes())
             try:
-                at_commit = _git("rev-parse", f"{content_commit}:docs/reviews/{slug}/{n}")
+                at = _git("rev-parse", f"{content_commit}:docs/reviews/{slug}/{n}")
             except subprocess.CalledProcessError:
-                at_commit = None
-            if at_commit != blobs[n]:
+                at = None
+            if at != blobs[n]:
                 inconsistent.append(n)
-    return {
-        "content_commit": content_commit,
-        "_inconsistent": inconsistent,
-        "content_commit_meaning": "the most recent commit that changed any of " + ", ".join(GENERATED_FILES) +
-                                  " in this review directory; NOT necessarily the commit the generator ran at",
-        "generating_commit": "NOT_RECORDED",
-        "generating_commit_meaning": "the generator does not record the commit it ran at; build_utc records when the build "
-                                     "metadata was authored, not what the bytes were built from, and is not evidence of either",
-        "served_blob_git_sha1": blobs,
-        "how_to_check_currency": [
-            "git ls-remote " + REPO_URL + " refs/heads/main   -> the current main commit",
-            f"git rev-parse <that commit>:docs/reviews/{slug}/review.json   (or the GitHub contents API 'sha') -> the blob id main serves from",
-            "git hash-object review.json   on the bytes you fetched -> must equal served_blob_git_sha1.review.json above AND the blob at main; "
-            "if it equals the former but not the latter, you hold a stale edge copy or a superseded build",
-        ],
-        "served_copy_may_lag": STALENESS_NOTICE.replace("<slug>", slug),
-    }
+    return {"content_commit": content_commit, "_inconsistent": inconsistent,
+            "content_commit_meaning": "the most recent commit that changed any of " + ", ".join(GENERATED_FILES) +
+                                      " in this review directory; NOT necessarily the commit the generator ran at",
+            "generating_commit": "NOT_RECORDED",
+            "generating_commit_meaning": "the generator does not record the commit it ran at; build_utc records when the build "
+                                         "metadata was authored, not what the bytes were built from, and is not evidence of either",
+            "served_blob_git_sha1": blobs,
+            "how_to_check_currency": [
+                "git ls-remote " + REPO_URL + " refs/heads/main   -> the current main commit",
+                f"git rev-parse <that commit>:docs/reviews/{slug}/review.json   (or the GitHub contents API 'sha') -> the blob id main serves from",
+                "git hash-object review.json   on the bytes you fetched -> must equal served_blob_git_sha1.review.json above AND the blob at main; "
+                "if it equals the former but not the latter, you hold a stale edge copy or a superseded build"],
+            "served_copy_may_lag": STALENESS_NOTICE.replace("<slug>", slug)}
 
 
 def stamp_manifest(review_dir: Path, source: dict, check_only: bool) -> list[str]:
-    """Add/refresh the `source` block in manifest.json, preserving the generator's formatting (indent=2, no trailing
-    newline, LF). manifest.json is not a certificate input and the gate only reads it, so this cannot move any digest
-    the certificate commits to; review_sha256/html_sha256 are untouched."""
     p = review_dir / "manifest.json"
     raw = p.read_bytes()
     manifest = json.loads(raw.decode("utf-8"))
@@ -498,15 +798,17 @@ def stamp_manifest(review_dir: Path, source: dict, check_only: bool) -> list[str
 
 def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
     review_dir = ROOT / "docs" / "reviews" / slug
-    cert_path = review_dir / "CERTIFICATE.json"
-    cert_bytes = cert_path.read_bytes()
+    cert_bytes = (review_dir / "CERTIFICATE.json").read_bytes()
     cert = json.loads(cert_bytes.decode("utf-8"))
     problems: list[str] = []
-    records = json.loads((ROOT / "cache" / slug / "records.json").read_text(encoding="utf-8"))
-    reg = _regulatory_sources(slug)
+    records = _read_json(ROOT / "cache" / slug / "records.json")
+    reg = _regulatory_sources()
+    acq = load_acquisitions(slug)
+    if not acq["pubmed"]:
+        problems.append("no PubMed acquisition objects under docs/acquisitions/<slug>/ -- run scripts/acquire_bundle_evidence.py first "
+                        "(coverage_status must be backed by a preservation record, never declared)")
 
-    artefacts = []
-    to_write: list[tuple[Path, bytes]] = []   # second pass: nothing touches docs/ until every input has been checked
+    artefacts, to_write = [], []
     for entry in enumerate_inputs(slug, cert):
         ref = entry["ref"]
         src = ROOT / ref
@@ -517,21 +819,14 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
         got = recompute(entry, data)
         if entry["declared"] is not None and got != entry["declared"]:
             problems.append(f"{ref}: tree bytes give {got}, certificate declares {entry['declared']} ({entry['role']})")
-        row = {
-            "ref": ref,
-            "role": entry["role"],
-            "bytes": len(data),
-            "sha256": _sha256(data),
-            "git_blob_sha1": _git_blob_sha1(data),
-            "declared_digest": entry["declared"],
-            "digest_method": entry["digest_method"],
-        }
-        if ref in WITHHELD:
-            row["state"] = "WITHHELD"
+        row = {"ref": ref, "role": entry["role"], "bytes": len(data), "sha256": _sha256(data), "git_blob_sha1": _git_blob_sha1(data),
+               "declared_digest": entry["declared"], "digest_method": entry["digest_method"]}
+        if ref in NOT_IN_PACKAGE_LICENCE:
+            row["state"] = "NOT_IN_PACKAGE_LICENCE"
             row["served_path"] = None
-            row.update(WITHHELD[ref])
-            row["verification"] = ("fetch the bytes from obtain_from, confirm sha256 == this entry's sha256, "
-                                   "then treat as served; the certificate digest above is over those bytes")
+            row.update(NOT_IN_PACKAGE_LICENCE[ref])
+            row["verification"] = "fetch obtain_from, confirm sha256 == this entry's sha256, then treat as served; the certificate digest is over those bytes"
+            row["note"] = "PMC separates access from reuse: the reference and the verification method are exposed; redistribution is not"
         else:
             row["state"] = "SERVED"
             row["served_path"] = ref
@@ -539,13 +834,11 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
             dst = ROOT / "docs" / ref
             attr = _text_attr(_rel(dst))
             if attr != "unset":
-                problems.append(f"docs/{ref}: git `text` attribute is '{attr}', not unset -- a checkin could normalise "
-                                f"line endings and serve bytes off the digest; add a `-text` rule before mirroring")
+                problems.append(f"docs/{ref}: git `text` attribute is '{attr}', not unset -- add a `-text` rule before mirroring")
             if dst.exists():
-                served = dst.read_bytes()
-                if served != data:
+                if dst.read_bytes() != data:
                     if check_only:
-                        problems.append(f"docs/{ref}: mirrored bytes differ from the certificate input ({len(served)} vs {len(data)} B)")
+                        problems.append(f"docs/{ref}: mirrored bytes differ from the certificate input")
                     else:
                         to_write.append((dst, data))
             elif check_only:
@@ -555,25 +848,13 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
             for prefix, note in SERVED_LICENCE.items():
                 if ref == prefix or ref.startswith(prefix):
                     row["licence"] = note
-        row["representation"] = representation(ref, slug, records, reg)
         artefacts.append(row)
+    art_by_ref = {a["ref"]: a for a in artefacts}
 
-    # Representation cross-checks: a derived text whose original we hold must point at an original whose served bytes
-    # carry the digest the source manifest recorded -- otherwise the two-identity claim is decoration.
-    by_ref = {a["ref"]: a for a in artefacts}
-    for a in artefacts:
-        rep = a["representation"]
-        orig = rep.get("acquired_original") or {}
-        if rep["kind"] == "DERIVED" and orig.get("ref"):
-            o = by_ref.get(orig["ref"])
-            if o is None:
-                problems.append(f"{a['ref']}: derived from {orig['ref']}, which is not a certificate input")
-            elif orig.get("sha256") and o["sha256"] != orig["sha256"]:
-                problems.append(f"{a['ref']}: source manifest says original {orig['ref']} is {orig['sha256'][:12]}..., served bytes are {o['sha256'][:12]}...")
-        if rep["kind"] == "ACQUIRED_AS_STORED":
-            rec = orig.get("sha256_recorded_at_acquisition")
-            if rec and rec != a["sha256"]:
-                problems.append(f"{a['ref']}: acquisition digest {rec[:12]}... != served bytes {a['sha256'][:12]}...")
+    for f in acq["files"]:
+        if _text_attr(f["path"]) != "unset":
+            problems.append(f"{f['path']}: acquisition file is not -text")
+    supporting = {f["path"].removeprefix("docs/"): f for f in acq["files"]}
 
     if not problems:
         for dst, data in to_write:
@@ -583,91 +864,98 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
     source = source_block(slug, review_dir)
     inconsistent = source.pop("_inconsistent")
     if inconsistent:
-        problems.append("content_commit " + source["content_commit"][:12] + " does not hold the served bytes of "
-                        + ", ".join(inconsistent) + " -- the rebuild is not committed yet; commit it, then stamp "
-                        "(a stamp must name a commit that contains what it describes)")
+        problems.append("content_commit " + source["content_commit"][:12] + " does not hold the served bytes of " + ", ".join(inconsistent) +
+                        " -- commit the rebuild, then stamp")
     problems += stamp_manifest(review_dir, source, check_only=check_only or bool(problems))
+
+    review = _read_json(review_dir / "review.json")
+    if sha256_text(canonical_json(review_core(review))) != cert["review_sha256"]:
+        problems.append("review.json does not hash to the certificate's review_sha256")
+    if sha256_text(canonical_json({k: v for k, v in cert.items() if k != "release_sha256"})) != cert["release_sha256"]:
+        problems.append("CERTIFICATE.json does not hash to its own release_sha256")
+
+    docs = documents(slug, records, acq, art_by_ref, reg, review) if acq["pubmed"] else []
+    docs_by_id = {d["document_id"]: d for d in docs}
+    vrows, vmeta = verification_rows(slug, review, docs_by_id, art_by_ref, records)
+    aclaims = absence_claims(slug, review, docs_by_id)
+    pooled = pooled_reference(review)
+    walk = resolvability_walk(slug, art_by_ref, acq, supporting, reg)
 
     review_files = []
     for name in sorted(os.listdir(review_dir)):
         p = review_dir / name
         if p.is_file() and name != "BUNDLE.json":
             b = p.read_bytes()
-            review_files.append({"file": name, "served_path": f"reviews/{slug}/{name}",
-                                 "served_url": f"{SITE_ROOT}reviews/{slug}/{name}",
+            review_files.append({"file": name, "served_path": f"reviews/{slug}/{name}", "served_url": f"{SITE_ROOT}reviews/{slug}/{name}",
                                  "bytes": len(b), "sha256": _sha256(b), "git_blob_sha1": _git_blob_sha1(b)})
 
-    review = json.loads((review_dir / "review.json").read_text(encoding="utf-8"))
-    derived = {
-        "retrieved_corpus_sha256": "sha256(canonical_json(records.json['records']))",
-        "search_query_sha256": "sha256(canonical_json([{source_id, query} for each of retrieval_ledger.json['sources'], in order]))",
-        "screening_ledger_sha256": "sha256(canonical_json(review.json['screening']))",
-        "extraction_objects_sha256": "sha256(canonical_json({ref: parsed JSON for each extraction_objects member, keyed by ref}))",
-        "analysis_code_sha256": "sha256(canonical_json(analysis_code_blobs)) -- the map exactly as printed in the certificate, NOT_PRESENT included",
-        "review_sha256": "sha256(canonical_json(review.json with the top-level key 'reproduction' removed))",
-        "manuscript_sha256": "sha256 of UTF-8 bytes of harness.manuscript.render(review) at the source commit; the renderer is "
-                             "harness/manuscript.py in the repository, not a served file -- an auditor recomputes it from a checkout",
-        "release_sha256": "sha256(canonical_json(certificate with the key 'release_sha256' removed))",
-    }
-    # Two derived digests are cheap to prove from served bytes alone; assert them here so the bundle never claims
-    # an equality it did not check.
-    if sha256_text(canonical_json(review_core(review))) != cert["review_sha256"]:
-        problems.append("review.json does not hash to the certificate's review_sha256")
-    body = {k: v for k, v in cert.items() if k != "release_sha256"}
-    if sha256_text(canonical_json(body)) != cert["release_sha256"]:
-        problems.append("CERTIFICATE.json does not hash to its own release_sha256")
-
-    vindex = value_index(slug, review, by_ref, records)
-    match_counts = {}
-    for v in vindex:
-        if v["entry"] == "TRIAL_ROW":
-            match_counts[v["span_match"]] = match_counts.get(v["span_match"], 0) + 1
-
+    cov_counts = {}
+    for d in docs:
+        cov_counts[d["coverage_status"]["value"]] = cov_counts.get(d["coverage_status"]["value"], 0) + 1
+    medr = reg["by_text"].get("outputs/handover/glp1_regulatory/208471Orig1s000MedR.pdf.txt") or {}
     n_served = sum(1 for a in artefacts if a["state"] == "SERVED")
-    n_withheld = sum(1 for a in artefacts if a["state"] == "WITHHELD")
+    n_lic = sum(1 for a in artefacts if a["state"] == "NOT_IN_PACKAGE_LICENCE")
     bundle = {
         "schema_version": SCHEMA_VERSION,
         "slug": slug,
-        "purpose": "Every object CERTIFICATE.json commits a digest to, with its declared digest, served path and byte "
-                   "length -- so a reader can start here and reach each one without guessing a path, and can tell "
-                   "'not served because we may not' (WITHHELD, reason given) from 'not served because we forgot' "
-                   "(which this file makes impossible: every certificate input appears below, in one state or the other). "
-                   "Each artefact carries two identities where two exist: the acquired original and the representation "
-                   "derived from it, with the transform named; value_index goes from a rendered value to its document "
-                   "digest in one hop and states whether the rendered span is verbatim in that document.",
+        "purpose": "The input to an independent verifier: every object CERTIFICATE.json commits a digest to (declared digest, served path, "
+                   "byte length); every evidential document in four immutable representations with the transforms named and a "
+                   "preservation record where an acquisition is retained; every primary-pool row as source/span/endpoint/effect/"
+                   "decision/admission objects whose predicates a stranger can recompute; every absence claim with the coverage_status "
+                   "of the representation that was searched; and a walk from this file reporting every reference that still ends in "
+                   "a digest with no body.",
+        "package_semantics": {
+            "complete": "all required files are present and valid (BagIt sense)",
+            "valid": "every listed checksum verifies (BagIt sense)",
+            "neither_means": "that the package contains complete scientific evidence -- see coverage_status per document and the resolvability walk",
+            "producer_held_binary_archive": False,
+            "originals_not_in_package": [
+                {"document": "fda:FDA_NDA208471_MedR_2016 original PDF (208471Orig1s000MedR.pdf, 37,422,229 B)", "state": "NOT_IN_PACKAGE_PRODUCER_HELD",
+                 "sha256_original": medr.get("document_sha256"),
+                 "reacquire": "https://www.accessdata.fda.gov/drugsatfda_docs/nda/2016/208471Orig1s000MedR.pdf; sha256 must equal sha256_original",
+                 "note": "the ELIXA CLINICAL (medical) review -- a different document from the FDA STATISTICAL review that supports the ELIXA "
+                         "source conflict; the statistical review's original IS in the package"},
+                *[{"document": ref, "state": "NOT_IN_PACKAGE_LICENCE", "sha256_original": art_by_ref[ref]["sha256"], "obtain_from": lic["obtain_from"],
+                   "external_access_dependency": lic["external_access_dependency"]} for ref, lic in NOT_IN_PACKAGE_LICENCE.items() if ref in art_by_ref]],
+            "origin_authentication": "a saved response and its hash establish what was saved, not that it came from the claimed publisher; "
+                                     "each ACQUISITION manifest states its trust assumption",
+            "independence": "copies produced from the same cached representation are not independent confirmations; where a publisher and an "
+                            "indexing-service version differ, both are preserved and the discrepancy recorded (documents[*].preservation_record)",
+            "immutability": "acquisition objects are append-only; a correction is a new dated directory; decisions keep the evidence they were made against",
+        },
         "certificate_unmodified": True,
-        "certificate": {
-            "served_path": f"reviews/{slug}/CERTIFICATE.json",
-            "bytes": len(cert_bytes),
-            "sha256_of_file": _sha256(cert_bytes),
-            "git_blob_sha1": _git_blob_sha1(cert_bytes),
-            "release_sha256": cert["release_sha256"],
-            "note": "left byte-identical; an external auditor has reproduced release_sha256 and analysis_code_sha256 "
-                    "from the listed inputs with an isolated standard-library script, and that result must survive this bundle",
-        },
+        "certificate": {"served_path": f"reviews/{slug}/CERTIFICATE.json", "bytes": len(cert_bytes), "sha256_of_file": _sha256(cert_bytes),
+                        "git_blob_sha1": _git_blob_sha1(cert_bytes), "release_sha256": cert["release_sha256"],
+                        "note": "left byte-identical; an external auditor has reproduced release_sha256 and analysis_code_sha256 from the listed inputs "
+                                "with an isolated standard-library script, and that result must survive this bundle"},
         "source": source,
-        "path_scheme": {
-            "rule": "each `ref` is repository-root-relative exactly as the certificate spells it; the same bytes are served "
-                    "at <site_root>/<ref> (from this file's directory: ../../<ref>)",
-            "site_root": SITE_ROOT,
-            "byte_identity": "mirror paths carry `-text` in .gitattributes so git never normalises line endings on "
-                             "checkin; three held text exports contain CRLF and would otherwise be served off their digest",
-        },
-        "representation_kinds": {
-            "ACQUIRED_AS_STORED": "the bytes as received from the upstream source; whether a digest was taken at acquisition is stated",
-            "DERIVED": "a representation produced from an acquired original by a named transform; whether the original was retained, "
-                       "and where, is stated; if it was not retained the entry says so rather than presenting the derived copy as the original",
-            "AUTHORED": "an object authored in this project; it is its own original",
-        },
-        "counts": {"certificate_inputs": len(artefacts), "served": n_served, "withheld": n_withheld,
+        "path_scheme": {"rule": "each `ref` is repository-root-relative exactly as the certificate spells it; the same bytes are served at "
+                                "<site_root>/<ref> (from this file's directory: ../../<ref>)", "site_root": SITE_ROOT,
+                        "byte_identity": "mirror and acquisition paths carry `-text` in .gitattributes so git never normalises line endings on checkin"},
+        "vocabulary": VOCABULARY,
+        "counts": {"certificate_inputs": len(artefacts), "served": n_served, "not_in_package_licence": n_lic,
                    "served_bytes": sum(a["bytes"] for a in artefacts if a["state"] == "SERVED"),
-                   "value_index_trial_rows_by_span_match": match_counts},
+                   "acquisition_files": len(acq["files"]), "acquisition_bytes": sum(f["bytes"] for f in acq["files"]),
+                   "documents": len(docs), "documents_by_coverage_status": cov_counts,
+                   "primary_pool_rows": vmeta["k"], "admissible_rows": sum(1 for r in vrows if r["admission"]["final"] == "ADMISSIBLE"),
+                   "absence_claims": len(aclaims),
+                   "negative_claims_not_admissible": sum(1 for c in aclaims if c["claim_kind"] == "NEGATIVE" and c["negative_claim_admissible"] is False),
+                   "resolvability": walk["edge_counts"]},
         "artefacts": artefacts,
+        "acquisitions": acq["manifests"],
+        "supporting_files": acq["files"],
+        "documents": docs,
+        "verification_rows": vrows,
+        "absence_claims": aclaims,
+        "pooled_reference": pooled,
+        "resolvability": walk,
         "review_files": review_files,
-        "value_index": vindex,
-        "derived_digests": derived,
         "canonical_json": "json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(',', ':')) encoded as UTF-8",
-        "regenerate": f"python scripts/build_bundle.py {slug}   (after any rebuild of the page; tests/test_bundle.py refuses a stale bundle)",
+        "verifier": "scripts/verify_bundle.py (standard library only; no harness import): checks every artefact and supporting-file digest, every "
+                    "predicate of every verification row, the asymmetric rule on every absence claim, reproduces pooled_reference.expected to 1e-9, "
+                    "and with --corrupt <pmid> <limb> demonstrates that one corrupted limb makes exactly that row inadmissible",
+        "regenerate": f"python scripts/acquire_bundle_evidence.py {slug} (only if new acquisitions are needed); commit any page rebuild; "
+                      f"python scripts/build_bundle.py {slug}; tests/test_bundle.py refuses a stale bundle",
     }
     return bundle, problems
 
@@ -675,7 +963,7 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("slug")
-    ap.add_argument("--check", action="store_true", help="verify only; write nothing")
+    ap.add_argument("--check", action="store_true")
     args = ap.parse_args(argv)
     bundle, problems = build(args.slug, check_only=args.check)
     out = ROOT / "docs" / "reviews" / args.slug / "BUNDLE.json"
@@ -693,9 +981,10 @@ def main(argv=None) -> int:
     if not args.check:
         out.write_text(rendered, encoding="utf-8", newline="\n")
     c = bundle["counts"]
-    print(f"{'OK' if args.check else 'WROTE'} {out.relative_to(ROOT).as_posix()}: {c['certificate_inputs']} certificate inputs, "
-          f"{c['served']} served ({c['served_bytes']:,} B), {c['withheld']} withheld with reason; "
-          f"value_index span matches {c['value_index_trial_rows_by_span_match']}; content_commit {bundle['source']['content_commit'][:12]}")
+    print(f"{'OK' if args.check else 'WROTE'} {out.relative_to(ROOT).as_posix()} (schema {SCHEMA_VERSION}): {c['certificate_inputs']} inputs, "
+          f"{c['served']} served, {c['not_in_package_licence']} licence-held; {c['documents']} documents {c['documents_by_coverage_status']}; "
+          f"pool rows admissible {c['admissible_rows']}/{c['primary_pool_rows']}; negative claims not admissible {c['negative_claims_not_admissible']}; "
+          f"resolvability {c['resolvability']}; content_commit {bundle['source']['content_commit'][:12]}")
     return 0
 
 
