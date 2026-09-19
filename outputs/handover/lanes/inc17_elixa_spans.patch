@@ -1,0 +1,277 @@
+diff --git a/harness/claimgraph.py b/harness/claimgraph.py
+index 3922f01b..52c7c466 100644
+--- a/harness/claimgraph.py
++++ b/harness/claimgraph.py
+@@ -201,7 +201,8 @@ def regulatory_fact(root, source, decision, adjudications):
+             raise ValueError(f"no PDF page marker before span: {text_path}")
+         return int(pages[-1])
+     spans = []
+-    preserved = (decision.get("source_conflict") or {}).get("spans_preserved") or {}
++    conflict = decision.get("source_conflict") or {}
++    preserved = conflict.get("spans_preserved") or {}
+     for kind, item in preserved.items():
+         span = item["span"]
+         offset = item["offset"]
+@@ -209,6 +210,24 @@ def regulatory_fact(root, source, decision, adjudications):
+             raise ValueError(f"source span mismatch: {path} {kind}")
+         spans.append({"kind": kind, "span": span, "offset": offset,
+                       "pdf_page": page_at(offset)})
++    # SPAN ROLES (external re-audit of 6d6bacad, ELIXA): the selected result span, its definition span, the
++    # conflicting renderings and the excluded endpoint's spans are named by id and must RESOLVE to preserved spans
++    # -- an unresolvable id is a refusal, not a footnote -- and the offset replay above is recorded, not implied.
++    span_roles = None
++    if conflict:
++        roles = {"definition": conflict.get("definition_span_id"), "selected_result": conflict.get("selected_result_span_id"),
++                 "conflicting": list(conflict.get("conflicting_span_ids") or []),
++                 "excluded_endpoint": list(conflict.get("excluded_endpoint_span_ids") or [])}
++        named = [roles["definition"], roles["selected_result"], *roles["conflicting"], *roles["excluded_endpoint"]]
++        unresolved = [i for i in named if i and i not in preserved]
++        if unresolved:
++            raise ValueError(f"SPAN_ID_UNRESOLVED: {path} {decision.get('trial')}: {unresolved} not in spans_preserved")
++        if any(n is None or n == [] for n in (roles["definition"], roles["selected_result"])):
++            raise ValueError(f"SPAN_ROLES_INCOMPLETE: {path} {decision.get('trial')}: a SOURCE_CONFLICT names its definition and selected result spans by id")
++        span_roles = roles
++        span_roles["span_location_check"] = {"replayed_at_build": True, "spans_checked": len(preserved),
++                                             "all_at_declared_offsets": True, "against": "extracted text (universal newlines)",
++                                             "extracted_text_sha256": source["extracted_text_sha256"]}
+     if not spans and decision.get("span"):
+         span = decision.get("table_span_verbatim_lines") or decision["span"]
+         offset = text.find(span)
+@@ -223,6 +242,7 @@ def regulatory_fact(root, source, decision, adjudications):
+             "nct": decision.get("nct"), "document_path": path, "document_sha256": digest,
+             "extracted_text_path": text_path, "extracted_text_sha256": source["extracted_text_sha256"],
+             "decision": decision, "spans": spans,
++            **({"span_roles": span_roles} if span_roles else {}),
+             "adjudication": {"id": adj.get("id"), "state": "PROPOSED", "countersigned": False},
+             "admissible": False}
+ 
+diff --git a/harness/page.py b/harness/page.py
+index 0042dad0..6bfa462c 100644
+--- a/harness/page.py
++++ b/harness/page.py
+@@ -423,8 +423,31 @@ def _known_missing_sensitivity_panel(o: dict) -> str:
+                    f"<div>sha256: {_e(fact['document_sha256'])}</div>"
+                    f"<div>adjudication: {_e(adj.get('id'))} PROPOSED (not countersigned)</div>"
+                    "<div>Not pooled. Endpoint identity follows the definition span, never a CI fingerprint.</div>")
++            # SPAN ROLES (external re-audit of 6d6bacad, ELIXA): which preserved span is the definition, which is the
++            # selected result, which are conflicting renderings of the same analysis and which belong to the excluded
++            # endpoint -- by id, resolved at build -- and the offset replay of every preserved span, stated.
++            roles = fact.get("span_roles") or {}
++            role_of = {}
++            if roles.get("definition"):
++                role_of[roles["definition"]] = "definition"
++            if roles.get("selected_result"):
++                role_of[roles["selected_result"]] = "selected result"
++            for i in roles.get("conflicting") or []:
++                role_of[i] = "conflicting rendering (same analysis, not selected)"
++            for i in roles.get("excluded_endpoint") or []:
++                role_of[i] = "excluded endpoint (different definition and counts)"
++            if roles:
++                slc = roles.get("span_location_check") or {}
++                val += ("<div class='muted'>span roles resolve to preserved span ids: definition "
++                        f"<code>{_e(roles.get('definition'))}</code>; selected result <code>{_e(roles.get('selected_result'))}</code>; "
++                        f"conflicting {_e(', '.join(roles.get('conflicting') or []))}; excluded endpoint "
++                        f"{_e(', '.join(roles.get('excluded_endpoint') or []))}. Offsets replayed at build against the held "
++                        f"extracted text: {_e(slc.get('spans_checked'))} of {_e(slc.get('spans_checked'))} at their declared offsets"
++                        f"{'' if slc.get('all_at_declared_offsets') else ' -- MISMATCH'}.</div>")
+             for span in fact.get("spans", []):
+-                val += (f"<div>{_e(span['kind'])}; PDF page {_e(span['pdf_page'])}</div>"
++                role = role_of.get(span['kind'])
++                val += (f"<div><code>{_e(span['kind'])}</code>{(' -- ' + _e(role)) if role else ''}; PDF page {_e(span['pdf_page'])}"
++                        + (f"; offset {_e(span['offset'])}" if span.get('offset') is not None else "") + "</div>"
+                         "<pre class='source-span'>" + _e(span['span']).replace(" \n", "&#32;\n") + "</pre>")
+                 if span.get("verbatim_located") is False:
+                     val += "<div>Table transcription; not a verbatim-located span.</div>"
+diff --git a/outputs/handover/glp1_regulatory/ADJUDICATIONS.json b/outputs/handover/glp1_regulatory/ADJUDICATIONS.json
+index 53e40b1e..e9af4b38 100644
+--- a/outputs/handover/glp1_regulatory/ADJUDICATIONS.json
++++ b/outputs/handover/glp1_regulatory/ADJUDICATIONS.json
+@@ -95,7 +95,13 @@
+    "see": "outputs/handover/glp1_regulatory/regulatory_sources_glp1.json -> FDA_NDA208471_StatR_2016.decisions[0].source_conflict",
+    "decision": "unrounded text (0.887, 1.172), endpoint by definition span + event counts; CI fingerprint rule withdrawn",
+    "applied_to_served_page": false,
+-   "proposed_by": "integrator (Claude Opus 5), 2026-09-18T11:50Z"
++   "proposed_by": "integrator (Claude Opus 5), 2026-09-18T11:50Z",
++   "external_audit_concurrence_2026-09-19": {
++    "who": "independent external auditor of served a2df6624 / 6d6bacad (relayed by Dispatch)",
++    "confirmed": "three renderings of one 3-point analysis (identical events 400/392): prose (0.887, 1.172), Table 8 (0.89, 1.18), executive summary (0.89, 1.17); 1.172 rounds to 1.17, so Table 8's 1.18 is the outlier",
++    "state_after": "PROPOSED (integrator adjudicated; countersignature OWED) -- unchanged; concurrence is recorded, not a countersignature",
++    "machine_resolvable_ids": "regulatory_sources_glp1.json source_conflict.{definition_span_id, selected_result_span_id, conflicting_span_ids, excluded_endpoint_span_ids} resolve to spans_preserved keys; the build replays every preserved span at its declared offset against the held extracted text and records the result (span_location_check)"
++   }
+   }
+  ]
+-}
++}
+\ No newline at end of file
+diff --git a/outputs/handover/glp1_regulatory/regulatory_sources_glp1.json b/outputs/handover/glp1_regulatory/regulatory_sources_glp1.json
+index ab312ebd..1197278e 100644
+--- a/outputs/handover/glp1_regulatory/regulatory_sources_glp1.json
++++ b/outputs/handover/glp1_regulatory/regulatory_sources_glp1.json
+@@ -44,6 +44,24 @@
+      "note": "The 4-point primary (1.02 [0.89, 1.17]) and the 3-point secondary (1.02 [0.887, 1.172]) are numerically near-identical because only 0.3% had unstable-angina hospitalisation; older reviews that relabelled the 4-point as 3-point reached the right number by luck. This value is the trial's own 3-point analysis, verified by the FDA statistical reviewer.",
+      "source_conflict": {
+       "state": "SOURCE_CONFLICT (adjudicated: ADJ-GLP1-005)",
++      "definition_span_id": "definition_3p",
++      "selected_result_span_id": "text_unrounded_3p",
++      "conflicting_span_ids": [
++       "table8_onstudy_3p",
++       "executive_summary_3p"
++      ],
++      "excluded_endpoint_span_ids": [
++       "primary_4p_table6",
++       "primary_4p_text",
++       "primary_4p_unrounded_text"
++      ],
++      "same_analysis_evidence": "all three 3-point renderings carry the same event counts (400 lixisenatide / 392 placebo, 792 total; Table 8 row and section text at the preserved spans), so they are one analysis printed three ways; 1.172 rounds to 1.17, so table8_onstudy_3p (0.89, 1.18) is the discrepant rendering",
++      "external_audit_concurrence": {
++       "date_utc": "2026-09-19",
++       "who": "independent external auditor of served a2df6624 / 6d6bacad (relayed by Dispatch)",
++       "confirmed": "prose 0.887-1.172, Table 8 0.89-1.18, executive summary 0.89-1.17, identical events 400/392; 1.172 rounds to 1.17 so Table 8's 1.18 is the outlier",
++       "effect_on_state": "none -- ADJ-GLP1-005 stays PROPOSED; a countersignature is Mahmood's, not an auditor's"
++      },
+       "what_conflicts": "the SAME 3-component MACE result (792 events, 392 placebo / 400 lixisenatide, ITT on-study) is printed with three interval renderings: unrounded (0.887, 1.172) in the section text; (0.89, 1.18) in Table 8; (0.89, 1.17) in the executive summary. 1.172 rounds to 1.17, so Table 8's 1.18 is the discrepant rendering. The 4-component primary (MACE+, 805 events, 399/406) is ALSO printed as 1.02 (0.89, 1.17): the interval does NOT identify the endpoint. An independent read (Gemini, 18 Sep; proposals only, verified here against held bytes) also located the 4-point primary's UNROUNDED interval 1.017 (0.886, 1.168) (page 8): the unrounded 3-point (0.887, 1.172) and 4-point (0.886, 1.168) differ; only their rounded forms coincide.",
+       "spans_preserved": {
+        "definition_3p": {
+@@ -260,4 +278,4 @@
+   }
+  ],
+  "replay_status": "documents held and digested 2026-09-16; spans NOT yet machine-located on replay; values NOT yet on any served page"
+-}
++}
+\ No newline at end of file
+diff --git a/registry/blind_map.json b/registry/blind_map.json
+index 471c9197..754c4370 100644
+--- a/registry/blind_map.json
++++ b/registry/blind_map.json
+@@ -1,13 +1,13 @@
+ {
+-  "slug": "tranexamic-acid-pph",
++  "slug": "glp1-ra-mace-t2d",
+   "pages": {
+-    "md68c6ad6": {
++    "mc16cd596": {
+       "role": "harness",
+-      "url": "docs/m/md68c6ad6/"
++      "url": "docs/m/mc16cd596/"
+     },
+-    "m51474705": {
++    "m660dc5c7": {
+       "role": "comparator",
+-      "url": "docs/m/m51474705/"
++      "url": "docs/m/m660dc5c7/"
+     }
+   }
+ }
+\ No newline at end of file
+diff --git a/tests/test_elixa_span_roles_resolve_and_offsets_replay.py b/tests/test_elixa_span_roles_resolve_and_offsets_replay.py
+new file mode 100644
+index 00000000..f4620428
+--- /dev/null
++++ b/tests/test_elixa_span_roles_resolve_and_offsets_replay.py
+@@ -0,0 +1,106 @@
++"""External re-audit of the served glp1 page 6d6bacad (19 Sep 2026), ELIXA: the auditor independently confirmed the
++three renderings of the FDA 3-point MACE result share events 400/392 (one analysis printed three ways) and that
++1.172 rounds to 1.17, so Table 8's 1.18 is the outlier; asked that the finding feed ADJ-GLP1-005 (kept PROPOSED,
++uncountersigned), that the declared offsets be replayed against the held bytes with the result recorded, and that the
++selected / conflicting span ids be machine-resolvable rather than prose.
++
++Requirements: source_conflict names definition_span_id, selected_result_span_id, conflicting_span_ids and
++excluded_endpoint_span_ids that RESOLVE to spans_preserved keys (an unresolvable id refuses the build:
++SPAN_ID_UNRESOLVED); the fact object carries span_roles with a span_location_check stating how many preserved spans
++replayed at their declared offsets; the page prints the roles and the replay; ADJ-GLP1-005's state is unchanged.
++Plant, fired pre-fix: on 0dd5df02 the fact has no span_roles and a conflict whose ids point nowhere builds silently.
++"""
++import copy
++import html
++import json
++import pathlib
++import re
++
++import pytest
++
++from harness import claimgraph
++
++ROOT = pathlib.Path(__file__).resolve().parents[1]
++SLUG = "glp1-ra-mace-t2d"
++MANIFEST = ROOT / "outputs/handover/glp1_regulatory/regulatory_sources_glp1.json"
++ADJ = ROOT / "outputs/handover/glp1_regulatory/ADJUDICATIONS.json"
++
++
++def _elixa_source_and_decision():
++    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
++    for source in manifest["sources"]:
++        for decision in source.get("decisions", []):
++            if decision.get("trial") == "ELIXA" and decision.get("source_conflict"):
++                return source, decision
++    raise AssertionError("ELIXA source_conflict decision not in the manifest")
++
++
++def _adjudications():
++    return json.loads(ADJ.read_text(encoding="utf-8"))["decisions"]
++
++
++def test_span_ids_resolve_and_the_offset_replay_is_recorded():
++    source, decision = _elixa_source_and_decision()
++    fact = claimgraph.regulatory_fact(str(ROOT), source, decision, _adjudications())
++    roles = fact["span_roles"]
++    preserved = set(decision["source_conflict"]["spans_preserved"])
++    assert roles["definition"] == "definition_3p" and roles["selected_result"] == "text_unrounded_3p"
++    assert set(roles["conflicting"]) == {"table8_onstudy_3p", "executive_summary_3p"}
++    assert set(roles["excluded_endpoint"]) == {"primary_4p_table6", "primary_4p_text", "primary_4p_unrounded_text"}
++    assert {roles["definition"], roles["selected_result"], *roles["conflicting"], *roles["excluded_endpoint"]} <= preserved
++    slc = roles["span_location_check"]
++    assert slc == {"replayed_at_build": True, "spans_checked": 8, "all_at_declared_offsets": True,
++                   "against": "extracted text (universal newlines)", "extracted_text_sha256": source["extracted_text_sha256"]}
++    # the selected span carries the unrounded interval and the same events as the conflicting Table 8 rendering
++    # (the preserved spans are LITERAL, line breaks included; the comparison here is on a whitespace-collapsed
++    # reading, which is a different contract from the quotation itself and is named as such)
++    by_kind = {s["kind"]: " ".join(s["span"].split()) for s in fact["spans"]}
++    assert "(0.887, 1.172)" in by_kind["text_unrounded_3p"] and "392 and 400" in by_kind["text_unrounded_3p"]
++    assert "1.02 (0.89, 1.18)" in by_kind["table8_onstudy_3p"] and "392 (12.9%)" in by_kind["table8_onstudy_3p"] and "400 (13.2%)" in by_kind["table8_onstudy_3p"]
++
++
++def test_plant_an_unresolvable_span_id_refuses_the_fact():
++    source, decision = _elixa_source_and_decision()
++    bad = copy.deepcopy(decision)
++    bad["source_conflict"]["conflicting_span_ids"] = ["table8_onstudy_3p", "table_9_does_not_exist"]
++    with pytest.raises(ValueError, match="SPAN_ID_UNRESOLVED.*table_9_does_not_exist"):
++        claimgraph.regulatory_fact(str(ROOT), source, bad, _adjudications())
++    incomplete = copy.deepcopy(decision)
++    incomplete["source_conflict"].pop("selected_result_span_id")
++    with pytest.raises(ValueError, match="SPAN_ROLES_INCOMPLETE"):
++        claimgraph.regulatory_fact(str(ROOT), source, incomplete, _adjudications())
++
++
++def test_a_moved_offset_is_still_a_refusal_not_a_relocation():
++    source, decision = _elixa_source_and_decision()
++    moved = copy.deepcopy(decision)
++    moved["source_conflict"]["spans_preserved"]["definition_3p"]["offset"] += 1
++    with pytest.raises(ValueError, match="source span mismatch"):
++        claimgraph.regulatory_fact(str(ROOT), source, moved, _adjudications())
++
++
++def test_adj_005_records_the_concurrence_and_stays_proposed():
++    a5 = next(a for a in _adjudications() if a["id"] == "ADJ-GLP1-005")
++    assert a5["state"].startswith("PROPOSED")
++    assert "countersignature OWED" in a5["state"]
++    conc = a5["external_audit_concurrence_2026-09-19"]
++    assert "400/392" in conc["confirmed"] and "1.18 is the outlier" in conc["confirmed"]
++    assert conc["state_after"].startswith("PROPOSED")
++    _, decision = _elixa_source_and_decision()
++    assert "1.172 rounds to 1.17" in decision["source_conflict"]["same_analysis_evidence"]
++
++
++def test_glp1_page_prints_the_roles_and_the_replay():
++    review = json.loads((ROOT / "docs/reviews" / SLUG / "review.json").read_text(encoding="utf-8"))
++    primary = next(o for o in review["outcomes"] if o.get("primary"))
++    row = next(r for r in primary["known_missing_sensitivity"]["rows"] if r["trial_key"] == "26630143")
++    assert row["value_status"] == "EXTRACTED_SOURCE_CONFLICT"
++    assert row["held_fact"]["span_roles"]["span_location_check"]["spans_checked"] == 8
++    assert row["held_fact"]["adjudication"] == {"id": "ADJ-GLP1-005", "state": "PROPOSED", "countersigned": False}
++    page = html.unescape((ROOT / "docs/reviews" / SLUG / "index.html").read_text(encoding="utf-8"))
++    text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", page))
++    assert "selected result text_unrounded_3p" in text
++    assert "conflicting table8_onstudy_3p, executive_summary_3p" in text
++    assert "Offsets replayed at build against the held extracted text: 8 of 8 at their declared offsets" in text
++    assert "table8_onstudy_3p -- conflicting rendering (same analysis, not selected)" in text
++    assert "ADJ-GLP1-005 PROPOSED (not countersigned)" in text

@@ -1,0 +1,213 @@
+diff --git a/harness/target_endpoint.py b/harness/target_endpoint.py
+index 554df973..a459ae34 100644
+--- a/harness/target_endpoint.py
++++ b/harness/target_endpoint.py
+@@ -913,3 +913,55 @@ def select_target_endpoint(
+         "selected_candidate": _public_candidate(selected),
+         "near_match_while_exact_exists": bool(exact and selected.get("target_endpoint_class") == NEAR_MATCH),
+     }
++
++
++# LITERAL vs DISPLAY-NORMALISED QUOTATION (external re-audit of 6d6bacad, finding 2): the spans a row carries are
++# cut from extract._norm(abstract) -- middle-dot decimals rewritten to '.', a same-length substitution -- so a
++# "span" such as REWIND's "5.4 years (IQR 5.1-5.9)" is NOT a literal quotation of the held abstract ("5·4 years
++# (IQR 5·1-5·9)"). Two contracts, two fields: the literal slice at the shared offsets, and the normalised text
++# with the transformation named. An abstract-provenance span that does not locate in the normalised abstract
++# is a refusal (a quotation that is not in the document it cites), never a footnote.
++SPAN_NORMALISATION = "extract._norm: middle-dot decimal separators (U+00B7, U+2027, U+2219) -> '.'; same length, offsets shared"
++SPAN_NOT_IN_HELD_ABSTRACT = "SPAN_NOT_IN_HELD_ABSTRACT"
++_ABSTRACT_PROVENANCE = {"abstract", "abstract_verified"}
++
++
++def literal_span(abstract: str, normalised_span: str) -> dict[str, Any] | None:
++    """Locate a normalised span in extract._norm(abstract) and return the literal slice at the same offsets."""
++    if not normalised_span or not abstract:
++        return None
++    norm = extract._norm(abstract)
++    if len(norm) != len(abstract):  # the normaliser is same-length by construction; refuse to guess otherwise
++        return None
++    offset = norm.find(normalised_span)
++    if offset < 0:
++        return None
++    literal = abstract[offset:offset + len(normalised_span)]
++    return {"offset": offset, "literal": literal, "count_in_normalised": norm.count(normalised_span),
++            "differs_from_display": literal != normalised_span}
++
++
++def attach_span_contract(trial: dict[str, Any], abstract: str) -> dict[str, Any]:
++    """Record, per span the row carries, the literal quotation and the display-normalised text as separate fields.
++    Refuses (ValueError) an abstract-provenance row whose span is not in the held abstract even after normalisation."""
++    contract: dict[str, Any] = {"display_normalisation": SPAN_NORMALISATION, "spans": {}}
++    prov = trial.get("provenance")
++    for key in ("endpoint_result_span", "endpoint_definition_span"):
++        span = trial.get(key)
++        if not span:
++            continue
++        located = literal_span(abstract or "", span)
++        if located is None:
++            if prov in _ABSTRACT_PROVENANCE:
++                raise ValueError(f"{SPAN_NOT_IN_HELD_ABSTRACT}: {trial.get('id')} {key} is not in the held abstract "
++                                 f"even after display normalisation: {span[:80]!r}")
++            contract["spans"][key] = {"literal_located_in_held_abstract": False,
++                                      "detail": "not an abstract span (provenance %s); literal custody follows the row's held document" % prov}
++            continue
++        contract["spans"][key] = {"literal_located_in_held_abstract": True, "offset": located["offset"],
++                                  "differs_from_display": located["differs_from_display"],
++                                  **({"literal": located["literal"]} if located["differs_from_display"] else {})}
++        if located["differs_from_display"]:
++            trial[key + "_literal"] = located["literal"]
++    trial["span_contract"] = contract
++    return trial
+diff --git a/harness/pipeline.py b/harness/pipeline.py
+index 157049b2..2f0d48fb 100644
+--- a/harness/pipeline.py
++++ b/harness/pipeline.py
+@@ -1264,6 +1264,11 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
+     # refused with the number they carried and both spans, so a reader sees what was refused and why.
+     trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
+     absent.extend(_inadmissible)
++    # LITERAL vs DISPLAY-NORMALISED (re-audit of 6d6bacad, finding 2): every span a pooled row carries is recorded
++    # twice -- the literal slice of the held abstract and the normalised display text -- with the transformation
++    # named; an abstract-provenance span not in the held abstract refuses the build.
++    for trial in trials:
++        target_endpoint_mod.attach_span_contract(trial, (rec_by_id.get(trial["id"].replace("PMID ", "")) or {}).get("abstract", ""))
+     if eligibility_contract:
+         kept = []
+         for trial in trials:
+diff --git a/harness/page.py b/harness/page.py
+index 94c74fdc..c8fbe897 100644
+--- a/harness/page.py
++++ b/harness/page.py
+@@ -1420,12 +1420,25 @@ def _trial_inputs(o):
+             eb = [f"binding: {t.get('endpoint_binding') or 'unbound'}",
+                   f"admissibility: {t.get('endpoint_admissibility') or 'not evaluated'}"]
+             src += "<div class='ident'><em>endpoint binding:</em> " + _e("; ".join(eb))
+-            if t.get("endpoint_definition_span"):
+-                src += (f"<br><span class='muted'>definition span: "
+-                        f"{_e(' '.join(str(t.get('endpoint_definition_span')).split()))}</span>")
+-            if t.get("endpoint_result_span") and t.get("endpoint_result_span") != t.get("endpoint_definition_span"):
+-                src += (f"<br><span class='muted'>result span: "
+-                        f"{_e(' '.join(str(t.get('endpoint_result_span')).split()))}</span>")
++            # Two quotation contracts (re-audit of 6d6bacad, finding 2): the text shown is DISPLAY-NORMALISED
++            # (middle-dot decimals -> '.', whitespace collapsed) and says so; where it differs from the literal
++            # held abstract, the literal slice is shown beside it.
++            _sc = (t.get("span_contract") or {}).get("spans") or {}
++            def _span_line(key, label):
++                val = t.get(key)
++                if not val:
++                    return ""
++                c = _sc.get(key) or {}
++                line = f"<br><span class='muted'>{label} (display-normalised): {_e(' '.join(str(val).split()))}"
++                if c.get("differs_from_display") and t.get(key + "_literal"):
++                    line += (f" &middot; literal in the held abstract: <q>{_e(' '.join(str(t[key + '_literal']).split()))}</q>"
++                             f" (offset {_e(c.get('offset'))}; {_e((t.get('span_contract') or {}).get('display_normalisation'))})")
++                elif c.get("literal_located_in_held_abstract"):
++                    line += f" &middot; identical to the literal held abstract at offset {_e(c.get('offset'))}"
++                return line + "</span>"
++            src += _span_line("endpoint_definition_span", "definition span")
++            if t.get("endpoint_result_span") != t.get("endpoint_definition_span"):
++                src += _span_line("endpoint_result_span", "result span")
+             src += "</div>"
+         # DERIVATION provenance: is this the trial's OWN reported effect, or a harness reconstruction
+         # from arm-level data? Both legitimate; labelling prevents 'the trial's own effect' on a number
+diff --git a/tests/test_literal_and_normalised_quotation_are_separate_contracts.py b/tests/test_literal_and_normalised_quotation_are_separate_contracts.py
+new file mode 100644
+index 00000000..fc7a7606
+--- /dev/null
++++ b/tests/test_literal_and_normalised_quotation_are_separate_contracts.py
+@@ -0,0 +1,95 @@
++"""External re-audit of the served glp1 page 6d6bacad (19 Sep 2026), finding 2: literal and normalised quotation are
++different contracts. REWIND's cached abstract (PMID 31189511) uses middle-dot decimals ("5·4 years (IQR 5·1-5·9)
++... HR 0·88"); the row's endpoint_result_span read "5.4 years (IQR 5.1-5.9) ... 0.88" and was presented as the span --
++a text that is not in the document it cites. The same holds for HARMONY Outcomes (30291013).
++
++Requirements: every span a pooled row carries is recorded under two named fields -- the display-normalised text and,
++where it differs, the literal slice of the held abstract at the shared offset -- with the transformation named
++(extract._norm, same-length so offsets are shared); the page labels the shown text display-normalised and shows the
++literal beside it; an abstract-provenance span that is not in the held abstract even after normalisation REFUSES the
++build (SPAN_NOT_IN_HELD_ABSTRACT). Plant, fired pre-fix: on 0dd5df02 REWIND's endpoint_result_span is not a substring
++of its cached abstract and no field on the row says so.
++"""
++import html
++import json
++import pathlib
++import re
++import subprocess
++
++import pytest
++
++from harness import extract, target_endpoint as te
++
++ROOT = pathlib.Path(__file__).resolve().parents[1]
++SLUG = "glp1-ra-mace-t2d"
++
++
++def _review():
++    return json.loads((ROOT / "docs/reviews" / SLUG / "review.json").read_text(encoding="utf-8"))
++
++
++def _records():
++    return {str(r["id"]): r for r in json.loads((ROOT / "cache" / SLUG / "records.json").read_text(encoding="utf-8"))["records"]}
++
++
++def _primary(review):
++    return next(o for o in review["outcomes"] if o.get("primary"))
++
++
++def test_plant_prefix_rewind_span_was_not_in_its_abstract_and_nothing_said_so():
++    prefix = json.loads(subprocess.check_output(["git", "show", f"0dd5df02:docs/reviews/{SLUG}/review.json"], cwd=ROOT))
++    rewind = next(t for t in _primary(prefix)["trials"] if t["id"] == "PMID 31189511")
++    abstract = _records()["31189511"]["abstract"]
++    assert "5·4 years (IQR 5·1-5·9)" in abstract  # the held literal
++    assert rewind["endpoint_result_span"] not in abstract
++    assert "span_contract" not in rewind and "endpoint_result_span_literal" not in rewind
++
++
++def test_every_pooled_row_carries_both_contracts_and_the_literal_where_it_differs():
++    recs = _records()
++    rows = _primary(_review())["trials"]
++    assert len(rows) == 8
++    differing = set()
++    for t in rows:
++        abstract = recs[t["id"].replace("PMID ", "")]["abstract"]
++        sc = t["span_contract"]
++        assert sc["display_normalisation"] == te.SPAN_NORMALISATION
++        for key in ("endpoint_result_span", "endpoint_definition_span"):
++            c = sc["spans"][key]
++            assert c["literal_located_in_held_abstract"] is True
++            literal = abstract[c["offset"]:c["offset"] + len(t[key])]
++            assert extract._norm(literal) == t[key]          # the display text is the normalisation of the literal
++            if c["differs_from_display"]:
++                assert t[key + "_literal"] == literal and literal != t[key]
++                differing.add(t["label"])
++            else:
++                assert key + "_literal" not in t and literal == t[key]
++    assert differing == {"31189511", "30291013"}  # REWIND, HARMONY Outcomes (Lancet middle-dot decimals)
++    rewind = next(t for t in rows if t["id"] == "PMID 31189511")
++    assert "5·4 years (IQR 5·1-5·9)" in rewind["endpoint_result_span_literal"] and "0·88" in rewind["endpoint_result_span_literal"]
++    assert "5.4 years (IQR 5.1-5.9)" in rewind["endpoint_result_span"]
++
++
++def test_an_abstract_span_not_in_the_held_abstract_is_refused():
++    abstract = _records()["31189511"]["abstract"]
++    row = {"id": "PMID 31189511", "provenance": "abstract",
++           "endpoint_result_span": "hazard ratio [HR] 0.88, 95% CI 0.79-0.99", "endpoint_definition_span": "a sentence the abstract never says"}
++    with pytest.raises(ValueError, match="SPAN_NOT_IN_HELD_ABSTRACT.*endpoint_definition_span"):
++        te.attach_span_contract(row, abstract)
++    # a full-text-provenance row is not an abstract quotation: recorded as such, not refused
++    ft = {"id": "PMID 1", "provenance": "fulltext_verified", "endpoint_result_span": "from the full text"}
++    assert te.attach_span_contract(ft, abstract)["span_contract"]["spans"]["endpoint_result_span"]["literal_located_in_held_abstract"] is False
++
++
++def test_literal_span_refuses_to_guess_when_the_normaliser_is_not_same_length():
++    assert te.literal_span("a·b", "a.b") == {"offset": 0, "literal": "a·b", "count_in_normalised": 1, "differs_from_display": True}
++    assert te.literal_span("abc", "zzz") is None
++
++
++def test_page_labels_the_shown_span_normalised_and_shows_the_literal_beside_it():
++    page = html.unescape((ROOT / "docs/reviews" / SLUG / "index.html").read_text(encoding="utf-8"))
++    text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", page))
++    assert text.count("result span (display-normalised):") >= 8
++    assert "literal in the held abstract: During a median follow-up of 5·4 years (IQR 5·1-5·9)" in text
++    assert "(offset 1704; extract._norm: middle-dot decimal separators" in text
++    assert "identical to the literal held abstract at offset" in text

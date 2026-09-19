@@ -1,0 +1,223 @@
+diff --git a/docs/dual_extract.json b/docs/dual_extract.json
+index 00c4702d..e63ad978 100644
+--- a/docs/dual_extract.json
++++ b/docs/dual_extract.json
+@@ -57,7 +57,24 @@
+   "agree": 0,
+   "reconcile": 5,
+   "not_checkable": 2,
+-  "conflict": 0
++  "conflict": 0,
++  "tally_utc": "2026-09-11",
++  "tally_commit": "5852379a",
++  "input_set_at_tally": {
++   "k": 7,
++   "review_sha256": "8363d847197a525a"
++  },
++  "covered_pmids": [
++   "31185157",
++   "27633186",
++   "27295427",
++   "34215025",
++   "31189511",
++   "30291013",
++   "28910237"
++  ],
++  "per_trial_rows": "NOT HELD: the second extractor's located spans lived in a scratchpad (scripts/dual_compare.py reads scratchpad/dual_spans.json) and were not committed; this tally is an aggregate whose rows cannot be re-derived from the repository",
++  "reconcile_means": "the same result located via a different statistic (arm event counts vs the reported HR), not identical digits"
+  },
+  "iv-iron-hfref-hosp": {
+   "agree": 0,
+diff --git a/harness/census.py b/harness/census.py
+index 8909d299..7655de33 100644
+--- a/harness/census.py
++++ b/harness/census.py
+@@ -116,20 +116,45 @@ def _parity_row(root: str, slug: str, review_core_obj: Optional[dict] = None):
+     return None
+ 
+ 
+-def _dual_row(root: str, slug: str):
++def _dual_row(root: str, slug: str, review_core_obj: dict | None = None):
+     """This topic's independent-second-extraction tally from committed docs/dual_extract.json, or
+     None. A blind second extractor located each pooled number's digits from the abstract; agree =
+     same 2x2, reconcile = same result via a different statistic (effect vs counts / RRR), conflict =
+     a genuine numeric disagreement, not_checkable = the number is not in the abstract. Two independent
+     extractions agreeing is a claim no published meta makes about its own numbers. Outside the core
+-    hash; shared by census + reproduce_review so replay byte-matches."""
++    hash; shared by census + reproduce_review so replay byte-matches.
++
++    COVERAGE (external re-audit of 6d6bacad, finding 3): a tally is a count over the input set it was
++    taken on. When the tally names its covered PMIDs, the rows of the CURRENT primary pool it does not
++    cover are named (glp1: the tally of 2026-09-11 covers 7 of the 8 pooled rows; SOUL, pooled two days
++    later, is outside it); a tally that names no covered set has coverage NOT_ESTABLISHED. The page
++    never states 'n of n checkable' as if it covered the pool."""
+     p = os.path.join(root, "docs", "dual_extract.json")
+     if not slug or not os.path.exists(p):
+         return None
+     try:
+-        return (json.load(open(p, encoding="utf-8")) or {}).get(slug)
++        row = (json.load(open(p, encoding="utf-8")) or {}).get(slug)
+     except (ValueError, OSError):
+         return None
++    if not row:
++        return row
++    row = dict(row)
++    pooled = []
++    if review_core_obj:
++        primary = next((o for o in review_core_obj.get("outcomes") or [] if o.get("primary")), None)
++        for t in (primary or {}).get("trials") or []:
++            pooled.append({"pmid": str(t.get("id", "")).replace("PMID ", ""), "label": t.get("label")})
++    covered = row.get("covered_pmids")
++    if covered is None:
++        row["coverage"] = {"state": "NOT_ESTABLISHED", "pooled_k": len(pooled) if review_core_obj else None,
++                           "detail": "the tally names no covered PMIDs; which pooled rows it counts cannot be stated"}
++    else:
++        covered = {str(c) for c in covered}
++        row["coverage"] = {"state": "PARTIAL" if any(t["pmid"] not in covered for t in pooled) else "FULL",
++                           "pooled_k": len(pooled), "covered_n": sum(t["pmid"] in covered for t in pooled),
++                           "not_covered": [t for t in pooled if t["pmid"] not in covered],
++                           "covered_not_pooled": sorted(covered - {t["pmid"] for t in pooled})}
++    return row
+ 
+ 
+ def _refusals_rows(root: str, slug: str):
+@@ -201,7 +226,7 @@ def build_review_dir(
+     _rf = _refusals_rows(_root, manifest_meta.get("slug", ""))
+     if _rf:
+         reproduction["refusals"] = _rf
+-    _du = _dual_row(_root, manifest_meta.get("slug", ""))
++    _du = _dual_row(_root, manifest_meta.get("slug", ""), review_core_obj)
+     if _du:
+         reproduction["dual"] = _du
+     # CANONICAL-CLAIM cross-surface contradiction gate: every surface must derive its significance
+diff --git a/scripts/reproduce_review.py b/scripts/reproduce_review.py
+index eab6807e..5bc4047e 100644
+--- a/scripts/reproduce_review.py
++++ b/scripts/reproduce_review.py
+@@ -77,7 +77,7 @@ def reproduce(slug):
+     _rf = census._refusals_rows(ROOT, slug)
+     if _rf:
+         repro["refusals"] = _rf
+-    _du = census._dual_row(ROOT, slug)
++    _du = census._dual_row(ROOT, slug, core)
+     if _du:
+         repro["dual"] = _du
+     repro["claim_check"] = census._claim_check(core)
+diff --git a/harness/page.py b/harness/page.py
+index 6bfa462c..a5a0d20e 100644
+--- a/harness/page.py
++++ b/harness/page.py
+@@ -2205,12 +2205,29 @@ def _reproduction(r, neutral):
+     # Two independent extractions agreeing is a claim no published meta makes about its own numbers.
+     if du := rep.get("dual"):
+         ck = du.get("agree", 0) + du.get("reconcile", 0) + du.get("conflict", 0)
+-        body += (f"<h4>Independent second extraction (blind)</h4><p>Of this page's pooled numbers, a "
+-                 f"blind second extractor agreed or reconciled on <strong>{du.get('agree',0)+du.get('reconcile',0)} "
+-                 f"of {ck}</strong> that are checkable from the abstract "
+-                 f"({du.get('agree',0)} identical, {du.get('reconcile',0)} same-result-different-statistic, "
+-                 f"{du.get('conflict',0)} conflict; {du.get('not_checkable',0)} not stated in the abstract). "
+-                 "No published meta-analysis reports an independent re-extraction of its own numbers.</p>")
++        cov = du.get("coverage") or {}
++        tally = (f"tally of {_e(du.get('tally_utc'))}, input set k={_e((du.get('input_set_at_tally') or {}).get('k'))}"
++                 if du.get("tally_utc") else "tally date and input set not recorded")
++        if cov.get("state") in ("PARTIAL", "FULL"):
++            head = (f"Of this page's <strong>{_e(cov.get('pooled_k'))}</strong> pooled numbers, the blind second extraction "
++                    f"({tally}) covers <strong>{_e(cov.get('covered_n'))}</strong>")
++        else:
++            head = (f"Of this page's pooled numbers, the blind second extraction ({tally}) covers a set it does not name "
++                    "(coverage NOT ESTABLISHED)")
++        body += (f"<h4>Independent second extraction (blind)</h4><p>{head}: it agreed or reconciled on "
++                 f"<strong>{du.get('agree',0)+du.get('reconcile',0)} of the {ck}</strong> checkable from the abstract "
++                 f"({du.get('agree',0)} identical, {du.get('reconcile',0)} same-result-different-statistic &mdash; "
++                 f"{_e(du.get('reconcile_means') or 'the same result located via a different statistic, not identical digits')}; "
++                 f"{du.get('conflict',0)} conflict; {du.get('not_checkable',0)} not stated in the abstract).")
++        if cov.get("not_covered"):
++            body += (" <strong>NOT COVERED by the tally:</strong> " +
++                     _e("; ".join(f"{t.get('label')} (PMID {t.get('pmid')})" for t in cov["not_covered"])) + ".")
++        if cov.get("covered_not_pooled"):
++            body += " Covered but no longer pooled: " + _e(", ".join(cov["covered_not_pooled"])) + "."
++        if du.get("per_trial_rows"):
++            body += f" Per-trial rows: {_e(du['per_trial_rows'])}."
++        body += (" No published meta-analysis reports an independent re-extraction of its own numbers; this one "
++                 "reports the extraction it holds, over the rows it covers.</p>")
+     # VERIFIED-BUT-NOT-POOLED: a trial we located and whose numbers we verified, yet did not pool,
+     # with the reason. "We found it, verified it, and still refused it, because ..." is a stronger
+     # honesty statement than a larger k. Outside the core hash (committed docs/refusals.json).
+diff --git a/tests/test_dual_tally_names_the_rows_it_covers.py b/tests/test_dual_tally_names_the_rows_it_covers.py
+new file mode 100644
+index 00000000..274f755d
+--- /dev/null
++++ b/tests/test_dual_tally_names_the_rows_it_covers.py
+@@ -0,0 +1,72 @@
++"""External re-audit of the served glp1 page 6d6bacad (19 Sep 2026), finding 3: the second-extraction accounting
++covers seven of eight pooled results (agree 0, reconcile 5, not_checkable 2 = 7) while the page pools eight. The tally
++in docs/dual_extract.json was taken on 2026-09-11 (5852379a) over the k=7 input set; SOUL entered the pool on
++2026-09-13; the extractor's per-trial rows lived in a scratchpad and were never committed.
++
++Requirements: the tally names the input-set version and the PMIDs it covers; the build compares that set with the
++CURRENT primary pool and names every pooled row the tally does not cover (never "5 of 5 checkable" over an unnamed
++denominator); a tally with no covered set renders coverage NOT ESTABLISHED; "reconcile" is stated as the same result
++via a different statistic, not identical digits; per-trial rows not held is said. Plant, fired pre-fix: on 0dd5df02 the
++glp1 page reads "agreed or reconciled on 5 of 5 that are checkable from the abstract" with SOUL outside the tally and
++no surface saying so.
++"""
++import html
++import json
++import pathlib
++import re
++import subprocess
++
++from harness import census
++
++ROOT = pathlib.Path(__file__).resolve().parents[1]
++SLUG = "glp1-ra-mace-t2d"
++
++
++def _review():
++    return json.loads((ROOT / "docs/reviews" / SLUG / "review.json").read_text(encoding="utf-8"))
++
++
++def test_plant_the_prefix_page_stated_the_tally_over_an_unnamed_denominator():
++    page = subprocess.check_output(["git", "show", f"0dd5df02:docs/reviews/{SLUG}/index.html"], cwd=ROOT).decode("utf-8")
++    text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html.unescape(page)))
++    assert "agreed or reconciled on 5 of 5 that are checkable" in text
++    assert "NOT COVERED by the tally" not in text
++    tally = json.loads(subprocess.check_output(["git", "show", "0dd5df02:docs/dual_extract.json"], cwd=ROOT))[SLUG]
++    assert "covered_pmids" not in tally and tally == {"agree": 0, "reconcile": 5, "not_checkable": 2, "conflict": 0}
++
++
++def test_coverage_is_computed_against_the_current_primary_pool():
++    row = census._dual_row(str(ROOT), SLUG, _review())
++    cov = row["coverage"]
++    assert cov["state"] == "PARTIAL" and cov["pooled_k"] == 8 and cov["covered_n"] == 7
++    assert cov["not_covered"] == [{"pmid": "40162642", "label": "SOUL"}]
++    assert cov["covered_not_pooled"] == []
++    assert row["input_set_at_tally"] == {"k": 7, "review_sha256": "8363d847197a525a"} and row["tally_commit"] == "5852379a"
++    assert row["agree"] + row["reconcile"] + row["not_checkable"] == 7 == len(row["covered_pmids"])
++    assert "not identical digits" in row["reconcile_means"]
++    assert row["per_trial_rows"].startswith("NOT HELD")
++
++
++def test_a_tally_without_a_covered_set_is_not_established(tmp_path):
++    root = tmp_path / "root"
++    (root / "docs").mkdir(parents=True)
++    (root / "docs" / "dual_extract.json").write_text(json.dumps({"x": {"agree": 3, "reconcile": 0, "not_checkable": 0, "conflict": 0}}), encoding="utf-8")
++    review = {"outcomes": [{"primary": True, "trials": [{"id": "PMID 1", "label": "A"}, {"id": "PMID 2", "label": "B"}]}]}
++    row = census._dual_row(str(root), "x", review)
++    assert row["coverage"]["state"] == "NOT_ESTABLISHED" and row["coverage"]["pooled_k"] == 2
++    # the same tally naming its rows: full coverage, and a covered row that left the pool is named
++    (root / "docs" / "dual_extract.json").write_text(json.dumps({"x": {"agree": 3, "reconcile": 0, "not_checkable": 0, "conflict": 0,
++                                                                        "covered_pmids": ["1", "2", "9"]}}), encoding="utf-8")
++    row = census._dual_row(str(root), "x", review)
++    assert row["coverage"]["state"] == "FULL" and row["coverage"]["covered_not_pooled"] == ["9"]
++
++
++def test_glp1_page_and_reproduction_name_soul_as_not_covered():
++    rep = json.loads((ROOT / "docs/reviews" / SLUG / "REPRODUCTION.json").read_text(encoding="utf-8"))
++    assert rep["dual"]["coverage"]["not_covered"] == [{"pmid": "40162642", "label": "SOUL"}]
++    page = html.unescape((ROOT / "docs/reviews" / SLUG / "index.html").read_text(encoding="utf-8"))
++    text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", page))
++    assert "Of this page's 8 pooled numbers, the blind second extraction (tally of 2026-09-11, input set k=7) covers 7" in text
++    assert "NOT COVERED by the tally: SOUL (PMID 40162642)" in text
++    assert "not identical digits" in text and "Per-trial rows: NOT HELD" in text
++    assert "5 of 5 that are checkable" not in text

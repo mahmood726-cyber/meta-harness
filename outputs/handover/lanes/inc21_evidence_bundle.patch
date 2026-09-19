@@ -1,0 +1,535 @@
+diff --git a/harness/census.py b/harness/census.py
+index 7655de33..40f88804 100644
+--- a/harness/census.py
++++ b/harness/census.py
+@@ -285,6 +285,12 @@ def build_review_dir(
+         reproduction["certificate"] = cert
+         with open(os.path.join(out_dir, "CERTIFICATE.json"), "w", encoding="utf-8", newline="") as f:
+             f.write(json.dumps(cert, ensure_ascii=False, indent=2) + "\n")
++        # RETRIEVABLE EVIDENCE BUNDLE (external audit of a2df6624 / 6d6bacad): the certificate's held documents, the
++        # cache objects it hashes and every record-custody response body are served beside the review so a reader
++        # can fetch and re-hash the bytes; the bundle row lives in `reproduction` (outside the core hash).
++        from . import evidence_bundle
++        reproduction["evidence_bundle"] = evidence_bundle.summary(
++            evidence_bundle.build(manifest_meta["slug"], out_dir, core_sha, cert))
+     html = render_page(final_review)
+     html_sha = sha256_text(html)
+ 
+diff --git a/harness/page.py b/harness/page.py
+index c8fbe897..c5c8cc15 100644
+--- a/harness/page.py
++++ b/harness/page.py
+@@ -2255,6 +2255,15 @@ def _reproduction(r, neutral):
+                  f"<th>Why it was not pooled</th></tr>{rows}</table>")
+     # CANONICAL CLAIM OBJECT: every surface derives its significance wording from one object; the build
+     # scans the rendered page + manuscript and fails closed on any surface that asserts the opposite.
++    # RETRIEVABLE EVIDENCE BUNDLE (external audit of a2df6624 / 6d6bacad): the cited bytes are served beside this
++    # page; a reader verifies them by fetching and re-hashing, never by trusting a digest printed here.
++    if eb := rep.get("evidence_bundle"):
++        body += ("<h4>Retrievable evidence bundle</h4><p>Every held document this review cites, the cache objects its "
++                 f"certificate hashes and every held PubMed response body are served beside this page: "
++                 f"<a href='{_e(eb.get('path'))}'><code>{_e(eb.get('path'))}</code></a> lists <strong>{_e(eb.get('n_files'))} files, "
++                 f"{_e(eb.get('bytes'))} bytes</strong> (bundle sha256 <code>{_e(str(eb.get('bundle_sha256'))[:16])}</code>), each at "
++                 "<code>evidence/&lt;repository path&gt;</code>. A digest printed on a page proves nothing by itself; the "
++                 f"check is to fetch the bytes and re-hash them: {_e(eb.get('how_to_verify'))}.</p>")
+     if cc := rep.get("claim_check"):
+         n_con = len(cc.get("contradictions") or [])
+         n_chk = cc.get("claims_checked") or 0
+diff --git a/harness/evidence_bundle.py b/harness/evidence_bundle.py
+new file mode 100644
+index 00000000..0c3c05ba
+--- /dev/null
++++ b/harness/evidence_bundle.py
+@@ -0,0 +1,114 @@
++"""Retrievable evidence bundle: the bytes a review cites, served beside the review.
++
++External audit of a2df6624 / 6d6bacad (19 Sep 2026): "nothing is externally retrievable" -- the certificate names held
++documents by repository path and digest, but a reader of the served page cannot fetch those bytes, so the certificate's
++self-consistency proves nothing to them (the auditor zeroed a held digest and the root stayed consistent). This module
++copies every cited held file into docs/reviews/<slug>/evidence/<repo-relative ref> at build time and writes
++EVIDENCE_BUNDLE.json (one row per file: ref, served path, sha256, bytes; plus the review_sha256 it belongs to). The
++copies are byte-identical to the repository files, so Git stores no extra objects. scripts/verify_served_bundle.py
++fetches a served review and re-derives every digest from the fetched bytes only -- and re-derives the cache abstracts
++from the held PubMed response bytes (record_custody) -- which is the check the certificate alone could not give.
++"""
++from __future__ import annotations
++
++import hashlib
++import json
++import os
++import shutil
++from pathlib import Path
++from typing import Any
++
++from .canonical import canonical_json
++
++ROOT = Path(__file__).resolve().parents[1]
++BUNDLE_FILENAME = "EVIDENCE_BUNDLE.json"
++EVIDENCE_DIRNAME = "evidence"
++CACHE_FILES = ("records.json", "retrieval_ledger.json", "record_custody.json", "rob2.json", "comparators.json",
++               "verified_effects.json", "verified_arms.json", "integrity.json", "families.json")
++
++
++def _sha(data: bytes) -> str:
++    return hashlib.sha256(data).hexdigest()
++
++
++def cited_refs(slug: str, certificate: dict[str, Any] | None, root: Path = ROOT) -> list[str]:
++    """Repo-relative refs the bundle carries: certificate held documents, the cache objects the certificate hashes,
++    every record-custody body, the topic config and the protocol."""
++    refs: set[str] = set()
++    for row in (certificate or {}).get("held_documents") or []:
++        if row.get("ref"):
++            refs.add(row["ref"])
++    cache = root / "cache" / slug
++    for name in CACHE_FILES:
++        if (cache / name).is_file():
++            refs.add(f"cache/{slug}/{name}")
++    custody = cache / "record_custody.json"
++    if custody.is_file():
++        for row in (json.loads(custody.read_text(encoding="utf-8")).get("records") or {}).values():
++            if row.get("body_path"):
++                refs.add(row["body_path"])
++    if (root / "topics" / f"{slug}.json").is_file():
++        refs.add(f"topics/{slug}.json")
++    if (root / "protocols" / f"{slug}.md").is_file():
++        refs.add(f"protocols/{slug}.md")
++    out = []
++    for ref in sorted(refs):
++        path = (root / ref).resolve()
++        if not path.is_relative_to(root.resolve()):
++            raise ValueError(f"evidence bundle ref escapes the repository: {ref}")
++        if not path.is_file():
++            raise ValueError(f"evidence bundle ref is not a file: {ref}")
++        out.append(ref)
++    return out
++
++
++def describe(slug: str, review_sha256: str, certificate: dict[str, Any] | None, root: Path = ROOT) -> dict[str, Any]:
++    """The bundle document, computed from the repository files without writing (build and replay share it)."""
++    files = []
++    for ref in cited_refs(slug, certificate, root):
++        data = (root / ref).read_bytes()
++        files.append({"ref": ref, "served": f"{EVIDENCE_DIRNAME}/{ref}", "sha256": _sha(data), "bytes": len(data)})
++    return _document(slug, review_sha256, files)
++
++
++def summary(bundle: dict[str, Any]) -> dict[str, Any]:
++    """The row carried in `reproduction` (outside the core hash) and rendered on the page."""
++    return {"path": BUNDLE_FILENAME, **{k: bundle[k] for k in ("n_files", "bytes", "bundle_sha256", "how_to_verify")}}
++
++
++def build(slug: str, review_dir: str, review_sha256: str, certificate: dict[str, Any] | None,
++          root: Path = ROOT) -> dict[str, Any]:
++    """Copy every cited file under <review_dir>/evidence/<ref>, write EVIDENCE_BUNDLE.json, return it."""
++    review_dir_p = Path(review_dir)
++    ev_root = review_dir_p / EVIDENCE_DIRNAME
++    if ev_root.exists():
++        shutil.rmtree(ev_root)  # the bundle is a function of the build; stale copies never survive
++    bundle = describe(slug, review_sha256, certificate, root)
++    for row in bundle["files"]:
++        src = root / row["ref"]
++        dst = ev_root / Path(*row["ref"].split("/"))
++        dst.parent.mkdir(parents=True, exist_ok=True)
++        data = src.read_bytes()
++        if _sha(data) != row["sha256"]:
++            raise ValueError(f"evidence bundle: {row['ref']} changed between describe and copy")
++        dst.write_bytes(data)
++    (review_dir_p / BUNDLE_FILENAME).write_text(json.dumps(bundle, ensure_ascii=False, indent=1), encoding="utf-8", newline="")
++    return bundle
++
++
++def _document(slug: str, review_sha256: str, files: list[dict[str, Any]]) -> dict[str, Any]:
++    bundle = {
++        "slug": slug,
++        "review_sha256": review_sha256,
++        "files": files,
++        "n_files": len(files),
++        "bytes": sum(f["bytes"] for f in files),
++        "bundle_sha256": _sha(canonical_json(files).encode("utf-8")),
++        "how_to_verify": ("python scripts/verify_served_bundle.py <served review URL or directory>: fetches manifest.json, "
++                          "review.json, CERTIFICATE.json, EVIDENCE_BUNDLE.json and every file listed here; recomputes "
++                          "review_sha256 from review.json, every file digest from the fetched bytes, the certificate's "
++                          "held-document digests against those bytes, the retrieved-corpus digest from evidence/cache/<slug>/records.json, "
++                          "and each cache abstract from its held PubMed response (record_custody) -- nothing is trusted from "
++                          "a digest alone"),
++    }
++    return bundle
+diff --git a/scripts/verify_served_bundle.py b/scripts/verify_served_bundle.py
+new file mode 100644
+index 00000000..dd6ff0e4
+--- /dev/null
++++ b/scripts/verify_served_bundle.py
+@@ -0,0 +1,138 @@
++"""Verify a SERVED review from its served bytes alone -- fetch and re-hash, trust no printed digest.
++
++    python scripts/verify_served_bundle.py https://<host>/meta-harness/reviews/<slug>/
++    python scripts/verify_served_bundle.py docs/reviews/<slug>            (a local directory, same checks)
++
++Checks, each named in the output and any failure making the exit code 1:
++  review_sha256        canonical hash of the fetched review.json core == manifest.json.review_sha256 == CERTIFICATE.json.review_sha256
++  bundle_listing       EVIDENCE_BUNDLE.json belongs to that review_sha256 and its bundle_sha256 is the hash of its own file list
++  file_digest[<ref>]   every listed file, fetched from evidence/<ref>, hashes to the listed sha256
++  certificate_held     every CERTIFICATE.json held_documents digest equals the digest of the FETCHED bytes at that ref
++  retrieved_corpus     canonical hash of the fetched records.json['records'] == certificate.retrieved_corpus_sha256
++                       == fetched retrieval_ledger.json snapshot.records_sha256
++  custody[<pmid>]      each record_custody row: the fetched response body hashes to body_sha256 AND
++                       harness.fetch.parse_efetch(body).abstract == the fetched records.json abstract for that PMID
++                       (the cache abstract is the derivation of held bytes, not a text that was typed in)
++
++This is the auditor's experiment made executable: run it on the served page (control), mutate one served byte
++(a custody body, a cache abstract, a held digest in the certificate, a number in review.json), run again
++(rejection naming the mutation), restore, run again (acceptance). scripts/enforcement_experiment.py drives that loop.
++"""
++from __future__ import annotations
++
++import hashlib
++import json
++import os
++import sys
++import urllib.request
++
++sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
++from harness import fetch  # noqa: E402
++from harness.canonical import canonical_json, review_sha256  # noqa: E402
++
++
++def _sha(data: bytes) -> str:
++    return hashlib.sha256(data).hexdigest()
++
++
++class Source:
++    def __init__(self, base: str):
++        self.base = base.rstrip("/") + "/"
++        self.remote = base.startswith("http://") or base.startswith("https://")
++
++    def get(self, rel: str) -> bytes:
++        if self.remote:
++            with urllib.request.urlopen(self.base + rel, timeout=120) as r:
++                return r.read()
++        with open(os.path.join(self.base, *rel.split("/")), "rb") as f:
++            return f.read()
++
++
++def verify(base: str) -> tuple[list[tuple[str, bool, str]], dict]:
++    src = Source(base)
++    results: list[tuple[str, bool, str]] = []
++
++    def check(name: str, ok: bool, detail: str = "") -> None:
++        results.append((name, bool(ok), detail))
++
++    manifest = json.loads(src.get("manifest.json"))
++    review = json.loads(src.get("review.json"))
++    cert = json.loads(src.get("CERTIFICATE.json"))
++    core = dict(review)
++    core.pop("reproduction", None)
++    regen = review_sha256(core)
++    check("review_sha256", regen == manifest.get("review_sha256") == cert.get("review_sha256"),
++          f"recomputed {regen[:16]} manifest {str(manifest.get('review_sha256'))[:16]} certificate {str(cert.get('review_sha256'))[:16]}")
++    try:
++        bundle = json.loads(src.get("EVIDENCE_BUNDLE.json"))
++    except Exception as exc:  # noqa: BLE001 - the absence of the bundle is the finding
++        check("bundle_listing", False, f"EVIDENCE_BUNDLE.json not retrievable: {exc}")
++        return results, {"review_sha256": regen}
++    files = bundle.get("files") or []
++    check("bundle_listing", bundle.get("review_sha256") == regen and
++          bundle.get("bundle_sha256") == _sha(canonical_json(files).encode("utf-8")),
++          f"bundle for {str(bundle.get('review_sha256'))[:16]}; listed {len(files)} files")
++    fetched: dict[str, bytes] = {}
++    for row in files:
++        try:
++            data = src.get(row["served"])
++        except Exception as exc:  # noqa: BLE001
++            check(f"file_digest[{row['ref']}]", False, f"not retrievable: {exc}")
++            continue
++        fetched[row["ref"]] = data
++        check(f"file_digest[{row['ref']}]", _sha(data) == row.get("sha256") and len(data) == row.get("bytes"),
++              f"fetched {_sha(data)[:16]} listed {str(row.get('sha256'))[:16]}")
++    for held in cert.get("held_documents") or []:
++        data = fetched.get(held["ref"])
++        if data is None:
++            check(f"certificate_held[{held['ref']}]", False, "certificate names a held document the bundle does not serve")
++        else:
++            check(f"certificate_held[{held['ref']}]", _sha(data) == held.get("sha256"),
++                  f"fetched {_sha(data)[:16]} certificate {str(held.get('sha256'))[:16]}")
++    slug = bundle.get("slug") or manifest.get("slug")
++    rec_ref = f"cache/{slug}/records.json"
++    led_ref = f"cache/{slug}/retrieval_ledger.json"
++    records = None
++    if rec_ref in fetched and led_ref in fetched:
++        records = json.loads(fetched[rec_ref])
++        ledger = json.loads(fetched[led_ref])
++        corpus = _sha(canonical_json(records.get("records") or []).encode("utf-8"))
++        check("retrieved_corpus", corpus == cert.get("retrieved_corpus_sha256") == (ledger.get("snapshot") or {}).get("records_sha256"),
++              f"recomputed {corpus[:16]} certificate {str(cert.get('retrieved_corpus_sha256'))[:16]} ledger {str((ledger.get('snapshot') or {}).get('records_sha256'))[:16]}")
++    else:
++        check("retrieved_corpus", False, "records.json or retrieval_ledger.json not in the bundle")
++    cus_ref = f"cache/{slug}/record_custody.json"
++    if cus_ref in fetched and records is not None:
++        custody = json.loads(fetched[cus_ref])
++        by_id = {str(r.get("id")): r for r in records.get("records") or []}
++        for pmid, row in sorted((custody.get("records") or {}).items()):
++            body = fetched.get(row.get("body_path"))
++            if body is None:
++                check(f"custody[{pmid}]", False, "response body not in the bundle")
++                continue
++            if _sha(body) != row.get("body_sha256"):
++                check(f"custody[{pmid}]", False, f"body {_sha(body)[:16]} != recorded {str(row.get('body_sha256'))[:16]}")
++                continue
++            derived = next((r for r in fetch.parse_efetch(body) if str(r.get("id")) == pmid), None)
++            ok = derived is not None and derived.get("abstract") == (by_id.get(pmid) or {}).get("abstract")
++            check(f"custody[{pmid}]", ok, "cache abstract == parse_efetch(held response)" if ok else
++                  f"cache abstract is NOT the derivation of the held response ({len((by_id.get(pmid) or {}).get('abstract') or '')} vs {len((derived or {}).get('abstract') or '')} chars)")
++    else:
++        check("custody", False, "record_custody.json not in the bundle: no record's bytes are held; cache abstracts are not verifiable from served bytes")
++    return results, {"review_sha256": regen, "n_files": len(files)}
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) != 2:
++        print(__doc__)
++        return 2
++    results, meta = verify(argv[1])
++    failed = [r for r in results if not r[1]]
++    for name, ok, detail in results:
++        print(f"{'PASS' if ok else 'FAIL'} {name}: {detail}")
++    print(f"{'PASS' if not failed else 'FAIL'}: {len(results) - len(failed)} of {len(results)} checks; review_sha256 {meta.get('review_sha256', '?')[:16]}")
++    return 0 if not failed else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv))
+diff --git a/scripts/enforcement_experiment.py b/scripts/enforcement_experiment.py
+new file mode 100644
+index 00000000..14ada3c8
+--- /dev/null
++++ b/scripts/enforcement_experiment.py
+@@ -0,0 +1,136 @@
++"""The decisive enforcement experiment: passing control -> ONE mutation -> rejection naming it -> restore -> acceptance.
++
++    python scripts/enforcement_experiment.py docs/reviews/<slug> [outputs/audit/enforcement_experiment_<date>.json]
++
++Runs scripts/verify_served_bundle.verify on a COPY of a served review directory (the control must PASS), then applies
++one mutation at a time to the copy, re-verifies (the run must FAIL and the failing check must be the one the mutation
++targets), restores the copy byte-for-byte and re-verifies (PASS again). Mutations:
++
++  custody_body           one byte of a held PubMed response flipped            -> custody[<pmid>] (body digest)
++  cache_abstract         one character of a cache abstract changed              -> custody[<pmid>] (not the derivation), file_digest, retrieved_corpus
++  certificate_digest     a held-document digest in CERTIFICATE.json zeroed      -> certificate_held[<ref>]  (the auditor's mutation: the
++                                                                                   self-consistent root said nothing; fetched bytes do)
++  review_number          a pooled estimate in review.json changed               -> review_sha256
++  endpoint_binding       a row's endpoint_definition_span changed in review.json -> review_sha256 (the binding is inside the hashed core)
++
++The record is written as JSON: per mutation, the failing checks before restore and the pass after. Nothing here weakens
++a check; a mutation that is NOT rejected is reported as ENFORCEMENT_GAP and the exit code is 1.
++"""
++from __future__ import annotations
++
++import datetime
++import json
++import os
++import shutil
++import sys
++import tempfile
++
++sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
++from scripts.verify_served_bundle import verify  # noqa: E402
++
++
++def _failing(results):
++    return sorted(name for name, ok, _ in results if not ok)
++
++
++def _mutations(copy: str):
++    bundle = json.load(open(os.path.join(copy, "EVIDENCE_BUNDLE.json"), encoding="utf-8"))
++    slug = bundle["slug"]
++    custody_path = os.path.join(copy, "evidence", "cache", slug, "record_custody.json")
++    custody = json.load(open(custody_path, encoding="utf-8")) if os.path.exists(custody_path) else {"records": {}}
++    pmid, row = next(iter(sorted(custody.get("records", {}).items())), (None, None))
++    out = []
++    if row:
++        body_path = os.path.join(copy, "evidence", *row["body_path"].split("/"))
++
++        def flip_body():
++            b = bytearray(open(body_path, "rb").read())
++            b[len(b) // 2] ^= 0x01
++            open(body_path, "wb").write(bytes(b))
++        out.append(("custody_body", flip_body, [f"custody[{pmid}]"]))
++
++        rec_path = os.path.join(copy, "evidence", "cache", slug, "records.json")
++
++        def edit_abstract():
++            raw = open(rec_path, encoding="utf-8").read()
++            doc = json.loads(raw)
++            rec = next(r for r in doc["records"] if str(r["id"]) == pmid)
++            rec["abstract"] = rec["abstract"][:-1] + ("!" if rec["abstract"][-1] != "!" else ".")
++            open(rec_path, "w", encoding="utf-8", newline="").write(json.dumps(doc, ensure_ascii=False, indent=1))
++        out.append(("cache_abstract", edit_abstract, [f"custody[{pmid}]", f"file_digest[cache/{slug}/records.json]", "retrieved_corpus"]))
++    cert_path = os.path.join(copy, "CERTIFICATE.json")
++    cert = json.load(open(cert_path, encoding="utf-8"))
++    if cert.get("held_documents"):
++        ref = cert["held_documents"][0]["ref"]
++
++        def zero_digest():
++            c = json.load(open(cert_path, encoding="utf-8"))
++            c["held_documents"][0]["sha256"] = "0" * 64
++            open(cert_path, "w", encoding="utf-8", newline="").write(json.dumps(c, ensure_ascii=False, indent=2) + "\n")
++        out.append(("certificate_digest", zero_digest, [f"certificate_held[{ref}]"]))
++    review_path = os.path.join(copy, "review.json")
++
++    def change_number():
++        r = json.load(open(review_path, encoding="utf-8"))
++        primary = next(o for o in r["outcomes"] if o.get("primary"))
++        primary["result"]["estimate"] = round(float(primary["result"]["estimate"]) + 0.01, 6)
++        open(review_path, "w", encoding="utf-8", newline="").write(json.dumps(r, ensure_ascii=False, indent=2))
++    out.append(("review_number", change_number, ["review_sha256"]))
++
++    def change_binding():
++        r = json.load(open(review_path, encoding="utf-8"))
++        primary = next(o for o in r["outcomes"] if o.get("primary"))
++        t = primary["trials"][0]
++        t["endpoint_definition_span"] = (t.get("endpoint_definition_span") or "") + " (all-cause mortality)"
++        open(review_path, "w", encoding="utf-8", newline="").write(json.dumps(r, ensure_ascii=False, indent=2))
++    out.append(("endpoint_binding", change_binding, ["review_sha256"]))
++    return out
++
++
++def run(review_dir: str) -> dict:
++    tmp = tempfile.mkdtemp(prefix="enforce-")
++    copy = os.path.join(tmp, "review")
++    shutil.copytree(review_dir, copy)
++    pristine = os.path.join(tmp, "pristine")
++    shutil.copytree(review_dir, pristine)
++    record = {"date_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
++              "review_dir": review_dir, "mutations": []}
++    control, meta = verify(copy)
++    record["control"] = {"pass": not _failing(control), "checks": len(control), "failing": _failing(control),
++                         "review_sha256": meta.get("review_sha256")}
++    gaps = 0
++    for name, mutate, expected in _mutations(copy):
++        mutate()
++        results, _ = verify(copy)
++        failing = _failing(results)
++        rejected = bool(failing) and all(e in failing for e in expected)
++        shutil.rmtree(copy)
++        shutil.copytree(pristine, copy)
++        after, _ = verify(copy)
++        restored = not _failing(after)
++        record["mutations"].append({"mutation": name, "expected_failing": expected, "failing": failing,
++                                    "rejected": rejected, "restored_pass": restored,
++                                    "verdict": "ENFORCED" if rejected and restored else "ENFORCEMENT_GAP"})
++        gaps += 0 if rejected and restored else 1
++    record["verdict"] = "ENFORCED" if record["control"]["pass"] and gaps == 0 else "ENFORCEMENT_GAP"
++    shutil.rmtree(tmp, ignore_errors=True)
++    return record
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) < 2:
++        print(__doc__)
++        return 2
++    record = run(argv[1])
++    if len(argv) > 2:
++        with open(argv[2], "w", encoding="utf-8", newline="") as f:
++            f.write(json.dumps(record, ensure_ascii=False, indent=1))
++    print(f"control: {'PASS' if record['control']['pass'] else 'FAIL ' + str(record['control']['failing'])} ({record['control']['checks']} checks)")
++    for m in record["mutations"]:
++        print(f"{m['verdict']:16s} {m['mutation']:20s} failing={m['failing']} restored_pass={m['restored_pass']}")
++    print(record["verdict"])
++    return 0 if record["verdict"] == "ENFORCED" else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv))
+diff --git a/scripts/reproduce_review.py b/scripts/reproduce_review.py
+index 5bc4047e..d5c7f042 100644
+--- a/scripts/reproduce_review.py
++++ b/scripts/reproduce_review.py
+@@ -102,6 +102,13 @@ def reproduce(slug):
+     try:
+         repro["certificate"] = certificate.compute(slug, final, protocol_sha)
+         reasons.extend(certificate.verify(d, final, protocol_sha))
++        from harness import evidence_bundle
++        repro["evidence_bundle"] = evidence_bundle.summary(evidence_bundle.describe(slug, regen_sha, repro["certificate"]))
++        served_bundle = os.path.join(d, evidence_bundle.BUNDLE_FILENAME)
++        if not os.path.exists(served_bundle):
++            reasons.append("EVIDENCE_BUNDLE.json is not served beside the review")
++        elif json.load(open(served_bundle, encoding="utf-8")).get("bundle_sha256") != repro["evidence_bundle"]["bundle_sha256"]:
++            reasons.append("served EVIDENCE_BUNDLE.json does not match the bundle re-derived from the repository files")
+     except (OSError, ValueError, KeyError, TypeError) as exc:
+         reasons.append(f"CERTIFICATE.json release_sha256 could not be recomputed: {exc}")
+     if sha256_text(render_page(final)) != sha256_text(served):
+diff --git a/tests/test_served_bundle_verifies_from_fetched_bytes.py b/tests/test_served_bundle_verifies_from_fetched_bytes.py
+new file mode 100644
+index 00000000..c59f89d8
+--- /dev/null
++++ b/tests/test_served_bundle_verifies_from_fetched_bytes.py
+@@ -0,0 +1,68 @@
++"""External audit of a2df6624 / 6d6bacad (19 Sep 2026), findings 6-8: the certificate's self-hash proves nothing about
++the files it references (the auditor zeroed a held digest and the root stayed consistent), review_sha256 excludes the
++reproduction block, and nothing the page cites is externally retrievable. Acceptance milestone named by the auditor: an
++externally pinned source bundle plus a passing-control -> single-mutation -> restored-control test.
++
++Requirements: every served review directory carries EVIDENCE_BUNDLE.json and the cited bytes under evidence/<repo path>;
++scripts/verify_served_bundle.verify re-derives every digest -- and every cache abstract from its held PubMed response --
++from the served bytes alone and PASSES on every review dir; the enforcement experiment (scripts/enforcement_experiment.py)
++rejects each single mutation by the check it targets and passes again after restore, on glp1. Plant, fired pre-fix: the
++served 6d6bacad page has no EVIDENCE_BUNDLE.json (verify_served_bundle on the URL: FAIL bundle_listing 404), and on
++0dd5df02 a zeroed held digest in CERTIFICATE.json is detectable by nothing a reader can fetch.
++"""
++import glob
++import json
++import os
++import pathlib
++
++from scripts import enforcement_experiment, verify_served_bundle
++
++ROOT = pathlib.Path(__file__).resolve().parents[1]
++
++
++def _review_dirs():
++    return sorted(os.path.dirname(p) for p in glob.glob(str(ROOT / "docs/reviews/*/review.json")))
++
++
++def test_every_served_review_carries_a_bundle_that_verifies_from_its_own_bytes():
++    failing = {}
++    for d in _review_dirs():
++        assert os.path.exists(os.path.join(d, "EVIDENCE_BUNDLE.json")), d
++        results, meta = verify_served_bundle.verify(d)
++        bad = [name for name, ok, _ in results if not ok]
++        if bad:
++            failing[os.path.basename(d)] = bad
++        bundle = json.load(open(os.path.join(d, "EVIDENCE_BUNDLE.json"), encoding="utf-8"))
++        assert bundle["review_sha256"] == meta["review_sha256"]
++        assert any(f["ref"].endswith("record_custody.json") for f in bundle["files"]), d
++    assert failing == {}, failing
++
++
++def test_glp1_bundle_serves_the_held_pubmed_bodies_and_the_regulatory_documents():
++    d = ROOT / "docs/reviews/glp1-ra-mace-t2d"
++    bundle = json.load(open(d / "EVIDENCE_BUNDLE.json", encoding="utf-8"))
++    served = {f["served"] for f in bundle["files"]}
++    assert "evidence/cache/glp1-ra-mace-t2d/raw/record_custody/pubmed_40162642_efetch.xml" in served
++    assert "evidence/outputs/handover/glp1_regulatory/held/208471Orig1s000StatR.pdf" in served
++    assert "evidence/cache/glp1-ra-mace-t2d/records.json" in served
++    for f in bundle["files"]:
++        assert (d / f["served"]).is_file(), f["served"]
++        assert (d / f["served"]).stat().st_size == f["bytes"]
++    rep = json.load(open(d / "REPRODUCTION.json", encoding="utf-8"))
++    assert rep["evidence_bundle"]["bundle_sha256"] == bundle["bundle_sha256"]
++    assert rep["evidence_bundle"]["n_files"] == bundle["n_files"] >= 30
++
++
++def test_enforcement_experiment_rejects_each_single_mutation_and_passes_after_restore():
++    record = enforcement_experiment.run(str(ROOT / "docs/reviews/glp1-ra-mace-t2d"))
++    assert record["control"]["pass"], record["control"]
++    names = [m["mutation"] for m in record["mutations"]]
++    assert names == ["custody_body", "cache_abstract", "certificate_digest", "review_number", "endpoint_binding"]
++    for m in record["mutations"]:
++        assert m["verdict"] == "ENFORCED", m
++        assert m["restored_pass"] is True
++    by = {m["mutation"]: m for m in record["mutations"]}
++    assert any(f.startswith("certificate_held[") for f in by["certificate_digest"]["failing"])
++    assert "review_sha256" in by["review_number"]["failing"] and "review_sha256" in by["endpoint_binding"]["failing"]
++    assert any(f.startswith("custody[") for f in by["custody_body"]["failing"])
++    assert record["verdict"] == "ENFORCED"

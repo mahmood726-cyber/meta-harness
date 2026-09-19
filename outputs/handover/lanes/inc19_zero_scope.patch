@@ -1,0 +1,64 @@
+diff --git a/harness/page.py b/harness/page.py
+index a5a0d20e..94c74fdc 100644
+--- a/harness/page.py
++++ b/harness/page.py
+@@ -2272,6 +2272,14 @@ def _reproduction(r, neutral):
+                      "and state-label collapses. "
+                      f"<strong>Proposition contradictions caught: {len(_pcon)}; scope: {_e(_pscope)}.</strong>"
+                      + ("" if not _pcon else " " + _e(json.dumps(_pcon))) + "</p>")
++        # A ZERO THAT ISN'T EVIDENCE (external re-audit of 6d6bacad, finding 4): both counts above are counts over
++        # the scope they name. Verbatim source quotations are outside both, so a zero here says nothing about them;
++        # they are checked by record custody (held response bytes -> cache abstract) and held-span offset replay.
++        body += ("<p class='muted'><strong>What these zeros do not cover:</strong> verbatim source quotations are outside "
++                 "both checks above; a contradiction count of 0 here is not a verification of any quoted span. Quotations "
++                 "are checked separately &mdash; each pooled row's <em>record custody</em> line (held response bytes, "
++                 "digest, the transform that produced the cache abstract) and, for held documents, the span offset replay "
++                 "recorded on the row.</p>")
+     # NEVER_CONSIDERED (fifth trial state): in-scope trials absent from every identifier space — never
+     # retrieved, so invisible to screening/PRISMA/declared-absent unless shown here. The true search gap.
+     nc = r.get("never_considered")
+diff --git a/tests/test_zero_contradictions_do_not_cover_quotations.py b/tests/test_zero_contradictions_do_not_cover_quotations.py
+new file mode 100644
+index 00000000..c67d09ee
+--- /dev/null
++++ b/tests/test_zero_contradictions_do_not_cover_quotations.py
+@@ -0,0 +1,39 @@
++"""External re-audit of the served glp1 page 6d6bacad (19 Sep 2026), finding 4 -- a zero that isn't evidence: the
++claim and proposition checks exclude verbatim quotations by construction ("not in scope: verbatim source quotations"),
++so their zero contradiction counts say nothing about the quoted spans; no surface may imply otherwise.
++
++Requirement: wherever the two zero counts render, the page states what they do not cover and where quotations ARE
++checked (record custody; held-span offset replay). Plant, fired pre-fix: on 0dd5df02 the glp1 page prints
++"contradictions caught: 0" and "Proposition contradictions caught: 0" with no sentence bounding them.
++"""
++import html
++import pathlib
++import re
++import subprocess
++
++ROOT = pathlib.Path(__file__).resolve().parents[1]
++SLUG = "glp1-ra-mace-t2d"
++SENTENCE = "a contradiction count of 0 here is not a verification of any quoted span"
++
++
++def _text(page):
++    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html.unescape(page)))
++
++
++def test_plant_prefix_page_printed_the_zeros_unbounded():
++    page = subprocess.check_output(["git", "show", f"0dd5df02:docs/reviews/{SLUG}/index.html"], cwd=ROOT).decode("utf-8")
++    text = _text(page)
++    assert "contradictions caught: 0" in text and "Proposition contradictions caught: 0" in text
++    assert SENTENCE not in text
++
++
++def test_every_page_that_prints_the_zero_counts_bounds_them():
++    unbounded = []
++    for path in sorted((ROOT / "docs/reviews").glob("*/index.html")):
++        text = _text(path.read_text(encoding="utf-8"))
++        if "Proposition contradictions caught:" in text and SENTENCE not in text:
++            unbounded.append(path.parent.name)
++    assert unbounded == [], unbounded
++    glp1 = _text((ROOT / "docs/reviews" / SLUG / "index.html").read_text(encoding="utf-8"))
++    assert "not in scope: verbatim source quotations" in glp1
++    assert "What these zeros do not cover: verbatim source quotations are outside both checks above" in glp1
