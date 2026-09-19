@@ -1,38 +1,33 @@
-"""Landing hash check: a landing that touches a review must MOVE that review's OBJECT hash, and the chain must name
-old and new. `manifest.json commit_sha` is a container property; `html_sha256` is the wrapper; only `review_sha256`
-says whether the review object a reader is reviewing changed. Two landings on 2026-09-17 were reported as corrections
-while the served review object was unchanged (D 3cf73885) or read from a stale surface -- and on 2026-09-18 this
-script itself certified increment 2 (237e9094 -> 75cc9a46) as "32 MOVED ... PASS" while review_sha256 was identical
-on 32 of 32: it had read html movement as content movement, a container property read as a contents property (found
-by Dispatch on fetched bytes and by the parallel workshop; plant kept in outputs/audit/landing_hash_check_plant_prefix_2026-09-19.txt).
+"""Landing hash check: a landing that touches a review must MOVE that review's OBJECT hash, and the chain must name old and new.
 
-Per touched review the verdict is one of:
-  OBJECT_MOVED   review_sha256 old != new (the html normally moves with it)
-  WRAPPER_ONLY   review_sha256 identical, html_sha256 moved -- a rendering-only change; REFUSED unless the landing
-                 declares it with --allow-wrapper-only SLUG (a rendering fix that leaves the object alone must say so)
-  UNCHANGED      neither moved -- REFUSED (a touched review that did not change is serialisation noise or a mistake)
---require-change SLUG ... : that review's OBJECT must move (touched-but-wrapper-only and untouched both refuse).
+`manifest.json commit_sha` is a container property; `html_sha256` is the WRAPPER's bytes (renderer, CSS, banners); only
+`review_sha256` says whether the review OBJECT a reader is being shown changed. Two landings on 2026-09-17 were reported as
+corrections while the served review object was unchanged (D 3cf73885) or read from a stale surface. On 2026-09-18 the first
+version of this script counted an html-only movement as MOVED (`(ra != rb) or (ha != hb)`) and `--require-change` only checked
+that the slug was TOUCHED -- so a landing that changed only the page wrapper was certified "32 MOVED" (measured on 75cc9a46:
+glp1 html fede8d29 -> 72fadf26, review_sha256 98726cc1 -> 98726cc1). That is the container-as-contents defect this script exists
+to catch; the plant in tests/test_landing_hash_check.py holds it.
 
-Usage: python scripts/landing_hash_check.py <prev_commit> <new_commit> [--require-change SLUG ...]
-                                             [--allow-wrapper-only SLUG ...]
-Exit 1 on any refusal. Every line names old -> new review_sha256 and html_sha256.
+Rule (Mahmood, 18 Sep): per review, assert `review_sha256` old -> new with BOTH values named. Never a count. Never an html hash.
+Never an aggregate. A landing claiming to change a review whose object hash is identical FAILS.
+
+Usage: python scripts/landing_hash_check.py <prev_commit> <new_commit> [--require-change SLUG ...] [--allow-wrapper-only SLUG ...]
+Exit 1 if any touched review's review_sha256 is unchanged, or any --require-change slug's review_sha256 is unchanged (touched or not).
+`--allow-wrapper-only SLUG` is the ONLY way to land a renderer-only change to SLUG: it must be declared per review, by name, and is
+printed as WRAPPER-ONLY (never as MOVED); it cannot be combined with --require-change for the same slug.
 """
 import json
 import subprocess
 import sys
 
-OBJECT_MOVED = "OBJECT_MOVED"
-WRAPPER_ONLY = "WRAPPER_ONLY"
-UNCHANGED = "UNCHANGED"
 
-
-def _show(ref, path):
-    p = subprocess.run(["git", "show", f"{ref}:{path}"], capture_output=True, text=True, encoding="utf-8")
+def _show(ref, path, cwd=None):
+    p = subprocess.run(["git", "show", f"{ref}:{path}"], capture_output=True, text=True, encoding="utf-8", cwd=cwd)
     return p.stdout if p.returncode == 0 else None
 
 
-def _manifest(ref, slug):
-    txt = _show(ref, f"docs/reviews/{slug}/manifest.json")
+def _manifest(ref, slug, cwd=None):
+    txt = _show(ref, f"docs/reviews/{slug}/manifest.json", cwd=cwd)
     if not txt:
         return {}
     try:
@@ -41,82 +36,72 @@ def _manifest(ref, slug):
         return {}
 
 
-def classify(prev_manifest: dict, new_manifest: dict) -> dict:
-    """The verdict for one review from its two committed manifests. Pure: the OBJECT hash decides."""
-    ra = prev_manifest.get("review_sha256") or ""
-    rb = new_manifest.get("review_sha256") or ""
-    ha = prev_manifest.get("html_sha256") or ""
-    hb = new_manifest.get("html_sha256") or ""
-    if ra != rb:
-        verdict = OBJECT_MOVED
-    elif ha != hb:
-        verdict = WRAPPER_ONLY
-    else:
-        verdict = UNCHANGED
-    return {"verdict": verdict, "review_old": ra, "review_new": rb, "html_old": ha, "html_new": hb}
-
-
-def _parse(argv):
-    prev, new = argv[0], argv[1]
-    required, allowed = [], []
-    bucket = None
-    for a in argv[2:]:
-        if a == "--require-change":
-            bucket = required
-        elif a == "--allow-wrapper-only":
-            bucket = allowed
-        elif bucket is not None:
-            bucket.append(a)
-    return prev, new, required, allowed
-
-
-def check(prev, new, touched, manifests, required=(), allowed=()):
-    """Verdicts for a landing. `manifests(ref, slug)` -> committed manifest dict. Returns (ok, lines, refusals)."""
-    lines, refusals = [], []
-    lines.append(f"landing {prev[:8]} -> {new[:8]}: {len(touched)} review(s) touched")
-    verdicts = {}
-    for slug in touched:
-        v = classify(manifests(prev, slug), manifests(new, slug))
-        verdicts[slug] = v
-        tag = v["verdict"]
-        if tag == WRAPPER_ONLY and slug in allowed:
-            tag = "WRAPPER_ONLY (declared)"
-        lines.append(f"  {slug:45s} review_sha256 {v['review_old'][:16] or '-':16s} -> {v['review_new'][:16] or '-':16s}  "
-                     f"html_sha256 {v['html_old'][:16] or '-':16s} -> {v['html_new'][:16] or '-':16s}  {tag}")
-        if v["verdict"] == UNCHANGED:
-            refusals.append(f"{slug}: touched but review object and html unchanged")
-        elif v["verdict"] == WRAPPER_ONLY and slug not in allowed:
-            refusals.append(f"{slug}: html moved but review_sha256 {v['review_old'][:16]} is unchanged -- a rendering-only "
-                            f"change must be declared with --allow-wrapper-only {slug}")
-    for slug in required:
-        v = verdicts.get(slug)
-        if v is None:
-            refusals.append(f"{slug}: REQUIRED to change but not touched by this landing")
-        elif v["verdict"] != OBJECT_MOVED:
-            refusals.append(f"{slug}: REQUIRED to change but review_sha256 {v['review_old'][:16]} -> {v['review_new'][:16]} "
-                            f"is unchanged ({v['verdict']})")
+def check(prev, new, required=(), wrapper_only=(), cwd=None, out=print):
+    """Return (exit_code, rows). Each row: (slug, review_old, review_new, verdict). Verdict is per review, never aggregated:
+    MOVED (review_sha256 differs), UNCHANGED (identical -> refusal unless declared wrapper-only), WRAPPER-ONLY (declared),
+    MISSING (no manifest on one side)."""
+    files = subprocess.run(["git", "diff", "--name-only", prev, new], capture_output=True, text=True, encoding="utf-8",
+                           cwd=cwd).stdout.split()
+    touched = sorted({f.split("/")[2] for f in files if f.startswith("docs/reviews/") and f.count("/") >= 3})
+    required = list(required)
+    wrapper_only = set(wrapper_only)
+    both = sorted(set(required) & wrapper_only)
+    if both:
+        out(f"LANDING HASH CHECK REFUSED: {', '.join(both)} declared both --require-change and --allow-wrapper-only")
+        return 1, []
+    rows, bad = [], []
+    out(f"landing {prev[:8]} -> {new[:8]}: per-review review_sha256 (the OBJECT; html_sha256 is the wrapper and is not a verdict input)")
+    for slug in sorted(set(touched) | set(required)):
+        a, b = _manifest(prev, slug, cwd), _manifest(new, slug, cwd)
+        ra, rb = (a.get("review_sha256") or ""), (b.get("review_sha256") or "")
+        ha, hb = (a.get("html_sha256") or "")[:16], (b.get("html_sha256") or "")[:16]
+        if not ra or not rb:
+            verdict = "MISSING"
+        elif ra != rb:
+            verdict = "MOVED"
+        elif slug in wrapper_only:
+            verdict = "WRAPPER-ONLY"
         else:
-            lines.append(f"  REQUIRED {slug}: review_sha256 {v['review_old'][:16]} -> {v['review_new'][:16]} OBJECT_MOVED")
-    return (not refusals), lines, refusals
+            verdict = "UNCHANGED"
+        rows.append((slug, ra, rb, verdict))
+        out(f"  {slug:45s} review_sha256 {ra[:16] or '-':16s} -> {rb[:16] or '-':16s}  {verdict}"
+            f"   (html {ha or '-'} -> {hb or '-'}, informational)")
+        if verdict == "UNCHANGED" and slug in touched:
+            bad.append(f"{slug}: touched but review_sha256 unchanged ({ra[:16]})")
+        if verdict == "MISSING":
+            bad.append(f"{slug}: manifest missing on one side")
+        if slug in required and verdict != "MOVED":
+            bad.append(f"{slug}: REQUIRED to change but review_sha256 {verdict.lower()} ({ra[:16]} -> {rb[:16] or '-'})")
+    for line in bad:
+        out("  REFUSAL " + line)
+    if bad:
+        out("LANDING HASH CHECK REFUSED: a review named above did not move its review_sha256")
+        return 1, rows
+    out("LANDING HASH CHECK PASS: every touched review moved its review_sha256 (each named above)")
+    return 0, rows
 
 
 def main(argv):
     if len(argv) < 2:
         print(__doc__)
         return 2
-    prev, new, required, allowed = _parse(argv)
-    files = subprocess.run(["git", "diff", "--name-only", prev, new], capture_output=True, text=True, encoding="utf-8").stdout.split()
-    touched = sorted({f.split("/")[2] for f in files if f.startswith("docs/reviews/") and f.count("/") >= 3})
-    ok, lines, refusals = check(prev, new, touched, _manifest, required, allowed)
-    for line in lines:
-        print(line)
-    if not ok:
-        print(f"LANDING HASH CHECK REFUSED: {len(refusals)} review(s):")
-        for r in refusals:
-            print(f"  {r}")
-        return 1
-    print("LANDING HASH CHECK PASS: every touched review moved its OBJECT hash (or declared a wrapper-only change by name)")
-    return 0
+    prev, new = argv[0], argv[1]
+    rest = argv[2:]
+    required, wrapper_only, mode = [], [], None
+    for tok in rest:
+        if tok == "--require-change":
+            mode = "req"
+        elif tok == "--allow-wrapper-only":
+            mode = "wrap"
+        elif mode == "req":
+            required.append(tok)
+        elif mode == "wrap":
+            wrapper_only.append(tok)
+        else:
+            print(f"unexpected argument {tok!r}")
+            return 2
+    code, _rows = check(prev, new, required, wrapper_only)
+    return code
 
 
 if __name__ == "__main__":
