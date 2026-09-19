@@ -1,7 +1,8 @@
 {
  "schema_version": 3,
- "format_revision": "3.9",
+ "format_revision": "3.10",
  "format_changelog": [
+  "3.10 (2026-09-19): statistical_input.ci_level -- the CI level the source STATES in the tuple's own clause (with basis) against the level the SE derivation ASSUMED (95%, z = 1.959963984540054); a MISMATCH (e.g. a 95.03% alpha-adjusted interval, EMPEROR-Preserved) is a refusal (P12_ci_level / CI_LEVEL_MISMATCH), never a relabel; UNSTATED is recorded as an assumption. Selection rule stated: by identity, never array order; ABSTAIN where the population cannot be resolved against the registered analysis set (DELIVER carries two PRIMARY composites).",
   "3.9 (2026-09-19): analysis_identity is no longer a set of bare values. Each of analysis_set, treatment_strategy, follow_up_window, comparator_direction and estimator is {value, basis, span, start, end, parent_representation} with basis STATED_IN_OWNING_EVIDENCE / REGISTERED_DEFAULT / UNRESOLVED (a default never renders as a statement); the review-target fallback ('trial end' on every row) is gone; stated fields also appear in spans[] with role analysis_method; regulatory candidates carry their (on-study)/(on-treatment) row label as a column_header span with offsets into the served text; the verifier refuses ESTIMAND_EVIDENCE_MISMATCH when a stated field does not reproduce at its offsets or a default carries a span.",
   "3.8 (2026-09-19, panel round 4 + 37-variant run): P9 rewritten to the panel's rule -- clause boundaries at sentence ends AND semicolons outside brackets; a target DEFINITION requires a definitional cue (component co-occurrence is not ownership); a clause carrying both a target and a non-target mention is AMBIGUOUS_ENDPOINT_BINDING, never a pass; P3 by NUMERIC equality (0.80 == 0.8 accepted; 0.96 vs 1.0 and 0.8 vs 0.84 refused); zero / one / many span occurrences are three states (SPAN_NOT_IN_SOURCE / located / SPAN_LOCATION_AMBIGUOUS, offsets pin one); estimand_evidence per row -- analysis_set, analysis_window, contrast, estimator each STATED with a located span and offsets, DEFAULT_REGISTERED when the held representation is silent, ESTIMAND_UNBOUND when the same source states two values; regulatory candidates carry strategy evidence (label / counts / unbound); the source stamp is content-addressed (blob ids computed from the working tree) and content_commit is informational (PENDING_COMMIT before the bytes are committed) so the stamp no longer needs its own commit to exist; L13/L14 stated.",
   "3.7 (2026-09-19): regulatory_facts[] -- every held regulatory fact with each candidate analysis of the same endpoint carried separately (tuple parsed from its own located span, analysis_identity with treatment strategy and precision, distinct analysis_identity_key), the selected analysis bound to the tuple the decision carries, and any source-internal discrepancy between representations of the SAME analysis recorded. Two authentic analyses of one endpoint in one document (ELIXA on-study 1.02 (0.89-1.18) 392/400 vs on-treatment 1.01 (0.87-1.17) 342/334) are distinguishable from the bundle alone, and the verifier refuses ANALYSIS_IDENTITY_MISMATCH when a tuple is bound to the wrong one.",
@@ -165,6 +166,8 @@
    "NOT_ASSESSED_BY_BUNDLE",
    "PRODUCER_ASSERTION"
   ],
+  "ci_level_rule": "the interval level the source states is part of the analysis identity; the SE derivation assumes 95%; a stated level that differs (e.g. 95.03%, alpha-adjusted for interim looks) is CI_LEVEL_MISMATCH and the row is refused -- a mismatch is never resolved by relabelling",
+  "selection_rule_for_multiple_candidates": "selection by identity (endpoint components, population / analysis set, treatment strategy, CI level), never by array order or first match; where the population cannot be resolved against the registered analysis set the answer is ABSTAIN, not the first primary (DELIVER NCT03619213 carries two PRIMARY composites, 0.82 (0.73-0.92) and 0.83 (0.73-0.95), differing by population)",
   "estimand_basis": {
    "STATED_IN_OWNING_EVIDENCE": "the value is read from a located span of the row's own evidence; span, start, end and parent_representation are present",
    "BOUND_VIA_COUNTS": "regulatory only: an unlabelled span whose event counts equal those of a labelled candidate inherits its strategy; the labelled span is cited",
@@ -220,6 +223,7 @@
   "admission_predicates": {
    "P10_estimand_evidence": "every STATED_IN_OWNING_EVIDENCE field reproduces at its offsets; no REGISTERED_DEFAULT carries a span (verifier-side)",
    "P11_registered_estimand": "a stated analysis set / treatment strategy agrees with the estimand the served protocol registers; UNRESOLVED fails; a default agrees by construction",
+   "P12_ci_level": "the CI level stated in the tuple's clause equals the level the SE derivation assumed (95%); MISMATCH refuses; UNSTATED passes with the assumption recorded",
    "P9_span_target_mention": "POSITIVE binding: the tuple's own clause carries a target phrase, the target definition (>=2 canonical components), or a primary-outcome name bound by the row's definition span to the target; a recognised non-target mention refuses ENDPOINT_INCOMPATIBLE; no recognised mention refuses AMBIGUOUS_ENDPOINT_BINDING. Read from the span, not from metadata.",
    "P1_source_bytes": "sha256(served source bytes) == declared digest for the container of the representation the span is located in",
    "P2_span_located": "span text == representation[start:end] in the named representation (VERBATIM in PARSED_SOURCE, or in NORMALIZED_SOURCE with the transform manifest applied)",
@@ -1604,8 +1608,8 @@
   },
   {
    "path": "docs/scripts/verify_bundle.py",
-   "sha256": "d3ed4198da4e95247c80487662ccb4e1a7bd84eca4e17a84ec993da6dec22de3",
-   "bytes": 59870,
+   "sha256": "85f70683500be65e4eee39cf847966183145b2e4872ade12e24e5b5bc8119872",
+   "bytes": 62500,
    "role": "the verifier this bundle names; standard library only"
   }
  ],
@@ -5580,6 +5584,16 @@
     ]
    },
    "statistical_input": {
+    "ci_level": {
+     "assumed_ci_pct": 95.0,
+     "z_assumed_by_derivation": 1.959963984540054,
+     "source_ci_pct": 95.0,
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "z_for_stated_level": 1.9599639845400545,
+     "level_agreement": "MATCH",
+     "se_log_at_stated_level": 0.17002326030857834,
+     "se_log_used": 0.17002326030857837
+    },
     "se_source": "DERIVED_FROM_CI",
     "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
     "se_log_used": 0.17002326030857837,
@@ -5617,6 +5631,7 @@
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
      "P9_span_target_mention",
+     "P12_ci_level",
      "P11_registered_estimand"
     ],
     "predicates": {
@@ -5705,6 +5720,13 @@
        "major adverse cardiovascular"
       ],
       "clause": "Major adverse cardiovascular events occurred in 61 of 1591 patients (3.8%) in the oral semaglutide group and 76 of 1592 (4.8%) in the placebo group (hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11; P<0.001 for noninferiority)."
+     },
+     "P12_ci_level": {
+      "state": "PASS",
+      "source_ci_pct": 95.0,
+      "basis": "STATED_IN_OWNING_EVIDENCE",
+      "level_agreement": "MATCH",
+      "assumed_ci_pct": 95.0
      },
      "P11_registered_estimand": {
       "state": "PASS",
@@ -5972,6 +5994,16 @@
     ]
    },
    "statistical_input": {
+    "ci_level": {
+     "assumed_ci_pct": 95.0,
+     "z_assumed_by_derivation": 1.959963984540054,
+     "source_ci_pct": 95.0,
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "z_for_stated_level": 1.9599639845400545,
+     "level_agreement": "MATCH",
+     "se_log_at_stated_level": 0.1258783031081859,
+     "se_log_used": 0.12587830310818593
+    },
     "se_source": "DERIVED_FROM_CI",
     "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
     "se_log_used": 0.12587830310818593,
@@ -6009,6 +6041,7 @@
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
      "P9_span_target_mention",
+     "P12_ci_level",
      "P11_registered_estimand"
     ],
     "predicates": {
@@ -6097,6 +6130,13 @@
        "primary outcome"
       ],
       "clause": "The primary outcome occurred in 108 of 1648 patients (6.6%) in the semaglutide group and in 146 of 1649 patients (8.9%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.58 to 0.95; P<0.001 for noninferiority)."
+     },
+     "P12_ci_level": {
+      "state": "PASS",
+      "source_ci_pct": 95.0,
+      "basis": "STATED_IN_OWNING_EVIDENCE",
+      "level_agreement": "MATCH",
+      "assumed_ci_pct": 95.0
      },
      "P11_registered_estimand": {
       "state": "PASS",
@@ -6388,6 +6428,16 @@
     ]
    },
    "statistical_input": {
+    "ci_level": {
+     "assumed_ci_pct": 95.0,
+     "z_assumed_by_derivation": 1.959963984540054,
+     "source_ci_pct": 95.0,
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "z_for_stated_level": 1.9599639845400545,
+     "level_agreement": "MATCH",
+     "se_log_at_stated_level": 0.05561381574696376,
+     "se_log_used": 0.05561381574696377
+    },
     "se_source": "DERIVED_FROM_CI",
     "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
     "se_log_used": 0.05561381574696377,
@@ -6425,6 +6475,7 @@
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
      "P9_span_target_mention",
+     "P12_ci_level",
      "P11_registered_estimand"
     ],
     "predicates": {
@@ -6514,6 +6565,13 @@
        "primary outcome"
       ],
       "clause": "The primary outcome occurred in significantly fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97; P<0.001 for noninferiority; P=0.01 for superiority)."
+     },
+     "P12_ci_level": {
+      "state": "PASS",
+      "source_ci_pct": 95.0,
+      "basis": "STATED_IN_OWNING_EVIDENCE",
+      "level_agreement": "MATCH",
+      "assumed_ci_pct": 95.0
      },
      "P11_registered_estimand": {
       "state": "PASS",
@@ -6803,6 +6861,16 @@
     ]
    },
    "statistical_input": {
+    "ci_level": {
+     "assumed_ci_pct": 95.0,
+     "z_assumed_by_derivation": 1.959963984540054,
+     "source_ci_pct": 95.0,
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "z_for_stated_level": 1.9599639845400545,
+     "level_agreement": "MATCH",
+     "se_log_at_stated_level": 0.11769235816108256,
+     "se_log_used": 0.11769235816108259
+    },
     "se_source": "DERIVED_FROM_CI",
     "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
     "se_log_used": 0.11769235816108259,
@@ -6840,6 +6908,7 @@
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
      "P9_span_target_mention",
+     "P12_ci_level",
      "P11_registered_estimand"
     ],
     "predicates": {
@@ -6932,6 +7001,13 @@
        "mace"
       ],
       "clause": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority)."
+     },
+     "P12_ci_level": {
+      "state": "PASS",
+      "source_ci_pct": 95.0,
+      "basis": "STATED_IN_OWNING_EVIDENCE",
+      "level_agreement": "MATCH",
+      "assumed_ci_pct": 95.0
      },
      "P11_registered_estimand": {
       "state": "PASS",
@@ -7216,6 +7292,16 @@
     ]
    },
    "statistical_input": {
+    "ci_level": {
+     "assumed_ci_pct": 95.0,
+     "z_assumed_by_derivation": 1.959963984540054,
+     "source_ci_pct": 95.0,
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "z_for_stated_level": 1.9599639845400545,
+     "level_agreement": "MATCH",
+     "se_log_at_stated_level": 0.05757044503053124,
+     "se_log_used": 0.057570445030531256
+    },
     "se_source": "DERIVED_FROM_CI",
     "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
     "se_log_used": 0.057570445030531256,
@@ -7253,6 +7339,7 @@
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
      "P9_span_target_mention",
+     "P12_ci_level",
      "P11_registered_estimand"
     ],
     "predicates": {
@@ -7346,6 +7433,13 @@
        "primary composite outcome"
       ],
       "clause": "During a median follow-up of 5.4 years (IQR 5.1-5.9), the primary composite outcome occurred in 594 (12.0%) participants at an incidence rate of 2.4 per 100 person-years in the dulaglutide group and in 663 (13.4%) participants at an incidence rate of 2.7 per 100 person-years in the placebo group (hazard ratio [HR] 0.88, 95% CI 0.79-0.99; p=0.026)."
+     },
+     "P12_ci_level": {
+      "state": "PASS",
+      "source_ci_pct": 95.0,
+      "basis": "STATED_IN_OWNING_EVIDENCE",
+      "level_agreement": "MATCH",
+      "assumed_ci_pct": 95.0
      },
      "P11_registered_estimand": {
       "state": "PASS",
@@ -7630,6 +7724,16 @@
     ]
    },
    "statistical_input": {
+    "ci_level": {
+     "assumed_ci_pct": 95.0,
+     "z_assumed_by_derivation": 1.959963984540054,
+     "source_ci_pct": 95.0,
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "z_for_stated_level": 1.9599639845400545,
+     "level_agreement": "MATCH",
+     "se_log_at_stated_level": 0.0715069173120385,
+     "se_log_used": 0.07150691731203851
+    },
     "se_source": "DERIVED_FROM_CI",
     "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
     "se_log_used": 0.07150691731203851,
@@ -7667,6 +7771,7 @@
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
      "P9_span_target_mention",
+     "P12_ci_level",
      "P11_registered_estimand"
     ],
     "predicates": {
@@ -7760,6 +7865,13 @@
        "primary composite outcome"
       ],
       "clause": "The primary composite outcome occurred in 338 (7%) of 4731 patients at an incidence rate of 4.6 events per 100 person-years in the albiglutide group and in 428 (9%) of 4732 patients at an incidence rate of 5.9 events per 100 person-years in the placebo group (hazard ratio 0.78, 95% CI 0.68-0.90), which indicated that albiglutide was superior to placebo (p<0.0001 for non-inferiority; p=0.0006 for superiority)."
+     },
+     "P12_ci_level": {
+      "state": "PASS",
+      "source_ci_pct": 95.0,
+      "basis": "STATED_IN_OWNING_EVIDENCE",
+      "level_agreement": "MATCH",
+      "assumed_ci_pct": 95.0
      },
      "P11_registered_estimand": {
       "state": "PASS",
@@ -8044,6 +8156,16 @@
     ]
    },
    "statistical_input": {
+    "ci_level": {
+     "assumed_ci_pct": 95.0,
+     "z_assumed_by_derivation": 1.959963984540054,
+     "source_ci_pct": 95.0,
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "z_for_stated_level": 1.9599639845400545,
+     "level_agreement": "MATCH",
+     "se_log_at_stated_level": 0.04753392910819724,
+     "se_log_used": 0.04753392910819725
+    },
     "se_source": "DERIVED_FROM_CI",
     "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
     "se_log_used": 0.04753392910819725,
@@ -8081,6 +8203,7 @@
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
      "P9_span_target_mention",
+     "P12_ci_level",
      "P11_registered_estimand"
     ],
     "predicates": {
@@ -8174,6 +8297,13 @@
        "primary composite outcome"
       ],
       "clause": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority)."
+     },
+     "P12_ci_level": {
+      "state": "PASS",
+      "source_ci_pct": 95.0,
+      "basis": "STATED_IN_OWNING_EVIDENCE",
+      "level_agreement": "MATCH",
+      "assumed_ci_pct": 95.0
      },
      "P11_registered_estimand": {
       "state": "PASS",
@@ -8466,6 +8596,16 @@
     ]
    },
    "statistical_input": {
+    "ci_level": {
+     "assumed_ci_pct": 95.0,
+     "z_assumed_by_derivation": 1.959963984540054,
+     "source_ci_pct": 95.0,
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "z_for_stated_level": 1.9599639845400545,
+     "level_agreement": "MATCH",
+     "se_log_at_stated_level": 0.05626194444228708,
+     "se_log_used": 0.0562619444422871
+    },
     "se_source": "DERIVED_FROM_CI",
     "approximation": "Wald: SE_log = (ln ci_high - ln ci_low) / (2 * 1.959963984540054) -- assumes a normal-theory interval",
     "se_log_used": 0.0562619444422871,
@@ -8503,6 +8643,7 @@
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
      "P9_span_target_mention",
+     "P12_ci_level",
      "P11_registered_estimand"
     ],
     "predicates": {
@@ -8592,6 +8733,13 @@
        "primary-outcome"
       ],
       "clause": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006)."
+     },
+     "P12_ci_level": {
+      "state": "PASS",
+      "source_ci_pct": 95.0,
+      "basis": "STATED_IN_OWNING_EVIDENCE",
+      "level_agreement": "MATCH",
+      "assumed_ci_pct": 95.0
      },
      "P11_registered_estimand": {
       "state": "PASS",
@@ -9177,8 +9325,8 @@
  "verifier": {
   "served_path": "scripts/verify_bundle.py",
   "served_url": "https://mahmood726-cyber.github.io/meta-harness/scripts/verify_bundle.py",
-  "sha256": "d3ed4198da4e95247c80487662ccb4e1a7bd84eca4e17a84ec993da6dec22de3",
-  "bytes": 59870,
+  "sha256": "85f70683500be65e4eee39cf847966183145b2e4872ade12e24e5b5bc8119872",
+  "bytes": 62500,
   "requirements": "Python 3.9+ standard library only; no harness import; run: python verify_bundle.py --url https://mahmood726-cyber.github.io/meta-harness/ --slug glp1-ra-mace-t2d",
   "checks": "every artefact and supporting-file digest; release_sha256 and review_sha256; every predicate of every verification row; the selector rule; the asymmetric rule on every absence claim from a recomputed preservation record; pooled_reference.expected to 1e-9; --corrupt <pmid> <limb> shows one corrupted limb makes exactly that row inadmissible",
   "does_not_check": "that any acquired or cached representation faithfully preserves the upstream publication (SOUL's cache is known to omit the HbA1c entry range, follow-up and the safety sentence); that the source set is complete; that the clinical interpretation is right; and the PRODUCTION admission path -- no production falsification test has been executed by anyone; the verifier checks the bundle, not the producer's gate"

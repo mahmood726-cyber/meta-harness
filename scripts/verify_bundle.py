@@ -411,6 +411,49 @@ def estimand_evidence(parsed, result_clause):
     return out
 
 
+# ---- CI level: the level the source STATES vs the level the derivation ASSUMED --------------------------------------
+_CI_PCT = re.compile(r"(\d{2}(?:[.\u00b7]\d+)?)\s*%\s*(?:confidence interval|CI\b|credible interval)", re.I)
+Z_ASSUMED_BY_DERIVATION = 1.959963984540054   # the harness derives SE_log with the 97.5th normal quantile, i.e. a 95% two-sided interval
+
+
+def inverse_normal(p):
+    """Phi^-1(p) by bisection on math.erf; standard library only; |error| < 1e-12."""
+    lo, hi = -40.0, 40.0
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        if 0.5 * (1.0 + math.erf(mid / math.sqrt(2.0))) < p:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def stated_ci_pct(clause):
+    """The CI level the tuple's own clause states, e.g. '95% CI', '95.03% confidence interval'; None when unstated."""
+    if not clause:
+        return None
+    m = _CI_PCT.search(normalize(clause))
+    return float(m.group(1).replace("\u00b7", ".")) if m else None
+
+
+def ci_level_record(clause, se_used, ci_low, ci_high):
+    """source_ci_pct with its basis, the z the derivation assumed, the z the stated level implies, and MATCH / MISMATCH / UNSTATED.
+    A mismatch is a refusal, not a relabel: an SE derived with z(95%) from a 95.03% interval is wrong, and silently so."""
+    pct = stated_ci_pct(clause)
+    rec = {"assumed_ci_pct": 95.0, "z_assumed_by_derivation": Z_ASSUMED_BY_DERIVATION}
+    if pct is None:
+        rec.update({"source_ci_pct": None, "basis": "UNSTATED", "level_agreement": "UNSTATED",
+                    "note": "the tuple's clause does not state the interval's level; the derivation assumed 95% and that assumption is recorded, not verified"})
+        return rec
+    z_stated = inverse_normal(1.0 - (1.0 - pct / 100.0) / 2.0)
+    rec.update({"source_ci_pct": pct, "basis": "STATED_IN_OWNING_EVIDENCE", "z_for_stated_level": z_stated,
+                "level_agreement": "MATCH" if abs(pct - 95.0) < 1e-9 else "MISMATCH"})
+    if ci_low and ci_high and se_used:
+        rec["se_log_at_stated_level"] = (math.log(ci_high) - math.log(ci_low)) / (2.0 * z_stated)
+        rec["se_log_used"] = se_used
+    return rec
+
+
 class Refusal(Exception):
     """A named refusal that must become a JSON verdict, never a crash."""
 
@@ -718,6 +761,10 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                 if not corrupt:
                     failures.append(f"ESTIMAND_EVIDENCE_MISMATCH {pmid}/{fname}: a REGISTERED_DEFAULT carries a span (a default rendered as a statement)")
         P["P10_estimand_evidence"] = ee_ok
+        cil = ci_level_record(eff_clause, ((t.get("study_effect") or {}).get("standard_error")), t.get("ci_low"), t.get("ci_high"))
+        P["P12_ci_level"] = cil["level_agreement"] != "MISMATCH"
+        if cil["level_agreement"] == "MISMATCH" and not corrupt:
+            failures.append(f"CI_LEVEL_MISMATCH {pmid}: the clause states a {cil['source_ci_pct']}% interval; the SE was derived at the 95% level (z {Z_ASSUMED_BY_DERIVATION})")
         # P11: the bound identity must be the REGISTERED one
         regd = bundle.get("registered_estimand") or {}
         ai = (br or {}).get("analysis_identity") or {}
@@ -751,7 +798,7 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                                "agrees_with_bundle": (final == recorded) if not corrupt else None,
                                "predicates_agree_with_bundle": all(P.get(k) == recorded_P[k] for k in recorded_P) if not corrupt else None,
                                "span_match": loc["match"], "span_occurrences": loc.get("occurrences"), "offsets_reproduce_span": offsets_ok,
-                               "clause_numbers": nums, "estimand_evidence_ok": ee_ok,
+                               "clause_numbers": nums, "estimand_evidence_ok": ee_ok, "ci_level": cil,
                                "estimand_basis": {k: v.get("basis") for k, v in ((br or {}).get("analysis_identity") or {}).items() if isinstance(v, dict)}})
         if p9["state"] != "PASS" and not corrupt:
             failures.append(f"{p9['state']} {pmid}: {json.dumps(p9.get('witness'), ensure_ascii=False)[:160]}")

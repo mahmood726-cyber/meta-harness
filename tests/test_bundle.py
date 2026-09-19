@@ -634,3 +634,30 @@ def test_default_and_stated_bases_are_both_present_and_visibly_distinct(bundle):
     bases = [r["analysis_identity"]["analysis_set"]["basis"] for r in bundle["verification_rows"]]
     assert bases.count("STATED_IN_OWNING_EVIDENCE") == 3 and bases.count("REGISTERED_DEFAULT") == 5   # measured: 3 of 8 abstracts state the analysis set
     assert "UNRESOLVED" not in bases
+
+
+# ------------------------------------------------------------------ 3.10: the CI level the source states vs the level assumed
+
+def test_every_row_states_its_ci_level_or_records_the_assumption(bundle):
+    for r in bundle["verification_rows"]:
+        cil = r["statistical_input"]["ci_level"]
+        assert cil["assumed_ci_pct"] == 95.0 and abs(cil["z_assumed_by_derivation"] - 1.959963984540054) < 1e-15
+        assert cil["level_agreement"] in ("MATCH", "UNSTATED")
+        if cil["level_agreement"] == "MATCH":
+            assert cil["source_ci_pct"] == 95.0 and cil["basis"] == "STATED_IN_OWNING_EVIDENCE"
+            assert abs(cil["se_log_at_stated_level"] - cil["se_log_used"]) < 1e-9
+        assert r["admission"]["predicates"]["P12_ci_level"]["state"] == "PASS"
+    assert sum(1 for r in bundle["verification_rows"] if r["statistical_input"]["ci_level"]["level_agreement"] == "MATCH") == 8   # all eight clauses state '95%'
+
+
+def test_ci_level_mismatch_is_detected_and_z_recomputed_by_stdlib():
+    rec = build_bundle.ci_level_record("hazard ratio, 0.79; 95.03% CI, 0.69 to 0.90", 0.0678, 0.69, 0.90)
+    assert rec["source_ci_pct"] == 95.03 and rec["level_agreement"] == "MISMATCH"
+    assert abs(rec["z_for_stated_level"] - 1.9631) < 1e-3 and rec["z_for_stated_level"] > build_bundle.Z_ASSUMED_BY_DERIVATION
+    assert abs(build_bundle.inverse_normal(0.975) - 1.959963984540054) < 1e-9
+    assert build_bundle.ci_level_record("hazard ratio, 0.79 (0.69 to 0.90)", 0.0678, 0.69, 0.90)["level_agreement"] == "UNSTATED"
+    assert "ABSTAIN" in bundle_vocab()["selection_rule_for_multiple_candidates"]
+
+
+def bundle_vocab():
+    return _load(BUNDLE)["vocabulary"]

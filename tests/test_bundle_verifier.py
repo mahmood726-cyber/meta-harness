@@ -114,7 +114,7 @@ def test_verifier_reports_its_non_claims_and_reproduces_digest_scopes(baseline):
     assert baseline["statistical_input"]["PMID 40162642"]["interval_construction"] == "GROUP_SEQUENTIAL_ADJUSTED"
     src = open(VERIFIER, encoding="utf-8").read()
     assert "does NOT check" in src and "PRODUCTION admission path" in src
-    assert len(src.splitlines()) <= 1000  # 908 after panel round 4 (P9 rule, numeric P3, three span states, estimand evidence, regulatory identity); the 200-500 target was for a minimal checker
+    assert len(src.splitlines()) <= 1200  # 1001 at 3.10 (P9 rule, numeric P3, three span states, estimand evidence, regulatory identity, CI level); the 200-500 target was for a minimal checker
 
 
 def _copy_served_tree(bundle, dst):
@@ -493,3 +493,24 @@ def test_a_default_rendered_as_a_statement_is_refused(baseline):
     row = next(r for r in rep["rows"] if r["pmid"] == "27295427")
     assert row["predicates"]["P10_estimand_evidence"] is False and row["final"] == "INADMISSIBLE"
     assert all(r["estimand_evidence_ok"] for r in baseline["rows"]) and all(r["predicates"]["P11_registered_estimand"] for r in baseline["rows"])
+
+
+
+def test_alpha_adjusted_interval_level_is_refused_not_relabelled(tmp_path):
+    """EMPEROR-Preserved's primary is reported at 95.03% (alpha-adjusted). Simulated on EXSCEL: the record and the span say
+    '95.03% CI' while the SE was derived at 95%. Every digest recomputed; the row must be refused CI_LEVEL_MISMATCH."""
+    old = "(hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00"
+    def edit_records(rec):
+        r = next(x for x in rec["records"] if str(x["id"]) == "28910237")
+        assert old in r["abstract"]
+        r["abstract"] = r["abstract"].replace(old, old.replace("95% confidence", "95.03% confidence"))
+    def edit_review(rev):
+        o = next(x for x in rev["outcomes"] if x.get("primary"))
+        t = next(x for x in o["trials"] if str(x["id"]).endswith("28910237"))
+        t["endpoint_result_span"] = t["endpoint_result_span"].replace("95% confidence", "95.03% confidence")
+    root = _doctored_site(tmp_path, edit_records=edit_records, edit_review=edit_review, edited_pmids=("28910237",))
+    rep = _verify(root)
+    row = next(r for r in rep["rows"] if r["pmid"] == "28910237")
+    assert row["predicates"]["P2_span_located"] and row["predicates"]["P3_effect_tokens_in_span"] and row["predicates"]["P9_span_target_mention"]
+    assert row["ci_level"]["source_ci_pct"] == 95.03 and row["predicates"]["P12_ci_level"] is False and row["final"] == "INADMISSIBLE"
+    assert any(f.startswith("CI_LEVEL_MISMATCH 28910237") for f in rep["failures"])

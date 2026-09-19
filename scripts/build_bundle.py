@@ -45,6 +45,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import random
 import re
@@ -65,8 +66,9 @@ from harness.canonical import canonical_json, review_core, sha256_text  # noqa: 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.9"
+FORMAT_REVISION = "3.10"
 FORMAT_CHANGELOG = [
+    "3.10 (2026-09-19): statistical_input.ci_level -- the CI level the source STATES in the tuple's own clause (with basis) against the level the SE derivation ASSUMED (95%, z = 1.959963984540054); a MISMATCH (e.g. a 95.03% alpha-adjusted interval, EMPEROR-Preserved) is a refusal (P12_ci_level / CI_LEVEL_MISMATCH), never a relabel; UNSTATED is recorded as an assumption. Selection rule stated: by identity, never array order; ABSTAIN where the population cannot be resolved against the registered analysis set (DELIVER carries two PRIMARY composites).",
     "3.9 (2026-09-19): analysis_identity is no longer a set of bare values. Each of analysis_set, treatment_strategy, follow_up_window, comparator_direction and estimator is {value, basis, span, start, end, parent_representation} with basis STATED_IN_OWNING_EVIDENCE / REGISTERED_DEFAULT / UNRESOLVED (a default never renders as a statement); the review-target fallback ('trial end' on every row) is gone; stated fields also appear in spans[] with role analysis_method; regulatory candidates carry their (on-study)/(on-treatment) row label as a column_header span with offsets into the served text; the verifier refuses ESTIMAND_EVIDENCE_MISMATCH when a stated field does not reproduce at its offsets or a default carries a span.",
     "3.8 (2026-09-19, panel round 4 + 37-variant run): P9 rewritten to the panel's rule -- clause boundaries at sentence ends AND semicolons outside brackets; a target DEFINITION requires a definitional cue (component co-occurrence is not ownership); a clause carrying both a target and a non-target mention is AMBIGUOUS_ENDPOINT_BINDING, never a pass; P3 by NUMERIC equality (0.80 == 0.8 accepted; 0.96 vs 1.0 and 0.8 vs 0.84 refused); zero / one / many span occurrences are three states (SPAN_NOT_IN_SOURCE / located / SPAN_LOCATION_AMBIGUOUS, offsets pin one); estimand_evidence per row -- analysis_set, analysis_window, contrast, estimator each STATED with a located span and offsets, DEFAULT_REGISTERED when the held representation is silent, ESTIMAND_UNBOUND when the same source states two values; regulatory candidates carry strategy evidence (label / counts / unbound); the source stamp is content-addressed (blob ids computed from the working tree) and content_commit is informational (PENDING_COMMIT before the bytes are committed) so the stamp no longer needs its own commit to exist; L13/L14 stated.",
     "3.7 (2026-09-19): regulatory_facts[] -- every held regulatory fact with each candidate analysis of the same endpoint carried separately (tuple parsed from its own located span, analysis_identity with treatment strategy and precision, distinct analysis_identity_key), the selected analysis bound to the tuple the decision carries, and any source-internal discrepancy between representations of the SAME analysis recorded. Two authentic analyses of one endpoint in one document (ELIXA on-study 1.02 (0.89-1.18) 392/400 vs on-treatment 1.01 (0.87-1.17) 342/334) are distinguishable from the bundle alone, and the verifier refuses ANALYSIS_IDENTITY_MISMATCH when a tuple is bound to the wrong one.",
@@ -228,6 +230,12 @@ VOCABULARY = {
         "outcome_understood": "the interpretation is supported by context and adjudication (NOT: that a matching hash makes the clinical judgment true)",
     },
     "question_states": ["PASS", "FAIL", "NOT_RETAINED", "NOT_ASSESSED_BY_BUNDLE", "PRODUCER_ASSERTION"],
+    "ci_level_rule": "the interval level the source states is part of the analysis identity; the SE derivation assumes 95%; a stated level that differs "
+                     "(e.g. 95.03%, alpha-adjusted for interim looks) is CI_LEVEL_MISMATCH and the row is refused -- a mismatch is never resolved by relabelling",
+    "selection_rule_for_multiple_candidates": "selection by identity (endpoint components, population / analysis set, treatment strategy, CI level), never by "
+                                              "array order or first match; where the population cannot be resolved against the registered analysis set the "
+                                              "answer is ABSTAIN, not the first primary (DELIVER NCT03619213 carries two PRIMARY composites, 0.82 (0.73-0.92) "
+                                              "and 0.83 (0.73-0.95), differing by population)",
     "estimand_basis": {
         "STATED_IN_OWNING_EVIDENCE": "the value is read from a located span of the row's own evidence; span, start, end and parent_representation are present",
         "BOUND_VIA_COUNTS": "regulatory only: an unlabelled span whose event counts equal those of a labelled candidate inherits its strategy; the labelled span is cited",
@@ -289,6 +297,7 @@ VOCABULARY = {
     "admission_predicates": {
         "P10_estimand_evidence": "every STATED_IN_OWNING_EVIDENCE field reproduces at its offsets; no REGISTERED_DEFAULT carries a span (verifier-side)",
         "P11_registered_estimand": "a stated analysis set / treatment strategy agrees with the estimand the served protocol registers; UNRESOLVED fails; a default agrees by construction",
+        "P12_ci_level": "the CI level stated in the tuple's clause equals the level the SE derivation assumed (95%); MISMATCH refuses; UNSTATED passes with the assumption recorded",
         "P9_span_target_mention": "POSITIVE binding: the tuple's own clause carries a target phrase, the target definition (>=2 canonical components), "
                                   "or a primary-outcome name bound by the row's definition span to the target; a recognised non-target mention refuses "
                                   "ENDPOINT_INCOMPATIBLE; no recognised mention refuses AMBIGUOUS_ENDPOINT_BINDING. Read from the span, not from metadata.",
@@ -718,10 +727,11 @@ def undetermined_death_field(definition_span) -> dict:
             "basis": "trial's own endpoint_definition_span" if definition_span else "no definition span held"}
 
 
-def statistical_input(t: dict, pmid: str) -> dict:
+def statistical_input(t: dict, pmid: str, clause: str | None = None) -> dict:
     """What the CI-to-SE conversion assumed for this row, and whether that assumption is established."""
     se = ((t.get("study_effect") or {}).get("standard_error"))
     rec = {
+        "ci_level": ci_level_record(clause, se, t.get("ci_low"), t.get("ci_high")),
         "se_source": "DERIVED_FROM_CI",
         "approximation": f"Wald: SE_log = (ln ci_high - ln ci_low) / (2 * {Z975}) -- assumes a normal-theory interval",
         "se_log_used": se,
@@ -924,6 +934,49 @@ def estimand_evidence(parsed, result_clause):
     return out
 
 
+# ---- CI level: the level the source STATES vs the level the derivation ASSUMED --------------------------------------
+_CI_PCT = re.compile(r"(\d{2}(?:[.\u00b7]\d+)?)\s*%\s*(?:confidence interval|CI\b|credible interval)", re.I)
+Z_ASSUMED_BY_DERIVATION = 1.959963984540054   # the harness derives SE_log with the 97.5th normal quantile, i.e. a 95% two-sided interval
+
+
+def inverse_normal(p):
+    """Phi^-1(p) by bisection on math.erf; standard library only; |error| < 1e-12."""
+    lo, hi = -40.0, 40.0
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        if 0.5 * (1.0 + math.erf(mid / math.sqrt(2.0))) < p:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def stated_ci_pct(clause):
+    """The CI level the tuple's own clause states, e.g. '95% CI', '95.03% confidence interval'; None when unstated."""
+    if not clause:
+        return None
+    m = _CI_PCT.search(normalize(clause))
+    return float(m.group(1).replace("\u00b7", ".")) if m else None
+
+
+def ci_level_record(clause, se_used, ci_low, ci_high):
+    """source_ci_pct with its basis, the z the derivation assumed, the z the stated level implies, and MATCH / MISMATCH / UNSTATED.
+    A mismatch is a refusal, not a relabel: an SE derived with z(95%) from a 95.03% interval is wrong, and silently so."""
+    pct = stated_ci_pct(clause)
+    rec = {"assumed_ci_pct": 95.0, "z_assumed_by_derivation": Z_ASSUMED_BY_DERIVATION}
+    if pct is None:
+        rec.update({"source_ci_pct": None, "basis": "UNSTATED", "level_agreement": "UNSTATED",
+                    "note": "the tuple's clause does not state the interval's level; the derivation assumed 95% and that assumption is recorded, not verified"})
+        return rec
+    z_stated = inverse_normal(1.0 - (1.0 - pct / 100.0) / 2.0)
+    rec.update({"source_ci_pct": pct, "basis": "STATED_IN_OWNING_EVIDENCE", "z_for_stated_level": z_stated,
+                "level_agreement": "MATCH" if abs(pct - 95.0) < 1e-9 else "MISMATCH"})
+    if ci_low and ci_high and se_used:
+        rec["se_log_at_stated_level"] = (math.log(ci_high) - math.log(ci_low)) / (2.0 * z_stated)
+        rec["se_log_used"] = se_used
+    return rec
+
+
 def _tokens(x) -> list[str]:
     if x is None:
         return []
@@ -1089,6 +1142,8 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
             unregistered.append(("treatment_strategy", "on-treatment"))
         if aset["state"] == "UNRESOLVED" or win["state"] == "UNRESOLVED":
             unregistered.append(("estimand", "UNRESOLVED"))
+        cil = ci_level_record(eff_clause, (t.get("study_effect") or {}).get("standard_error"), t.get("ci_low"), t.get("ci_high"))
+        predicates["P12_ci_level"] = {"state": "FAIL" if cil["level_agreement"] == "MISMATCH" else "PASS", **{k: cil.get(k) for k in ("source_ci_pct", "basis", "level_agreement", "assumed_ci_pct")}}
         predicates["P11_registered_estimand"] = {"state": "PASS" if not unregistered else "FAIL", "registered": {k: reg[k] for k in ("analysis_set", "treatment_strategy")},
                                                  "protocol_ref": reg["protocol_ref"], "protocol_span_start": reg["start"], "departures": unregistered,
                                                  "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails"}
@@ -1147,7 +1202,7 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                                "cache/%s/records.json record (records_file_sha256)" % slug,
                                "reviews/%s/review.json trial row (review_sha256)" % slug],
             },
-            "statistical_input": statistical_input(t, pmid),
+            "statistical_input": statistical_input(t, pmid, eff_clause),
             "decision": {"selected_candidate": t.get("selected_estimator"), "selection_rule": t.get("selection_rule"), "rejected_alternatives": t.get("alternatives"),
                          "endpoint_binding": t.get("endpoint_binding"), "endpoint_binding_reason": t.get("endpoint_binding_reason"),
                          "adjudication_status": t.get("endpoint_admissibility"), "family_identity_state": t.get("family_identity_state"),
