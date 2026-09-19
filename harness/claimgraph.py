@@ -51,6 +51,29 @@ def trial_key(trial_dict: dict[str, Any]) -> str:
     return _norm_id(trial_dict.get("id"))
 
 
+def _family_key(row):
+    """Registry-first graph identity, retaining explicit report source aliases."""
+    return str(row.get('family_id') or _norm_id(row.get('id')))
+
+
+def trial_aliases(row):
+    return {v for v in (_family_key(row), _norm_id(row.get('id'))) if v}
+
+
+def lookup_trial(mapping, row):
+    return mapping.get(_family_key(row)) or mapping.get(_norm_id(row.get('id'))) or {}
+
+
+def membership_object(outcome):
+    states = {}
+    for row in outcome.get('declared_absent_trials') or []:
+        states.setdefault(_family_key(row), set()).add(row.get('state') or row.get('reason_code') or 'UNCLASSIFIED')
+    values = [next(iter(s)) if len(s)==1 else 'CONFLICTING_REPORT_STATES' for s in states.values()]
+    return 'membership-states-'+_sha(states_as_lists := {k:sorted(v) for k,v in states.items()})[:16], {
+        'value':{s:values.count(s) for s in sorted(set(values))}, 'unit':'trial_family',
+        'family_ids':sorted(states_as_lists)}
+
+
 def _keys_from_text(value: Any) -> set[str]:
     text = str(value or "")
     out = {m.group(1) for m in _PMID_RE.finditer(text)}
@@ -82,7 +105,7 @@ def _trial_inputs(trial: dict[str, Any]) -> dict[str, Any]:
 def input_set_version(outcome: dict[str, Any]) -> str:
     rows = []
     for trial in outcome.get("trials") or []:
-        key = trial_key(trial)
+        key = _family_key(trial)
         if key:
             rows.append([key, _trial_inputs(trial)])
     rows.sort(key=lambda row: row[0])

@@ -935,6 +935,48 @@ def _search(r, neutral):
     return body
 
 
+def _trial_families(r, legacy_flow=''):
+    """Single family-ledger consumer; unlinked reports stay candidate records."""
+    if not r.get('trial_families'):
+        return legacy_flow
+    from .trial_family import derive_count_chain, count_sentence, missing_evidence
+    nodes = r['trial_families']
+    chain = derive_count_chain(nodes)
+    rows = []
+    for f in nodes:
+        values = [f['family_id'] + ('' if f.get('is_trial_family') else ' (unresolved report candidate)'),
+                  ', '.join(f['aliases']['acronym']),
+                  '; '.join(x['report_id']+': '+x['role'] for x in f['reports']),
+                  '; '.join(str(a.get('label',{}).get('value') or a['arm_id']) for a in f['arms']),
+                  '; '.join(c['drug'] for c in f['randomised_contrasts']),
+                  json.dumps(f['eligibility'],ensure_ascii=False,sort_keys=True),
+                  json.dumps({k:v.get('value',v.get('absence_code')) for k,v in f['lifecycle'].items()},ensure_ascii=False,sort_keys=True),
+                  '; '.join(p['outcome']+': '+p['state'] for p in f.get('poolability',[]))]
+        rows.append('<tr>'+''.join('<td>'+_e(v)+'</td>' for v in values)+'</tr>')
+    missing = missing_evidence(nodes)
+    panel = ('<section id="family-missing-evidence"><h4>Missing evidence in eligible families</h4>'
+             '<p>Eligible families without a poolable value, by registered outcome; UNKNOWN is not NO.</p><ul>'
+             + ''.join('<li>'+_e(x['family_id']+' / '+x['outcome']+' / '+x['state'])+'</li>' for x in missing)
+             + '</ul>' + ('<p>None.</p>' if not missing else '') + '</section>')
+    heads = ['Family ID','Acronym','Reports by role','Arms','Contrasts','Eligibility','Lifecycle','Per-outcome status']
+    block = ('<section id="trial-families"><h4>Trial families</h4><p class="family-count-chain">'
+            +_e(count_sentence(chain))+'</p><div style="overflow-x:auto"><table class="recs"><thead><tr>'
+            +''.join('<th>'+h+'</th>' for h in heads)+'</tr></thead><tbody>'+''.join(rows)
+            +'</tbody></table></div></section>'+panel)
+    if not legacy_flow:
+        return block
+    import re
+    rendered = re.sub(r'<h4>Study selection flow \(PRISMA 2020\)</h4>.*?</table>',
+                      lambda m: block+'<details><summary>Superseded report-based selection flow (not family counts)</summary>'+m[0]+'</details>', legacy_flow, count=1, flags=re.S)
+    rendered = re.sub(r'(<tr><t[dh]>Screened-in.*?</t[dh]><td>)(.*?)(</td></tr>)',
+                      lambda m: m[1]+_e(count_sentence(chain))+
+                      '<details><summary>Superseded report-based reconciliation</summary>'+m[2]+'</details>'+m[3],
+                      rendered, count=1, flags=re.S)
+    rendered = re.sub(r'<p>\d+ records screened; <strong>.*?</strong>\.',
+                      lambda _: '<p>'+_e(count_sentence(chain)), rendered, count=1, flags=re.S)
+    return rendered
+
+
 def _screening(r, neutral):
     s = r.get("screening")
     reason = _absent(s)
@@ -2714,6 +2756,7 @@ def render_page(review: dict, neutral: bool = False) -> str:
                  f'<h3 class="tabname">{_e(lbl)}</h3>{_R[tid](review, neutral)}</section>')
     if not neutral:
         body = render_certificate((review.get("reproduction") or {}).get("certificate")) + body
+    body = _trial_families(review, body)
     title = _e(review.get("title") or review.get("slug"))
     sub = ("Meta-analysis" if neutral else
            "Reproducible meta-analysis harness — auditability, not authority")
