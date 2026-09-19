@@ -246,3 +246,15 @@ HARMS_INCOMPLETE naming SMART's unextracted counts (the fallback had masked the 
 requiring. Also pushed: ws/DIGLIMB 850dbac5 (held-bytes digest limb 12 + 13 record corrections; land after DEL2). Register rows
 15-20 in outputs/handover/WORKSHOP_READY_TO_LAND_2026-09-19.md. agy pass F round 2 (49 modules) and pass B on the
 237e9094..8c8874b4 diff harvested there; served-page watcher runs pass A on every glp1 review_sha256 move.
+
+## 27. Priority-1 audit, 2026-09-19 13:40: the "verification capabilities do not exist" report audited F:/E156, not meta-harness
+inject_extraction.py is F:/E156/scripts/inject_extraction.py (the E156 capsule injector); F:/E156 + C:/Projects hold 17,913 .py; meta-harness
+tracks 387 .py and no such file. In meta-harness the span check is harness/verified_inputs._validate (span must occur in the held bytes,
+else raise), wired via pipeline._load_verified_arms/_load_verified_effects (pipeline.py 1785-1786) into build_review_core -> build_topic /
+reproduce_review (verify_all limb 2, all 32 pages). EXECUTED through the production route: a one-character change to a held span ->
+`ValueError: glp1-ra-mace-t2d/28910237: source_span absent from held document`, build refused. Also claimgraph.regulatory_fact (span at
+offset in held text, digest first), verify.py (digits in committed source), target_endpoint.bind_result_span, absence.validate_referenced_span.
+rule_id + verbatim span on every served screening record; verbatim query strings in records.json and served search.sources[].queries.
+Replay = limb 2; sealed inputs = registry/heldout_sealed.json (limb 6); reviewer-lane TASK.sha/SEALED_INPUTS.sha256/RUN.json are lane
+protocol (0 harness .py reference them). The FACT gate does what is claimed; no located-span claim needs re-checking on this evidence.
+agy hit its individual quota at ~13:50 (resets ~15:40); a relauncher runs pass A on the served build and pass F round 3 (86 scripts) when it returns.
