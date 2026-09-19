@@ -99,11 +99,19 @@ class Store:
         if path in self.cache:
             return self.cache[path]
         if self.root:
-            data = (Path(self.root) / path).read_bytes()
+            try:
+                data = (Path(self.root) / path).read_bytes()
+            except FileNotFoundError:
+                raise Refusal("ARTEFACT_UNREACHABLE", f"{path} is not present in the served tree")
         else:
             req = urllib.request.Request(self.url.rstrip("/") + "/" + path, headers={"Cache-Control": "no-cache", "User-Agent": "verify_bundle/1"})
-            with urllib.request.urlopen(req, timeout=180) as r:
-                data = r.read()
+            try:
+                with urllib.request.urlopen(req, timeout=180) as r:
+                    data = r.read()
+            except urllib.error.HTTPError as e:
+                raise Refusal("ARTEFACT_UNREACHABLE", f"{path}: HTTP {e.code}")
+            except Exception as e:  # noqa: BLE001
+                raise Refusal("ARTEFACT_UNREACHABLE", f"{path}: {str(e)[:120]}")
         self.cache[path] = data
         return data
 
@@ -222,11 +230,56 @@ def pool(rows):
 
 # ---------------------------------------------------------------- checks
 
+TARGET_PHRASES = ("major adverse cardiovascular", "mace")
+PRIMARY_NAMES = ("primary outcome", "primary composite outcome", "primary-outcome", "primary end point", "primary endpoint", "primary composite end point")
+COMPONENT_WORDS = {"CARDIOVASCULAR_DEATH": ("cardiovascular death", "death from cardiovascular", "cardiovascular causes", "cardiovascular mortality"),
+                   "MYOCARDIAL_INFARCTION": ("myocardial infarction",), "STROKE": ("stroke",)}
+NON_TARGET_MENTIONS = ("death from any cause", "all-cause mortality", "all-cause death", "any-cause death", "hospitalization for heart failure",
+                       "hospitalisation for heart failure", "heart failure", "kidney", "renal", "retinopathy", "amputation", "pancreatitis",
+                       "adverse event", "serious adverse", "gastrointestinal", "hypoglyc")
+
+
+def clause_with_effect(span, tokens):
+    parts = [x for x in re.split(r"(?<=\.)\s+(?=[A-Z])", span or "") if x.strip()]
+    for part in parts:
+        if all(tok in part or tok in normalize(part) for tok in tokens):
+            return part
+    return span or ""
+
+
+def span_target_mention(span, tokens, definition_span, canonical_components):
+    """POSITIVE binding: the tuple's own clause must carry a target mention; a recognised non-target mention refuses
+    ENDPOINT_INCOMPATIBLE; no recognised mention refuses AMBIGUOUS_ENDPOINT_BINDING (never a fallback to the definition)."""
+    clause = clause_with_effect(span, tokens)
+    c, d = normalize(clause).lower(), normalize(definition_span or "").lower()
+    named = lambda text: sorted(k for k, ws in COMPONENT_WORDS.items() if any(w in text for w in ws))
+    comps_c, comps_d = named(c), named(d)
+    primary_named = any(n in c for n in PRIMARY_NAMES)
+    non_target = [m for m in NON_TARGET_MENTIONS if m in c]
+    if any(ph in c for ph in TARGET_PHRASES):
+        return {"state": "PASS", "mention": "target phrase", "clause": clause}
+    if len(set(comps_c) & set(canonical_components or [])) >= 2:
+        return {"state": "PASS", "mention": "target definition in clause", "witness": comps_c, "clause": clause}
+    if primary_named and "primary" in d and len(set(comps_d) & set(canonical_components or [])) >= 2:
+        return {"state": "PASS", "mention": "primary-outcome name bound by definition span", "witness": comps_d, "clause": clause}
+    if non_target or (len(comps_c) == 1 and not primary_named):
+        return {"state": "ENDPOINT_INCOMPATIBLE", "witness": non_target or comps_c, "clause": clause}
+    return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "witness": clause, "clause": clause}
+
+
+class Refusal(Exception):
+    """A named refusal that must become a JSON verdict, never a crash."""
+
+    def __init__(self, code, detail):
+        super().__init__(f"{code} {detail}")
+        self.code, self.detail = code, detail
+
+
 def resolve_selector(records, pmid):
     """The bundle's selector rule: the UNIQUE record with id_type pmid and id == pmid; 0 or >=2 matches refuse."""
     m = [r for r in records["records"] if str(r.get("id_type", "pmid")).lower() == "pmid" and str(r.get("id")) == str(pmid)]
     if len(m) != 1:
-        raise SystemExit(f"SELECTOR_REFUSED #PMID-{pmid}: resolves to {len(m)} records (rule requires exactly one)")
+        raise Refusal("SELECTOR_REFUSED", f"#PMID-{pmid}: resolves to {len(m)} records (rule requires exactly one)")
     return m[0]
 
 
@@ -309,7 +362,12 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         if a["state"] != "SERVED":
             report["artefacts"].append({"ref": a["ref"], "state": a["state"], "checked": "not served; verification route stated in bundle"})
             continue
-        data = store.get(a["served_path"])
+        try:
+            data = store.get(a["served_path"])
+        except Refusal as r:
+            report["artefacts"].append({"ref": a["ref"], "bytes_ok": False, "declared_digest_ok": False, "refusal": r.code})
+            failures.append(f"{r.code} {r.detail}")
+            continue
         ok_bytes = sha256(data) == a["sha256"] and len(data) == a["bytes"]
         role = a["role"]
         if role == "held_documents":
@@ -327,7 +385,12 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         if not (ok_bytes and ok_decl):
             failures.append(f"ARTEFACT_DIGEST_MISMATCH {a['ref']}: bytes_ok={ok_bytes} declared_digest_ok={ok_decl}")
     for f in bundle.get("supporting_files", []):
-        data = store.get(f["path"].removeprefix("docs/"))
+        try:
+            data = store.get(f["path"].removeprefix("docs/"))
+        except Refusal as r:
+            report["supporting"].append({"path": f["path"], "ok": False, "refusal": r.code})
+            failures.append(f"{r.code} {r.detail}")
+            continue
         ok = sha256(data) == f["sha256"] and len(data) == f["bytes"]
         report["supporting"].append({"path": f["path"], "ok": ok})
         if not ok:
@@ -348,12 +411,27 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
 
     # 3. load records / families; apply corruption in memory ----------------------------------------------------
     records = store.json(f"cache/{slug}/records.json")
-    rec_by_pmid = {}
+    rec_by_pmid, selector_refusals = {}, {}
     for br in bundle["verification_rows"]:
         pmid = br["trial"]["id"].replace("PMID ", "")
-        rec_by_pmid[pmid] = resolve_selector(records, pmid)       # refuses on 0 or >=2
+        frag = (br["source"].get("document_ref") or "").split("#PMID-")[-1] if "#PMID-" in (br["source"].get("document_ref") or "") else None
+        try:
+            if frag is None:
+                raise Refusal("SELECTOR_REFUSED", f"{pmid}: document_ref carries no #PMID fragment")
+            if frag != pmid:
+                raise Refusal("SELECTOR_MISMATCH", f"{pmid}: document_ref fragment #PMID-{frag} does not name the row's trial")
+            rec_by_pmid[pmid] = resolve_selector(records, frag)       # refuses on 0 or >=2, by the FRAGMENT the rule names
+        except Refusal as r:
+            selector_refusals[pmid] = r
+            failures.append(f"{r.code} {r.detail}")
     for r in records["records"]:
         rec_by_pmid.setdefault(str(r["id"]), r)
+    try:
+        certified = store.json(f"cache/{slug}/families.json")
+        fam_certified = {f.get("family_id"): f for f in certified.get("families", []) if isinstance(f, dict)}
+    except Refusal as r:
+        fam_certified, certified = {}, None
+        failures.append(f"{r.code} {r.detail} (certified eligibility copy)")
     # digest scopes the bundle publishes for the container: all three must reproduce
     raw = store.get(f"cache/{slug}/records.json")
     scopes = {sc["subject"]: sc["value"] for d in bundle.get("digest_scopes", []) for sc in d["scopes"]}
@@ -365,7 +443,7 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                 failures.append(f"DIGEST_SCOPE_MISMATCH '{k}' does not reproduce under the published canonicalisation")
         report["digest_scopes_reproduced"] = all(got.get(k) == v for k, v in scopes.items())
     container_sha = sha256(store.get(f"cache/{slug}/records.json"))
-    families = {f.get("family_id"): f for f in review.get("trial_families", []) if isinstance(f, dict)}
+    families = {f.get("family_id"): f for f in review.get("trial_families", []) if isinstance(f, dict)}   # rendered copy (cross-check only)
     primary = next(o for o in review["outcomes"] if o.get("primary"))
     trials = [dict(t) for t in primary["trials"]]
     canonical_components = sorted((primary.get("endpoint_canonical") or {}).get("components") or [])
@@ -381,17 +459,30 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         elif limb == "components":
             br["endpoint"]["components_canonical"] = br["endpoint"]["components_canonical"][:-1]
         elif limb == "eligibility":
-            families[t["family_id"]] = dict(families[t["family_id"]], eligibility={"state": "UNKNOWN", "absence_code": "CORRUPTED_BY_VERIFIER"})
+            fam_certified[t["family_id"]] = dict(fam_certified.get(t["family_id"], {}), eligibility={"state": "UNKNOWN", "absence_code": "CORRUPTED_BY_VERIFIER"})
         elif limb == "conflict":
             families[t["family_id"]] = dict(families[t["family_id"]], conflicts=[{"state": "UNRESOLVED", "note": "planted by verifier"}])
         elif limb == "binding":
             t["endpoint_binding"] = "unbound_legacy"
+        elif limb == "nontarget_span":     # M7a shape: a genuine non-target sentence from the same record, numbers intact
+            t["endpoint_result_span"] = f"Death from cardiovascular causes occurred in fewer patients (hazard ratio, {t['effect']}; 95% CI, {t['ci_low']} to {t['ci_high']})."
+        elif limb == "unlisted_span":      # M8 shape: an unlisted outcome with genuine numbers
+            t["endpoint_result_span"] = f"Retinopathy complications occurred in more patients (hazard ratio, {t['effect']}; 95% CI, {t['ci_low']} to {t['ci_high']})."
+        elif limb == "fragment":           # M11 shape: document_ref fragment rewritten
+            br["source"]["document_ref"] = br["source"]["document_ref"].split("#")[0] + "#PMID-99999999"
         elif limb == "container":
             rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=rec_by_pmid[pmid]["abstract"] + " ")
             container_sha = sha256(container_sha.encode())  # the container bytes would differ; represent that
         else:
             raise SystemExit(f"unknown limb {limb}")
         report["corruption"] = {"pmid": pmid, "limb": limb}
+        if limb == "fragment":
+            frag = br["source"]["document_ref"].split("#PMID-")[-1]
+            try:
+                if frag != pmid:
+                    raise Refusal("SELECTOR_MISMATCH", f"{pmid}: document_ref fragment #PMID-{frag} does not name the row's trial")
+            except Refusal as r:
+                selector_refusals[pmid] = r
 
     # 4. predicates per row -----------------------------------------------------------------------------------
     for t in trials:
@@ -400,9 +491,13 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         parsed = (rec_by_pmid.get(pmid) or {}).get("abstract") or ""
         span = t.get("endpoint_result_span") or ""
         loc = locate(span, parsed)
+        fam_c = fam_certified.get(t.get("family_id")) or {}
         fam = families.get(t.get("family_id")) or {}
-        elig = (fam.get("eligibility") or {}).get("state")
-        conf = fam.get("conflicts") or []
+        elig = (fam_c.get("eligibility") or {}).get("state") if fam_c else None          # CERTIFIED copy is authoritative
+        elig_rendered = (fam.get("eligibility") or {}).get("state")
+        if fam_c and elig != elig_rendered and not corrupt:
+            failures.append(f"ELIGIBILITY_COPIES_DISAGREE {t.get('family_id')}: certified {elig} vs rendered {elig_rendered}")
+        conf = (fam_c.get("conflicts") if fam_c.get("conflicts") is not None else fam.get("conflicts")) or []
         unresolved = [c for c in conf if isinstance(c, dict) and str(c.get("state", "")).upper().startswith("UNRESOLVED")]
         toks = tokens_of(t.get("effect")) + tokens_of(t.get("ci_low")) + tokens_of(t.get("ci_high"))
         span_n = normalize(span)
@@ -426,6 +521,10 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             "P7_coverage_adequate_for_claim": located,
             "P8_endpoint_bound": t.get("endpoint_binding") == "named_endpoint_resolved_to_definition_span",
         }
+        p9 = span_target_mention(span, toks, t.get("endpoint_definition_span"), canonical_components)
+        P["P9_span_target_mention"] = p9["state"] == "PASS"
+        if pmid in selector_refusals:
+            P["P1_source_bytes"] = False
         failing = [k for k, ok in P.items() if not ok]
         final = ("ADMISSIBLE" if not failing else
                  "MIGRATION_STATE_UNBOUND_LEGACY" if failing == ["P8_endpoint_bound"] and t.get("endpoint_binding") == "unbound_legacy" else
@@ -433,9 +532,13 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         recorded = (br or {}).get("admission", {}).get("final")
         recorded_P = {k: v["state"] == "PASS" for k, v in ((br or {}).get("admission", {}).get("predicates") or {}).items()}
         report["rows"].append({"pmid": pmid, "label": t.get("label"), "predicates": P, "final": final, "bundle_recorded": recorded,
+                               "p9": p9, "refusal": (selector_refusals[pmid].code if pmid in selector_refusals else
+                                                     p9["state"] if p9["state"] != "PASS" else None),
                                "agrees_with_bundle": (final == recorded) if not corrupt else None,
                                "predicates_agree_with_bundle": (P == recorded_P) if not corrupt else None,
                                "span_match": loc["match"], "offsets_reproduce_span": offsets_ok})
+        if p9["state"] != "PASS" and not corrupt:
+            failures.append(f"{p9['state']} {pmid}: {json.dumps(p9.get('witness'), ensure_ascii=False)[:160]}")
         if not corrupt and final != recorded:
             failures.append(f"ROW_VERDICT_DISAGREES {pmid}: verifier says {final}, bundle recorded {recorded}")
 
@@ -522,12 +625,27 @@ def main(argv=None):
     g.add_argument("--root", help="directory mirroring the site root (e.g. docs)")
     g.add_argument("--url", help="site root URL")
     ap.add_argument("--slug", required=True)
-    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|container")
+    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|nontarget_span|unlisted_span|fragment|container")
     ap.add_argument("--anchor", choices=["live"], help="live: re-fetch EFetch XML from PubMed now and compare to the retained acquisition and the cached abstract")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
+    try:  # the report carries source text (thin spaces, middle dots); a cp1252 console must not turn a verdict into a crash
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:  # noqa: BLE001
+        pass
     store = Store(a.root, a.url)
-    rep = run(store, a.slug, tuple(a.corrupt) if a.corrupt else None, anchor_live=(a.anchor == "live"))
+    try:
+        rep = run(store, a.slug, tuple(a.corrupt) if a.corrupt else None, anchor_live=(a.anchor == "live"))
+    except Refusal as r:
+        rep = {"slug": a.slug, "verdict": "REFUSED", "refusal_code": r.code, "detail": r.detail, "failures": [f"{r.code} {r.detail}"],
+               "note": "the verifier could not complete; this is a verdict, not a crash"}
+        print(json.dumps(rep, indent=1, ensure_ascii=False) if a.json else f"verdict REFUSED  {r.code}: {r.detail}")
+        return 1
+    except Exception as e:  # noqa: BLE001 -- a validator that crashes only when it has something to say looks like a clean corpus
+        rep = {"slug": a.slug, "verdict": "REFUSED", "refusal_code": "VERIFIER_INTERNAL_ERROR", "detail": f"{type(e).__name__}: {str(e)[:300]}",
+               "failures": [f"VERIFIER_INTERNAL_ERROR {type(e).__name__}: {str(e)[:300]}"]}
+        print(json.dumps(rep, indent=1, ensure_ascii=False) if a.json else f"verdict REFUSED  VERIFIER_INTERNAL_ERROR: {type(e).__name__}: {e}")
+        return 1
     if a.json:
         print(json.dumps(rep, indent=1, ensure_ascii=False))
     else:

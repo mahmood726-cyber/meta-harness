@@ -412,3 +412,30 @@ def test_unbound_legacy_rows_are_a_migration_state_outside_the_admissible_count(
     assert all(r["admission"]["predicates"]["P8_endpoint_bound"]["state"] == "PASS" for r in bundle["verification_rows"])
     assert any(l["id"] == "L10_admit_rows_fail_open" for l in bundle["limits"])
     assert "not refused" in bs["statement"] and "UNVERIFIABLE" in bs["statement"]
+
+
+# ------------------------------------------------------------------ 3.4: P9 positive binding, certified eligibility, L11
+
+def test_p9_is_read_from_the_span_and_passes_every_genuine_row(bundle):
+    for r in bundle["verification_rows"]:
+        p9 = r["admission"]["predicates"]["P9_span_target_mention"]
+        assert p9["state"] == "PASS", (r["trial"]["id"], p9)
+        assert p9["clause"] and (p9["clause"] in r["span"]["text"])
+    cc = ["CARDIOVASCULAR_DEATH", "MYOCARDIAL_INFARCTION", "STROKE"]
+    assert build_bundle.span_target_mention("Fewer patients died from cardiovascular causes (hazard ratio, 0.78; 95% CI, 0.66 to 0.93).", ["0.78", "0.66", "0.93"], "The primary composite outcome was cardiovascular death, MI or stroke", cc)["state"] == "ENDPOINT_INCOMPATIBLE"
+    assert build_bundle.span_target_mention("Cataract surgery occurred more often (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).", ["0.87", "0.78", "0.97"], "The primary composite outcome was cardiovascular death, MI or stroke", cc)["state"] == "AMBIGUOUS_ENDPOINT_BINDING"
+    assert build_bundle.span_target_mention("Retinopathy occurred more often (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).", ["0.87", "0.78", "0.97"], "x", cc)["state"] == "ENDPOINT_INCOMPATIBLE"
+    assert build_bundle.span_target_mention("The primary outcome occurred in fewer patients (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).", ["0.87", "0.78", "0.97"], "The primary composite outcome was the first occurrence of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke.", cc)["state"] == "PASS"
+    # a primary-outcome name whose definition span does NOT bind to the target is not admitted by the name alone
+    assert build_bundle.span_target_mention("The primary outcome occurred in fewer patients (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).", ["0.87", "0.78", "0.97"], "The primary outcome was hospitalization for heart failure.", cc)["state"] != "PASS"
+
+
+def test_eligibility_is_read_from_the_certified_copy_and_named(bundle):
+    assert "families.json" in bundle["eligibility_source"]["authoritative"]
+    for r in bundle["verification_rows"]:
+        p5 = r["admission"]["predicates"]["P5_family_eligible"]
+        assert "families.json" in p5["authoritative_copy"] and p5["copies_agree"] is True
+
+
+def test_l11_coacquisition_rewrite_limit_is_printed(bundle):
+    assert any(l["id"] == "L11_coacquisition_rewrite" and "signed release" in l["limit"] for l in bundle["limits"])

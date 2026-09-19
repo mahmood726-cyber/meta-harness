@@ -1,7 +1,8 @@
 {
  "schema_version": 3,
- "format_revision": "3.3",
+ "format_revision": "3.4",
  "format_changelog": [
+  "3.4 (2026-09-19, panel run of verify_bundle.py against 21 mutations): P9_span_target_mention -- a POSITIVE binding requirement read from the tuple's own clause (target phrase, target definition, or a name bound to one), refusing ENDPOINT_INCOMPATIBLE on a recognised non-target mention and AMBIGUOUS_ENDPOINT_BINDING on no recognised mention (never a fallback to the definition span); eligibility read from the CERTIFIED families.json (trial_family_map_sha256) and named authoritative, the rendered copy cross-checked; selector resolved from the document_ref fragment; the verifier never crashes -- every refusal is a JSON verdict with a code; L11 states that acquisition digests inside the package can be rewritten together (H1c) and only a signed release, a third-party timestamp or a fetch at verification time closes it.",
   "3.3 (2026-09-19, admit_rows fail-open audit): UNBOUND_LEGACY surfaced as its own state -- a MIGRATION state, not an admissible one and not a refusal. binding_states lists every rendered row of every outcome with its binding class; P8_endpoint_bound joins the admission predicates and a row that fails only P8 by unbound_legacy gets final MIGRATION_STATE_UNBOUND_LEGACY (counted separately from admissible_rows); the verifier gains the same predicate, a `binding` corruption limb and named refusal codes.",
   "3.2 (2026-09-19, verifier panel round 2): extraction_objects_coverage states that verified_effects.json holds the primary outcome for SOUL alone (an override) and harms refusals for the rest -- the primary-outcome evidence chain for the other seven rows is records.json (records_file_sha256) -> analysis code blobs -> review.json (review_sha256), and every verification row names which; an explicit `anchor` block per document makes the retained EFetch XML mechanically comparable to the cached abstract (the only thing that can catch a self-consistent deletion), and the verifier gains --anchor live (re-fetch EFetch now and compare units: the external observation); a `limits` section prints what the bundle cannot establish, including the closed-list endpoint vocabulary.",
   "3.1 (2026-09-19, ninth audit): canonicalisation scheme published beside every canonical digest and both digest scopes of records.json stated (raw file vs canonical JSON -- same object, different procedures; a shared container digest across rows is correct, identity = container digest + deterministic selector); selector resolution rule stated and enforced (0 or >=2 matches refuse); per-evidence-object digest descriptors (subject / procedure / selector / representation the quotation must occur in); coordinate units on every location; endpoint_compatibility COMPATIBLE_WITH_DECLARED_VARIATION with per-trial undetermined_death_counted_as_cv; statistical_input per row (interval construction, SE reported vs derived, approximation named); heterogeneity precision statement; the verifier served at the path this file names, with its non-claims stated.",
@@ -22,6 +23,11 @@
   "zero_matches": "REFUSE",
   "two_or_more_matches": "REFUSE -- never silently take the first",
   "quotation_scope": "a quotation attributed to the selected record must occur in THAT record's designated representation (PARSED_SOURCE = the record's 'abstract' string, or NORMALIZED_SOURCE derived from it), not merely somewhere in the container"
+ },
+ "eligibility_source": {
+  "authoritative": "cache/glp1-ra-mace-t2d/families.json (certified: trial_family_map_sha256)",
+  "rendered_copy": "reviews/glp1-ra-mace-t2d/review.json trial_families (certified only as part of review_sha256)",
+  "rule": "a certificate consumer reads the certified copy; the rendered copy is cross-checked and a disagreement is reported"
  },
  "coordinates": {
   "unit": "Unicode code points of the decoded Python str (NOT bytes)",
@@ -186,6 +192,7 @@
    "OTHER": "any other binding value; reported verbatim"
   },
   "admission_predicates": {
+   "P9_span_target_mention": "POSITIVE binding: the tuple's own clause carries a target phrase, the target definition (>=2 canonical components), or a primary-outcome name bound by the row's definition span to the target; a recognised non-target mention refuses ENDPOINT_INCOMPATIBLE; no recognised mention refuses AMBIGUOUS_ENDPOINT_BINDING. Read from the span, not from metadata.",
    "P1_source_bytes": "sha256(served source bytes) == declared digest for the container of the representation the span is located in",
    "P2_span_located": "span text == representation[start:end] in the named representation (VERBATIM in PARSED_SOURCE, or in NORMALIZED_SOURCE with the transform manifest applied)",
    "P3_effect_tokens_in_span": "every number token of the effect object (estimate, CI bounds) occurs in the selected span",
@@ -1569,8 +1576,8 @@
   },
   {
    "path": "docs/scripts/verify_bundle.py",
-   "sha256": "4ce9f3ddb8acc7064b7adf286daf045d8c97da48477e832e912acbbc1fb58933",
-   "bytes": 32914,
+   "sha256": "6a62be1e3aedd349bfd5d0d5ec7e7c82d78a520d6cd4e7bd2f01a43719d3a380",
+   "bytes": 41037,
    "role": "the verifier this bundle names; standard library only"
   }
  ],
@@ -4680,7 +4687,8 @@
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
-     "P8_endpoint_bound"
+     "P8_endpoint_bound",
+     "P9_span_target_mention"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -4726,6 +4734,9 @@
       "state": "PASS",
       "family_id": "NCT02692716",
       "eligibility_state": "ELIGIBLE",
+      "authoritative_copy": "cache/glp1-ra-mace-t2d/families.json (certified: trial_family_map_sha256)",
+      "rendered_copy_state": "ELIGIBLE",
+      "copies_agree": true,
       "absence_code": null
      },
      "P6_no_unresolved_conflict": {
@@ -4741,6 +4752,12 @@
       "state": "PASS",
       "endpoint_binding": "named_endpoint_resolved_to_definition_span",
       "endpoint_admissibility": "EXACT_TARGET"
+     },
+     "P9_span_target_mention": {
+      "state": "PASS",
+      "mention": "target phrase",
+      "witness": "major adverse cardiovascular",
+      "clause": "Major adverse cardiovascular events occurred in 61 of 1591 patients (3.8%) in the oral semaglutide group and 76 of 1592 (4.8%) in the placebo group (hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11; P<0.001 for noninferiority)."
      }
     },
     "final": "ADMISSIBLE"
@@ -4931,7 +4948,8 @@
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
-     "P8_endpoint_bound"
+     "P8_endpoint_bound",
+     "P9_span_target_mention"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -4977,6 +4995,9 @@
       "state": "PASS",
       "family_id": "NCT01720446",
       "eligibility_state": "ELIGIBLE",
+      "authoritative_copy": "cache/glp1-ra-mace-t2d/families.json (certified: trial_family_map_sha256)",
+      "rendered_copy_state": "ELIGIBLE",
+      "copies_agree": true,
       "absence_code": null
      },
      "P6_no_unresolved_conflict": {
@@ -4992,6 +5013,19 @@
       "state": "PASS",
       "endpoint_binding": "named_endpoint_resolved_to_definition_span",
       "endpoint_admissibility": "EXACT_TARGET"
+     },
+     "P9_span_target_mention": {
+      "state": "PASS",
+      "mention": "primary-outcome name bound by the row's definition span to the target components",
+      "witness": {
+       "name": "primary outcome",
+       "definition_components": [
+        "CARDIOVASCULAR_DEATH",
+        "MYOCARDIAL_INFARCTION",
+        "STROKE"
+       ]
+      },
+      "clause": "The primary outcome occurred in 108 of 1648 patients (6.6%) in the semaglutide group and in 146 of 1649 patients (8.9%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.58 to 0.95; P<0.001 for noninferiority)."
      }
     },
     "final": "ADMISSIBLE"
@@ -5182,7 +5216,8 @@
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
-     "P8_endpoint_bound"
+     "P8_endpoint_bound",
+     "P9_span_target_mention"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -5228,6 +5263,9 @@
       "state": "PASS",
       "family_id": "NCT01179048",
       "eligibility_state": "ELIGIBLE",
+      "authoritative_copy": "cache/glp1-ra-mace-t2d/families.json (certified: trial_family_map_sha256)",
+      "rendered_copy_state": "ELIGIBLE",
+      "copies_agree": true,
       "absence_code": null
      },
      "P6_no_unresolved_conflict": {
@@ -5243,6 +5281,19 @@
       "state": "PASS",
       "endpoint_binding": "named_endpoint_resolved_to_definition_span",
       "endpoint_admissibility": "EXACT_TARGET"
+     },
+     "P9_span_target_mention": {
+      "state": "PASS",
+      "mention": "primary-outcome name bound by the row's definition span to the target components",
+      "witness": {
+       "name": "primary outcome",
+       "definition_components": [
+        "CARDIOVASCULAR_DEATH",
+        "MYOCARDIAL_INFARCTION",
+        "STROKE"
+       ]
+      },
+      "clause": "The primary outcome occurred in significantly fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97; P<0.001 for noninferiority; P=0.01 for superiority)."
      }
     },
     "final": "ADMISSIBLE"
@@ -5433,7 +5484,8 @@
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
-     "P8_endpoint_bound"
+     "P8_endpoint_bound",
+     "P9_span_target_mention"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -5479,6 +5531,9 @@
       "state": "PASS",
       "family_id": "NCT03496298",
       "eligibility_state": "ELIGIBLE",
+      "authoritative_copy": "cache/glp1-ra-mace-t2d/families.json (certified: trial_family_map_sha256)",
+      "rendered_copy_state": "ELIGIBLE",
+      "copies_agree": true,
       "absence_code": null
      },
      "P6_no_unresolved_conflict": {
@@ -5494,6 +5549,12 @@
       "state": "PASS",
       "endpoint_binding": "named_endpoint_resolved_to_definition_span",
       "endpoint_admissibility": "EXACT_TARGET"
+     },
+     "P9_span_target_mention": {
+      "state": "PASS",
+      "mention": "target phrase",
+      "witness": "mace",
+      "clause": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority)."
      }
     },
     "final": "ADMISSIBLE"
@@ -5687,7 +5748,8 @@
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
-     "P8_endpoint_bound"
+     "P8_endpoint_bound",
+     "P9_span_target_mention"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -5737,6 +5799,9 @@
       "state": "PASS",
       "family_id": "NCT01394952",
       "eligibility_state": "ELIGIBLE",
+      "authoritative_copy": "cache/glp1-ra-mace-t2d/families.json (certified: trial_family_map_sha256)",
+      "rendered_copy_state": "ELIGIBLE",
+      "copies_agree": true,
       "absence_code": null
      },
      "P6_no_unresolved_conflict": {
@@ -5752,6 +5817,19 @@
       "state": "PASS",
       "endpoint_binding": "named_endpoint_resolved_to_definition_span",
       "endpoint_admissibility": "EXACT_TARGET"
+     },
+     "P9_span_target_mention": {
+      "state": "PASS",
+      "mention": "primary-outcome name bound by the row's definition span to the target components",
+      "witness": {
+       "name": "primary composite outcome",
+       "definition_components": [
+        "CARDIOVASCULAR_DEATH",
+        "MYOCARDIAL_INFARCTION",
+        "STROKE"
+       ]
+      },
+      "clause": "During a median follow-up of 5.4 years (IQR 5.1-5.9), the primary composite outcome occurred in 594 (12.0%) participants at an incidence rate of 2.4 per 100 person-years in the dulaglutide group and in 663 (13.4%) participants at an incidence rate of 2.7 per 100 person-years in the placebo group (hazard ratio [HR] 0.88, 95% CI 0.79-0.99; p=0.026)."
      }
     },
     "final": "ADMISSIBLE"
@@ -5945,7 +6023,8 @@
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
-     "P8_endpoint_bound"
+     "P8_endpoint_bound",
+     "P9_span_target_mention"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -5995,6 +6074,9 @@
       "state": "FAIL",
       "family_id": "NCT02465515",
       "eligibility_state": "UNKNOWN",
+      "authoritative_copy": "cache/glp1-ra-mace-t2d/families.json (certified: trial_family_map_sha256)",
+      "rendered_copy_state": "UNKNOWN",
+      "copies_agree": true,
       "absence_code": "ENTRY_POPULATION_NOT_ESTABLISHED"
      },
      "P6_no_unresolved_conflict": {
@@ -6010,6 +6092,19 @@
       "state": "PASS",
       "endpoint_binding": "named_endpoint_resolved_to_definition_span",
       "endpoint_admissibility": "EXACT_TARGET"
+     },
+     "P9_span_target_mention": {
+      "state": "PASS",
+      "mention": "primary-outcome name bound by the row's definition span to the target components",
+      "witness": {
+       "name": "primary composite outcome",
+       "definition_components": [
+        "CARDIOVASCULAR_DEATH",
+        "MYOCARDIAL_INFARCTION",
+        "STROKE"
+       ]
+      },
+      "clause": "The primary composite outcome occurred in 338 (7%) of 4731 patients at an incidence rate of 4.6 events per 100 person-years in the albiglutide group and in 428 (9%) of 4732 patients at an incidence rate of 5.9 events per 100 person-years in the placebo group (hazard ratio 0.78, 95% CI 0.68-0.90), which indicated that albiglutide was superior to placebo (p<0.0001 for non-inferiority; p=0.0006 for superiority)."
      }
     },
     "final": "INADMISSIBLE"
@@ -6200,7 +6295,8 @@
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
-     "P8_endpoint_bound"
+     "P8_endpoint_bound",
+     "P9_span_target_mention"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -6246,6 +6342,9 @@
       "state": "PASS",
       "family_id": "NCT01144338",
       "eligibility_state": "ELIGIBLE",
+      "authoritative_copy": "cache/glp1-ra-mace-t2d/families.json (certified: trial_family_map_sha256)",
+      "rendered_copy_state": "ELIGIBLE",
+      "copies_agree": true,
       "absence_code": null
      },
      "P6_no_unresolved_conflict": {
@@ -6261,6 +6360,19 @@
       "state": "PASS",
       "endpoint_binding": "named_endpoint_resolved_to_definition_span",
       "endpoint_admissibility": "EXACT_TARGET"
+     },
+     "P9_span_target_mention": {
+      "state": "PASS",
+      "mention": "primary-outcome name bound by the row's definition span to the target components",
+      "witness": {
+       "name": "primary composite outcome",
+       "definition_components": [
+        "CARDIOVASCULAR_DEATH",
+        "MYOCARDIAL_INFARCTION",
+        "STROKE"
+       ]
+      },
+      "clause": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority)."
      }
     },
     "final": "ADMISSIBLE"
@@ -6454,7 +6566,8 @@
      "P5_family_eligible",
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
-     "P8_endpoint_bound"
+     "P8_endpoint_bound",
+     "P9_span_target_mention"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -6500,6 +6613,9 @@
       "state": "PASS",
       "family_id": "NCT03914326",
       "eligibility_state": "ELIGIBLE",
+      "authoritative_copy": "cache/glp1-ra-mace-t2d/families.json (certified: trial_family_map_sha256)",
+      "rendered_copy_state": "ELIGIBLE",
+      "copies_agree": true,
       "absence_code": null
      },
      "P6_no_unresolved_conflict": {
@@ -6515,6 +6631,19 @@
       "state": "PASS",
       "endpoint_binding": "named_endpoint_resolved_to_definition_span",
       "endpoint_admissibility": "EXACT_TARGET"
+     },
+     "P9_span_target_mention": {
+      "state": "PASS",
+      "mention": "primary-outcome name bound by the row's definition span to the target components",
+      "witness": {
+       "name": "primary-outcome",
+       "definition_components": [
+        "CARDIOVASCULAR_DEATH",
+        "MYOCARDIAL_INFARCTION",
+        "STROKE"
+       ]
+      },
+      "clause": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006)."
      }
     },
     "final": "ADMISSIBLE"
@@ -7031,6 +7160,10 @@
    "limit": "the producer's target_endpoint.admit_rows admits a row with no endpoint class as UNBOUND_LEGACY (external audit: an authentic ELIXA 4-point row is refused when classified DIFFERENT_OUTCOME and admitted when the class is stripped). Two rendered harms rows carry it. The bundle counts them as a migration state; it cannot say whether the live build behaves as the audited code does, because target_endpoint.py is not pinned in the certificate and generating_commit is NOT_RECORDED."
   },
   {
+   "id": "L11_coacquisition_rewrite",
+   "limit": "if the cached abstract AND the retained acquisition XML are edited together and every digest including ACQUIRED_SOURCE.sha256_original is recomputed, the package is consistent and nothing inside it -- this bundle, its verifier, or any verifier reading only the package -- can detect it (panel H1c). Closing it needs the acquisition digests committed somewhere the bundle cannot rewrite: a signed release, a third-party timestamp, or a fetch at verification time (`verify_bundle.py --anchor live` is that fetch; it is one observation at one time)."
+  },
+  {
    "id": "L9_production_path",
    "limit": "nothing here tests the producer's admission gate; no production falsification test has been executed by anyone."
   }
@@ -7039,8 +7172,8 @@
  "verifier": {
   "served_path": "scripts/verify_bundle.py",
   "served_url": "https://mahmood726-cyber.github.io/meta-harness/scripts/verify_bundle.py",
-  "sha256": "4ce9f3ddb8acc7064b7adf286daf045d8c97da48477e832e912acbbc1fb58933",
-  "bytes": 32914,
+  "sha256": "6a62be1e3aedd349bfd5d0d5ec7e7c82d78a520d6cd4e7bd2f01a43719d3a380",
+  "bytes": 41037,
   "requirements": "Python 3.9+ standard library only; no harness import; run: python verify_bundle.py --url https://mahmood726-cyber.github.io/meta-harness/ --slug glp1-ra-mace-t2d",
   "checks": "every artefact and supporting-file digest; release_sha256 and review_sha256; every predicate of every verification row; the selector rule; the asymmetric rule on every absence claim from a recomputed preservation record; pooled_reference.expected to 1e-9; --corrupt <pmid> <limb> shows one corrupted limb makes exactly that row inadmissible",
   "does_not_check": "that any acquired or cached representation faithfully preserves the upstream publication (SOUL's cache is known to omit the HbA1c entry range, follow-up and the safety sentence); that the source set is complete; that the clinical interpretation is right; and the PRODUCTION admission path -- no production falsification test has been executed by anyone; the verifier checks the bundle, not the producer's gate"

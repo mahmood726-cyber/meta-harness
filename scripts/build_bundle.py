@@ -65,8 +65,9 @@ from harness.canonical import canonical_json, review_core, sha256_text  # noqa: 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.3"
+FORMAT_REVISION = "3.4"
 FORMAT_CHANGELOG = [
+    "3.4 (2026-09-19, panel run of verify_bundle.py against 21 mutations): P9_span_target_mention -- a POSITIVE binding requirement read from the tuple's own clause (target phrase, target definition, or a name bound to one), refusing ENDPOINT_INCOMPATIBLE on a recognised non-target mention and AMBIGUOUS_ENDPOINT_BINDING on no recognised mention (never a fallback to the definition span); eligibility read from the CERTIFIED families.json (trial_family_map_sha256) and named authoritative, the rendered copy cross-checked; selector resolved from the document_ref fragment; the verifier never crashes -- every refusal is a JSON verdict with a code; L11 states that acquisition digests inside the package can be rewritten together (H1c) and only a signed release, a third-party timestamp or a fetch at verification time closes it.",
     "3.3 (2026-09-19, admit_rows fail-open audit): UNBOUND_LEGACY surfaced as its own state -- a MIGRATION state, not an admissible one and not a refusal. binding_states lists every rendered row of every outcome with its binding class; P8_endpoint_bound joins the admission predicates and a row that fails only P8 by unbound_legacy gets final MIGRATION_STATE_UNBOUND_LEGACY (counted separately from admissible_rows); the verifier gains the same predicate, a `binding` corruption limb and named refusal codes.",
     "3.2 (2026-09-19, verifier panel round 2): extraction_objects_coverage states that verified_effects.json holds the primary outcome for SOUL alone (an override) and harms refusals for the rest -- the primary-outcome evidence chain for the other seven rows is records.json (records_file_sha256) -> analysis code blobs -> review.json (review_sha256), and every verification row names which; an explicit `anchor` block per document makes the retained EFetch XML mechanically comparable to the cached abstract (the only thing that can catch a self-consistent deletion), and the verifier gains --anchor live (re-fetch EFetch now and compare units: the external observation); a `limits` section prints what the bundle cannot establish, including the closed-list endpoint vocabulary.",
     "3.1 (2026-09-19, ninth audit): canonicalisation scheme published beside every canonical digest and both digest scopes of "
@@ -128,6 +129,11 @@ LIMITS = [
      "(external audit: an authentic ELIXA 4-point row is refused when classified DIFFERENT_OUTCOME and admitted when the class is stripped). Two rendered "
      "harms rows carry it. The bundle counts them as a migration state; it cannot say whether the live build behaves as the audited code does, because "
      "target_endpoint.py is not pinned in the certificate and generating_commit is NOT_RECORDED."},
+    {"id": "L11_coacquisition_rewrite", "limit": "if the cached abstract AND the retained acquisition XML are edited together and every digest including "
+     "ACQUIRED_SOURCE.sha256_original is recomputed, the package is consistent and nothing inside it -- this bundle, its verifier, or any verifier "
+     "reading only the package -- can detect it (panel H1c). Closing it needs the acquisition digests committed somewhere the bundle cannot rewrite: "
+     "a signed release, a third-party timestamp, or a fetch at verification time (`verify_bundle.py --anchor live` is that fetch; it is one "
+     "observation at one time)."},
     {"id": "L9_production_path", "limit": "nothing here tests the producer's admission gate; no production falsification test has been executed by anyone."},
 ]
 ANCHOR_HOWTO = ("parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, "
@@ -244,6 +250,9 @@ VOCABULARY = {
         "OTHER": "any other binding value; reported verbatim",
     },
     "admission_predicates": {
+        "P9_span_target_mention": "POSITIVE binding: the tuple's own clause carries a target phrase, the target definition (>=2 canonical components), "
+                                  "or a primary-outcome name bound by the row's definition span to the target; a recognised non-target mention refuses "
+                                  "ENDPOINT_INCOMPATIBLE; no recognised mention refuses AMBIGUOUS_ENDPOINT_BINDING. Read from the span, not from metadata.",
         "P1_source_bytes": "sha256(served source bytes) == declared digest for the container of the representation the span is located in",
         "P2_span_located": "span text == representation[start:end] in the named representation (VERBATIM in PARSED_SOURCE, or in NORMALIZED_SOURCE with the transform manifest applied)",
         "P3_effect_tokens_in_span": "every number token of the effect object (estimate, CI bounds) occurs in the selected span",
@@ -695,6 +704,58 @@ def statistical_input(t: dict, pmid: str) -> dict:
     return rec
 
 
+TARGET_PHRASES = ("major adverse cardiovascular", "mace")
+PRIMARY_NAMES = ("primary outcome", "primary composite outcome", "primary-outcome", "primary end point", "primary endpoint", "primary composite end point")
+COMPONENT_WORDS = {"CARDIOVASCULAR_DEATH": ("cardiovascular death", "death from cardiovascular", "cardiovascular causes", "cardiovascular mortality"),
+                   "MYOCARDIAL_INFARCTION": ("myocardial infarction",), "STROKE": ("stroke",)}
+NON_TARGET_MENTIONS = ("death from any cause", "all-cause mortality", "all-cause death", "any-cause death", "hospitalization for heart failure",
+                       "hospitalisation for heart failure", "heart failure", "kidney", "renal", "retinopathy", "amputation", "pancreatitis",
+                       "adverse event", "serious adverse", "gastrointestinal", "hypoglyc")
+
+
+def _clause_with_effect(span: str, tokens: list) -> str:
+    """The sentence of the span that carries the effect tokens (spans are usually one sentence)."""
+    parts = [x for x in re.split(r"(?<=\.)\s+(?=[A-Z])", span or "") if x.strip()]
+    for part in parts:
+        if all(tok in part or tok in normalize(part) for tok in tokens):
+            return part
+    return span or ""
+
+
+def span_target_mention(span: str, tokens: list, definition_span: str, canonical_components: list) -> dict:
+    """POSITIVE binding requirement: the tuple's own clause must carry a TARGET mention -- a target phrase, the target
+    definition (>= 2 canonical components named), or a primary-outcome name that the row's definition span binds to the
+    target. A recognised NON-target mention with no target mention refuses ENDPOINT_INCOMPATIBLE; no recognised mention
+    at all refuses AMBIGUOUS_ENDPOINT_BINDING -- never a silent fallback to the definition span. Trades false passes for
+    false refusals on unusual phrasing, which is the right direction for an admission gate; the witness names the clause."""
+    clause = _clause_with_effect(span, tokens)
+    c = normalize(clause).lower()
+    d = normalize(definition_span or "").lower()
+
+    def components_named(text):
+        return sorted(k for k, words in COMPONENT_WORDS.items() if any(w in text for w in words))
+
+    comps_in_clause = components_named(c)
+    comps_in_def = components_named(d)
+    target_in_clause = any(ph in c for ph in TARGET_PHRASES)
+    primary_named = any(n in c for n in PRIMARY_NAMES)
+    definition_binds_primary = primary_named and ("primary" in d) and len(set(comps_in_def) & set(canonical_components or [])) >= 2
+    non_target = [m for m in NON_TARGET_MENTIONS if m in c]
+    if target_in_clause:
+        return {"state": "PASS", "mention": "target phrase", "witness": next(ph for ph in TARGET_PHRASES if ph in c), "clause": clause}
+    if len(set(comps_in_clause) & set(canonical_components or [])) >= 2:
+        return {"state": "PASS", "mention": "target definition (components named in the clause)", "witness": comps_in_clause, "clause": clause}
+    if definition_binds_primary:
+        return {"state": "PASS", "mention": "primary-outcome name bound by the row's definition span to the target components",
+                "witness": {"name": next(n for n in PRIMARY_NAMES if n in c), "definition_components": comps_in_def}, "clause": clause}
+    if non_target or (len(comps_in_clause) == 1 and not primary_named):
+        return {"state": "ENDPOINT_INCOMPATIBLE", "mention": "recognised NON-target mention bound to the target claim",
+                "witness": non_target or comps_in_clause, "clause": clause}
+    return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no recognised target mention in the tuple's own clause",
+            "witness": clause, "clause": clause,
+            "note": "refused, not admitted: an unrecognised clause is read by a human, never bound to the definition span by default"}
+
+
 def _tokens(x) -> list[str]:
     if x is None:
         return []
@@ -750,7 +811,9 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
     extraction = _extraction_entries(slug)
     canonical_components = sorted((primary.get("endpoint_canonical") or {}).get("components") or [])
     lexicon_blob = _git("rev-parse", "HEAD:harness/target_endpoint.py")
-    fam_by_id = {f.get("family_id"): f for f in review.get("trial_families", []) if isinstance(f, dict)}
+    fam_rendered = {f.get("family_id"): f for f in review.get("trial_families", []) if isinstance(f, dict)}
+    certified = _read_json(ROOT / "cache" / slug / "families.json")
+    fam_by_id = {f.get("family_id"): f for f in certified.get("families", []) if isinstance(f, dict)}   # AUTHORITATIVE: trial_family_map_sha256
     rec_ref = f"cache/{slug}/records.json"
     rec_raw_sha = art_by_ref[rec_ref]["sha256"]
     rec_canon_sha = art_by_ref[rec_ref]["declared_digest"]
@@ -764,8 +827,10 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
         span = t.get("endpoint_result_span") or ""
         loc = locate(span, parsed)
         fam = fam_by_id.get(t.get("family_id")) or {}
+        fam_r = fam_rendered.get(t.get("family_id")) or {}
         elig = (fam.get("eligibility") or {}).get("state") if fam else None
-        conflicts = fam.get("conflicts") if fam else None
+        elig_rendered = (fam_r.get("eligibility") or {}).get("state") if fam_r else None
+        conflicts = (fam.get("conflicts") if fam and fam.get("conflicts") is not None else fam_r.get("conflicts")) if (fam or fam_r) else None
         unresolved = [c for c in conflicts if isinstance(c, dict) and str(c.get("state", "")).upper().startswith("UNRESOLVED")] if isinstance(conflicts, list) else []
         effect = {"scale": t.get("scale"), "estimate": t.get("effect"), "ci_low": t.get("ci_low"), "ci_high": t.get("ci_high")}
         tokens = _tokens(effect["estimate"]) + _tokens(effect["ci_low"]) + _tokens(effect["ci_high"])
@@ -788,12 +853,15 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                                                            "a context-sensitive lexicon in code, not data -- an independent verifier compares the shipped "
                                                            "canonical sets mechanically but cannot re-derive the mapping from the stated strings (limitation stated)"},
             "P5_family_eligible": {"state": "PASS" if elig == "ELIGIBLE" else "FAIL", "family_id": t.get("family_id"), "eligibility_state": elig,
-                                   "absence_code": (fam.get("eligibility") or {}).get("absence_code") if fam else None},
+                                   "authoritative_copy": f"cache/{slug}/families.json (certified: trial_family_map_sha256)",
+                                   "rendered_copy_state": elig_rendered, "copies_agree": elig == elig_rendered,
+                                   "absence_code": ((fam_r.get("eligibility") or {}).get("absence_code") if fam_r else None)},
             "P6_no_unresolved_conflict": {"state": "PASS" if not unresolved else "FAIL", "unresolved": unresolved},
             "P7_coverage_adequate_for_claim": {"state": "PASS" if located else "FAIL", "claim_kind": "POSITIVE",
                                                "rule": "positive claim: a located excerpt suffices; coverage_status of the source is " + str(cov)},
             "P8_endpoint_bound": {"state": "PASS" if t.get("endpoint_binding") == "named_endpoint_resolved_to_definition_span" else "FAIL",
                                   "endpoint_binding": t.get("endpoint_binding"), "endpoint_admissibility": t.get("endpoint_admissibility")},
+            "P9_span_target_mention": span_target_mention(span, tokens, t.get("endpoint_definition_span"), canonical_components),
         }
         failing = [k for k, v in predicates.items() if v["state"] != "PASS"]
         final = ("ADMISSIBLE" if not failing else
@@ -1266,6 +1334,9 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
         "slug": slug,
         "canonicalisation": CANONICALISATION,
         "selector_rule": SELECTOR_RULE,
+        "eligibility_source": {"authoritative": f"cache/{slug}/families.json (certified: trial_family_map_sha256)",
+                               "rendered_copy": f"reviews/{slug}/review.json trial_families (certified only as part of review_sha256)",
+                               "rule": "a certificate consumer reads the certified copy; the rendered copy is cross-checked and a disagreement is reported"},
         "coordinates": COORDINATES,
         "digest_scopes": [digest_scopes],
         "purpose": "The input to an independent verifier: every object CERTIFICATE.json commits a digest to (declared digest, served path, "
