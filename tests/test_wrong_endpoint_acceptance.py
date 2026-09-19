@@ -170,3 +170,38 @@ def test_registry_measure_analysed_as_recurrent_event_is_a_recurrent_event_estim
     assert "recurrent events" in comps
     assert "recurrent events" not in TE._components_from_text(
         "HF Hospitalisations Number of participants with at least one HF Hospitalisation up to 52 weeks")
+
+
+# --- correction of increment 1 (237e9094): a named endpoint with no definition span must be UNBOUND -------------
+
+def test_strength_five_point_primary_is_not_bound_to_the_conclusions_sentence():
+    """STRENGTH (omega3, PMID 33190147): 'The primary efficacy MEASURE was a composite of cardiovascular death, nonfatal
+    myocardial infarction, nonfatal stroke, coronary revascularization, or unstable angina requiring hospitalization.'
+    The 237e9094 binder did not recognise 'measure' as a definition and FELL BACK to every definition sentence, binding
+    the 'primary end point' result (HR 0.99) to the CONCLUSIONS sentence that names MACE -- served as EXACT_TARGET 3-point.
+    Post-fix: the definition is the 5-point sentence (NEAR_MATCH, extra components) and the abstract row is refused; the
+    registry's 3-point 'Composite of CV Events' (its own definition names CV death / MI / stroke) is the exact target."""
+    topic = _json("topics/omega3-cardiovascular-events.json")
+    records = _json("cache/omega3-cardiovascular-events/records.json")
+    rec = next(r for r in records["records"] if str(r["id"]) == "33190147")
+    spec, interv, comp = topic["primary_outcome"], topic["intervention_terms"], topic["comparator_terms"]
+    b = TE.bind_result_span(rec["abstract"], next(s for s in rec["abstract"].split(". ") if s.startswith("The primary end point occurred")))
+    assert b["binding"] != TE.BINDING_NONE
+    assert "unstable angina" in b["components"] and "coronary revascularization" in b["components"], b
+    assert "CONCLUSIONS" not in (b["endpoint_definition_span"] or ""), b
+    pick = TE.select_target_endpoint(spec, rec["abstract"], (records.get("ctgov_results") or {}).get(rec.get("nct")), interv, comp)
+    sel = pick["selected"]
+    assert sel and sel["provenance"] == "ctgov_results" and sel["target_endpoint_class"] == TE.EXACT_TARGET, sel
+    assert sel["effect"] != 0.99
+    abstract_alts = [a for a in pick["candidates"] if a.get("source_type") == "abstract"]
+    assert abstract_alts and all(a.get("target_endpoint_class") == TE.NEAR_MATCH for a in abstract_alts), abstract_alts
+
+
+def test_named_endpoint_without_definition_is_unbound_not_borrowed():
+    """ORIGIN-style: primary = CV death; result sentence reports 'major vascular events'. Pre-fix the binder borrowed the
+    CV-death definition (a component) and refused the composite; post-fix the result is UNBOUND on the abstract route."""
+    abstract = ("METHODS: We randomly assigned patients to n-3 fatty acids or placebo. The primary outcome was death from "
+                "cardiovascular causes. RESULTS: The use of n-3 fatty acids had no significant effect on the rates of major "
+                "vascular events (1034 patients [16.5%] vs. 1017 patients [16.3%]; hazard ratio, 1.01; 95% CI, 0.93 to 1.10).")
+    b = TE.bind_result_span(abstract, "The use of n-3 fatty acids had no significant effect on the rates of major vascular events (1034 patients [16.5%] vs. 1017 patients [16.3%]; hazard ratio, 1.01; 95% CI, 0.93 to 1.10).")
+    assert b["binding"] == TE.BINDING_NONE and "no definition span" in b["binding_reason"], b
