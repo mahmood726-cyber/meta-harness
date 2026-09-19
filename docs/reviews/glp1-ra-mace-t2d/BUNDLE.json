@@ -1,7 +1,8 @@
 {
  "schema_version": 3,
- "format_revision": "3.8",
+ "format_revision": "3.9",
  "format_changelog": [
+  "3.9 (2026-09-19): analysis_identity is no longer a set of bare values. Each of analysis_set, treatment_strategy, follow_up_window, comparator_direction and estimator is {value, basis, span, start, end, parent_representation} with basis STATED_IN_OWNING_EVIDENCE / REGISTERED_DEFAULT / UNRESOLVED (a default never renders as a statement); the review-target fallback ('trial end' on every row) is gone; stated fields also appear in spans[] with role analysis_method; regulatory candidates carry their (on-study)/(on-treatment) row label as a column_header span with offsets into the served text; the verifier refuses ESTIMAND_EVIDENCE_MISMATCH when a stated field does not reproduce at its offsets or a default carries a span.",
   "3.8 (2026-09-19, panel round 4 + 37-variant run): P9 rewritten to the panel's rule -- clause boundaries at sentence ends AND semicolons outside brackets; a target DEFINITION requires a definitional cue (component co-occurrence is not ownership); a clause carrying both a target and a non-target mention is AMBIGUOUS_ENDPOINT_BINDING, never a pass; P3 by NUMERIC equality (0.80 == 0.8 accepted; 0.96 vs 1.0 and 0.8 vs 0.84 refused); zero / one / many span occurrences are three states (SPAN_NOT_IN_SOURCE / located / SPAN_LOCATION_AMBIGUOUS, offsets pin one); estimand_evidence per row -- analysis_set, analysis_window, contrast, estimator each STATED with a located span and offsets, DEFAULT_REGISTERED when the held representation is silent, ESTIMAND_UNBOUND when the same source states two values; regulatory candidates carry strategy evidence (label / counts / unbound); the source stamp is content-addressed (blob ids computed from the working tree) and content_commit is informational (PENDING_COMMIT before the bytes are committed) so the stamp no longer needs its own commit to exist; L13/L14 stated.",
   "3.7 (2026-09-19): regulatory_facts[] -- every held regulatory fact with each candidate analysis of the same endpoint carried separately (tuple parsed from its own located span, analysis_identity with treatment strategy and precision, distinct analysis_identity_key), the selected analysis bound to the tuple the decision carries, and any source-internal discrepancy between representations of the SAME analysis recorded. Two authentic analyses of one endpoint in one document (ELIXA on-study 1.02 (0.89-1.18) 392/400 vs on-treatment 1.01 (0.87-1.17) 342/334) are distinguishable from the bundle alone, and the verifier refuses ANALYSIS_IDENTITY_MISMATCH when a tuple is bound to the wrong one.",
   "3.6 (2026-09-19): analysis_identity per row (analysis set, follow-up / treatment strategy, comparator direction, estimator) because endpoint identity is not estimand identity -- ELIXA's FDA document holds on-study 1.02 (0.89-1.18) and on-treatment 1.01 (0.87-1.17) for the same 3-point endpoint; spans[] with roles (result, definition, column_header, section_heading, analysis_method, footnote) so table-sourced evidence can be bound by more than one span instead of being refused; producer_label_scope states that the page's 'verified' (verify_pooled) checks the point estimate only while P3 checks estimate AND both limits.",
@@ -164,6 +165,13 @@
    "NOT_ASSESSED_BY_BUNDLE",
    "PRODUCER_ASSERTION"
   ],
+  "estimand_basis": {
+   "STATED_IN_OWNING_EVIDENCE": "the value is read from a located span of the row's own evidence; span, start, end and parent_representation are present",
+   "BOUND_VIA_COUNTS": "regulatory only: an unlabelled span whose event counts equal those of a labelled candidate inherits its strategy; the labelled span is cited",
+   "BOUND_VIA_ROUNDING": "regulatory only: an unrounded tuple that rounds to a labelled candidate's tuple inherits its strategy; the labelled span is cited",
+   "REGISTERED_DEFAULT": "the held representation is silent; the registered primary-analysis reading is applied and SAID to be a default -- never rendered as a statement; no span",
+   "UNRESOLVED": "the same source states two values for the field (or names neither where it carries both analyses); the field cannot default"
+  },
   "endpoint_compatibility_states": {
    "HOMOGENEOUS": "every pooled row states literally the same definition on the dimension",
    "COMPATIBLE_WITH_DECLARED_VARIATION": "rows differ on a dimension the protocol explicitly permits to vary; the variation is recorded per trial so an authorised difference stays distinguishable from literal identity and from an unauthorised difference",
@@ -210,6 +218,8 @@
    "OTHER": "any other binding value; reported verbatim"
   },
   "admission_predicates": {
+   "P10_estimand_evidence": "every STATED_IN_OWNING_EVIDENCE field reproduces at its offsets; no REGISTERED_DEFAULT carries a span (verifier-side)",
+   "P11_registered_estimand": "a stated analysis set / treatment strategy agrees with the estimand the served protocol registers; UNRESOLVED fails; a default agrees by construction",
    "P9_span_target_mention": "POSITIVE binding: the tuple's own clause carries a target phrase, the target definition (>=2 canonical components), or a primary-outcome name bound by the row's definition span to the target; a recognised non-target mention refuses ENDPOINT_INCOMPATIBLE; no recognised mention refuses AMBIGUOUS_ENDPOINT_BINDING. Read from the span, not from metadata.",
    "P1_source_bytes": "sha256(served source bytes) == declared digest for the container of the representation the span is located in",
    "P2_span_located": "span text == representation[start:end] in the named representation (VERBATIM in PARSED_SOURCE, or in NORMALIZED_SOURCE with the transform manifest applied)",
@@ -1594,8 +1604,8 @@
   },
   {
    "path": "docs/scripts/verify_bundle.py",
-   "sha256": "bac4831603292a2dff06ed1b80227028ffc645a09233793e1eec50d66e3827e7",
-   "bytes": 56277,
+   "sha256": "d3ed4198da4e95247c80487662ccb4e1a7bd84eca4e17a84ec993da6dec22de3",
+   "bytes": 59870,
    "role": "the verifier this bundle names; standard library only"
   }
  ],
@@ -4227,6 +4237,19 @@
   "page_direction_audit": "ASSERTED_HOMOGENEOUS_UNDERLYING_HETEROGENEOUS",
   "note": "the page collapses an accepted variation into HOMOGENEOUS while its own direction audit says ASSERTED_HOMOGENEOUS_UNDERLYING_HETEROGENEOUS; those are different things. The bundle records the variation per trial from each trial's OWN definition span, so an authorised difference stays distinguishable from literal identity and from an unauthorised difference. Attribution is per span: the 'including unknown causes' wording is REWIND's (31189511), 'cardiovascular or undetermined causes' is AMPLITUDE-O's (34215025)."
  },
+ "registered_estimand": {
+  "protocol_ref": "protocols/glp1-ra-mace-t2d.md",
+  "protocol_span": "- **Estimand.** Intention-to-treat effect of assignment to GLP-1 RA versus placebo on **time to first** occurrence of cardiovascular death, nonfatal myocardial infarction or nonfatal stroke during the prespecified randomised cardiovascular follow-up. Trial definitions that count **undetermined death as cardiovascular death** are accepted as each trial's prespecified adjudicated definition and recorded per trial in the compatibility key (`undetermined_death_counted_as_cv: yes/no/unstated`); no re-adjudication is attempted.",
+  "start": 6995,
+  "end": 7522,
+  "parent_representation": "PARSED_SOURCE (protocol text, code points)",
+  "analysis_set": "intention-to-treat",
+  "treatment_strategy": "on-study (ITT)",
+  "treatment_strategy_basis": "the protocol registers the intention-to-treat effect during the prespecified randomised follow-up: a treatment-policy (on-study) strategy",
+  "contrast": "GLP-1 RA vs placebo",
+  "estimator": "hazard ratio, time to first event",
+  "rule": "a binding whose identity differs from the registered estimand on analysis set or treatment strategy is BOUND_TO_UNREGISTERED_ESTIMAND -- internally consistent is necessary and not sufficient"
+ },
  "extraction_objects_coverage": {
   "files": [
    "cache/glp1-ra-mace-t2d/verified_arms.json",
@@ -4566,8 +4589,18 @@
       "start": 47274,
       "end": 47482
      },
+     "spans": [
+      {
+       "role": "result",
+       "text": "For ITT analysis 792 MACE events were observed, 392 and 400 in placebo and \nlixisenatide group, respectively. The 95% confidence interval for the hazard ratio is (0.887, \n1.172) with a point estimate of 1.02.",
+       "parent_representation": "PARSED_SOURCE",
+       "start": 47274,
+       "end": 47482,
+       "match": "VERBATIM"
+      }
+     ],
      "strategy_evidence": {
-      "state": "STATED_VIA_COUNTS",
+      "state": "BOUND_VIA_COUNTS",
       "how": "the event counts in this span equal those of the labelled candidate table8_onstudy_3p",
       "counts": {
        "placebo_events": 392,
@@ -4609,8 +4642,26 @@
       "start": 47684,
       "end": 47894
      },
+     "spans": [
+      {
+       "role": "result",
+       "text": "Table 8: Analysis of the MACE Endpoint \n Placebo \n(N=3,034) \nLixisenatide \n(N=3,034) \nHazard ratio \n(95% CI) \nMACE endpoint (on-study) 1.02 \n(0.89, 1.18) \n No. of patients with event (%) 392 (12.9%) 400 (13.2%)",
+       "parent_representation": "PARSED_SOURCE",
+       "start": 47684,
+       "end": 47894,
+       "match": "VERBATIM"
+      },
+      {
+       "role": "column_header",
+       "text": "on-study",
+       "parent_representation": "PARSED_SOURCE",
+       "start": 47809,
+       "end": 47817,
+       "note": "the (on-study)/(on-treatment) row label that qualifies this row's tuple"
+      }
+     ],
      "strategy_evidence": {
-      "state": "STATED",
+      "state": "STATED_IN_OWNING_EVIDENCE",
       "how": "strategy named in the span",
       "span": "on-study"
      },
@@ -4651,8 +4702,26 @@
       "start": 47957,
       "end": 48061
      },
+     "spans": [
+      {
+       "role": "result",
+       "text": "MACE endpoint (on-treatment) 1.01 \n(0.87, 1.17) \n No. of patients with event (%) 342 (11.3%) 334 (11.0%)",
+       "parent_representation": "PARSED_SOURCE",
+       "start": 47957,
+       "end": 48061,
+       "match": "VERBATIM"
+      },
+      {
+       "role": "column_header",
+       "text": "on-treatment",
+       "parent_representation": "PARSED_SOURCE",
+       "start": 47972,
+       "end": 47984,
+       "note": "the (on-study)/(on-treatment) row label that qualifies this row's tuple"
+      }
+     ],
      "strategy_evidence": {
-      "state": "STATED",
+      "state": "STATED_IN_OWNING_EVIDENCE",
       "how": "strategy named in the span",
       "span": "on-treatment"
      },
@@ -4692,8 +4761,18 @@
       "start": 16629,
       "end": 16930
      },
+     "spans": [
+      {
+       "role": "result",
+       "text": "There were 792 secondary MACE events observed in the study for the ITT population, 400 in \nthe lixisenatide group and 392 in the placebo group. The pre-specified Cox proportional hazards \nanalysis resulted in a hazard ratio estimate of 1.02 with an associated 95% confidence interval of \n(0.89, 1.17).",
+       "parent_representation": "PARSED_SOURCE",
+       "start": 16629,
+       "end": 16930,
+       "match": "VERBATIM"
+      }
+     ],
      "strategy_evidence": {
-      "state": "STATED_VIA_COUNTS",
+      "state": "BOUND_VIA_COUNTS",
       "how": "the event counts in this span equal those of the labelled candidate table8_onstudy_3p",
       "counts": {
        "placebo_events": 392,
@@ -4735,8 +4814,26 @@
       "start": 45391,
       "end": 45622
      },
+     "spans": [
+      {
+       "role": "result",
+       "text": "Table 6: Analysis of the Primary CV endpoint (On-study Analysis) \n Placebo \n(N=3,034) \nLixisenatide \n(N=3,034) \nHazard ratio \n(95% CI) \nPrimary CV endpoint 1.02 \n(0.89, 1.17) \n No. of patients with event (%) 399 (13.2%) 406 (13.4%)",
+       "parent_representation": "PARSED_SOURCE",
+       "start": 45391,
+       "end": 45622,
+       "match": "VERBATIM"
+      },
+      {
+       "role": "column_header",
+       "text": "On-study",
+       "parent_representation": "PARSED_SOURCE",
+       "start": 45437,
+       "end": 45445,
+       "note": "the (on-study)/(on-treatment) row label that qualifies this row's tuple"
+      }
+     ],
      "strategy_evidence": {
-      "state": "STATED",
+      "state": "STATED_IN_OWNING_EVIDENCE",
       "how": "strategy named in the span",
       "span": "On-study"
      },
@@ -4777,8 +4874,18 @@
       "start": 63374,
       "end": 63546
      },
+     "spans": [
+      {
+       "role": "result",
+       "text": "By the end of the study, there were 805 MACE+ events, 406 in \nthe lixisenatide group and 399 in the placebo group. The 95% confidence level for MACE+ is \n1.02 (0.89, 1.17).",
+       "parent_representation": "PARSED_SOURCE",
+       "start": 63374,
+       "end": 63546,
+       "match": "VERBATIM"
+      }
+     ],
      "strategy_evidence": {
-      "state": "STATED_VIA_COUNTS",
+      "state": "BOUND_VIA_COUNTS",
       "how": "the event counts in this span equal those of the labelled candidate primary_4p_table6",
       "counts": {
        "placebo_events": 399,
@@ -4820,8 +4927,18 @@
       "start": 19969,
       "end": 20187
      },
+     "spans": [
+      {
+       "role": "result",
+       "text": "There were 406 in the lixisenatide group and 399 in the placebo group. \nUsing the pre-specified Cox proportional hazards model, the hazard ratio estimate and associated \n95% confidence interval is 1.017 (0.886, 1.168).",
+       "parent_representation": "PARSED_SOURCE",
+       "start": 19969,
+       "end": 20187,
+       "match": "VERBATIM"
+      }
+     ],
      "strategy_evidence": {
-      "state": "STATED_VIA_COUNTS",
+      "state": "BOUND_VIA_COUNTS",
       "how": "the event counts in this span equal those of the labelled candidate primary_4p_table6",
       "counts": {
        "placebo_events": 399,
@@ -4857,6 +4974,13 @@
     "text_unrounded_3p"
    ],
    "tuple_to_identity_binding": "BOUND",
+   "registered_estimand": {
+    "treatment_strategy": "on-study (ITT)",
+    "analysis_set": "intention-to-treat",
+    "protocol_ref": "protocols/glp1-ra-mace-t2d.md",
+    "protocol_span_start": 6995,
+    "claimed_matches_registered": true
+   },
    "distinct_analysis_identity_keys": [
     "ELIXA | 3-point MACE | ITT | on-study (ITT) | 2dp",
     "ELIXA | 3-point MACE | ITT | on-study (ITT) | 3dp",
@@ -4950,8 +5074,26 @@
        "unicode_punctuation"
       ]
      },
+     "spans": [
+      {
+       "role": "result",
+       "text": "Table 19. Time to First Occurrence of 3-Point MACE (CV Death, Nonfatal MI, Nonfatal Stroke) and 4-Point MACE (CV Death, Nonfatal MI, Nonfatal Stroke, Unstable Angina) - ITT Population End of Study, FREEDOM (CLP-107) | MACE Type | ITCA 650 Number of Events/Total No. (%) IR (n/100 PY) | Control Number of Events/Total No. (%) IR (n/100 PY) | HR (95% CI)** | 3-Point MACE* 85/2075 (4.1%) 2.94 | 69/2081 (3.3%) 2.37 | 1.24 (0.90, 1.70) | 4-Point MACE 95/2075 (4.6%) 3.29 | 79/2081 (3.8%) 2.72 | 1.21 (0.90, 1.63) | Source: CDER Review staff. * One hundred fifty-four positively adjudicated 3-point MACE events. ** Based on a Cox proportional hazards regression model.",
+       "parent_representation": null,
+       "start": null,
+       "end": null,
+       "match": "NOT_LOCATED"
+      },
+      {
+       "role": "column_header",
+       "text": "End of Study",
+       "parent_representation": null,
+       "start": null,
+       "end": null,
+       "note": "the (on-study)/(on-treatment) row label that qualifies this row's tuple"
+      }
+     ],
      "strategy_evidence": {
-      "state": "STATED",
+      "state": "STATED_IN_OWNING_EVIDENCE",
       "how": "strategy named in the span",
       "span": "End of Study"
      },
@@ -5040,6 +5182,13 @@
     "result"
    ],
    "tuple_to_identity_binding": "BOUND",
+   "registered_estimand": {
+    "treatment_strategy": "on-study (ITT)",
+    "analysis_set": "intention-to-treat",
+    "protocol_ref": "protocols/glp1-ra-mace-t2d.md",
+    "protocol_span_start": 6995,
+    "claimed_matches_registered": true
+   },
    "distinct_analysis_identity_keys": [
     "FREEDOM-CVO | 3-point MACE | ITT | on-study (ITT) | 2dp"
    ],
@@ -5095,8 +5244,18 @@
       "start": 79859,
       "end": 80023
      },
+     "spans": [
+      {
+       "role": "result",
+       "text": "Composite of cardiovascular death, \nnon-fatal myocardial infarction, \nnon-fatal stroke (time to first \noccurrence) \n254 (14.4) 212 (12.0) \n0.82 (0.68, \n0.98) 0.0289",
+       "parent_representation": "PARSED_SOURCE",
+       "start": 79859,
+       "end": 80023,
+       "match": "VERBATIM"
+      }
+     ],
      "strategy_evidence": {
-      "state": "DEFAULT_REGISTERED",
+      "state": "REGISTERED_DEFAULT",
       "how": "no label; the source carries one strategy for this endpoint"
      },
      "span_binding": "VERBATIM_SPAN",
@@ -5127,6 +5286,13 @@
     "result"
    ],
    "tuple_to_identity_binding": "BOUND",
+   "registered_estimand": {
+    "treatment_strategy": "on-study (ITT)",
+    "analysis_set": "intention-to-treat",
+    "protocol_ref": "protocols/glp1-ra-mace-t2d.md",
+    "protocol_span_start": 6995,
+    "claimed_matches_registered": true
+   },
    "distinct_analysis_identity_keys": [
     "FLOW | 3-point MACE | UNSTATED | UNSTATED | 2dp"
    ],
@@ -5282,31 +5448,13 @@
      }
     }
    },
-   "analysis_identity": {
-    "analysis_set": "intention-to-treat",
-    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
-    "follow_up_window": "trial end",
-    "comparator_direction": {
-     "experimental": "GLP-1 receptor agonist (topic config)",
-     "comparator": "placebo (topic config)",
-     "effect_less_than_1_favours": "experimental"
-    },
-    "estimator": {
-     "method": "PUBLISHED_HR",
-     "reported_label": "HR",
-     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
-     "adjustment_status": "UNRESOLVED"
-    },
-    "event_time": "HAZARD_RATIO_FIRST_EVENT",
-    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | trial end | PUBLISHED_HR"
-   },
    "estimand_evidence": {
     "analysis_set": {
-     "state": "DEFAULT_REGISTERED",
+     "state": "REGISTERED_DEFAULT",
      "value": "intention-to-treat (registered primary-analysis default)"
     },
     "analysis_window": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "time-to-first-event (treatment-policy)",
      "start": 577,
      "end": 778,
@@ -5315,7 +5463,7 @@
      "also_stated": []
     },
     "estimator": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "hazard ratio",
      "start": 778,
      "end": 1000,
@@ -5323,13 +5471,59 @@
      "parent_representation": "PARSED_SOURCE"
     },
     "contrast": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "vs placebo (named in the result clause)",
      "span": "Major adverse cardiovascular events occurred in 61 of 1591 patients (3.8%) in the oral semaglutide group and 76 of 1592 (4.8%) in the placebo group (hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11; P<0.001 for noninferiority).",
      "start": 1289,
      "end": 1530,
      "parent_representation": "PARSED_SOURCE"
     }
+   },
+   "analysis_identity": {
+    "analysis_set": {
+     "value": "intention-to-treat (registered primary-analysis default)",
+     "basis": "REGISTERED_DEFAULT"
+    },
+    "treatment_strategy": {
+     "value": "treatment-policy (on-study)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "The primary outcome in a time-to-event analysis was the first occurrence of a major adverse cardiovascular event (death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke).",
+     "start": 577,
+     "end": 778,
+     "parent_representation": "PARSED_SOURCE"
+    },
+    "follow_up_window": {
+     "value": "time-to-first-event (treatment-policy)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "The primary outcome in a time-to-event analysis was the first occurrence of a major adverse cardiovascular event (death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke).",
+     "start": 577,
+     "end": 778,
+     "parent_representation": "PARSED_SOURCE"
+    },
+    "comparator_direction": {
+     "value": "vs placebo (named in the result clause)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "Major adverse cardiovascular events occurred in 61 of 1591 patients (3.8%) in the oral semaglutide group and 76 of 1592 (4.8%) in the placebo group (hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11; P<0.001 for noninferiority).",
+     "start": 1289,
+     "end": 1530,
+     "parent_representation": "PARSED_SOURCE",
+     "effect_less_than_1_favours": "experimental (ratio measures; the row's own clause names the comparator arm when STATED)"
+    },
+    "estimator": {
+     "value": "hazard ratio",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "The trial was designed to rule out 80% excess cardiovascular risk as compared with placebo (noninferiority margin of 1.8 for the upper boundary of the 95% confidence interval for the hazard ratio for the primary outcome).",
+     "start": 778,
+     "end": 1000,
+     "parent_representation": "PARSED_SOURCE",
+     "producer_fields": {
+      "method": "PUBLISHED_HR",
+      "reported_label": "HR",
+      "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+     }
+    },
+    "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]",
+    "rule": "a value with basis REGISTERED_DEFAULT is a default, not a statement; two rows that differ only in defaults are NOT shown to differ"
    },
    "spans": [
     {
@@ -5346,6 +5540,33 @@
      "parent_representation": "PARSED_SOURCE",
      "start": 578,
      "end": 778,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "analysis_window",
+     "text": "The primary outcome in a time-to-event analysis was the first occurrence of a major adverse cardiovascular event (death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 577,
+     "end": 778,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "estimator",
+     "text": "The trial was designed to rule out 80% excess cardiovascular risk as compared with placebo (noninferiority margin of 1.8 for the upper boundary of the 95% confidence interval for the hazard ratio for the primary outcome).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 778,
+     "end": 1000,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "contrast",
+     "text": "Major adverse cardiovascular events occurred in 61 of 1591 patients (3.8%) in the oral semaglutide group and 76 of 1592 (4.8%) in the placebo group (hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11; P<0.001 for noninferiority).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 1289,
+     "end": 1530,
      "match": "VERBATIM"
     }
    ],
@@ -5395,7 +5616,8 @@
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
-     "P9_span_target_mention"
+     "P9_span_target_mention",
+     "P11_registered_estimand"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -5483,6 +5705,17 @@
        "major adverse cardiovascular"
       ],
       "clause": "Major adverse cardiovascular events occurred in 61 of 1591 patients (3.8%) in the oral semaglutide group and 76 of 1592 (4.8%) in the placebo group (hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11; P<0.001 for noninferiority)."
+     },
+     "P11_registered_estimand": {
+      "state": "PASS",
+      "registered": {
+       "analysis_set": "intention-to-treat",
+       "treatment_strategy": "on-study (ITT)"
+      },
+      "protocol_ref": "protocols/glp1-ra-mace-t2d.md",
+      "protocol_span_start": 6995,
+      "departures": [],
+      "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails"
      }
     },
     "final": "ADMISSIBLE"
@@ -5629,35 +5862,17 @@
      }
     }
    },
-   "analysis_identity": {
-    "analysis_set": "intention-to-treat",
-    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
-    "follow_up_window": "trial end",
-    "comparator_direction": {
-     "experimental": "GLP-1 receptor agonist (topic config)",
-     "comparator": "placebo (topic config)",
-     "effect_less_than_1_favours": "experimental"
-    },
-    "estimator": {
-     "method": "PUBLISHED_HR",
-     "reported_label": "HR",
-     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
-     "adjustment_status": "UNRESOLVED"
-    },
-    "event_time": "HAZARD_RATIO_FIRST_EVENT",
-    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | trial end | PUBLISHED_HR"
-   },
    "estimand_evidence": {
     "analysis_set": {
-     "state": "DEFAULT_REGISTERED",
+     "state": "REGISTERED_DEFAULT",
      "value": "intention-to-treat (registered primary-analysis default)"
     },
     "analysis_window": {
-     "state": "DEFAULT_REGISTERED",
+     "state": "REGISTERED_DEFAULT",
      "value": "on-study, treatment-policy (registered primary-analysis default)"
     },
     "estimator": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "hazard ratio",
      "start": 758,
      "end": 867,
@@ -5665,13 +5880,51 @@
      "parent_representation": "PARSED_SOURCE"
     },
     "contrast": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "vs placebo (named in the result clause)",
      "span": "The primary outcome occurred in 108 of 1648 patients (6.6%) in the semaglutide group and in 146 of 1649 patients (8.9%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.58 to 0.95; P<0.001 for noninferiority).",
      "start": 992,
      "end": 1226,
      "parent_representation": "PARSED_SOURCE"
     }
+   },
+   "analysis_identity": {
+    "analysis_set": {
+     "value": "intention-to-treat (registered primary-analysis default)",
+     "basis": "REGISTERED_DEFAULT"
+    },
+    "treatment_strategy": {
+     "value": "on-study, treatment-policy (registered primary-analysis default)",
+     "basis": "REGISTERED_DEFAULT"
+    },
+    "follow_up_window": {
+     "value": "on-study, treatment-policy (registered primary-analysis default)",
+     "basis": "REGISTERED_DEFAULT"
+    },
+    "comparator_direction": {
+     "value": "vs placebo (named in the result clause)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "The primary outcome occurred in 108 of 1648 patients (6.6%) in the semaglutide group and in 146 of 1649 patients (8.9%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.58 to 0.95; P<0.001 for noninferiority).",
+     "start": 992,
+     "end": 1226,
+     "parent_representation": "PARSED_SOURCE",
+     "effect_less_than_1_favours": "experimental (ratio measures; the row's own clause names the comparator arm when STATED)"
+    },
+    "estimator": {
+     "value": "hazard ratio",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "The noninferiority margin was 1.8 for the upper boundary of the 95% confidence interval of the hazard ratio.",
+     "start": 758,
+     "end": 867,
+     "parent_representation": "PARSED_SOURCE",
+     "producer_fields": {
+      "method": "PUBLISHED_HR",
+      "reported_label": "HR",
+      "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+     }
+    },
+    "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
+    "rule": "a value with basis REGISTERED_DEFAULT is a default, not a statement; two rows that differ only in defaults are NOT shown to differ"
    },
    "spans": [
     {
@@ -5688,6 +5941,24 @@
      "parent_representation": "PARSED_SOURCE",
      "start": 537,
      "end": 668,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "estimator",
+     "text": "The noninferiority margin was 1.8 for the upper boundary of the 95% confidence interval of the hazard ratio.",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 758,
+     "end": 867,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "contrast",
+     "text": "The primary outcome occurred in 108 of 1648 patients (6.6%) in the semaglutide group and in 146 of 1649 patients (8.9%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.58 to 0.95; P<0.001 for noninferiority).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 992,
+     "end": 1226,
      "match": "VERBATIM"
     }
    ],
@@ -5737,7 +6008,8 @@
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
-     "P9_span_target_mention"
+     "P9_span_target_mention",
+     "P11_registered_estimand"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -5825,6 +6097,17 @@
        "primary outcome"
       ],
       "clause": "The primary outcome occurred in 108 of 1648 patients (6.6%) in the semaglutide group and in 146 of 1649 patients (8.9%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.58 to 0.95; P<0.001 for noninferiority)."
+     },
+     "P11_registered_estimand": {
+      "state": "PASS",
+      "registered": {
+       "analysis_set": "intention-to-treat",
+       "treatment_strategy": "on-study (ITT)"
+      },
+      "protocol_ref": "protocols/glp1-ra-mace-t2d.md",
+      "protocol_span_start": 6995,
+      "departures": [],
+      "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails"
      }
     },
     "final": "ADMISSIBLE"
@@ -5971,31 +6254,13 @@
      }
     }
    },
-   "analysis_identity": {
-    "analysis_set": "intention-to-treat",
-    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
-    "follow_up_window": "trial end",
-    "comparator_direction": {
-     "experimental": "GLP-1 receptor agonist (topic config)",
-     "comparator": "placebo (topic config)",
-     "effect_less_than_1_favours": "experimental"
-    },
-    "estimator": {
-     "method": "PUBLISHED_HR",
-     "reported_label": "HR",
-     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
-     "adjustment_status": "UNRESOLVED"
-    },
-    "event_time": "HAZARD_RATIO_FIRST_EVENT",
-    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | trial end | PUBLISHED_HR"
-   },
    "estimand_evidence": {
     "analysis_set": {
-     "state": "DEFAULT_REGISTERED",
+     "state": "REGISTERED_DEFAULT",
      "value": "intention-to-treat (registered primary-analysis default)"
     },
     "analysis_window": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "time-to-first-event (treatment-policy)",
      "start": 320,
      "end": 494,
@@ -6006,7 +6271,7 @@
      ]
     },
     "estimator": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "hazard ratio",
      "start": 494,
      "end": 703,
@@ -6014,13 +6279,59 @@
      "parent_representation": "PARSED_SOURCE"
     },
     "contrast": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "vs placebo (named in the result clause)",
      "span": "The primary outcome occurred in significantly fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97; P<0.001 for noninferiority; P=0.01 for superiority).",
      "start": 889,
      "end": 1171,
      "parent_representation": "PARSED_SOURCE"
     }
+   },
+   "analysis_identity": {
+    "analysis_set": {
+     "value": "intention-to-treat (registered primary-analysis default)",
+     "basis": "REGISTERED_DEFAULT"
+    },
+    "treatment_strategy": {
+     "value": "treatment-policy (on-study)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "The primary composite outcome in the time-to-event analysis was the first occurrence of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke.",
+     "start": 320,
+     "end": 494,
+     "parent_representation": "PARSED_SOURCE"
+    },
+    "follow_up_window": {
+     "value": "time-to-first-event (treatment-policy)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "The primary composite outcome in the time-to-event analysis was the first occurrence of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke.",
+     "start": 320,
+     "end": 494,
+     "parent_representation": "PARSED_SOURCE"
+    },
+    "comparator_direction": {
+     "value": "vs placebo (named in the result clause)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "The primary outcome occurred in significantly fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97; P<0.001 for noninferiority; P=0.01 for superiority).",
+     "start": 889,
+     "end": 1171,
+     "parent_representation": "PARSED_SOURCE",
+     "effect_less_than_1_favours": "experimental (ratio measures; the row's own clause names the comparator arm when STATED)"
+    },
+    "estimator": {
+     "value": "hazard ratio",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "The primary hypothesis was that liraglutide would be noninferior to placebo with regard to the primary outcome, with a margin of 1.30 for the upper boundary of the 95% confidence interval of the hazard ratio.",
+     "start": 494,
+     "end": 703,
+     "parent_representation": "PARSED_SOURCE",
+     "producer_fields": {
+      "method": "PUBLISHED_HR",
+      "reported_label": "HR",
+      "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+     }
+    },
+    "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]",
+    "rule": "a value with basis REGISTERED_DEFAULT is a default, not a statement; two rows that differ only in defaults are NOT shown to differ"
    },
    "spans": [
     {
@@ -6037,6 +6348,33 @@
      "parent_representation": "PARSED_SOURCE",
      "start": 321,
      "end": 494,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "analysis_window",
+     "text": "The primary composite outcome in the time-to-event analysis was the first occurrence of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke.",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 320,
+     "end": 494,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "estimator",
+     "text": "The primary hypothesis was that liraglutide would be noninferior to placebo with regard to the primary outcome, with a margin of 1.30 for the upper boundary of the 95% confidence interval of the hazard ratio.",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 494,
+     "end": 703,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "contrast",
+     "text": "The primary outcome occurred in significantly fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97; P<0.001 for noninferiority; P=0.01 for superiority).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 889,
+     "end": 1171,
      "match": "VERBATIM"
     }
    ],
@@ -6086,7 +6424,8 @@
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
-     "P9_span_target_mention"
+     "P9_span_target_mention",
+     "P11_registered_estimand"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -6175,6 +6514,17 @@
        "primary outcome"
       ],
       "clause": "The primary outcome occurred in significantly fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97; P<0.001 for noninferiority; P=0.01 for superiority)."
+     },
+     "P11_registered_estimand": {
+      "state": "PASS",
+      "registered": {
+       "analysis_set": "intention-to-treat",
+       "treatment_strategy": "on-study (ITT)"
+      },
+      "protocol_ref": "protocols/glp1-ra-mace-t2d.md",
+      "protocol_span_start": 6995,
+      "departures": [],
+      "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails"
      }
     },
     "final": "ADMISSIBLE"
@@ -6321,31 +6671,13 @@
      }
     }
    },
-   "analysis_identity": {
-    "analysis_set": "intention-to-treat",
-    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
-    "follow_up_window": "1.81 years",
-    "comparator_direction": {
-     "experimental": "GLP-1 receptor agonist (topic config)",
-     "comparator": "placebo (topic config)",
-     "effect_less_than_1_favours": "experimental"
-    },
-    "estimator": {
-     "method": "PUBLISHED_HR",
-     "reported_label": "HR",
-     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
-     "adjustment_status": "UNRESOLVED"
-    },
-    "event_time": "HAZARD_RATIO_FIRST_EVENT",
-    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | 1.81 years | PUBLISHED_HR"
-   },
    "estimand_evidence": {
     "analysis_set": {
-     "state": "DEFAULT_REGISTERED",
+     "state": "REGISTERED_DEFAULT",
      "value": "intention-to-treat (registered primary-analysis default)"
     },
     "analysis_window": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "follow-up stated",
      "start": 1391,
      "end": 1764,
@@ -6354,7 +6686,7 @@
      "also_stated": []
     },
     "estimator": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "hazard ratio",
      "start": 1391,
      "end": 1764,
@@ -6362,13 +6694,59 @@
      "parent_representation": "PARSED_SOURCE"
     },
     "contrast": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "vs placebo (named in the result clause)",
      "span": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).",
      "start": 1392,
      "end": 1764,
      "parent_representation": "PARSED_SOURCE"
     }
+   },
+   "analysis_identity": {
+    "analysis_set": {
+     "value": "intention-to-treat (registered primary-analysis default)",
+     "basis": "REGISTERED_DEFAULT"
+    },
+    "treatment_strategy": {
+     "value": "treatment-policy (on-study)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).",
+     "start": 1391,
+     "end": 1764,
+     "parent_representation": "PARSED_SOURCE"
+    },
+    "follow_up_window": {
+     "value": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).",
+     "start": 1391,
+     "end": 1764,
+     "parent_representation": "PARSED_SOURCE"
+    },
+    "comparator_direction": {
+     "value": "vs placebo (named in the result clause)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).",
+     "start": 1392,
+     "end": 1764,
+     "parent_representation": "PARSED_SOURCE",
+     "effect_less_than_1_favours": "experimental (ratio measures; the row's own clause names the comparator arm when STATED)"
+    },
+    "estimator": {
+     "value": "hazard ratio",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).",
+     "start": 1391,
+     "end": 1764,
+     "parent_representation": "PARSED_SOURCE",
+     "producer_fields": {
+      "method": "PUBLISHED_HR",
+      "reported_label": "HR",
+      "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+     }
+    },
+    "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).[STA] | estimator=hazard ratio[STA]",
+    "rule": "a value with basis REGISTERED_DEFAULT is a default, not a statement; two rows that differ only in defaults are NOT shown to differ"
    },
    "spans": [
     {
@@ -6385,6 +6763,33 @@
      "parent_representation": "PARSED_SOURCE",
      "start": 1072,
      "end": 1265,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "analysis_window",
+     "text": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 1391,
+     "end": 1764,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "estimator",
+     "text": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 1391,
+     "end": 1764,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "contrast",
+     "text": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 1392,
+     "end": 1764,
      "match": "VERBATIM"
     }
    ],
@@ -6434,7 +6839,8 @@
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
-     "P9_span_target_mention"
+     "P9_span_target_mention",
+     "P11_registered_estimand"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -6526,6 +6932,17 @@
        "mace"
       ],
       "clause": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority)."
+     },
+     "P11_registered_estimand": {
+      "state": "PASS",
+      "registered": {
+       "analysis_set": "intention-to-treat",
+       "treatment_strategy": "on-study (ITT)"
+      },
+      "protocol_ref": "protocols/glp1-ra-mace-t2d.md",
+      "protocol_span_start": 6995,
+      "departures": [],
+      "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails"
      }
     },
     "final": "ADMISSIBLE"
@@ -6672,27 +7089,9 @@
      }
     }
    },
-   "analysis_identity": {
-    "analysis_set": "intention-to-treat",
-    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
-    "follow_up_window": "5.4 years",
-    "comparator_direction": {
-     "experimental": "GLP-1 receptor agonist (topic config)",
-     "comparator": "placebo (topic config)",
-     "effect_less_than_1_favours": "experimental"
-    },
-    "estimator": {
-     "method": "PUBLISHED_HR",
-     "reported_label": "HR",
-     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
-     "adjustment_status": "UNRESOLVED"
-    },
-    "event_time": "HAZARD_RATIO_FIRST_EVENT",
-    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | 5.4 years | PUBLISHED_HR"
-   },
    "estimand_evidence": {
     "analysis_set": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "intention-to-treat",
      "start": 1146,
      "end": 1392,
@@ -6700,11 +7099,11 @@
      "parent_representation": "PARSED_SOURCE"
     },
     "analysis_window": {
-     "state": "DEFAULT_REGISTERED",
+     "state": "REGISTERED_DEFAULT",
      "value": "on-study, treatment-policy (registered primary-analysis default)"
     },
     "estimator": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "hazard ratio",
      "start": 1703,
      "end": 2053,
@@ -6712,13 +7111,55 @@
      "parent_representation": "PARSED_SOURCE"
     },
     "contrast": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "vs placebo (named in the result clause)",
      "span": "During a median follow-up of 5.4 years (IQR 5.1-5.9), the primary composite outcome occurred in 594 (12.0%) participants at an incidence rate of 2.4 per 100 person-years in the dulaglutide group and in 663 (13.4%) participants at an incidence rate of 2.7 per 100 person-years in the placebo group (hazard ratio [HR] 0.88, 95% CI 0.79-0.99; p=0.026).",
-     "start": null,
-     "end": null,
+     "start": 1704,
+     "end": 2053,
      "parent_representation": "NORMALIZED_SOURCE"
     }
+   },
+   "analysis_identity": {
+    "analysis_set": {
+     "value": "intention-to-treat",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "The primary outcome was the first occurrence of the composite endpoint of non-fatal myocardial infarction, non-fatal stroke, or death from cardiovascular causes (including unknown causes), which was assessed in the intention-to-treat population.",
+     "start": 1146,
+     "end": 1392,
+     "parent_representation": "PARSED_SOURCE"
+    },
+    "treatment_strategy": {
+     "value": "on-study, treatment-policy (registered primary-analysis default)",
+     "basis": "REGISTERED_DEFAULT"
+    },
+    "follow_up_window": {
+     "value": "on-study, treatment-policy (registered primary-analysis default)",
+     "basis": "REGISTERED_DEFAULT"
+    },
+    "comparator_direction": {
+     "value": "vs placebo (named in the result clause)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "During a median follow-up of 5.4 years (IQR 5.1-5.9), the primary composite outcome occurred in 594 (12.0%) participants at an incidence rate of 2.4 per 100 person-years in the dulaglutide group and in 663 (13.4%) participants at an incidence rate of 2.7 per 100 person-years in the placebo group (hazard ratio [HR] 0.88, 95% CI 0.79-0.99; p=0.026).",
+     "start": 1704,
+     "end": 2053,
+     "parent_representation": "NORMALIZED_SOURCE",
+     "effect_less_than_1_favours": "experimental (ratio measures; the row's own clause names the comparator arm when STATED)"
+    },
+    "estimator": {
+     "value": "hazard ratio",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "During a median follow-up of 5·4 years (IQR 5·1-5·9), the primary composite outcome occurred in 594 (12·0%) participants at an incidence rate of 2·4 per 100 person-years in the dulaglutide group and in 663 (13·4%) participants at an incidence rate of 2·7 per 100 person-years in the placebo group (hazard ratio [HR] 0·88, 95% CI 0·79-0·99; p=0·026).",
+     "start": 1703,
+     "end": 2053,
+     "parent_representation": "PARSED_SOURCE",
+     "producer_fields": {
+      "method": "PUBLISHED_HR",
+      "reported_label": "HR",
+      "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+     }
+    },
+    "analysis_identity_key": "analysis_set=intention-to-treat[STA] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
+    "rule": "a value with basis REGISTERED_DEFAULT is a default, not a statement; two rows that differ only in defaults are NOT shown to differ"
    },
    "spans": [
     {
@@ -6735,6 +7176,33 @@
      "parent_representation": "PARSED_SOURCE",
      "start": 1147,
      "end": 1392,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "analysis_set",
+     "text": "The primary outcome was the first occurrence of the composite endpoint of non-fatal myocardial infarction, non-fatal stroke, or death from cardiovascular causes (including unknown causes), which was assessed in the intention-to-treat population.",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 1146,
+     "end": 1392,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "estimator",
+     "text": "During a median follow-up of 5·4 years (IQR 5·1-5·9), the primary composite outcome occurred in 594 (12·0%) participants at an incidence rate of 2·4 per 100 person-years in the dulaglutide group and in 663 (13·4%) participants at an incidence rate of 2·7 per 100 person-years in the placebo group (hazard ratio [HR] 0·88, 95% CI 0·79-0·99; p=0·026).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 1703,
+     "end": 2053,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "contrast",
+     "text": "During a median follow-up of 5.4 years (IQR 5.1-5.9), the primary composite outcome occurred in 594 (12.0%) participants at an incidence rate of 2.4 per 100 person-years in the dulaglutide group and in 663 (13.4%) participants at an incidence rate of 2.7 per 100 person-years in the placebo group (hazard ratio [HR] 0.88, 95% CI 0.79-0.99; p=0.026).",
+     "parent_representation": "NORMALIZED_SOURCE",
+     "start": 1704,
+     "end": 2053,
      "match": "VERBATIM"
     }
    ],
@@ -6784,7 +7252,8 @@
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
-     "P9_span_target_mention"
+     "P9_span_target_mention",
+     "P11_registered_estimand"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -6877,6 +7346,17 @@
        "primary composite outcome"
       ],
       "clause": "During a median follow-up of 5.4 years (IQR 5.1-5.9), the primary composite outcome occurred in 594 (12.0%) participants at an incidence rate of 2.4 per 100 person-years in the dulaglutide group and in 663 (13.4%) participants at an incidence rate of 2.7 per 100 person-years in the placebo group (hazard ratio [HR] 0.88, 95% CI 0.79-0.99; p=0.026)."
+     },
+     "P11_registered_estimand": {
+      "state": "PASS",
+      "registered": {
+       "analysis_set": "intention-to-treat",
+       "treatment_strategy": "on-study (ITT)"
+      },
+      "protocol_ref": "protocols/glp1-ra-mace-t2d.md",
+      "protocol_span_start": 6995,
+      "departures": [],
+      "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails"
      }
     },
     "final": "ADMISSIBLE"
@@ -7023,27 +7503,9 @@
      }
     }
    },
-   "analysis_identity": {
-    "analysis_set": "intention-to-treat",
-    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
-    "follow_up_window": "trial end",
-    "comparator_direction": {
-     "experimental": "GLP-1 receptor agonist (topic config)",
-     "comparator": "placebo (topic config)",
-     "effect_less_than_1_favours": "experimental"
-    },
-    "estimator": {
-     "method": "PUBLISHED_HR",
-     "reported_label": "HR",
-     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
-     "adjustment_status": "UNRESOLVED"
-    },
-    "event_time": "HAZARD_RATIO_FIRST_EVENT",
-    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | trial end | PUBLISHED_HR"
-   },
    "estimand_evidence": {
     "analysis_set": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "intention-to-treat",
      "start": 975,
      "end": 1205,
@@ -7051,11 +7513,11 @@
      "parent_representation": "PARSED_SOURCE"
     },
     "analysis_window": {
-     "state": "DEFAULT_REGISTERED",
+     "state": "REGISTERED_DEFAULT",
      "value": "on-study, treatment-policy (registered primary-analysis default)"
     },
     "estimator": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "hazard ratio",
      "start": 1205,
      "end": 1357,
@@ -7063,13 +7525,55 @@
      "parent_representation": "PARSED_SOURCE"
     },
     "contrast": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "vs placebo (named in the result clause)",
      "span": "The primary composite outcome occurred in 338 (7%) of 4731 patients at an incidence rate of 4.6 events per 100 person-years in the albiglutide group and in 428 (9%) of 4732 patients at an incidence rate of 5.9 events per 100 person-years in the placebo group (hazard ratio 0.78, 95% CI 0.68-0.90), which indicated that albiglutide was superior to placebo (p<0.0001 for non-inferiority; p=0.0006 for superiority).",
-     "start": null,
-     "end": null,
+     "start": 2089,
+     "end": 2501,
      "parent_representation": "NORMALIZED_SOURCE"
     }
+   },
+   "analysis_identity": {
+    "analysis_set": {
+     "value": "intention-to-treat",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "We hypothesised that albiglutide would be non-inferior to placebo for the primary outcome of the first occurrence of cardiovascular death, myocardial infarction, or stroke, which was assessed in the intention-to-treat population.",
+     "start": 975,
+     "end": 1205,
+     "parent_representation": "PARSED_SOURCE"
+    },
+    "treatment_strategy": {
+     "value": "on-study, treatment-policy (registered primary-analysis default)",
+     "basis": "REGISTERED_DEFAULT"
+    },
+    "follow_up_window": {
+     "value": "on-study, treatment-policy (registered primary-analysis default)",
+     "basis": "REGISTERED_DEFAULT"
+    },
+    "comparator_direction": {
+     "value": "vs placebo (named in the result clause)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "The primary composite outcome occurred in 338 (7%) of 4731 patients at an incidence rate of 4.6 events per 100 person-years in the albiglutide group and in 428 (9%) of 4732 patients at an incidence rate of 5.9 events per 100 person-years in the placebo group (hazard ratio 0.78, 95% CI 0.68-0.90), which indicated that albiglutide was superior to placebo (p<0.0001 for non-inferiority; p=0.0006 for superiority).",
+     "start": 2089,
+     "end": 2501,
+     "parent_representation": "NORMALIZED_SOURCE",
+     "effect_less_than_1_favours": "experimental (ratio measures; the row's own clause names the comparator arm when STATED)"
+    },
+    "estimator": {
+     "value": "hazard ratio",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "If non-inferiority was confirmed by an upper limit of the 95% CI for a hazard ratio of less than 1·30, closed testing for superiority was prespecified.",
+     "start": 1205,
+     "end": 1357,
+     "parent_representation": "PARSED_SOURCE",
+     "producer_fields": {
+      "method": "PUBLISHED_HR",
+      "reported_label": "HR",
+      "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+     }
+    },
+    "analysis_identity_key": "analysis_set=intention-to-treat[STA] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
+    "rule": "a value with basis REGISTERED_DEFAULT is a default, not a statement; two rows that differ only in defaults are NOT shown to differ"
    },
    "spans": [
     {
@@ -7086,6 +7590,33 @@
      "parent_representation": "PARSED_SOURCE",
      "start": 976,
      "end": 1205,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "analysis_set",
+     "text": "We hypothesised that albiglutide would be non-inferior to placebo for the primary outcome of the first occurrence of cardiovascular death, myocardial infarction, or stroke, which was assessed in the intention-to-treat population.",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 975,
+     "end": 1205,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "estimator",
+     "text": "If non-inferiority was confirmed by an upper limit of the 95% CI for a hazard ratio of less than 1·30, closed testing for superiority was prespecified.",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 1205,
+     "end": 1357,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "contrast",
+     "text": "The primary composite outcome occurred in 338 (7%) of 4731 patients at an incidence rate of 4.6 events per 100 person-years in the albiglutide group and in 428 (9%) of 4732 patients at an incidence rate of 5.9 events per 100 person-years in the placebo group (hazard ratio 0.78, 95% CI 0.68-0.90), which indicated that albiglutide was superior to placebo (p<0.0001 for non-inferiority; p=0.0006 for superiority).",
+     "parent_representation": "NORMALIZED_SOURCE",
+     "start": 2089,
+     "end": 2501,
      "match": "VERBATIM"
     }
    ],
@@ -7135,7 +7666,8 @@
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
-     "P9_span_target_mention"
+     "P9_span_target_mention",
+     "P11_registered_estimand"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -7228,6 +7760,17 @@
        "primary composite outcome"
       ],
       "clause": "The primary composite outcome occurred in 338 (7%) of 4731 patients at an incidence rate of 4.6 events per 100 person-years in the albiglutide group and in 428 (9%) of 4732 patients at an incidence rate of 5.9 events per 100 person-years in the placebo group (hazard ratio 0.78, 95% CI 0.68-0.90), which indicated that albiglutide was superior to placebo (p<0.0001 for non-inferiority; p=0.0006 for superiority)."
+     },
+     "P11_registered_estimand": {
+      "state": "PASS",
+      "registered": {
+       "analysis_set": "intention-to-treat",
+       "treatment_strategy": "on-study (ITT)"
+      },
+      "protocol_ref": "protocols/glp1-ra-mace-t2d.md",
+      "protocol_span_start": 6995,
+      "departures": [],
+      "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails"
      }
     },
     "final": "INADMISSIBLE"
@@ -7374,27 +7917,9 @@
      }
     }
    },
-   "analysis_identity": {
-    "analysis_set": "intention-to-treat",
-    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
-    "follow_up_window": "3.2 years",
-    "comparator_direction": {
-     "experimental": "GLP-1 receptor agonist (topic config)",
-     "comparator": "placebo (topic config)",
-     "effect_less_than_1_favours": "experimental"
-    },
-    "estimator": {
-     "method": "PUBLISHED_HR",
-     "reported_label": "HR",
-     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
-     "adjustment_status": "UNRESOLVED"
-    },
-    "event_time": "HAZARD_RATIO_FIRST_EVENT",
-    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | 3.2 years | PUBLISHED_HR"
-   },
    "estimand_evidence": {
     "analysis_set": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "intention-to-treat",
      "start": 861,
      "end": 1400,
@@ -7402,11 +7927,11 @@
      "parent_representation": "PARSED_SOURCE"
     },
     "analysis_window": {
-     "state": "DEFAULT_REGISTERED",
+     "state": "REGISTERED_DEFAULT",
      "value": "on-study, treatment-policy (registered primary-analysis default)"
     },
     "estimator": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "hazard ratio",
      "start": 861,
      "end": 1400,
@@ -7414,13 +7939,55 @@
      "parent_representation": "PARSED_SOURCE"
     },
     "contrast": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "vs placebo (named in the result clause)",
      "span": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority).",
      "start": 862,
      "end": 1400,
      "parent_representation": "PARSED_SOURCE"
     }
+   },
+   "analysis_identity": {
+    "analysis_set": {
+     "value": "intention-to-treat",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority).",
+     "start": 861,
+     "end": 1400,
+     "parent_representation": "PARSED_SOURCE"
+    },
+    "treatment_strategy": {
+     "value": "on-study, treatment-policy (registered primary-analysis default)",
+     "basis": "REGISTERED_DEFAULT"
+    },
+    "follow_up_window": {
+     "value": "on-study, treatment-policy (registered primary-analysis default)",
+     "basis": "REGISTERED_DEFAULT"
+    },
+    "comparator_direction": {
+     "value": "vs placebo (named in the result clause)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority).",
+     "start": 862,
+     "end": 1400,
+     "parent_representation": "PARSED_SOURCE",
+     "effect_less_than_1_favours": "experimental (ratio measures; the row's own clause names the comparator arm when STATED)"
+    },
+    "estimator": {
+     "value": "hazard ratio",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority).",
+     "start": 861,
+     "end": 1400,
+     "parent_representation": "PARSED_SOURCE",
+     "producer_fields": {
+      "method": "PUBLISHED_HR",
+      "reported_label": "HR",
+      "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+     }
+    },
+    "analysis_identity_key": "analysis_set=intention-to-treat[STA] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
+    "rule": "a value with basis REGISTERED_DEFAULT is a default, not a statement; two rows that differ only in defaults are NOT shown to differ"
    },
    "spans": [
     {
@@ -7437,6 +8004,33 @@
      "parent_representation": "PARSED_SOURCE",
      "start": 372,
      "end": 515,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "analysis_set",
+     "text": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 861,
+     "end": 1400,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "estimator",
+     "text": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 861,
+     "end": 1400,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "contrast",
+     "text": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 862,
+     "end": 1400,
      "match": "VERBATIM"
     }
    ],
@@ -7486,7 +8080,8 @@
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
-     "P9_span_target_mention"
+     "P9_span_target_mention",
+     "P11_registered_estimand"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -7579,6 +8174,17 @@
        "primary composite outcome"
       ],
       "clause": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority)."
+     },
+     "P11_registered_estimand": {
+      "state": "PASS",
+      "registered": {
+       "analysis_set": "intention-to-treat",
+       "treatment_strategy": "on-study (ITT)"
+      },
+      "protocol_ref": "protocols/glp1-ra-mace-t2d.md",
+      "protocol_span_start": 6995,
+      "departures": [],
+      "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails"
      }
     },
     "final": "ADMISSIBLE"
@@ -7725,31 +8331,13 @@
      }
     }
    },
-   "analysis_identity": {
-    "analysis_set": "intention-to-treat",
-    "treatment_strategy": "treatment-policy (intention-to-treat, on-study)",
-    "follow_up_window": "trial end",
-    "comparator_direction": {
-     "experimental": "GLP-1 receptor agonist (topic config)",
-     "comparator": "placebo (topic config)",
-     "effect_less_than_1_favours": "experimental"
-    },
-    "estimator": {
-     "method": "PUBLISHED_HR",
-     "reported_label": "HR",
-     "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT",
-     "adjustment_status": "UNRESOLVED"
-    },
-    "event_time": "HAZARD_RATIO_FIRST_EVENT",
-    "analysis_identity_key": "intention-to-treat | treatment-policy (intention-to-treat, on-study) | trial end | PUBLISHED_HR"
-   },
    "estimand_evidence": {
     "analysis_set": {
-     "state": "DEFAULT_REGISTERED",
+     "state": "REGISTERED_DEFAULT",
      "value": "intention-to-treat (registered primary-analysis default)"
     },
     "analysis_window": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "time-to-first-event (treatment-policy)",
      "start": 360,
      "end": 567,
@@ -7758,7 +8346,7 @@
      "also_stated": []
     },
     "estimator": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "hazard ratio",
      "start": 567,
      "end": 879,
@@ -7766,13 +8354,59 @@
      "parent_representation": "PARSED_SOURCE"
     },
     "contrast": {
-     "state": "STATED",
+     "state": "STATED_IN_OWNING_EVIDENCE",
      "value": "vs placebo (named in the result clause)",
      "span": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006).",
      "start": 568,
      "end": 879,
      "parent_representation": "PARSED_SOURCE"
     }
+   },
+   "analysis_identity": {
+    "analysis_set": {
+     "value": "intention-to-treat (registered primary-analysis default)",
+     "basis": "REGISTERED_DEFAULT"
+    },
+    "treatment_strategy": {
+     "value": "treatment-policy (on-study)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "The primary outcome was major adverse cardiovascular events (a composite of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke), assessed in a time-to-first-event analysis.",
+     "start": 360,
+     "end": 567,
+     "parent_representation": "PARSED_SOURCE"
+    },
+    "follow_up_window": {
+     "value": "time-to-first-event (treatment-policy)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "The primary outcome was major adverse cardiovascular events (a composite of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke), assessed in a time-to-first-event analysis.",
+     "start": 360,
+     "end": 567,
+     "parent_representation": "PARSED_SOURCE"
+    },
+    "comparator_direction": {
+     "value": "vs placebo (named in the result clause)",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006).",
+     "start": 568,
+     "end": 879,
+     "parent_representation": "PARSED_SOURCE",
+     "effect_less_than_1_favours": "experimental (ratio measures; the row's own clause names the comparator arm when STATED)"
+    },
+    "estimator": {
+     "value": "hazard ratio",
+     "basis": "STATED_IN_OWNING_EVIDENCE",
+     "span": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006).",
+     "start": 567,
+     "end": 879,
+     "parent_representation": "PARSED_SOURCE",
+     "producer_fields": {
+      "method": "PUBLISHED_HR",
+      "reported_label": "HR",
+      "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+     }
+    },
+    "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]",
+    "rule": "a value with basis REGISTERED_DEFAULT is a default, not a statement; two rows that differ only in defaults are NOT shown to differ"
    },
    "spans": [
     {
@@ -7789,6 +8423,33 @@
      "parent_representation": "PARSED_SOURCE",
      "start": 361,
      "end": 567,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "analysis_window",
+     "text": "The primary outcome was major adverse cardiovascular events (a composite of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke), assessed in a time-to-first-event analysis.",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 360,
+     "end": 567,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "estimator",
+     "text": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 567,
+     "end": 879,
+     "match": "VERBATIM"
+    },
+    {
+     "role": "analysis_method",
+     "field": "contrast",
+     "text": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006).",
+     "parent_representation": "PARSED_SOURCE",
+     "start": 568,
+     "end": 879,
      "match": "VERBATIM"
     }
    ],
@@ -7841,7 +8502,8 @@
      "P6_no_unresolved_conflict",
      "P7_coverage_adequate_for_claim",
      "P8_endpoint_bound",
-     "P9_span_target_mention"
+     "P9_span_target_mention",
+     "P11_registered_estimand"
     ],
     "predicates": {
      "P1_source_bytes": {
@@ -7930,6 +8592,17 @@
        "primary-outcome"
       ],
       "clause": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006)."
+     },
+     "P11_registered_estimand": {
+      "state": "PASS",
+      "registered": {
+       "analysis_set": "intention-to-treat",
+       "treatment_strategy": "on-study (ITT)"
+      },
+      "protocol_ref": "protocols/glp1-ra-mace-t2d.md",
+      "protocol_span_start": 6995,
+      "departures": [],
+      "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails"
      }
     },
     "final": "ADMISSIBLE"
@@ -8504,8 +9177,8 @@
  "verifier": {
   "served_path": "scripts/verify_bundle.py",
   "served_url": "https://mahmood726-cyber.github.io/meta-harness/scripts/verify_bundle.py",
-  "sha256": "bac4831603292a2dff06ed1b80227028ffc645a09233793e1eec50d66e3827e7",
-  "bytes": 56277,
+  "sha256": "d3ed4198da4e95247c80487662ccb4e1a7bd84eca4e17a84ec993da6dec22de3",
+  "bytes": 59870,
   "requirements": "Python 3.9+ standard library only; no harness import; run: python verify_bundle.py --url https://mahmood726-cyber.github.io/meta-harness/ --slug glp1-ra-mace-t2d",
   "checks": "every artefact and supporting-file digest; release_sha256 and review_sha256; every predicate of every verification row; the selector rule; the asymmetric rule on every absence claim from a recomputed preservation record; pooled_reference.expected to 1e-9; --corrupt <pmid> <limb> shows one corrupted limb makes exactly that row inadmissible",
   "does_not_check": "that any acquired or cached representation faithfully preserves the upstream publication (SOUL's cache is known to omit the HbA1c entry range, follow-up and the safety sentence); that the source set is complete; that the clinical interpretation is right; and the PRODUCTION admission path -- no production falsification test has been executed by anyone; the verifier checks the bundle, not the producer's gate"

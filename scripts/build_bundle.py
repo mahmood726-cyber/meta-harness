@@ -65,8 +65,9 @@ from harness.canonical import canonical_json, review_core, sha256_text  # noqa: 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.8"
+FORMAT_REVISION = "3.9"
 FORMAT_CHANGELOG = [
+    "3.9 (2026-09-19): analysis_identity is no longer a set of bare values. Each of analysis_set, treatment_strategy, follow_up_window, comparator_direction and estimator is {value, basis, span, start, end, parent_representation} with basis STATED_IN_OWNING_EVIDENCE / REGISTERED_DEFAULT / UNRESOLVED (a default never renders as a statement); the review-target fallback ('trial end' on every row) is gone; stated fields also appear in spans[] with role analysis_method; regulatory candidates carry their (on-study)/(on-treatment) row label as a column_header span with offsets into the served text; the verifier refuses ESTIMAND_EVIDENCE_MISMATCH when a stated field does not reproduce at its offsets or a default carries a span.",
     "3.8 (2026-09-19, panel round 4 + 37-variant run): P9 rewritten to the panel's rule -- clause boundaries at sentence ends AND semicolons outside brackets; a target DEFINITION requires a definitional cue (component co-occurrence is not ownership); a clause carrying both a target and a non-target mention is AMBIGUOUS_ENDPOINT_BINDING, never a pass; P3 by NUMERIC equality (0.80 == 0.8 accepted; 0.96 vs 1.0 and 0.8 vs 0.84 refused); zero / one / many span occurrences are three states (SPAN_NOT_IN_SOURCE / located / SPAN_LOCATION_AMBIGUOUS, offsets pin one); estimand_evidence per row -- analysis_set, analysis_window, contrast, estimator each STATED with a located span and offsets, DEFAULT_REGISTERED when the held representation is silent, ESTIMAND_UNBOUND when the same source states two values; regulatory candidates carry strategy evidence (label / counts / unbound); the source stamp is content-addressed (blob ids computed from the working tree) and content_commit is informational (PENDING_COMMIT before the bytes are committed) so the stamp no longer needs its own commit to exist; L13/L14 stated.",
     "3.7 (2026-09-19): regulatory_facts[] -- every held regulatory fact with each candidate analysis of the same endpoint carried separately (tuple parsed from its own located span, analysis_identity with treatment strategy and precision, distinct analysis_identity_key), the selected analysis bound to the tuple the decision carries, and any source-internal discrepancy between representations of the SAME analysis recorded. Two authentic analyses of one endpoint in one document (ELIXA on-study 1.02 (0.89-1.18) 392/400 vs on-treatment 1.01 (0.87-1.17) 342/334) are distinguishable from the bundle alone, and the verifier refuses ANALYSIS_IDENTITY_MISMATCH when a tuple is bound to the wrong one.",
     "3.6 (2026-09-19): analysis_identity per row (analysis set, follow-up / treatment strategy, comparator direction, estimator) because endpoint identity is not estimand identity -- ELIXA's FDA document holds on-study 1.02 (0.89-1.18) and on-treatment 1.01 (0.87-1.17) for the same 3-point endpoint; spans[] with roles (result, definition, column_header, section_heading, analysis_method, footnote) so table-sourced evidence can be bound by more than one span instead of being refused; producer_label_scope states that the page's 'verified' (verify_pooled) checks the point estimate only while P3 checks estimate AND both limits.",
@@ -227,6 +228,13 @@ VOCABULARY = {
         "outcome_understood": "the interpretation is supported by context and adjudication (NOT: that a matching hash makes the clinical judgment true)",
     },
     "question_states": ["PASS", "FAIL", "NOT_RETAINED", "NOT_ASSESSED_BY_BUNDLE", "PRODUCER_ASSERTION"],
+    "estimand_basis": {
+        "STATED_IN_OWNING_EVIDENCE": "the value is read from a located span of the row's own evidence; span, start, end and parent_representation are present",
+        "BOUND_VIA_COUNTS": "regulatory only: an unlabelled span whose event counts equal those of a labelled candidate inherits its strategy; the labelled span is cited",
+        "BOUND_VIA_ROUNDING": "regulatory only: an unrounded tuple that rounds to a labelled candidate's tuple inherits its strategy; the labelled span is cited",
+        "REGISTERED_DEFAULT": "the held representation is silent; the registered primary-analysis reading is applied and SAID to be a default -- never rendered as a statement; no span",
+        "UNRESOLVED": "the same source states two values for the field (or names neither where it carries both analyses); the field cannot default",
+    },
     "endpoint_compatibility_states": {
         "HOMOGENEOUS": "every pooled row states literally the same definition on the dimension",
         "COMPATIBLE_WITH_DECLARED_VARIATION": "rows differ on a dimension the protocol explicitly permits to vary; the variation is recorded per "
@@ -279,6 +287,8 @@ VOCABULARY = {
         "OTHER": "any other binding value; reported verbatim",
     },
     "admission_predicates": {
+        "P10_estimand_evidence": "every STATED_IN_OWNING_EVIDENCE field reproduces at its offsets; no REGISTERED_DEFAULT carries a span (verifier-side)",
+        "P11_registered_estimand": "a stated analysis set / treatment strategy agrees with the estimand the served protocol registers; UNRESOLVED fails; a default agrees by construction",
         "P9_span_target_mention": "POSITIVE binding: the tuple's own clause carries a target phrase, the target definition (>=2 canonical components), "
                                   "or a primary-outcome name bound by the row's definition span to the target; a recognised non-target mention refuses "
                                   "ENDPOINT_INCOMPATIBLE; no recognised mention refuses AMBIGUOUS_ENDPOINT_BINDING. Read from the span, not from metadata.",
@@ -876,35 +886,41 @@ def estimand_evidence(parsed, result_clause):
         if field == "analysis_window":
             strategies = {v for v in values if v in ("on-treatment", "on-study")}
             if len(strategies) >= 2:
-                out[field] = {"state": "ESTIMAND_UNBOUND", "values": sorted(values), "evidence": hits[:4],
+                out[field] = {"state": "UNRESOLVED", "values": sorted(values), "evidence": hits[:4],
                               "rule": "the same source states two strategies for the analysis; the field cannot default"}
                 continue
             if "on-treatment" in values and "on-study" not in values:
                 pick = next(h for h in hits if h["value"] == "on-treatment")
-                out[field] = {"state": "STATED", "value": "on-treatment", **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
+                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "on-treatment", **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
                 continue
             prefer = [h for h in hits if h["value"] == "on-study"] or [h for h in hits if h["value"].startswith("time-to")] or [h for h in hits if h["value"] == "follow-up stated"]
             if prefer:
                 pick = prefer[0]
-                out[field] = {"state": "STATED", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE",
+                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE",
                               "also_stated": sorted(values - {pick["value"]})}
             else:
-                out[field] = {"state": "DEFAULT_REGISTERED", "value": DEFAULT_REGISTERED[field]}
+                out[field] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED[field]}
             continue
         if len(values) >= 2:
-            out[field] = {"state": "ESTIMAND_UNBOUND", "values": sorted(values), "evidence": hits[:4]}
+            out[field] = {"state": "UNRESOLVED", "values": sorted(values), "evidence": hits[:4]}
         elif hits:
             pick = hits[0]
-            out[field] = {"state": "STATED", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
+            out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
         else:
-            out[field] = {"state": "DEFAULT_REGISTERED", "value": DEFAULT_REGISTERED[field]}
+            out[field] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED[field]}
     rc = result_clause or ""
     if "placebo" in rc.lower():
-        i = parsed.find(rc) if rc in parsed else -1
-        out["contrast"] = {"state": "STATED", "value": "vs placebo (named in the result clause)", "span": rc,
-                           "start": i if i >= 0 else None, "end": (i + len(rc)) if i >= 0 else None, "parent_representation": "PARSED_SOURCE" if i >= 0 else "NORMALIZED_SOURCE"}
+        i = parsed.find(rc)
+        if i >= 0:
+            out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": rc,
+                               "start": i, "end": i + len(rc), "parent_representation": "PARSED_SOURCE"}
+        else:   # the clause exists only after normalisation (e.g. Lancet middle dots): offsets in NORMALIZED_SOURCE coordinates
+            nrc, npar = normalize(rc), normalize(parsed)
+            j = npar.find(nrc)
+            out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": nrc,
+                               "start": j if j >= 0 else None, "end": (j + len(nrc)) if j >= 0 else None, "parent_representation": "NORMALIZED_SOURCE"}
     else:
-        out["contrast"] = {"state": "DEFAULT_REGISTERED", "value": DEFAULT_REGISTERED["contrast"]}
+        out["contrast"] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED["contrast"]}
     return out
 
 
@@ -958,31 +974,34 @@ def extraction_objects_coverage(slug: str, review: dict, cert: dict) -> dict:
     }
 
 
-def _analysis_identity(t: dict, review: dict) -> dict:
-    """Endpoint identity is not estimand identity: two authentic rows can share components, trial and document and answer
-    different questions (ELIXA on-study vs on-treatment). Everything an outsider needs to tell which analysis a value came
-    from, drawn from the row's own fields; UNSTATED where the held representation does not say."""
+def _analysis_identity(t: dict, review: dict, ee: dict) -> dict:
+    """Endpoint identity is not estimand identity -- and an estimand field without evidence is a producer assertion. Every field
+    here is {value, basis, span, start, end, parent_representation}; the review-target fallback ('trial end' on every row) is gone."""
+    def field(name, ev, value=None):
+        basis = ev["state"]
+        out = {"value": value if value is not None else ev.get("value"), "basis": basis}
+        if basis == "STATED_IN_OWNING_EVIDENCE":
+            out.update({"span": ev.get("span"), "start": ev.get("start"), "end": ev.get("end"), "parent_representation": ev.get("parent_representation")})
+        elif basis == "UNRESOLVED":
+            out.update({"values_stated": ev.get("values"), "evidence": ev.get("evidence")})
+        return out
     se = t.get("study_effect") or {}
-    design = t.get("design") or {}
-    cd = t.get("compat_dimensions") or {}
-    fu = (cd.get("follow_up_window") or {}).get("value") or t.get("follow_up_window")
-    strategy = "UNSTATED"
-    low = " ".join(str(x) for x in (t.get("endpoint_result_span"), t.get("endpoint_definition_span"), se.get("analysis_population"))).lower()
-    if "on-treatment" in low or "per-protocol" in low:
-        strategy = "on-treatment / per-protocol"
-    elif "intention-to-treat" in low or "time-to-event" in low or "time to first" in low:
-        strategy = "treatment-policy (intention-to-treat, on-study)"
+    window = ee["analysis_window"]
+    strategy_value = ("on-treatment" if window.get("value") == "on-treatment" else
+                      "treatment-policy (on-study)" if window["state"] == "STATED_IN_OWNING_EVIDENCE" else window.get("value"))
     ident = {
-        "analysis_set": se.get("analysis_population") or t.get("analysis_set") or "UNSTATED",
-        "treatment_strategy": strategy,
-        "follow_up_window": fu or "UNSTATED",
-        "comparator_direction": {"experimental": review.get("question", {}).get("intervention") if isinstance(review.get("question"), dict) else "GLP-1 receptor agonist (topic config)",
-                                 "comparator": "placebo (topic config)", "effect_less_than_1_favours": "experimental"},
-        "estimator": {"method": se.get("estimator_method") or design.get("estimator_source") or "UNSTATED", "reported_label": (t.get("effect_object") or {}).get("reported_label"),
-                      "canonical_estimand": (t.get("effect_object") or {}).get("canonical_estimand"), "adjustment_status": design.get("adjustment_status")},
-        "event_time": (t.get("effect_object") or {}).get("canonical_estimand"),
+        "analysis_set": field("analysis_set", ee["analysis_set"]),
+        "treatment_strategy": field("treatment_strategy", window, strategy_value),
+        "follow_up_window": field("follow_up_window", window, window.get("span") if window["state"] == "STATED_IN_OWNING_EVIDENCE" and window.get("value") == "follow-up stated"
+                                  else window.get("value")),
+        "comparator_direction": {**field("comparator_direction", ee["contrast"]),
+                                 "effect_less_than_1_favours": "experimental (ratio measures; the row's own clause names the comparator arm when STATED)"},
+        "estimator": {**field("estimator", ee["estimator"]),
+                      "producer_fields": {"method": se.get("estimator_method"), "reported_label": (t.get("effect_object") or {}).get("reported_label"),
+                                          "canonical_estimand": (t.get("effect_object") or {}).get("canonical_estimand")}},
     }
-    ident["analysis_identity_key"] = " | ".join(str(ident[k]) if not isinstance(ident[k], dict) else str(ident[k].get("method", ident[k])) for k in ("analysis_set", "treatment_strategy", "follow_up_window", "estimator"))
+    ident["analysis_identity_key"] = " | ".join(f"{k}={ident[k]['value']}[{ident[k]['basis'][:3]}]" for k in ("analysis_set", "treatment_strategy", "follow_up_window", "estimator"))
+    ident["rule"] = "a value with basis REGISTERED_DEFAULT is a default, not a statement; two rows that differ only in defaults are NOT shown to differ"
     return ident
 
 
@@ -1034,6 +1053,7 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                                       _components_from_text(" ; ".join(components), expand_named_composites=False)) if components else []
         cov = (doc.get("coverage_status") or {}).get("value")
         located = loc["match"] in ("VERBATIM", "NORMALISED")
+        ee = estimand_evidence(parsed, eff_clause)
         predicates = {
             "P1_source_bytes": {"state": "PASS" if art_by_ref[rec_ref]["sha256"] == (doc.get("representations", {}).get("PARSED_SOURCE", {}).get("container_sha256")) else "FAIL",
                                 "declared": art_by_ref[rec_ref]["sha256"], "container": rec_ref},
@@ -1060,6 +1080,18 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
             "P9_span_target_mention": span_target_mention(span, values, t.get("endpoint_definition_span"), canonical_components) if all(v is not None for v in values)
                                       else {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no effect tuple"},
         }
+        reg = registered_estimand(slug)
+        aset = ee["analysis_set"]; win = ee["analysis_window"]
+        unregistered = []
+        if aset["state"] == "STATED_IN_OWNING_EVIDENCE" and aset["value"] != reg["analysis_set"]:
+            unregistered.append(("analysis_set", aset["value"]))
+        if win["state"] == "STATED_IN_OWNING_EVIDENCE" and win.get("value") == "on-treatment":
+            unregistered.append(("treatment_strategy", "on-treatment"))
+        if aset["state"] == "UNRESOLVED" or win["state"] == "UNRESOLVED":
+            unregistered.append(("estimand", "UNRESOLVED"))
+        predicates["P11_registered_estimand"] = {"state": "PASS" if not unregistered else "FAIL", "registered": {k: reg[k] for k in ("analysis_set", "treatment_strategy")},
+                                                 "protocol_ref": reg["protocol_ref"], "protocol_span_start": reg["start"], "departures": unregistered,
+                                                 "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails"}
         failing = [k for k, v in predicates.items() if v["state"] != "PASS"]
         final = ("ADMISSIBLE" if not failing else
                  "MIGRATION_STATE_UNBOUND_LEGACY" if failing == ["P8_endpoint_bound"] and t.get("endpoint_binding") == "unbound_legacy" else
@@ -1097,9 +1129,12 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                          "intervention": t.get("intervention_ontology"), "comparator": "placebo (topic config)", "timepoint": t.get("follow_up_window"),
                          "estimand": (t.get("effect_object") or {}).get("canonical_estimand"), "endpoint_definition": t.get("endpoint_definition")},
             "effect": {**effect, "number_tokens": tokens, "study_effect": t.get("study_effect")},
-            "analysis_identity": _analysis_identity(t, review),
-            "estimand_evidence": estimand_evidence(parsed, eff_clause),
-            "spans": _spans_for_row(t, span, loc, parsed),
+            "estimand_evidence": ee,
+            "analysis_identity": _analysis_identity(t, review, ee),
+            "spans": _spans_for_row(t, span, loc, parsed) + [
+                {"role": "analysis_method", "field": k, "text": v["span"], "parent_representation": v.get("parent_representation"),
+                 "start": v.get("start"), "end": v.get("end"), "match": "VERBATIM" if v.get("start") is not None else "NORMALISED"}
+                for k, v in ee.items() if v["state"] == "STATED_IN_OWNING_EVIDENCE" and v.get("span")],
             "producer_label_scope": "the page's 'verified' checks the point estimate only (verify_pooled); P3 below checks estimate and both limits",
             "certified_evidence_chain": {
                 "extraction_object_for_this_outcome": next(({"file": e["file"], "provenance": e["provenance"]} for e in extraction.get(pmid, [])
@@ -1278,6 +1313,27 @@ def _strategy_of(kind: str, text: str) -> str:
     return "UNSTATED"
 
 
+def registered_estimand(slug: str) -> dict:
+    """The estimand the protocol registers, read from the served protocol text with its line located, so 'bound to an identity'
+    can be checked against 'bound to the REGISTERED identity'."""
+    path = ROOT / "protocols" / f"{slug}.md"
+    text = path.read_text(encoding="utf-8") if path.exists() else ""
+    line = next((ln for ln in text.splitlines() if ln.strip().lower().startswith("- **estimand.**")), "")
+    start = text.find(line) if line else -1
+    low = line.lower()
+    return {
+        "protocol_ref": f"protocols/{slug}.md", "protocol_span": line.strip(), "start": start if start >= 0 else None,
+        "end": (start + len(line)) if start >= 0 else None, "parent_representation": "PARSED_SOURCE (protocol text, code points)",
+        "analysis_set": "intention-to-treat" if "intention-to-treat" in low else "UNSTATED",
+        "treatment_strategy": "on-study (ITT)",
+        "treatment_strategy_basis": "the protocol registers the intention-to-treat effect during the prespecified randomised follow-up: a treatment-policy (on-study) strategy",
+        "contrast": "GLP-1 RA vs placebo" if "versus placebo" in low or "vs placebo" in low else "UNSTATED",
+        "estimator": "hazard ratio, time to first event" if "time to first" in low else "UNSTATED",
+        "rule": "a binding whose identity differs from the registered estimand on analysis set or treatment strategy is BOUND_TO_UNREGISTERED_ESTIMAND -- "
+                "internally consistent is necessary and not sufficient",
+    }
+
+
 def regulatory_facts(review: dict, art_by_ref: dict) -> list:
     """Each held regulatory fact with EVERY candidate analysis of the endpoint carried separately, so two authentic
     analyses of the same endpoint in the same document are distinguishable from the bundle alone."""
@@ -1314,9 +1370,19 @@ def regulatory_facts(review: dict, art_by_ref: dict) -> list:
             elif len(words) >= 2:
                 label = "BOTH"
             count_set = sorted({int(x) for x in re.findall(r"(?<![\d.])(\d{3,4})(?![\d.%])", span_text.replace("\n", " "))})
+            label_span = None
+            if label and label != "BOTH":
+                inner = span_text.find(label.group(0))
+                base = loc.get("start") if loc.get("match") == "VERBATIM" else None
+                ok = base is not None and inner >= 0 and text[base + inner: base + inner + len(label.group(0))] == label.group(0)
+                label_span = {"role": "column_header", "text": label.group(0), "parent_representation": "PARSED_SOURCE" if ok else None,
+                              "start": (base + inner) if ok else None, "end": (base + inner + len(label.group(0))) if ok else None,
+                              "note": "the (on-study)/(on-treatment) row label that qualifies this row's tuple"}
             analyses.append({"kind": sp.get("kind"), "pdf_page": sp.get("pdf_page"), "text": span_text, "located": loc,
-                             "strategy_evidence": ({"state": "STATED", "how": "strategy named in the span", "span": label.group(0)} if label and label != "BOTH" else
-                                                   {"state": "ESTIMAND_UNBOUND", "how": "the span itself names both strategies", "span": sorted(words)} if label == "BOTH" else None),
+                             "spans": [{"role": "result", "text": span_text, "parent_representation": loc.get("parent"), "start": loc.get("start"), "end": loc.get("end"), "match": loc.get("match")}]
+                                      + ([label_span] if label_span else []),
+                             "strategy_evidence": ({"state": "STATED_IN_OWNING_EVIDENCE", "how": "strategy named in the span", "span": label.group(0)} if label and label != "BOTH" else
+                                                   {"state": "UNRESOLVED", "how": "the span itself names both strategies", "span": sorted(words)} if label == "BOTH" else None),
                              "span_binding": binding_kind, "table_pieces": pieces if pieces.get("linearised") else None,
                              "tuple": {k: tup[k] for k in ("estimate", "ci_low", "ci_high")},
                              "counts": ({"placebo_events": int(c.group(1)), "treatment_events": int(c.group(2))} if c else None),
@@ -1326,13 +1392,13 @@ def regulatory_facts(review: dict, art_by_ref: dict) -> list:
         # carries both strategies for that endpoint, else the registered default
         for a in analyses:
             ev = a.get("strategy_evidence") or {}
-            if ev.get("state") == "STATED":
+            if ev.get("state") == "STATED_IN_OWNING_EVIDENCE":
                 a["analysis_identity"]["treatment_strategy"] = "on-treatment" if "treatment" in ev["span"].lower() else "on-study (ITT)"
-            elif ev.get("state") == "ESTIMAND_UNBOUND":
-                a["analysis_identity"]["treatment_strategy"] = "ESTIMAND_UNBOUND"
+            elif ev.get("state") == "UNRESOLVED":
+                a["analysis_identity"]["treatment_strategy"] = "UNRESOLVED"
             ident = a["analysis_identity"]
             ident["analysis_identity_key"] = f"{ident['trial']} | {ident['endpoint']} | {ident['analysis_set']} | {ident['treatment_strategy']} | {ident['precision_decimals']}dp"
-        labelled = [a for a in analyses if (a.get("strategy_evidence") or {}).get("state") == "STATED"]
+        labelled = [a for a in analyses if (a.get("strategy_evidence") or {}).get("state") == "STATED_IN_OWNING_EVIDENCE"]
         for a in analyses:
             if a.get("strategy_evidence"):
                 continue
@@ -1345,17 +1411,17 @@ def regulatory_facts(review: dict, art_by_ref: dict) -> list:
             source_states_both = len(strategies_in_source) >= 2 or ("on-treatment" in flat_text and "on-study" in flat_text)
             if by_counts:
                 a["analysis_identity"]["treatment_strategy"] = by_counts[0]["analysis_identity"]["treatment_strategy"]
-                a["strategy_evidence"] = {"state": "STATED_VIA_COUNTS", "how": "the event counts in this span equal those of the labelled candidate " + by_counts[0]["kind"],
+                a["strategy_evidence"] = {"state": "BOUND_VIA_COUNTS", "how": "the event counts in this span equal those of the labelled candidate " + by_counts[0]["kind"],
                                           "counts": by_counts[0]["counts"], "labelled_span": by_counts[0]["strategy_evidence"]["span"]}
             elif by_rounding:
                 a["analysis_identity"]["treatment_strategy"] = by_rounding[0]["analysis_identity"]["treatment_strategy"]
-                a["strategy_evidence"] = {"state": "STATED_VIA_ROUNDING", "how": "this unrounded tuple rounds to the labelled candidate " + by_rounding[0]["kind"],
+                a["strategy_evidence"] = {"state": "BOUND_VIA_ROUNDING", "how": "this unrounded tuple rounds to the labelled candidate " + by_rounding[0]["kind"],
                                           "labelled_span": by_rounding[0]["strategy_evidence"]["span"]}
             elif source_states_both:
-                a["analysis_identity"]["treatment_strategy"] = "ESTIMAND_UNBOUND"
-                a["strategy_evidence"] = {"state": "ESTIMAND_UNBOUND", "how": "the source carries both on-study and on-treatment analyses and this span names neither"}
+                a["analysis_identity"]["treatment_strategy"] = "UNRESOLVED"
+                a["strategy_evidence"] = {"state": "UNRESOLVED", "how": "the source carries both on-study and on-treatment analyses and this span names neither"}
             else:
-                a["strategy_evidence"] = {"state": "DEFAULT_REGISTERED", "how": "no label; the source carries one strategy for this endpoint"}
+                a["strategy_evidence"] = {"state": "REGISTERED_DEFAULT", "how": "no label; the source carries one strategy for this endpoint"}
             ident = a["analysis_identity"]
             ident["analysis_identity_key"] = f"{ident['trial']} | {ident['endpoint']} | {ident['analysis_set']} | {ident['treatment_strategy']} | {ident['precision_decimals']}dp"
         # which analysis does the decision's tuple belong to?
@@ -1365,8 +1431,14 @@ def regulatory_facts(review: dict, art_by_ref: dict) -> list:
         selected = [a for a in analyses if eff and _matches(a, eff)]
         claimed_strategy = _strategy_of("", dec.get("outcome") or "")
         claimed_endpoint = _endpoint_of("", dec.get("outcome") or "")
-        binding = ("BOUND" if selected and all(a["analysis_identity"]["treatment_strategy"] == claimed_strategy and
-                                              a["analysis_identity"]["endpoint"] == claimed_endpoint for a in selected) else
+        reg = registered_estimand(review["slug"])
+        consistent = bool(selected) and all((a["analysis_identity"]["treatment_strategy"] == claimed_strategy or
+                                              (claimed_strategy == "UNSTATED" and a["analysis_identity"]["treatment_strategy"] in ("UNSTATED", reg["treatment_strategy"]))) and
+                                             a["analysis_identity"]["endpoint"] == claimed_endpoint for a in selected)
+        selected_unresolved = any((a.get("strategy_evidence") or {}).get("state") == "UNRESOLVED" for a in selected)
+        registered_ok = (claimed_strategy == reg["treatment_strategy"]) or (claimed_strategy == "UNSTATED" and not selected_unresolved)   # an unstated claim defaults to the registered estimand
+        binding = ("BOUND" if consistent and registered_ok else
+                   "BOUND_TO_UNREGISTERED_ESTIMAND" if consistent else
                    "ANALYSIS_IDENTITY_MISMATCH" if selected else "TUPLE_NOT_IN_ANY_CANDIDATE_SPAN")
         # the same analysis under different representations may disagree by rounding -- record it, do not resolve it
         by_strategy = {}
@@ -1388,6 +1460,8 @@ def regulatory_facts(review: dict, art_by_ref: dict) -> list:
             "candidate_analyses": analyses,
             "selected_analysis_kinds": [a["kind"] for a in selected],
             "tuple_to_identity_binding": binding,
+            "registered_estimand": {"treatment_strategy": reg["treatment_strategy"], "analysis_set": reg["analysis_set"], "protocol_ref": reg["protocol_ref"],
+                                    "protocol_span_start": reg["start"], "claimed_matches_registered": registered_ok},
             "distinct_analysis_identity_keys": sorted({a["analysis_identity"]["analysis_identity_key"] for a in analyses}),
             "source_internal_discrepancies": discrepancies,
             "adjudication": f.get("adjudication"), "admissible_per_producer": f.get("admissible"),
@@ -1801,6 +1875,7 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
         "supporting_files": acq["files"] + [verifier_file],
         "documents": docs,
         "endpoint_compatibility": compat,
+        "registered_estimand": registered_estimand(slug),
         "extraction_objects_coverage": xcov,
         "binding_states": binding,
         "regulatory_facts": regfacts,

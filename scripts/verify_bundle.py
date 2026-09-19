@@ -373,35 +373,41 @@ def estimand_evidence(parsed, result_clause):
         if field == "analysis_window":
             strategies = {v for v in values if v in ("on-treatment", "on-study")}
             if len(strategies) >= 2:
-                out[field] = {"state": "ESTIMAND_UNBOUND", "values": sorted(values), "evidence": hits[:4],
+                out[field] = {"state": "UNRESOLVED", "values": sorted(values), "evidence": hits[:4],
                               "rule": "the same source states two strategies for the analysis; the field cannot default"}
                 continue
             if "on-treatment" in values and "on-study" not in values:
                 pick = next(h for h in hits if h["value"] == "on-treatment")
-                out[field] = {"state": "STATED", "value": "on-treatment", **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
+                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "on-treatment", **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
                 continue
             prefer = [h for h in hits if h["value"] == "on-study"] or [h for h in hits if h["value"].startswith("time-to")] or [h for h in hits if h["value"] == "follow-up stated"]
             if prefer:
                 pick = prefer[0]
-                out[field] = {"state": "STATED", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE",
+                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE",
                               "also_stated": sorted(values - {pick["value"]})}
             else:
-                out[field] = {"state": "DEFAULT_REGISTERED", "value": DEFAULT_REGISTERED[field]}
+                out[field] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED[field]}
             continue
         if len(values) >= 2:
-            out[field] = {"state": "ESTIMAND_UNBOUND", "values": sorted(values), "evidence": hits[:4]}
+            out[field] = {"state": "UNRESOLVED", "values": sorted(values), "evidence": hits[:4]}
         elif hits:
             pick = hits[0]
-            out[field] = {"state": "STATED", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
+            out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
         else:
-            out[field] = {"state": "DEFAULT_REGISTERED", "value": DEFAULT_REGISTERED[field]}
+            out[field] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED[field]}
     rc = result_clause or ""
     if "placebo" in rc.lower():
-        i = parsed.find(rc) if rc in parsed else -1
-        out["contrast"] = {"state": "STATED", "value": "vs placebo (named in the result clause)", "span": rc,
-                           "start": i if i >= 0 else None, "end": (i + len(rc)) if i >= 0 else None, "parent_representation": "PARSED_SOURCE" if i >= 0 else "NORMALIZED_SOURCE"}
+        i = parsed.find(rc)
+        if i >= 0:
+            out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": rc,
+                               "start": i, "end": i + len(rc), "parent_representation": "PARSED_SOURCE"}
+        else:   # the clause exists only after normalisation (e.g. Lancet middle dots): offsets in NORMALIZED_SOURCE coordinates
+            nrc, npar = normalize(rc), normalize(parsed)
+            j = npar.find(nrc)
+            out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": nrc,
+                               "start": j if j >= 0 else None, "end": (j + len(nrc)) if j >= 0 else None, "parent_representation": "NORMALIZED_SOURCE"}
     else:
-        out["contrast"] = {"state": "DEFAULT_REGISTERED", "value": DEFAULT_REGISTERED["contrast"]}
+        out["contrast"] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED["contrast"]}
     return out
 
 
@@ -588,10 +594,12 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
     bundle_rows = {r["trial"]["id"].replace("PMID ", ""): r for r in bundle["verification_rows"]}
     if corrupt:
         pmid, limb = corrupt
-        if limb == "regulatory_strategy_swap":   # the ELIXA test: the on-treatment tuple bound to an on-study identity (pmid ignored)
+        if limb in ("regulatory_strategy_swap", "regulatory_consistent_swap"):   # ELIXA tests (pmid ignored)
             for rf in bundle.get("regulatory_facts", []):
                 if rf["trial"] == "ELIXA":
                     rf["decision"]["effect"] = {"scale": "HR", "estimate": 1.01, "ci_low": 0.87, "ci_high": 1.17}
+                    if limb == "regulatory_consistent_swap":
+                        rf["decision"]["claimed_treatment_strategy"] = "on-treatment"
             report["corruption"] = {"pmid": pmid, "limb": limb}
             t = br = None
         else:
@@ -626,6 +634,10 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             br["source"]["representation_sha256"] = sha256_text(rec_by_pmid[pmid]["abstract"])
             br["span"]["representation_sha256"] = sha256_text(rec_by_pmid[pmid]["abstract"]) if br["span"].get("parent_representation") == "PARSED_SOURCE" else sha256_text(normalize(rec_by_pmid[pmid]["abstract"]))
             br["span"]["start"] = br["span"]["end"] = None
+        elif limb == "default_as_statement":   # a REGISTERED_DEFAULT field given a span: a default rendered as a statement
+            for fname, fv in br["analysis_identity"].items():
+                if isinstance(fv, dict) and fv.get("basis") == "REGISTERED_DEFAULT":
+                    fv["span"] = "intention-to-treat"; break
         elif limb == "container":
             rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=rec_by_pmid[pmid]["abstract"] + " ")
             container_sha = sha256(container_sha.encode())  # the container bytes would differ; represent that
@@ -690,6 +702,35 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         P["P9_span_target_mention"] = p9["state"] == "PASS"
         if pmid in selector_refusals:
             P["P1_source_bytes"] = False
+        # estimand evidence: a stated field must reproduce at its offsets; a default must carry no span; no bare values
+        ee_ok = True
+        for fname, fv in ((br or {}).get("analysis_identity") or {}).items():
+            if not isinstance(fv, dict) or "basis" not in fv:
+                continue
+            if fv["basis"] == "STATED_IN_OWNING_EVIDENCE":
+                rep_text = normalize(parsed) if fv.get("parent_representation") == "NORMALIZED_SOURCE" else parsed
+                if fv.get("start") is None or rep_text[fv["start"]:fv["end"]].strip() != (fv.get("span") or "").strip():
+                    ee_ok = False
+                    if not corrupt:
+                        failures.append(f"ESTIMAND_EVIDENCE_MISMATCH {pmid}/{fname}: stated field does not reproduce at its offsets")
+            elif fv["basis"] == "REGISTERED_DEFAULT" and fv.get("span"):
+                ee_ok = False
+                if not corrupt:
+                    failures.append(f"ESTIMAND_EVIDENCE_MISMATCH {pmid}/{fname}: a REGISTERED_DEFAULT carries a span (a default rendered as a statement)")
+        P["P10_estimand_evidence"] = ee_ok
+        # P11: the bound identity must be the REGISTERED one
+        regd = bundle.get("registered_estimand") or {}
+        ai = (br or {}).get("analysis_identity") or {}
+        dep = []
+        if isinstance(ai.get("analysis_set"), dict) and ai["analysis_set"].get("basis") == "STATED_IN_OWNING_EVIDENCE" and ai["analysis_set"].get("value") != regd.get("analysis_set"):
+            dep.append("analysis_set")
+        if isinstance(ai.get("treatment_strategy"), dict) and ai["treatment_strategy"].get("basis") == "STATED_IN_OWNING_EVIDENCE" and ai["treatment_strategy"].get("value") == "on-treatment":
+            dep.append("treatment_strategy")
+        if any(isinstance(x, dict) and x.get("basis") == "UNRESOLVED" for x in ai.values()):
+            dep.append("UNRESOLVED")
+        P["P11_registered_estimand"] = not dep
+        if dep and not corrupt:
+            failures.append(f"BOUND_TO_UNREGISTERED_ESTIMAND {pmid}: {dep}")
         failing = [k for k, ok in P.items() if not ok]
         final = ("ADMISSIBLE" if not failing else
                  "MIGRATION_STATE_UNBOUND_LEGACY" if failing == ["P8_endpoint_bound"] and t.get("endpoint_binding") == "unbound_legacy" else
@@ -708,9 +749,10 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                                                      span_code if span_code else
                                                      p9["state"] if p9["state"] != "PASS" else None),
                                "agrees_with_bundle": (final == recorded) if not corrupt else None,
-                               "predicates_agree_with_bundle": (P == recorded_P) if not corrupt else None,
+                               "predicates_agree_with_bundle": all(P.get(k) == recorded_P[k] for k in recorded_P) if not corrupt else None,
                                "span_match": loc["match"], "span_occurrences": loc.get("occurrences"), "offsets_reproduce_span": offsets_ok,
-                               "clause_numbers": nums})
+                               "clause_numbers": nums, "estimand_evidence_ok": ee_ok,
+                               "estimand_basis": {k: v.get("basis") for k, v in ((br or {}).get("analysis_identity") or {}).items() if isinstance(v, dict)}})
         if p9["state"] != "PASS" and not corrupt:
             failures.append(f"{p9['state']} {pmid}: {json.dumps(p9.get('witness'), ensure_ascii=False)[:160]}")
         if not corrupt and final != recorded:
@@ -784,10 +826,11 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             return all(tok in flat for tok in etoks)
         holders = [a["kind"] for a in rf["candidate_analyses"] if _holds(a)]
         holder_ids = {(found[k]["strategy"], found[k]["endpoint"]) for k in holders}
+        regd = bundle.get("registered_estimand") or {}
         if not holders:
             code = "TUPLE_NOT_IN_ANY_CANDIDATE_SPAN"
-        elif holder_ids <= {(claimed, claimed_ep)}:
-            code = "BOUND"
+        elif holder_ids <= {(claimed, claimed_ep)} or (claimed == "UNSTATED" and {h[1] for h in holder_ids} <= {claimed_ep} and {h[0] for h in holder_ids} <= {"UNSTATED", regd.get("treatment_strategy")}):
+            code = "BOUND" if claimed in (regd.get("treatment_strategy"), "UNSTATED") else "BOUND_TO_UNREGISTERED_ESTIMAND"
         else:
             code = "ANALYSIS_IDENTITY_MISMATCH"
         keys = {a["analysis_identity"]["analysis_identity_key"] for a in rf["candidate_analyses"]}
@@ -847,7 +890,7 @@ def main(argv=None):
     g.add_argument("--root", help="directory mirroring the site root (e.g. docs)")
     g.add_argument("--url", help="site root URL")
     ap.add_argument("--slug", required=True)
-    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|nontarget_span|unlisted_span|fragment|ci_high_rounded|ci_low_truncated|duplicate_span_no_offsets|regulatory_strategy_swap|container")
+    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|nontarget_span|unlisted_span|fragment|ci_high_rounded|ci_low_truncated|duplicate_span_no_offsets|default_as_statement|regulatory_strategy_swap|regulatory_consistent_swap|container")
     ap.add_argument("--anchor", choices=["live"], help="live: re-fetch EFetch XML from PubMed now and compare to the retained acquisition and the cached abstract")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)

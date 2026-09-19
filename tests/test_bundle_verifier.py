@@ -478,3 +478,18 @@ def test_a2_regression_pair_agrees_on_a_doctored_site(tmp_path):
     row = next(r for r in rep["rows"] if r["pmid"] == "27295427")
     assert row["predicates"]["P2_span_located"] and row["predicates"]["P3_effect_tokens_in_span"]
     assert row["p9"]["state"] == "ENDPOINT_INCOMPATIBLE" and row["final"] == "INADMISSIBLE"
+
+
+
+def test_r2_internally_consistent_on_treatment_claim_is_refused_against_the_registered_estimand(baseline):
+    rep = _run("--corrupt", "26630143", "regulatory_consistent_swap")
+    el = next(r for r in rep["regulatory_facts"] if r["trial"] == "ELIXA")
+    assert el["binding"] == "BOUND_TO_UNREGISTERED_ESTIMAND" and el["claimed_strategy"] == "on-treatment"
+    assert any(f.startswith("BOUND_TO_UNREGISTERED_ESTIMAND ELIXA") for f in rep["failures"])
+
+
+def test_a_default_rendered_as_a_statement_is_refused(baseline):
+    rep = _run("--corrupt", "27295427", "default_as_statement")
+    row = next(r for r in rep["rows"] if r["pmid"] == "27295427")
+    assert row["predicates"]["P10_estimand_evidence"] is False and row["final"] == "INADMISSIBLE"
+    assert all(r["estimand_evidence_ok"] for r in baseline["rows"]) and all(r["predicates"]["P11_registered_estimand"] for r in baseline["rows"])

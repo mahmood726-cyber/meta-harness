@@ -251,7 +251,7 @@ def test_verification_rows_cover_the_pool_and_carry_all_six_objects(bundle):
     assert [r["trial"]["id"] for r in bundle["verification_rows"]] == [t["id"] for t in primary["trials"]]
     for r in bundle["verification_rows"]:
         assert set(r) >= {"source", "span", "endpoint", "effect", "decision", "admission"}
-        assert set(r["admission"]["predicates"]) == set(bundle["vocabulary"]["admission_predicates"]) - {"ADMISSIBLE", "MIGRATION_STATE_UNBOUND_LEGACY", "INADMISSIBLE"}
+        assert set(r["admission"]["predicates"]) == set(bundle["vocabulary"]["admission_predicates"]) - {"ADMISSIBLE", "MIGRATION_STATE_UNBOUND_LEGACY", "INADMISSIBLE", "P10_estimand_evidence"}   # P10 is verifier-side
         assert r["admission"]["final"] in ("ADMISSIBLE", "MIGRATION_STATE_UNBOUND_LEGACY", "INADMISSIBLE")
 
 
@@ -450,8 +450,14 @@ def test_every_row_carries_analysis_identity_not_only_endpoint_identity(bundle):
     for r in bundle["verification_rows"]:
         ai = r["analysis_identity"]
         assert set(ai) >= {"analysis_set", "treatment_strategy", "follow_up_window", "comparator_direction", "estimator", "analysis_identity_key"}
-        assert ai["comparator_direction"]["comparator"].startswith("placebo") and ai["estimator"]["method"]
-        assert ai["analysis_identity_key"].count("|") == 3
+        for f in ("analysis_set", "treatment_strategy", "follow_up_window", "comparator_direction", "estimator"):
+            assert ai[f]["basis"] in bundle["vocabulary"]["estimand_basis"], (r["trial"]["id"], f)
+            if ai[f]["basis"] == "REGISTERED_DEFAULT":
+                assert "span" not in ai[f], (r["trial"]["id"], f, "a default rendered as a statement")
+            if ai[f]["basis"] == "STATED_IN_OWNING_EVIDENCE":
+                assert ai[f].get("span") and ai[f].get("start") is not None, (r["trial"]["id"], f)
+        assert "placebo" in ai["comparator_direction"]["value"] and ai["estimator"]["value"] == "hazard ratio"
+        assert ai["analysis_identity_key"].count("|") == 3 and "[REG]" in ai["analysis_identity_key"] or "[STA]" in ai["analysis_identity_key"]
 
 
 def test_rows_carry_spans_with_roles_and_the_vocabulary_admits_table_roles(bundle):
@@ -571,12 +577,13 @@ def test_estimand_fields_carry_a_span_or_an_explicit_default_never_a_bare_assert
         assert set(ee) == {"analysis_set", "analysis_window", "estimator", "contrast"}
         parsed = by[r["trial"]["id"].replace("PMID ", "")]
         for field, v in ee.items():
-            assert v["state"] in ("STATED", "DEFAULT_REGISTERED", "ESTIMAND_UNBOUND"), (r["trial"]["id"], field)
-            if v["state"] == "STATED" and v.get("start") is not None:
-                assert parsed[v["start"]:v["end"]].strip() == v["span"].strip(), (r["trial"]["id"], field)   # offsets reproduce the span
-        assert ee["estimator"]["state"] == "STATED" and ee["estimator"]["value"] == "hazard ratio"
-        assert ee["analysis_window"]["state"] != "ESTIMAND_UNBOUND" and ee["analysis_set"]["state"] != "ESTIMAND_UNBOUND"   # no pooled abstract states two
-        stated_set += ee["analysis_set"]["state"] == "STATED"; stated_window += ee["analysis_window"]["state"] == "STATED"
+            assert v["state"] in ("STATED_IN_OWNING_EVIDENCE", "REGISTERED_DEFAULT", "UNRESOLVED"), (r["trial"]["id"], field)
+            if v["state"] == "STATED_IN_OWNING_EVIDENCE":
+                rep_text = build_bundle.normalize(parsed) if v.get("parent_representation") == "NORMALIZED_SOURCE" else parsed
+                assert v.get("start") is not None and rep_text[v["start"]:v["end"]].strip() == v["span"].strip(), (r["trial"]["id"], field)   # offsets reproduce the span
+        assert ee["estimator"]["state"] == "STATED_IN_OWNING_EVIDENCE" and ee["estimator"]["value"] == "hazard ratio"
+        assert ee["analysis_window"]["state"] != "UNRESOLVED" and ee["analysis_set"]["state"] != "UNRESOLVED"   # no pooled abstract states two
+        stated_set += ee["analysis_set"]["state"] == "STATED_IN_OWNING_EVIDENCE"; stated_window += ee["analysis_window"]["state"] == "STATED_IN_OWNING_EVIDENCE"
     assert stated_set == 3        # measured: analysis set stated in 3 of 8 abstracts (REWIND, Harmony, EXSCEL); the rest default to the registered value
     assert stated_window >= 2
 
@@ -584,11 +591,11 @@ def test_estimand_fields_carry_a_span_or_an_explicit_default_never_a_bare_assert
 def test_elixa_strategy_evidence_separates_the_pair_through_structured_fields(bundle):
     el = next(r for r in bundle["regulatory_facts"] if r["trial"] == "ELIXA")
     ev = {a["kind"]: (a["analysis_identity"]["treatment_strategy"], a["strategy_evidence"]["state"]) for a in el["candidate_analyses"]}
-    assert ev["table8_onstudy_3p"] == ("on-study (ITT)", "STATED") and ev["table8_ontreatment_3p"] == ("on-treatment", "STATED")
-    assert ev["text_unrounded_3p"] == ("on-study (ITT)", "STATED_VIA_COUNTS")     # the prose binds through its 392/400 counts, not by assertion
+    assert ev["table8_onstudy_3p"] == ("on-study (ITT)", "STATED_IN_OWNING_EVIDENCE") and ev["table8_ontreatment_3p"] == ("on-treatment", "STATED_IN_OWNING_EVIDENCE")
+    assert ev["text_unrounded_3p"] == ("on-study (ITT)", "BOUND_VIA_COUNTS")     # the prose binds through its 392/400 counts, not by assertion
     assert el["tuple_to_identity_binding"] == "BOUND"
     fr = next(r for r in bundle["regulatory_facts"] if r["trial"] == "FREEDOM-CVO")
-    assert fr["candidate_analyses"][0]["strategy_evidence"]["state"] == "STATED"   # 'ITT Population End of Study' in its own span
+    assert fr["candidate_analyses"][0]["strategy_evidence"]["state"] == "STATED_IN_OWNING_EVIDENCE"   # 'ITT Population End of Study' in its own span
 
 
 def test_source_stamp_is_content_addressed_and_needs_no_commit_of_its_own(bundle):
@@ -596,3 +603,34 @@ def test_source_stamp_is_content_addressed_and_needs_no_commit_of_its_own(bundle
     assert src["identity"].startswith("content-addressed") and "INFORMATIONAL" in src["content_commit_meaning"]
     assert src["content_commit"] == "PENDING_COMMIT" or len(src["content_commit"]) == 40
     assert any(l["id"] == "L13_location_by_full_text_and_offsets" for l in bundle["limits"]) and any(l["id"] == "L14_verification_rows_source_pubmed_only" for l in bundle["limits"])
+
+
+# ------------------------------------------------------------------ 3.9: a default never renders as a statement; registered estimand
+
+def test_registered_estimand_is_read_from_the_served_protocol_and_every_row_agrees(bundle):
+    reg = bundle["registered_estimand"]
+    proto = open(os.path.join(ROOT, "protocols", SLUG + ".md"), encoding="utf-8").read()
+    assert proto[reg["start"]:reg["end"]].strip() == reg["protocol_span"] and "Intention-to-treat" in reg["protocol_span"]
+    assert reg["analysis_set"] == "intention-to-treat" and reg["treatment_strategy"].startswith("on-study")
+    for r in bundle["verification_rows"]:
+        assert r["admission"]["predicates"]["P11_registered_estimand"]["state"] == "PASS"
+    for rf in bundle["regulatory_facts"]:
+        assert rf["tuple_to_identity_binding"] == "BOUND" and rf["registered_estimand"]["claimed_matches_registered"] is True
+
+
+def test_elixa_row_labels_are_column_header_spans_with_offsets(bundle):
+    el = next(r for r in bundle["regulatory_facts"] if r["trial"] == "ELIXA")
+    text = open(os.path.join(ROOT, "outputs", "handover", "glp1_regulatory", "208471Orig1s000StatR.pdf.txt"), encoding="utf-8", errors="replace").read()
+    for kind, label in (("table8_onstudy_3p", "(on-study)"), ("table8_ontreatment_3p", "(on-treatment)")):
+        a = next(x for x in el["candidate_analyses"] if x["kind"] == kind)
+        hdr = next(s for s in a["spans"] if s["role"] == "column_header")
+        assert hdr["text"].strip("()") == label.strip("()") and text[hdr["start"]:hdr["end"]] == hdr["text"]
+        assert a["strategy_evidence"]["state"] == "STATED_IN_OWNING_EVIDENCE"
+    prose = next(x for x in el["candidate_analyses"] if x["kind"] == "text_unrounded_3p")
+    assert prose["strategy_evidence"]["state"] == "BOUND_VIA_COUNTS" and prose["strategy_evidence"]["labelled_span"].strip("()") == "on-study"
+
+
+def test_default_and_stated_bases_are_both_present_and_visibly_distinct(bundle):
+    bases = [r["analysis_identity"]["analysis_set"]["basis"] for r in bundle["verification_rows"]]
+    assert bases.count("STATED_IN_OWNING_EVIDENCE") == 3 and bases.count("REGISTERED_DEFAULT") == 5   # measured: 3 of 8 abstracts state the analysis set
+    assert "UNRESOLVED" not in bases
