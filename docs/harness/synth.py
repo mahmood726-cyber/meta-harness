@@ -1,0 +1,318 @@
+"""Synthesis engine (declared method).
+
+Auditor defect class recorded verbatim: DIAGNOSTIC–DECISION DECOUPLING — a
+validity hazard is correctly detected and represented, but its state is not
+causally connected to the analytic decision it should constrain. Plain alias:
+disclosure-as-control. Class PROCESS, direction optimistic, severity
+major-to-critical.
+
+Binary outcomes pooled on log(RR) by inverse-variance random effects:
+  * A study contributes a per-study effect (yi = log RR) and variance (vi) built
+    EITHER from a 2x2 table OR from a published effect + 95% CI. A trial that
+    reports only an estimate is therefore poolable and is NOT dropped.
+  * From a 2x2: yi = log((a/n1)/(c/n2)), vi = 1/a - 1/n1 + 1/c - 1/n2, with a 0.5
+    continuity correction to all four cells ONLY when that study has a zero cell.
+  * From effect+CI (ratio scale): yi = log(point), vi = ((log(hi)-log(lo))/(2*z))^2.
+  * Paule-Mandel random-effects tau^2 (no DerSimonian-Laird, forbidden for k<10).
+  * HKSJ confidence interval on t_{k-1}, variance-inflation floored at max(1, Q/(k-1)).
+  * Prediction interval mu +/- t_{k-1} * sqrt(tau2 + se^2).
+
+The 2x2 path is validated against metafor 5.0.1 (rma PM+knha + predict) on dat.bcg
+to < 1e-6 by scripts/validate_synth.py. Do not change formulas without re-validating.
+"""
+from __future__ import annotations
+import math
+from dataclasses import dataclass, field
+from typing import Optional, Sequence
+
+from scipy.stats import norm as _norm, t as _t
+
+
+# Declared-method strings, keyed to the pooling SCALE the engine actually uses. Ratio scales
+# (RR/OR/HR/IRR) pool on the log scale; additive scales (MD/SMD) pool on the raw mean difference
+# with NO log transform (pool() back-transforms with the identity for those). These are the single
+# source of truth for the "declared analysis method" the page shows and the gate checks — so a
+# mean-difference outcome can never again be labelled with the log-ratio method (the melatonin /
+# esketamine / semaglutide-weight defect), and the gate can recompute the expected string
+# independently to catch a mislabel (a check that compares a constant to itself cannot fail).
+# NOTE on the validation claim (external audit, 2026-09-14): the repeated successful reconstructions
+# validated ONE CANONICAL STATISTICAL CODE PATH (this engine, synth.pool), not every pathway capable
+# of rendering pooled results. A pooled result produced outside it (the iv-iron strand builder's own
+# z-interval) was NOT covered by that claim; it was found and removed, and the interval-provenance gate
+# now refuses any rendered CI not stamped by this engine.
+_VALIDATION = ("Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is "
+               "gate-checked to originate here).")
+METHOD_RATIO = ("Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured "
+                "for the outcome); Paule-Mandel tau^2; "
+                "HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); "
+                "prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). " + _VALIDATION)
+METHOD_MD = ("Random-effects inverse-variance on the mean difference (raw/additive scale, no log "
+             "transform); Paule-Mandel tau^2; "
+             "HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); "
+             "prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). " + _VALIDATION + " (measure=MD).")
+
+
+def method_text(scale: str) -> str:
+    """The declared-method string for a pooling scale. MD/SMD (mean-difference family) get the
+    additive-scale method; everything else (RR/OR/HR/IRR and mixed-ratio labels) gets the log-ratio
+    method. Single source of truth for pipeline (what it sets) and gate (what it recomputes)."""
+    s = (scale or "").upper().strip()
+    if s.startswith("MD") or s.startswith("SMD") or "MEAN DIFFERENCE" in s:
+        return METHOD_MD
+    return METHOD_RATIO
+
+
+def membership_demonstration(studies, proposed, scale):
+    """Production estimator, with proposed membership kept outside the primary."""
+    def result(rows):
+        r = pool(rows, scale=scale)
+        values = {k: getattr(r, k) for k in
+                  ("k", "estimate", "ci_low", "ci_high", "tau2", "Q", "pi_low", "pi_high", "ci_provenance")}
+        values["i2"] = max(0, (r.Q - (r.k - 1)) / r.Q) * 100 if r.Q else 0
+        return values
+    return {"state": "HETEROGENEITY_MEMBERSHIP_SENSITIVE", "label": "DEMONSTRATION",
+            "primary": result(studies), "proposed": result([*studies, proposed])}
+
+
+@dataclass
+class Study:
+    """A poolable study. Provide EITHER a 2x2 (ai,n1i,ci,n2i) OR an effect+CI.
+    measure selects the 2x2 log-effect: 'RR' (risk ratio) or 'OR' (odds ratio)."""
+    label: str
+    ai: Optional[float] = None
+    n1i: Optional[float] = None
+    ci: Optional[float] = None
+    n2i: Optional[float] = None
+    effect: Optional[float] = None      # point estimate on ratio scale (RR/OR/HR/IRR)
+    ci_low: Optional[float] = None
+    ci_high: Optional[float] = None
+    # Rate data (recurrent-event / incidence): events + person-time per arm -> log rate ratio.
+    e1i: Optional[float] = None         # intervention events
+    t1i: Optional[float] = None         # intervention person-time
+    e2i: Optional[float] = None         # comparator events
+    t2i: Optional[float] = None         # comparator person-time
+    # Continuous data: mean/SD/n per arm -> mean difference (raw scale).
+    mean1: Optional[float] = None
+    sd1: Optional[float] = None
+    nc1: Optional[float] = None
+    mean2: Optional[float] = None
+    sd2: Optional[float] = None
+    nc2: Optional[float] = None
+    source: str = ""
+    measure: str = "RR"
+    derivation: str = ""
+    design: Optional[dict] = None
+    design_adjustment: Optional[dict] = None
+    study_effect: Optional[dict] = None
+
+    def yi_vi(self) -> tuple[float, float]:
+        d = self.design or {}
+        action = (d.get("design_action") or {}).get("action")
+        if action in {"REFUSE", "MANUAL_REVIEW"}:
+            raise ValueError(
+                f"study {self.label!r} design action {action} ({(d.get('design_action') or {}).get('reason')}) "
+                "refuses emission of an SE before PM/HKSJ"
+            )
+        corr = d.get("correlation_handling") or {}
+        corr_method = corr.get("method", "none")
+        corr_ev = corr.get("evidence") or []
+        if corr_method != "none" and not any(isinstance(e, dict) and e.get("span") for e in corr_ev):
+            corr_method = "none"
+        if (self.derivation == "reconstructed"
+                and d.get("design") in {"CLUSTER", "CROSSOVER", "CLUSTER_CROSSOVER", "STEPPED_WEDGE"}
+                and corr_method == "none"
+                and not self.design_adjustment):
+            raise ValueError(
+                f"study {self.label!r} design {d.get('design')} has no evidence-backed correlation handling "
+                "before a parallel-group reconstructed SE can be emitted"
+            )
+        # Mean difference from means/SDs/n per arm: yi = mean1 - mean2, vi = sd1^2/n1 + sd2^2/n2
+        # (raw scale; pool() back-transforms with identity for scale MD). Standard continuous
+        # meta-analysis (matches metafor measure='MD').
+        if self.mean1 is not None and self.sd1 is not None and self.nc1 and self.mean2 is not None:
+            y = self.mean1 - self.mean2
+            v = (self.sd1 ** 2) / self.nc1 + (self.sd2 ** 2) / self.nc2
+            return y, v
+        # Rate ratio (IRR) from events + person-time: yi = log((e1/t1)/(e2/t2)),
+        # vi = 1/e1 + 1/e2 (person-time is an offset, not a source of variance). Standard
+        # incidence-rate meta-analysis (matches metafor measure='IRR'). 0.5 correction on a
+        # zero event count only.
+        if self.e1i is not None and self.t1i and self.e2i is not None and self.t2i:
+            e1, e2 = self.e1i, self.e2i
+            if min(e1, e2) == 0:
+                e1, e2 = e1 + 0.5, e2 + 0.5
+            y = math.log((e1 / self.t1i) / (e2 / self.t2i))
+            v = 1.0 / e1 + 1.0 / e2
+            return y, v
+        if self.ai is not None:
+            a, n1, c, n2 = self.ai, self.n1i, self.ci, self.n2i
+            if min(a, c, n1 - a, n2 - c) == 0:  # zero cell in THIS study
+                a, c, n1, n2 = a + 0.5, c + 0.5, n1 + 1.0, n2 + 1.0
+            if self.measure.upper() == "OR":
+                b, d = n1 - a, n2 - c          # odds ratio (a*d)/(b*c)
+                y = math.log((a * d) / (b * c))
+                v = 1.0 / a + 1.0 / b + 1.0 / c + 1.0 / d
+            else:                               # risk ratio
+                y = math.log((a / n1) / (c / n2))
+                v = 1.0 / a - 1.0 / n1 + 1.0 / c - 1.0 / n2
+            return y, v
+        if self.effect is not None and self.ci_low and self.ci_high:
+            z = _norm.ppf(0.975)
+            y = math.log(self.effect)
+            se = (math.log(self.ci_high) - math.log(self.ci_low)) / (2 * z)
+            return y, se * se
+        raise ValueError(f"study {self.label!r} has neither a 2x2 nor an effect+CI")
+
+
+@dataclass
+class PoolResult:
+    scale: str
+    k: int
+    tau2: float
+    mu_log: float
+    se_log: float
+    ci_low: float
+    ci_high: float
+    pi_low: float
+    pi_high: float
+    Q: float
+    estimate: float
+    per_study: list = field(default_factory=list)  # [(label, yi, vi)]
+    # Common-effect (fixed-effect, z-based) sensitivity. At k<=2 the HKSJ t multiplier is huge
+    # (t_{k-1}=12.71 at k=2, 1 df) and can render a CI "compatible with no effect" even when both
+    # trials agree with I^2=0; an external audit asked that the conventional CI be shown alongside so
+    # the primary interval is not over-read. Always computed; the page shows it for k<=2.
+    ci_low_fixed: float = None
+    ci_high_fixed: float = None
+    estimate_fixed: float = None
+    # PROVENANCE of the interval: a token proving this CI came from the canonical PM+HKSJ engine, not a
+    # hand-rolled routine. A gate refuses any RENDERED interval lacking it (the iv-iron strand builder
+    # computed its own z-interval and shipped it as the registered result -- INFERENCE_LAYER_BYPASS; a
+    # check on the NUMBER cannot catch that because the number was right, only the interval's origin was
+    # wrong). Stamped by pool() only; nothing else may set it.
+    ci_provenance: str = None
+
+
+# The one token that certifies an interval as engine-produced. Bump the version if the method changes.
+CI_PROVENANCE = "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1"
+
+
+def _wmean(yi, vi, tau2):
+    w = [1.0 / (v + tau2) for v in vi]
+    sw = sum(w)
+    mu = sum(wi * y for wi, y in zip(w, yi)) / sw
+    return mu, w, sw
+
+
+def _paule_mandel_tau2(yi, vi, tol=1e-10, max_iter=200):
+    k = len(yi)
+    if k < 2:
+        return 0.0
+    target = k - 1
+
+    def F(tau2):
+        mu, w, _ = _wmean(yi, vi, tau2)
+        return sum(wi * (y - mu) ** 2 for wi, y in zip(w, yi)) - target
+
+    if F(0.0) <= 0:
+        return 0.0
+    lo, hi = 0.0, 1.0
+    while F(hi) > 0 and hi < 1e6:
+        hi *= 2.0
+    for _ in range(max_iter):
+        mid = 0.5 * (lo + hi)
+        fm = F(mid)
+        if abs(fm) < tol:
+            return mid
+        if fm > 0:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+_REQUIRED_STUDY_EFFECT_FIELDS = {
+    "effect_estimate",
+    "standard_error",
+    "estimand",
+    "analysis_population",
+    "randomisation_unit",
+    "study_design",
+    "estimator_method",
+    "correlation_handling",
+    "source_provenance",
+}
+
+
+def _validate_study_effect(label: str, obj: Optional[dict]) -> None:
+    if not isinstance(obj, dict):
+        raise ValueError(f"study {label!r} missing study_effect object before PM/HKSJ")
+    missing = sorted(_REQUIRED_STUDY_EFFECT_FIELDS - set(obj))
+    if missing:
+        raise ValueError(f"study {label!r} study_effect missing fields: {', '.join(missing)}")
+    corr = obj.get("correlation_handling")
+    if not isinstance(corr, dict) or "method" not in corr or "evidence" not in corr:
+        raise ValueError(f"study {label!r} study_effect.correlation_handling must carry method and evidence")
+    if corr.get("method") != "none" and not any(
+        isinstance(e, dict) and e.get("span") for e in (corr.get("evidence") or [])
+    ):
+        raise ValueError(
+            f"study {label!r} study_effect.correlation_handling method {corr.get('method')!r} has no evidence span"
+        )
+    prov = obj.get("source_provenance")
+    if not isinstance(prov, dict) or "source" not in prov or "span" not in prov:
+        raise ValueError(f"study {label!r} study_effect.source_provenance must carry source and span")
+
+
+def pool(studies: Sequence[Study], scale: str = "RR", alpha: float = 0.05,
+         require_study_effect: bool = False) -> PoolResult:
+    yv = [s.yi_vi() for s in studies]
+    if require_study_effect:
+        for s in studies:
+            _validate_study_effect(s.label, s.study_effect)
+    yi = [y for y, _ in yv]
+    vi = [v for _, v in yv]
+    k = len(yi)
+    if k == 0:
+        raise ValueError("no studies to pool")
+    tau2 = _paule_mandel_tau2(yi, vi)
+    mu, w, sw = _wmean(yi, vi, tau2)
+    se_re = math.sqrt(1.0 / sw)
+    if k > 1:
+        Q_gen = sum(wi * (y - mu) ** 2 for wi, y in zip(w, yi))
+        factor = max(1.0, Q_gen / (k - 1))
+        se = se_re * math.sqrt(factor)
+        tcrit = _t.ppf(1 - alpha / 2, df=k - 1)
+    else:
+        se = se_re
+        tcrit = _norm.ppf(1 - alpha / 2)  # k=1: no between-study term; z fallback
+    ci_low, ci_high = mu - tcrit * se, mu + tcrit * se
+    pi_half = tcrit * math.sqrt(tau2 + se ** 2)
+    mu0, w0, sw0 = _wmean(yi, vi, 0.0)
+    Q = sum(wi * (y - mu0) ** 2 for wi, y in zip(w0, yi))
+    # Common-effect (fixed-effect) z-based CI: the conventional small-k sensitivity shown alongside HKSJ.
+    se_fixed = math.sqrt(1.0 / sw0)
+    zc = _norm.ppf(1 - alpha / 2)
+    ci_low_fixed, ci_high_fixed = mu0 - zc * se_fixed, mu0 + zc * se_fixed
+    # Ratio scales (RR/OR/HR/IRR) pool on the log scale and back-transform with exp; additive
+    # scales (mean difference / standardised mean difference) pool on the raw scale (identity).
+    bt = (lambda x: x) if scale.upper() in ("MD", "SMD") else math.exp
+    return PoolResult(
+        scale=scale, k=k, tau2=tau2, mu_log=mu, se_log=se,
+        ci_low=bt(ci_low), ci_high=bt(ci_high),
+        pi_low=bt(mu - pi_half), pi_high=bt(mu + pi_half),
+        Q=Q, estimate=bt(mu),
+        per_study=[(s.label, y, v) for s, (y, v) in zip(studies, yv)],
+        ci_low_fixed=bt(ci_low_fixed), ci_high_fixed=bt(ci_high_fixed), estimate_fixed=bt(mu0),
+        ci_provenance=CI_PROVENANCE,
+    )
+
+
+# Back-compat: pool_rr(list-of-Study) used by the metafor validation script.
+def pool_rr(studies: Sequence[Study], alpha: float = 0.05) -> PoolResult:
+    return pool(studies, scale="RR", alpha=alpha)
+
+
+def _effects(studies):  # kept for the existing unit test
+    yv = [s.yi_vi() for s in studies]
+    return [y for y, _ in yv], [v for _, v in yv]

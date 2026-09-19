@@ -10,3 +10,14 @@ outputs/handover/independent_search/** -text
 outputs/handover/rob2_method/*.pdf -text
 outputs/handover/glp1_comparators/*.xml -text
 outputs/handover/glp1_comparators/*_epmc.json -text
+# Served evidence bundle (2026-09-19): docs/<repo-root-relative ref> mirrors every input the review
+# CERTIFICATE.json commits a digest to, so the refs resolve unmodified against the Pages site root.
+# These are bytes, never normalised -- three held text exports carry CRLF, and a text=auto checkin
+# would serve them off the digest the certificate commits to (a bundle that verifies as corrupt).
+# scripts/build_bundle.py refuses to mirror a path whose `text` attribute is not unset.
+docs/cache/** -text
+docs/outputs/** -text
+docs/protocols/** -text
+docs/topics/** -text
+docs/harness/** -text
+docs/scripts/** -text
