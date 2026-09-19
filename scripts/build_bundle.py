@@ -65,8 +65,9 @@ from harness.canonical import canonical_json, review_core, sha256_text  # noqa: 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.6"
+FORMAT_REVISION = "3.7"
 FORMAT_CHANGELOG = [
+    "3.7 (2026-09-19): regulatory_facts[] -- every held regulatory fact with each candidate analysis of the same endpoint carried separately (tuple parsed from its own located span, analysis_identity with treatment strategy and precision, distinct analysis_identity_key), the selected analysis bound to the tuple the decision carries, and any source-internal discrepancy between representations of the SAME analysis recorded. Two authentic analyses of one endpoint in one document (ELIXA on-study 1.02 (0.89-1.18) 392/400 vs on-treatment 1.01 (0.87-1.17) 342/334) are distinguishable from the bundle alone, and the verifier refuses ANALYSIS_IDENTITY_MISMATCH when a tuple is bound to the wrong one.",
     "3.6 (2026-09-19): analysis_identity per row (analysis set, follow-up / treatment strategy, comparator direction, estimator) because endpoint identity is not estimand identity -- ELIXA's FDA document holds on-study 1.02 (0.89-1.18) and on-treatment 1.01 (0.87-1.17) for the same 3-point endpoint; spans[] with roles (result, definition, column_header, section_heading, analysis_method, footnote) so table-sourced evidence can be bound by more than one span instead of being refused; producer_label_scope states that the page's 'verified' (verify_pooled) checks the point estimate only while P3 checks estimate AND both limits.",
     "3.5 (2026-09-19): five verifier defects measured before/after on doctored sites; SPAN_NOT_IN_RECORD; positive refusals marked unevaluated (L12).",
     "3.4 (2026-09-19, panel run of verify_bundle.py against 21 mutations): P9_span_target_mention -- a POSITIVE binding requirement read from the tuple's own clause (target phrase, target definition, or a name bound to one), refusing ENDPOINT_INCOMPATIBLE on a recognised non-target mention and AMBIGUOUS_ENDPOINT_BINDING on no recognised mention (never a fallback to the definition span); eligibility read from the CERTIFIED families.json (trial_family_map_sha256) and named authoritative, the rendered copy cross-checked; selector resolved from the document_ref fragment; the verifier never crashes -- every refusal is a JSON verdict with a code; L11 states that acquisition digests inside the package can be rewritten together (H1c) and only a signed release, a third-party timestamp or a fetch at verification time closes it.",
@@ -257,6 +258,9 @@ VOCABULARY = {
                     "in the committed source; it does NOT check the confidence limits. A row whose upper limit was replaced by another endpoint's genuine "
                     "limit would still carry that label. The bundle's P3_effect_tokens_in_span checks the estimate AND both limits against the clause.",
     },
+    "analysis_identity_rule": "endpoint identity is not estimand identity: analysis set, treatment strategy (on-study / on-treatment), follow-up, "
+                              "comparator direction and estimator are part of what a value IS; two authentic rows with identical components in one "
+                              "document are told apart by analysis_identity_key, never by the endpoint alone",
     "binding_classes": {
         "BOUND": "endpoint_binding == named_endpoint_resolved_to_definition_span: the row's value is bound to a definition span of the target endpoint",
         "MIGRATION_STATE_UNBOUND_LEGACY": "the producer's target_endpoint.admit_rows returned admissible=True with verdict UNBOUND_LEGACY because the row has "
@@ -1066,6 +1070,148 @@ def binding_states(review: dict, primary_ids: set) -> dict:
                           "certificate and generating_commit is recorded (the certificate lane's closure).")}
 
 
+_TUPLE_FORMS = [
+    # 1.02 (0.89, 1.18) | 1.24 (0.90, 1.70) | HR=1.24 (95% CI: 0.9, 1.70) | HR (95% CI) of 1.24 (0.90, 1.70)
+    re.compile(r"(?<![\d.])(\d\.\d{1,3})\s*\n?\s*\((?:95%\s*CI:?\s*)?(\d\.\d{1,3}),?\s*\n?\s*(?:to\s*)?(\d\.\d{1,3})\s*\)"),
+    # (0.887, 1.172) with a point estimate of 1.02
+    re.compile(r"\((\d\.\d{1,3}),\s*\n?\s*(\d\.\d{1,3})\)\s*with a point estimate of\s*(\d\.\d{1,3})"),
+    # hazard ratio estimate of 1.02 with an associated 95% confidence interval of (0.89, 1.17)
+    re.compile(r"estimate of\s*(\d\.\d{1,3})\s*with an associated 95% confidence interval of\s*\n?\s*\((\d\.\d{1,3}),\s*\n?\s*(\d\.\d{1,3})\)"),
+]
+
+
+def _parse_tuple(text: str):
+    flat = text.replace("\n", " ")
+    for i, rx in enumerate(_TUPLE_FORMS):
+        m = rx.search(flat)
+        if m:
+            g = m.groups()
+            est, lo, hi = (g[2], g[0], g[1]) if i == 1 else (g[0], g[1], g[2])
+            return {"estimate": float(est), "ci_low": float(lo), "ci_high": float(hi),
+                    "precision_decimals": max(len(x.split(".")[1]) for x in (est, lo, hi)), "form": i}
+    return None
+
+
+def _endpoint_of(kind: str, text: str, tuple_text: str | None = None) -> str:
+    """Endpoint of the analysis a span carries. For a linearised table span the classification is made on the piece
+    that holds the tuple plus its left neighbour (the row label), never on the caption, which may name both endpoints."""
+    k = kind.lower()
+    if "4p" in k:
+        return "4-point MACE+"
+    if "3p" in k:
+        return "3-point MACE"
+    scope = text
+    if tuple_text and "|" in text:
+        pieces = [x.strip() for x in text.split("|") if x.strip()]
+        for i, pc in enumerate(pieces):
+            if tuple_text in pc.replace("\n", " "):
+                j = i
+                while j > 0 and not re.search(r"mace|point|composite", pieces[j].lower()):
+                    j -= 1                      # back to the row label that names the endpoint
+                scope = " ".join(pieces[j:i + 1])
+                break
+    t = scope.lower().replace("\n", " ")
+    if "4-point" in t or "mace+" in t or "unstable angina" in t:
+        return "4-point MACE+"
+    if "3-point" in t or "mace endpoint" in t:
+        return "3-point MACE"
+    comps = sum(1 for w in ("cardiovascular death", "myocardial infarction", "stroke") if w in t)
+    if comps >= 2 and "unstable angina" not in t:
+        return "3-point MACE"
+    return "UNSTATED"
+
+
+def _locate_pieces(span_text: str, text: str) -> dict:
+    """A linearised table span ('caption | header | cells') is a selection, not verbatim text. Locate each piece."""
+    pieces = [x.strip() for x in span_text.split("|") if x.strip()]
+    if len(pieces) < 2:
+        return {"linearised": False}
+    located = [{"piece": pc[:80], "match": locate(pc, text)["match"]} for pc in pieces]
+    n = sum(1 for x in located if x["match"] != "NOT_LOCATED")
+    return {"linearised": True, "pieces": len(pieces), "pieces_located": n, "detail": located}
+_COUNTS = re.compile(r"(\d{3,4})\s*\(\s*\d+\.\d%\)\s*(\d{3,4})\s*\(\s*\d+\.\d%\)")
+
+
+def _strategy_of(kind: str, text: str) -> str:
+    t = (kind + " " + text).lower().replace("\n", " ")
+    if "on-treatment" in t or "ontreatment" in t:
+        return "on-treatment"
+    if "on-study" in t or "onstudy" in t or "itt" in t or "intention-to-treat" in t:
+        return "on-study (ITT)"
+    return "UNSTATED"
+
+
+def regulatory_facts(review: dict, art_by_ref: dict) -> list:
+    """Each held regulatory fact with EVERY candidate analysis of the endpoint carried separately, so two authentic
+    analyses of the same endpoint in the same document are distinguishable from the bundle alone."""
+    out = []
+    for f in review.get("held_regulatory_facts") or []:
+        text_ref = f.get("extracted_text_path")
+        text = (ROOT / text_ref).read_text(encoding="utf-8", errors="replace") if text_ref and (ROOT / text_ref).exists() else ""
+        dec = f.get("decision") or {}
+        eff = dec.get("effect") or {}
+        analyses = []
+        for sp in f.get("spans") or []:
+            span_text = sp.get("span") or ""
+            tup = _parse_tuple(span_text)
+            if not tup:
+                continue
+            loc = locate(span_text, text)
+            pieces = _locate_pieces(span_text, text) if loc["match"] == "NOT_LOCATED" else {"linearised": False}
+            binding_kind = ("VERBATIM_SPAN" if loc["match"] != "NOT_LOCATED" else
+                            "PARTIAL_TABLE_BINDING" if pieces.get("linearised") and pieces.get("pieces_located", 0) else "NOT_LOCATED")
+            c = _COUNTS.search(span_text.replace("\n", " "))
+            strategy = _strategy_of(sp.get("kind", ""), span_text)
+            endpoint = _endpoint_of(sp.get("kind", ""), span_text, tuple_text=f"{tup['estimate']}")
+            ident = {"trial": f.get("trial"), "endpoint": endpoint,
+                     "analysis_set": "ITT" if ("itt" in (dec.get("outcome") or "").lower() or "itt" in span_text.lower()) else "UNSTATED",
+                     "treatment_strategy": strategy, "estimator": eff.get("estimator") or "UNSTATED",
+                     "precision_decimals": tup["precision_decimals"], "representation_kind": sp.get("kind")}
+            ident["analysis_identity_key"] = f"{ident['trial']} | {endpoint} | {ident['analysis_set']} | {strategy} | {tup['precision_decimals']}dp"
+            analyses.append({"kind": sp.get("kind"), "pdf_page": sp.get("pdf_page"), "text": span_text, "located": loc,
+                             "span_binding": binding_kind, "table_pieces": pieces if pieces.get("linearised") else None,
+                             "tuple": {k: tup[k] for k in ("estimate", "ci_low", "ci_high")},
+                             "counts": ({"placebo_events": int(c.group(1)), "treatment_events": int(c.group(2))} if c else None),
+                             "analysis_identity": ident})
+        # which analysis does the decision's tuple belong to?
+        def _matches(a, e):
+            t = a["tuple"]
+            return abs(t["estimate"] - float(e.get("estimate", -1))) < 1e-9 and abs(t["ci_low"] - float(e.get("ci_low", -1))) < 1e-9 and abs(t["ci_high"] - float(e.get("ci_high", -1))) < 1e-9
+        selected = [a for a in analyses if eff and _matches(a, eff)]
+        claimed_strategy = _strategy_of("", dec.get("outcome") or "")
+        claimed_endpoint = _endpoint_of("", dec.get("outcome") or "")
+        binding = ("BOUND" if selected and all(a["analysis_identity"]["treatment_strategy"] == claimed_strategy and
+                                              a["analysis_identity"]["endpoint"] == claimed_endpoint for a in selected) else
+                   "ANALYSIS_IDENTITY_MISMATCH" if selected else "TUPLE_NOT_IN_ANY_CANDIDATE_SPAN")
+        # the same analysis under different representations may disagree by rounding -- record it, do not resolve it
+        by_strategy = {}
+        for a in analyses:
+            by_strategy.setdefault(a["analysis_identity"]["endpoint"] + " / " + a["analysis_identity"]["treatment_strategy"], []).append(a)
+        discrepancies = []
+        for strat, group in by_strategy.items():
+            twodp = {(round(a["tuple"]["estimate"], 2), round(a["tuple"]["ci_low"], 2), round(a["tuple"]["ci_high"], 2)) for a in group}
+            if len(twodp) > 1:
+                discrepancies.append({"treatment_strategy": strat, "representations": [{"kind": a["kind"], "tuple": a["tuple"]} for a in group],
+                                      "note": "representations of the SAME analysis disagree at two decimals; recorded, not resolved (a rounding of an unrounded "
+                                              "value and a table entry can genuinely differ)"})
+        out.append({
+            "trial": f.get("trial"), "trial_key": f.get("trial_key"), "nct": f.get("nct"),
+            "document": {"original_ref": f.get("document_path"), "original_served": f.get("document_path") in art_by_ref and art_by_ref[f["document_path"]]["state"] == "SERVED",
+                         "parsed_ref": text_ref, "parsed_served": text_ref in art_by_ref, "parsed_sha256": art_by_ref.get(text_ref, {}).get("sha256")},
+            "decision": {"outcome": dec.get("outcome"), "decision": dec.get("decision"), "effect": eff, "counts": dec.get("counts"),
+                         "claimed_treatment_strategy": claimed_strategy, "claimed_endpoint": claimed_endpoint, "rule_id": dec.get("rule_id")},
+            "candidate_analyses": analyses,
+            "selected_analysis_kinds": [a["kind"] for a in selected],
+            "tuple_to_identity_binding": binding,
+            "distinct_analysis_identity_keys": sorted({a["analysis_identity"]["analysis_identity_key"] for a in analyses}),
+            "source_internal_discrepancies": discrepancies,
+            "adjudication": f.get("adjudication"), "admissible_per_producer": f.get("admissible"),
+            "rule": "a tuple is bound to the analysis whose located span contains it AND whose identity the decision claims; a tuple that occurs only "
+                    "in a span of a different treatment strategy is ANALYSIS_IDENTITY_MISMATCH; endpoint identity alone never binds",
+        })
+    return out
+
+
 def endpoint_compatibility(review: dict, rows: list) -> dict:
     primary = next(o for o in review["outcomes"] if o.get("primary"))
     proto_path = ROOT / "protocols" / (review["slug"] + ".md")
@@ -1352,6 +1498,7 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
     compat = endpoint_compatibility(review, vrows)
     xcov = extraction_objects_coverage(slug, review, cert)
     binding = binding_states(review, {r["trial"]["id"] for r in vrows})
+    regfacts = regulatory_facts(review, art_by_ref)
     for b in binding["rows"]:
         vr = next((r for r in vrows if r["trial"]["id"] == b["trial"]["id"] and b["primary"]), None)
         b["counted_in_admissible_rows"] = bool(vr and vr["admission"]["final"] == "ADMISSIBLE")
@@ -1462,6 +1609,7 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
         "endpoint_compatibility": compat,
         "extraction_objects_coverage": xcov,
         "binding_states": binding,
+        "regulatory_facts": regfacts,
         "verification_rows": vrows,
         "absence_claims": aclaims,
         "pooled_reference": pooled,

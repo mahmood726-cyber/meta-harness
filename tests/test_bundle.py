@@ -465,3 +465,47 @@ def test_rows_carry_spans_with_roles_and_the_vocabulary_admits_table_roles(bundl
 def test_producer_verified_label_is_scoped_to_what_it_checked(bundle):
     assert "point estimate" in bundle["vocabulary"]["producer_label_scope"]["verified"].lower()
     assert all("point estimate" in r["producer_label_scope"] for r in bundle["verification_rows"])
+
+
+# ------------------------------------------------------------------ 3.7: two authentic analyses of one endpoint, distinguishable from the bundle alone
+
+def test_elixa_on_study_and_on_treatment_are_distinct_analyses_in_the_bundle(bundle):
+    elixa = next(r for r in bundle["regulatory_facts"] if r["trial"] == "ELIXA")
+    by_kind = {a["kind"]: a for a in elixa["candidate_analyses"]}
+    on_study, on_treat = by_kind["table8_onstudy_3p"], by_kind["table8_ontreatment_3p"]
+    assert on_study["tuple"] == {"estimate": 1.02, "ci_low": 0.89, "ci_high": 1.18} and on_study["counts"] == {"placebo_events": 392, "treatment_events": 400}
+    assert on_treat["tuple"] == {"estimate": 1.01, "ci_low": 0.87, "ci_high": 1.17} and on_treat["counts"] == {"placebo_events": 342, "treatment_events": 334}
+    assert on_study["analysis_identity"]["endpoint"] == on_treat["analysis_identity"]["endpoint"] == "3-point MACE"     # same endpoint...
+    assert on_study["analysis_identity"]["analysis_identity_key"] != on_treat["analysis_identity"]["analysis_identity_key"]  # ...different analysis
+    assert on_study["analysis_identity"]["treatment_strategy"].startswith("on-study") and on_treat["analysis_identity"]["treatment_strategy"] == "on-treatment"
+    assert all(a["span_binding"] == "VERBATIM_SPAN" for a in elixa["candidate_analyses"])
+    assert len(elixa["distinct_analysis_identity_keys"]) >= 4
+    # the 4-point rows are a different ENDPOINT, separated on that axis
+    assert by_kind["primary_4p_table6"]["analysis_identity"]["endpoint"] == "4-point MACE+"
+    # the decision's tuple is bound to the analysis whose identity it claims
+    assert elixa["tuple_to_identity_binding"] == "BOUND" and elixa["selected_analysis_kinds"] == ["text_unrounded_3p"]
+    assert elixa["decision"]["claimed_treatment_strategy"].startswith("on-study") and elixa["decision"]["claimed_endpoint"] == "3-point MACE"
+
+
+def test_elixa_source_internal_discrepancy_is_recorded_not_resolved(bundle):
+    elixa = next(r for r in bundle["regulatory_facts"] if r["trial"] == "ELIXA")
+    disc = [d for d in elixa["source_internal_discrepancies"] if d["treatment_strategy"].startswith("3-point MACE / on-study")]
+    assert disc, elixa["source_internal_discrepancies"]
+    tuples = {json.dumps(r["tuple"], sort_keys=True) for r in disc[0]["representations"]}
+    assert len(tuples) >= 2      # 1.02 (0.89, 1.18) table vs 1.02 (0.89, 1.17) executive summary vs 0.887-1.172 unrounded
+
+
+def test_freedom_row_is_a_partial_table_binding_of_the_three_point_row(bundle):
+    fr = next(r for r in bundle["regulatory_facts"] if r["trial"] == "FREEDOM-CVO")
+    a = fr["candidate_analyses"][0]
+    assert a["span_binding"] == "PARTIAL_TABLE_BINDING" and a["table_pieces"]["pieces_located"] >= a["table_pieces"]["pieces"] - 1
+    located = {d["piece"][:20] for d in a["table_pieces"]["detail"] if d["match"] != "NOT_LOCATED"}
+    assert any(p.startswith("3-Point MACE*") for p in located) and any(p.startswith("1.24 (0.90, 1.70)") for p in located)   # row label + tuple cell
+    assert all(d["piece"].startswith("Source:") for d in a["table_pieces"]["detail"] if d["match"] == "NOT_LOCATED")          # only the footnote fails
+    assert a["tuple"] == {"estimate": 1.24, "ci_low": 0.9, "ci_high": 1.7} and a["analysis_identity"]["endpoint"] == "3-point MACE"
+    assert fr["tuple_to_identity_binding"] == "BOUND"      # the FREEDOM-only 3-point row, not the pooled 1.13 nor the 4-point 1.21
+
+
+def test_flow_label_row_resolves_endpoint_from_components(bundle):
+    fl = next(r for r in bundle["regulatory_facts"] if r["trial"] == "FLOW")
+    assert fl["candidate_analyses"][0]["analysis_identity"]["endpoint"] == "3-point MACE" and fl["tuple_to_identity_binding"] == "BOUND"

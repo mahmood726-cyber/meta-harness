@@ -450,9 +450,18 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
     bundle_rows = {r["trial"]["id"].replace("PMID ", ""): r for r in bundle["verification_rows"]}
     if corrupt:
         pmid, limb = corrupt
-        t = next(x for x in trials if str(x["id"]).replace("PMID ", "") == pmid)
-        br = bundle_rows[pmid]
-        if limb == "span":
+        if limb == "regulatory_strategy_swap":   # the ELIXA test: the on-treatment tuple bound to an on-study identity (pmid ignored)
+            for rf in bundle.get("regulatory_facts", []):
+                if rf["trial"] == "ELIXA":
+                    rf["decision"]["effect"] = {"scale": "HR", "estimate": 1.01, "ci_low": 0.87, "ci_high": 1.17}
+            report["corruption"] = {"pmid": pmid, "limb": limb}
+            t = br = None
+        else:
+            t = next(x for x in trials if str(x["id"]).replace("PMID ", "") == pmid)
+            br = bundle_rows[pmid]
+        if t is None:
+            pass
+        elif limb == "span":
             t["endpoint_result_span"] = t["endpoint_result_span"][:-1] + ("x" if not t["endpoint_result_span"].endswith("x") else "y")
         elif limb == "effect":
             t["effect"] = round(float(t["effect"]) + 0.01, 4)
@@ -474,7 +483,7 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=rec_by_pmid[pmid]["abstract"] + " ")
             container_sha = sha256(container_sha.encode())  # the container bytes would differ; represent that
         else:
-            raise SystemExit(f"unknown limb {limb}")
+            raise Refusal("UNKNOWN_LIMB", f"{limb}")
         report["corruption"] = {"pmid": pmid, "limb": limb}
         if limb == "fragment":
             frag = br["source"]["document_ref"].split("#PMID-")[-1]
@@ -590,6 +599,54 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             row.update({"coverage_recomputed": "UNKNOWN_COMPLETENESS", "negative_claim_admissible": False, "bundle_recorded": c["negative_claim_admissible"]})
         report["absence_claims"].append(row)
 
+    # 5b. regulatory facts: every candidate analysis located; the decision's tuple bound to the claimed identity -------
+    report["regulatory_facts"] = []
+    for rf in bundle.get("regulatory_facts", []):
+        try:
+            text = store.get(rf["document"]["parsed_ref"]).decode("utf-8", "replace")
+        except Refusal as r:
+            failures.append(f"{r.code} {r.detail}"); continue
+        found = {}
+        for a in rf["candidate_analyses"]:
+            loc = locate(a["text"], text)
+            state = loc["match"]
+            if state == "NOT_LOCATED":   # a linearised table span: locate its pieces
+                pieces = [x.strip() for x in a["text"].split("|") if x.strip()]
+                if len(pieces) >= 2:
+                    n = sum(1 for pc in pieces if locate(pc, text)["match"] != "NOT_LOCATED")
+                    state = f"PARTIAL_TABLE_BINDING {n}/{len(pieces)} pieces" if n else "NOT_LOCATED"
+            found[a["kind"]] = {"located": state, "strategy": a["analysis_identity"]["treatment_strategy"], "endpoint": a["analysis_identity"]["endpoint"]}
+        eff = rf["decision"]["effect"]
+        etoks = [str(eff.get("estimate")), str(eff.get("ci_low")), str(eff.get("ci_high"))]
+        claimed = rf["decision"]["claimed_treatment_strategy"]
+        claimed_ep = rf["decision"].get("claimed_endpoint")
+
+        def _holds(a):
+            flat = normalize(a["text"])
+            return all(tok in flat for tok in etoks)
+        holders = [a["kind"] for a in rf["candidate_analyses"] if _holds(a)]
+        holder_ids = {(found[k]["strategy"], found[k]["endpoint"]) for k in holders}
+        if not holders:
+            code = "TUPLE_NOT_IN_ANY_CANDIDATE_SPAN"
+        elif holder_ids <= {(claimed, claimed_ep)}:
+            code = "BOUND"
+        else:
+            code = "ANALYSIS_IDENTITY_MISMATCH"
+        keys = {a["analysis_identity"]["analysis_identity_key"] for a in rf["candidate_analyses"]}
+        report["regulatory_facts"].append({"trial": rf["trial"], "candidates": found, "decision_tuple_holders": holders, "claimed_strategy": claimed,
+                                           "binding": code, "bundle_recorded": rf["tuple_to_identity_binding"], "distinct_identity_keys": len(keys),
+                                           "distinguishable": len(keys) >= 2 and all(f["located"] != "NOT_LOCATED" for f in found.values())})
+        if any(f["located"] == "NOT_LOCATED" for f in found.values()):
+            failures.append(f"REGULATORY_SPAN_NOT_LOCATED {rf['trial']}: " + ", ".join(k for k, f in found.items() if f["located"] == "NOT_LOCATED"))
+        partial = [k for k, f in found.items() if str(f["located"]).startswith("PARTIAL")]
+        if partial:
+            report.setdefault("partial_table_bindings", []).append({"trial": rf["trial"], "kinds": partial,
+                                                                    "note": "a linearised table span located piece-wise; recorded as a partial binding, not refused"})
+        if code != "BOUND":
+            failures.append(f"{code} {rf['trial']}: decision tuple {etoks} claims ({claimed}, {claimed_ep}); found in {holders} ({sorted(holder_ids)})")
+        elif code != rf["tuple_to_identity_binding"] and not corrupt:
+            failures.append(f"ROW_VERDICT_DISAGREES regulatory {rf['trial']}: verifier {code} vs bundle {rf['tuple_to_identity_binding']}")
+
     # 6. pool ------------------------------------------------------------------------------------------------------
     inputs = bundle["pooled_reference"]["inputs"]
     exp = bundle["pooled_reference"]["expected"]
@@ -632,7 +689,7 @@ def main(argv=None):
     g.add_argument("--root", help="directory mirroring the site root (e.g. docs)")
     g.add_argument("--url", help="site root URL")
     ap.add_argument("--slug", required=True)
-    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|nontarget_span|unlisted_span|fragment|container")
+    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|nontarget_span|unlisted_span|fragment|regulatory_strategy_swap|container")
     ap.add_argument("--anchor", choices=["live"], help="live: re-fetch EFetch XML from PubMed now and compare to the retained acquisition and the cached abstract")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
@@ -681,6 +738,9 @@ def main(argv=None):
         bs = rep["binding_states"]
         print(f"binding: {bs['migration_state_unbound_legacy']} rendered row(s) UNBOUND_LEGACY = migration state, not admissible, not refused: "
               + ", ".join(f"{r['id']} ({r['outcome'][:28]})" for r in bs["rendered_rows"] if r["binding_class"] != "BOUND"))
+        for rf in rep.get("regulatory_facts", []):
+            print(f"  regulatory {rf['trial']}: candidates {len(rf['candidates'])} located, distinct identity keys {rf['distinct_identity_keys']}, "
+                  f"distinguishable={rf['distinguishable']}, decision tuple -> {rf['decision_tuple_holders']} binding {rf['binding']}")
         print("NOT checked: " + "; ".join(rep["not_checked"]))
         if rep["corruption"]:
             print(f"corruption {rep['corruption']}: rows no longer ADMISSIBLE = {[(r['pmid'], r['final']) for r in rep['rows'] if r['final'] != 'ADMISSIBLE']}")

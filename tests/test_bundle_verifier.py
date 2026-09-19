@@ -427,3 +427,17 @@ def test_upper_limit_swapped_for_another_endpoints_genuine_limit_is_refused_by_p
     row = next(r for r in rep["rows"] if r["pmid"] == "27295427")
     assert row["predicates"]["P2_span_located"] is True and row["predicates"]["P3_effect_tokens_in_span"] is False
     assert row["final"] == "INADMISSIBLE" and rep["verdict"] == "FAIL"
+
+
+
+def test_verifier_binds_regulatory_tuples_and_refuses_the_on_treatment_swap(baseline):
+    rf = {r["trial"]: r for r in baseline["regulatory_facts"]}
+    assert rf["ELIXA"]["binding"] == "BOUND" and rf["ELIXA"]["distinguishable"] is True and rf["ELIXA"]["distinct_identity_keys"] >= 4
+    assert rf["FREEDOM-CVO"]["binding"] == "BOUND" and rf["FLOW"]["binding"] == "BOUND"
+    assert any(p["trial"] == "FREEDOM-CVO" for p in baseline.get("partial_table_bindings", []))
+    rep = _run("--corrupt", "26630143", "regulatory_strategy_swap")
+    el = next(r for r in rep["regulatory_facts"] if r["trial"] == "ELIXA")
+    assert el["binding"] == "ANALYSIS_IDENTITY_MISMATCH" and el["decision_tuple_holders"] == ["table8_ontreatment_3p"]
+    assert any(f.startswith("ANALYSIS_IDENTITY_MISMATCH ELIXA") for f in rep["failures"])
+    # the primary pool is untouched by the regulatory swap
+    assert rep["pool"]["admissible_rows"] == baseline["pool"]["admissible_rows"]
