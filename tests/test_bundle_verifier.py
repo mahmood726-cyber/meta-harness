@@ -15,7 +15,8 @@ sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))   # test-side helpers only; the verifier under test runs as a subprocess
 SLUG = "glp1-ra-mace-t2d"
 VERIFIER = os.path.join(ROOT, "scripts", "verify_bundle.py")
-PER_ROW_LIMBS = ("span", "effect", "components", "eligibility", "conflict", "nontarget_span", "unlisted_span", "fragment")
+PER_ROW_LIMBS = ("span", "effect", "components", "eligibility", "conflict", "nontarget_span", "unlisted_span", "fragment",
+                 "ci_high_rounded", "ci_low_truncated", "duplicate_span_no_offsets")
 MIGRATION_LIMB = "binding"
 
 
@@ -113,7 +114,7 @@ def test_verifier_reports_its_non_claims_and_reproduces_digest_scopes(baseline):
     assert baseline["statistical_input"]["PMID 40162642"]["interval_construction"] == "GROUP_SEQUENTIAL_ADJUSTED"
     src = open(VERIFIER, encoding="utf-8").read()
     assert "does NOT check" in src and "PRODUCTION admission path" in src
-    assert len(src.splitlines()) <= 800   # 686 after the panel's round 3 (P9, refusal codes, no-crash paths, live anchor); the 200-500 target was for a minimal checker
+    assert len(src.splitlines()) <= 1000  # 908 after panel round 4 (P9 rule, numeric P3, three span states, estimand evidence, regulatory identity); the 200-500 target was for a minimal checker
 
 
 def _copy_served_tree(bundle, dst):
@@ -441,3 +442,39 @@ def test_verifier_binds_regulatory_tuples_and_refuses_the_on_treatment_swap(base
     assert any(f.startswith("ANALYSIS_IDENTITY_MISMATCH ELIXA") for f in rep["failures"])
     # the primary pool is untouched by the regulatory swap
     assert rep["pool"]["admissible_rows"] == baseline["pool"]["admissible_rows"]
+
+
+
+def test_rounded_match_defect_is_refused_on_a_doctored_site(tmp_path):
+    """The panel's case: store the upper limit as 0.96 where the clause says 1.0 (EXSCEL: 'hazard ratio, 0.91; 95% CI, 0.83 to 1.00').
+    Substring would accept ('1' in '1.00'); numeric equality refuses. Every digit plausible, significance-altering."""
+    def edit(rev):
+        o = next(x for x in rev["outcomes"] if x.get("primary"))
+        t = next(x for x in o["trials"] if str(x["id"]).endswith("28910237"))
+        assert t["ci_high"] == 1.0
+        t["ci_high"] = 0.96
+    root = _doctored_site(tmp_path, edit_review=edit, edited_pmids=("28910237",))
+    rep = _verify(root)
+    row = next(r for r in rep["rows"] if r["pmid"] == "28910237")
+    assert row["predicates"]["P2_span_located"] is True and row["predicates"]["P3_effect_tokens_in_span"] is False and row["final"] == "INADMISSIBLE"
+
+
+def test_b3_duplicate_span_without_offsets_is_ambiguous_not_located(baseline):
+    rep = _run("--corrupt", "28910237", "duplicate_span_no_offsets")
+    row = next(r for r in rep["rows"] if r["pmid"] == "28910237")
+    assert row["span_occurrences"] == 2 and row["predicates"]["P2_span_located"] is False and row["refusal"] == "SPAN_LOCATION_AMBIGUOUS"
+    assert row["predicates"]["P1_source_bytes"] is True     # the digest layer is clean; only location is ambiguous
+    # zero / one / many: the baseline rows are located exactly once
+    assert all(r["span_occurrences"] == 1 for r in baseline["rows"])
+
+
+def test_a2_regression_pair_agrees_on_a_doctored_site(tmp_path):
+    semi = ("The primary outcome was cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke; the secondary outcome was hospitalization "
+            "for heart failure, which occurred less often (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).")
+    def edit_records(rec):
+        r = next(x for x in rec["records"] if str(x["id"]) == "27295427"); r["abstract"] += " " + semi
+    root = _doctored_site(tmp_path, edit_records=edit_records, edit_review=lambda rev: _set_primary_row(rev, "27295427", semi, 0.87, 0.78, 0.97), edited_pmids=("27295427",))
+    rep = _verify(root)
+    row = next(r for r in rep["rows"] if r["pmid"] == "27295427")
+    assert row["predicates"]["P2_span_located"] and row["predicates"]["P3_effect_tokens_in_span"]
+    assert row["p9"]["state"] == "ENDPOINT_INCOMPATIBLE" and row["final"] == "INADMISSIBLE"

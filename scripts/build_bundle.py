@@ -65,8 +65,9 @@ from harness.canonical import canonical_json, review_core, sha256_text  # noqa: 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.7"
+FORMAT_REVISION = "3.8"
 FORMAT_CHANGELOG = [
+    "3.8 (2026-09-19, panel round 4 + 37-variant run): P9 rewritten to the panel's rule -- clause boundaries at sentence ends AND semicolons outside brackets; a target DEFINITION requires a definitional cue (component co-occurrence is not ownership); a clause carrying both a target and a non-target mention is AMBIGUOUS_ENDPOINT_BINDING, never a pass; P3 by NUMERIC equality (0.80 == 0.8 accepted; 0.96 vs 1.0 and 0.8 vs 0.84 refused); zero / one / many span occurrences are three states (SPAN_NOT_IN_SOURCE / located / SPAN_LOCATION_AMBIGUOUS, offsets pin one); estimand_evidence per row -- analysis_set, analysis_window, contrast, estimator each STATED with a located span and offsets, DEFAULT_REGISTERED when the held representation is silent, ESTIMAND_UNBOUND when the same source states two values; regulatory candidates carry strategy evidence (label / counts / unbound); the source stamp is content-addressed (blob ids computed from the working tree) and content_commit is informational (PENDING_COMMIT before the bytes are committed) so the stamp no longer needs its own commit to exist; L13/L14 stated.",
     "3.7 (2026-09-19): regulatory_facts[] -- every held regulatory fact with each candidate analysis of the same endpoint carried separately (tuple parsed from its own located span, analysis_identity with treatment strategy and precision, distinct analysis_identity_key), the selected analysis bound to the tuple the decision carries, and any source-internal discrepancy between representations of the SAME analysis recorded. Two authentic analyses of one endpoint in one document (ELIXA on-study 1.02 (0.89-1.18) 392/400 vs on-treatment 1.01 (0.87-1.17) 342/334) are distinguishable from the bundle alone, and the verifier refuses ANALYSIS_IDENTITY_MISMATCH when a tuple is bound to the wrong one.",
     "3.6 (2026-09-19): analysis_identity per row (analysis set, follow-up / treatment strategy, comparator direction, estimator) because endpoint identity is not estimand identity -- ELIXA's FDA document holds on-study 1.02 (0.89-1.18) and on-treatment 1.01 (0.87-1.17) for the same 3-point endpoint; spans[] with roles (result, definition, column_header, section_heading, analysis_method, footnote) so table-sourced evidence can be bound by more than one span instead of being refused; producer_label_scope states that the page's 'verified' (verify_pooled) checks the point estimate only while P3 checks estimate AND both limits.",
     "3.5 (2026-09-19): five verifier defects measured before/after on doctored sites; SPAN_NOT_IN_RECORD; positive refusals marked unevaluated (L12).",
@@ -137,6 +138,12 @@ LIMITS = [
      "reading only the package -- can detect it (panel H1c). Closing it needs the acquisition digests committed somewhere the bundle cannot rewrite: "
      "a signed release, a third-party timestamp, or a fetch at verification time (`verify_bundle.py --anchor live` is that fetch; it is one "
      "observation at one time)."},
+    {"id": "L13_location_by_full_text_and_offsets", "limit": "spans are located by their FULL text (verbatim, or normalised under the published manifest) "
+     "and recorded with code-point offsets, not by a prefix match; a prefix-locator's failure mode (two sentences sharing a long opening) does not "
+     "apply, and a span that occurs more than once is SPAN_LOCATION_AMBIGUOUS unless offsets pin one occurrence -- measured by the B3 fixture."},
+    {"id": "L14_verification_rows_source_pubmed_only", "limit": "verification_rows[] bind rows whose evidence is a PubMed record in records.json; a row "
+     "whose evidence is a text artefact (FDA extraction) is not expressible as a verification row and is carried under regulatory_facts[] with its own "
+     "identity binding. A fixture that sources a primary row from a text artefact will fail P1/P2 for that reason, not for a defect in the row."},
     {"id": "L9_production_path", "limit": "nothing here tests the producer's admission gate; no production falsification test has been executed by anyone."},
 ]
 ANCHOR_HOWTO = ("parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, "
@@ -726,56 +733,179 @@ def statistical_input(t: dict, pmid: str) -> dict:
     return rec
 
 
+# ---- endpoint binding (P9): a POSITIVE requirement read from the tuple's own clause --------------------------------
 TARGET_PHRASES = ("major adverse cardiovascular", "mace")
-PRIMARY_NAMES = ("primary outcome", "primary composite outcome", "primary-outcome", "primary end point", "primary endpoint", "primary composite end point")
+PRIMARY_NAMES = ("primary outcome", "primary composite outcome", "primary-outcome", "primary end point", "primary endpoint",
+                 "primary composite end point", "primary cardiovascular end-point", "primary cardiovascular end point",
+                 "primary cardiovascular endpoint", "primary cardiovascular outcome")
+DEFINITION_CUES = ("composite", "first occurrence", "defined as", "consisting of", "consisted of", "major adverse", "mace",
+                   "primary outcome", "primary end point", "primary endpoint", "primary composite", "primary cardiovascular")
 COMPONENT_WORDS = {"CARDIOVASCULAR_DEATH": ("cardiovascular death", "death from cardiovascular", "cardiovascular causes", "cardiovascular mortality"),
                    "MYOCARDIAL_INFARCTION": ("myocardial infarction",), "STROKE": ("stroke",)}
 NON_TARGET_MENTIONS = ("death from any cause", "all-cause mortality", "all-cause death", "any-cause death", "hospitalization for heart failure",
-                       "hospitalisation for heart failure", "heart failure", "kidney", "renal", "retinopathy", "amputation", "pancreatitis",
-                       "adverse event", "serious adverse", "gastrointestinal", "hypoglyc")
+                       "hospitalisation for heart failure", "heart failure", "kidney", "renal", "nephropathy", "retinopathy", "amputation",
+                       "pancreatitis", "adverse event", "serious adverse", "gastrointestinal", "hypoglyc", "unstable angina")
+_NUM = re.compile(r"\d+(?:\.\d+)?")
 
 
-def _clause_with_effect(span: str, tokens: list) -> str:
-    """The sentence of the span that carries the effect tokens (spans are usually one sentence)."""
-    parts = [x for x in re.split(r"(?<=\.)\s+(?=[A-Z])", span or "") if x.strip()]
-    for part in parts:
-        if all(tok in part or tok in normalize(part) for tok in tokens):
-            return part
-    return span or ""
+_STAT_CONTINUATION = re.compile(r"\s*(?:95\s*%|CI\b|P\s*[=<>]|p\s*[=<>]|HR\b|hazard ratio)")   # a ';' inside a statistical tuple does not end a clause
 
 
-def span_target_mention(span: str, tokens: list, definition_span: str, canonical_components: list) -> dict:
-    """POSITIVE binding requirement: the tuple's own clause must carry a TARGET mention -- a target phrase, the target
-    definition (>= 2 canonical components named), or a primary-outcome name that the row's definition span binds to the
-    target. A recognised NON-target mention with no target mention refuses ENDPOINT_INCOMPATIBLE; no recognised mention
-    at all refuses AMBIGUOUS_ENDPOINT_BINDING -- never a silent fallback to the definition span. Trades false passes for
-    false refusals on unusual phrasing, which is the right direction for an admission gate; the witness names the clause."""
-    clause = _clause_with_effect(span, tokens)
-    c = normalize(clause).lower()
-    d = normalize(definition_span or "").lower()
+def clauses(span):
+    """Clause boundaries: sentence ends (period + space + capital) AND semicolons OUTSIDE brackets."""
+    out, buf, depth = [], [], 0
+    text = span or ""
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth = max(0, depth - 1)
+        buf.append(ch)
+        if depth == 0 and ch == ";" and not _STAT_CONTINUATION.match(text, i + 1):
+            out.append("".join(buf).strip()); buf = []
+        elif depth == 0 and ch == "." and i + 2 < len(text) and text[i + 1] == " " and text[i + 2].isupper():
+            out.append("".join(buf).strip()); buf = []
+        i += 1
+    if "".join(buf).strip():
+        out.append("".join(buf).strip())
+    return [c for c in out if c]
 
-    def components_named(text):
-        return sorted(k for k, words in COMPONENT_WORDS.items() if any(w in text for w in words))
 
-    comps_in_clause = components_named(c)
-    comps_in_def = components_named(d)
-    target_in_clause = any(ph in c for ph in TARGET_PHRASES)
+def clause_numbers(clause):
+    return [float(x) for x in _NUM.findall(normalize(clause))]
+
+
+def clause_with_effect(span, values):
+    """The clause whose own numbers contain every value of the tuple -- by NUMERIC equality, never substring."""
+    vals = [float(v) for v in values]
+    for c in clauses(span):
+        nums = clause_numbers(c)
+        if all(any(abs(v - n) < 1e-12 for n in nums) for v in vals):
+            return c
+    return None
+
+
+def span_target_mention(span, values, definition_span, canonical_components):
+    """POSITIVE binding. The tuple's own clause must carry a TARGET mention: a target phrase, a target DEFINITION (>= 2 canonical
+    components AND a definitional cue -- co-occurrence of component words is not ownership), or a primary-outcome name that the
+    row's definition span binds to the target. A clause that ALSO carries a non-target mention (or a lone component) is
+    AMBIGUOUS_ENDPOINT_BINDING, never a pass; a clause with only a non-target mention is ENDPOINT_INCOMPATIBLE; a clause with no
+    recognised mention is AMBIGUOUS_ENDPOINT_BINDING. Never a fallback to the definition span."""
+    clause = clause_with_effect(span, values)
+    if clause is None:
+        return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no clause of the span carries the tuple's numbers by numeric equality",
+                "witness": span, "clause": None}
+    c, d = normalize(clause).lower(), normalize(definition_span or "").lower()
+    named = lambda text: sorted(k for k, ws in COMPONENT_WORDS.items() if any(w in text for w in ws))
+    comps_c, comps_d = named(c), named(d)
+    canon = set(canonical_components or [])
     primary_named = any(n in c for n in PRIMARY_NAMES)
-    definition_binds_primary = primary_named and ("primary" in d) and len(set(comps_in_def) & set(canonical_components or [])) >= 2
+    cue = any(k in c for k in DEFINITION_CUES)
+    target = []
+    if any(ph in c for ph in TARGET_PHRASES):
+        target.append({"kind": "target phrase", "witness": [ph for ph in TARGET_PHRASES if ph in c]})
+    if len(set(comps_c) & canon) >= 2 and cue:
+        target.append({"kind": "target definition in clause", "witness": comps_c})
+    if primary_named and "primary" in d and len(set(comps_d) & canon) >= 2:
+        target.append({"kind": "primary-outcome name bound by the row's definition span", "witness": [n for n in PRIMARY_NAMES if n in c]})
     non_target = [m for m in NON_TARGET_MENTIONS if m in c]
-    if target_in_clause:
-        return {"state": "PASS", "mention": "target phrase", "witness": next(ph for ph in TARGET_PHRASES if ph in c), "clause": clause}
-    if len(set(comps_in_clause) & set(canonical_components or [])) >= 2:
-        return {"state": "PASS", "mention": "target definition (components named in the clause)", "witness": comps_in_clause, "clause": clause}
-    if definition_binds_primary:
-        return {"state": "PASS", "mention": "primary-outcome name bound by the row's definition span to the target components",
-                "witness": {"name": next(n for n in PRIMARY_NAMES if n in c), "definition_components": comps_in_def}, "clause": clause}
-    if non_target or (len(comps_in_clause) == 1 and not primary_named):
+    lone_component = (len(comps_c) == 1 and not primary_named and not target)
+    if target and (non_target or lone_component):
+        return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "clause carries BOTH a target mention and a non-target mention",
+                "witness": {"target": target, "non_target": non_target or comps_c}, "clause": clause}
+    if target:
+        return {"state": "PASS", "mention": target[0]["kind"], "witness": target[0]["witness"], "clause": clause}
+    if non_target or lone_component:
         return {"state": "ENDPOINT_INCOMPATIBLE", "mention": "recognised NON-target mention bound to the target claim",
-                "witness": non_target or comps_in_clause, "clause": clause}
-    return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no recognised target mention in the tuple's own clause",
-            "witness": clause, "clause": clause,
-            "note": "refused, not admitted: an unrecognised clause is read by a human, never bound to the definition span by default"}
+                "witness": non_target or comps_c, "clause": clause}
+    return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no recognised target mention in the tuple's own clause", "witness": clause, "clause": clause}
+
+
+def locate_all(span, hay):
+    """Zero / one / many are three states. Returns match kind, occurrence count and the first offset."""
+    if not span:
+        return {"match": "NO_SPAN", "occurrences": 0}
+    n = hay.count(span)
+    if n:
+        i = hay.find(span)
+        return {"match": "VERBATIM", "parent": "PARSED_SOURCE", "start": i, "end": i + len(span), "occurrences": n}
+    s, h = normalize(span), normalize(hay)
+    n = h.count(s)
+    if n:
+        i = h.find(s)
+        return {"match": "NORMALISED", "parent": "NORMALIZED_SOURCE", "start": i, "end": i + len(s), "occurrences": n}
+    return {"match": "NOT_LOCATED", "occurrences": 0}
+
+
+# ---- estimand evidence: analysis set / window / contrast / estimator WITH a span, or an explicit default ----------
+_ESTIMAND = {
+    "analysis_set": [(r"intention[- ]to[- ]treat|\bITT\b", "intention-to-treat"), (r"per[- ]protocol", "per-protocol"),
+                     (r"as[- ]treated", "as-treated"), (r"on[- ]treatment (?:population|analysis)", "on-treatment population")],
+    "analysis_window": [(r"on[- ]treatment", "on-treatment"), (r"on[- ]study|in[- ]trial", "on-study"),
+                        (r"time[- ]to[- ](?:first[- ])?event|time to (?:the )?first (?:occurrence|event)", "time-to-first-event (treatment-policy)"),
+                        (r"median follow-up (?:of|was) [\d.]+ (?:years|months)|(?:over|during) a median (?:follow-up )?of [\d.]+ (?:years|months)", "follow-up stated")],
+    "estimator": [(r"hazard ratio", "hazard ratio"), (r"(?-i:\bHR\b)", "hazard ratio"), (r"odds ratio", "odds ratio"), (r"(?-i:\bOR\b)", "odds ratio"),
+                  (r"relative risk|risk ratio", "risk ratio"), (r"(?-i:\bRR\b)", "risk ratio"), (r"rate ratio|incidence rate ratio", "rate ratio")],
+}
+DEFAULT_REGISTERED = {"analysis_set": "intention-to-treat (registered primary-analysis default)",
+                      "analysis_window": "on-study, treatment-policy (registered primary-analysis default)",
+                      "contrast": "intervention vs placebo; effect < 1 favours intervention (topic registration)",
+                      "estimator": "UNSTATED"}
+
+
+def _sentence_at(text, pos):
+    s = text.rfind(". ", 0, pos) + 1
+    e = text.find(". ", pos)
+    e = len(text) if e < 0 else e + 1
+    return s, e
+
+
+def estimand_evidence(parsed, result_clause):
+    """Per field: STATED (value + located sentence with code-point offsets in PARSED_SOURCE), DEFAULT_REGISTERED (no statement in the
+    held representation), or ESTIMAND_UNBOUND (the same source states >= 2 differing values for the field)."""
+    out = {}
+    for field, pats in _ESTIMAND.items():
+        hits = []
+        for rx, value in pats:
+            for m in re.finditer(rx, parsed, re.I):
+                s, e = _sentence_at(parsed, m.start())
+                hits.append({"value": value, "matched": m.group(0), "start": s, "end": e, "span": parsed[s:e].strip()})
+        values = {h["value"] for h in hits}
+        if field == "analysis_window":
+            strategies = {v for v in values if v in ("on-treatment", "on-study")}
+            if len(strategies) >= 2:
+                out[field] = {"state": "ESTIMAND_UNBOUND", "values": sorted(values), "evidence": hits[:4],
+                              "rule": "the same source states two strategies for the analysis; the field cannot default"}
+                continue
+            if "on-treatment" in values and "on-study" not in values:
+                pick = next(h for h in hits if h["value"] == "on-treatment")
+                out[field] = {"state": "STATED", "value": "on-treatment", **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
+                continue
+            prefer = [h for h in hits if h["value"] == "on-study"] or [h for h in hits if h["value"].startswith("time-to")] or [h for h in hits if h["value"] == "follow-up stated"]
+            if prefer:
+                pick = prefer[0]
+                out[field] = {"state": "STATED", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE",
+                              "also_stated": sorted(values - {pick["value"]})}
+            else:
+                out[field] = {"state": "DEFAULT_REGISTERED", "value": DEFAULT_REGISTERED[field]}
+            continue
+        if len(values) >= 2:
+            out[field] = {"state": "ESTIMAND_UNBOUND", "values": sorted(values), "evidence": hits[:4]}
+        elif hits:
+            pick = hits[0]
+            out[field] = {"state": "STATED", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
+        else:
+            out[field] = {"state": "DEFAULT_REGISTERED", "value": DEFAULT_REGISTERED[field]}
+    rc = result_clause or ""
+    if "placebo" in rc.lower():
+        i = parsed.find(rc) if rc in parsed else -1
+        out["contrast"] = {"state": "STATED", "value": "vs placebo (named in the result clause)", "span": rc,
+                           "start": i if i >= 0 else None, "end": (i + len(rc)) if i >= 0 else None, "parent_representation": "PARSED_SOURCE" if i >= 0 else "NORMALIZED_SOURCE"}
+    else:
+        out["contrast"] = {"state": "DEFAULT_REGISTERED", "value": DEFAULT_REGISTERED["contrast"]}
+    return out
 
 
 def _tokens(x) -> list[str]:
@@ -886,7 +1016,7 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
         selected = resolve_selector(records, pmid)      # refuses on 0 or >=2 matches
         parsed = selected.get("abstract") or ""
         span = t.get("endpoint_result_span") or ""
-        loc = locate(span, parsed)
+        loc = locate_all(span, parsed)
         fam = fam_by_id.get(t.get("family_id")) or {}
         fam_r = fam_rendered.get(t.get("family_id")) or {}
         elig = (fam.get("eligibility") or {}).get("state") if fam else None
@@ -895,8 +1025,10 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
         unresolved = [c for c in conflicts if isinstance(c, dict) and str(c.get("state", "")).upper().startswith("UNRESOLVED")] if isinstance(conflicts, list) else []
         effect = {"scale": t.get("scale"), "estimate": t.get("effect"), "ci_low": t.get("ci_low"), "ci_high": t.get("ci_high")}
         tokens = _tokens(effect["estimate"]) + _tokens(effect["ci_low"]) + _tokens(effect["ci_high"])
-        span_norm = normalize(span)
-        tokens_in = {tok: (tok in span or tok in span_norm) for tok in tokens}
+        values = [effect["estimate"], effect["ci_low"], effect["ci_high"]]
+        eff_clause = clause_with_effect(span, values) if all(v is not None for v in values) else None
+        nums = clause_numbers(eff_clause) if eff_clause else []
+        tokens_in = {tok: any(abs(float(tok) - n) < 1e-12 for n in nums) for tok in tokens}
         components = sorted(t.get("components") or [])
         components_canonical = sorted(x.upper().replace(" ", "_") for x in
                                       _components_from_text(" ; ".join(components), expand_named_composites=False)) if components else []
@@ -905,8 +1037,11 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
         predicates = {
             "P1_source_bytes": {"state": "PASS" if art_by_ref[rec_ref]["sha256"] == (doc.get("representations", {}).get("PARSED_SOURCE", {}).get("container_sha256")) else "FAIL",
                                 "declared": art_by_ref[rec_ref]["sha256"], "container": rec_ref},
-            "P2_span_located": {"state": "PASS" if located else "FAIL", **loc},
-            "P3_effect_tokens_in_span": {"state": "PASS" if tokens and all(tokens_in.values()) else "FAIL", "tokens": tokens_in},
+            "P2_span_located": {"state": "PASS" if located else "FAIL", **loc,
+                                "occurrence_rule": "0 = SPAN_NOT_IN_SOURCE; 1 = located; >1 = SPAN_LOCATION_AMBIGUOUS unless offsets pin one occurrence (they do here)"},
+            "P3_effect_tokens_in_span": {"state": "PASS" if tokens and all(tokens_in.values()) else "FAIL", "tokens": tokens_in,
+                                         "rule": "NUMERIC equality against the numbers of the tuple's own clause (0.80 == 0.8 accepted; 0.96 vs 1.0 refused; "
+                                                 "0.8 vs 0.84 refused); never substring", "clause_numbers": nums},
             "P4_endpoint_components": {"state": "PASS" if components_canonical == canonical_components and components_canonical else "FAIL",
                                        "row_components_as_stated": components, "row_components_canonical": components_canonical,
                                        "outcome_canonical": canonical_components,
@@ -922,7 +1057,8 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                                                "rule": "positive claim: a located excerpt suffices; coverage_status of the source is " + str(cov)},
             "P8_endpoint_bound": {"state": "PASS" if t.get("endpoint_binding") == "named_endpoint_resolved_to_definition_span" else "FAIL",
                                   "endpoint_binding": t.get("endpoint_binding"), "endpoint_admissibility": t.get("endpoint_admissibility")},
-            "P9_span_target_mention": span_target_mention(span, tokens, t.get("endpoint_definition_span"), canonical_components),
+            "P9_span_target_mention": span_target_mention(span, values, t.get("endpoint_definition_span"), canonical_components) if all(v is not None for v in values)
+                                      else {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no effect tuple"},
         }
         failing = [k for k, v in predicates.items() if v["state"] != "PASS"]
         final = ("ADMISSIBLE" if not failing else
@@ -962,6 +1098,7 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                          "estimand": (t.get("effect_object") or {}).get("canonical_estimand"), "endpoint_definition": t.get("endpoint_definition")},
             "effect": {**effect, "number_tokens": tokens, "study_effect": t.get("study_effect")},
             "analysis_identity": _analysis_identity(t, review),
+            "estimand_evidence": estimand_evidence(parsed, eff_clause),
             "spans": _spans_for_row(t, span, loc, parsed),
             "producer_label_scope": "the page's 'verified' checks the point estimate only (verify_pooled); P3 below checks estimate and both limits",
             "certified_evidence_chain": {
@@ -1168,11 +1305,59 @@ def regulatory_facts(review: dict, art_by_ref: dict) -> list:
                      "treatment_strategy": strategy, "estimator": eff.get("estimator") or "UNSTATED",
                      "precision_decimals": tup["precision_decimals"], "representation_kind": sp.get("kind")}
             ident["analysis_identity_key"] = f"{ident['trial']} | {endpoint} | {ident['analysis_set']} | {strategy} | {tup['precision_decimals']}dp"
+            flat = span_text.replace("\n", " ")
+            words = {("on-treatment" if "treatment" in m.lower() else "on-study") for m in re.findall(r"on-?\s?study|on-?\s?treatment|end of study|\bEOS\b", flat, re.I)}
+            label = None
+            if len(words) == 1:
+                m = re.search(r"on-?\s?study|on-?\s?treatment|end of study|\bEOS\b", flat, re.I)
+                label = m
+            elif len(words) >= 2:
+                label = "BOTH"
+            count_set = sorted({int(x) for x in re.findall(r"(?<![\d.])(\d{3,4})(?![\d.%])", span_text.replace("\n", " "))})
             analyses.append({"kind": sp.get("kind"), "pdf_page": sp.get("pdf_page"), "text": span_text, "located": loc,
+                             "strategy_evidence": ({"state": "STATED", "how": "strategy named in the span", "span": label.group(0)} if label and label != "BOTH" else
+                                                   {"state": "ESTIMAND_UNBOUND", "how": "the span itself names both strategies", "span": sorted(words)} if label == "BOTH" else None),
                              "span_binding": binding_kind, "table_pieces": pieces if pieces.get("linearised") else None,
                              "tuple": {k: tup[k] for k in ("estimate", "ci_low", "ci_high")},
                              "counts": ({"placebo_events": int(c.group(1)), "treatment_events": int(c.group(2))} if c else None),
+                             "integers_in_span": count_set,
                              "analysis_identity": ident})
+        # strategy evidence for unlabelled candidates: via counts that match a labelled candidate, else UNBOUND when the source
+        # carries both strategies for that endpoint, else the registered default
+        for a in analyses:
+            ev = a.get("strategy_evidence") or {}
+            if ev.get("state") == "STATED":
+                a["analysis_identity"]["treatment_strategy"] = "on-treatment" if "treatment" in ev["span"].lower() else "on-study (ITT)"
+            elif ev.get("state") == "ESTIMAND_UNBOUND":
+                a["analysis_identity"]["treatment_strategy"] = "ESTIMAND_UNBOUND"
+            ident = a["analysis_identity"]
+            ident["analysis_identity_key"] = f"{ident['trial']} | {ident['endpoint']} | {ident['analysis_set']} | {ident['treatment_strategy']} | {ident['precision_decimals']}dp"
+        labelled = [a for a in analyses if (a.get("strategy_evidence") or {}).get("state") == "STATED"]
+        for a in analyses:
+            if a.get("strategy_evidence"):
+                continue
+            same_ep = [b for b in labelled if b["analysis_identity"]["endpoint"] == a["analysis_identity"]["endpoint"]]
+            by_counts = [b for b in same_ep if b.get("counts") and set(b["counts"].values()) <= set(a.get("integers_in_span") or [])]
+            by_rounding = [b for b in same_ep if all(abs(round(a["tuple"][k], 2) - b["tuple"][k]) < 1e-9 for k in ("estimate", "ci_low", "ci_high"))
+                           and a["analysis_identity"]["precision_decimals"] > b["analysis_identity"]["precision_decimals"]]
+            strategies_in_source = {b["analysis_identity"]["treatment_strategy"] for b in same_ep}
+            flat_text = text.lower()
+            source_states_both = len(strategies_in_source) >= 2 or ("on-treatment" in flat_text and "on-study" in flat_text)
+            if by_counts:
+                a["analysis_identity"]["treatment_strategy"] = by_counts[0]["analysis_identity"]["treatment_strategy"]
+                a["strategy_evidence"] = {"state": "STATED_VIA_COUNTS", "how": "the event counts in this span equal those of the labelled candidate " + by_counts[0]["kind"],
+                                          "counts": by_counts[0]["counts"], "labelled_span": by_counts[0]["strategy_evidence"]["span"]}
+            elif by_rounding:
+                a["analysis_identity"]["treatment_strategy"] = by_rounding[0]["analysis_identity"]["treatment_strategy"]
+                a["strategy_evidence"] = {"state": "STATED_VIA_ROUNDING", "how": "this unrounded tuple rounds to the labelled candidate " + by_rounding[0]["kind"],
+                                          "labelled_span": by_rounding[0]["strategy_evidence"]["span"]}
+            elif source_states_both:
+                a["analysis_identity"]["treatment_strategy"] = "ESTIMAND_UNBOUND"
+                a["strategy_evidence"] = {"state": "ESTIMAND_UNBOUND", "how": "the source carries both on-study and on-treatment analyses and this span names neither"}
+            else:
+                a["strategy_evidence"] = {"state": "DEFAULT_REGISTERED", "how": "no label; the source carries one strategy for this endpoint"}
+            ident = a["analysis_identity"]
+            ident["analysis_identity_key"] = f"{ident['trial']} | {ident['endpoint']} | {ident['analysis_set']} | {ident['treatment_strategy']} | {ident['precision_decimals']}dp"
         # which analysis does the decision's tuple belong to?
         def _matches(a, e):
             t = a["tuple"]
@@ -1360,22 +1545,34 @@ def resolvability_walk(slug: str, art_by_ref: dict, acq: dict, supporting: dict,
 # ----------------------------------------------------------------------------------------------------------------
 
 def source_block(slug: str, review_dir: Path) -> dict:
+    """Content-addressed identity of the served bytes. The blob ids are computed from the WORKING TREE, so the stamp exists before
+    any commit and never needs its own commit to be true (the earlier content_commit-must-hold-the-blobs rule forced a two-commit
+    dance and could not pass the pre-commit hook by construction). content_commit is informational: the most recent commit whose
+    tree holds exactly these blobs, or PENDING_COMMIT when the bytes are not yet in any commit."""
     paths = [f"docs/reviews/{slug}/{n}" for n in GENERATED_FILES]
-    content_commit = _git("log", "-1", "--format=%H", "--", *paths)
-    blobs, inconsistent = {}, []
+    blobs = {}
     for n in GENERATED_FILES:
         p = review_dir / n
         if p.exists():
             blobs[n] = _git_blob_sha1(p.read_bytes())
-            try:
-                at = _git("rev-parse", f"{content_commit}:docs/reviews/{slug}/{n}")
-            except subprocess.CalledProcessError:
-                at = None
-            if at != blobs[n]:
-                inconsistent.append(n)
-    return {"content_commit": content_commit, "_inconsistent": inconsistent,
-            "content_commit_meaning": "the most recent commit that changed any of " + ", ".join(GENERATED_FILES) +
-                                      " in this review directory; NOT necessarily the commit the generator ran at",
+    content_commit = "PENDING_COMMIT"
+    try:
+        for c in _git("log", "-40", "--format=%H", "--", *paths).split():
+            ok = True
+            for n, b in blobs.items():
+                try:
+                    if _git("rev-parse", f"{c}:docs/reviews/{slug}/{n}") != b:
+                        ok = False; break
+                except subprocess.CalledProcessError:
+                    ok = False; break
+            if ok:
+                content_commit = c; break
+    except subprocess.CalledProcessError:
+        pass
+    return {"identity": "content-addressed: served_blob_git_sha1 (git hash-object of the served bytes); verifiable against bytes you already hold",
+            "content_commit": content_commit, "_inconsistent": [],
+            "content_commit_meaning": "INFORMATIONAL: the most recent commit whose tree holds exactly the served blobs, or PENDING_COMMIT if the bytes "
+                                      "are not yet committed; NOT the identity of the bytes and NOT necessarily the commit the generator ran at",
             "generating_commit": "NOT_RECORDED",
             "generating_commit_meaning": "the generator does not record the commit it ran at; build_utc records when the build "
                                          "metadata was authored, not what the bytes were built from, and is not evidence of either",
@@ -1401,8 +1598,8 @@ def stamp_manifest(review_dir: Path, source: dict, check_only: bool) -> list[str
         have = manifest.get("source")
         if have is None:
             return ["manifest.json has no `source` block; stamp it: python scripts/build_bundle.py <slug>"]
-        return [f"manifest.json `source` is stale: {k} differs" for k in source if have.get(k) != source[k]] or \
-               ["manifest.json differs from the stamped form (formatting)"]
+        stale = [f"manifest.json `source` is stale: {k} differs" for k in source if k != "content_commit" and have.get(k) != source[k]]
+        return stale   # content_commit is informational and legitimately moves from PENDING_COMMIT to a sha after the commit
     p.write_bytes(rendered)
     return []
 
@@ -1478,10 +1675,7 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
             dst.write_bytes(data)
 
     source = source_block(slug, review_dir)
-    inconsistent = source.pop("_inconsistent")
-    if inconsistent:
-        problems.append("content_commit " + source["content_commit"][:12] + " does not hold the served bytes of " + ", ".join(inconsistent) +
-                        " -- commit the rebuild, then stamp")
+    source.pop("_inconsistent")
     problems += stamp_manifest(review_dir, source, check_only=check_only or bool(problems))
 
     review = _read_json(review_dir / "review.json")
@@ -1655,8 +1849,12 @@ def main(argv=None) -> int:
     if args.check:
         if not out.exists():
             problems.append("BUNDLE.json absent")
-        elif canonical_json(json.loads(out.read_text(encoding="utf-8"))) != canonical_json(json.loads(rendered)):
-            problems.append("BUNDLE.json is stale (differs from a fresh build); regenerate: " + bundle["regenerate"])
+        else:
+            have, fresh = json.loads(out.read_text(encoding="utf-8")), json.loads(rendered)
+            for obj in (have, fresh):
+                (obj.get("source") or {}).pop("content_commit", None)
+            if canonical_json(have) != canonical_json(fresh):
+                problems.append("BUNDLE.json is stale (differs from a fresh build); regenerate: " + bundle["regenerate"])
     if problems:
         print("REFUSED -- bundle not written" if not args.check else "REFUSED", file=sys.stderr)
         for p in problems:

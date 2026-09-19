@@ -130,10 +130,13 @@ def test_review_files_listed_with_current_digests(bundle):
 def test_source_block_names_a_commit_that_holds_the_served_bytes(bundle):
     src = bundle["source"]
     assert src["generating_commit"] == "NOT_RECORDED"
+    assert src["identity"].startswith("content-addressed")
     for name, blob in src["served_blob_git_sha1"].items():
-        at = subprocess.run(["git", "rev-parse", f"{src['content_commit']}:docs/reviews/{SLUG}/{name}"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
         data = _bytes(os.path.join(REVIEW_DIR, name))
-        assert at == blob == hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest(), name
+        assert blob == hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest(), name       # the identity: computable from bytes alone
+        if src["content_commit"] != "PENDING_COMMIT":                                          # informational; verified when it names a commit
+            at = subprocess.run(["git", "rev-parse", f"{src['content_commit']}:docs/reviews/{SLUG}/{name}"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+            assert at == blob, name
     assert "may lag" in src["served_copy_may_lag"]
 
 
@@ -422,12 +425,12 @@ def test_p9_is_read_from_the_span_and_passes_every_genuine_row(bundle):
         assert p9["state"] == "PASS", (r["trial"]["id"], p9)
         assert p9["clause"] and (p9["clause"] in r["span"]["text"])
     cc = ["CARDIOVASCULAR_DEATH", "MYOCARDIAL_INFARCTION", "STROKE"]
-    assert build_bundle.span_target_mention("Fewer patients died from cardiovascular causes (hazard ratio, 0.78; 95% CI, 0.66 to 0.93).", ["0.78", "0.66", "0.93"], "The primary composite outcome was cardiovascular death, MI or stroke", cc)["state"] == "ENDPOINT_INCOMPATIBLE"
-    assert build_bundle.span_target_mention("Cataract surgery occurred more often (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).", ["0.87", "0.78", "0.97"], "The primary composite outcome was cardiovascular death, MI or stroke", cc)["state"] == "AMBIGUOUS_ENDPOINT_BINDING"
-    assert build_bundle.span_target_mention("Retinopathy occurred more often (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).", ["0.87", "0.78", "0.97"], "x", cc)["state"] == "ENDPOINT_INCOMPATIBLE"
-    assert build_bundle.span_target_mention("The primary outcome occurred in fewer patients (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).", ["0.87", "0.78", "0.97"], "The primary composite outcome was the first occurrence of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke.", cc)["state"] == "PASS"
+    assert build_bundle.span_target_mention("Fewer patients died from cardiovascular causes (hazard ratio, 0.78; 95% CI, 0.66 to 0.93).", [0.78, 0.66, 0.93], "The primary composite outcome was cardiovascular death, MI or stroke", cc)["state"] == "ENDPOINT_INCOMPATIBLE"
+    assert build_bundle.span_target_mention("Cataract surgery occurred more often (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).", [0.87, 0.78, 0.97], "The primary composite outcome was cardiovascular death, MI or stroke", cc)["state"] == "AMBIGUOUS_ENDPOINT_BINDING"
+    assert build_bundle.span_target_mention("Retinopathy occurred more often (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).", [0.87, 0.78, 0.97], "x", cc)["state"] == "ENDPOINT_INCOMPATIBLE"
+    assert build_bundle.span_target_mention("The primary outcome occurred in fewer patients (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).", [0.87, 0.78, 0.97], "The primary composite outcome was the first occurrence of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke.", cc)["state"] == "PASS"
     # a primary-outcome name whose definition span does NOT bind to the target is not admitted by the name alone
-    assert build_bundle.span_target_mention("The primary outcome occurred in fewer patients (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).", ["0.87", "0.78", "0.97"], "The primary outcome was hospitalization for heart failure.", cc)["state"] != "PASS"
+    assert build_bundle.span_target_mention("The primary outcome occurred in fewer patients (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).", [0.87, 0.78, 0.97], "The primary outcome was hospitalization for heart failure.", cc)["state"] != "PASS"
 
 
 def test_eligibility_is_read_from_the_certified_copy_and_named(bundle):
@@ -509,3 +512,87 @@ def test_freedom_row_is_a_partial_table_binding_of_the_three_point_row(bundle):
 def test_flow_label_row_resolves_endpoint_from_components(bundle):
     fl = next(r for r in bundle["regulatory_facts"] if r["trial"] == "FLOW")
     assert fl["candidate_analyses"][0]["analysis_identity"]["endpoint"] == "3-point MACE" and fl["tuple_to_identity_binding"] == "BOUND"
+
+
+# ------------------------------------------------------------------ 3.8: P9 per the panel's rule, numeric P3, estimand evidence, content-addressed stamp
+
+CC = ["CARDIOVASCULAR_DEATH", "MYOCARDIAL_INFARCTION", "STROKE"]
+DEFN = "The primary composite outcome was the first occurrence of cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke."
+
+
+def test_p9_panel_shapes_all_refuse_and_the_regression_pair_agrees():
+    m8 = ("The primary composite outcome was the first occurrence of cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke and "
+          "hospitalization for heart failure occurred in fewer patients (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).")
+    a1 = ("The primary composite outcome was cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke; cardiovascular death alone had a "
+          "hazard ratio, 0.88 (95% CI, 0.79 to 0.99).")
+    a2_semi = ("The primary outcome was cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke; the secondary outcome was hospitalization "
+               "for heart failure, which occurred less often (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).")
+    a2_stop = a2_semi.replace("; the secondary", ". The secondary")
+    sus6 = ("Rates of new or worsening nephropathy were lower in the semaglutide group, but rates of retinopathy complications (vitreous hemorrhage, "
+            "blindness, or conditions requiring treatment with an intravitreal agent or photocoagulation) were significantly higher (hazard ratio, 1.76; "
+            "95% CI, 1.11 to 2.78; P=0.02).")
+    S = lambda span, vals: build_bundle.span_target_mention(span, vals, DEFN, CC)["state"]
+    assert S(m8, [0.87, 0.78, 0.97]) == "AMBIGUOUS_ENDPOINT_BINDING"          # both a target and a non-target mention: never a pass
+    assert S(a1, [0.88, 0.79, 0.99]) == "ENDPOINT_INCOMPATIBLE"               # semicolon ends the clause; a lone component is not the composite
+    assert S(a2_semi, [0.87, 0.78, 0.97]) == S(a2_stop, [0.87, 0.78, 0.97]) == "ENDPOINT_INCOMPATIBLE"   # the regression pair agrees
+    assert S(sus6, [1.76, 1.11, 2.78]) == "ENDPOINT_INCOMPATIBLE"             # the live SUSTAIN-6 miss
+    assert S("The primary cardiovascular end-point event occurred in 189 of 2717 patients (hazard ratio, 0.73; 95% CI, 0.58 to 0.92).", [0.73, 0.58, 0.92]) == "PASS"
+    # co-occurrence without a definitional cue is not ownership
+    assert S("Cardiovascular death and stroke were adjudicated centrally, and cataract surgery occurred more often (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).", [0.87, 0.78, 0.97]) != "PASS"
+
+
+def test_clause_boundaries_include_semicolons_outside_brackets():
+    c = build_bundle.clauses("A occurred (hazard ratio, 0.87; 95% CI, 0.78 to 0.97); B did not. C was measured.")
+    assert c == ["A occurred (hazard ratio, 0.87; 95% CI, 0.78 to 0.97);", "B did not.", "C was measured."]
+    # a semicolon that continues a statistical tuple does not end the clause (the panel's own example is unbracketed)
+    assert len(build_bundle.clauses("hazard ratio, 0.8; 95% confidence interval, 0.7 to 1.0; P=0.04.")) == 1
+
+
+def test_p3_is_numeric_equality_not_substring():
+    assert build_bundle.clause_with_effect("hazard ratio, 0.8; 95% confidence interval, 0.7 to 1.0.", [0.80, 0.70, 1.00]) is not None   # lossless
+    assert build_bundle.clause_with_effect("hazard ratio, 0.8; 95% confidence interval, 0.7 to 1.0.", [0.8, 0.7, 0.96]) is None         # 0.96 vs 1.0
+    assert build_bundle.clause_with_effect("hazard ratio, 0.84; 95% CI, 0.7 to 1.0.", [0.8, 0.7, 1.0]) is None                          # 0.8 vs 0.84
+    assert build_bundle.clause_with_effect("hazard ratio, 0.87; 95% CI, 0.78 to 0.97.", [0.87, 0.7, 0.97]) is None                       # 0.7 vs 0.78
+    assert build_bundle.clause_with_effect("HR 0\u00b790, 95% CI 0\u00b780-1\u00b701", [0.9, 0.8, 1.01]) is not None                     # declared normalisation
+    for r in bundle_rows():
+        assert r["admission"]["predicates"]["P3_effect_tokens_in_span"]["state"] == "PASS" and "NUMERIC" in r["admission"]["predicates"]["P3_effect_tokens_in_span"]["rule"]
+
+
+def bundle_rows():
+    return _load(BUNDLE)["verification_rows"]
+
+
+def test_estimand_fields_carry_a_span_or_an_explicit_default_never_a_bare_assertion(bundle):
+    records = _load(os.path.join(ROOT, "cache", SLUG, "records.json"))
+    by = {str(x["id"]): x["abstract"] for x in records["records"]}
+    stated_set = stated_window = 0
+    for r in bundle["verification_rows"]:
+        ee = r["estimand_evidence"]
+        assert set(ee) == {"analysis_set", "analysis_window", "estimator", "contrast"}
+        parsed = by[r["trial"]["id"].replace("PMID ", "")]
+        for field, v in ee.items():
+            assert v["state"] in ("STATED", "DEFAULT_REGISTERED", "ESTIMAND_UNBOUND"), (r["trial"]["id"], field)
+            if v["state"] == "STATED" and v.get("start") is not None:
+                assert parsed[v["start"]:v["end"]].strip() == v["span"].strip(), (r["trial"]["id"], field)   # offsets reproduce the span
+        assert ee["estimator"]["state"] == "STATED" and ee["estimator"]["value"] == "hazard ratio"
+        assert ee["analysis_window"]["state"] != "ESTIMAND_UNBOUND" and ee["analysis_set"]["state"] != "ESTIMAND_UNBOUND"   # no pooled abstract states two
+        stated_set += ee["analysis_set"]["state"] == "STATED"; stated_window += ee["analysis_window"]["state"] == "STATED"
+    assert stated_set == 3        # measured: analysis set stated in 3 of 8 abstracts (REWIND, Harmony, EXSCEL); the rest default to the registered value
+    assert stated_window >= 2
+
+
+def test_elixa_strategy_evidence_separates_the_pair_through_structured_fields(bundle):
+    el = next(r for r in bundle["regulatory_facts"] if r["trial"] == "ELIXA")
+    ev = {a["kind"]: (a["analysis_identity"]["treatment_strategy"], a["strategy_evidence"]["state"]) for a in el["candidate_analyses"]}
+    assert ev["table8_onstudy_3p"] == ("on-study (ITT)", "STATED") and ev["table8_ontreatment_3p"] == ("on-treatment", "STATED")
+    assert ev["text_unrounded_3p"] == ("on-study (ITT)", "STATED_VIA_COUNTS")     # the prose binds through its 392/400 counts, not by assertion
+    assert el["tuple_to_identity_binding"] == "BOUND"
+    fr = next(r for r in bundle["regulatory_facts"] if r["trial"] == "FREEDOM-CVO")
+    assert fr["candidate_analyses"][0]["strategy_evidence"]["state"] == "STATED"   # 'ITT Population End of Study' in its own span
+
+
+def test_source_stamp_is_content_addressed_and_needs_no_commit_of_its_own(bundle):
+    src = bundle["source"]
+    assert src["identity"].startswith("content-addressed") and "INFORMATIONAL" in src["content_commit_meaning"]
+    assert src["content_commit"] == "PENDING_COMMIT" or len(src["content_commit"]) == 40
+    assert any(l["id"] == "L13_location_by_full_text_and_offsets" for l in bundle["limits"]) and any(l["id"] == "L14_verification_rows_source_pubmed_only" for l in bundle["limits"])

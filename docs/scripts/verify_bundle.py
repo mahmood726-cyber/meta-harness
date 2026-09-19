@@ -230,41 +230,179 @@ def pool(rows):
 
 # ---------------------------------------------------------------- checks
 
+# ---- endpoint binding (P9): a POSITIVE requirement read from the tuple's own clause --------------------------------
 TARGET_PHRASES = ("major adverse cardiovascular", "mace")
-PRIMARY_NAMES = ("primary outcome", "primary composite outcome", "primary-outcome", "primary end point", "primary endpoint", "primary composite end point")
+PRIMARY_NAMES = ("primary outcome", "primary composite outcome", "primary-outcome", "primary end point", "primary endpoint",
+                 "primary composite end point", "primary cardiovascular end-point", "primary cardiovascular end point",
+                 "primary cardiovascular endpoint", "primary cardiovascular outcome")
+DEFINITION_CUES = ("composite", "first occurrence", "defined as", "consisting of", "consisted of", "major adverse", "mace",
+                   "primary outcome", "primary end point", "primary endpoint", "primary composite", "primary cardiovascular")
 COMPONENT_WORDS = {"CARDIOVASCULAR_DEATH": ("cardiovascular death", "death from cardiovascular", "cardiovascular causes", "cardiovascular mortality"),
                    "MYOCARDIAL_INFARCTION": ("myocardial infarction",), "STROKE": ("stroke",)}
 NON_TARGET_MENTIONS = ("death from any cause", "all-cause mortality", "all-cause death", "any-cause death", "hospitalization for heart failure",
-                       "hospitalisation for heart failure", "heart failure", "kidney", "renal", "retinopathy", "amputation", "pancreatitis",
-                       "adverse event", "serious adverse", "gastrointestinal", "hypoglyc")
+                       "hospitalisation for heart failure", "heart failure", "kidney", "renal", "nephropathy", "retinopathy", "amputation",
+                       "pancreatitis", "adverse event", "serious adverse", "gastrointestinal", "hypoglyc", "unstable angina")
+_NUM = re.compile(r"\d+(?:\.\d+)?")
 
 
-def clause_with_effect(span, tokens):
-    parts = [x for x in re.split(r"(?<=\.)\s+(?=[A-Z])", span or "") if x.strip()]
-    for part in parts:
-        if all(tok in part or tok in normalize(part) for tok in tokens):
-            return part
-    return span or ""
+_STAT_CONTINUATION = re.compile(r"\s*(?:95\s*%|CI\b|P\s*[=<>]|p\s*[=<>]|HR\b|hazard ratio)")   # a ';' inside a statistical tuple does not end a clause
 
 
-def span_target_mention(span, tokens, definition_span, canonical_components):
-    """POSITIVE binding: the tuple's own clause must carry a target mention; a recognised non-target mention refuses
-    ENDPOINT_INCOMPATIBLE; no recognised mention refuses AMBIGUOUS_ENDPOINT_BINDING (never a fallback to the definition)."""
-    clause = clause_with_effect(span, tokens)
+def clauses(span):
+    """Clause boundaries: sentence ends (period + space + capital) AND semicolons OUTSIDE brackets."""
+    out, buf, depth = [], [], 0
+    text = span or ""
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth = max(0, depth - 1)
+        buf.append(ch)
+        if depth == 0 and ch == ";" and not _STAT_CONTINUATION.match(text, i + 1):
+            out.append("".join(buf).strip()); buf = []
+        elif depth == 0 and ch == "." and i + 2 < len(text) and text[i + 1] == " " and text[i + 2].isupper():
+            out.append("".join(buf).strip()); buf = []
+        i += 1
+    if "".join(buf).strip():
+        out.append("".join(buf).strip())
+    return [c for c in out if c]
+
+
+def clause_numbers(clause):
+    return [float(x) for x in _NUM.findall(normalize(clause))]
+
+
+def clause_with_effect(span, values):
+    """The clause whose own numbers contain every value of the tuple -- by NUMERIC equality, never substring."""
+    vals = [float(v) for v in values]
+    for c in clauses(span):
+        nums = clause_numbers(c)
+        if all(any(abs(v - n) < 1e-12 for n in nums) for v in vals):
+            return c
+    return None
+
+
+def span_target_mention(span, values, definition_span, canonical_components):
+    """POSITIVE binding. The tuple's own clause must carry a TARGET mention: a target phrase, a target DEFINITION (>= 2 canonical
+    components AND a definitional cue -- co-occurrence of component words is not ownership), or a primary-outcome name that the
+    row's definition span binds to the target. A clause that ALSO carries a non-target mention (or a lone component) is
+    AMBIGUOUS_ENDPOINT_BINDING, never a pass; a clause with only a non-target mention is ENDPOINT_INCOMPATIBLE; a clause with no
+    recognised mention is AMBIGUOUS_ENDPOINT_BINDING. Never a fallback to the definition span."""
+    clause = clause_with_effect(span, values)
+    if clause is None:
+        return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no clause of the span carries the tuple's numbers by numeric equality",
+                "witness": span, "clause": None}
     c, d = normalize(clause).lower(), normalize(definition_span or "").lower()
     named = lambda text: sorted(k for k, ws in COMPONENT_WORDS.items() if any(w in text for w in ws))
     comps_c, comps_d = named(c), named(d)
+    canon = set(canonical_components or [])
     primary_named = any(n in c for n in PRIMARY_NAMES)
-    non_target = [m for m in NON_TARGET_MENTIONS if m in c]
+    cue = any(k in c for k in DEFINITION_CUES)
+    target = []
     if any(ph in c for ph in TARGET_PHRASES):
-        return {"state": "PASS", "mention": "target phrase", "clause": clause}
-    if len(set(comps_c) & set(canonical_components or [])) >= 2:
-        return {"state": "PASS", "mention": "target definition in clause", "witness": comps_c, "clause": clause}
-    if primary_named and "primary" in d and len(set(comps_d) & set(canonical_components or [])) >= 2:
-        return {"state": "PASS", "mention": "primary-outcome name bound by definition span", "witness": comps_d, "clause": clause}
-    if non_target or (len(comps_c) == 1 and not primary_named):
-        return {"state": "ENDPOINT_INCOMPATIBLE", "witness": non_target or comps_c, "clause": clause}
-    return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "witness": clause, "clause": clause}
+        target.append({"kind": "target phrase", "witness": [ph for ph in TARGET_PHRASES if ph in c]})
+    if len(set(comps_c) & canon) >= 2 and cue:
+        target.append({"kind": "target definition in clause", "witness": comps_c})
+    if primary_named and "primary" in d and len(set(comps_d) & canon) >= 2:
+        target.append({"kind": "primary-outcome name bound by the row's definition span", "witness": [n for n in PRIMARY_NAMES if n in c]})
+    non_target = [m for m in NON_TARGET_MENTIONS if m in c]
+    lone_component = (len(comps_c) == 1 and not primary_named and not target)
+    if target and (non_target or lone_component):
+        return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "clause carries BOTH a target mention and a non-target mention",
+                "witness": {"target": target, "non_target": non_target or comps_c}, "clause": clause}
+    if target:
+        return {"state": "PASS", "mention": target[0]["kind"], "witness": target[0]["witness"], "clause": clause}
+    if non_target or lone_component:
+        return {"state": "ENDPOINT_INCOMPATIBLE", "mention": "recognised NON-target mention bound to the target claim",
+                "witness": non_target or comps_c, "clause": clause}
+    return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no recognised target mention in the tuple's own clause", "witness": clause, "clause": clause}
+
+
+def locate_all(span, hay):
+    """Zero / one / many are three states. Returns match kind, occurrence count and the first offset."""
+    if not span:
+        return {"match": "NO_SPAN", "occurrences": 0}
+    n = hay.count(span)
+    if n:
+        i = hay.find(span)
+        return {"match": "VERBATIM", "parent": "PARSED_SOURCE", "start": i, "end": i + len(span), "occurrences": n}
+    s, h = normalize(span), normalize(hay)
+    n = h.count(s)
+    if n:
+        i = h.find(s)
+        return {"match": "NORMALISED", "parent": "NORMALIZED_SOURCE", "start": i, "end": i + len(s), "occurrences": n}
+    return {"match": "NOT_LOCATED", "occurrences": 0}
+
+
+# ---- estimand evidence: analysis set / window / contrast / estimator WITH a span, or an explicit default ----------
+_ESTIMAND = {
+    "analysis_set": [(r"intention[- ]to[- ]treat|\bITT\b", "intention-to-treat"), (r"per[- ]protocol", "per-protocol"),
+                     (r"as[- ]treated", "as-treated"), (r"on[- ]treatment (?:population|analysis)", "on-treatment population")],
+    "analysis_window": [(r"on[- ]treatment", "on-treatment"), (r"on[- ]study|in[- ]trial", "on-study"),
+                        (r"time[- ]to[- ](?:first[- ])?event|time to (?:the )?first (?:occurrence|event)", "time-to-first-event (treatment-policy)"),
+                        (r"median follow-up (?:of|was) [\d.]+ (?:years|months)|(?:over|during) a median (?:follow-up )?of [\d.]+ (?:years|months)", "follow-up stated")],
+    "estimator": [(r"hazard ratio", "hazard ratio"), (r"(?-i:\bHR\b)", "hazard ratio"), (r"odds ratio", "odds ratio"), (r"(?-i:\bOR\b)", "odds ratio"),
+                  (r"relative risk|risk ratio", "risk ratio"), (r"(?-i:\bRR\b)", "risk ratio"), (r"rate ratio|incidence rate ratio", "rate ratio")],
+}
+DEFAULT_REGISTERED = {"analysis_set": "intention-to-treat (registered primary-analysis default)",
+                      "analysis_window": "on-study, treatment-policy (registered primary-analysis default)",
+                      "contrast": "intervention vs placebo; effect < 1 favours intervention (topic registration)",
+                      "estimator": "UNSTATED"}
+
+
+def _sentence_at(text, pos):
+    s = text.rfind(". ", 0, pos) + 1
+    e = text.find(". ", pos)
+    e = len(text) if e < 0 else e + 1
+    return s, e
+
+
+def estimand_evidence(parsed, result_clause):
+    """Per field: STATED (value + located sentence with code-point offsets in PARSED_SOURCE), DEFAULT_REGISTERED (no statement in the
+    held representation), or ESTIMAND_UNBOUND (the same source states >= 2 differing values for the field)."""
+    out = {}
+    for field, pats in _ESTIMAND.items():
+        hits = []
+        for rx, value in pats:
+            for m in re.finditer(rx, parsed, re.I):
+                s, e = _sentence_at(parsed, m.start())
+                hits.append({"value": value, "matched": m.group(0), "start": s, "end": e, "span": parsed[s:e].strip()})
+        values = {h["value"] for h in hits}
+        if field == "analysis_window":
+            strategies = {v for v in values if v in ("on-treatment", "on-study")}
+            if len(strategies) >= 2:
+                out[field] = {"state": "ESTIMAND_UNBOUND", "values": sorted(values), "evidence": hits[:4],
+                              "rule": "the same source states two strategies for the analysis; the field cannot default"}
+                continue
+            if "on-treatment" in values and "on-study" not in values:
+                pick = next(h for h in hits if h["value"] == "on-treatment")
+                out[field] = {"state": "STATED", "value": "on-treatment", **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
+                continue
+            prefer = [h for h in hits if h["value"] == "on-study"] or [h for h in hits if h["value"].startswith("time-to")] or [h for h in hits if h["value"] == "follow-up stated"]
+            if prefer:
+                pick = prefer[0]
+                out[field] = {"state": "STATED", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE",
+                              "also_stated": sorted(values - {pick["value"]})}
+            else:
+                out[field] = {"state": "DEFAULT_REGISTERED", "value": DEFAULT_REGISTERED[field]}
+            continue
+        if len(values) >= 2:
+            out[field] = {"state": "ESTIMAND_UNBOUND", "values": sorted(values), "evidence": hits[:4]}
+        elif hits:
+            pick = hits[0]
+            out[field] = {"state": "STATED", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
+        else:
+            out[field] = {"state": "DEFAULT_REGISTERED", "value": DEFAULT_REGISTERED[field]}
+    rc = result_clause or ""
+    if "placebo" in rc.lower():
+        i = parsed.find(rc) if rc in parsed else -1
+        out["contrast"] = {"state": "STATED", "value": "vs placebo (named in the result clause)", "span": rc,
+                           "start": i if i >= 0 else None, "end": (i + len(rc)) if i >= 0 else None, "parent_representation": "PARSED_SOURCE" if i >= 0 else "NORMALIZED_SOURCE"}
+    else:
+        out["contrast"] = {"state": "DEFAULT_REGISTERED", "value": DEFAULT_REGISTERED["contrast"]}
+    return out
 
 
 class Refusal(Exception):
@@ -479,6 +617,15 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             t["endpoint_result_span"] = f"Retinopathy complications occurred in more patients (hazard ratio, {t['effect']}; 95% CI, {t['ci_low']} to {t['ci_high']})."
         elif limb == "fragment":           # M11 shape: document_ref fragment rewritten
             br["source"]["document_ref"] = br["source"]["document_ref"].split("#")[0] + "#PMID-99999999"
+        elif limb == "ci_high_rounded":       # the rounded-match defect: stored upper limit 0.96 where the clause says 1.0 (or 0.97 -> 0.9)
+            t["ci_high"] = round(float(t["ci_high"]) - 0.04, 2) if float(t["ci_high"]) >= 1.0 else float(str(t["ci_high"])[:3])
+        elif limb == "ci_low_truncated":      # stored 0.7 where the clause says 0.78: substring would accept, numeric refuses
+            t["ci_low"] = float(str(t["ci_low"])[:3])
+        elif limb == "duplicate_span_no_offsets":   # B3: the span occurs twice and the bundle carries no offsets (digests follow the edit)
+            rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=rec_by_pmid[pmid]["abstract"] + " " + t["endpoint_result_span"])
+            br["source"]["representation_sha256"] = sha256_text(rec_by_pmid[pmid]["abstract"])
+            br["span"]["representation_sha256"] = sha256_text(rec_by_pmid[pmid]["abstract"]) if br["span"].get("parent_representation") == "PARSED_SOURCE" else sha256_text(normalize(rec_by_pmid[pmid]["abstract"]))
+            br["span"]["start"] = br["span"]["end"] = None
         elif limb == "container":
             rec_by_pmid[pmid] = dict(rec_by_pmid[pmid], abstract=rec_by_pmid[pmid]["abstract"] + " ")
             container_sha = sha256(container_sha.encode())  # the container bytes would differ; represent that
@@ -499,7 +646,7 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         br = bundle_rows.get(pmid)
         parsed = (rec_by_pmid.get(pmid) or {}).get("abstract") or ""
         span = t.get("endpoint_result_span") or ""
-        loc = locate(span, parsed)
+        loc = locate_all(span, parsed)
         fam_c = fam_certified.get(t.get("family_id")) or {}
         fam = families.get(t.get("family_id")) or {}
         elig = (fam_c.get("eligibility") or {}).get("state") if fam_c else None          # CERTIFIED copy is authoritative
@@ -509,8 +656,17 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         conf = (fam_c.get("conflicts") if fam_c.get("conflicts") is not None else fam.get("conflicts")) or []
         unresolved = [c for c in conf if isinstance(c, dict) and str(c.get("state", "")).upper().startswith("UNRESOLVED")]
         toks = tokens_of(t.get("effect")) + tokens_of(t.get("ci_low")) + tokens_of(t.get("ci_high"))
-        span_n = normalize(span)
+        values = [t.get("effect"), t.get("ci_low"), t.get("ci_high")]
+        eff_clause = clause_with_effect(span, values) if all(x is not None for x in values) else None
+        nums = clause_numbers(eff_clause) if eff_clause else []
         located = loc["match"] in ("VERBATIM", "NORMALISED")
+        # zero / one / many: many is only acceptable when the bundle's offsets pin one occurrence
+        span_state = None
+        if loc.get("occurrences", 0) > 1:
+            pinned = bool(br and br["span"].get("start") is not None)
+            if not pinned:
+                located = False
+                span_state = "SPAN_LOCATION_AMBIGUOUS"
         # span offsets as recorded by the bundle must reproduce the span text in the named representation
         offsets_ok = None
         if br and br["span"].get("start") is not None and not (corrupt and corrupt[0] == pmid and corrupt[1] == "span"):
@@ -523,14 +679,14 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         P = {
             "P1_source_bytes": container_sha == (br or {}).get("source", {}).get("source_sha256") and sha256_text(parsed) == (br or {}).get("source", {}).get("representation_sha256") if not (corrupt and corrupt[1] == "container" and corrupt[0] == pmid) else False,
             "P2_span_located": located and (offsets_ok is not False),
-            "P3_effect_tokens_in_span": bool(toks) and all((tok in span or tok in span_n) for tok in toks),
+            "P3_effect_tokens_in_span": bool(toks) and bool(nums) and all(any(abs(float(tok) - n) < 1e-12 for n in nums) for tok in toks),
             "P4_endpoint_components": bool(comps_canon) and sorted(comps_canon) == canonical_components,
             "P5_family_eligible": elig == "ELIGIBLE",
             "P6_no_unresolved_conflict": not unresolved,
             "P7_coverage_adequate_for_claim": located,
             "P8_endpoint_bound": t.get("endpoint_binding") == "named_endpoint_resolved_to_definition_span",
         }
-        p9 = span_target_mention(span, toks, t.get("endpoint_definition_span"), canonical_components)
+        p9 = span_target_mention(span, values, t.get("endpoint_definition_span"), canonical_components) if all(x is not None for x in values) else {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no effect tuple"}
         P["P9_span_target_mention"] = p9["state"] == "PASS"
         if pmid in selector_refusals:
             P["P1_source_bytes"] = False
@@ -540,19 +696,21 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                  "INADMISSIBLE")
         recorded = (br or {}).get("admission", {}).get("final")
         recorded_P = {k: v["state"] == "PASS" for k, v in ((br or {}).get("admission", {}).get("predicates") or {}).items()}
-        span_code = None
-        if not located and span:
+        span_code = span_state
+        if not located and span and span_code is None:
             container_text = json.dumps(records, ensure_ascii=False)
-            span_code = "SPAN_NOT_IN_RECORD" if (span in container_text or normalize(span) in normalize(container_text)) else "SPAN_NOT_LOCATED"
+            span_code = "SPAN_NOT_IN_RECORD" if (span in container_text or normalize(span) in normalize(container_text)) else "SPAN_NOT_IN_SOURCE"
             if not corrupt:
-                failures.append(f"{span_code} {pmid}: the quotation is {'elsewhere in the container but' if span_code == 'SPAN_NOT_IN_RECORD' else 'not'} in the selected record's representation")
+                failures.append(f"{span_code} {pmid}: " + ("the quotation occurs more than once and no offsets pin an occurrence" if span_code == "SPAN_LOCATION_AMBIGUOUS" else
+                                f"the quotation is {'elsewhere in the container but' if span_code == 'SPAN_NOT_IN_RECORD' else 'not'} in the selected record's representation"))
         report["rows"].append({"pmid": pmid, "label": t.get("label"), "predicates": P, "final": final, "bundle_recorded": recorded,
                                "p9": p9, "refusal": (selector_refusals[pmid].code if pmid in selector_refusals else
                                                      span_code if span_code else
                                                      p9["state"] if p9["state"] != "PASS" else None),
                                "agrees_with_bundle": (final == recorded) if not corrupt else None,
                                "predicates_agree_with_bundle": (P == recorded_P) if not corrupt else None,
-                               "span_match": loc["match"], "offsets_reproduce_span": offsets_ok})
+                               "span_match": loc["match"], "span_occurrences": loc.get("occurrences"), "offsets_reproduce_span": offsets_ok,
+                               "clause_numbers": nums})
         if p9["state"] != "PASS" and not corrupt:
             failures.append(f"{p9['state']} {pmid}: {json.dumps(p9.get('witness'), ensure_ascii=False)[:160]}")
         if not corrupt and final != recorded:
@@ -689,7 +847,7 @@ def main(argv=None):
     g.add_argument("--root", help="directory mirroring the site root (e.g. docs)")
     g.add_argument("--url", help="site root URL")
     ap.add_argument("--slug", required=True)
-    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|nontarget_span|unlisted_span|fragment|regulatory_strategy_swap|container")
+    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|nontarget_span|unlisted_span|fragment|ci_high_rounded|ci_low_truncated|duplicate_span_no_offsets|regulatory_strategy_swap|container")
     ap.add_argument("--anchor", choices=["live"], help="live: re-fetch EFetch XML from PubMed now and compare to the retained acquisition and the cached abstract")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
