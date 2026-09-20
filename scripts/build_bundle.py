@@ -66,8 +66,10 @@ from harness.canonical import canonical_json, review_core, sha256_text  # noqa: 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.13"
+FORMAT_REVISION = "3.15"
 FORMAT_CHANGELOG = [
+    "3.15 (2026-09-20, panel exclusion fixtures E1-E10): exclusion is read RELATIONALLY across the whole span, not the clause -- an exclusion statement in the next sentence or a footnote after the result ('X and Y were not included in / excluded from the primary analysis', 'neither X nor Y contributed') cuts those components from the target claim and is reported in exclusion_statements; a cue inside a parenthetical is scoped to the parenthetical and a qualifier on a component ('nonfatal MI (excluding silent infarction)') excludes nothing; a POPULATION exclusion ('patients with a prior stroke were excluded from enrolment') cuts nothing. Pre-fix on 3.14: E5 and E8 admitted, E9 refused.",
+    "3.14 (2026-09-20): withdrawal_record bound to the served notice schema (bd9a0751): review.withdrawn {date, summary, statements, status} with the gate's contract mirrored -- four required statements, RESULT WITHDRAWN on the page, nothing pooled -- and the withdrawn row's absent_kind result_withdrawn + withdrawn_effect (what was published). A declared-but-empty, declared-but-contradicted (a number still pooled) or row-without-record withdrawal is refused by the builder.",
     "3.13 (2026-09-20): P9 reads membership AFTER cutting out exclusion scopes and reports excluded_components beside included -- 'cardiovascular death only, excluding nonfatal MI and nonfatal stroke' names three components and is refused; '3-point MACE excluding unstable angina' is compatible (no keyword blacklist); a clause that itself defines the primary outcome as something other than the target is not rescued by the row's definition span.",
     "3.12 (2026-09-20): assessment_states -- every rendered row and every declared-absent row carries one of ASSESSED / UNRESOLVED / MIGRATION_STATE / WITHDRAWN / NOT_ASSESSED_BY_BUNDLE with its basis; WITHDRAWN is unassertable without a withdrawal record (ref, digest, reason, date) and the builder refuses a row that claims it without one; clean_negatives records measurements that came back constant (source_ci_pct = 95 on 8 of 8) as negatives with their scope, not as reassurance.",
     "3.11 (2026-09-19, design memo): observed and registered estimand values are separate typed fields with no conversion (an unknown observed value is never filled from the specification); location and binding results are tagged states -- LOCATED / NOT_FOUND / AMBIGUOUS (carrying every competing candidate) / UNSUPPORTED_REPRESENTATION -- so the schema distinguishes 'binding failed' from 'binding not attempted'; admission means 'admissible for this exact analysis under this policy version and evidence version', never 'verified', and carries both versions; the verifier REVALIDATES on load -- regulatory strategy from the span, estimand bases from the source -- instead of trusting a deserialised state because it parses.",
@@ -137,8 +139,10 @@ LIMITS = [
     {"id": "L8_fda_extraction", "limit": "FDA PDF -> text extraction tool is unrecorded and no page-level preservation record exists; those documents are UNKNOWN_COMPLETENESS."},
     {"id": "L10_admit_rows_fail_open", "limit": "the producer's target_endpoint.admit_rows admits a row with no endpoint class as UNBOUND_LEGACY "
      "(external audit: an authentic ELIXA 4-point row is refused when classified DIFFERENT_OUTCOME and admitted when the class is stripped). Two rendered "
-     "harms rows carry it. The bundle counts them as a migration state; it cannot say whether the live build behaves as the audited code does, because "
-     "target_endpoint.py is not pinned in the certificate and generating_commit is NOT_RECORDED."},
+     "harms rows carry it, both appended by the verified_arms override route before classification (binding_states.rows[].route). The bundle counts them "
+     "as a migration state. target_endpoint.py and pipeline.py ARE pinned in the certificate's analysis_code_blobs (binding_states.gate), so the gate "
+     "described is the gate the certificate names; what remains open is that the fail-open itself is the producer's policy, not the bundle's to close, "
+     "and generating_commit is NOT_RECORDED."},
     {"id": "L11_coacquisition_rewrite", "limit": "if the cached abstract AND the retained acquisition XML are edited together and every digest including "
      "ACQUIRED_SOURCE.sha256_original is recomputed, the package is consistent and nothing inside it -- this bundle, its verifier, or any verifier "
      "reading only the package -- can detect it (panel H1c). Closing it needs the acquisition digests committed somewhere the bundle cannot rewrite: "
@@ -835,43 +839,96 @@ def clause_with_effect(span, values):
 
 
 _EXCLUSION = re.compile(r"\b(excluding|except(?:ing)?|exclusive of|but not|other than|not including|without)\b\s*", re.I)
-_EXCLUSION_STOP = re.compile(r",\s*(?:and|which|that|the|was|were|occurred|did|with)\b|;|\(")
+_EXCLUSION_STOP = re.compile(r",\s*(?:and|which|that|the|was|were|occurred|did|with|namely|i\.e\.|that is|specifically)\b|;|\(")
 _DEFINES = re.compile(r"(primary (?:composite )?(?:outcome|end ?point)|primary cardiovascular (?:composite )?(?:outcome|end-?point)|composite (?:outcome|end ?point))"
                       r"\s+(?:was|were|is|are|consisted of|consists of|defined as|comprised|comprising|included|includes)\b", re.I)
+# exclusion STATEMENTS anywhere in the span (next sentence, footnote), scoped to the analysis/outcome -- not to the population
+_POPULATION = re.compile(r"\b(patients?|participants?|subjects?|individuals?|persons?|people|those|women|men|adults?|children|"
+                         r"enrol+ment|enrol+ed|randomi[sz](?:ed|ation)|eligib\w*|screen\w*|the (?:trial|study|cohort|population))\b", re.I)
+_ANALYSIS_EXCL = re.compile(
+    r"(?P<subj>(?:^|(?<=[.;*]))\s*[^.;]{3,160}?)\s+(?:was|were)\s+"
+    r"(?:not\s+(?:included|counted|considered|analy[sz]ed|part\s+of)|excluded\s+from|omitted\s+from|left\s+out\s+of|removed\s+from|censored\s+from)"
+    r"(?:\s+(?:in|as\s+part\s+of|toward|towards|to))?\s+"
+    r"(?P<scope>(?:the|this|its|our)?\s*(?:primary|composite|main|prespecified|pre-specified)?\s*(?:analysis|analyses|outcome|end ?point|composite|definition|event count|events?)\b[^.;]*)", re.I)
+_NEITHER = re.compile(r"neither\s+(?P<a>[^.;]{3,80}?)\s+nor\s+(?P<b>[^.;]{3,80}?)\s+(?:contributed|counted|was\s+(?:included|counted)|were\s+(?:included|counted)|"
+                      r"was\s+part|were\s+part|formed\s+part)", re.I)
+_NOT_CONTRIB = re.compile(r"(?P<subj>(?:^|(?<=[.;*]))\s*[^.;]{3,160}?)\s+did\s+not\s+(?:contribute|count)\b", re.I)
+
+
+def named_components(text):
+    return sorted(k for k, ws in COMPONENT_WORDS.items() if any(w in text for w in ws))
 
 
 def split_exclusions(text):
-    """Relational, not a blacklist: the segment governed by an exclusion cue is cut out BEFORE membership is read. Returns
+    """Relational, not a blacklist: every segment governed by an exclusion cue is cut out BEFORE membership is read. Returns
     (included_text, excluded_text). 'cardiovascular death only, excluding nonfatal MI and nonfatal stroke' -> included names
-    one component, excluded names two; '3-point MACE excluding unstable angina' -> included keeps the target phrase."""
-    m = _EXCLUSION.search(text)
-    if not m:
-        return text, ""
-    rest = text[m.end():]
-    stop = _EXCLUSION_STOP.search(rest)
-    excluded = rest[:stop.start()] if stop else rest
-    included = text[:m.start()] + " " + (rest[stop.start():] if stop else "")
-    return included, excluded
+    one component, excluded names two; '3-point MACE excluding unstable angina' -> included keeps the target phrase. A cue INSIDE
+    a parenthetical is scoped to the parenthetical, and when it qualifies the component it follows ('nonfatal myocardial
+    infarction (excluding silent infarction)') it excludes nothing -- a qualifier on a component is not an exclusion of one."""
+    included, excluded, rest = "", "", text
+    while True:
+        m = _EXCLUSION.search(rest)
+        if not m:
+            return included + rest, excluded.strip()
+        head = rest[:m.start()]
+        if head.rstrip().endswith("("):
+            close = rest.find(")", m.end())
+            scope = rest[m.end():close] if close >= 0 else rest[m.end():]
+            governing = named_components(head.rstrip()[:-1][-60:])
+            if not set(named_components(scope)) <= set(governing):          # names a component the head does not: a real exclusion
+                excluded += " " + scope
+            included += head.rstrip()[:-1] + " "
+            rest = rest[close + 1:] if close >= 0 else ""
+            continue
+        stop = _EXCLUSION_STOP.search(rest, m.end())
+        excluded += " " + (rest[m.end():stop.start()] if stop else rest[m.end():])
+        included += head + " "
+        rest = rest[stop.start():] if stop else ""
+
+
+def analysis_exclusions(text):
+    """Exclusion STATEMENTS anywhere in a span -- 'X and Y were not included in the primary analysis', '*X and Y were excluded
+    from the primary analysis', 'neither X nor Y contributed', 'X did not contribute' -- returned as the excluded subject text.
+    A statement whose subject or scope is the POPULATION ('patients with a prior stroke were excluded from enrolment') is not an
+    outcome exclusion and is left alone. Returns (excluded_text, [statements])."""
+    out, stmts = [], []
+    for m in _ANALYSIS_EXCL.finditer(text):
+        if _POPULATION.search(m.group("subj")) or _POPULATION.search(m.group("scope")):
+            continue
+        out.append(m.group("subj")); stmts.append(m.group(0).strip())
+    for m in _NEITHER.finditer(text):
+        if _POPULATION.search(m.group("a")) or _POPULATION.search(m.group("b")):
+            continue
+        out.append(m.group("a") + " " + m.group("b")); stmts.append(m.group(0).strip())
+    for m in _NOT_CONTRIB.finditer(text):
+        if _POPULATION.search(m.group("subj")):
+            continue
+        out.append(m.group("subj")); stmts.append(m.group(0).strip())
+    return " ; ".join(out), stmts
 
 
 def span_target_mention(span, values, definition_span, canonical_components):
     """POSITIVE binding. The tuple's own clause must carry a TARGET mention: a target phrase, a target DEFINITION (>= 2 canonical
     components AND a definitional cue -- co-occurrence of component words is not ownership), or a primary-outcome name that the
-    row's definition span binds to the target. Exclusion scopes ('excluding X') are removed before membership is read and the
-    excluded components are reported -- mentioning what is excluded must never make it included. A clause that itself DEFINES the
-    primary outcome as something other than the target is not rescued by the row's definition span. A clause that ALSO carries a
-    non-target mention (or a lone component) is AMBIGUOUS_ENDPOINT_BINDING, never a pass; only a non-target mention is
-    ENDPOINT_INCOMPATIBLE; no recognised mention is AMBIGUOUS_ENDPOINT_BINDING. Never a fallback to the definition span."""
+    row's definition span binds to the target. Exclusion scopes ('excluding X') are removed before membership is read, exclusion
+    STATEMENTS anywhere in the span or the row's definition ('X was not included in the primary analysis', a footnote after the
+    result, 'neither X nor Y contributed') cut the same components, and the excluded components are reported -- mentioning what
+    is excluded must never make it included. A qualifier inside a component and a POPULATION exclusion cut nothing. A clause that
+    itself DEFINES the primary outcome as something other than the target is not rescued by the row's definition span. A clause
+    that ALSO carries a non-target mention (or a lone component) is AMBIGUOUS_ENDPOINT_BINDING, never a pass; only a non-target
+    mention is ENDPOINT_INCOMPATIBLE; no recognised mention is AMBIGUOUS_ENDPOINT_BINDING. Never a fallback to the definition span."""
     clause = clause_with_effect(span, values)
     if clause is None:
         return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no clause of the span carries the tuple's numbers by numeric equality",
                 "witness": span, "clause": None}
-    c_all, d_all = normalize(clause).lower(), normalize(definition_span or "").lower()
+    s_all, c_all, d_all = normalize(span).lower(), normalize(clause).lower(), normalize(definition_span or "").lower()
     c, c_exc = split_exclusions(c_all)
     d, d_exc = split_exclusions(d_all)
-    named = lambda text: sorted(k for k, ws in COMPONENT_WORDS.items() if any(w in text for w in ws))
+    s_exc, s_stmts = analysis_exclusions(s_all)
+    d_stmt_exc, d_stmts = analysis_exclusions(d_all)
+    named = named_components
     comps_c, comps_d = named(c), named(d)
-    excluded_c, excluded_d = named(c_exc), named(d_exc)
+    excluded_c, excluded_d, excluded_s = named(c_exc), named(d_exc + " ; " + d_stmt_exc), named(s_exc)
     canon = set(canonical_components or [])
     primary_named = any(n in c for n in PRIMARY_NAMES)
     cue = any(k in c for k in DEFINITION_CUES)
@@ -888,10 +945,12 @@ def span_target_mention(span, values, definition_span, canonical_components):
         target.append({"kind": "primary-outcome name bound by the row's definition span", "witness": [n for n in PRIMARY_NAMES if n in c]})
     non_target = [m for m in NON_TARGET_MENTIONS if m in c]
     lone_component = (len(comps_c) == 1 and not target)
-    excluded_target = sorted(set(excluded_c) & canon) or sorted(set(excluded_d) & canon)
-    base = {"clause": clause, "excluded_components": excluded_c or excluded_d or None}
+    excluded_all = sorted(set(excluded_c) | set(excluded_d) | set(excluded_s))
+    excluded_target = sorted(set(excluded_all) & canon)
+    where = [w for w, xs in (("clause", excluded_c), ("definition", excluded_d), ("span statement", excluded_s)) if set(xs) & canon]
+    base = {"clause": clause, "excluded_components": excluded_all or None, "exclusion_statements": (s_stmts + d_stmts) or None}
     if excluded_target and not any(ph in c for ph in TARGET_PHRASES):
-        return {"state": "ENDPOINT_INCOMPATIBLE", "mention": "the clause (or the row's definition) EXCLUDES a target component; mentioning what is excluded does not include it",
+        return {"state": "ENDPOINT_INCOMPATIBLE", "mention": f"the {' / '.join(where)} EXCLUDES a target component; mentioning what is excluded does not include it",
                 "witness": {"included": comps_c, "excluded": excluded_target}, **base}
     if target and (non_target or lone_component):
         return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "clause carries BOTH a target mention and a non-target mention",
@@ -1338,17 +1397,79 @@ def absence_claims(slug: str, review: dict, docs_by_id: dict) -> list[dict]:
 _CV_WORDS = re.compile(r"myocardial infarction|stroke|cardiovascular", re.I)
 
 
-def binding_states(review: dict, primary_ids: set) -> dict:
+def _override_routes(slug: str) -> dict:
+    """The producer's override entries (cache/<slug>/verified_arms.json, verified_effects.json): a row appended by one of the three
+    override routes in harness/pipeline.py is appended BEFORE classification (no target_endpoint_class) and reaches admit_rows
+    unclassified. Returns {(id, outcome): file}."""
+    out = {}
+    for name in ("verified_arms.json", "verified_effects.json"):
+        p = ROOT / "cache" / slug / name
+        if not p.exists():
+            continue
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        def walk(node):
+            if isinstance(node, dict):
+                for k, v in node.items():
+                    if isinstance(v, dict) and v.get("override") and v.get("outcome"):
+                        out[(str(k), v["outcome"])] = f"cache/{slug}/{name}"
+                    else:
+                        walk(v)
+            elif isinstance(node, list):
+                for x in node:
+                    walk(x)
+        walk(data)
+    return out
+
+
+def gate_convergence(cert: dict) -> dict:
+    """Does every pooled row reach the admissibility gate? Read from the PINNED producer code: harness/pipeline.py calls
+    target_endpoint_mod.admit_rows(spec, trials) once on the whole row list, and nothing appends to `trials` after that call inside
+    the same function. The local file's blob is compared with the certificate's analysis_code_blobs pin so the reading is of the
+    code the certificate names, not of whatever is on disk."""
+    pins = (cert.get("analysis_code_blobs") or {})
+    out = {"pinned": {k: pins.get(k) for k in ("harness/pipeline.py", "harness/target_endpoint.py")}, "pin_matches_this_tree": {}}
+    for k in out["pinned"]:
+        fp = ROOT / k
+        out["pin_matches_this_tree"][k] = bool(pins.get(k)) and fp.exists() and _git_blob_sha1(fp.read_bytes(), lf_normalise=True) == pins.get(k)
+    text = (ROOT / "harness" / "pipeline.py").read_text(encoding="utf-8", errors="replace") if (ROOT / "harness" / "pipeline.py").exists() else ""
+    i = text.find("target_endpoint_mod.admit_rows(spec, trials)")
+    if i < 0:
+        return {**out, "admit_rows_applies_to_every_route": None, "reason": "admit_rows call not found in harness/pipeline.py"}
+    fn_end = text.find("\ndef ", i)
+    tail = text[i:fn_end if fn_end > 0 else None]
+    appends_after = len(re.findall(r"\btrials\.(?:append|extend)\(", tail))
+    override_routes = len(re.findall(r"\.get\(\"override\"\)", text[:i]))
+    return {**out, "admit_rows_applies_to_every_route": appends_after == 0 and all(out["pin_matches_this_tree"].values()),
+            "admit_rows_line": text.count("\n", 0, i) + 1, "appends_to_trials_after_gate_in_same_function": appends_after,
+            "dot_get_override_calls_before_gate": override_routes,   # a count of .get("override") calls, not of routes
+            "statement": "every extraction route -- including the override routes that append a row and `continue` before classification -- converges on "
+                         "one admit_rows(spec, trials) call; a row that never reached the gate cannot be pooled by this pipeline (the count of appends after "
+                         "the gate is read from the pinned code, above)."}
+
+
+def binding_states(review: dict, primary_ids: set, cert: dict | None = None, slug: str | None = None) -> dict:
     """Every rendered row of every outcome with its binding class, so a migration state is visible where an outsider
-    looks, and never folded into an admissible count."""
+    looks, and never folded into an admissible count. Each unbound row names the ROUTE by which it was appended (an override
+    entry appended before classification, or a classified route) and its GATE state: reached the gate unclassified
+    (UNBOUND_LEGACY via the conservative check) -- distinct from a row that never reached the gate, which the pinned pipeline
+    cannot pool (see gate)."""
     rows = []
+    overrides = _override_routes(slug) if slug else {}
     for o in review.get("outcomes", []):
         for t in o.get("trials", []):
             b = t.get("endpoint_binding")
             cls = "BOUND" if b == "named_endpoint_resolved_to_definition_span" else "MIGRATION_STATE_UNBOUND_LEGACY" if b == "unbound_legacy" else "OTHER"
+            ov = overrides.get((str(t.get("id") or "").replace("PMID ", ""), o["name"]))
+            route = ("OVERRIDE_BEFORE_CLASSIFICATION" if ov else "CLASSIFIED_ROUTE" if t.get("target_endpoint_class") else "UNCLASSIFIED_ROUTE")
+            gate_state = ("REACHED_GATE_CLASSIFIED" if t.get("target_endpoint_class") else
+                          "REACHED_GATE_UNCLASSIFIED" if t.get("endpoint_admissibility") else "GATE_VERDICT_NOT_RECORDED")
             row = {"outcome": o["name"], "primary": bool(o.get("primary")), "trial": {"id": t.get("id"), "label": t.get("label")},
                    "endpoint_binding": b, "endpoint_admissibility": t.get("endpoint_admissibility"), "target_endpoint_class": t.get("target_endpoint_class"),
                    "binding_class": cls, "producer_labels": {"verified": t.get("verified"), "verify_basis": t.get("verify_basis"), "provenance": t.get("provenance")},
+                   "route": route, "route_evidence": ov, "gate_state": gate_state,
                    "in_verification_rows": bool(o.get("primary")) and t.get("id") in primary_ids,
                    "counted_in_admissible_rows": False}
             if cls != "BOUND":
@@ -1366,12 +1487,27 @@ def binding_states(review: dict, primary_ids: set) -> dict:
                 }
             rows.append(row)
     n_unb = sum(1 for r in rows if r["binding_class"] == "MIGRATION_STATE_UNBOUND_LEGACY")
+    gate = gate_convergence(cert or {})
+    pinned = all(gate.get("pin_matches_this_tree", {}).values())
+    gate_states = {}
+    for r in rows:
+        gate_states[r["gate_state"]] = gate_states.get(r["gate_state"], 0) + 1
+    gate_states["NEVER_REACHED_GATE"] = 0 if gate.get("admit_rows_applies_to_every_route") else None
     return {"rows": rows, "counts": {"rows": len(rows), "bound": sum(1 for r in rows if r["binding_class"] == "BOUND"),
-                                      "migration_state_unbound_legacy": n_unb, "other": sum(1 for r in rows if r["binding_class"] == "OTHER")},
+                                      "migration_state_unbound_legacy": n_unb, "other": sum(1 for r in rows if r["binding_class"] == "OTHER"),
+                                      "route_override_before_classification": sum(1 for r in rows if r["route"] == "OVERRIDE_BEFORE_CLASSIFICATION"),
+                                      "gate_states": gate_states},
+            "gate": gate,
             "statement": (f"{n_unb} rendered row(s) carry UNBOUND_LEGACY. The producer's admit_rows returns admissible=True for them through a fail-open "
                           "(external audit, ELIXA 4-point demonstration). This bundle counts them as a migration state: not in admissible_rows, not refused. "
-                          "Whether the LIVE build behaves as the audited code does is UNVERIFIABLE from here until target_endpoint.py is pinned in the "
-                          "certificate and generating_commit is recorded (the certificate lane's closure).")}
+                          + ("admit_rows lives in harness/target_endpoint.py and its caller in harness/pipeline.py; both are pinned in the served certificate's "
+                             "analysis_code_blobs and this tree's blobs equal the pins, so the gate the bundle describes is the gate the certificate names. "
+                             if pinned else
+                             "The pins for harness/target_endpoint.py or harness/pipeline.py are absent from the certificate or do not match this tree, so "
+                             "whether the LIVE build behaves as the audited code does is UNVERIFIABLE from here. ")
+                          + "Two states are kept apart: REACHED_GATE_UNCLASSIFIED (an override route appended the row before classification; the gate "
+                            "applied the conservative composite-mismatch check and labelled it UNBOUND_LEGACY) and NEVER_REACHED_GATE (structurally 0 for a "
+                            "pooled row when the pinned pipeline shows no append after the single admit_rows call; None when that could not be read).")}
 
 
 _TUPLE_FORMS = [
@@ -1607,24 +1743,51 @@ def regulatory_facts(review: dict, art_by_ref: dict) -> list:
     return out
 
 
-def withdrawal_record_of(obj: dict):
-    """The record that justifies a WITHDRAWN state, if the served object carries one. The notice schema lands with the withdrawal
-    commit; until then any of these spellings is accepted, and NONE of them is accepted without ref + sha256 + reason."""
-    for key in ("withdrawal_record", "withdrawal", "withdrawn_by", "notice"):
-        rec = obj.get(key)
-        if isinstance(rec, dict):
-            return rec
-    return None
+WITHDRAWN_REQUIRED_STATEMENTS = ("what was published", "what the held evidence holds", "why", "not yet published")
 
 
-def assessment_state(obj: dict, assessed_kind: str, unresolved: bool, migration: bool, not_assessed: bool) -> dict:
-    """Five states, never alike. WITHDRAWN only with a record; a claim of withdrawal without one is refused (raised)."""
-    claimed_withdrawn = str(obj.get("state") or obj.get("status") or "").upper() == "WITHDRAWN" or bool(obj.get("withdrawn"))
-    rec = withdrawal_record_of(obj)
-    if claimed_withdrawn or rec:
-        if not (rec and rec.get("ref") and rec.get("sha256") and rec.get("reason")):
-            raise ValueError(f"row claims WITHDRAWN without a withdrawal record (ref, sha256, reason): {obj.get('id') or obj.get('trial')}")
-        return {"state": "WITHDRAWN", "basis": {"withdrawal_record": {k: rec.get(k) for k in ("ref", "sha256", "reason", "date")}}}
+def withdrawal_record_of(obj: dict, review: dict | None = None, review_ref: str | None = None, review_sha256: str | None = None, page_text: str | None = None):
+    """The record that justifies a WITHDRAWN state, bound to the served notice schema (commit bd9a0751):
+    review['withdrawn'] = {date, summary, statements[>=4 carrying the four required phrases], status}; the withdrawn row carries
+    absent_kind 'result_withdrawn' and withdrawn_effect (what was published); the page carries RESULT WITHDRAWN; the primary pools
+    nothing. Returns the record with the contract's checks listed, or None when the review carries no notice."""
+    w = (review or {}).get("withdrawn")
+    if not isinstance(w, dict):
+        return None
+    stmts = w.get("statements") or []
+    joined = " ".join(str(x) for x in stmts).lower()
+    primary = next((o for o in (review or {}).get("outcomes", []) if o.get("primary")), {})
+    k = (primary.get("result") or {}).get("k")
+    checks = {
+        "date_present": bool(w.get("date")), "summary_present": bool(w.get("summary")), "status_present": bool(w.get("status")),
+        "statements_at_least_four": isinstance(stmts, list) and len(stmts) >= 4 and all(isinstance(x, str) and x.strip() for x in stmts),
+        "required_phrases_present": {n: (n in joined) for n in WITHDRAWN_REQUIRED_STATEMENTS},
+        "nothing_pooled": not k and not primary.get("trials"),
+        "row_marked_result_withdrawn": obj.get("absent_kind") == "result_withdrawn",
+        "what_was_published_recorded": isinstance(obj.get("withdrawn_effect"), dict),
+        "page_carries_result_withdrawn": (None if page_text is None else ("result withdrawn" in page_text.lower())),
+    }
+    return {"ref": review_ref + "#withdrawn" if review_ref else None, "sha256": review_sha256, "reason": w.get("summary"), "date": w.get("date"),
+            "status": w.get("status"), "statements": len(stmts), "what_was_published": obj.get("withdrawn_effect"), "contract": checks}
+
+
+def assessment_state(obj: dict, assessed_kind: str, unresolved: bool, migration: bool, not_assessed: bool,
+                     review: dict | None = None, review_ref: str | None = None, review_sha256: str | None = None, page_text: str | None = None) -> dict:
+    """Five states, never alike. WITHDRAWN only with a record that satisfies the notice contract; a claim without one, an empty
+    record, a record beside a pooled number, or a row marked result_withdrawn in a review with no notice is refused (raised)."""
+    claimed = obj.get("absent_kind") == "result_withdrawn" or str(obj.get("state") or obj.get("status") or "").upper() == "WITHDRAWN" or bool(obj.get("withdrawn"))
+    rec = withdrawal_record_of(obj, review, review_ref, review_sha256, page_text)
+    if claimed or rec:
+        who = obj.get("id") or obj.get("trial")
+        if rec is None:
+            raise ValueError(f"row {who} claims RESULT WITHDRAWN but the review carries no withdrawn record")
+        c = rec["contract"]
+        bad = [k for k, v in c.items() if k != "required_phrases_present" and v is False] + [f"missing statement '{n}'" for n, ok in c["required_phrases_present"].items() if not ok]
+        if not rec.get("sha256") or not rec.get("reason") or not rec.get("date"):
+            bad.append("record lacks ref/sha256/reason/date")
+        if bad:
+            raise ValueError(f"row {who}: withdrawal record does not satisfy the notice contract: {bad}")
+        return {"state": "WITHDRAWN", "basis": {"withdrawal_record": rec}}
     if migration:
         return {"state": "MIGRATION_STATE", "basis": "endpoint_binding == unbound_legacy (producer fail-open); see binding_states"}
     if not_assessed:
@@ -1634,8 +1797,9 @@ def assessment_state(obj: dict, assessed_kind: str, unresolved: bool, migration:
     return {"state": "ASSESSED", "basis": assessed_kind}
 
 
-def assessment_states(review: dict, vrows: list, aclaims: list) -> dict:
+def assessment_states(review: dict, vrows: list, aclaims: list, review_ref: str | None = None, review_sha256: str | None = None, page_text: str | None = None) -> dict:
     out = []
+    ctx = {"review": review, "review_ref": review_ref, "review_sha256": review_sha256, "page_text": page_text}
     by_row = {r["trial"]["id"]: r for r in vrows}
     for o in review.get("outcomes", []):
         for t in o.get("trials", []):
@@ -1644,16 +1808,16 @@ def assessment_states(review: dict, vrows: list, aclaims: list) -> dict:
                 fin = vr["admission"]["final"]
                 p9 = vr["admission"]["predicates"]["P9_span_target_mention"]["state"]
                 st = assessment_state(t, f"verification_rows: {fin}", unresolved=(p9 == "AMBIGUOUS_ENDPOINT_BINDING"),
-                                      migration=(fin == "MIGRATION_STATE_UNBOUND_LEGACY"), not_assessed=False)
+                                      migration=(fin == "MIGRATION_STATE_UNBOUND_LEGACY"), not_assessed=False, **ctx)
             else:
                 st = assessment_state(t, "rendered harms row; not a verification row (verification_rows cover the primary pool)",
-                                      unresolved=False, migration=(t.get("endpoint_binding") == "unbound_legacy"), not_assessed=(t.get("endpoint_binding") != "unbound_legacy"))
+                                      unresolved=False, migration=(t.get("endpoint_binding") == "unbound_legacy"), not_assessed=(t.get("endpoint_binding") != "unbound_legacy"), **ctx)
             out.append({"outcome": o["name"], "trial": t.get("id"), "kind": "rendered_row", **st})
         for d in o.get("declared_absent_trials") or []:
             claim = next((c for c in aclaims if c["outcome"] == o["name"] and c["trial"]["id"] == d.get("id")), None)
             evaluated = bool(claim and claim.get("evaluated_by_bundle"))
             st = assessment_state(d, ("absence_claims: negative claim evaluated" if evaluated else "absence_claims: producer assertion, not evaluated"),
-                                  unresolved=False, migration=False, not_assessed=not evaluated)
+                                  unresolved=False, migration=False, not_assessed=not evaluated, **ctx)
             out.append({"outcome": o["name"], "trial": d.get("id"), "kind": "declared_absent", "producer_state": d.get("state"), **st})
     counts = {}
     for r in out:
@@ -1973,9 +2137,11 @@ def build(slug: str, check_only: bool) -> tuple[dict, list[str]]:
     pooled = pooled_reference(review)
     compat = endpoint_compatibility(review, vrows)
     xcov = extraction_objects_coverage(slug, review, cert)
-    binding = binding_states(review, {r["trial"]["id"] for r in vrows})
+    binding = binding_states(review, {r["trial"]["id"] for r in vrows}, cert=cert, slug=slug)
     try:
-        astates = assessment_states(review, vrows, aclaims)
+        astates = assessment_states(review, vrows, aclaims, review_ref=f"reviews/{slug}/review.json",
+                                    review_sha256=_sha256((review_dir / "review.json").read_bytes()),
+                                    page_text=((review_dir / "index.html").read_text(encoding="utf-8", errors="replace") if (review_dir / "index.html").exists() else None))
     except ValueError as exc:
         problems.append(str(exc))
         astates = {"rows": [], "counts": {}, "statement": "REFUSED: " + str(exc)}

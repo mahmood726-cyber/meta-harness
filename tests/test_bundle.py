@@ -414,7 +414,14 @@ def test_unbound_legacy_rows_are_a_migration_state_outside_the_admissible_count(
     assert bundle["counts"]["admissible_rows"] + bundle["counts"]["migration_state_rows_in_primary_pool"] + bundle["counts"]["inadmissible_rows_in_primary_pool"] == 8
     assert all(r["admission"]["predicates"]["P8_endpoint_bound"]["state"] == "PASS" for r in bundle["verification_rows"])
     assert any(l["id"] == "L10_admit_rows_fail_open" for l in bundle["limits"])
-    assert "not refused" in bs["statement"] and "UNVERIFIABLE" in bs["statement"]
+    assert "not refused" in bs["statement"]
+    # B2 (panel): a row that reached the gate unclassified is a different state from one that never reached it; both named, pins checked
+    assert bs["gate"]["pin_matches_this_tree"] == {"harness/pipeline.py": True, "harness/target_endpoint.py": True}
+    assert bs["gate"]["admit_rows_applies_to_every_route"] is True and bs["gate"]["appends_to_trials_after_gate_in_same_function"] == 0
+    assert all(r["route"] == "OVERRIDE_BEFORE_CLASSIFICATION" and r["gate_state"] == "REACHED_GATE_UNCLASSIFIED"
+               and r["route_evidence"] == "cache/glp1-ra-mace-t2d/verified_arms.json" for r in unbound)
+    assert bs["counts"]["gate_states"] == {"REACHED_GATE_CLASSIFIED": 8, "REACHED_GATE_UNCLASSIFIED": 2, "NEVER_REACHED_GATE": 0}
+    assert "UNVERIFIABLE" not in bs["statement"] and "pinned" in bs["statement"]
 
 
 # ------------------------------------------------------------------ 3.4: P9 positive binding, certified eligibility, L11
@@ -703,13 +710,44 @@ def test_assessment_states_cover_every_row_and_never_render_alike(bundle):
     assert "WITHDRAWN" not in a["counts"]
 
 
-def test_withdrawn_is_unassertable_without_its_record():
-    with pytest.raises(ValueError):
-        build_bundle.assessment_state({"id": "PMID 1", "state": "WITHDRAWN"}, "x", False, False, False)                # declared but empty
-    with pytest.raises(ValueError):
-        build_bundle.assessment_state({"id": "PMID 1", "withdrawal_record": {"ref": "notices/x.json"}}, "x", False, False, False)   # record without digest/reason
-    ok = build_bundle.assessment_state({"id": "PMID 1", "state": "WITHDRAWN", "withdrawal_record": {"ref": "notices/x.json", "sha256": "a" * 64, "reason": "wrong-target binding", "date": "2026-09-20"}}, "x", False, False, False)
-    assert ok["state"] == "WITHDRAWN" and ok["basis"]["withdrawal_record"]["sha256"] == "a" * 64
+NOTICE = {   # the served notice shape from bd9a0751 (dapagliflozin-hfpef-hosp), abbreviated statements
+    "date": "2026-09-19",
+    "summary": "The result previously published on this page for its primary outcome was a cardiovascular-death-only registry measure served as the composite outcome. It is withdrawn.",
+    "statements": ["What was published: DELIVER HR 0.88 (95% CI 0.74 to 1.05), a component of the composite served as the k=1 primary result.",
+                   "What the held evidence holds: the registered PRIMARY composite reports HR 0.82 (95% CI 0.73 to 0.92), p=0.0008.",
+                   "Why: the topic declared the composite's components as ['cardiovascular death'] and the binder matched the wrong target faithfully.",
+                   "The corrected estimate is not yet published; it lands with its own correction record."],
+    "status": "Pooled estimate withheld until the corrected selection is served with its own correction record.",
+}
+WITHDRAWN_ROW = {"id": "PMID 36027570", "absent_kind": "result_withdrawn", "state": "EXTRACTION_NOT_PERFORMED",
+                 "withdrawn_effect": {"effect": 0.88, "ci_low": 0.74, "ci_high": 1.05, "scale": "HR"}}
+
+
+def _review_with(withdrawn=NOTICE, k=None, trials=()):
+    return {"withdrawn": withdrawn, "outcomes": [{"primary": True, "result": {"k": k}, "trials": list(trials)}]}
+
+
+def test_withdrawn_binds_to_the_served_notice_schema_and_refuses_the_three_bad_shapes():
+    S = lambda row, review: build_bundle.assessment_state(row, "x", False, False, False, review=review, review_ref="reviews/x/review.json", review_sha256="a" * 64)
+    ok = S(WITHDRAWN_ROW, _review_with())
+    assert ok["state"] == "WITHDRAWN"
+    rec = ok["basis"]["withdrawal_record"]
+    assert rec["ref"] == "reviews/x/review.json#withdrawn" and rec["sha256"] == "a" * 64 and rec["date"] == "2026-09-19"
+    assert rec["what_was_published"] == WITHDRAWN_ROW["withdrawn_effect"] and all(rec["contract"]["required_phrases_present"].values())
+    with pytest.raises(ValueError):                                     # row marked result_withdrawn, review carries no notice
+        S(WITHDRAWN_ROW, {"outcomes": [{"primary": True, "result": {}, "trials": []}]})
+    with pytest.raises(ValueError):                                     # declared but empty: no statements
+        S(WITHDRAWN_ROW, _review_with(withdrawn={**NOTICE, "statements": []}))
+    with pytest.raises(ValueError):                                     # declared but contradicted: a number still pooled beside it
+        S(WITHDRAWN_ROW, _review_with(k=1, trials=[{"id": "PMID 36027570"}]))
+    with pytest.raises(ValueError):                                     # a required phrase missing
+        S(WITHDRAWN_ROW, _review_with(withdrawn={**NOTICE, "statements": [x for x in NOTICE["statements"] if "not yet published" not in x] + ["extra"]}))
+    with pytest.raises(ValueError):                                     # the page does not say RESULT WITHDRAWN
+        build_bundle.assessment_state(WITHDRAWN_ROW, "x", False, False, False, review=_review_with(), review_ref="r", review_sha256="a" * 64, page_text="<html>HR 0.88</html>")
+    page_ok = build_bundle.assessment_state(WITHDRAWN_ROW, "x", False, False, False, review=_review_with(), review_ref="r", review_sha256="a" * 64, page_text="<h2>Result withdrawn</h2>")
+    assert page_ok["basis"]["withdrawal_record"]["contract"]["page_carries_result_withdrawn"] is True
+    # a review with no notice and no withdrawn row: never WITHDRAWN
+    assert build_bundle.assessment_state({"id": "PMID 1"}, "x", False, False, False, review={"outcomes": []})["state"] == "ASSESSED"
 
 
 def test_clean_negative_is_recorded_as_a_negative_with_its_scope(bundle):
@@ -733,3 +771,49 @@ def test_exclusion_scopes_are_cut_before_membership_is_read():
              "The primary outcome was cardiovascular death only, excluding nonfatal myocardial infarction and nonfatal stroke.")["state"] == "ENDPOINT_INCOMPATIBLE"
     inc, exc = build_bundle.split_exclusions("cardiovascular death only, excluding nonfatal myocardial infarction and nonfatal stroke, and occurred less often (hazard ratio, 0.87)")
     assert "myocardial" in exc and "myocardial" not in inc and "hazard ratio" in inc
+
+
+# ------------------------------------------------------------------ 3.15: the panel's exclusion fixtures E1-E10 (definition span = the fixture itself)
+
+_T = "(hazard ratio, 0.87; 95% CI, 0.78 to 0.97)"
+EXCLUSION_FIXTURES = {
+    "E1": ("The primary outcome was cardiovascular death only, excluding nonfatal myocardial infarction and nonfatal stroke, and occurred less often " + _T + ".", "REFUSE"),
+    "E2": ("The primary outcome was cardiovascular death and occurred less often " + _T + ".", "REFUSE"),
+    "E3": ("The primary composite outcome of cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke occurred less often " + _T + ".", "PASS"),
+    "E4": ("The primary outcome was 3-point MACE excluding unstable angina and occurred less often " + _T + ".", "PASS"),
+    "E5": ("The primary outcome was cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke and occurred less often " + _T + ". Nonfatal myocardial infarction and nonfatal stroke were not included in the primary analysis.", "REFUSE"),
+    "E6": ("The primary outcome was any cardiovascular event other than nonfatal myocardial infarction or nonfatal stroke, namely cardiovascular death, and occurred less often " + _T + ".", "REFUSE"),
+    "E7": ("The primary outcome was cardiovascular death " + _T + "; neither nonfatal myocardial infarction nor nonfatal stroke contributed.", "REFUSE"),
+    "E8": ("The primary outcome of cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke occurred less often " + _T + ". *Nonfatal myocardial infarction and nonfatal stroke were excluded from the primary analysis.", "REFUSE"),
+    "E9": ("The primary composite outcome of cardiovascular death, nonfatal myocardial infarction (excluding silent infarction), or nonfatal stroke occurred less often " + _T + ".", "PASS"),
+    "E10": ("Patients with a prior stroke were excluded from enrolment. The primary composite outcome of cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke occurred less often " + _T + ".", "PASS"),
+}
+
+
+@pytest.mark.parametrize("name", list(EXCLUSION_FIXTURES))
+def test_exclusion_fixture_relational_not_sentence_scoped(name):
+    """Pre-fix on 3.14: E5 and E8 ADMITTED (exclusion outside the clause was invisible), E9 REFUSED (a parenthetical inside a
+    component was read as an exclusion). E10 is the population-exclusion control; E3/E4 the composite controls."""
+    span, expected = EXCLUSION_FIXTURES[name]
+    r = build_bundle.span_target_mention(span, [0.87, 0.78, 0.97], span, CC)
+    got = "PASS" if r["state"] == "PASS" else "REFUSE"
+    assert got == expected, (name, r)
+    if name in ("E5", "E8"):
+        assert r["excluded_components"] == ["MYOCARDIAL_INFARCTION", "STROKE"] and r["exclusion_statements"], r
+    if name == "E7":
+        assert r["excluded_components"] == ["MYOCARDIAL_INFARCTION", "STROKE"], r
+    if name == "E6":
+        assert "MYOCARDIAL_INFARCTION" in r["excluded_components"] and "STROKE" in r["excluded_components"], r
+    if name in ("E9", "E10"):
+        assert not r["excluded_components"], r        # a qualifier on a component / a population exclusion cut nothing
+
+
+def test_split_exclusions_parenthetical_scope_and_analysis_statements():
+    inc, exc = build_bundle.split_exclusions("cardiovascular death, nonfatal myocardial infarction (excluding silent infarction), or nonfatal stroke")
+    assert exc == "" and "nonfatal myocardial infarction" in inc and "stroke" in inc
+    inc, exc = build_bundle.split_exclusions("cardiovascular death (excluding stroke), or nonfatal myocardial infarction")
+    assert "stroke" in exc and "stroke" not in inc                                                    # a different component inside the parenthetical IS an exclusion
+    ex, stmts = build_bundle.analysis_exclusions("patients with a prior stroke were excluded from enrolment. the primary outcome occurred.")
+    assert ex == "" and stmts == []
+    ex, stmts = build_bundle.analysis_exclusions("the primary outcome occurred (hazard ratio, 0.87). nonfatal stroke was not included in the primary analysis.")
+    assert "stroke" in ex and len(stmts) == 1

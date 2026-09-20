@@ -562,3 +562,29 @@ def test_mace_excluding_unstable_angina_is_not_refused(tmp_path):
     rep = _verify(root)
     row = next(r for r in rep["rows"] if r["pmid"] == "27295427")
     assert row["p9"]["state"] == "PASS" and row["predicates"]["P9_span_target_mention"] is True   # the anchor still fires (cache changed); binding itself must not refuse
+
+
+
+def test_footnote_exclusion_after_the_result_is_refused_by_the_verifier(tmp_path):
+    """E8: the clause lists all three components; the footnote AFTER the result excludes two. Digests reconciled; the verifier's
+    own copy of the binding block must refuse it."""
+    sent = ("The primary outcome of cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke occurred less often (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97). "
+            "*Nonfatal myocardial infarction and nonfatal stroke were excluded from the primary analysis.")
+    def edit_records(rec):
+        r = next(x for x in rec["records"] if str(x["id"]) == "27295427"); r["abstract"] += " " + sent
+    root = _doctored_site(tmp_path, edit_records=edit_records, edit_review=lambda rev: _set_primary_row(rev, "27295427", sent, 0.87, 0.78, 0.97), edited_pmids=("27295427",))
+    rep = _verify(root)
+    row = next(r for r in rep["rows"] if r["pmid"] == "27295427")
+    assert row["p9"]["state"] == "ENDPOINT_INCOMPATIBLE" and row["p9"]["excluded_components"] == ["MYOCARDIAL_INFARCTION", "STROKE"]
+    assert row["final"] == "INADMISSIBLE"
+
+
+def test_parenthetical_qualifier_inside_a_component_is_not_refused(tmp_path):
+    """E9 control: 'nonfatal myocardial infarction (excluding silent infarction)' names the same component it qualifies."""
+    sent = "The primary composite outcome of cardiovascular death, nonfatal myocardial infarction (excluding silent infarction), or nonfatal stroke occurred less often (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97)."
+    def edit_records(rec):
+        r = next(x for x in rec["records"] if str(x["id"]) == "27295427"); r["abstract"] += " " + sent
+    root = _doctored_site(tmp_path, edit_records=edit_records, edit_review=lambda rev: _set_primary_row(rev, "27295427", sent, 0.87, 0.78, 0.97), edited_pmids=("27295427",))
+    rep = _verify(root)
+    row = next(r for r in rep["rows"] if r["pmid"] == "27295427")
+    assert row["p9"]["state"] == "PASS" and not row["p9"]["excluded_components"]

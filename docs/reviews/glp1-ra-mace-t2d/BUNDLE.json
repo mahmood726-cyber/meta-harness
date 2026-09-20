@@ -1,7 +1,9 @@
 {
  "schema_version": 3,
- "format_revision": "3.13",
+ "format_revision": "3.15",
  "format_changelog": [
+  "3.15 (2026-09-20, panel exclusion fixtures E1-E10): exclusion is read RELATIONALLY across the whole span, not the clause -- an exclusion statement in the next sentence or a footnote after the result ('X and Y were not included in / excluded from the primary analysis', 'neither X nor Y contributed') cuts those components from the target claim and is reported in exclusion_statements; a cue inside a parenthetical is scoped to the parenthetical and a qualifier on a component ('nonfatal MI (excluding silent infarction)') excludes nothing; a POPULATION exclusion ('patients with a prior stroke were excluded from enrolment') cuts nothing. Pre-fix on 3.14: E5 and E8 admitted, E9 refused.",
+  "3.14 (2026-09-20): withdrawal_record bound to the served notice schema (bd9a0751): review.withdrawn {date, summary, statements, status} with the gate's contract mirrored -- four required statements, RESULT WITHDRAWN on the page, nothing pooled -- and the withdrawn row's absent_kind result_withdrawn + withdrawn_effect (what was published). A declared-but-empty, declared-but-contradicted (a number still pooled) or row-without-record withdrawal is refused by the builder.",
   "3.13 (2026-09-20): P9 reads membership AFTER cutting out exclusion scopes and reports excluded_components beside included -- 'cardiovascular death only, excluding nonfatal MI and nonfatal stroke' names three components and is refused; '3-point MACE excluding unstable angina' is compatible (no keyword blacklist); a clause that itself defines the primary outcome as something other than the target is not rescued by the row's definition span.",
   "3.12 (2026-09-20): assessment_states -- every rendered row and every declared-absent row carries one of ASSESSED / UNRESOLVED / MIGRATION_STATE / WITHDRAWN / NOT_ASSESSED_BY_BUNDLE with its basis; WITHDRAWN is unassertable without a withdrawal record (ref, digest, reason, date) and the builder refuses a row that claims it without one; clean_negatives records measurements that came back constant (source_ci_pct = 95 on 8 of 8) as negatives with their scope, not as reassurance.",
   "3.11 (2026-09-19, design memo): observed and registered estimand values are separate typed fields with no conversion (an unknown observed value is never filled from the specification); location and binding results are tagged states -- LOCATED / NOT_FOUND / AMBIGUOUS (carrying every competing candidate) / UNSUPPORTED_REPRESENTATION -- so the schema distinguishes 'binding failed' from 'binding not attempted'; admission means 'admissible for this exact analysis under this policy version and evidence version', never 'verified', and carries both versions; the verifier REVALIDATES on load -- regulatory strategy from the span, estimand bases from the source -- instead of trusting a deserialised state because it parses.",
@@ -1628,8 +1630,8 @@
   },
   {
    "path": "docs/scripts/verify_bundle.py",
-   "sha256": "7993c24079e2f74fc2666e84c9e7e5ad37faccf66df4e7f41d0edd5c23f34dd4",
-   "bytes": 68470,
+   "sha256": "fa3e753619cb236bc844fc5448a7afdc0b1fa26ba46226c4ecbf368fdedf54e5",
+   "bytes": 72557,
    "role": "the verifier this bundle names; standard library only"
   }
  ],
@@ -4369,6 +4371,9 @@
      "verify_basis": "effect present in committed source",
      "provenance": "abstract"
     },
+    "route": "CLASSIFIED_ROUTE",
+    "route_evidence": null,
+    "gate_state": "REACHED_GATE_CLASSIFIED",
     "in_verification_rows": true,
     "counted_in_admissible_rows": true
    },
@@ -4388,6 +4393,9 @@
      "verify_basis": "effect present in committed source",
      "provenance": "abstract"
     },
+    "route": "CLASSIFIED_ROUTE",
+    "route_evidence": null,
+    "gate_state": "REACHED_GATE_CLASSIFIED",
     "in_verification_rows": true,
     "counted_in_admissible_rows": true
    },
@@ -4407,6 +4415,9 @@
      "verify_basis": "effect present in committed source",
      "provenance": "abstract"
     },
+    "route": "CLASSIFIED_ROUTE",
+    "route_evidence": null,
+    "gate_state": "REACHED_GATE_CLASSIFIED",
     "in_verification_rows": true,
     "counted_in_admissible_rows": true
    },
@@ -4426,6 +4437,9 @@
      "verify_basis": "effect present in committed source",
      "provenance": "abstract"
     },
+    "route": "CLASSIFIED_ROUTE",
+    "route_evidence": null,
+    "gate_state": "REACHED_GATE_CLASSIFIED",
     "in_verification_rows": true,
     "counted_in_admissible_rows": true
    },
@@ -4445,6 +4459,9 @@
      "verify_basis": "effect present in committed source",
      "provenance": "abstract"
     },
+    "route": "CLASSIFIED_ROUTE",
+    "route_evidence": null,
+    "gate_state": "REACHED_GATE_CLASSIFIED",
     "in_verification_rows": true,
     "counted_in_admissible_rows": true
    },
@@ -4464,6 +4481,9 @@
      "verify_basis": "effect present in committed source",
      "provenance": "abstract"
     },
+    "route": "CLASSIFIED_ROUTE",
+    "route_evidence": null,
+    "gate_state": "REACHED_GATE_CLASSIFIED",
     "in_verification_rows": true,
     "counted_in_admissible_rows": false
    },
@@ -4483,6 +4503,9 @@
      "verify_basis": "effect present in committed source",
      "provenance": "abstract"
     },
+    "route": "CLASSIFIED_ROUTE",
+    "route_evidence": null,
+    "gate_state": "REACHED_GATE_CLASSIFIED",
     "in_verification_rows": true,
     "counted_in_admissible_rows": true
    },
@@ -4502,6 +4525,9 @@
      "verify_basis": "effect present in committed source",
      "provenance": "abstract_verified"
     },
+    "route": "CLASSIFIED_ROUTE",
+    "route_evidence": null,
+    "gate_state": "REACHED_GATE_CLASSIFIED",
     "in_verification_rows": true,
     "counted_in_admissible_rows": true
    },
@@ -4521,6 +4547,9 @@
      "verify_basis": "arm counts present in committed source",
      "provenance": "abstract_verified"
     },
+    "route": "OVERRIDE_BEFORE_CLASSIFICATION",
+    "route_evidence": "cache/glp1-ra-mace-t2d/verified_arms.json",
+    "gate_state": "REACHED_GATE_UNCLASSIFIED",
     "in_verification_rows": false,
     "counted_in_admissible_rows": false,
     "observations": {
@@ -4548,6 +4577,9 @@
      "verify_basis": "arm counts present in committed source",
      "provenance": "fulltext_verified_arms"
     },
+    "route": "OVERRIDE_BEFORE_CLASSIFICATION",
+    "route_evidence": "cache/glp1-ra-mace-t2d/verified_arms.json",
+    "gate_state": "REACHED_GATE_UNCLASSIFIED",
     "in_verification_rows": false,
     "counted_in_admissible_rows": false,
     "observations": {
@@ -4564,9 +4596,30 @@
    "rows": 10,
    "bound": 8,
    "migration_state_unbound_legacy": 2,
-   "other": 0
+   "other": 0,
+   "route_override_before_classification": 2,
+   "gate_states": {
+    "REACHED_GATE_CLASSIFIED": 8,
+    "REACHED_GATE_UNCLASSIFIED": 2,
+    "NEVER_REACHED_GATE": 0
+   }
   },
-  "statement": "2 rendered row(s) carry UNBOUND_LEGACY. The producer's admit_rows returns admissible=True for them through a fail-open (external audit, ELIXA 4-point demonstration). This bundle counts them as a migration state: not in admissible_rows, not refused. Whether the LIVE build behaves as the audited code does is UNVERIFIABLE from here until target_endpoint.py is pinned in the certificate and generating_commit is recorded (the certificate lane's closure)."
+  "gate": {
+   "pinned": {
+    "harness/pipeline.py": "b6c50b2797d9ff6b5ad3ea78e7f1fe561555dd35",
+    "harness/target_endpoint.py": "554df973c35f7c9d29070e29cb7075ec9026e574"
+   },
+   "pin_matches_this_tree": {
+    "harness/pipeline.py": true,
+    "harness/target_endpoint.py": true
+   },
+   "admit_rows_applies_to_every_route": true,
+   "admit_rows_line": 1265,
+   "appends_to_trials_after_gate_in_same_function": 0,
+   "dot_get_override_calls_before_gate": 5,
+   "statement": "every extraction route -- including the override routes that append a row and `continue` before classification -- converges on one admit_rows(spec, trials) call; a row that never reached the gate cannot be pooled by this pipeline (the count of appends after the gate is read from the pinned code, above)."
+  },
+  "statement": "2 rendered row(s) carry UNBOUND_LEGACY. The producer's admit_rows returns admissible=True for them through a fail-open (external audit, ELIXA 4-point demonstration). This bundle counts them as a migration state: not in admissible_rows, not refused. admit_rows lives in harness/target_endpoint.py and its caller in harness/pipeline.py; both are pinned in the served certificate's analysis_code_blobs and this tree's blobs equal the pins, so the gate the bundle describes is the gate the certificate names. Two states are kept apart: REACHED_GATE_UNCLASSIFIED (an override route appended the row before classification; the gate applied the conservative composite-mismatch check and labelled it UNBOUND_LEGACY) and NEVER_REACHED_GATE (structurally 0 for a pooled row when the pinned pipeline shows no append after the single admit_rows call; None when that could not be read)."
  },
  "assessment_states": {
   "rows": [
@@ -6009,7 +6062,8 @@
        "major adverse cardiovascular"
       ],
       "clause": "Major adverse cardiovascular events occurred in 61 of 1591 patients (3.8%) in the oral semaglutide group and 76 of 1592 (4.8%) in the placebo group (hazard ratio, 0.79; 95% confidence interval [CI], 0.57 to 1.11; P<0.001 for noninferiority).",
-      "excluded_components": null
+      "excluded_components": null,
+      "exclusion_statements": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -6034,7 +6088,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.13",
+     "format_revision": "3.15",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -6472,7 +6526,8 @@
        "primary outcome"
       ],
       "clause": "The primary outcome occurred in 108 of 1648 patients (6.6%) in the semaglutide group and in 146 of 1649 patients (8.9%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.58 to 0.95; P<0.001 for noninferiority).",
-      "excluded_components": null
+      "excluded_components": null,
+      "exclusion_statements": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -6497,7 +6552,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.13",
+     "format_revision": "3.15",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -6972,7 +7027,8 @@
        "primary outcome"
       ],
       "clause": "The primary outcome occurred in significantly fewer patients in the liraglutide group (608 of 4668 patients [13.0%]) than in the placebo group (694 of 4672 [14.9%]) (hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97; P<0.001 for noninferiority; P=0.01 for superiority).",
-      "excluded_components": null
+      "excluded_components": null,
+      "exclusion_statements": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -6997,7 +7053,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.13",
+     "format_revision": "3.15",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -7473,7 +7529,8 @@
        "mace"
       ],
       "clause": "During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).",
-      "excluded_components": null
+      "excluded_components": null,
+      "exclusion_statements": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -7498,7 +7555,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=During a median follow-up of 1.81 years, an incident MACE occurred in 189 participants (7.0%) assigned to receive efpeglenatide (3.9 events per 100 person-years) and 125 participants (9.2%) assigned to receive placebo (5.3 events per 100 person-years) (hazard ratio, 0.73; 95% confidence interval [CI], 0.58 to 0.92; P<0.001 for noninferiority; P = 0.007 for superiority).[STA] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.13",
+     "format_revision": "3.15",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -7964,7 +8021,8 @@
        "primary composite outcome"
       ],
       "clause": "During a median follow-up of 5.4 years (IQR 5.1-5.9), the primary composite outcome occurred in 594 (12.0%) participants at an incidence rate of 2.4 per 100 person-years in the dulaglutide group and in 663 (13.4%) participants at an incidence rate of 2.7 per 100 person-years in the placebo group (hazard ratio [HR] 0.88, 95% CI 0.79-0.99; p=0.026).",
-      "excluded_components": null
+      "excluded_components": null,
+      "exclusion_statements": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -7989,7 +8047,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat[STA] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.13",
+     "format_revision": "3.15",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -8455,7 +8513,8 @@
        "primary composite outcome"
       ],
       "clause": "The primary composite outcome occurred in 338 (7%) of 4731 patients at an incidence rate of 4.6 events per 100 person-years in the albiglutide group and in 428 (9%) of 4732 patients at an incidence rate of 5.9 events per 100 person-years in the placebo group (hazard ratio 0.78, 95% CI 0.68-0.90), which indicated that albiglutide was superior to placebo (p<0.0001 for non-inferiority; p=0.0006 for superiority).",
-      "excluded_components": null
+      "excluded_components": null,
+      "exclusion_statements": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -8480,7 +8539,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat[STA] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.13",
+     "format_revision": "3.15",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -8946,7 +9005,8 @@
        "primary composite outcome"
       ],
       "clause": "A primary composite outcome event occurred in 839 of 7356 patients (11.4%; 3.7 events per 100 person-years) in the exenatide group and in 905 of 7396 patients (12.2%; 4.0 events per 100 person-years) in the placebo group (hazard ratio, 0.91; 95% confidence interval [CI], 0.83 to 1.00), with the intention-to-treat analysis indicating that exenatide, administered once weekly, was noninferior to placebo with respect to safety (P<0.001 for noninferiority) but was not superior to placebo with respect to efficacy (P=0.06 for superiority).",
-      "excluded_components": null
+      "excluded_components": null,
+      "exclusion_statements": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -8971,7 +9031,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat[STA] | treatment_strategy=on-study, treatment-policy (registered primary-analysis default)[REG] | follow_up_window=on-study, treatment-policy (registered primary-analysis default)[REG] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.13",
+     "format_revision": "3.15",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -9447,7 +9507,8 @@
        "primary-outcome"
       ],
       "clause": "Among the 9650 participants who had undergone randomization, a primary-outcome event occurred in 579 of the 4825 participants (12.0%) in the oral semaglutide group, as compared with 668 of the 4825 participants (13.8%) in the placebo group (hazard ratio, 0.86; 95% confidence interval, 0.77 to 0.96; P = 0.006).",
-      "excluded_components": null
+      "excluded_components": null,
+      "exclusion_statements": null
      },
      "P12_ci_level": {
       "state": "PASS",
@@ -9472,7 +9533,7 @@
     "meaning": "admissible for this exact analysis under this policy version and evidence version; NOT 'verified'; revalidate on load",
     "analysis_identity_key": "analysis_set=intention-to-treat (registered primary-analysis default)[REG] | treatment_strategy=treatment-policy (on-study)[STA] | follow_up_window=time-to-first-event (treatment-policy)[STA] | estimator=hazard ratio[STA]",
     "policy_version": {
-     "format_revision": "3.13",
+     "format_revision": "3.15",
      "predicates": [
       "P11_registered_estimand",
       "P12_ci_level",
@@ -10036,7 +10097,7 @@
   },
   {
    "id": "L10_admit_rows_fail_open",
-   "limit": "the producer's target_endpoint.admit_rows admits a row with no endpoint class as UNBOUND_LEGACY (external audit: an authentic ELIXA 4-point row is refused when classified DIFFERENT_OUTCOME and admitted when the class is stripped). Two rendered harms rows carry it. The bundle counts them as a migration state; it cannot say whether the live build behaves as the audited code does, because target_endpoint.py is not pinned in the certificate and generating_commit is NOT_RECORDED."
+   "limit": "the producer's target_endpoint.admit_rows admits a row with no endpoint class as UNBOUND_LEGACY (external audit: an authentic ELIXA 4-point row is refused when classified DIFFERENT_OUTCOME and admitted when the class is stripped). Two rendered harms rows carry it, both appended by the verified_arms override route before classification (binding_states.rows[].route). The bundle counts them as a migration state. target_endpoint.py and pipeline.py ARE pinned in the certificate's analysis_code_blobs (binding_states.gate), so the gate described is the gate the certificate names; what remains open is that the fail-open itself is the producer's policy, not the bundle's to close, and generating_commit is NOT_RECORDED."
   },
   {
    "id": "L11_coacquisition_rewrite",
@@ -10063,8 +10124,8 @@
  "verifier": {
   "served_path": "scripts/verify_bundle.py",
   "served_url": "https://mahmood726-cyber.github.io/meta-harness/scripts/verify_bundle.py",
-  "sha256": "7993c24079e2f74fc2666e84c9e7e5ad37faccf66df4e7f41d0edd5c23f34dd4",
-  "bytes": 68470,
+  "sha256": "fa3e753619cb236bc844fc5448a7afdc0b1fa26ba46226c4ecbf368fdedf54e5",
+  "bytes": 72557,
   "requirements": "Python 3.9+ standard library only; no harness import; run: python verify_bundle.py --url https://mahmood726-cyber.github.io/meta-harness/ --slug glp1-ra-mace-t2d",
   "checks": "every artefact and supporting-file digest; release_sha256 and review_sha256; every predicate of every verification row; the selector rule; the asymmetric rule on every absence claim from a recomputed preservation record; pooled_reference.expected to 1e-9; --corrupt <pmid> <limb> shows one corrupted limb makes exactly that row inadmissible",
   "does_not_check": "that any acquired or cached representation faithfully preserves the upstream publication (SOUL's cache is known to omit the HbA1c entry range, follow-up and the safety sentence); that the source set is complete; that the clinical interpretation is right; and the PRODUCTION admission path -- no production falsification test has been executed by anyone; the verifier checks the bundle, not the producer's gate"

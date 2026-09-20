@@ -109,6 +109,21 @@ on anyone having installed a hook:
 
 The refusals were demonstrated before being relied on: `evidence/gate-authority-2026-09-14/`.
 
+### Working the tree from an agent lane (rules, 2026-09-20)
+Four rules, each paid for at least twice in one night. They are about the shell, not the harness.
+
+1. **Scripts from files, never heredocs.** Write a patch or probe with the editor tool and run the file.
+   A backslash escape routed through a heredoc or a shell-invoked patch arrives changed (a backslash-n
+   became a real newline inside a regex -- and again while this very note was written) and the file is
+   silently wrong.
+2. **`< /dev/null` on every backgrounded job, and prove it by a property of the result** -- a blob in
+   `git ls-remote`, fetched bytes, an attestation line -- never by an exit code or a log that says done.
+3. **One hook per tree, from a `main` checkout.** Two hooks on one working tree race each other for the
+   same files; a hook run from a branch checkout verifies the branch, not what will be served.
+4. **A `python - << EOF` heredoc with a trailing `< /dev/null` opens a REPL that looks like progress.**
+   The redirect replaces the heredoc as stdin, nothing runs, and the task sits there healthy. Rule 1
+   already forbids the form; this is what it costs when it slips through.
+
 ## Prospective validation
 The auditor's freeze requirements and protocol (architecture identity, raw-input preservation, the defect
 ledger outside the frozen tree, the no-silent-rerun policy, custody, release timing, model-stage binding, the frozen

@@ -285,43 +285,96 @@ def clause_with_effect(span, values):
 
 
 _EXCLUSION = re.compile(r"\b(excluding|except(?:ing)?|exclusive of|but not|other than|not including|without)\b\s*", re.I)
-_EXCLUSION_STOP = re.compile(r",\s*(?:and|which|that|the|was|were|occurred|did|with)\b|;|\(")
+_EXCLUSION_STOP = re.compile(r",\s*(?:and|which|that|the|was|were|occurred|did|with|namely|i\.e\.|that is|specifically)\b|;|\(")
 _DEFINES = re.compile(r"(primary (?:composite )?(?:outcome|end ?point)|primary cardiovascular (?:composite )?(?:outcome|end-?point)|composite (?:outcome|end ?point))"
                       r"\s+(?:was|were|is|are|consisted of|consists of|defined as|comprised|comprising|included|includes)\b", re.I)
+# exclusion STATEMENTS anywhere in the span (next sentence, footnote), scoped to the analysis/outcome -- not to the population
+_POPULATION = re.compile(r"\b(patients?|participants?|subjects?|individuals?|persons?|people|those|women|men|adults?|children|"
+                         r"enrol+ment|enrol+ed|randomi[sz](?:ed|ation)|eligib\w*|screen\w*|the (?:trial|study|cohort|population))\b", re.I)
+_ANALYSIS_EXCL = re.compile(
+    r"(?P<subj>(?:^|(?<=[.;*]))\s*[^.;]{3,160}?)\s+(?:was|were)\s+"
+    r"(?:not\s+(?:included|counted|considered|analy[sz]ed|part\s+of)|excluded\s+from|omitted\s+from|left\s+out\s+of|removed\s+from|censored\s+from)"
+    r"(?:\s+(?:in|as\s+part\s+of|toward|towards|to))?\s+"
+    r"(?P<scope>(?:the|this|its|our)?\s*(?:primary|composite|main|prespecified|pre-specified)?\s*(?:analysis|analyses|outcome|end ?point|composite|definition|event count|events?)\b[^.;]*)", re.I)
+_NEITHER = re.compile(r"neither\s+(?P<a>[^.;]{3,80}?)\s+nor\s+(?P<b>[^.;]{3,80}?)\s+(?:contributed|counted|was\s+(?:included|counted)|were\s+(?:included|counted)|"
+                      r"was\s+part|were\s+part|formed\s+part)", re.I)
+_NOT_CONTRIB = re.compile(r"(?P<subj>(?:^|(?<=[.;*]))\s*[^.;]{3,160}?)\s+did\s+not\s+(?:contribute|count)\b", re.I)
+
+
+def named_components(text):
+    return sorted(k for k, ws in COMPONENT_WORDS.items() if any(w in text for w in ws))
 
 
 def split_exclusions(text):
-    """Relational, not a blacklist: the segment governed by an exclusion cue is cut out BEFORE membership is read. Returns
+    """Relational, not a blacklist: every segment governed by an exclusion cue is cut out BEFORE membership is read. Returns
     (included_text, excluded_text). 'cardiovascular death only, excluding nonfatal MI and nonfatal stroke' -> included names
-    one component, excluded names two; '3-point MACE excluding unstable angina' -> included keeps the target phrase."""
-    m = _EXCLUSION.search(text)
-    if not m:
-        return text, ""
-    rest = text[m.end():]
-    stop = _EXCLUSION_STOP.search(rest)
-    excluded = rest[:stop.start()] if stop else rest
-    included = text[:m.start()] + " " + (rest[stop.start():] if stop else "")
-    return included, excluded
+    one component, excluded names two; '3-point MACE excluding unstable angina' -> included keeps the target phrase. A cue INSIDE
+    a parenthetical is scoped to the parenthetical, and when it qualifies the component it follows ('nonfatal myocardial
+    infarction (excluding silent infarction)') it excludes nothing -- a qualifier on a component is not an exclusion of one."""
+    included, excluded, rest = "", "", text
+    while True:
+        m = _EXCLUSION.search(rest)
+        if not m:
+            return included + rest, excluded.strip()
+        head = rest[:m.start()]
+        if head.rstrip().endswith("("):
+            close = rest.find(")", m.end())
+            scope = rest[m.end():close] if close >= 0 else rest[m.end():]
+            governing = named_components(head.rstrip()[:-1][-60:])
+            if not set(named_components(scope)) <= set(governing):          # names a component the head does not: a real exclusion
+                excluded += " " + scope
+            included += head.rstrip()[:-1] + " "
+            rest = rest[close + 1:] if close >= 0 else ""
+            continue
+        stop = _EXCLUSION_STOP.search(rest, m.end())
+        excluded += " " + (rest[m.end():stop.start()] if stop else rest[m.end():])
+        included += head + " "
+        rest = rest[stop.start():] if stop else ""
+
+
+def analysis_exclusions(text):
+    """Exclusion STATEMENTS anywhere in a span -- 'X and Y were not included in the primary analysis', '*X and Y were excluded
+    from the primary analysis', 'neither X nor Y contributed', 'X did not contribute' -- returned as the excluded subject text.
+    A statement whose subject or scope is the POPULATION ('patients with a prior stroke were excluded from enrolment') is not an
+    outcome exclusion and is left alone. Returns (excluded_text, [statements])."""
+    out, stmts = [], []
+    for m in _ANALYSIS_EXCL.finditer(text):
+        if _POPULATION.search(m.group("subj")) or _POPULATION.search(m.group("scope")):
+            continue
+        out.append(m.group("subj")); stmts.append(m.group(0).strip())
+    for m in _NEITHER.finditer(text):
+        if _POPULATION.search(m.group("a")) or _POPULATION.search(m.group("b")):
+            continue
+        out.append(m.group("a") + " " + m.group("b")); stmts.append(m.group(0).strip())
+    for m in _NOT_CONTRIB.finditer(text):
+        if _POPULATION.search(m.group("subj")):
+            continue
+        out.append(m.group("subj")); stmts.append(m.group(0).strip())
+    return " ; ".join(out), stmts
 
 
 def span_target_mention(span, values, definition_span, canonical_components):
     """POSITIVE binding. The tuple's own clause must carry a TARGET mention: a target phrase, a target DEFINITION (>= 2 canonical
     components AND a definitional cue -- co-occurrence of component words is not ownership), or a primary-outcome name that the
-    row's definition span binds to the target. Exclusion scopes ('excluding X') are removed before membership is read and the
-    excluded components are reported -- mentioning what is excluded must never make it included. A clause that itself DEFINES the
-    primary outcome as something other than the target is not rescued by the row's definition span. A clause that ALSO carries a
-    non-target mention (or a lone component) is AMBIGUOUS_ENDPOINT_BINDING, never a pass; only a non-target mention is
-    ENDPOINT_INCOMPATIBLE; no recognised mention is AMBIGUOUS_ENDPOINT_BINDING. Never a fallback to the definition span."""
+    row's definition span binds to the target. Exclusion scopes ('excluding X') are removed before membership is read, exclusion
+    STATEMENTS anywhere in the span or the row's definition ('X was not included in the primary analysis', a footnote after the
+    result, 'neither X nor Y contributed') cut the same components, and the excluded components are reported -- mentioning what
+    is excluded must never make it included. A qualifier inside a component and a POPULATION exclusion cut nothing. A clause that
+    itself DEFINES the primary outcome as something other than the target is not rescued by the row's definition span. A clause
+    that ALSO carries a non-target mention (or a lone component) is AMBIGUOUS_ENDPOINT_BINDING, never a pass; only a non-target
+    mention is ENDPOINT_INCOMPATIBLE; no recognised mention is AMBIGUOUS_ENDPOINT_BINDING. Never a fallback to the definition span."""
     clause = clause_with_effect(span, values)
     if clause is None:
         return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no clause of the span carries the tuple's numbers by numeric equality",
                 "witness": span, "clause": None}
-    c_all, d_all = normalize(clause).lower(), normalize(definition_span or "").lower()
+    s_all, c_all, d_all = normalize(span).lower(), normalize(clause).lower(), normalize(definition_span or "").lower()
     c, c_exc = split_exclusions(c_all)
     d, d_exc = split_exclusions(d_all)
-    named = lambda text: sorted(k for k, ws in COMPONENT_WORDS.items() if any(w in text for w in ws))
+    s_exc, s_stmts = analysis_exclusions(s_all)
+    d_stmt_exc, d_stmts = analysis_exclusions(d_all)
+    named = named_components
     comps_c, comps_d = named(c), named(d)
-    excluded_c, excluded_d = named(c_exc), named(d_exc)
+    excluded_c, excluded_d, excluded_s = named(c_exc), named(d_exc + " ; " + d_stmt_exc), named(s_exc)
     canon = set(canonical_components or [])
     primary_named = any(n in c for n in PRIMARY_NAMES)
     cue = any(k in c for k in DEFINITION_CUES)
@@ -338,10 +391,12 @@ def span_target_mention(span, values, definition_span, canonical_components):
         target.append({"kind": "primary-outcome name bound by the row's definition span", "witness": [n for n in PRIMARY_NAMES if n in c]})
     non_target = [m for m in NON_TARGET_MENTIONS if m in c]
     lone_component = (len(comps_c) == 1 and not target)
-    excluded_target = sorted(set(excluded_c) & canon) or sorted(set(excluded_d) & canon)
-    base = {"clause": clause, "excluded_components": excluded_c or excluded_d or None}
+    excluded_all = sorted(set(excluded_c) | set(excluded_d) | set(excluded_s))
+    excluded_target = sorted(set(excluded_all) & canon)
+    where = [w for w, xs in (("clause", excluded_c), ("definition", excluded_d), ("span statement", excluded_s)) if set(xs) & canon]
+    base = {"clause": clause, "excluded_components": excluded_all or None, "exclusion_statements": (s_stmts + d_stmts) or None}
     if excluded_target and not any(ph in c for ph in TARGET_PHRASES):
-        return {"state": "ENDPOINT_INCOMPATIBLE", "mention": "the clause (or the row's definition) EXCLUDES a target component; mentioning what is excluded does not include it",
+        return {"state": "ENDPOINT_INCOMPATIBLE", "mention": f"the {' / '.join(where)} EXCLUDES a target component; mentioning what is excluded does not include it",
                 "witness": {"included": comps_c, "excluded": excluded_target}, **base}
     if target and (non_target or lone_component):
         return {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "clause carries BOTH a target mention and a non-target mention",
