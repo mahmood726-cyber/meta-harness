@@ -1,0 +1,51 @@
+{
+  "_doc": "Debts with names on them. Every hook bypass and every documented test exception is listed here with who authorised it, the observed refusal it covers, and what closes it. Nothing reads this file as a gate; it exists so that no exception is silent. An allowlist that can be extended by whoever trips it is not a gate: additions require Mahmood's authorisation and a reason.",
+  "hook_bypasses": [
+    {
+      "commit_role": "A (layer 1: failed-binding state preservation)",
+      "sha": "22b56e2c",
+      "created": "2026-09-19",
+      "mechanism": "git commit --no-verify",
+      "authorised_by": "Mahmood, 2026-09-19, for that commit specifically",
+      "refusal_skipped": "tests/test_bundle.py::test_bundle_is_current (predicted, by construction: the bundle stamp names the commit holding the page bytes; a commit cannot name itself)",
+      "observed_before_bypass": false,
+      "note": "Premise inferred, not observed; recorded as such. The following stamp commit was to carry the full standard."
+    },
+    {
+      "commit_role": "H (RESULT WITHDRAWN on dapagliflozin-hfpef-hosp and empagliflozin-hfpef-hosp) -- first version",
+      "sha": "bd9a0751",
+      "created": "2026-09-20 00:0x",
+      "mechanism": "git commit --no-verify",
+      "authorised_by": "Mahmood, 2026-09-20, on an inferred premise",
+      "refusal_skipped": "predicted: test_bundle_is_current only",
+      "observed_before_bypass": false,
+      "outcome": "WRONG PREMISE. CI on the pushed branch refused 3 of 11 limbs: 11 unit failures (5 real: fix-state ledger for the two de-pooled rows, RoB-sensitivity count x2, GRADE lost-downgrade, legacy absent-banner objects; 6 the stamp), index currency, honest ratchet. Repaired at cause on 2026-09-20 morning; this entry stays as the record.",
+      "lesson": "A bypass is only defensible if the refusal it skips has been OBSERVED, not predicted (README, 'How a commit lands')."
+    },
+    {
+      "commit_role": "H (repaired) -- the commit this file is introduced in",
+      "sha": "SEE COMMIT",
+      "created": "2026-09-20",
+      "mechanism": "git commit --no-verify",
+      "authorised_by": "Mahmood, 2026-09-20, on observed evidence",
+      "refusal_skipped": "six tests, ONE cause, observed alone with a private basetemp on the exact working tree (6 failed / 1166 passed / 0 errors): tests/test_bundle.py::{test_bundle_is_current, test_certificate_unmodified, test_review_files_listed_with_current_digests, test_source_block_names_a_commit_that_holds_the_served_bytes, test_manifest_carries_the_same_source_block} and tests/test_bundle_verifier.py::test_baseline_passes_and_agrees_with_bundle",
+      "assertion_verbatim": "content_commit bd9a07517a2f does not hold the served bytes of review.json, index.html, CERTIFICATE.json, REPRODUCTION.json -- commit the rebuild, then stamp; manifest.json has no `source` block; docs/harness/{hazard_consumers,index,limitations}.py: mirrored bytes differ from the certificate input",
+      "observed_before_bypass": true,
+      "other_limbs": "verify_all (CI-shaped, AACT_DIR empty) on the same tree: 10 of 11 limbs PASS; the unit limb's only failures are the six above",
+      "carried_by": "the stamp commit that follows, which runs the complete standard under the pre-commit hook from a main checkout; CI on the tip before main",
+      "closes_this_class": "the blob-id stamp (content-addressed served_blob_git_sha1 only; the reader resolves the commit) -- scheduled with the bundle lane; correctness, not capability, so not blocked by the v1 freeze"
+    }
+  ],
+  "open_defects_named_by_tests": [
+    {
+      "id": "rob-sensitivity-no-repool-unexplained",
+      "page": "iv-iron-hfref-hosp",
+      "state": "RoB 2 assessed; no rob_sensitivity re-pool; primary neither refused nor withdrawn; no reason recorded",
+      "found_by": "tests/test_rob_sensitivity_predicate.py rewritten 2026-09-20 to assert the relation (every assessed page in exactly one named state) instead of the literal count 31, which had excluded this page silently",
+      "allowlist": "tests/test_rob_sensitivity_predicate.py::KNOWN_UNEXPLAINED_NO_REPOOL -- any NEW such page fails by name",
+      "authorised_to_stand_for": "commit H only (Mahmood, 2026-09-20)",
+      "must_close_before": "v1 release cut: v1's permitted claim is that admitted effects have documented source-linked judgments; an unexplained state contradicts it",
+      "extension_rule": "additions to the allowlist require Mahmood's authorisation and a reason"
+    }
+  ]
+}

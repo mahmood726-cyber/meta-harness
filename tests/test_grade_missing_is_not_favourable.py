@@ -111,6 +111,13 @@ def test_no_served_page_loses_a_downgrade():
         config = json.loads(Path('topics', slug + '.json').read_text(encoding='utf-8'))
         records = json.loads(Path('cache', slug, 'records.json').read_text(encoding='utf-8'))
         after = build_review_core(slug, config, records, protocol_sha(slug))
+        # Missing is not favourable: a page may carry no rating ONLY because its result is explicitly withdrawn
+        # (a withdrawn result has no certainty to rate). A rating that vanishes without a withdrawal, or a
+        # withdrawn page that still carries one, is a loss of every downgrade at once.
+        if 'grade' not in before or 'grade' not in after:
+            if not after.get('withdrawn') or 'grade' in after:
+                losses.append((slug, 'GRADE object absent without a declared withdrawal'))
+            continue
         for name, domain in before['grade']['domains'].items():
             if after['grade']['domains'][name]['downgrade'] < domain['downgrade']:
                 losses.append((slug, name))

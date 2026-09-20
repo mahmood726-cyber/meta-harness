@@ -667,6 +667,20 @@ def _stale_topic_overview(r):
     )
 
 
+def _withdrawal_block(r):
+    """The withdrawal notice is stated where the result was read, above everything else: the result is
+    withdrawn and no pooled estimate is stated; what was published; what the held evidence holds (quoted as
+    what the source holds, NOT as the review's result); why; and that the corrected estimate is not yet
+    published and what must land first."""
+    w = r.get("withdrawn")
+    if not w:
+        return ""
+    rows = "".join(f"<li>{_e(x)}</li>" for x in w.get("statements", []))
+    return ("<div class='absent' id='result-withdrawn'><strong>RESULT WITHDRAWN -- this page no longer states a "
+            "pooled estimate for its primary outcome.</strong> " + _e(w.get("summary", ""))
+            + f"<ul>{rows}</ul><p>Withdrawn {_e(w.get('date', ''))}. {_e(w.get('status', ''))}</p></div>")
+
+
 def _overview(r, neutral):
     parts = [f"<h2>{_e(r.get('title'))}</h2>", f"<p class='q'>{_e(r.get('question'))}</p>"]
     if r.get("grade"):
@@ -674,6 +688,9 @@ def _overview(r, neutral):
     # INVALIDATION PROPAGATION: a single STALE verdict poisons the headline. If any dependent output
     # is known incomplete/superseded/unproven, say so at the top rather than let the result read as
     # current. Each reason is named; the corpus index publishes the count as it falls.
+    withdrawn = _withdrawal_block(r)
+    if withdrawn:
+        parts.append(withdrawn)
     stale = _stale_topic_overview(r)
     if stale:
         parts.append(stale)

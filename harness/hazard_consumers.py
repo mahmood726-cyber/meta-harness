@@ -38,6 +38,16 @@ def _spec(gate_id: str, gate_function: str, gate_input_path: str, runner: str,
 
 
 WIRED_CONSUMERS: dict[tuple[str, str], dict[str, str]] = {
+    # RESULT WITHDRAWN (2026-09-20): the executable consumer is the L1 primary-result check, which reads /withdrawn
+    # and refuses a withdrawn page that still pools a row, lacks any required statement, or serves no notice; the
+    # pipeline's unpooling reads the same field. A validity-threatening limitation with no consumer is visible state
+    # that controls nothing -- the gate refused the first version of this notice for exactly that.
+    ("RESULT_WITHDRAWN", "REFUSED_ON_EVIDENCE"): _spec(
+        "gate.check_primary_result",
+        "harness.gate.check_primary_result",
+        "/withdrawn",
+        "withdrawn",
+    ),
     ("STALE_TOPIC", "STALE"): _spec(
         "invalidation.assess",
         "harness.invalidation.assess",
@@ -341,7 +351,24 @@ def _gate_verdict(review: dict[str, Any], obj: dict[str, Any], spec: dict[str, s
         return _compat_underlying_verdict(review)
     if runner == "eligibility_chain":
         return _eligibility_chain_verdict(review)
+    if runner == "withdrawn":
+        return _withdrawn_verdict(review)
     return "UNKNOWN_RUNNER"
+
+
+def _withdrawn_verdict(review: dict[str, Any]) -> str:
+    """What the L1 primary-result check decides about a withdrawal, computed from the review object alone."""
+    w = review.get("withdrawn")
+    prim = next((o for o in review.get("outcomes", []) if o.get("primary")), None) or {}
+    k = len(prim.get("trials") or []) or int((prim.get("result") or {}).get("k") or 0)
+    if not w:
+        return "PASS: no withdrawal declared"
+    if k:
+        return f"REFUSE: withdrawal contradicted -- primary still pools k={k}"
+    missing = [key for key in ("date", "summary", "statements", "status") if not (isinstance(w, dict) and w.get(key))]
+    if missing:
+        return "REFUSE: withdrawal incomplete -- missing " + ", ".join(missing)
+    return "REFUSE: primary pooled estimate withheld (result withdrawn; no number may be read as the result)"
 
 
 def consumer_for(review: dict[str, Any], obj: dict[str, Any],
@@ -513,6 +540,9 @@ def _plant_core(pair: tuple[str, str]) -> dict[str, Any]:
         }
     elif kind in {"STALE_TOPIC", "RETRACTED_TRIAL_POOLED"}:
         core["integrity"] = {"retracted": ["111"], "concern": []}
+    elif kind == "RESULT_WITHDRAWN":
+        # the planted hazard: a declared withdrawal beside a still-pooled row -- the consumer must refuse it
+        core["withdrawn"] = {"date": "plant", "summary": "plant", "statements": ["what was published", "what the held evidence holds", "why", "not yet published"], "status": "plant"}
     elif kind == "RETRIEVAL_CLASS":
         core["search"]["retrieval_class"] = {
             "class": "KNOWN_ITEM_RETRIEVAL",
@@ -632,6 +662,8 @@ def _plant_verdict(pair: tuple[str, str], spec: dict[str, str], planted: bool) -
         return _compat_underlying_verdict(_plant_core(pair) if planted else _clean_core())
     if runner == "eligibility_chain":
         return _plant_eligibility_chain(pair, planted)
+    if runner == "withdrawn":
+        return _withdrawn_verdict(_plant_core(pair) if planted else _clean_core())
     return "UNKNOWN_RUNNER"
 
 

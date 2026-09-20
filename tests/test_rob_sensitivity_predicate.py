@@ -62,6 +62,37 @@ def _refused_pool_slugs() -> list[str]:
     return out
 
 
+def _withdrawn_slugs() -> list[str]:
+    """Pages whose primary result is WITHDRAWN (declared `withdrawn` object): nothing is pooled, so there is no
+    RoB re-pool by design; accounted for by name, never silently dropped from the population."""
+    out = []
+    for path in sorted((ROOT / "docs" / "reviews").glob("*/review.json")):
+        review = json.loads(path.read_text(encoding="utf-8"))
+        if review.get("withdrawn") and not review.get("rob_sensitivity"):
+            out.append(path.parent.name)
+    return out
+
+
+# Assessed pages with NO re-pool and NO named reason. The old literal `31` silently left these out of the population;
+# they are named here so the gap is visible and any NEW unexplained page fails this test by name (a page must not
+# lose its re-pool quietly). iv-iron-hfref-hosp: RoB 2 assessed, no rob_sensitivity, primary neither refused nor
+# withdrawn -- a pre-existing gap recorded 2026-09-20, not fixed here.
+KNOWN_UNEXPLAINED_NO_REPOOL = ["iv-iron-hfref-hosp"]
+
+
+def _rob_population() -> list[str]:
+    """The population this test is about, derived from the corpus rather than written as a number: every served
+    page that carries a RoB assessment (rob2 object) or a RoB sensitivity. Each member must be in exactly one
+    named state -- has a re-pool, primary row refused, result withdrawn, or KNOWN_UNEXPLAINED_NO_REPOOL by name.
+    `assert N == 31` taught people to edit the number."""
+    out = []
+    for path in sorted((ROOT / "docs" / "reviews").glob("*/review.json")):
+        review = json.loads(path.read_text(encoding="utf-8"))
+        if review.get("rob2") or review.get("rob_sensitivity") or review.get("withdrawn")                 or (next((o for o in review.get("outcomes", []) if o.get("primary")), {}) or {}).get("result", {}).get("pool_refused"):
+            out.append(path.parent.name)
+    return out
+
+
 def _current_rob_slugs() -> list[str]:
     slugs = []
     for path in sorted((ROOT / "docs" / "reviews").glob("*/review.json")):
@@ -156,10 +187,13 @@ def test_prefix_rendered_predicate_fires_on_identical_low_only_pages():
     # aa8ed28a). Integration 2026-09-16: ticagrelor's pooled row is now REFUSED (direction conflict), so
     # its rebuilt object has no re-pool and _current_rob_slugs() drops it -- the pre-fix row is added back
     # from the committed object so the pre-fix count stays a statement about aa8ed28a.
-    assert len(rows) + len(_refused_pool_slugs()) == 31, (len(rows), _refused_pool_slugs())
-    assert len(failures) == 17 - sum(1 for s in _refused_pool_slugs() if s in EXPECTED_IDENTICAL_SLUGS)
-    assert failures == [s for s in EXPECTED_IDENTICAL_SLUGS if s not in _refused_pool_slugs()]
-    assert fewer_true == [s for s in EXPECTED_FEWER_SLUGS if s not in _refused_pool_slugs()]
+    # Every page in the RoB population is in exactly one named state: has a re-pool (a row here), primary row
+    # refused, or result withdrawn. The population is derived from the corpus, not asserted as a count.
+    accounted = sorted([s for s, _, _ in rows] + _refused_pool_slugs() + _withdrawn_slugs() + KNOWN_UNEXPLAINED_NO_REPOOL)
+    assert accounted == sorted(_rob_population()), (set(accounted) ^ set(_rob_population()))
+    excluded = set(_refused_pool_slugs()) | set(_withdrawn_slugs())
+    assert failures == [s for s in EXPECTED_IDENTICAL_SLUGS if s not in excluded]
+    assert fewer_true == [s for s in EXPECTED_FEWER_SLUGS if s not in excluded]
 
 
 def test_postfix_rebuilt_pages_satisfy_relation_predicate():
@@ -182,7 +216,8 @@ def test_postfix_rebuilt_pages_satisfy_relation_predicate():
     print(f"post-fix predicate passes: {count_line}")
     # Post-fix population: pages that still have a re-pool. A refused pooled row has none by design and
     # renders the refusal statement instead (asserted by name, not silently dropped).
-    assert len(rows) + len(_refused_pool_slugs()) == 31, (len(rows), _refused_pool_slugs())
+    accounted = sorted(rows + _refused_pool_slugs() + _withdrawn_slugs() + KNOWN_UNEXPLAINED_NO_REPOOL)
+    assert accounted == sorted(_rob_population()), (set(accounted) ^ set(_rob_population()))
     assert count_line == f"{len(rows)} of {len(rows)}"
     assert failures == []
 

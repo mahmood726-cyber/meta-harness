@@ -402,7 +402,8 @@ def _verification_section(docs_dir: str) -> str:
     verified against its committed source span, and a gate limb refuses any page that pools a number
     whose digits are not located in its source. Self-counting so the number cannot drift stale."""
     n = ok = 0
-    for rp in glob.glob(os.path.join(docs_dir, "reviews", "*", "review.json")):
+    withdrawn = []  # (slug, date, trial label, withdrawn number) -- derived from the review objects, never typed here
+    for rp in sorted(glob.glob(os.path.join(docs_dir, "reviews", "*", "review.json"))):
         try:
             rev = json.load(open(rp, encoding="utf-8"))
         except (OSError, ValueError):
@@ -412,15 +413,32 @@ def _verification_section(docs_dir: str) -> str:
                 n += 1
                 if t.get("verified") in ("verified", "verified_handchecked"):
                     ok += 1
+            if rev.get("withdrawn"):
+                for t in o.get("declared_absent_trials", []) or []:
+                    if t.get("absent_kind") == "result_withdrawn":
+                        e = t.get("withdrawn_effect") or {}
+                        withdrawn.append((rev.get("slug", ""), rev["withdrawn"].get("date", ""), t.get("label", ""),
+                                          f"{e.get('scale', '')} {e.get('effect', '')} ({e.get('ci_low', '')}-{e.get('ci_high', '')})"))
     if not n:
         return ""
+    # What this banner never established, stated beside the count: digit location says where a number came from,
+    # not that it answers the review's question. Withdrawn numbers were located digit for digit in the spans they
+    # cited and were still wrong (2026-09-19: component results served as composites). Without this sentence the
+    # count would simply fall and the claim would read as if nothing had happened.
+    caveat = ""
+    if withdrawn:
+        items = "; ".join(f"{_E(slug)} ({_E(label)}: {_E(num)}, withdrawn {_E(date)}, see the page's notice)"
+                          for slug, date, label, num in withdrawn)
+        caveat = (f" <strong>Located is not correct.</strong> This count establishes where each number came from, "
+                  f"not that it answers the review's question: {len(withdrawn)} number(s) that passed this check "
+                  f"digit for digit were withdrawn as the wrong endpoint -- {items}.")
     return (f"<div class='banner'><h2>Every pooled number is verified against its source "
             f"(gate-enforced)</h2><p><strong>All {ok} of {n} pooled trial-outcome numbers</strong> across "
             f"these pages have their digits located in the committed source span they cite (arm counts, "
             f"effect+CI, or per-arm mean/SD). A publication-gate limb "
             f"(<code>check_pooled_verified</code>) <strong>refuses any page that pools a number not found "
             f"in its source</strong>, so this cannot silently stop being true. No published meta-analysis "
-            f"makes — or can be forced to keep — this claim about every one of its numbers.</p></div>")
+            f"makes — or can be forced to keep — this claim about every one of its numbers.{caveat}</p></div>")
 
 
 def _error_coverage_section(docs_dir: str) -> str:
