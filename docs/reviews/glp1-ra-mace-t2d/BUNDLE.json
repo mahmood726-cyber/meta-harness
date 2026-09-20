@@ -122,7 +122,8 @@
   "content_commit": "b72ae833458098705453b7078d3d52b9186df3a5",
   "content_commit_meaning": "INFORMATIONAL: the most recent commit whose tree holds exactly the served blobs, or PENDING_COMMIT if the bytes are not yet committed; NOT the identity of the bytes and NOT necessarily the commit the generator ran at",
   "generating_commit": "NOT_RECORDED",
-  "generating_commit_meaning": "the generator does not record the commit it ran at; build_utc records when the build metadata was authored, not what the bytes were built from, and is not evidence of either",
+  "generating_commit_meaning": "NOT_RECORDED is the true value: the release was built before the generator wrote EXECUTION_RECORD.json, and it is not reconstructed (an inferred generating commit would be a proxy); build_utc records when the build metadata was authored, not what the bytes were built from",
+  "execution_record": null,
   "served_blob_git_sha1": {
    "review.json": "55b082714ebe5227d92dbc77603018026532e7d0",
    "index.html": "df6d8ea70df3d9194b131123bee8fb98df2ec13c",
@@ -1634,8 +1635,8 @@
   },
   {
    "path": "docs/scripts/verify_bundle.py",
-   "sha256": "0662a2b8c6e44c2efa00897bb8b514c43225082079b9fbe9bdf840c98bf350b8",
-   "bytes": 78229,
+   "sha256": "d1ba932034c992700d915822e3462117b51801312988ed960ad69a789fb7d837",
+   "bytes": 81449,
    "role": "the verifier this bundle names; standard library only"
   }
  ],
@@ -10307,6 +10308,14 @@
    "git_blob_sha1": "965cd77e4f9f69f44b183e96980c6d5f82e2c918"
   },
   {
+   "file": "REPLAY.md",
+   "served_path": "reviews/glp1-ra-mace-t2d/REPLAY.md",
+   "served_url": "https://mahmood726-cyber.github.io/meta-harness/reviews/glp1-ra-mace-t2d/REPLAY.md",
+   "bytes": 9428,
+   "sha256": "0058ff23155184aa37aa173ef5edecf9e30707d0d29af524e934c14199973d4c",
+   "git_blob_sha1": "0ebbe4d4d625b8e201c59d9b2430ae0510737573"
+  },
+  {
    "file": "REPRODUCTION.json",
    "served_path": "reviews/glp1-ra-mace-t2d/REPRODUCTION.json",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/reviews/glp1-ra-mace-t2d/REPRODUCTION.json",
@@ -10326,9 +10335,9 @@
    "file": "manifest.json",
    "served_path": "reviews/glp1-ra-mace-t2d/manifest.json",
    "served_url": "https://mahmood726-cyber.github.io/meta-harness/reviews/glp1-ra-mace-t2d/manifest.json",
-   "bytes": 4708,
-   "sha256": "d5fb5461ab4d634d163205fb7cf603341cf08b047b0a5cf7bdc21963802917f6",
-   "git_blob_sha1": "db719baba79f6b712499bd7e566fd1668083ccbf"
+   "bytes": 4837,
+   "sha256": "992aade8abe667f05f103288519105f45ba2573964943b0920a9daccbd7529ed",
+   "git_blob_sha1": "31346b804c3c66a3193e66bf7a5dab48906d91d5"
   },
   {
    "file": "review.json",
@@ -10405,8 +10414,8 @@
  "verifier": {
   "served_path": "scripts/verify_bundle.py",
   "served_url": "https://mahmood726-cyber.github.io/meta-harness/scripts/verify_bundle.py",
-  "sha256": "0662a2b8c6e44c2efa00897bb8b514c43225082079b9fbe9bdf840c98bf350b8",
-  "bytes": 78229,
+  "sha256": "d1ba932034c992700d915822e3462117b51801312988ed960ad69a789fb7d837",
+  "bytes": 81449,
   "requirements": "Python 3.9+ standard library only; no harness import; run: python verify_bundle.py --url https://mahmood726-cyber.github.io/meta-harness/ --slug glp1-ra-mace-t2d",
   "checks": "every artefact and supporting-file digest; release_sha256 and review_sha256; every predicate of every verification row; the selector rule; the asymmetric rule on every absence claim from a recomputed preservation record; pooled_reference.expected to 1e-9; --corrupt <pmid> <limb> shows one corrupted limb makes exactly that row inadmissible",
   "does_not_check": "that any acquired or cached representation faithfully preserves the upstream publication (SOUL's cache is known to omit the HbA1c entry range, follow-up and the safety sentence); that the source set is complete; that the clinical interpretation is right; and the PRODUCTION admission path -- no production falsification test has been executed by anyone; the verifier checks the bundle, not the producer's gate"

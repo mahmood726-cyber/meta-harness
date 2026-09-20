@@ -2072,6 +2072,9 @@ def resolvability_walk(slug: str, art_by_ref: dict, acq: dict, supporting: dict,
 # ----------------------------------------------------------------------------------------------------------------
 
 def source_block(slug: str, review_dir: Path) -> dict:
+    exec_record = None
+    if (review_dir / "EXECUTION_RECORD.json").exists():
+        exec_record = json.loads((review_dir / "EXECUTION_RECORD.json").read_text(encoding="utf-8"))
     """Content-addressed identity of the served bytes. The blob ids are computed from the WORKING TREE, so the stamp exists before
     any commit and never needs its own commit to be true (the earlier content_commit-must-hold-the-blobs rule forced a two-commit
     dance and could not pass the pre-commit hook by construction). content_commit is informational: the most recent commit whose
@@ -2100,9 +2103,16 @@ def source_block(slug: str, review_dir: Path) -> dict:
             "content_commit": content_commit, "_inconsistent": [],
             "content_commit_meaning": "INFORMATIONAL: the most recent commit whose tree holds exactly the served blobs, or PENDING_COMMIT if the bytes "
                                       "are not yet committed; NOT the identity of the bytes and NOT necessarily the commit the generator ran at",
-            "generating_commit": "NOT_RECORDED",
-            "generating_commit_meaning": "the generator does not record the commit it ran at; build_utc records when the build "
-                                         "metadata was authored, not what the bytes were built from, and is not evidence of either",
+            "generating_commit": (exec_record or {}).get("tree", {}).get("generating_commit", "NOT_RECORDED"),
+            "generating_commit_meaning": ("read from EXECUTION_RECORD.json written by the generator at the end of the build (tree_state "
+                                          + str((exec_record or {}).get("tree", {}).get("tree_state")) + "); the record's sha256 is in review_files and "
+                                          "verify_bundle.py checks the record's release_sha256 against the certificate"
+                                          if exec_record else
+                                          "NOT_RECORDED is the true value: the release was built before the generator wrote EXECUTION_RECORD.json, "
+                                          "and it is not reconstructed (an inferred generating commit would be a proxy); build_utc records when the "
+                                          "build metadata was authored, not what the bytes were built from"),
+            "execution_record": ({"served_path": f"reviews/{slug}/EXECUTION_RECORD.json", "sha256": _sha256((review_dir / "EXECUTION_RECORD.json").read_bytes()),
+                                  "tree_state": exec_record.get("tree", {}).get("tree_state"), "utc": exec_record.get("utc")} if exec_record else None),
             "served_blob_git_sha1": blobs,
             "how_to_check_currency": [
                 "git ls-remote " + REPO_URL + " refs/heads/main   -> the current main commit",

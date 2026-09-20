@@ -985,6 +985,43 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
         if not corrupt and final != recorded:
             failures.append(f"ROW_VERDICT_DISAGREES {pmid}: verifier says {final}, bundle recorded {recorded}")
 
+    # 4b. certificate pins: every analysis_code_blobs value is a 40-hex blob id or exactly the sentinel; the prose list of absences equals
+    #     the sentinel set in BOTH directions -- a sentinel nothing validates is a string nobody checks
+    pins = (cert.get("analysis_code_blobs") or {})
+    bad_pins = {k: v for k, v in pins.items() if not (isinstance(v, str) and (re.fullmatch(r"[0-9a-f]{40}", v) or v == "NOT_PRESENT"))}
+    sentinels = sorted(k for k, v in pins.items() if v == "NOT_PRESENT")
+    declared_absent = sorted(((cert.get("certificate_scope") or {}).get("declared_but_absent")) or [])
+    report["certificate_pins"] = {"entries": len(pins), "blob_ids": sum(1 for v in pins.values() if isinstance(v, str) and re.fullmatch(r"[0-9a-f]{40}", v)),
+                                  "sentinels": sentinels, "declared_but_absent": declared_absent, "malformed": bad_pins,
+                                  "rule": "value is ^[0-9a-f]{40}$ or exactly NOT_PRESENT; declared_but_absent == sentinel set (both directions)"}
+    if bad_pins and not corrupt:
+        failures.append(f"CERTIFICATE_PIN_MALFORMED: {bad_pins}")
+    if sentinels != declared_absent and not corrupt:
+        failures.append(f"CERTIFICATE_ABSENCE_UNDECLARED: sentinels {sentinels} vs declared_but_absent {declared_absent}")
+    # 4c. execution record (when the release carries one): the bundle's review_files digest must match the served bytes, and the record's
+    #     release identity must be THIS certificate's -- a swapped record fails either link
+    rf = {f["file"]: f for f in bundle.get("review_files", [])}
+    report["execution_record"] = {"present": "EXECUTION_RECORD.json" in rf}
+    if "EXECUTION_RECORD.json" in rf:
+        try:
+            er_bytes = store.get(f"reviews/{slug}/EXECUTION_RECORD.json")
+            er = json.loads(er_bytes.decode("utf-8"))
+            digest_ok = sha256(er_bytes) == rf["EXECUTION_RECORD.json"]["sha256"]
+            release_ok = (er.get("release") or {}).get("release_sha256") == cert.get("release_sha256")
+            review_ok = (er.get("release") or {}).get("review_sha256") == cert.get("review_sha256")
+            report["execution_record"].update({"sha256_matches_bundle": digest_ok, "release_sha256_matches_certificate": release_ok,
+                                               "review_sha256_matches_certificate": review_ok,
+                                               "generating_commit": (er.get("tree") or {}).get("generating_commit"), "tree_state": (er.get("tree") or {}).get("tree_state"),
+                                               "dirty_other_paths": (er.get("tree") or {}).get("dirty_other_paths")})
+            if not (digest_ok and release_ok and review_ok) and not corrupt:
+                failures.append(f"EXECUTION_RECORD_MISMATCH: digest_ok={digest_ok} release_ok={release_ok} review_ok={review_ok}")
+        except Refusal as r:
+            report["execution_record"]["refusal"] = r.code
+            if not corrupt:
+                failures.append(f"EXECUTION_RECORD_UNREACHABLE: {r.code}")
+    else:
+        report["execution_record"]["meaning"] = "no record served: the generating tree of this release is UNRECORDED (true value, not reconstructed)"
+
     # 5. anchors: every document with a retained acquisition -- recompute preservation, compare to recorded coverage ----
     acq_by_pmid = {}
     report["anchors"] = []
