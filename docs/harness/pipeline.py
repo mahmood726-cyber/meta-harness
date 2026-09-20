@@ -1264,6 +1264,22 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     # refused with the number they carried and both spans, so a reader sees what was refused and why.
     trials, _inadmissible = target_endpoint_mod.admit_rows(spec, trials)
     absent.extend(_inadmissible)
+    if spec.get("withdrawn"):
+        # RESULT WITHDRAWN (Mahmood, 2026-09-19): the outcome's declared `withdrawn` notice states that the
+        # served result was wrong and why; until the corrected selection lands, NO pooled estimate is
+        # published for this outcome. Every admitted row is moved out of the pool with the withdrawal as
+        # its state -- displayed, never deleted, never silently replaced by a corrected number.
+        w = spec["withdrawn"]
+        for t in trials:
+            absent.append({"label": t.get("label"), "id": t.get("id"), "absent_kind": "result_withdrawn",
+                           "state": "RESULT_WITHDRAWN", "reason_code": "RESULT_WITHDRAWN",
+                           "withdrawn_effect": {k: t.get(k) for k in ("effect", "ci_low", "ci_high", "scale") if t.get(k) is not None},
+                           "reason": w.get("summary", "result withdrawn"),
+                           "source": t.get("source", ""), "provenance": t.get("provenance"),
+                           "endpoint_result_span": t.get("endpoint_result_span"),
+                           "target_endpoint_class": t.get("target_endpoint_class"),
+                           "target_endpoint_components": t.get("target_endpoint_components")})
+        trials = []
     if eligibility_contract:
         kept = []
         for trial in trials:
@@ -1953,6 +1969,9 @@ def build_review_core(slug, config, records, protocol_sha):
         "outcomes": outcomes,
         "comparator": comparator,
         "estimand_exclusions": config.get("estimand_exclusions", []),
+        # A withdrawal notice is part of the review core: it travels under review_sha256 and is rendered
+        # where the result was read, with what was published, what the held evidence holds, and why.
+        **({"withdrawn": config["primary_outcome"]["withdrawn"]} if config.get("primary_outcome", {}).get("withdrawn") else {}),
         **({"comparator_scope_note": comparator_scope_note} if comparator_scope_note else {}),
         **({"evidence_base_caveat": config["evidence_base_caveat"]} if config.get("evidence_base_caveat") else {}),
         **({"rob2": _rb} if (_rb := _load_rob2(slug)) else {}),
@@ -2143,7 +2162,12 @@ def build_review_core(slug, config, records, protocol_sha):
         review["rob_sensitivity"] = _sens
     # Partial, object-derived GRADE certainty (risk-of-bias, inconsistency, imprecision, registry-based
     # publication bias computed from committed fields; indirectness left to human judgement).
-    if (_grade := grade_mod.grade(review, _load_ghost(slug))):
+    if review.get("withdrawn"):
+        # A withdrawn result has no certainty rating: rendering a GRADE category beside a withdrawn number would be
+        # a certainty surface for a claim the page no longer makes (the gate checks every surface against the
+        # canonical rating, so the rating is omitted rather than left stale).
+        pass
+    elif (_grade := grade_mod.grade(review, _load_ghost(slug))):
         review["grade"] = _grade
         design_variance.annotate_grade(review)
     if any(

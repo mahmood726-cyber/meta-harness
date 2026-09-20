@@ -35,6 +35,7 @@ class LimitationKind(str, Enum):
     RETRIEVAL_CLASS = "RETRIEVAL_CLASS"
     DECLARED_STRANDS = "DECLARED_STRANDS"
     STALE_TOPIC = "STALE_TOPIC"
+    RESULT_WITHDRAWN = "RESULT_WITHDRAWN"
     AUDITABILITY_SCOPE = "AUDITABILITY_SCOPE"
     SUPPRESSED_POOL = "SUPPRESSED_POOL"
     RETRACTED_TRIAL_POOLED = "RETRACTED_TRIAL_POOLED"
@@ -123,6 +124,7 @@ _VALIDITY_THREATENING_KINDS = {
     LimitationKind.SUPPRESSED_POOL.value,
     LimitationKind.RETRACTED_TRIAL_POOLED.value,
     LimitationKind.STALE_TOPIC.value,
+    LimitationKind.RESULT_WITHDRAWN.value,
     LimitationKind.HARMS_INCOMPLETE.value,
     LimitationKind.SEARCH_PROVENANCE.value,
     LimitationKind.RETRIEVAL_CLASS.value,
@@ -197,6 +199,7 @@ def _linked_decision(kind: LimitationKind | str, evidence_state: EvidenceState |
         }
     if kind_value in {
         LimitationKind.STALE_TOPIC.value,
+        LimitationKind.RESULT_WITHDRAWN.value,
         LimitationKind.SUPPRESSED_POOL.value,
         LimitationKind.RETRACTED_TRIAL_POOLED.value,
         LimitationKind.CLAIM_CHECK_ZERO.value,
@@ -783,6 +786,20 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
     ) -> None:
         obj = _object(review, suffix, kind, severity, claim, state, fields, html)
         out.append(_hazard_consumers.annotate_object(review, obj, acknowledgements))
+
+    # RESULT WITHDRAWN is a limitation OBJECT, not only a page block: the page states it where the result was
+    # read, and the structured record carries the same text (a page block with no object behind it is visible
+    # state that controls nothing -- test_limitations_legacy_compare caught the first version of this notice).
+    if review.get("withdrawn"):
+        add(
+            "overview:result-withdrawn",
+            LimitationKind.RESULT_WITHDRAWN,
+            Severity.BLOCKS_CLAIM,
+            "the review's primary pooled result",
+            EvidenceState.REFUSED_ON_EVIDENCE,
+            ["/withdrawn"],
+            _page._withdrawal_block(review),
+        )
 
     inv = review.get("invalidation") or {}
     if inv.get("stale"):

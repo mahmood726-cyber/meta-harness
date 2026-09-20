@@ -136,6 +136,39 @@ def check_primary_result(review_dir):
     if not prim:
         return ["L1: review has no primary outcome"]
     res = prim.get("result") or {}
+    withdrawn = rev.get("withdrawn")
+    if withdrawn is not None:
+        # RESULT WITHDRAWN is a typed publishable state, not an absent claim: the page states that its result
+        # was wrong and why (Mahmood, 2026-09-19). It passes only with every required field present AND no
+        # number pooled beside it; either failure refuses, so the state cannot be used to publish an absence
+        # quietly or to keep a wrong number under a notice.
+        problems = []
+        if not isinstance(withdrawn, dict):
+            problems.append("withdrawn is not an object")
+        else:
+            for k in ("date", "summary", "statements", "status"):
+                if not withdrawn.get(k):
+                    problems.append(f"withdrawn.{k} missing")
+            stmts = withdrawn.get("statements") or []
+            if not (isinstance(stmts, list) and len(stmts) >= 4 and all(isinstance(x, str) and x.strip() for x in stmts)):
+                problems.append("withdrawn.statements must carry at least four non-empty statements "
+                                "(published value, what the evidence holds, why, what must land before correction)")
+            joined = " ".join(str(x) for x in stmts).lower()
+            for needle in ("what was published", "what the held evidence holds", "why", "not yet published"):
+                if needle not in joined:
+                    problems.append(f"withdrawn.statements do not state '{needle}'")
+        if res.get("k"):
+            problems.append(f"withdrawn declared but the primary outcome still pools k={res.get('k')} rows")
+        page_path = os.path.join(review_dir, "index.html")
+        try:
+            with open(page_path, encoding="utf-8") as f:
+                if "RESULT WITHDRAWN" not in f.read():
+                    problems.append("withdrawn declared but the served page carries no RESULT WITHDRAWN notice")
+        except OSError:
+            problems.append("withdrawn declared but index.html is unreadable")
+        if problems:
+            return ["L1: withdrawal state is incomplete or contradicted -- " + "; ".join(problems)]
+        return []
     if res.get("present") is False or not res.get("k"):
         return [f"L1: primary outcome {prim.get('name')!r} has no pooled result "
                 f"(k={res.get('k')}) — a page whose primary claim is absent must not publish"]
