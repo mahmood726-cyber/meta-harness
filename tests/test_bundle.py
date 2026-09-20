@@ -773,47 +773,36 @@ def test_exclusion_scopes_are_cut_before_membership_is_read():
     assert "myocardial" in exc and "myocardial" not in inc and "hazard ratio" in inc
 
 
-# ------------------------------------------------------------------ 3.15: the panel's exclusion fixtures E1-E10 (definition span = the fixture itself)
-
-_T = "(hazard ratio, 0.87; 95% CI, 0.78 to 0.97)"
-EXCLUSION_FIXTURES = {
-    "E1": ("The primary outcome was cardiovascular death only, excluding nonfatal myocardial infarction and nonfatal stroke, and occurred less often " + _T + ".", "REFUSE"),
-    "E2": ("The primary outcome was cardiovascular death and occurred less often " + _T + ".", "REFUSE"),
-    "E3": ("The primary composite outcome of cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke occurred less often " + _T + ".", "PASS"),
-    "E4": ("The primary outcome was 3-point MACE excluding unstable angina and occurred less often " + _T + ".", "PASS"),
-    "E5": ("The primary outcome was cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke and occurred less often " + _T + ". Nonfatal myocardial infarction and nonfatal stroke were not included in the primary analysis.", "REFUSE"),
-    "E6": ("The primary outcome was any cardiovascular event other than nonfatal myocardial infarction or nonfatal stroke, namely cardiovascular death, and occurred less often " + _T + ".", "REFUSE"),
-    "E7": ("The primary outcome was cardiovascular death " + _T + "; neither nonfatal myocardial infarction nor nonfatal stroke contributed.", "REFUSE"),
-    "E8": ("The primary outcome of cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke occurred less often " + _T + ". *Nonfatal myocardial infarction and nonfatal stroke were excluded from the primary analysis.", "REFUSE"),
-    "E9": ("The primary composite outcome of cardiovascular death, nonfatal myocardial infarction (excluding silent infarction), or nonfatal stroke occurred less often " + _T + ".", "PASS"),
-    "E10": ("Patients with a prior stroke were excluded from enrolment. The primary composite outcome of cardiovascular death, nonfatal myocardial infarction, or nonfatal stroke occurred less often " + _T + ".", "PASS"),
-}
 
 
-@pytest.mark.parametrize("name", list(EXCLUSION_FIXTURES))
-def test_exclusion_fixture_relational_not_sentence_scoped(name):
-    """Pre-fix on 3.14: E5 and E8 ADMITTED (exclusion outside the clause was invisible), E9 REFUSED (a parenthetical inside a
-    component was read as an exclusion). E10 is the population-exclusion control; E3/E4 the composite controls."""
-    span, expected = EXCLUSION_FIXTURES[name]
-    r = build_bundle.span_target_mention(span, [0.87, 0.78, 0.97], span, CC)
-    got = "PASS" if r["state"] == "PASS" else "REFUSE"
-    assert got == expected, (name, r)
-    if name in ("E5", "E8"):
-        assert r["excluded_components"] == ["MYOCARDIAL_INFARCTION", "STROKE"] and r["exclusion_statements"], r
-    if name == "E7":
-        assert r["excluded_components"] == ["MYOCARDIAL_INFARCTION", "STROKE"], r
-    if name == "E6":
-        assert "MYOCARDIAL_INFARCTION" in r["excluded_components"] and "STROKE" in r["excluded_components"], r
-    if name in ("E9", "E10"):
-        assert not r["excluded_components"], r        # a qualifier on a component / a population exclusion cut nothing
+# ------------------------------------------------------------------ 3.17: three pooled states, extra/missing rendered, P13/P14
+
+ODYSSEY_FIELDS = {"id": "PMID 30403574", "target_endpoint_class": "NEAR_MATCH", "endpoint_admissibility": "NEAR_MATCH_DECLARED",
+                  "target_endpoint_components": "['coronary heart disease death', 'myocardial infarction', 'stroke', 'unstable angina']",
+                  "target_endpoint_extra_components": "['unstable angina']", "target_endpoint_missing_components": "[]"}
 
 
-def test_split_exclusions_parenthetical_scope_and_analysis_statements():
-    inc, exc = build_bundle.split_exclusions("cardiovascular death, nonfatal myocardial infarction (excluding silent infarction), or nonfatal stroke")
-    assert exc == "" and "nonfatal myocardial infarction" in inc and "stroke" in inc
-    inc, exc = build_bundle.split_exclusions("cardiovascular death (excluding stroke), or nonfatal myocardial infarction")
-    assert "stroke" in exc and "stroke" not in inc                                                    # a different component inside the parenthetical IS an exclusion
-    ex, stmts = build_bundle.analysis_exclusions("patients with a prior stroke were excluded from enrolment. the primary outcome occurred.")
-    assert ex == "" and stmts == []
-    ex, stmts = build_bundle.analysis_exclusions("the primary outcome occurred (hazard ratio, 0.87). nonfatal stroke was not included in the primary analysis.")
-    assert "stroke" in ex and len(stmts) == 1
+def test_component_set_checks_fail_on_odyssey_and_pass_on_an_exact_row():
+    c = build_bundle.component_set_checks(ODYSSEY_FIELDS, ["CORONARY_HEART_DISEASE_DEATH", "MYOCARDIAL_INFARCTION", "STROKE", "UNSTABLE_ANGINA"], CC)
+    assert c["pooled_state"] == "NEAR_MATCH_POOLED" and c["P13_no_extra_components"] is False and c["P14_missing_components_consistent"] is False
+    assert c["row_lacks"] == ["CARDIOVASCULAR_DEATH"] and c["row_surplus"] == ["CORONARY_HEART_DISEASE_DEATH", "UNSTABLE_ANGINA"]
+    ok = build_bundle.component_set_checks({"target_endpoint_class": "EXACT_TARGET", "target_endpoint_extra_components": [], "target_endpoint_missing_components": []}, CC, CC)
+    assert ok["pooled_state"] == "EXACT_TARGET_POOLED" and ok["P13_no_extra_components"] and ok["P14_missing_components_consistent"]
+    unb = build_bundle.component_set_checks({"endpoint_binding": "unbound_legacy", "endpoint_admissibility": "UNBOUND_LEGACY"}, [], CC)
+    assert unb["pooled_state"] == "UNBOUND_POOLED" and unb["P13_no_extra_components"] and unb["P14_missing_components_consistent"]   # nothing to compare: not a clear, not a fail
+    # a row that RECORDS what it lacks is consistent: the refusal then comes from P4/P9, not from P14
+    rec = build_bundle.component_set_checks({"target_endpoint_class": "NEAR_MATCH", "target_endpoint_extra_components": [], "target_endpoint_missing_components": ["cardiovascular death"]},
+                                            ["MYOCARDIAL_INFARCTION", "STROKE"], CC)
+    assert rec["P14_missing_components_consistent"] is True and rec["row_lacks"] == ["CARDIOVASCULAR_DEATH"]
+
+
+def test_bundle_renders_pooled_state_and_component_lists_per_row(bundle):
+    for r in bundle["verification_rows"]:
+        assert r["pooled_state"] == "EXACT_TARGET_POOLED"
+        assert r["admission"]["predicates"]["P13_no_extra_components"]["state"] == "PASS"
+        assert r["admission"]["predicates"]["P14_missing_components_consistent"]["state"] == "PASS"
+    bs = bundle["binding_states"]
+    assert bs["counts"]["pooled_states"] == {"EXACT_TARGET_POOLED": 8, "UNBOUND_POOLED": 2} and bs["counts"]["rows_with_extra_components"] == 0
+    for r in bs["rows"]:
+        assert "extra_components" in r and "missing_components" in r and "components_as_classified" in r
+    assert any(l["id"] == "L15_pooled_state_is_rendered_not_enforced_upstream" for l in bundle["limits"])

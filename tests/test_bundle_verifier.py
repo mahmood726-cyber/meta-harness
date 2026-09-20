@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))   # test-side helpers only; th
 SLUG = "glp1-ra-mace-t2d"
 VERIFIER = os.path.join(ROOT, "scripts", "verify_bundle.py")
 PER_ROW_LIMBS = ("span", "effect", "components", "eligibility", "conflict", "nontarget_span", "unlisted_span", "fragment",
-                 "ci_high_rounded", "ci_low_truncated", "duplicate_span_no_offsets")
+                 "ci_high_rounded", "ci_low_truncated", "duplicate_span_no_offsets", "near_match")
 MIGRATION_LIMB = "binding"
 
 
@@ -588,3 +588,17 @@ def test_parenthetical_qualifier_inside_a_component_is_not_refused(tmp_path):
     rep = _verify(root)
     row = next(r for r in rep["rows"] if r["pmid"] == "27295427")
     assert row["p9"]["state"] == "PASS" and not row["p9"]["excluded_components"]
+
+
+
+def test_near_match_with_extra_component_is_refused_by_the_verifier():
+    """ODYSSEY's served fields planted on a glp1 row (--corrupt near_match): the verifier's own P13/P14 refuse it whatever the
+    producer's admissibility says."""
+    rep = _run("--corrupt", "27633186", "near_match")
+    row = next(r for r in rep["rows"] if r["pmid"] == "27633186")
+    assert row["pooled_state"] == "NEAR_MATCH_POOLED"
+    assert row["predicates"]["P13_no_extra_components"] is False and row["predicates"]["P14_missing_components_consistent"] is False
+    assert row["component_sets"]["extra_components"] == ["unstable angina"] and row["component_sets"]["row_lacks"] == ["CARDIOVASCULAR_DEATH"]
+    assert row["final"] == "INADMISSIBLE"
+    others = [r for r in rep["rows"] if r["pmid"] != "27633186"]
+    assert all(r["predicates"]["P13_no_extra_components"] and r["predicates"]["P14_missing_components_consistent"] for r in others)

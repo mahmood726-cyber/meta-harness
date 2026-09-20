@@ -66,8 +66,10 @@ from harness.canonical import canonical_json, review_core, sha256_text  # noqa: 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.15"
+FORMAT_REVISION = "3.17"
 FORMAT_CHANGELOG = [
+    "3.17 (2026-09-20, pcsk9-mace third live wrong pool): every row carries pooled_state (EXACT_TARGET_POOLED / NEAR_MATCH_POOLED / UNBOUND_POOLED) with extra_components and missing_components RENDERED beside components_as_classified; P13_no_extra_components and P14_missing_components_consistent added to the admission predicates in both copies (ODYSSEY's fields fail both); limit L15; served sweeps strict_subset_sweep.json and pooled_class_sweep.json.",
+    "3.16 (2026-09-20): exclusion statements are also read from the DOCUMENT NEIGHBOURHOOD of the located span (+/-400 code points in the representation where P2 located it), so a footnote or a sentence outside both of the row's spans still cuts; P9 reports exclusion_scope_searched. Row-span and definition-span scope (3.15) was measured relational, not sentence-scoped, on E1-E10; this closes the remaining hole named in the 3.15 report (the scope was the row's spans, not the document).",
     "3.15 (2026-09-20, panel exclusion fixtures E1-E10): exclusion is read RELATIONALLY across the whole span, not the clause -- an exclusion statement in the next sentence or a footnote after the result ('X and Y were not included in / excluded from the primary analysis', 'neither X nor Y contributed') cuts those components from the target claim and is reported in exclusion_statements; a cue inside a parenthetical is scoped to the parenthetical and a qualifier on a component ('nonfatal MI (excluding silent infarction)') excludes nothing; a POPULATION exclusion ('patients with a prior stroke were excluded from enrolment') cuts nothing. Pre-fix on 3.14: E5 and E8 admitted, E9 refused.",
     "3.14 (2026-09-20): withdrawal_record bound to the served notice schema (bd9a0751): review.withdrawn {date, summary, statements, status} with the gate's contract mirrored -- four required statements, RESULT WITHDRAWN on the page, nothing pooled -- and the withdrawn row's absent_kind result_withdrawn + withdrawn_effect (what was published). A declared-but-empty, declared-but-contradicted (a number still pooled) or row-without-record withdrawal is refused by the builder.",
     "3.13 (2026-09-20): P9 reads membership AFTER cutting out exclusion scopes and reports excluded_components beside included -- 'cardiovascular death only, excluding nonfatal MI and nonfatal stroke' names three components and is refused; '3-point MACE excluding unstable angina' is compatible (no keyword blacklist); a clause that itself defines the primary outcome as something other than the target is not rescued by the row's definition span.",
@@ -151,6 +153,11 @@ LIMITS = [
     {"id": "L13_location_by_full_text_and_offsets", "limit": "spans are located by their FULL text (verbatim, or normalised under the published manifest) "
      "and recorded with code-point offsets, not by a prefix match; a prefix-locator's failure mode (two sentences sharing a long opening) does not "
      "apply, and a span that occurs more than once is SPAN_LOCATION_AMBIGUOUS unless offsets pin one occurrence -- measured by the B3 fixture."},
+    {"id": "L15_pooled_state_is_rendered_not_enforced_upstream", "limit": "the producer pools EXACT_TARGET, NEAR_MATCH_DECLARED and UNBOUND_LEGACY rows into one "
+     "estimate and renders them alike (pcsk9-mace, 2026-09-20: k=3 with one of each; ODYSSEY carries extra ['unstable angina'] and missing [] while naming coronary "
+     "heart disease death for cardiovascular death). This bundle names the pooled_state of every rendered row, fails P13/P14 on a pooled row with an extra or an "
+     "unrecorded missing component, and ships the sweep over all 32 served reviews (strict_subset_sweep.json, pooled_class_sweep.json); it does not change what "
+     "the producer pools. For this review every primary row is EXACT_TARGET_POOLED; the two harms rows are UNBOUND_POOLED."},
     {"id": "L14_verification_rows_source_pubmed_only", "limit": "verification_rows[] bind rows whose evidence is a PubMed record in records.json; a row "
      "whose evidence is a text artefact (FDA extraction) is not expressible as a verification row and is carried under regulatory_facts[] with its own "
      "identity binding. A fixture that sources a primary row from a text artefact will fail P1/P2 for that reason, not for a defect in the row."},
@@ -329,6 +336,8 @@ VOCABULARY = {
         "P10_estimand_evidence": "every STATED_IN_OWNING_EVIDENCE field reproduces at its offsets; no REGISTERED_DEFAULT carries a span (verifier-side)",
         "P11_registered_estimand": "a stated analysis set / treatment strategy agrees with the estimand the served protocol registers; UNRESOLVED fails; a default agrees by construction",
         "P12_ci_level": "the CI level stated in the tuple's clause equals the level the SE derivation assumed (95%); MISMATCH refuses; UNSTATED passes with the assumption recorded",
+        "P13_no_extra_components": "the row's bound endpoint carries no component the target lacks (a NEAR_MATCH pooled with a named extra component fails)",
+        "P14_missing_components_consistent": "missing_components names every target component the row's set lacks ([] beside a lacking row fails)",
         "P9_span_target_mention": "POSITIVE binding: the tuple's own clause carries a target phrase, the target definition (>=2 canonical components), "
                                   "or a primary-outcome name bound by the row's definition span to the target; a recognised non-target mention refuses "
                                   "ENDPOINT_INCOMPATIBLE; no recognised mention refuses AMBIGUOUS_ENDPOINT_BINDING. Read from the span, not from metadata.",
@@ -853,6 +862,8 @@ _ANALYSIS_EXCL = re.compile(
 _NEITHER = re.compile(r"neither\s+(?P<a>[^.;]{3,80}?)\s+nor\s+(?P<b>[^.;]{3,80}?)\s+(?:contributed|counted|was\s+(?:included|counted)|were\s+(?:included|counted)|"
                       r"was\s+part|were\s+part|formed\s+part)", re.I)
 _NOT_CONTRIB = re.compile(r"(?P<subj>(?:^|(?<=[.;*]))\s*[^.;]{3,160}?)\s+did\s+not\s+(?:contribute|count)\b", re.I)
+# a statement framed by ANOTHER outcome ('for the secondary renal outcome, stroke was not included in the composite') is not about the target
+_OTHER_OUTCOME_FRAME = re.compile(r"\b(?:secondary|key secondary|tertiary|exploratory|safety|sensitivity)\b[^.;]{0,60}?\b(?:outcome|end ?point|analysis|composite)\b", re.I)
 
 
 def named_components(text):
@@ -892,29 +903,33 @@ def analysis_exclusions(text):
     A statement whose subject or scope is the POPULATION ('patients with a prior stroke were excluded from enrolment') is not an
     outcome exclusion and is left alone. Returns (excluded_text, [statements])."""
     out, stmts = [], []
+    def other_frame(whole):
+        return bool(_OTHER_OUTCOME_FRAME.search(whole)) and "primary" not in whole.lower()
     for m in _ANALYSIS_EXCL.finditer(text):
-        if _POPULATION.search(m.group("subj")) or _POPULATION.search(m.group("scope")):
+        if _POPULATION.search(m.group("subj")) or _POPULATION.search(m.group("scope")) or other_frame(m.group(0)):
             continue
         out.append(m.group("subj")); stmts.append(m.group(0).strip())
     for m in _NEITHER.finditer(text):
-        if _POPULATION.search(m.group("a")) or _POPULATION.search(m.group("b")):
+        if _POPULATION.search(m.group("a")) or _POPULATION.search(m.group("b")) or other_frame(m.group(0)):
             continue
         out.append(m.group("a") + " " + m.group("b")); stmts.append(m.group(0).strip())
     for m in _NOT_CONTRIB.finditer(text):
-        if _POPULATION.search(m.group("subj")):
+        if _POPULATION.search(m.group("subj")) or other_frame(m.group(0)):
             continue
         out.append(m.group("subj")); stmts.append(m.group(0).strip())
     return " ; ".join(out), stmts
 
 
-def span_target_mention(span, values, definition_span, canonical_components):
+def span_target_mention(span, values, definition_span, canonical_components, context=None):
     """POSITIVE binding. The tuple's own clause must carry a TARGET mention: a target phrase, a target DEFINITION (>= 2 canonical
     components AND a definitional cue -- co-occurrence of component words is not ownership), or a primary-outcome name that the
     row's definition span binds to the target. Exclusion scopes ('excluding X') are removed before membership is read, exclusion
     STATEMENTS anywhere in the span or the row's definition ('X was not included in the primary analysis', a footnote after the
     result, 'neither X nor Y contributed') cut the same components, and the excluded components are reported -- mentioning what
     is excluded must never make it included. A qualifier inside a component and a POPULATION exclusion cut nothing. A clause that
-    itself DEFINES the primary outcome as something other than the target is not rescued by the row's definition span. A clause
+    itself DEFINES the primary outcome as something other than the target is not rescued by the row's definition span. `context`
+    (the document neighbourhood of the located span, see document_neighbourhood) is searched for exclusion STATEMENTS too, so a
+    footnote outside both of the row's spans still cuts. A clause
     that ALSO carries a non-target mention (or a lone component) is AMBIGUOUS_ENDPOINT_BINDING, never a pass; only a non-target
     mention is ENDPOINT_INCOMPATIBLE; no recognised mention is AMBIGUOUS_ENDPOINT_BINDING. Never a fallback to the definition span."""
     clause = clause_with_effect(span, values)
@@ -926,9 +941,11 @@ def span_target_mention(span, values, definition_span, canonical_components):
     d, d_exc = split_exclusions(d_all)
     s_exc, s_stmts = analysis_exclusions(s_all)
     d_stmt_exc, d_stmts = analysis_exclusions(d_all)
+    x_exc, x_stmts = analysis_exclusions(normalize(context).lower()) if context else ("", [])
+    x_stmts = [x for x in x_stmts if x not in s_stmts and x not in d_stmts]
     named = named_components
     comps_c, comps_d = named(c), named(d)
-    excluded_c, excluded_d, excluded_s = named(c_exc), named(d_exc + " ; " + d_stmt_exc), named(s_exc)
+    excluded_c, excluded_d, excluded_s, excluded_x = named(c_exc), named(d_exc + " ; " + d_stmt_exc), named(s_exc), named(x_exc)
     canon = set(canonical_components or [])
     primary_named = any(n in c for n in PRIMARY_NAMES)
     cue = any(k in c for k in DEFINITION_CUES)
@@ -945,10 +962,11 @@ def span_target_mention(span, values, definition_span, canonical_components):
         target.append({"kind": "primary-outcome name bound by the row's definition span", "witness": [n for n in PRIMARY_NAMES if n in c]})
     non_target = [m for m in NON_TARGET_MENTIONS if m in c]
     lone_component = (len(comps_c) == 1 and not target)
-    excluded_all = sorted(set(excluded_c) | set(excluded_d) | set(excluded_s))
+    excluded_all = sorted(set(excluded_c) | set(excluded_d) | set(excluded_s) | set(excluded_x))
     excluded_target = sorted(set(excluded_all) & canon)
-    where = [w for w, xs in (("clause", excluded_c), ("definition", excluded_d), ("span statement", excluded_s)) if set(xs) & canon]
-    base = {"clause": clause, "excluded_components": excluded_all or None, "exclusion_statements": (s_stmts + d_stmts) or None}
+    where = [w for w, xs in (("clause", excluded_c), ("definition", excluded_d), ("span statement", excluded_s), ("document neighbourhood", excluded_x)) if set(xs) & canon]
+    base = {"clause": clause, "excluded_components": excluded_all or None, "exclusion_statements": (s_stmts + d_stmts + x_stmts) or None,
+            "exclusion_scope_searched": ["clause", "row span", "row definition span"] + (["document neighbourhood (+/-400 code points around the located span)"] if context else [])}
     if excluded_target and not any(ph in c for ph in TARGET_PHRASES):
         return {"state": "ENDPOINT_INCOMPATIBLE", "mention": f"the {' / '.join(where)} EXCLUDES a target component; mentioning what is excluded does not include it",
                 "witness": {"included": comps_c, "excluded": excluded_target}, **base}
@@ -976,6 +994,57 @@ def locate_all(span, hay):
         i = h.find(s)
         return {"match": "NORMALISED", "parent": "NORMALIZED_SOURCE", "start": i, "end": i + len(s), "occurrences": n}
     return {"match": "NOT_LOCATED", "occurrences": 0}
+
+
+def document_neighbourhood(span, hay, radius=400):
+    """The document text around the located span: `radius` code points before its start and after its end, in the representation
+    where it was located. This is where an exclusion statement lives when it is not inside the row's own spans (a footnote after
+    the result, the sentence before it). None when the span is not located."""
+    loc = locate_all(span, hay)
+    if loc["match"] not in ("VERBATIM", "NORMALISED"):
+        return None
+    text = hay if loc["parent"] == "PARSED_SOURCE" else normalize(hay)
+    return text[max(0, loc["start"] - radius):loc["end"] + radius]
+
+
+# ---- pooled state and component-set consistency (pcsk9-mace, 2026-09-20: a NEAR_MATCH with extra ['unstable angina'] and missing []
+#      pooled beside an EXACT_TARGET and an UNBOUND row; the producer renders the three alike) ----------------------------------
+def _aslist(v):
+    if isinstance(v, list):
+        return [str(x) for x in v]
+    if isinstance(v, str) and v.startswith("["):
+        try:
+            return [str(x) for x in json.loads(v.replace("'", '"'))]
+        except Exception:
+            return [v]
+    return []
+
+
+def pooled_state(t):
+    """EXACT_TARGET_POOLED / NEAR_MATCH_POOLED / UNBOUND_POOLED (no class: admitted through the UNBOUND_LEGACY fail-open) / OTHER."""
+    cls, adm, b = t.get("target_endpoint_class"), t.get("endpoint_admissibility") or "", t.get("endpoint_binding")
+    if cls == "EXACT_TARGET":
+        return "EXACT_TARGET_POOLED"
+    if cls == "NEAR_MATCH" or adm.startswith("NEAR_MATCH"):
+        return "NEAR_MATCH_POOLED"
+    if b == "unbound_legacy" or adm == "UNBOUND_LEGACY" or not cls:
+        return "UNBOUND_POOLED"
+    return f"OTHER:{cls}"
+
+
+def component_set_checks(t, row_canonical, target_canonical):
+    """P13: no EXTRA component in a pooled row. P14: missing_components must name every target component the row lacks (a row that
+    lacks 'cardiovascular death' with missing [] is the withdrawn-review defect). Surplus with extra [] is reported (C3), not a
+    predicate: against a lexicon-collapsed target it names the target's defect, not the row's."""
+    extra, missing = _aslist(t.get("target_endpoint_extra_components")), _aslist(t.get("target_endpoint_missing_components"))
+    row, target = set(row_canonical or []), set(target_canonical or [])
+    lacks = sorted(target - row) if row and target else []
+    surplus = sorted(row - target) if row and target else []
+    return {"pooled_state": pooled_state(t), "row_components_canonical": sorted(row), "target_components_canonical": sorted(target),
+            "extra_components": extra, "missing_components": missing, "row_lacks": lacks, "row_surplus": surplus,
+            "P13_no_extra_components": not extra,
+            "P14_missing_components_consistent": not (lacks and not missing),
+            "C3_surplus_with_empty_extra": bool(surplus) and not extra}
 
 
 # ---- estimand evidence: analysis set / window / contrast / estimator WITH a span, or an explicit default ----------
@@ -1261,7 +1330,7 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                                                "rule": "positive claim: a located excerpt suffices; coverage_status of the source is " + str(cov)},
             "P8_endpoint_bound": {"state": "PASS" if t.get("endpoint_binding") == "named_endpoint_resolved_to_definition_span" else "FAIL",
                                   "endpoint_binding": t.get("endpoint_binding"), "endpoint_admissibility": t.get("endpoint_admissibility")},
-            "P9_span_target_mention": span_target_mention(span, values, t.get("endpoint_definition_span"), canonical_components) if all(v is not None for v in values)
+            "P9_span_target_mention": span_target_mention(span, values, t.get("endpoint_definition_span"), canonical_components, context=document_neighbourhood(span, parsed)) if all(v is not None for v in values)
                                       else {"state": "AMBIGUOUS_ENDPOINT_BINDING", "mention": "no effect tuple"},
         }
         reg = registered_estimand(slug)
@@ -1278,11 +1347,20 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
         predicates["P11_registered_estimand"] = {"state": "PASS" if not unregistered else "FAIL", "registered": {k: reg[k] for k in ("analysis_set", "treatment_strategy")},
                                                  "protocol_ref": reg["protocol_ref"], "protocol_span_start": reg["start"], "departures": unregistered,
                                                  "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails"}
+        csc = component_set_checks(t, components_canonical, canonical_components)
+        predicates["P13_no_extra_components"] = {"state": "PASS" if csc["P13_no_extra_components"] else "FAIL", "extra_components": csc["extra_components"],
+                                                 "pooled_state": csc["pooled_state"],
+                                                 "rule": "a row whose bound endpoint carries a component the target does not (NEAR_MATCH with a named extra) does not enter the pool"}
+        predicates["P14_missing_components_consistent"] = {"state": "PASS" if csc["P14_missing_components_consistent"] else "FAIL",
+                                                           "missing_components": csc["missing_components"], "row_lacks": csc["row_lacks"], "row_surplus": csc["row_surplus"],
+                                                           "surplus_with_empty_extra": csc["C3_surplus_with_empty_extra"],
+                                                           "rule": "missing_components must name every target component the row's set lacks; [] beside a lacking row is the withdrawn-review defect"}
         failing = [k for k, v in predicates.items() if v["state"] != "PASS"]
         final = ("ADMISSIBLE" if not failing else
                  "MIGRATION_STATE_UNBOUND_LEGACY" if failing == ["P8_endpoint_bound"] and t.get("endpoint_binding") == "unbound_legacy" else
                  "INADMISSIBLE")
         rows.append({
+            "pooled_state": csc["pooled_state"],
             "outcome_effect_id": t.get("outcome_effect_id"),
             "trial": {"label": t.get("label"), "id": trial_id, "family_id": t.get("family_id"), "trial_family_id": t.get("trial_family_id")},
             "source": {"source_id": f"pubmed:{pmid}", "document_ref": f"{rec_ref}#PMID-{pmid}",
@@ -1468,6 +1546,8 @@ def binding_states(review: dict, primary_ids: set, cert: dict | None = None, slu
                           "REACHED_GATE_UNCLASSIFIED" if t.get("endpoint_admissibility") else "GATE_VERDICT_NOT_RECORDED")
             row = {"outcome": o["name"], "primary": bool(o.get("primary")), "trial": {"id": t.get("id"), "label": t.get("label")},
                    "endpoint_binding": b, "endpoint_admissibility": t.get("endpoint_admissibility"), "target_endpoint_class": t.get("target_endpoint_class"),
+                   "pooled_state": pooled_state(t), "components_as_classified": _aslist(t.get("target_endpoint_components")) or None,
+                   "extra_components": _aslist(t.get("target_endpoint_extra_components")), "missing_components": _aslist(t.get("target_endpoint_missing_components")),
                    "binding_class": cls, "producer_labels": {"verified": t.get("verified"), "verify_basis": t.get("verify_basis"), "provenance": t.get("provenance")},
                    "route": route, "route_evidence": ov, "gate_state": gate_state,
                    "in_verification_rows": bool(o.get("primary")) and t.get("id") in primary_ids,
@@ -1493,7 +1573,12 @@ def binding_states(review: dict, primary_ids: set, cert: dict | None = None, slu
     for r in rows:
         gate_states[r["gate_state"]] = gate_states.get(r["gate_state"], 0) + 1
     gate_states["NEVER_REACHED_GATE"] = 0 if gate.get("admit_rows_applies_to_every_route") else None
+    pooled_states = {}
+    for r in rows:
+        pooled_states[r["pooled_state"]] = pooled_states.get(r["pooled_state"], 0) + 1
     return {"rows": rows, "counts": {"rows": len(rows), "bound": sum(1 for r in rows if r["binding_class"] == "BOUND"),
+                                      "pooled_states": pooled_states,
+                                      "rows_with_extra_components": sum(1 for r in rows if r["extra_components"]),
                                       "migration_state_unbound_legacy": n_unb, "other": sum(1 for r in rows if r["binding_class"] == "OTHER"),
                                       "route_override_before_classification": sum(1 for r in rows if r["route"] == "OVERRIDE_BEFORE_CLASSIFICATION"),
                                       "gate_states": gate_states},
