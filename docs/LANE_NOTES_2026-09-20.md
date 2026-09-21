@@ -38,3 +38,11 @@ Short lines, no ceremony. Each one cost hours tonight.
     accident. **When a stale committed artefact turns up, ask how long it has been stale and what changed underneath it** (here:
     since the 1st re-certification; exactly the six rows of the withdrawn outcome). That question is what turns an incidental diff
     into a finding, and it costs one `git show HEAD:<path>` and a keyed comparison.
+11. **A test that resolves its own "base" is a second instrument, and it will disagree with the first exactly when the branch
+    becomes main.** `tests/test_rebuild_invariance.py` computed `merge-base HEAD origin/main` itself while the script it tests uses
+    `honest_ratchet._resolve_base`, which falls back to `HEAD~1` when `HEAD == origin/main`. On the branch both said `8b1fb37d`;
+    on main they said `b4e54276` and `bebd85a2`, the copy carried a block the base lacked, and CI refused a commit that had
+    passed the same 11 limbs on the branch an hour earlier (`main` sat un-deployed at `b4e54276` until the fix). The copy now comes
+    from the script's own base ref by `git show`, and the plant is a synthetic block no base can carry. General form: **a
+    branch→main landing changes what `origin/main` means; anything that reads it is a different check on main than it was on the
+    branch.**
