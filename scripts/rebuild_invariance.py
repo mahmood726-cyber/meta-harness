@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import difflib
 import hashlib
+import re
 import io
 import json
 import subprocess
@@ -42,6 +43,29 @@ def _show(ref, path):
 
 def _norm(text):
     return " ".join(text.split())
+
+
+def _all_outcomes_state(review_json_text):
+    """{outcome name: (k, estimate, pool_refused code)} for EVERY outcome -- a moved pool anywhere is a finding."""
+    try:
+        r = json.loads(review_json_text)
+        return {o.get("name"): ((o.get("result") or {}).get("k"), (o.get("result") or {}).get("estimate"),
+                                ((o.get("result") or {}).get("pool_refused") or {}).get("code")) for o in r.get("outcomes", [])}
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _parity_relation(slug):
+    try:
+        d = json.load(open(ROOT / "docs" / "parity.json", encoding="utf-8"))
+        rows = d.get("rows") or d.get("topics") or d
+        if isinstance(rows, dict):
+            e = rows.get(slug)
+        else:
+            e = next((x for x in rows if x.get("slug") == slug), None)
+        return {k: e.get(k) for k in ("status", "relation", "our_k", "their_k") if isinstance(e, dict) and k in e} if e else None
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _primary_state(review_json_text):
@@ -66,13 +90,22 @@ def check_page(slug, base_html, new_html, base_rev, new_rev, acks, expect_added,
     base_text, new_text = _norm(hr._rendered_text(base_html)), _norm(hr._rendered_text(new_html))
     for b in added:
         new_text = _norm(new_text.replace(_norm(b["text"]), ""))
+    # Digests rendered on the page (review_sha256, release_sha256, html_sha256, blob ids, certificate fields) MUST move when the
+    # review core changes; they are counted separately and are not content. Everything else that differs is a finding.
+    hexre = re.compile(r"[0-9a-f]{12,64}")     # rendered digests and blob ids; masked before the content diff
+    base_hex, new_hex = hexre.findall(base_text), hexre.findall(new_text)
+    digest_tokens_changed = sum(1 for a, b in zip(base_hex, new_hex) if a != b) + abs(len(base_hex) - len(new_hex))
+    base_masked, new_masked = hexre.sub("<HEX>", base_text), hexre.sub("<HEX>", new_text)
     other = []
-    if base_text != new_text:
-        for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, base_text, new_text).get_opcodes():
+    if base_masked != new_masked:
+        sm = difflib.SequenceMatcher(None, base_masked.split(" "), new_masked.split(" "), autojunk=False)
+        for tag, i1, i2, j1, j2 in sm.get_opcodes():
             if tag != "equal":
-                other.append({"op": tag, "before": base_text[i1:i2][:160], "after": new_text[j1:j2][:160]})
+                other.append({"op": tag, "before": " ".join(base_masked.split(" ")[i1:i2])[:160], "after": " ".join(new_masked.split(" ")[j1:j2])[:160]})
     pb, pa = (_primary_state(base_rev) if base_rev else None), _primary_state(new_rev)
     primary_changed = bool(pb) and any((pb or {}).get(k) != pa.get(k) for k in ("k", "estimate", "pool_refused", "withdrawn"))
+    ob, oa = (_all_outcomes_state(base_rev) if base_rev else None), _all_outcomes_state(new_rev)
+    moved_outcomes = sorted(n for n in set((ob or {}) | (oa or {})) if (ob or {}).get(n) != (oa or {}).get(n)) if ob is not None else []
     want = exceptions.get(slug, {}).get("n", expect_added)
     reasons = []
     if problems:
@@ -83,6 +116,8 @@ def check_page(slug, base_html, new_html, base_rev, new_rev, acks, expect_added,
         reasons.append(f"{len(other)} other text change(s)")
     if primary_changed:
         reasons.append("primary state changed")
+    if moved_outcomes:
+        reasons.append(f"pool moved on outcome(s): {moved_outcomes}")
     if want is not None and len(added) != want:
         reasons.append(f"added {len(added)} block(s), expected {want}")
     if added_text and want == 1 and len(added) == 1 and not _norm(added[0]["text"]).startswith(added_text):
@@ -96,7 +131,8 @@ def check_page(slug, base_html, new_html, base_rev, new_rev, acks, expect_added,
             "blocks_before": len(bb), "blocks_after": len(nb),
             "lost_blocks": [{"class": b["cls"], "text": _norm(b["text"])[:120]} for b in lost],
             "added_blocks": [{"class": b["cls"], "text": _norm(b["text"])[:120]} for b in added],
-            "other_text_changes": other[:12], "primary_before": pb, "primary_after": pa, "primary_changed": primary_changed,
+            "other_text_changes": other[:12], "digest_tokens_changed": digest_tokens_changed, "primary_before": pb, "primary_after": pa, "primary_changed": primary_changed,
+            "outcomes_moved": moved_outcomes, "parity_relation": _parity_relation(slug),
             "verdict": "PASS" if not reasons else "FAIL", "reasons": reasons}
 
 
@@ -141,7 +177,7 @@ def main(argv=None):
         flag = "  " if row["verdict"] == "PASS" else "!!"
         exc = f" [EXCEPTION n={row['exception']['n']}: {row['exception']['reason']}]" if row["exception"] else ""
         print(f"{flag} {slug:<44} ratchet={len(row['ratchet_problems'])} lost={len(row['lost_blocks'])} added={len(row['added_blocks'])} "
-              f"other={len(row['other_text_changes'])} primary k {(row['primary_before'] or {}).get('k')}->{row['primary_after'].get('k')} "
+              f"other={len(row['other_text_changes'])} digests={row['digest_tokens_changed']} outcomes_moved={len(row['outcomes_moved'])} primary k {(row['primary_before'] or {}).get('k')}->{row['primary_after'].get('k')} "
               f"withdrawn {(row['primary_before'] or {}).get('withdrawn')}->{row['primary_after'].get('withdrawn')}{exc}")
         for r in row["reasons"]:
             print(f"      REASON {r}")

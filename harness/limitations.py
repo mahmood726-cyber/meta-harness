@@ -36,6 +36,7 @@ class LimitationKind(str, Enum):
     DECLARED_STRANDS = "DECLARED_STRANDS"
     STALE_TOPIC = "STALE_TOPIC"
     RESULT_WITHDRAWN = "RESULT_WITHDRAWN"
+    PRE_RELEASE = "PRE_RELEASE"
     AUDITABILITY_SCOPE = "AUDITABILITY_SCOPE"
     SUPPRESSED_POOL = "SUPPRESSED_POOL"
     RETRACTED_TRIAL_POOLED = "RETRACTED_TRIAL_POOLED"
@@ -799,6 +800,21 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
             EvidenceState.REFUSED_ON_EVIDENCE,
             ["/withdrawn"],
             _page._withdrawal_block(review),
+        )
+
+    # PRE-RELEASE (Mahmood, 2026-09-20) is a limitation OBJECT with the page block as its rendered_text: the release label
+    # qualifies every claim on the page (generating tree unrecorded; the 'verified' label's defects; the permeable admission
+    # path; named incorrect values). A page block with no object behind it is visible state that controls nothing -- the
+    # gate refused the page-only version of this notice, as it had the first withdrawn notice.
+    if (review.get("release_status") or {}).get("status") == "PRE-RELEASE":
+        add(
+            "overview:pre-release",
+            LimitationKind.PRE_RELEASE,
+            Severity.QUALIFIES_CLAIM,
+            "every claim on this page, as a claim of the release it belongs to",
+            EvidenceState.PROVISIONAL,
+            ["/release_status"],
+            _page._prerelease_overview(review),
         )
 
     inv = review.get("invalidation") or {}

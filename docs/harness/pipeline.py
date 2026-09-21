@@ -2186,6 +2186,12 @@ def build_review_core(slug, config, records, protocol_sha):
     _cg_bad = claimgraph_mod.check(review)
     if _cg_bad:
         raise ValueError("CLAIMGRAPH CONTRADICTION (build refused): " + json.dumps(_cg_bad))
+    # RELEASE STATUS: a release-level label (registry/release_status.json) is part of the review core, so review_sha256 covers it,
+    # the replay reproduces it, the page renders it and the gate refuses a page that drops it. Absent file = no label. Loaded BEFORE build_limitations so the label's limitation object is built (the first placement, after it, produced a page block with no object -- the defect the notice describes).
+    _rs = os.path.join(ROOT, "registry", "release_status.json")
+    if os.path.exists(_rs):
+        with open(_rs, encoding="utf-8") as _f:
+            review["release_status"] = json.load(_f)
     review["limitations"] = build_limitations(review)
     review = propositions_mod.attach(review)
     _prop_bad = propositions_mod.check_propositions(review)

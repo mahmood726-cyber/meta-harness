@@ -82,6 +82,48 @@ def check_limb1(review_dir, manifest, html, rep):
         if manifest.get("html_sha256") != served_sha:
             reasons.append("L1: manifest html_sha256 != sha256(served index.html)")
 
+    # RELEASE STATUS: a page whose review declares PRE-RELEASE must say so, with every reason, or it does not publish -- a
+    # demotion is a claim and passes the same discipline as the thing it replaces (Mahmood, 2026-09-20).
+    try:
+        with open(os.path.join(review_dir, "review.json"), encoding="utf-8") as _f:
+            _rs = (json.load(_f).get("release_status") or {})
+    except (OSError, ValueError):
+        _rs = {}
+    if _rs.get("status") == "PRE-RELEASE":
+        if "PRE-RELEASE" not in html or "data-release-status='PRE-RELEASE'" not in html:
+            reasons.append("L1: review declares PRE-RELEASE but the served page carries no PRE-RELEASE notice")
+        ids = [x.get("id") for x in _rs.get("reasons", []) if isinstance(x, dict)]
+        if _rs.get("scope_boundary") and "data-release-scope='boundary'" not in html:
+            reasons.append("L1: PRE-RELEASE scope boundary is declared but not rendered")
+        if _rs.get("statement_currency") and "data-release-currency=" not in html:
+            reasons.append("L1: PRE-RELEASE statement currency is declared but not rendered")
+        _sup = (_rs.get("statement_currency") or {}).get("superseded_by")
+        if _sup is not None:
+            import re as _re, subprocess as _sp
+            if not (isinstance(_sup, str) and _re.fullmatch(r"[0-9a-f]{40}", _sup)):
+                reasons.append(f"L1: PRE-RELEASE superseded_by must be null or a 40-hex commit, got {_sup!r}")
+            elif _sp.run(["git", "cat-file", "-e", f"{_sup}^{{commit}}"], capture_output=True, stdin=_sp.DEVNULL).returncode != 0:
+                reasons.append(f"L1: PRE-RELEASE superseded_by names a commit not present in this repository: {_sup}")
+        _cs = ((_rs.get("decision") or {}).get("countersignature") or {})
+        _state = _cs.get("state")
+        if _state in ("AGREED_IN_ADVANCE", "AUTHORISED_IN_PRINCIPLE", "APPROVED", "PRE_APPROVED", "VERBAL"):
+            reasons.append(f"L1: PRE-RELEASE countersignature state {_state!r} is refused by name (an approval without the block digest the signer read)")
+        elif _state not in ("NOT_COUNTERSIGNED", "COUNTERSIGNED", "REFUSED"):
+            reasons.append(f"L1: PRE-RELEASE countersignature state must be NOT_COUNTERSIGNED, COUNTERSIGNED or REFUSED, got {_state!r}")
+        elif _state == "COUNTERSIGNED" and not all(_cs.get(k) for k in ("by", "when_utc", "rendered_block_sha256")):
+            reasons.append("L1: PRE-RELEASE COUNTERSIGNED without by / when_utc / rendered_block_sha256")
+        if _state and f"data-release-countersignature='{_state}'" not in html:
+            reasons.append("L1: PRE-RELEASE countersignature state is declared but not rendered")
+        for need in ("GENERATING_TREE_NOT_RECORDED", "VERIFY_LABEL_DEFECTS", "VERIFIED_IS_A_PRODUCER_ASSERTION",
+                     "ADMISSION_PATH_DEMONSTRATED_PERMEABLE", "KNOWN_INCORRECT_VALUES_ON_NAMED_PAGES",
+                     "HAND_WRITTEN_STATUS_DESCRIBES_A_COMPUTED_RELATION", "BOUNDED_REMEDY_ESTIMATED"):
+            if need not in ids:
+                reasons.append(f"L1: PRE-RELEASE declared without reason {need}")
+            elif f"data-release-reason='{need}'" not in html:
+                reasons.append(f"L1: PRE-RELEASE reason {need} is declared but not rendered")
+    elif "data-release-status='PRE-RELEASE'" in html:
+        reasons.append("L1: page renders a PRE-RELEASE notice the review does not declare")
+
     # Live fresh-clone-style reproduction.
     live = verify(review_dir)
     if live["failures"] != 0:

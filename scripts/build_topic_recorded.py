@@ -1,11 +1,14 @@
-"""Run the certified generator (scripts/build_topic.py, a pinned root of the certificate's analysis_code_blobs) and then write
+"""Run the generator (scripts/build_topic.py, a pinned root of the certificate's analysis_code_blobs) and then write
 docs/reviews/<slug>/EXECUTION_RECORD.json naming the tree it ran in.
 
-Why a wrapper: the certificate pins build_topic.py byte-for-byte, so wiring the record into it is a release change (it moves
-analysis_code_sha256 and release_sha256). Until a new release is cut, the record is written HERE, after the certified generator
-returns and after CERTIFICATE.json exists -- so the record can name release_sha256 and the certificate cannot name the record
-(the ordering sentence in harness/execution_record.py). This file is not in the import closure and is not pinned; the record it
-writes says so in command.argv.
+History and current state. This wrapper was written for the frozen pre-release 316d2e48, whose build_topic.py wrote no record:
+the certificate pins build_topic.py byte-for-byte, so wiring the record into it was a release change, and until that release
+change was made the record was written HERE, after the generator returned and after CERTIFICATE.json existed. The PRE-RELEASE
+relabel commit (2026-09-20) IS that release change: build_topic.py now writes the record itself, last, after the certificate.
+Running this wrapper on that tree or later therefore writes the record twice -- once by the generator and once here, with the
+same argv and the same content -- which is harmless and redundant; it is kept so the replay commands recorded for 316d2e48 /
+4b9dd46b (docs/reviews/glp1-ra-mace-t2d/REPLAY.md) still run as written. This file is not in the import closure and is not
+pinned; the record's command.argv names whichever entry point ran.
 
 Usage: python scripts/build_topic_recorded.py <slug> [--now YYYY-MM-DD]
 """

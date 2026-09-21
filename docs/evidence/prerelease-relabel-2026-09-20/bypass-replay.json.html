@@ -1,0 +1,64 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>bypass-replay.json (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>bypass-replay.json</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/prerelease-relabel-2026-09-20/bypass-replay.json</code>; its SHA-256 is <code>d337f55a8467ce72c5065c862fa4f61a15b3597ce712753c6b94413d424d253d</code> (2,880 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> Replay, by the bundle lane in a throwaway clone at bebd85a2, of a transposed SOUL value 0.68 (0.77-0.96) published &#x27;verified&#x27; through UNBOUND_LEGACY with gate limb 1 passing and the pool moving 0.856 -&gt; 0.807; the evidence bundle refused the same row.</p><pre>{
+  &quot;what&quot;: &quot;Replay of the executed admission bypass on the real publication path, by the bundle lane, in a throwaway clone (not the working tree). No assertion here is inherited from another lane&#x27;s report.&quot;,
+  &quot;clone&quot;: {
+    &quot;of&quot;: &quot;C:/Projects/meta-harness-bundle&quot;,
+    &quot;at_commit&quot;: &quot;bebd85a202d8&quot;,
+    &quot;path&quot;: &quot;F:/claude-temp/bypass-replay (deleted after this record was written)&quot;
+  },
+  &quot;plant&quot;: {
+    &quot;file&quot;: &quot;cache/glp1-ra-mace-t2d/verified_effects.json&quot;,
+    &quot;entry&quot;: &quot;40162642 (SOUL)&quot;,
+    &quot;change&quot;: &quot;effect 0.86 -&gt; 0.68; the same transposition in the entry&#x27;s own hand-written `source` text; nothing else&quot;,
+    &quot;why_this_shape&quot;: &quot;a point estimate outside its own interval is arithmetically impossible, so no reading of the source could justify it&quot;
+  },
+  &quot;command&quot;: &quot;python scripts/build_topic.py glp1-ra-mace-t2d --now 2026-09-11  (52 s)&quot;,
+  &quot;published_row&quot;: {
+    &quot;id&quot;: &quot;PMID 40162642&quot;,
+    &quot;effect&quot;: 0.68,
+    &quot;ci_low&quot;: 0.77,
+    &quot;ci_high&quot;: 0.96,
+    &quot;scale&quot;: &quot;HR&quot;,
+    &quot;verified&quot;: &quot;verified&quot;,
+    &quot;verify_basis&quot;: &quot;effect present in committed source&quot;,
+    &quot;provenance&quot;: &quot;fulltext_verified&quot;,
+    &quot;endpoint_admissibility&quot;: &quot;UNBOUND_LEGACY&quot;,
+    &quot;endpoint_binding&quot;: &quot;unbound_legacy&quot;,
+    &quot;target_endpoint_class&quot;: null,
+    &quot;verified_passage_location&quot;: &quot;not_in_abstract&quot;
+  },
+  &quot;point_estimate_outside_its_own_interval&quot;: true,
+  &quot;primary_pool&quot;: {
+    &quot;before&quot;: {
+      &quot;k&quot;: 8,
+      &quot;estimate&quot;: 0.8559934175939847,
+      &quot;ci_low&quot;: 0.8086248326603205,
+      &quot;ci_high&quot;: 0.9061368157018077
+    },
+    &quot;after&quot;: {
+      &quot;k&quot;: 8,
+      &quot;estimate&quot;: 0.8074,
+      &quot;ci_low&quot;: 0.7351,
+      &quot;ci_high&quot;: 0.8869
+    }
+  },
+  &quot;gate_limb1&quot;: &quot;NONE -- passes (harness.gate.check_limb1 on the rebuilt review directory returned no reasons)&quot;,
+  &quot;page_carries_the_value&quot;: true,
+  &quot;mechanism&quot;: &quot;harness/target_endpoint.bind_verified_row returns ENDPOINT_UNBOUND with passage_location not_in_abstract; harness/pipeline.py copies the classification only when passage_location == &#x27;abstract&#x27; (lines 1254-1256 at blob b6c50b27), so the row reaches admit_rows with no class and is admitted UNBOUND_LEGACY; harness/verify.py line 73 checks the effect digits against the row&#x27;s own `source` field (blob e5187ea9cc8e), so the transposed value is labelled &#x27;verified&#x27;.&quot;,
+  &quot;bundle_on_the_same_release&quot;: {
+    &quot;build_bundle&quot;: &quot;pool rows admissible 6/8&quot;,
+    &quot;verify_bundle_verdict&quot;: &quot;FAIL&quot;,
+    &quot;soul_row&quot;: {
+      &quot;final&quot;: &quot;INADMISSIBLE&quot;,
+      &quot;refusal&quot;: &quot;AMBIGUOUS_ENDPOINT_BINDING&quot;,
+      &quot;P2_span_located&quot;: false,
+      &quot;P3_effect_tokens_in_span&quot;: false,
+      &quot;P8_endpoint_bound&quot;: false,
+      &quot;pooled_state&quot;: &quot;UNBOUND_POOLED&quot;
+    }
+  },
+  &quot;not_in_scope_of_this_record&quot;: [
+    &quot;a fix -- the freeze forbids adding capability; a one-line arithmetic predicate (ci_low &lt;= effect &lt;= ci_high) would refuse this row with no source at all and is noted for the cut&quot;
+  ],
+  &quot;recorded_utc&quot;: &quot;2026-09-20T16:39:53Z&quot;
+}
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

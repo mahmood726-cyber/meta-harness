@@ -1,0 +1,86 @@
+{
+  "status": "PRE-RELEASE",
+  "decided_utc": "2026-09-20",
+  "recorded_utc": "2026-09-20T16:41:35Z",
+  "pre_release_commit": "316d2e487417a2d8e92ac88e2448488dd7ca3d40",
+  "applies_to": "every served page until v1 is cut; the pre-release commit stays fetchable with every digest intact",
+  "reasons": [
+    {
+      "id": "GENERATING_TREE_NOT_RECORDED",
+      "text": "The tree that generated these pages is NOT_RECORDED. That is the true value and it is not reconstructed: an inferred generating commit would be a proxy nobody would re-check. The served bytes are attested equal to the committed bytes of the pre-release commit; which working tree produced them is not established by any artefact."
+    },
+    {
+      "id": "VERIFY_LABEL_DEFECTS",
+      "text": "harness/verify.py (git blob e5187ea9cc8e, pinned in every certificate) carries five known defect classes in the label it stamps on pooled numbers: (1) the confidence interval is never checked -- only the point estimate's digits; (2) the RRR complement is accepted unconditionally (line 58) -- a stored 0.44 is 'verified' by a 0.56 anywhere in the abstract; (3) for provenances other than the abstract, the row's own hand-written `source` field is the text checked against itself (line 73) -- a check whose haystack is supplied by the same process that supplied the needle is not a check; measured on the served review.json files (scripts/verify_label_census.py): 30 of 53 per-arm rows (counts and continuous) and 24 of 92 effect rows are checked that way, including this release's own glp1-ra-mace-t2d row PMID 27295427 (LEADER, adverse events leading to discontinuation, provenance fulltext_verified_arms, labelled verified) -- a version-1 blocker; (4) the effect measure is never compared -- an HR verified against an OR's digits passes; (5) two count rows (probiotics-aad-prevention PMID 15740542 and PMID 18026577, provenance aact_verified) return 'verified_handchecked' with no check at all (lines 75-76): not a wrong haystack, no haystack. 21 of the 53 per-arm rows and 68 of the 92 effect rows are checked against the held abstract; published_rate rows are among them (lines 78-87)."
+    },
+    {
+      "id": "VERIFIED_IS_A_PRODUCER_ASSERTION",
+      "text": "Therefore every 'verified' marker on this page is a producer assertion, not a verification. Where an evidence bundle is served (BUNDLE.json), it carries the marker as producer_labels and re-derives its own admission from served bytes."
+    },
+    {
+      "id": "ADMISSION_PATH_DEMONSTRATED_PERMEABLE",
+      "text": "The admission state UNBOUND_LEGACY -- a row admitted with no endpoint class and no span of either kind -- is the majority state on this release, not an edge case: 121 of 145 rows in served pools carry it, 115 of them pooled into a served estimate and 71 of them primary-outcome rows (measured in the served review.json files; scripts/pooled_class_sweep.py). The route has been executed on the real publication path: a planted row whose point estimate lies outside its own interval, 0.68 (0.77-0.96), was published marked 'verified', pooled into the k=8 primary estimate (0.856 -> 0.807), with gate limb 1 passing -- replayed by this lane on 2026-09-20 in a throwaway clone at bebd85a2; record: docs/evidence/prerelease-relabel-2026-09-20/bypass-replay.json. The evidence bundle on the same release refused that row (INADMISSIBLE: no span located, value in no source clause, unbound). On every page that serves an evidence bundle the two admission states are kept apart: EXACT_TARGET rows, whose endpoint was bound to a definition span, and UNBOUND_LEGACY rows, whose was not."
+    },
+    {
+      "id": "KNOWN_INCORRECT_VALUES_ON_NAMED_PAGES",
+      "text": "Seven served rows on this release carry values measured wrong on 2026-09-20 and not yet corrected: colchicine publishes 1 - RRR as a risk ratio with inverted limits (two rows); two RECOVERY rows are labelled RR where the trial reported a rate ratio; an ENGAGE AF-TIMI 48 row serves 0.745-1.016 as a 95% interval where the trial reports 0.73-1.04 at 97.5% (a derived interval served as if reported, without its source level); RE-LY and ROCKET-AF major-bleeding tuples appear in no held document. Corrections land as their own commits with their own records; until then the page states the class and the reader should not read any of those rows as verified."
+    },
+    {
+      "id": "HAND_WRITTEN_STATUS_DESCRIBES_A_COMPUTED_RELATION",
+      "text": "docs/parity.json carries a hand-written `status` that describes a computed relation between our pooled trial set and the comparator's -- the same quantity written twice. When a repaired binder set one glp1 row aside (pool 8 -> 7) the hand status went stale and the topic refused to build: \"PARITY-RELATION REFUSED: hand status 'SUPERSET' disagrees with computed relation OVERLAPPING for glp1-ra-mace-t2d\" (2026-09-20). A hand-written value that describes a computed relation goes stale the moment the evidence moves. The stale-second-source problem and the silent-degradation problem have different fixes: compute the relation, render any hand text as hand_status_stale, AND require a recorded acknowledgement when the relation changes."
+    },
+    {
+      "id": "BOUNDED_REMEDY_ESTIMATED",
+      "text": "ESTIMATE, not a measurement: of the 121 UNBOUND_LEGACY rows, about 78 appear bindable from documents this repository already holds, according to a reference locator run outside the shipped harness (2026-09-20); their failures would then be locator defects, not evidence gaps. This is a prediction that a repair will work, not the repair working; it is not demonstrated on the shipped code and will be replaced by a measurement when the repaired binder classifies those rows."
+    }
+  ],
+  "scope_boundary": "This label covers the pages served from this site. ARNI_HF_REVIEW.html and HFREF_NMA_AUTO_FULL_REVIEW.html are served from rapidmeta-finerenone and carry no label from here.",
+  "v1_conditions": [
+    "the generator records its execution: EXECUTION_RECORD.json with generating_commit populated and tree state named",
+    "the five harness/verify.py defect classes are fixed and the fix is demonstrated on the real publication path",
+    "the certificate lane's M2 suite has run through the real publication path",
+    "the cut is coordinated: neither lane cuts a release alone"
+  ],
+  "what_this_label_does_not_do": "What this label does not do: it does not delete or rewrite the pre-release; it does not complete a search; it does not make any number on the page more or less true.",
+  "re_certifications_by_cause": [
+    "1st after the pre-release: 8b1fb37d, the RESULT WITHDRAWN landing (page.py/gate.py/pipeline.py changed; all 32 certificates moved)",
+    "2nd: this relabel (release_status enters every review core; all 32 certificates move)",
+    "3rd, expected: corrections and pooled-estimate changes arising from the endpoint-binding repair (review_sha256 moves on 28 of 32; conclusions and outcome counts may change)",
+    "4th, expected: the harness/verify.py fixes (analysis code re-pinned; every certificate moves)"
+  ],
+  "statement_currency": {
+    "describes_re_certification": "2nd after the pre-release: this relabel (release_status enters every review core; all 32 certificates move)",
+    "previous": "1st: 8b1fb37d, the RESULT WITHDRAWN landing",
+    "expected_next": [
+      "3rd: corrections and pooled-estimate changes arising from the endpoint-binding repair (review_sha256 moves on 28 of 32; conclusions and outcome counts may change)",
+      "4th: the harness/verify.py fixes (analysis code re-pinned; every certificate moves)"
+    ],
+    "superseded_by": null,
+    "how_to_tell_this_is_stale": "If superseded_by is null here but a later re-certification exists on main, this statement is stale. The gate refuses a page whose rendered notice and review core disagree about superseded_by, and refuses any superseded_by value that is not null or a commit present in this repository."
+  },
+  "decision": {
+    "by": "Mahmood",
+    "how_it_reached_this_repository": "relayed by the orchestrating lane on 2026-09-20; no signed artefact of the decision exists in this repository",
+    "countersignature": {
+      "state": "NOT_COUNTERSIGNED",
+      "allowed_states": [
+        "NOT_COUNTERSIGNED",
+        "COUNTERSIGNED",
+        "REFUSED"
+      ],
+      "COUNTERSIGNED_requires": [
+        "by",
+        "when_utc",
+        "rendered_block_sha256 (sha256 of the rendered notice block the signer read)"
+      ],
+      "refused_by_name": [
+        "AGREED_IN_ADVANCE",
+        "AUTHORISED_IN_PRINCIPLE",
+        "APPROVED",
+        "PRE_APPROVED",
+        "VERBAL"
+      ],
+      "meaning": "a state that can hold 'someone said yes' without naming what they saw is an override wearing a signature; COUNTERSIGNED names the block digest the signer read, or it is not a countersignature"
+    }
+  }
+}

@@ -129,7 +129,12 @@ def test_review_files_listed_with_current_digests(bundle):
 
 def test_source_block_names_a_commit_that_holds_the_served_bytes(bundle):
     src = bundle["source"]
-    assert src["generating_commit"] == "NOT_RECORDED"
+    # generating_commit is read from EXECUTION_RECORD.json when the generator wrote one (from the relabel on), else it is the true value
+    # NOT_RECORDED -- never inferred from history
+    if src["execution_record"] is None:
+        assert src["generating_commit"] == "NOT_RECORDED"
+    else:
+        assert len(src["generating_commit"]) == 40 and src["execution_record"]["tree_state"] in ("CLEAN", "CLEAN_EXCEPT_OWN_OUTPUTS", "DIRTY")
     assert src["identity"].startswith("content-addressed")
     for name, blob in src["served_blob_git_sha1"].items():
         data = _bytes(os.path.join(REVIEW_DIR, name))

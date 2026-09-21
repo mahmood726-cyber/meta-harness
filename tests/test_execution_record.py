@@ -17,6 +17,16 @@ from harness.canonical import canonical_json, sha256_text  # noqa: E402
 SLUG = "glp1-ra-mace-t2d"
 
 
+@pytest.fixture(autouse=True)
+def _reclaim_tmp_path(tmp_path):
+    """Test hygiene: reclaim this test's tmp_path in teardown -- AFTER the test body and all its assertions -- so a session's basetemp
+    peaks at one fixture (~60-150 MB) instead of the sum (~2.8 GB measured 2026-09-20). Nothing a test asserts depends on the
+    fixture surviving teardown; equivalence was measured file by file with and without this fixture (identical verdicts and counts)."""
+    yield
+    import shutil
+    shutil.rmtree(tmp_path, ignore_errors=True)
+
+
 def _fake_release(tmp_path):
     rd = tmp_path / "docs" / "reviews" / "x"; rd.mkdir(parents=True)
     (rd / "review.json").write_text('{"slug": "x"}', encoding="utf-8")
@@ -58,12 +68,19 @@ def test_no_git_is_recorded_as_no_git_never_inferred(tmp_path, monkeypatch):
     assert rec["tree"]["generating_commit"] == "NO_GIT" and rec["tree"]["tree_state"] == "UNKNOWN_NO_GIT"
 
 
-def test_frozen_release_stays_unrecorded_and_says_so(bundle_path=ROOT / "docs" / "reviews" / SLUG / "BUNDLE.json"):
+def test_this_build_is_recorded_and_the_pre_release_stays_unrecorded(bundle_path=ROOT / "docs" / "reviews" / SLUG / "BUNDLE.json"):
+    """From the relabel on, the generator writes EXECUTION_RECORD.json itself: the bundle reads generating_commit from it and names the
+    tree state. The FROZEN pre-release (316d2e48) is still unrecorded -- that statement lives in the pre-release notice, not here."""
     b = json.load(open(bundle_path, encoding="utf-8"))
     src = b["source"]
-    assert src["generating_commit"] == "NOT_RECORDED" and src["execution_record"] is None
-    assert "not reconstructed" in src["generating_commit_meaning"]
-    assert not (ROOT / "docs" / "reviews" / SLUG / er.RECORD_NAME).exists()      # no retrospective record for 316d2e48's release
+    rec = json.load(open(ROOT / "docs" / "reviews" / SLUG / er.RECORD_NAME, encoding="utf-8"))
+    assert src["generating_commit"] == rec["tree"]["generating_commit"] and len(src["generating_commit"]) == 40
+    assert src["execution_record"]["sha256"] == hashlib.sha256((ROOT / "docs" / "reviews" / SLUG / er.RECORD_NAME).read_bytes()).hexdigest()
+    assert src["execution_record"]["tree_state"] == rec["tree"]["tree_state"] in ("CLEAN", "CLEAN_EXCEPT_OWN_OUTPUTS", "DIRTY")
+    if rec["tree"]["tree_state"] == "DIRTY":
+        assert rec["tree"]["dirty_other_paths"], "DIRTY must name the paths"      # a scoped pass names its scope
+    rs = json.load(open(ROOT / "registry" / "release_status.json", encoding="utf-8"))
+    assert rs["reasons"][0]["id"] == "GENERATING_TREE_NOT_RECORDED" and "not reconstructed" in rs["reasons"][0]["text"]
 
 
 # ---- verifier: the two pin invariants and the cross-link ------------------------------------------------------------------------
@@ -91,7 +108,8 @@ def test_verifier_baseline_reports_pins_and_absence_agree(tmp_path):
     rep = T._verify(root)
     cp = rep["certificate_pins"]
     assert cp["entries"] == 81 and cp["blob_ids"] == 80 and cp["sentinels"] == ["harness/effect_type.py"] == cp["declared_but_absent"] and cp["malformed"] == {}
-    assert rep["execution_record"] == {"present": False, "meaning": rep["execution_record"]["meaning"]} and "UNRECORDED" in rep["execution_record"]["meaning"]
+    er_rep = rep["execution_record"]
+    assert er_rep["present"] and er_rep["sha256_matches_bundle"] and er_rep["release_sha256_matches_certificate"] and er_rep["review_sha256_matches_certificate"], er_rep
     assert not any(f.startswith("CERTIFICATE_PIN_MALFORMED") or f.startswith("CERTIFICATE_ABSENCE_UNDECLARED") for f in rep["failures"])
 
 

@@ -104,12 +104,13 @@ def write_execution_record(review_dir: str | os.PathLike, slug: str, argv: list[
         # a build always dirties its own outputs before they are committed; separate those from everything else so a reader can
         # see whether the INPUT side of the tree equalled the commit
         own = set(outputs) | {f"docs/reviews/{slug}/{RECORD_NAME}", "docs/index.html", "registry/blind_map.json"}
-        own_prefixes = ("docs/m/",)
+        own_prefixes = ("docs/m/", "docs/reviews/")      # a run over several topics dirties every review directory before any commit
         def is_own(path):          # git reports repo-relative paths; output keys are repo-relative inside the repo, absolute outside it
             return path in own or path.startswith(own_prefixes) or any(k.endswith("/" + path) or path.endswith("/" + k) for k in own)
         tree["dirty_outputs_of_this_build"] = sorted(p for p in tree["dirty_paths"] if is_own(p))
         tree["dirty_other_paths"] = sorted(p for p in tree["dirty_paths"] if not is_own(p))
         tree["tree_state"] = "DIRTY" if tree["dirty_other_paths"] else "CLEAN_EXCEPT_OWN_OUTPUTS"
+        tree["output_path_rule"] = "outputs of a build run: docs/reviews/**, docs/m/**, docs/index.html, registry/blind_map.json; everything else is input or code"
         tree["meaning"] = ("inputs and code equalled the commit; only this build's outputs differ (they are the files a following commit records)"
                            if not tree["dirty_other_paths"] else
                            "paths OTHER than this build's outputs differed from the commit; the commit alone does not reproduce this build")

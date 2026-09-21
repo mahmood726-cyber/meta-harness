@@ -20,6 +20,16 @@ PER_ROW_LIMBS = ("span", "effect", "components", "eligibility", "conflict", "non
 MIGRATION_LIMB = "binding"
 
 
+@pytest.fixture(autouse=True)
+def _reclaim_tmp_path(tmp_path):
+    """Test hygiene: reclaim this test's tmp_path in teardown -- AFTER the test body and all its assertions -- so a session's basetemp
+    peaks at one fixture (~60-150 MB) instead of the sum (~2.8 GB measured 2026-09-20). Nothing a test asserts depends on the
+    fixture surviving teardown; equivalence was measured file by file with and without this fixture (identical verdicts and counts)."""
+    yield
+    import shutil
+    shutil.rmtree(tmp_path, ignore_errors=True)
+
+
 def _run(*extra):
     p = subprocess.run([sys.executable, VERIFIER, "--root", "docs", "--slug", SLUG, "--json", *extra],
                        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", stdin=subprocess.DEVNULL)

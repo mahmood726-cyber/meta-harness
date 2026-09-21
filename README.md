@@ -123,6 +123,18 @@ Four rules, each paid for at least twice in one night. They are about the shell,
 4. **A `python - << EOF` heredoc with a trailing `< /dev/null` opens a REPL that looks like progress.**
    The redirect replaces the heredoc as stdin, nothing runs, and the task sits there healthy. Rule 1
    already forbids the form; this is what it costs when it slips through.
+5. **After you write something, count what you created.** A rebuild that "wrote 32 pages" had put the
+   limitation object on 0 of 32; the count took one line and would have saved a 35-minute rebuild.
+6. **After you render something, read it as a reader will.** Tests check the properties you thought of; the
+   rendered words show the ones you did not (a four-vs-five contradiction, two run-ons and a double
+   period survived 36 plants and were found in one reading).
+7. **Name `--basetemp` on every long pytest run.** The session exports `TEMP`/`TMP` to `F:`, so a repo on `C:`
+   writes its scratch to `F:` invisibly; the machine is a 4-core i5 with ~1.5 cores permanently taken by the
+   app and Defender -- plan against ~2.5 usable cores, and expect a gate to take 2-3 h contended.
+8. **A killed run, a disk-full death and a refused gate are three states and none is a verdict.** Write the
+   state into the gate log; a notification that has not arrived is not evidence that a job is still running.
+
+The long form, with the instances: `docs/LANE_NOTES_2026-09-20.md`.
 
 ## Prospective validation
 The auditor's freeze requirements and protocol (architecture identity, raw-input preservation, the defect

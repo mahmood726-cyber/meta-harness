@@ -22,6 +22,7 @@ from harness.synth import method_text as _method_text  # noqa: E402
 from harness.census import build_review_dir  # noqa: E402
 from harness.page import render_page  # noqa: E402
 from harness.index import write_index  # noqa: E402
+from execution_record import write_execution_record  # noqa: E402  (scripts/execution_record.py)
 from harness.registration import protocol_sha  # noqa: E402
 from harness import registration as _reg  # noqa: E402
 
@@ -45,7 +46,7 @@ def _write(path, text):
         f.write(text)
 
 
-def main(slug, now):
+def main(slug, now, argv=None):
     config = json.load(open(os.path.join(ROOT, "topics", slug + ".json"), encoding="utf-8"))
     protocol_sha = _protocol_sha(slug)
     records = fetch.ensure(config, now)  # network only if cache absent
@@ -78,6 +79,9 @@ def main(slug, now):
         {"slug": slug, "pages": {tok_h: {"role": "harness", "url": f"docs/m/{tok_h}/"},
                                  tok_c: {"role": "comparator", "url": f"docs/m/{tok_c}/"}}}, indent=2))
     write_index(os.path.join(ROOT, "docs"))
+    # LAST: which tree produced this directory (scripts/execution_record.py). Written after the certificate so it can name
+    # release_sha256; never an input to any digest the certificate covers.
+    write_execution_record(review_dir, slug, argv if argv is not None else sys.argv, now)
 
     r = prim.get("result", {})
     print(f"protocol_sha={protocol_sha}")
@@ -98,4 +102,4 @@ if __name__ == "__main__":
         args = [a for a in args if a != now and a != "--now"]
     if len(args) != 1:
         raise SystemExit("usage: python scripts/build_topic.py <slug> [--now YYYY-MM-DD]")
-    main(args[0], now)
+    main(args[0], now, list(sys.argv))

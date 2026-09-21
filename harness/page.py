@@ -681,8 +681,32 @@ def _withdrawal_block(r):
             + f"<ul>{rows}</ul><p>Withdrawn {_e(w.get('date', ''))}. {_e(w.get('status', ''))}</p></div>")
 
 
+def _prerelease_overview(r):
+    rs = r.get("release_status") or {}
+    if rs.get("status") != "PRE-RELEASE":
+        return ""
+    reasons = "".join(f"<li data-release-reason='{_e(x.get('id'))}'>{_e(x.get('text'))}</li>" for x in rs.get("reasons", []))
+    conds = "".join(f"<li>{_e(x)}</li>" for x in rs.get("v1_conditions", []))
+    return ("<div class='absent' data-release-status='PRE-RELEASE'><strong>PRE-RELEASE \u2014 not the reference release.</strong> "
+            f"Decided by {_e((rs.get('decision') or {}).get('by'))} on {_e(rs.get('decided_utc'))} "
+            f"(<span data-release-countersignature='{_e(((rs.get('decision') or {}).get('countersignature') or {}).get('state'))}'>"
+            f"{_e(((rs.get('decision') or {}).get('countersignature') or {}).get('state'))}: {_e((rs.get('decision') or {}).get('how_it_reached_this_repository'))}</span>); "
+            f"the pre-release commit is "
+            f"<code>{_e(str(rs.get('pre_release_commit'))[:12])}</code> and stays fetchable with every digest intact. Why:<ul>{reasons}</ul>"
+            f"<span data-release-conditions='v1'>Version 1 is cut only when:</span><ul>{conds}</ul>"
+            f"<span data-release-nondo='true'>{_e(rs.get('what_this_label_does_not_do'))}</span> "
+            f"<span data-release-scope='boundary'>{_e(rs.get('scope_boundary'))}</span> "
+            f"<span data-release-currency='{_e(str((rs.get('statement_currency') or {}).get('superseded_by')))}'>This statement describes: "
+            f"{_e((rs.get('statement_currency') or {}).get('describes_re_certification'))}. Expected next: "
+            f"{_e('; '.join((rs.get('statement_currency') or {}).get('expected_next') or []))}. "
+            f"{_e((rs.get('statement_currency') or {}).get('how_to_tell_this_is_stale'))}</span></div>")
+
+
 def _overview(r, neutral):
     parts = [f"<h2>{_e(r.get('title'))}</h2>", f"<p class='q'>{_e(r.get('question'))}</p>"]
+    pre = _prerelease_overview(r)
+    if pre:
+        parts.append(pre)
     if r.get("grade"):
         parts.append(f"<p data-grade-certainty='true'>{_e(_grade_mod.render_certainty(r['grade']))}</p>")
     # INVALIDATION PROPAGATION: a single STALE verdict poisons the headline. If any dependent output

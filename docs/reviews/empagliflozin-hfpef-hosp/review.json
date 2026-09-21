@@ -57714,6 +57714,92 @@
       }
     ]
   },
+  "release_status": {
+    "status": "PRE-RELEASE",
+    "decided_utc": "2026-09-20",
+    "recorded_utc": "2026-09-20T16:41:35Z",
+    "pre_release_commit": "316d2e487417a2d8e92ac88e2448488dd7ca3d40",
+    "applies_to": "every served page until v1 is cut; the pre-release commit stays fetchable with every digest intact",
+    "reasons": [
+      {
+        "id": "GENERATING_TREE_NOT_RECORDED",
+        "text": "The tree that generated these pages is NOT_RECORDED. That is the true value and it is not reconstructed: an inferred generating commit would be a proxy nobody would re-check. The served bytes are attested equal to the committed bytes of the pre-release commit; which working tree produced them is not established by any artefact."
+      },
+      {
+        "id": "VERIFY_LABEL_DEFECTS",
+        "text": "harness/verify.py (git blob e5187ea9cc8e, pinned in every certificate) carries five known defect classes in the label it stamps on pooled numbers: (1) the confidence interval is never checked -- only the point estimate's digits; (2) the RRR complement is accepted unconditionally (line 58) -- a stored 0.44 is 'verified' by a 0.56 anywhere in the abstract; (3) for provenances other than the abstract, the row's own hand-written `source` field is the text checked against itself (line 73) -- a check whose haystack is supplied by the same process that supplied the needle is not a check; measured on the served review.json files (scripts/verify_label_census.py): 30 of 53 per-arm rows (counts and continuous) and 24 of 92 effect rows are checked that way, including this release's own glp1-ra-mace-t2d row PMID 27295427 (LEADER, adverse events leading to discontinuation, provenance fulltext_verified_arms, labelled verified) -- a version-1 blocker; (4) the effect measure is never compared -- an HR verified against an OR's digits passes; (5) two count rows (probiotics-aad-prevention PMID 15740542 and PMID 18026577, provenance aact_verified) return 'verified_handchecked' with no check at all (lines 75-76): not a wrong haystack, no haystack. 21 of the 53 per-arm rows and 68 of the 92 effect rows are checked against the held abstract; published_rate rows are among them (lines 78-87)."
+      },
+      {
+        "id": "VERIFIED_IS_A_PRODUCER_ASSERTION",
+        "text": "Therefore every 'verified' marker on this page is a producer assertion, not a verification. Where an evidence bundle is served (BUNDLE.json), it carries the marker as producer_labels and re-derives its own admission from served bytes."
+      },
+      {
+        "id": "ADMISSION_PATH_DEMONSTRATED_PERMEABLE",
+        "text": "The admission state UNBOUND_LEGACY -- a row admitted with no endpoint class and no span of either kind -- is the majority state on this release, not an edge case: 121 of 145 rows in served pools carry it, 115 of them pooled into a served estimate and 71 of them primary-outcome rows (measured in the served review.json files; scripts/pooled_class_sweep.py). The route has been executed on the real publication path: a planted row whose point estimate lies outside its own interval, 0.68 (0.77-0.96), was published marked 'verified', pooled into the k=8 primary estimate (0.856 -> 0.807), with gate limb 1 passing -- replayed by this lane on 2026-09-20 in a throwaway clone at bebd85a2; record: docs/evidence/prerelease-relabel-2026-09-20/bypass-replay.json. The evidence bundle on the same release refused that row (INADMISSIBLE: no span located, value in no source clause, unbound). On every page that serves an evidence bundle the two admission states are kept apart: EXACT_TARGET rows, whose endpoint was bound to a definition span, and UNBOUND_LEGACY rows, whose was not."
+      },
+      {
+        "id": "KNOWN_INCORRECT_VALUES_ON_NAMED_PAGES",
+        "text": "Seven served rows on this release carry values measured wrong on 2026-09-20 and not yet corrected: colchicine publishes 1 - RRR as a risk ratio with inverted limits (two rows); two RECOVERY rows are labelled RR where the trial reported a rate ratio; an ENGAGE AF-TIMI 48 row serves 0.745-1.016 as a 95% interval where the trial reports 0.73-1.04 at 97.5% (a derived interval served as if reported, without its source level); RE-LY and ROCKET-AF major-bleeding tuples appear in no held document. Corrections land as their own commits with their own records; until then the page states the class and the reader should not read any of those rows as verified."
+      },
+      {
+        "id": "HAND_WRITTEN_STATUS_DESCRIBES_A_COMPUTED_RELATION",
+        "text": "docs/parity.json carries a hand-written `status` that describes a computed relation between our pooled trial set and the comparator's -- the same quantity written twice. When a repaired binder set one glp1 row aside (pool 8 -> 7) the hand status went stale and the topic refused to build: \"PARITY-RELATION REFUSED: hand status 'SUPERSET' disagrees with computed relation OVERLAPPING for glp1-ra-mace-t2d\" (2026-09-20). A hand-written value that describes a computed relation goes stale the moment the evidence moves. The stale-second-source problem and the silent-degradation problem have different fixes: compute the relation, render any hand text as hand_status_stale, AND require a recorded acknowledgement when the relation changes."
+      },
+      {
+        "id": "BOUNDED_REMEDY_ESTIMATED",
+        "text": "ESTIMATE, not a measurement: of the 121 UNBOUND_LEGACY rows, about 78 appear bindable from documents this repository already holds, according to a reference locator run outside the shipped harness (2026-09-20); their failures would then be locator defects, not evidence gaps. This is a prediction that a repair will work, not the repair working; it is not demonstrated on the shipped code and will be replaced by a measurement when the repaired binder classifies those rows."
+      }
+    ],
+    "scope_boundary": "This label covers the pages served from this site. ARNI_HF_REVIEW.html and HFREF_NMA_AUTO_FULL_REVIEW.html are served from rapidmeta-finerenone and carry no label from here.",
+    "v1_conditions": [
+      "the generator records its execution: EXECUTION_RECORD.json with generating_commit populated and tree state named",
+      "the five harness/verify.py defect classes are fixed and the fix is demonstrated on the real publication path",
+      "the certificate lane's M2 suite has run through the real publication path",
+      "the cut is coordinated: neither lane cuts a release alone"
+    ],
+    "what_this_label_does_not_do": "What this label does not do: it does not delete or rewrite the pre-release; it does not complete a search; it does not make any number on the page more or less true.",
+    "re_certifications_by_cause": [
+      "1st after the pre-release: 8b1fb37d, the RESULT WITHDRAWN landing (page.py/gate.py/pipeline.py changed; all 32 certificates moved)",
+      "2nd: this relabel (release_status enters every review core; all 32 certificates move)",
+      "3rd, expected: corrections and pooled-estimate changes arising from the endpoint-binding repair (review_sha256 moves on 28 of 32; conclusions and outcome counts may change)",
+      "4th, expected: the harness/verify.py fixes (analysis code re-pinned; every certificate moves)"
+    ],
+    "statement_currency": {
+      "describes_re_certification": "2nd after the pre-release: this relabel (release_status enters every review core; all 32 certificates move)",
+      "previous": "1st: 8b1fb37d, the RESULT WITHDRAWN landing",
+      "expected_next": [
+        "3rd: corrections and pooled-estimate changes arising from the endpoint-binding repair (review_sha256 moves on 28 of 32; conclusions and outcome counts may change)",
+        "4th: the harness/verify.py fixes (analysis code re-pinned; every certificate moves)"
+      ],
+      "superseded_by": null,
+      "how_to_tell_this_is_stale": "If superseded_by is null here but a later re-certification exists on main, this statement is stale. The gate refuses a page whose rendered notice and review core disagree about superseded_by, and refuses any superseded_by value that is not null or a commit present in this repository."
+    },
+    "decision": {
+      "by": "Mahmood",
+      "how_it_reached_this_repository": "relayed by the orchestrating lane on 2026-09-20; no signed artefact of the decision exists in this repository",
+      "countersignature": {
+        "state": "NOT_COUNTERSIGNED",
+        "allowed_states": [
+          "NOT_COUNTERSIGNED",
+          "COUNTERSIGNED",
+          "REFUSED"
+        ],
+        "COUNTERSIGNED_requires": [
+          "by",
+          "when_utc",
+          "rendered_block_sha256 (sha256 of the rendered notice block the signer read)"
+        ],
+        "refused_by_name": [
+          "AGREED_IN_ADVANCE",
+          "AUTHORISED_IN_PRINCIPLE",
+          "APPROVED",
+          "PRE_APPROVED",
+          "VERBAL"
+        ],
+        "meaning": "a state that can hold 'someone said yes' without naming what they saw is an override wearing a signature; COUNTERSIGNED names the block digest the signer read, or it is not a countersignature"
+      }
+    }
+  },
   "limitations": [
     {
       "limitation_id": "topic:empagliflozin-hfpef-hosp:overview:result-withdrawn",
@@ -57736,6 +57822,29 @@
         "gate_id": "gate.check_primary_result",
         "gate_input_path": "/withdrawn",
         "gate_verdict_at_build": "REFUSE: primary pooled estimate withheld (result withdrawn; no number may be read as the result)"
+      }
+    },
+    {
+      "limitation_id": "topic:empagliflozin-hfpef-hosp:overview:pre-release",
+      "kind": "PRE_RELEASE",
+      "limitation_class": "INFORMATIONAL",
+      "severity": "QUALIFIES_CLAIM",
+      "claim_affected": "every claim on this page, as a claim of the release it belongs to",
+      "evidence_state": "PROVISIONAL",
+      "source_fields": [
+        "/release_status"
+      ],
+      "rendered_text": "<div class='absent' data-release-status='PRE-RELEASE'><strong>PRE-RELEASE — not the reference release.</strong> Decided by Mahmood on 2026-09-20 (<span data-release-countersignature='NOT_COUNTERSIGNED'>NOT_COUNTERSIGNED: relayed by the orchestrating lane on 2026-09-20; no signed artefact of the decision exists in this repository</span>); the pre-release commit is <code>316d2e487417</code> and stays fetchable with every digest intact. Why:<ul><li data-release-reason='GENERATING_TREE_NOT_RECORDED'>The tree that generated these pages is NOT_RECORDED. That is the true value and it is not reconstructed: an inferred generating commit would be a proxy nobody would re-check. The served bytes are attested equal to the committed bytes of the pre-release commit; which working tree produced them is not established by any artefact.</li><li data-release-reason='VERIFY_LABEL_DEFECTS'>harness/verify.py (git blob e5187ea9cc8e, pinned in every certificate) carries five known defect classes in the label it stamps on pooled numbers: (1) the confidence interval is never checked -- only the point estimate&#x27;s digits; (2) the RRR complement is accepted unconditionally (line 58) -- a stored 0.44 is &#x27;verified&#x27; by a 0.56 anywhere in the abstract; (3) for provenances other than the abstract, the row&#x27;s own hand-written `source` field is the text checked against itself (line 73) -- a check whose haystack is supplied by the same process that supplied the needle is not a check; measured on the served review.json files (scripts/verify_label_census.py): 30 of 53 per-arm rows (counts and continuous) and 24 of 92 effect rows are checked that way, including this release&#x27;s own glp1-ra-mace-t2d row PMID 27295427 (LEADER, adverse events leading to discontinuation, provenance fulltext_verified_arms, labelled verified) -- a version-1 blocker; (4) the effect measure is never compared -- an HR verified against an OR&#x27;s digits passes; (5) two count rows (probiotics-aad-prevention PMID 15740542 and PMID 18026577, provenance aact_verified) return &#x27;verified_handchecked&#x27; with no check at all (lines 75-76): not a wrong haystack, no haystack. 21 of the 53 per-arm rows and 68 of the 92 effect rows are checked against the held abstract; published_rate rows are among them (lines 78-87).</li><li data-release-reason='VERIFIED_IS_A_PRODUCER_ASSERTION'>Therefore every &#x27;verified&#x27; marker on this page is a producer assertion, not a verification. Where an evidence bundle is served (BUNDLE.json), it carries the marker as producer_labels and re-derives its own admission from served bytes.</li><li data-release-reason='ADMISSION_PATH_DEMONSTRATED_PERMEABLE'>The admission state UNBOUND_LEGACY -- a row admitted with no endpoint class and no span of either kind -- is the majority state on this release, not an edge case: 121 of 145 rows in served pools carry it, 115 of them pooled into a served estimate and 71 of them primary-outcome rows (measured in the served review.json files; scripts/pooled_class_sweep.py). The route has been executed on the real publication path: a planted row whose point estimate lies outside its own interval, 0.68 (0.77-0.96), was published marked &#x27;verified&#x27;, pooled into the k=8 primary estimate (0.856 -&gt; 0.807), with gate limb 1 passing -- replayed by this lane on 2026-09-20 in a throwaway clone at bebd85a2; record: docs/evidence/prerelease-relabel-2026-09-20/bypass-replay.json. The evidence bundle on the same release refused that row (INADMISSIBLE: no span located, value in no source clause, unbound). On every page that serves an evidence bundle the two admission states are kept apart: EXACT_TARGET rows, whose endpoint was bound to a definition span, and UNBOUND_LEGACY rows, whose was not.</li><li data-release-reason='KNOWN_INCORRECT_VALUES_ON_NAMED_PAGES'>Seven served rows on this release carry values measured wrong on 2026-09-20 and not yet corrected: colchicine publishes 1 - RRR as a risk ratio with inverted limits (two rows); two RECOVERY rows are labelled RR where the trial reported a rate ratio; an ENGAGE AF-TIMI 48 row serves 0.745-1.016 as a 95% interval where the trial reports 0.73-1.04 at 97.5% (a derived interval served as if reported, without its source level); RE-LY and ROCKET-AF major-bleeding tuples appear in no held document. Corrections land as their own commits with their own records; until then the page states the class and the reader should not read any of those rows as verified.</li><li data-release-reason='HAND_WRITTEN_STATUS_DESCRIBES_A_COMPUTED_RELATION'>docs/parity.json carries a hand-written `status` that describes a computed relation between our pooled trial set and the comparator&#x27;s -- the same quantity written twice. When a repaired binder set one glp1 row aside (pool 8 -&gt; 7) the hand status went stale and the topic refused to build: &quot;PARITY-RELATION REFUSED: hand status &#x27;SUPERSET&#x27; disagrees with computed relation OVERLAPPING for glp1-ra-mace-t2d&quot; (2026-09-20). A hand-written value that describes a computed relation goes stale the moment the evidence moves. The stale-second-source problem and the silent-degradation problem have different fixes: compute the relation, render any hand text as hand_status_stale, AND require a recorded acknowledgement when the relation changes.</li><li data-release-reason='BOUNDED_REMEDY_ESTIMATED'>ESTIMATE, not a measurement: of the 121 UNBOUND_LEGACY rows, about 78 appear bindable from documents this repository already holds, according to a reference locator run outside the shipped harness (2026-09-20); their failures would then be locator defects, not evidence gaps. This is a prediction that a repair will work, not the repair working; it is not demonstrated on the shipped code and will be replaced by a measurement when the repaired binder classifies those rows.</li></ul><span data-release-conditions='v1'>Version 1 is cut only when:</span><ul><li>the generator records its execution: EXECUTION_RECORD.json with generating_commit populated and tree state named</li><li>the five harness/verify.py defect classes are fixed and the fix is demonstrated on the real publication path</li><li>the certificate lane&#x27;s M2 suite has run through the real publication path</li><li>the cut is coordinated: neither lane cuts a release alone</li></ul><span data-release-nondo='true'>What this label does not do: it does not delete or rewrite the pre-release; it does not complete a search; it does not make any number on the page more or less true.</span> <span data-release-scope='boundary'>This label covers the pages served from this site. ARNI_HF_REVIEW.html and HFREF_NMA_AUTO_FULL_REVIEW.html are served from rapidmeta-finerenone and carry no label from here.</span> <span data-release-currency='None'>This statement describes: 2nd after the pre-release: this relabel (release_status enters every review core; all 32 certificates move). Expected next: 3rd: corrections and pooled-estimate changes arising from the endpoint-binding repair (review_sha256 moves on 28 of 32; conclusions and outcome counts may change); 4th: the harness/verify.py fixes (analysis code re-pinned; every certificate moves). If superseded_by is null here but a later re-certification exists on main, this statement is stale. The gate refuses a page whose rendered notice and review core disagree about superseded_by, and refuses any superseded_by value that is not null or a commit present in this repository.</span></div>",
+      "text_sha256": "eb6e4c1a791ee190a38f8fb2765a881acde96db9e737dec393ba4911408bdc2c",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": {
+        "gate_id": "gate.check_limb1",
+        "gate_input_path": "/release_status",
+        "gate_verdict_at_build": "DECLARED_COMPLETE:page_must_render_all"
       }
     },
     {
@@ -58231,7 +58340,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "c5dc828d141fe01e81ce46b9a9e29863c2a01918",
-    "review_sha256": "28df1f16b38d616d254f8cfdb8af7fa8c5454f5869dd268625ac47df716b83d5",
+    "review_sha256": "bb491a739cec829240de4957382a41194bcf9d826fca860832386272f35caea9",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -58336,7 +58445,7 @@
         }
       ],
       "config_sha256": "c71fc0b0cc1f664c32f1f98957285293704cec685bfcdbc25787e8c2e8964a73",
-      "analysis_code_sha256": "b9f7218924791bc9d7b6f929cd3580a238c17d23de20585b42fbec5c7a735ac2",
+      "analysis_code_sha256": "46622f5c2c7fe32b2bd27f43738301104eb87221f84379ee7e5da40963f2b827",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
@@ -58373,12 +58482,12 @@
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "e5c8759b497e1a93d7ff3f9626dad3d155105489",
+        "harness/gate.py": "81e3b42415047edde8fb39dce964e1ff415963c8",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
         "harness/harms.py": "64f79ea3db77361f8076c8017af851f388183ef7",
-        "harness/hazard_consumers.py": "d21038bd139c20efbe2f27586f7aa6cb62c05b9e",
+        "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
         "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
         "harness/index.py": "2ea249513fbe6f92747821c2f77ca4f47bbcf47e",
@@ -58386,14 +58495,14 @@
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "d0059dcfd20cbd86eab5ade0ba0f9eba42c744e5",
+        "harness/limitations.py": "abf2d38fbf9800b23d83289febd289fa53c6b2e6",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "6a18509615e91f32727923a43b569ff2181a5b5f",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "67c9251e0d1e3a568240752d604bbfca2443ac5b",
+        "harness/page.py": "eec920650e986ee7a18e7549c60915a9ce6405b9",
         "harness/parity_relation.py": "55a2602e97e0ee4518aa4d083e5ff4500afe4bf0",
-        "harness/pipeline.py": "117dfcba106cf71ade145c0b9e41ded84a1bf7c4",
+        "harness/pipeline.py": "4b1743b9dfa13b70612f435081f9009638a6ef10",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -58417,7 +58526,7 @@
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
         "harness/verify.py": "e5187ea9cc8e9b92a02a98e7bc84ed1cfd0a99f5",
-        "scripts/build_topic.py": "bfd51ffd7d2d8c5296c501cade1a4f6bd19ef896",
+        "scripts/build_topic.py": "ddfab3d8415edb0b5a7f8e1a091f10e0520cfd18",
         "scripts/reproduce_review.py": "eab6807e05abf130e79db5d0e9354598c4cf7dfe"
       },
       "certificate_scope": {
@@ -58461,7 +58570,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "9782724781ac0e45b4cb31ef7a2cc3db2278c33d17cb2aaa380e897f9980a1bc",
-      "review_sha256": "28df1f16b38d616d254f8cfdb8af7fa8c5454f5869dd268625ac47df716b83d5",
+      "review_sha256": "bb491a739cec829240de4957382a41194bcf9d826fca860832386272f35caea9",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/empagliflozin-hfpef-hosp.md UTF-8 text, universal newlines",
@@ -58481,7 +58590,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "c36f13ca204edec01be667b6ee0a9b8f832070eff5d5ec917dc34853a7945a77"
+      "release_sha256": "e1adec17ce485ef7f560a8cca501a972f8329c33b165db973039df972badd868"
     }
   }
 }

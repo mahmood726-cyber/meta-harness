@@ -30,17 +30,20 @@ certificate is computed before the record exists.
 ```
 git clone --filter=blob:none <repo> && cd <repo> && git checkout <release commit>   # a full clone is ~67 GB of archive history
 git status --porcelain                                        # must print nothing before you start
-python scripts/build_topic_recorded.py glp1-ra-mace-t2d --now 2026-09-11   # the certified generator, then EXECUTION_RECORD.json
+python scripts/build_topic.py glp1-ra-mace-t2d --now 2026-09-11            # the generator; from the PRE-RELEASE relabel commit on it writes EXECUTION_RECORD.json itself
+#   at 316d2e48 or 4b9dd46b instead: python scripts/build_topic_recorded.py glp1-ra-mace-t2d --now 2026-09-11   (the unpinned wrapper wrote the record then)
 python scripts/build_bundle.py glp1-ra-mace-t2d               # re-stamps manifest.json `source` and rebuilds BUNDLE.json
 python scripts/verify_bundle.py --root docs --slug glp1-ra-mace-t2d --json > verify.json
 python scripts/verify_bundle.py --root docs --slug glp1-ra-mace-t2d --corrupt 27633186 effect --json   # a control: must refuse
 python -m pytest tests/test_bundle.py tests/test_bundle_verifier.py tests/test_exclusion_relation.py tests/test_execution_record.py -q
 ```
 
-`--now 2026-09-11` is the build date the served `manifest.json.build_utc` records; it is a label, not a clock. The wrapper
-`scripts/build_topic_recorded.py` exists because `scripts/build_topic.py` is a pinned root of the certificate: changing a byte of it
-is a release change, so until a new release is cut the record is written by the unpinned wrapper after the certified generator
-returns. The record's `command.argv` says which.
+`--now 2026-09-11` is the build date the served `manifest.json.build_utc` records; it is a label, not a clock. Which component
+writes the record depends on the commit you checked out. At `316d2e48` and `4b9dd46b`, `scripts/build_topic.py` was a pinned root
+that wrote no record, and changing a byte of it was a release change; the unpinned wrapper `scripts/build_topic_recorded.py` wrote the
+record after the certified generator returned. The PRE-RELEASE relabel commit (2026-09-20, the second re-certification) is that
+release change: from it on, `scripts/build_topic.py` writes the record itself, last, after `CERTIFICATE.json`. The wrapper still runs
+on later trees and writes the same record a second time (harmless). The record's `command.argv` says which entry point ran.
 
 **Measured on 2026-09-20 in a fresh local clone of `4b9dd46b`** (branch head carrying this document; the review directory there is
 byte-identical to `316d2e48`'s): the wrapper ran in 50 s and reproduced `review_sha256 d3f33833…`, `html_sha256 91d15b51…` and
@@ -49,6 +52,12 @@ byte-identical to `316d2e48`'s): the wrapper ran in 50 s and reproduced `review_
 "last topic built" side file (the committed copy names another topic). One trap found the same day: **placing any new `.py` file
 under `harness/` changes `certificate_scope.not_covered` and therefore `release_sha256`, even if nothing imports it** — the scope
 list is part of the certificate by design. Replay helpers live under `scripts/` for that reason.
+
+That measurement is history: it describes a replay of the frozen pre-release, and the three digests above are `316d2e48`'s. It is not
+a description of the served directory after the PRE-RELEASE relabel commit, whose review core carries the release label (so
+`review_sha256` moved on every page) and whose pinned code changed (so `release_sha256` moved). To replay the served page, check out
+the commit named in its `EXECUTION_RECORD.json` and compare against the digests in that commit's `manifest.json`, not against the
+three quoted here.
 
 ## Per-output reproduction claims
 

@@ -48,6 +48,15 @@ WIRED_CONSUMERS: dict[tuple[str, str], dict[str, str]] = {
         "/withdrawn",
         "withdrawn",
     ),
+    # PRE-RELEASE (2026-09-20): the executable consumer is gate limb 1, which reads /release_status and refuses a page that
+    # declares the label but does not render it, renders it without every reason, boundary or currency, or renders it without
+    # declaring it (both directions).
+    ("PRE_RELEASE", "PROVISIONAL"): _spec(
+        "gate.check_limb1",
+        "harness.gate.check_limb1",
+        "/release_status",
+        "release_status",
+    ),
     ("STALE_TOPIC", "STALE"): _spec(
         "invalidation.assess",
         "harness.invalidation.assess",
@@ -353,7 +362,25 @@ def _gate_verdict(review: dict[str, Any], obj: dict[str, Any], spec: dict[str, s
         return _eligibility_chain_verdict(review)
     if runner == "withdrawn":
         return _withdrawn_verdict(review)
+    if runner == "release_status":
+        return _release_status_verdict(review)
     return "UNKNOWN_RUNNER"
+
+
+def _release_status_verdict(review: dict[str, Any]) -> str:
+    """What gate limb 1 requires of a PRE-RELEASE declaration, computed from the review object alone (the served page is
+    checked at gate time): every reason id, the scope boundary and the statement currency must be present to render."""
+    rs = review.get("release_status") or {}
+    if rs.get("status") != "PRE-RELEASE":
+        return "NOT_DECLARED"
+    ids = [x.get("id") for x in rs.get("reasons", []) if isinstance(x, dict)]
+    missing = [k for k in ("GENERATING_TREE_NOT_RECORDED", "VERIFY_LABEL_DEFECTS", "VERIFIED_IS_A_PRODUCER_ASSERTION",
+                           "ADMISSION_PATH_DEMONSTRATED_PERMEABLE", "KNOWN_INCORRECT_VALUES_ON_NAMED_PAGES",
+                           "HAND_WRITTEN_STATUS_DESCRIBES_A_COMPUTED_RELATION", "BOUNDED_REMEDY_ESTIMATED") if k not in ids]
+    cs = ((rs.get("decision") or {}).get("countersignature") or {}).get("state")
+    if missing or not rs.get("scope_boundary") or not rs.get("statement_currency") or cs not in ("NOT_COUNTERSIGNED", "COUNTERSIGNED", "REFUSED"):
+        return "DECLARED_INCOMPLETE:" + ",".join(missing or ["boundary_currency_or_countersignature"])
+    return "DECLARED_COMPLETE:page_must_render_all"
 
 
 def _withdrawn_verdict(review: dict[str, Any]) -> str:
@@ -543,6 +570,11 @@ def _plant_core(pair: tuple[str, str]) -> dict[str, Any]:
     elif kind == "RESULT_WITHDRAWN":
         # the planted hazard: a declared withdrawal beside a still-pooled row -- the consumer must refuse it
         core["withdrawn"] = {"date": "plant", "summary": "plant", "statements": ["what was published", "what the held evidence holds", "why", "not yet published"], "status": "plant"}
+    elif kind == "PRE_RELEASE":
+        # the planted hazard: a release-level label declared with one reason where the label requires seven, no scope boundary
+        # and no statement currency -- gate limb 1 refuses the page because it cannot render all of them (DECLARED_INCOMPLETE)
+        core["release_status"] = {"status": "PRE-RELEASE", "reasons": [{"id": "GENERATING_TREE_NOT_RECORDED", "text": "plant"}],
+                                  "decision": {"countersignature": {"state": "NOT_COUNTERSIGNED"}}}
     elif kind == "RETRIEVAL_CLASS":
         core["search"]["retrieval_class"] = {
             "class": "KNOWN_ITEM_RETRIEVAL",
@@ -664,6 +696,8 @@ def _plant_verdict(pair: tuple[str, str], spec: dict[str, str], planted: bool) -
         return _plant_eligibility_chain(pair, planted)
     if runner == "withdrawn":
         return _withdrawn_verdict(_plant_core(pair) if planted else _clean_core())
+    if runner == "release_status":
+        return _release_status_verdict(_plant_core(pair) if planted else _clean_core())
     return "UNKNOWN_RUNNER"
 
 
