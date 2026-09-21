@@ -1141,6 +1141,27 @@
      "schema": "gate-gaps-v1"
     }
    }
+  },
+  {
+   "gap_id": "GAP-055",
+   "kind": "gap",
+   "implementation": "n/a",
+   "group": "The eight `verify_all.py` limbs",
+   "gate": "Advertised artefacts present",
+   "stops": "A bundle that advertises a served path (verifier, certificate, execution record, review files, SERVED artefacts, supporting files) that is not in the tree, or whose bytes/sha256 disagree with the file, or whose served_url is not SITE_ROOT + served_path; a withheld artefact that advertises a URL.",
+   "would_not_stop": "An artefact the bundle SHOULD advertise and does not (advertised-and-complete is not checked); a served page that never tells the reader where the verifier is (discoverability); live-site drift, which the deploy job's per-file attestation covers for files in the manifest; it runs offline, and --live is optional and never required for a pass.",
+   "source": "`scripts/verify_all.py:limb_advertised_artefacts`; `scripts/check_advertised.py`",
+   "seal": {
+    "sealed_utc": "2026-09-21T11:47:27Z",
+    "commit": "8f14f411c959ede7af0a8d4fccc6edf010af61ae",
+    "dependencies": {
+     "scripts/verify_all.py": "b2292d16caab979bb5354b2f634af1e7f5272000",
+     "scripts/check_advertised.py": "08275417522b8d587d902191425a83756790c445"
+    },
+    "configuration": {
+     "schema": "gate-gaps-v1"
+    }
+   }
   }
  ]
 }

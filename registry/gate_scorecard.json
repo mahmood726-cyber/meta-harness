@@ -3561,6 +3561,38 @@
    "gate_id": "gate.check_harms_synthesis_gated",
    "what_it_refuses": "An incomplete reporting-trial harm extraction serves a quantitative synthesis, omits the complete debt ledger, or inserts an extra result alongside the ledger.",
    "where": "harness/gate.py:check_harms_synthesis_gated"
+  },
+  {
+   "gate_id": "verify_all.limb_advertised_artefacts",
+   "where": "scripts/verify_all.py:limb_advertised_artefacts",
+   "what_it_refuses": "advertised artefacts present (every bundle-advertised served path exists with its bytes and sha256)",
+   "events": [
+    {
+     "event_id": "verify-all-limb-advertised-artefacts-v1-plant-validations-1",
+     "kind": "PLANT",
+     "source_list": "plant_validations",
+     "where": "scripts/verify_all.py:limb_advertised_artefacts",
+     "when_utc": null,
+     "commit": null,
+     "what_refused": "plants on a copy of the real bundle: an advertised served_path not in the tree (would 404 silently), a served_url that is not SITE_ROOT + served_path, wrong advertised bytes, a wrong advertised sha256, a withheld artefact advertising a URL; an unreadable bundle exits COULD-NOT-EXECUTE, not REFUSED; the real bundle passes",
+     "evidence": [
+      "tests/test_check_advertised.py",
+      "scripts/check_advertised.py"
+     ],
+     "adjudication": {
+      "verdict": "TRUE_POSITIVE",
+      "adjudicated_by": {
+       "identity": "v1 plant-validation test harness",
+       "kind": "internal_agent"
+      },
+      "evidence": [
+       "tests/test_check_advertised.py"
+      ],
+      "architecture_identity": "4daea025a797266a1e871573bfda7d391e9fec915aa74e2e4cb6a014de5c3a60",
+      "when_utc": null
+     }
+    }
+   ]
   }
  ],
  "generated_utc": null,

@@ -275,8 +275,26 @@ def limb_gate_gaps():
     return (PASS if rc == 0 else REFUSED), tail
 
 
+def limb_advertised_artefacts():
+    """Every artefact a bundle advertises as served exists in the tree at that path with the advertised bytes and sha256,
+    under SITE_ROOT + served_path (scripts/check_advertised.py, offline). Closes the hole the deploy attestation cannot see:
+    an advertised path that is not in the tree is never in the production manifest, never fetched, and 404s silently.
+    Prints its own limits: advertised-and-present, not advertised-and-complete."""
+    paths = [os.path.join("scripts", "check_advertised.py"),
+             *sorted(os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "docs", "reviews", "*", "BUNDLE.json")))]
+    target_line, err = _target("verify_all.limb_advertised_artefacts", paths)
+    if err:
+        return NOEXEC, target_line
+    rc, out = _run([sys.executable, os.path.join("scripts", "check_advertised.py")])
+    tail = "\n".join(out.strip().splitlines()[-12:])
+    if rc == 2:
+        return NOEXEC, _append_target(target_line, tail)
+    return (PASS if rc == 0 else REFUSED), _append_target(target_line, tail)
+
+
 LIMBS = [
     ("unit tests (pytest tests/)", limb_unit_tests),
+    ("advertised artefacts present (every bundle-advertised served path exists with its bytes and sha256)", limb_advertised_artefacts),
     ("offline reproduction (every live page replays from committed cache)", limb_reproduction),
     ("publication gate on every live review page", limb_gate_every_page),
     ("index currency (generated == committed docs/index.html)", limb_index_currency),

@@ -45,4 +45,25 @@ Short lines, no ceremony. Each one cost hours tonight.
     passed the same 11 limbs on the branch an hour earlier (`main` sat un-deployed at `b4e54276` until the fix). The copy now comes
     from the script's own base ref by `git show`, and the plant is a synthetic block no base can carry. General form: **a
     branch→main landing changes what `origin/main` means; anything that reads it is a different check on main than it was on the
-    branch.**
+    branch.** **A test that computes its own version of what the code computes is a second implementation, and the two will
+    diverge** — the same disease as the hand-written parity status in `docs/parity.json`.
+12. **A red trunk did not become a red site.** Main's CI refused `b4e54276` (02:48Z–04:42Z); the deploy job did not run, so the site
+    kept serving `8b1fb37d`'s pages until `8f14f411` passed and deployed. Nothing broken was ever published: the deploy consumes only
+    the artefact of the tree the standard just passed, so fail-closed holds at the deployment layer, not only at the commit layer.
+13. **Handover (2026-09-21 04:50Z; main = `8f14f411`, deployed and served, PRE-RELEASE notice live on 32 of 32).** Open, none started:
+    third re-certification (ready-not-written; waits on the certificate lane's census on main); parity reader keying
+    (`rebuild_invariance.py` finds 0 of 32 keys in `docs/parity.json`; lands with the parity ruling: compute the relation, render hand
+    text stale, require an acknowledgement on change); the in-place block-edit category for `rebuild_invariance.py`, with its plant
+    (text AND identifier changed must refuse) before any `--expect-added 0` re-certification run; the certificate lane's eight
+    harm-outcome notices, still unread by a reader — the last reading of that template found four defects, so "same template" is not
+    a reading.
+14. **An auditor 404'd on the verifier (2026-09-21), and the measurement cleared us: `scripts/verify_bundle.py` is served, 200,
+    81,449 B, sha256 `d1ba9320…`, byte-identical to the committed copy and to `BUNDLE.json.verifier`.** The auditor fetched
+    `reviews/<slug>/verify_bundle.py`, a path nothing we publish names; the deploy is the artifact route (no Jekyll), so no exclusion
+    was involved. Two real findings survived the clearing: (a) **the served review page never names the verifier** — the reader
+    has to open BUNDLE.json to find it, which is how a URL gets guessed; rendering `verifier.served_url` + sha256 on the page is a
+    `page.py` change and belongs to the third re-certification; (b) **the deploy attestation fetches every file in the production
+    manifest, so it cannot see an advertised path that is not in the tree** — never in the manifest, never fetched, a silent 404
+    (the "14 of 18" hole). `scripts/check_advertised.py` + `verify_all.limb_advertised_artefacts` close (b) offline; `--live` is
+    optional and never required for a pass. The plants caught the checker itself twice before it was trusted: a cross-drive
+    `relpath` crash and an unreadable-bundle crash both exited 1 — **a crash that exits like a refusal is a verdict nobody gave.**
