@@ -209,3 +209,13 @@ def test_cli_refuses_unresolvable_base_with_target_line():
 
     assert proc.returncode == 1
     assert "TARGET honest_ratchet: COULD-NOT-EXECUTE base ref not resolvable: no-such-ref" in proc.stdout
+
+
+def test_PLANT_a_result_change_notice_is_a_tracked_block_that_cannot_vanish_unacknowledged():
+    """A countersigned notice is an honest marker: once rendered, its disappearance needs a reviewed replacement."""
+    base = honest_ratchet.blocks("<div class='result-change' data-result-change='true'>Result changed X: k = 2 -> 1.</div>")
+    assert len(base) == 1 and base[0]["cls"] == "result-change"
+    reasons = honest_ratchet.compare_blocks(base, [], {"acknowledgements": []}, "docs/reviews/x/index.html")
+    assert len(reasons) == 1 and "lost result-change block" in reasons[0]
+    new = honest_ratchet.blocks("<div class='result-change' data-result-change='true'>Result changed X: k = 2 -> 1.</div>")
+    assert honest_ratchet.compare_blocks(base, new, {"acknowledgements": []}, "docs/reviews/x/index.html") == []

@@ -417,6 +417,47 @@ def _selection_extras(row):
     return source_hierarchy_mod.selection_extras(row)
 
 
+_NAMED_HELD_PATH = re.compile(r"^\s*(?P<path>cache/[\w.-]+/[\w.-]+\.(?:json|txt))"
+                              r"(?:\s+\w+)?\s*\(?(?:PMID[\s-]?(?P<pid>\d{7,8}))?")
+_HAND_FIELDS = ("document_ref", "document_sha256", "source_span", "source_level", "kind", "ci_pct",
+                "comparator_direction", "analysis_set", "adjudication", "verification")
+
+
+def _hand_fields(entry, slug, pid, rec=None):
+    """The typed part of a hand extraction, carried on the row so `admit_rows` binds it to HELD BYTES (M2):
+    the entry's own document_ref / document_sha256 / source_span and declared analysis identity, plus the
+    held documents its provenance could mean when it names none (records.json abstract; ft_<pid>.txt when
+    held). The pipeline already propagated document_ref for typed refusals; this applies it to the route
+    that needed it."""
+    out = {k: entry[k] for k in _HAND_FIELDS if entry.get(k) not in (None, "")}
+    # the abstract the pipeline was handed for this trial (rec_by_id = the parse of records.json in production): the
+    # binder reads it only when no held file resolves, and names it as such on the record
+    if isinstance(rec, dict) and rec.get("abstract"):
+        out["handed_abstract"] = rec["abstract"]
+    if slug and pid:
+        cands = []
+        # An entry whose `source` OPENS with a held path names its document verbatim -- a companion report's
+        # abstract ('cache/<slug>/records.json hhf_source_records PMID 29526832 abstract: ...') or a held full
+        # text ('cache/<slug>/pmc_26819227_fulltext.txt (PMID 26819227): ...'). It is the first candidate;
+        # without it the binder read the trial's OWN abstract and set aside numbers we hold (sglt2-pp, M2).
+        named = _NAMED_HELD_PATH.match(str(entry.get("source") or ""))
+        if named:
+            ref = named.group("path")
+            if ref.endswith("records.json") and named.group("pid"):
+                ref += f"#PMID-{named.group('pid')}"
+            if os.path.exists(os.path.join(ROOT, ref.split("#")[0])):
+                cands.append(ref)
+        ftp = os.path.join(ROOT, "cache", slug, f"ft_{pid}.txt")
+        prov = str(entry.get("provenance") or "")
+        if prov.startswith("fulltext") and os.path.exists(ftp):
+            cands.append(f"cache/{slug}/ft_{pid}.txt")
+        cands.append(f"cache/{slug}/records.json#PMID-{pid}")
+        if not prov.startswith("fulltext") and os.path.exists(ftp):
+            cands.append(f"cache/{slug}/ft_{pid}.txt")
+        out["document_candidates"] = cands
+    return out
+
+
 def _span_effect_candidates(spec, selected, base_candidates):
     return source_hierarchy_mod.span_effect_candidates(spec, selected, base_candidates)
 
@@ -997,7 +1038,7 @@ def _apply_trial_annotations(spec, trials):
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
                    locate_judgments=None, verified_effects=None, dose_selection=None,
-                   registry_designs=None, k2_anchor_config=None, eligibility_contract=None):
+                   registry_designs=None, k2_anchor_config=None, eligibility_contract=None, slug=None):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     dose_selection = dose_selection or {}
@@ -1081,7 +1122,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                 and all(va_over.get(k) is not None for k in ("ai", "n1i", "ci", "n2i"))):
             trials.append({"label": label, "id": idstr, "ai": va_over["ai"], "n1i": va_over["n1i"],
                            "ci": va_over["ci"], "n2i": va_over["n2i"], "provenance": va_over.get("provenance", "aact_verified"),
-                           **{k: va_over[k] for k in ("document_ref", "document_sha256", "source_level") if k in va_over},
+                           **_hand_fields(va_over, slug, d["id"], rec),
                            "source": va_over.get("source", "hand-verified arm-count correction (override)")})
             continue
         # CONTINUOUS override (mean/SD/n), incl. multi-arm combination: beats the automated CT.gov path,
@@ -1093,6 +1134,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "mean1": va_over["mean1"], "sd1": va_over["sd1"], "nc1": va_over["nc1"],
                            "mean2": va_over["mean2"], "sd2": va_over["sd2"], "nc2": va_over["nc2"],
                            "scale": "MD", "provenance": va_over.get("provenance", "fulltext_verified_arms"),
+                           **_hand_fields(va_over, slug, d["id"], rec),
                            "source": va_over.get("source", "hand-verified continuous per-arm mean/SD/n (override)")})
             continue
         ve_over = (verified_effects or {}).get(d["id"])
@@ -1104,6 +1146,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                            "provenance": ve_over.get("provenance", "fulltext_verified"),
                            **({"alternative_co_primary": ve_over.get("alternative_co_primary")}
                               if ve_over.get("alternative_co_primary") else {}),
+                           **_hand_fields(ve_over, slug, d["id"], rec),
                            "source": ve_over.get("source", "hand-verified endpoint correction (override)")})
             continue
         nct = rec.get("nct") or (d["id"] if d["id_type"] == "nct" else None)
@@ -1211,7 +1254,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                  "ci": va["ci"], "n2i": va["n2i"],
                  "provenance": va.get("provenance", "aact_verified"),
                  "source": va.get("source", "hand-verified structured arm-level counts"),
-                 **_selection_extras(va)}
+                 **_hand_fields(va, slug, d["id"], rec), **_selection_extras(va)}
             t = design_key.select_estimator_by_source_hierarchy(
                 t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
             )
@@ -1229,7 +1272,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
                  "mean2": va["mean2"], "sd2": va["sd2"], "nc2": va["nc2"],
                  "scale": "MD", "provenance": va.get("provenance", "fulltext_verified_arms"),
                  "source": va.get("source", "hand-verified continuous per-arm mean/SD/n"),
-                 **_selection_extras(va)}
+                 **_hand_fields(va, slug, d["id"], rec), **_selection_extras(va)}
             t = design_key.select_estimator_by_source_hierarchy(
                 t, _span_effect_candidates(spec, t, effect_candidates), selector_estimand
             )
@@ -1243,6 +1286,7 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             row = {"label": label, "id": idstr, "effect": ve["effect"],
                    "ci_low": ve.get("ci_low"), "ci_high": ve.get("ci_high"),
                    "scale": ve.get("scale", "HR"), "provenance": "fulltext_verified",
+                   **_hand_fields(ve, slug, d["id"], rec),
                    "source": ve.get("source", "full-text-verified effect+CI")}
             # A hand-verified row is not outside the endpoint-binding safeguard: its own numbers locate its
             # result sentence in the held abstract, which binds to a definition span and is classified like
@@ -1758,8 +1802,10 @@ def _source_status(slug, config, records, merged, ledger=None):
     }
 
 
-@aact_cache.cache_only_build
-def build_review_core(slug, config, records, protocol_sha):
+def outcome_inputs(slug, config, records):
+    """Everything _build_outcome needs for one topic, exactly as build_review_core assembles it (dedup,
+    contrast evictions, companion reports, screening, verified inputs, dose selection, registry designs,
+    eligibility contract). Shared with tests/test_m2_battery.py so the battery runs on the real inputs."""
     merged = _dedup(records, config.get("pivotal_trials"))
     retrieval_ledger = _load_retrieval_ledger(slug)
     from . import trial_family as trial_family_mod
@@ -1809,12 +1855,41 @@ def build_review_core(slug, config, records, protocol_sha):
     if config.get("eligibility_chain_enforced"):
         with open(os.path.join(ROOT, "protocols", slug + ".md"), encoding="utf-8") as f:
             eligibility_contract = eligibility_chain_mod.compile_contract(slug, config, f.read())
+    return {"config": config, "merged": merged, "retrieval_ledger": retrieval_ledger, "family_nodes": family_nodes,
+            "retrieval_records": retrieval_records, "scr": scr, "rec_by_id": rec_by_id, "included": included,
+            "interv": interv, "comp": comp, "cgr": cgr, "ftbp": ftbp, "ojudg": ojudg, "varms": varms,
+            "veffs": veffs, "dsel": dsel, "ljudg": ljudg, "registry_designs": registry_designs,
+            "eligibility_contract": eligibility_contract}
+
+
+def build_outcome_from_inputs(inp, spec, kind, slug, **overrides):
+    """_build_outcome on outcome_inputs(); `overrides` replace named inputs (the battery swaps veffs)."""
+    kw = dict(inp)
+    kw.update(overrides)
+    return _build_outcome(spec, kind, kw["included"], kw["rec_by_id"], kw["interv"], kw["comp"], kw["cgr"], kw["ftbp"],
+                          outcome_judgments=kw["ojudg"], verified_arms=kw["varms"], locate_judgments=kw["ljudg"],
+                          verified_effects=kw["veffs"], dose_selection=kw["dsel"],
+                          registry_designs=kw["registry_designs"],
+                          k2_anchor_config=kw["config"].get("k2_direction_conflict_anchor"),
+                          eligibility_contract=kw["eligibility_contract"], slug=slug)
+
+
+@aact_cache.cache_only_build
+def build_review_core(slug, config, records, protocol_sha):
+    from . import trial_family as trial_family_mod
+    _inp = outcome_inputs(slug, config, records)
+    config = _inp["config"]
+    merged, retrieval_ledger, family_nodes = _inp["merged"], _inp["retrieval_ledger"], _inp["family_nodes"]
+    retrieval_records, scr, rec_by_id, included = _inp["retrieval_records"], _inp["scr"], _inp["rec_by_id"], _inp["included"]
+    interv, comp, cgr, ftbp, ojudg = _inp["interv"], _inp["comp"], _inp["cgr"], _inp["ftbp"], _inp["ojudg"]
+    varms, veffs, dsel, ljudg = _inp["varms"], _inp["veffs"], _inp["dsel"], _inp["ljudg"]
+    registry_designs, eligibility_contract = _inp["registry_designs"], _inp["eligibility_contract"]
     outcomes = [_build_outcome(spec, kind, included, rec_by_id, interv, comp, cgr, ftbp,
                                outcome_judgments=ojudg, verified_arms=varms, locate_judgments=ljudg,
                                verified_effects=veffs, dose_selection=dsel,
                                registry_designs=registry_designs,
                                k2_anchor_config=config.get("k2_direction_conflict_anchor"),
-                               eligibility_contract=eligibility_contract)
+                               eligibility_contract=eligibility_contract, slug=slug)
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 
@@ -2153,10 +2228,12 @@ def build_review_core(slug, config, records, protocol_sha):
     # RoB-stratified sensitivity is a RE-POOL, so it must also fail closed on an INCOMPATIBLE primary
     # pool (audit 23): re-pooling incompatible estimands is as invalid as the primary pool itself.
     _prim_res = next((o.get("result") or {} for o in review.get("outcomes", []) if o.get("primary")), {})
-    if (_prim_res.get("present") is not False
-            and not _prim_res.get("suppressed_incompatible")
-            and not _prim_res.get("pool_refused")
-            and (_sens := rob_sens_mod.sensitivity(review))):
+    # A skipped re-pool is recorded as a NAMED omission (rob_sensitivity_omitted), never as silence: a page that
+    # carries a RoB assessment and no re-pool must say why (iv-iron-hfref-hosp: the primary pool is suppressed as
+    # incompatible estimands, so the re-pool must fail closed too -- and until 2026-09-20 nothing said so).
+    if _omit := rob_sens_mod.omission_reason(review):
+        review["rob_sensitivity_omitted"] = _omit
+    elif _sens := rob_sens_mod.sensitivity(review):
         # At k=2 the registered CI is refused (K2_SINGLE_DF); rob_sensitivity.sensitivity() marks the
         # stratum CIs refused itself so the block renders strata + point estimates rather than vanishing.
         review["rob_sensitivity"] = _sens

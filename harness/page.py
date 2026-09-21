@@ -2179,6 +2179,49 @@ def _estimand_exclusions_block(r):
             f"<table class='arms'>{head}{rows}</table>")
 
 
+def result_change_block(n: dict) -> str:
+    """The rendered notice for one changed result. Rendered by the page AND standalone for the reviewer; the
+    reviewer's countersignature names sha256 of this block (result_changes.rendered_sha256), so a signature is an
+    act on these bytes and no others. The signature line itself is outside the hashed block."""
+    _fmt = _manuscript_mod._fmt
+    b, a = n.get("before") or {}, n.get("after") or {}
+    cc = n.get("conclusion_changed")
+    def _num(x):
+        try:
+            return f"{float(x):.2f}"
+        except (TypeError, ValueError):
+            return str(x)
+
+    def _res(r, note):
+        if not r.get("k"):
+            return "no pooled estimate (k = 0)"
+        if r.get("estimate") is None:
+            return f"k = {r.get('k')}, no pooled estimate" + (f" ({note})" if note else "")
+        if r.get("ci_low") is None or r.get("ci_high") is None:
+            return f"k = {r.get('k')}, {_num(r.get('estimate'))} (interval not served" + (f": {note})" if note else ")")
+        return f"k = {r.get('k')}, {_num(r.get('estimate'))} ({_num(r.get('ci_low'))} to {_num(r.get('ci_high'))})"
+    block = ("<h4>Result changed</h4><div class='result-change' data-result-change='true' style='border:2px solid #b00;padding:1em;background:#fff6f6'><strong>"
+             f"{_e(n.get('outcome'))}: the pooled result changed on {_e(str(n.get('when_utc'))[:10])}.</strong> "
+             f"Previously served: {_e(_res(b, n.get('before_note')))}. Now: {_e(_res(a, n.get('after_note')))}. "
+             + (f"<strong>{'Conclusion withdrawn' if ('withdrawn' in str(cc) or 'no longer' in str(cc)) else 'Conclusion changed'}: {_e(cc)}.</strong> " if cc
+                else "The direction of the estimate is unchanged. ")
+             + (f"Left the pool: {_e(', '.join(map(str, n.get('left_pool') or [])))}. " if n.get("left_pool") else "")
+             + (f"Entered the pool: {_e(', '.join(map(str, n.get('entered_pool') or [])))}. " if n.get("entered_pool") else "")
+             + f"Why: {_e(n.get('reason'))} &mdash; {_e(n.get('by'))}.</div>")
+    sig = n.get("reviewer_countersignature") or {}
+    state = sig.get("state") or "OPEN"
+    if state in ("SEEN_AND_SIGNED", "BATCH_SEEN_AND_SIGNED"):
+        line = (f"<p class='muted'>Reviewer countersignature: {_e(state)} by {_e(sig.get('by'))} on "
+                f"{_e(str(sig.get('when_utc'))[:10])}"
+                + (f" (batch {_e(sig.get('batch_id'))})" if sig.get("batch_id") else "")
+                + f"; signed rendering sha256 {_e(str(sig.get('rendered_sha256'))[:12])}."
+                + (f" How it reached the reviewer: {_e(sig.get('how_it_reached_the_reviewer'))}" if sig.get("how_it_reached_the_reviewer") else "")
+                + "</p>")
+    else:
+        line = "<p class='muted'>Reviewer countersignature: OPEN &mdash; this notice has not yet been seen and signed.</p>"
+    return block + line
+
+
 def _reproduction(r, neutral):
     rep = r.get("reproduction")
     reason = _absent(rep)
@@ -2225,6 +2268,11 @@ def _reproduction(r, neutral):
         body += ("<h4>Re-search (living vs frozen)</h4><p>Re-running the committed queries live and "
                  f"diffing against the cache: {_e(rs.get('summary'))} "
                  f"<span class='muted'>Measured {_e(rs.get('measured_utc'))}; source scope {_e(rs.get('scope'))}.</span></p>")
+    # RESULT CHANGED (docs/result_changes.json): a served pooled result that moved is stated with the previous
+    # number, the new one, the rows that left or entered, and why; a reversal of significance is a withdrawal of
+    # the previous conclusion and is named as such. A page never re-renders a changed number quietly.
+    for _n in rep.get("result_changes") or []:
+        body += result_change_block(_n)
     # PARITY vs the published comparator (measurement snapshot, outside the core hash): our pooled k
     # vs the COMPARABLE same-scope comparator k, with a named reason for any difference — including
     # where the comparator's extra trials are out-of-scope, double-counted substudies, observational,
@@ -2259,6 +2307,13 @@ def _reproduction(r, neutral):
                      f"<strong>{_e(rel.get('our_k', pa.get('our_k')))}</strong> vs the comparator "
                      f"<em>k</em> = <strong>{_e(their_k)}</strong> &mdash; "
                      f"<strong>{_e(status)}</strong>: {_e(label)}. Commentary: {_e(pa.get('reason'))}</p>")
+            # The hand-written word is a description of the computed relation, written at one time and
+            # read at another; when it disagrees it is shown AS stale, never as the status (ruling 2026-09-20).
+            if pa.get("hand_status_stale"):
+                body += (f"<p class='muted'>The hand-written status in docs/parity.json says "
+                         f"<strong>{_e(pa.get('hand_status'))}</strong>; it is STALE against the computed relation "
+                         f"{_e(status)} and is not the served status. The commentary above was written for the "
+                         f"hand status and may describe a pool that is no longer this one.</p>")
     # INDEPENDENT SECOND EXTRACTION (blind): a second extractor located each pooled number's digits
     # from the abstract, blind to ours. agree = same 2x2; reconcile = same result via a different
     # statistic; conflict = genuine numeric disagreement; not-checkable = not stated in the abstract.
@@ -2773,6 +2828,9 @@ def _riskofbias(r, neutral):
     _prim_refused = next(((o.get("result") or {}).get("pool_refused") for o in (r.get("outcomes") or []) if o.get("primary")), None)
     if not sens.get("full") and _prim_refused:
         sens_html = _ROB_SENS_REFUSED_HTML.format(code=_e(_prim_refused.get("code")))
+    elif not sens.get("full") and (_omit := r.get("rob_sensitivity_omitted")):
+        from .limitations import _ROB_SENS_OMITTED_HTML as _omit_tpl
+        sens_html = _omit_tpl.format(code=str(_omit.get("reason_code")), reason=str(_omit.get("reason")))
     if sens.get("full"):
         sens_html = "<h4>Risk-of-bias sensitivity</h4>" + _rob_sensitivity_block(dict(sens, formally_assessed=_grade_mod._rob_domain(r).get("assessed")))
     g = r.get("grade") or {}

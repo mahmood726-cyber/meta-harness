@@ -205,6 +205,38 @@ def low_only_kind_context_text(sens: dict | None) -> str:
     return f"low-only kind {kind} ({adverse} adverse rating exclusions, {unassessed} unassessed-domain exclusions); "
 
 
+OMISSION_CODES = {
+    "PRIMARY_ABSENT": "the primary outcome has no pooled result (present = False)",
+    "PRIMARY_POOL_SUPPRESSED_INCOMPATIBLE": "the primary pool is SUPPRESSED as incompatible estimands; re-pooling "
+                                            "incompatible estimands by risk-of-bias stratum would be as invalid as "
+                                            "the primary pool itself",
+    "PRIMARY_POOL_REFUSED": "the primary pooled row is REFUSED, so there is no pooled estimate to re-pool",
+}
+
+
+def omission_reason(review) -> dict | None:
+    """Why the RoB-stratified re-pool is NOT computed for this review, as a named object, or None when it is
+    computable. A page with a RoB assessment and no re-pool must say why (iv-iron-hfref-hosp carried an assessment,
+    no re-pool and no reason from 2026-09-20 until this object existed)."""
+    prim = next((o for o in (review or {}).get("outcomes", []) or [] if o.get("primary")), None) or {}
+    res = prim.get("result") or {}
+    code = None
+    if res.get("present") is False or not prim.get("trials"):
+        code = "PRIMARY_ABSENT"
+    elif res.get("suppressed_incompatible"):
+        code = "PRIMARY_POOL_SUPPRESSED_INCOMPATIBLE"
+    elif res.get("pool_refused"):
+        code = "PRIMARY_POOL_REFUSED"
+    if not code:
+        return None
+    out = {"reason_code": code, "reason": OMISSION_CODES[code], "outcome": prim.get("name")}
+    if code == "PRIMARY_POOL_SUPPRESSED_INCOMPATIBLE" and res.get("scale"):
+        out["reason"] += f" (declared scales: {res.get('scale')})"
+    if code == "PRIMARY_POOL_REFUSED":
+        out["refusal_code"] = (res.get("pool_refused") or {}).get("code")
+    return out
+
+
 def sensitivity(review):
     """Return the primary-outcome RoB-stratified sensitivity, or None if not applicable."""
     prim = next((o for o in review.get("outcomes", []) if o.get("primary")), None)

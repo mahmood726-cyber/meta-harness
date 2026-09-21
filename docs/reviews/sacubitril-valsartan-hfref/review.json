@@ -1563,9 +1563,58 @@
           "ci_high": 0.87,
           "scale": "HR",
           "provenance": "fulltext_verified",
+          "kind": "extracted_effect",
+          "verification": "Reported HR 0.80 (0.73-0.87) verbatim in the abstract; count-derived RR from 914/4187 vs 1117/4212 = 0.823 corroborates direction/magnitude. Using the reported HR is the correct like-for-like estimand for an HR-declared outcome (cycle 75 audit).",
+          "handed_abstract": "BACKGROUND: We compared the angiotensin receptor-neprilysin inhibitor LCZ696 with enalapril in patients who had heart failure with a reduced ejection fraction. In previous studies, enalapril improved survival in such patients. METHODS: In this double-blind trial, we randomly assigned 8442 patients with class II, III, or IV heart failure and an ejection fraction of 40% or less to receive either LCZ696 (at a dose of 200 mg twice daily) or enalapril (at a dose of 10 mg twice daily), in addition to recommended therapy. The primary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure, but the trial was designed to detect a difference in the rates of death from cardiovascular causes. RESULTS: The trial was stopped early, according to prespecified rules, after a median follow-up of 27 months, because the boundary for an overwhelming benefit with LCZ696 had been crossed. At the time of study closure, the primary outcome had occurred in 914 patients (21.8%) in the LCZ696 group and 1117 patients (26.5%) in the enalapril group (hazard ratio in the LCZ696 group, 0.80; 95% confidence interval [CI], 0.73 to 0.87; P<0.001). A total of 711 patients (17.0%) receiving LCZ696 and 835 patients (19.8%) receiving enalapril died (hazard ratio for death from any cause, 0.84; 95% CI, 0.76 to 0.93; P<0.001); of these patients, 558 (13.3%) and 693 (16.5%), respectively, died from cardiovascular causes (hazard ratio, 0.80; 95% CI, 0.71 to 0.89; P<0.001). As compared with enalapril, LCZ696 also reduced the risk of hospitalization for heart failure by 21% (P<0.001) and decreased the symptoms and physical limitations of heart failure (P=0.001). The LCZ696 group had higher proportions of patients with hypotension and nonserious angioedema but lower proportions with renal impairment, hyperkalemia, and cough than the enalapril group. CONCLUSIONS: LCZ696 was superior to enalapril in reducing the risks of death and of hospitalization for heart failure. (Funded by Novartis; PARADIGM-HF ClinicalTrials.gov number, NCT01035255.).",
+          "document_candidates": [
+            "cache/sacubitril-valsartan-hfref/records.json#PMID-25176015"
+          ],
           "source": "PARADIGM-HF (PMID 25176015) abstract: the primary composite of death from cardiovascular causes or hospitalization for heart failure occurred in 914 of 4187 (21.8%) LCZ696 vs 1117 of 4212 (26.5%) enalapril patients (hazard ratio in the LCZ696 group, 0.80; 95% CI, 0.73 to 0.87; P<0.001). SCALE CORRECTION (override): the CT.gov structured extractor pooled the count-derived RR 0.823 from 914/4187 vs 1117/4212 and labelled the k=1 pool HR; the trial reports the time-to-event HR 0.80 directly.",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [
+            "cardiovascular death",
+            "heart failure hospitalization"
+          ],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+          "endpoint_result_span": "At the time of study closure, the primary outcome had occurred in 914 patients (21.8%) in the LCZ696 group and 1117 patients (26.5%) in the enalapril group (hazard ratio in the LCZ696 group, 0.80; 95% confidence interval [CI], 0.73 to 0.87; P<0.001).",
+          "endpoint_definition_span": "The primary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure, but the trial was designed to detect a difference in the rates of death from cardiovascular causes.",
+          "endpoint_binding_reason": "result sentence names an endpoint; 1 candidate definition in the held text; selected",
+          "definition_candidates": [
+            {
+              "span": "The primary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure, but the trial was designed to detect a difference in the rates of death from cardiovascular causes.",
+              "components": [
+                "cardiovascular death",
+                "heart failure hospitalization"
+              ],
+              "ordinal": null,
+              "timepoint": null,
+              "population": null
+            }
+          ],
+          "endpoint_reference": {
+            "ordinal": null,
+            "qualifier": "primary",
+            "timepoint": null,
+            "population": null
+          },
+          "selected_definition": "The primary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure, but the trial was designed to detect a difference in the rates of death from cardiovascular causes.",
+          "unresolved_alternatives": [],
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "At the time of study closure, the primary outcome had occurred in 914 patients (21.8%) in the LCZ696 group and 1117 patients (26.5%) in the enalapril group (hazard ratio in the LCZ696 group, 0.80; 95% confidence interval [CI], 0.73 to 0.87; P<0.001)."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/sacubitril-valsartan-hfref/records.json#PMID-25176015",
+            "sha256": "29bc165858bc01df37c424e8334a4cc5052bedd12f88c77271871ce1c7fcb31d",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -3191,6 +3240,12 @@
         "status": "NOT_IN_HELD_SOURCES"
       }
     ]
+  },
+  "rob_sensitivity_omitted": {
+    "reason_code": "PRIMARY_POOL_REFUSED",
+    "reason": "the primary pooled row is REFUSED, so there is no pooled estimate to re-pool",
+    "outcome": "Composite cardiovascular death or heart-failure hospitalization",
+    "refusal_code": "DIRECTION_CONFLICT_K2"
   },
   "grade": {
     "start": "high",
@@ -10794,7 +10849,36 @@
               }
             }
           },
-          "registered_outcome_candidates": []
+          "registered_outcome_candidates": [
+            {
+              "row": {
+                "id": "1413076477",
+                "measure": "Cumulative Number of Primary Composite Events of Cardiovascular (CV) Death and Total (First and Recurrent) HF Hospitalizations.",
+                "nct_id": "NCT01920711",
+                "outcome_type": "primary",
+                "source_reference": {
+                  "table": "design_outcomes",
+                  "nct_id": "NCT01920711",
+                  "row_key": {
+                    "id": "1413076477"
+                  },
+                  "row_sha256": "8d82b9133b86baa4faeeb2344e379c404bc7bbffe3cee9319539c91d73da694d",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "target_endpoint_class": "NEAR_MATCH",
+              "target_components": [
+                "cardiovascular death",
+                "heart failure hospitalization",
+                "recurrent events"
+              ],
+              "extra_components": [
+                "recurrent events"
+              ],
+              "missing_components": [],
+              "component_distance": 1
+            }
+          ]
         }
       ],
       "eligibility": {
@@ -79266,7 +79350,60 @@
               }
             }
           },
-          "registered_outcome_candidates": []
+          "registered_outcome_candidates": [
+            {
+              "row": {
+                "id": "1415804499",
+                "measure": "HF hospitalization",
+                "nct_id": "NCT05168787",
+                "outcome_type": "secondary",
+                "source_reference": {
+                  "table": "design_outcomes",
+                  "nct_id": "NCT05168787",
+                  "row_key": {
+                    "id": "1415804499"
+                  },
+                  "row_sha256": "75d137d3d4b8422a0f4cf2139229e9e5095c41a5cb7d809caac8e491d82b5146",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "target_endpoint_class": "NEAR_MATCH",
+              "target_components": [
+                "heart failure hospitalization"
+              ],
+              "extra_components": [],
+              "missing_components": [
+                "cardiovascular death"
+              ],
+              "component_distance": 1
+            },
+            {
+              "row": {
+                "id": "1415805703",
+                "measure": "Composite CV mortality or HF hospitalization",
+                "nct_id": "NCT05168787",
+                "outcome_type": "primary",
+                "source_reference": {
+                  "table": "design_outcomes",
+                  "nct_id": "NCT05168787",
+                  "row_key": {
+                    "id": "1415805703"
+                  },
+                  "row_sha256": "e7d9dce58e3fc12ee044bf5774cf2eefa5df31c18295a12364729da7ed73f44a",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "target_endpoint_class": "NEAR_MATCH",
+              "target_components": [
+                "heart failure hospitalization"
+              ],
+              "extra_components": [],
+              "missing_components": [
+                "cardiovascular death"
+              ],
+              "component_distance": 1
+            }
+          ]
         }
       ],
       "eligibility": {
@@ -105380,7 +105517,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "3fb64a1e01434eb6ee9ea8a764a84c749270dfff",
-    "review_sha256": "a744d0347828dc5e843f982596a2b1c5d5ece33ea48c9e326d7c5b2c6a083faa",
+    "review_sha256": "6de3c38e558cc987752ce2bceb1f0f562a50532980bffce37006cd41a03cd0e7",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -105503,19 +105640,19 @@
         }
       ],
       "config_sha256": "8d60f4c9562d433b56ac455ba3a174ea57250169898cc79ac824a6ae0bfd6130",
-      "analysis_code_sha256": "46622f5c2c7fe32b2bd27f43738301104eb87221f84379ee7e5da40963f2b827",
+      "analysis_code_sha256": "fd5ccc59cf078077fa5c788ed90b4fddce9767cdf4cfd00998fa1ce03ee1c40b",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
         "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
-        "harness/absence.py": "2db42260d7a5ac5d9b708f3cca8513d94c5c5584",
+        "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
         "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
         "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
         "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
         "harness/arm_object.py": "c6e2a9d0ea0263eba72c3453d52bc5a05b06e0b2",
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
-        "harness/census.py": "8909d29924df518d99ca9a73691c92e2e50557f8",
+        "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
         "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
@@ -105540,10 +105677,11 @@
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "81e3b42415047edde8fb39dce964e1ff415963c8",
+        "harness/gate.py": "20a5ce33e2c111d23993e208d00c88e04afda5ca",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
+        "harness/hand_binding.py": "d48224edf7e0e22dd0111e3c1a72565c25b93dd8",
         "harness/harms.py": "64f79ea3db77361f8076c8017af851f388183ef7",
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
@@ -105553,14 +105691,14 @@
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "abf2d38fbf9800b23d83289febd289fa53c6b2e6",
+        "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
-        "harness/manuscript.py": "6a18509615e91f32727923a43b569ff2181a5b5f",
+        "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "eec920650e986ee7a18e7549c60915a9ce6405b9",
-        "harness/parity_relation.py": "55a2602e97e0ee4518aa4d083e5ff4500afe4bf0",
-        "harness/pipeline.py": "4b1743b9dfa13b70612f435081f9009638a6ef10",
+        "harness/page.py": "4dad90b0facdea7c0f89fd0bc5dd1dd1ce04d31f",
+        "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
+        "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -105568,8 +105706,9 @@
         "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
         "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
         "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
+        "harness/result_changes.py": "b7a2eb8c55276a0335312a9ea389631216a9449d",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
-        "harness/rob_sensitivity.py": "026441df1eac7e36710fe170eba196ca5b085a3c",
+        "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
         "harness/screen.py": "e2864719b75c355abfcff1dbde0b376c45bdd84e",
@@ -105578,14 +105717,14 @@
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
-        "harness/target_endpoint.py": "554df973c35f7c9d29070e29cb7075ec9026e574",
+        "harness/target_endpoint.py": "f605e0f513e3524baac0a9e5f36ced5b926ed6e3",
         "harness/trial_family.py": "57882f159bbfd8d91b60deaf5956e409de6c484f",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
         "harness/verify.py": "e5187ea9cc8e9b92a02a98e7bc84ed1cfd0a99f5",
         "scripts/build_topic.py": "ddfab3d8415edb0b5a7f8e1a091f10e0520cfd18",
-        "scripts/reproduce_review.py": "eab6807e05abf130e79db5d0e9354598c4cf7dfe"
+        "scripts/reproduce_review.py": "b8f090b9ac3699ced2181aa9366b098678c29dbe"
       },
       "certificate_scope": {
         "method": "analysis_code_blobs is the static import closure (ast; module-level and function-local import statements, relative and absolute) of the roots, restricted to modules that resolve to a file under harness/ or scripts/. Nothing in the map is listed by hand. Values are Git SHA-1 blob identities: sha1('blob ' + len + NUL + bytes) over the file with CRLF normalised to LF, recomputable with `git hash-object -- <path>` at the anchoring commit.",
@@ -105598,7 +105737,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "80 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "82 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -105627,8 +105766,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "76d9dc85093f707912ad104b94ff2ea97950c6c2220d90d59021d852c9bd89ed",
-      "review_sha256": "a744d0347828dc5e843f982596a2b1c5d5ece33ea48c9e326d7c5b2c6a083faa",
+      "manuscript_sha256": "0a6b0f2344dddf7b65d57d3f5e7f7dbdaf309cf362a7022fb062dd2452a7d63c",
+      "review_sha256": "6de3c38e558cc987752ce2bceb1f0f562a50532980bffce37006cd41a03cd0e7",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/sacubitril-valsartan-hfref.md UTF-8 text, universal newlines",
@@ -105648,7 +105787,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "cc52807bc924e70d27488baf937ed65d3f61bb3a8c6e88acdecdbb8e3a72ecf8"
+      "release_sha256": "8c966bddb2bbd6fa1d04ca771e1ef4b476511a4dd7229fdbc8a1f37efb368487"
     }
   }
 }

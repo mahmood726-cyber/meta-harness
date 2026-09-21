@@ -1,8 +1,9 @@
 """Typed trial-set relation for comparator parity rows.
 
 The hand-written parity row may explain a difference, but the status word is a
-computed relation. A stale hand status is a build refusal because it lets a page
-say "parity" beside incompatible k values.
+computed relation. A stale hand status is rendered AS stale beside the computed word
+(never as the status); a relation that changes from the served one is a landing
+refusal until acknowledged (honest_ratchet.compare_parity).
 """
 from __future__ import annotations
 
@@ -226,6 +227,15 @@ def compute(row: dict, review: Optional[dict] = None) -> dict:
 
 
 def enrich(row: dict, review: Optional[dict] = None, strict: bool = True) -> dict:
+    """The served row: `status` and `our_k` are the COMPUTED relation and the live k; the hand-written
+    words stay visible under their own names (`hand_status`, `hand_our_k`) and are marked stale when
+    they disagree. A stale hand status never refuses a build (ruling 2026-09-20: the hand word describes
+    the computed relation -- a second source for one quantity -- and went stale the moment the evidence
+    moved; glp1 and esketamine refused whole topics over it). The alarm that the strict refusal used to
+    provide lives in honest_ratchet.compare_parity: a relation that differs from the SERVED one is a
+    landing refusal until an acknowledgement names the topic, both relations, every row that moved,
+    why and who. `strict` is kept for callers; it no longer raises."""
+    del strict
     out = dict(row or {})
     rel = compute(out, review)
     out["parity_relation"] = rel
@@ -235,12 +245,9 @@ def enrich(row: dict, review: Optional[dict] = None, strict: bool = True) -> dic
             out["hand_our_k"] = out.get("our_k")
             out["hand_our_k_stale"] = True
         out["our_k"] = rel["our_k"]
-    if strict and rel["hand_status_disagrees"]:
-        raise ValueError(
-            "PARITY-RELATION REFUSED: hand status "
-            f"{rel.get('hand_status')!r} disagrees with computed relation {rel['relation']} "
-            f"for {out.get('slug')}"
-        )
+    out["hand_status"] = out.get("status")
+    out["hand_status_stale"] = bool(rel["hand_status_disagrees"])
+    out["status"] = rel["relation"]
     return out
 
 

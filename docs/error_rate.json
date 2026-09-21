@@ -54,7 +54,7 @@
       "note": "Component result served as a composite: the topic declared no components, so the target was the component vocabulary's reading of the outcome title 'Composite cardiovascular death or worsening heart failure' -- {cardiovascular death} -- and a cardiovascular-death-only ClinicalTrials.gov measure matched a cardiovascular-death target with missing_components empty and was classified EXACT_TARGET. The digits WERE located in the cited span (census verdict unaffected); the number answered a different question. The registered composite primary was held in the same registry record (measure #1) throughout. Withdrawn 2026-09-19 (holding notice); corrected estimate published only when registry analysis selection by identity and the interval-level (ci_pct) fix land. Found by the verifier panel as an apparent cost of strict endpoint binding (a true positive), confirmed against CT.gov v2."
     }
   ],
-  "n_pooled_current_after_fixes": 145,
+  "n_pooled_current_after_fixes": 127,
   "removed_by_census_fixes": [
     "balanced-crystalloids-vs-saline-mortality::Acute kidney injury::26444692",
     "balanced-crystalloids-vs-saline-mortality::Mortality::26444692",
@@ -63,13 +63,31 @@
     "balanced-crystalloids-vs-saline-mortality::New renal-replacement therapy::26444692",
     "colchicine-postop-af::Gastrointestinal adverse effects::27502857",
     "colchicine-postop-af::Postoperative atrial fibrillation::27502857",
+    "colchicine-postop-af::Treatment discontinuation::32720823",
+    "colchicine-recurrent-pericarditis::Adverse events (gastrointestinal)::24694983",
     "dapagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure::36027570",
+    "dpp4-mace-t2d::Hospitalization for heart failure::23992601",
     "empagliflozin-hfpef-hosp::Composite cardiovascular death or worsening heart failure::34449189",
+    "esketamine-trd-madrs::Observed-case Day-28 raw change-score MADRS MD::TRANSFORM-1",
+    "noac-vs-warfarin-af-stroke::Major bleeding::19717844",
+    "noac-vs-warfarin-af-stroke::Major bleeding::21830957",
+    "omega3-cardiovascular-events::Major vascular events / MACE::22686415",
     "omega3-cardiovascular-events::Major vascular events / MACE::30146932",
-    "spironolactone-hfref-mortality::Hyperkalemia::21073363"
+    "pcsk9-mace::Injection-site reactions::25773378",
+    "pcsk9-mace::Major adverse cardiovascular events::41211925",
+    "probiotics-aad-prevention::Antibiotic-associated diarrhoea::24456384",
+    "probiotics-aad-prevention::Antibiotic-associated diarrhoea::26973849",
+    "probiotics-aad-prevention::Antibiotic-associated diarrhoea::34541475",
+    "probiotics-aad-prevention::Antibiotic-associated diarrhoea::39529939",
+    "probiotics-aad-prevention::Antibiotic-associated diarrhoea::40488914",
+    "probiotics-aad-prevention::Any adverse events::26973849",
+    "probiotics-aad-prevention::Serious adverse events::39529939",
+    "spironolactone-hfref-mortality::Hyperkalemia::21073363",
+    "tocilizumab-covid19-mortality::Serious adverse events::33085857",
+    "tranexamic-acid-pph::Thromboembolic events::28456509"
   ],
   "census_population": 99,
-  "current_pooled_population": 145,
+  "current_pooled_population": 127,
   "harms_sweep_added_verified": [
     "semaglutide-obesity-mace::Adverse events leading to permanent discontinuation::37952131"
   ],
@@ -112,8 +130,274 @@
     "balanced-crystalloids-vs-saline-mortality::Mortality::29485925"
   ],
   "design_key_removed_note": "Rows removed from the live pooled population by TRANCHE-design-key refusal of reconstructed balanced-crystalloids mortality trials. SH2 recovered the SPLIT (PMID 26444692) rows by selecting source-reported target-class effects; those rows are live again and remain in the committed census sample.",
-  "inventory_refreshed_utc": "2026-09-20",
+  "inventory_refreshed_utc": "2026-09-21",
   "inventory_method": "scripts/refresh_error_rate_census.py; current review objects, no independent re-extraction",
   "independent_audit_state": "HISTORICAL_ONLY",
-  "not_independently_rechecked_current": 31
+  "not_independently_rechecked_current": 24,
+  "set_aside_2026-09-20": [
+    {
+      "row": "colchicine-postop-af::Treatment discontinuation::32720823",
+      "trial": "PMID 32720823",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "tuple located in 3 spans of the held document; ambiguity abstains",
+      "candidate_tuple": {
+        "ai": 1,
+        "n1i": 81,
+        "ci": 1,
+        "n2i": 71
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "colchicine-recurrent-pericarditis::Adverse events (gastrointestinal)::24694983",
+      "trial": "PMID 24694983",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "tuple not located in the held document cache/colchicine-recurrent-pericarditis/records.json#PMID-24694983 (abstract): no span carries it",
+      "candidate_tuple": {
+        "ai": 9,
+        "n1i": 120,
+        "ci": 9,
+        "n2i": 120
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "dpp4-mace-t2d::Hospitalization for heart failure::23992601",
+      "trial": "PMID 23992601",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "span names neither components nor an endpoint",
+      "candidate_tuple": {
+        "effect": 1.27,
+        "ci_low": 1.07,
+        "ci_high": 1.51,
+        "scale": "HR"
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "esketamine-trd-madrs::Observed-case Day-28 raw change-score MADRS MD::TRANSFORM-1",
+      "trial": "NCT02417064",
+      "verdict": "SET_ASIDE_KNOWN_REPORTED_NOT_YET_EXTRACTED",
+      "reason_code": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+      "state": "KNOWN_REPORTED_NOT_YET_EXTRACTED",
+      "reason": "tuple not located in the held document cache/esketamine-trd-madrs/records.json#PMID-NCT02417064 (abstract): no span carries it",
+      "candidate_tuple": {
+        "scale": "MD",
+        "mean1": -18.91,
+        "sd1": 13.95,
+        "nc1": 209,
+        "mean2": -14.8,
+        "sd2": 15.07,
+        "nc2": 108
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "noac-vs-warfarin-af-stroke::Major bleeding::21830957",
+      "trial": "PMID 21830957",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "tuple not located in the held document cache/noac-vs-warfarin-af-stroke/records.json#PMID-21830957 (abstract): no span carries it",
+      "candidate_tuple": {
+        "effect": 1.04,
+        "ci_low": 0.9,
+        "ci_high": 1.2,
+        "scale": "HR"
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "noac-vs-warfarin-af-stroke::Major bleeding::19717844",
+      "trial": "PMID 19717844",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "tuple not located in the held document cache/noac-vs-warfarin-af-stroke/records.json#PMID-19717844 (abstract): no span carries it",
+      "candidate_tuple": {
+        "effect": 0.93,
+        "ci_low": 0.81,
+        "ci_high": 1.07,
+        "scale": "RR"
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "omega3-cardiovascular-events::Major vascular events / MACE::22686415",
+      "trial": "PMID 22686415",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "named endpoint has no definition span in the held text",
+      "candidate_tuple": {
+        "effect": 1.01,
+        "ci_low": 0.93,
+        "ci_high": 1.1,
+        "scale": "HR"
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "pcsk9-mace::Major adverse cardiovascular events::41211925",
+      "trial": "PMID 41211925",
+      "verdict": "SET_ASIDE_RESULT_INCOMPATIBLE",
+      "reason_code": "RESULT_INCOMPATIBLE",
+      "state": "REFUSED_ON_EVIDENCE",
+      "reason": "the bound endpoint span lacks component(s) of the declared composite (cardiovascular death): a component or subset result is not the composite 'Major adverse cardiovascular events'; refused rather than pooled under the c",
+      "candidate_tuple": null,
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "pcsk9-mace::Injection-site reactions::25773378",
+      "trial": "PMID 25773378",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "held document cache/pcsk9-mace/harms_aact_held.json changed since the approval (sha256 142c68c1dd5a != approved 108efeb5ed7e): the approval is stale",
+      "candidate_tuple": {
+        "ai": 91,
+        "n1i": 1550,
+        "ci": 33,
+        "n2i": 788
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "probiotics-aad-prevention::Antibiotic-associated diarrhoea::40488914",
+      "trial": "PMID 40488914",
+      "verdict": "SET_ASIDE_RESULT_INCOMPATIBLE",
+      "reason_code": "RESULT_INCOMPATIBLE",
+      "state": "REFUSED_ON_EVIDENCE",
+      "reason": "the bound endpoint span defines a different outcome from 'Antibiotic-associated diarrhoea'",
+      "candidate_tuple": null,
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "probiotics-aad-prevention::Antibiotic-associated diarrhoea::39529939",
+      "trial": "PMID 39529939",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "tuple located in 2 spans of the held document; ambiguity abstains",
+      "candidate_tuple": {
+        "ai": 26,
+        "n1i": 282,
+        "ci": 69,
+        "n2i": 273
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "probiotics-aad-prevention::Antibiotic-associated diarrhoea::34541475",
+      "trial": "PMID 34541475",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "table label 'AAD – Abx+30d (n, %)' names an endpoint but the held text holds no definition span carrying its words",
+      "candidate_tuple": {
+        "ai": 59,
+        "n1i": 131,
+        "ci": 53,
+        "n2i": 126
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "probiotics-aad-prevention::Antibiotic-associated diarrhoea::26973849",
+      "trial": "PMID 26973849",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "tuple not located in the held document cache/probiotics-aad-prevention/ft_26973849.txt (xml): no span carries it",
+      "candidate_tuple": {
+        "ai": 21,
+        "n1i": 246,
+        "ci": 17,
+        "n2i": 231
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "probiotics-aad-prevention::Antibiotic-associated diarrhoea::24456384",
+      "trial": "PMID 24456384",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "tuple not located in the held document cache/probiotics-aad-prevention/records.json#PMID-24456384 (abstract): no span carries it",
+      "candidate_tuple": {
+        "ai": 5,
+        "n1i": 41,
+        "ci": 4,
+        "n2i": 46
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "probiotics-aad-prevention::Any adverse events::26973849",
+      "trial": "PMID 26973849",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "tuple not located in the held document cache/probiotics-aad-prevention/ft_26973849.txt (xml): no span carries it",
+      "candidate_tuple": {
+        "ai": 18,
+        "n1i": 245,
+        "ci": 12,
+        "n2i": 222
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "probiotics-aad-prevention::Serious adverse events::39529939",
+      "trial": "PMID 39529939",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "tuple located in 9 spans of the held document; ambiguity abstains",
+      "candidate_tuple": {
+        "ai": 1,
+        "n1i": 285,
+        "ci": 0,
+        "n2i": 279
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "tocilizumab-covid19-mortality::Serious adverse events::33085857",
+      "trial": "PMID 33085857",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "tuple not located in the held document cache/tocilizumab-covid19-mortality/ft_33085857.txt (xml): no span carries it",
+      "candidate_tuple": {
+        "ai": 28,
+        "n1i": 161,
+        "ci": 12,
+        "n2i": 82
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    },
+    {
+      "row": "tranexamic-acid-pph::Thromboembolic events::28456509",
+      "trial": "PMID 28456509",
+      "verdict": "SET_ASIDE_ENDPOINT_UNBOUND",
+      "reason_code": "ENDPOINT_UNBOUND",
+      "state": "EXTRACTION_DEBT",
+      "reason": "tuple not located in the held document cache/tranexamic-acid-pph/records.json#PMID-28456509 (abstract): no span carries it",
+      "candidate_tuple": {
+        "ai": 30,
+        "n1i": 10033,
+        "ci": 34,
+        "n2i": 9985
+      },
+      "note": "Set aside by the hand-row binder (branch m2/bind-hand-rows, 2026-09-20): the hand number is not bound to an endpoint in the held document; the trial stays visible as eligible evidence awaiting adjudication; the digits are not asserted wrong."
+    }
+  ],
+  "set_aside_2026-09-20_note": "Rows removed from the live pooled population by the hand-row binder landing (m2/bind-hand-rows): each is a SET-ASIDE (the number is not bound to an endpoint in the held document, or refused as a different result), not a confirmed wrong number; the trial stays visible as eligible evidence awaiting adjudication. removed_by_census_fixes is refreshed by scripts/refresh_error_rate_census.py after the rebuild."
 }

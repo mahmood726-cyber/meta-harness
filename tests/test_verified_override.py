@@ -49,11 +49,20 @@ def test_without_override_the_wrong_endpoint_is_refused_not_pooled():
     assert "cardiovascular death" in json.dumps(refusal).lower() or "component" in json.dumps(refusal).lower()
 
 
-def test_override_corrects_to_major_vascular_events():
+def test_override_beats_the_abstract_route_but_is_bound_to_held_bytes_or_set_aside():
+    """The override BEATS the abstract's wrong-endpoint decision (0.98 is no longer the refusal), and the
+    override's own number is then bound to held bytes like any hand row: ORIGIN's held abstract names 'major
+    vascular events' but never defines it, and the spec's components derive from its name, so the row is set
+    aside as ENDPOINT_UNBOUND with 1.01 visible as the candidate -- never pooled on its hand-written source
+    string (which is what this test asserted before M2, 2026-09-20)."""
     ve = {"22686415": {"outcome": _SPEC["name"], "override": True, "effect": 1.01, "ci_low": 0.93,
                        "ci_high": 1.1, "scale": "HR", "provenance": "fulltext_verified",
                        "source": "ORIGIN abstract: ... major vascular events ... hazard ratio, 1.01 ..."}}
-    assert _origin_effect(ve) == 1.01
+    assert _origin_effect(ve) is None
+    refusal = _origin_refusal(ve)
+    assert refusal is not None and refusal["reason_code"] == "ENDPOINT_UNBOUND"
+    assert refusal["candidate_tuple"]["effect"] == 1.01
+    assert refusal.get("refused_effect", {}).get("effect") != 0.98
 
 
 def test_unflagged_verified_effect_does_not_override():

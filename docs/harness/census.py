@@ -105,6 +105,23 @@ def _claim_check(review_core_obj: dict):
             "contradictions": contradictions}
 
 
+def _result_change_notices(root: str, slug: str, review_core_obj: Optional[dict] = None):
+    """This topic's notices from docs/result_changes.json, each annotated with `conclusion_changed` computed from
+    its own before/after (never typed). Shared by census (build) and reproduce_review (replay)."""
+    from . import result_changes as _rc_mod
+    out = []
+    scales = {o.get("name"): ((o.get("result") or {}).get("scale") or o.get("estimand"))
+              for o in (review_core_obj or {}).get("outcomes") or []}
+    for n in _rc_mod.load(root):
+        if n.get("slug") != slug:
+            continue
+        item = dict(n)
+        item["conclusion_changed"] = _rc_mod.conclusion_changed(n.get("before") or {}, n.get("after") or {},
+                                                                scales.get(n.get("outcome")))
+        out.append(item)
+    return out
+
+
 def _parity_row(root: str, slug: str, review_core_obj: Optional[dict] = None):
     """This topic's row from the committed docs/parity.json (a measurement snapshot), or None.
     Shared by census (build) and reproduce_review (replay) so the reproduction block byte-matches."""
@@ -201,6 +218,11 @@ def build_review_dir(
     _rf = _refusals_rows(_root, manifest_meta.get("slug", ""))
     if _rf:
         reproduction["refusals"] = _rf
+    # Result-change notices (docs/result_changes.json): a served result that changed says so on the page, with the
+    # previous number, the new one, the rows that moved and why; a reversal of significance is named a withdrawal.
+    _rc = _result_change_notices(_root, manifest_meta.get("slug", ""), review_core_obj)
+    if _rc:
+        reproduction["result_changes"] = _rc
     _du = _dual_row(_root, manifest_meta.get("slug", ""))
     if _du:
         reproduction["dual"] = _du

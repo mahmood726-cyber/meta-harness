@@ -45,7 +45,9 @@ MARKERS = {
     "not_assessed": ["not assessed", "NOT_ASSESSED"],
 }
 ACK_PATH = Path("docs") / "ratchet_acknowledgements.json"
-BLOCK_CLASSES = ("absent", "banner")
+# result-change: a countersigned result-change notice is an honest marker like an absent/banner block -- once on
+# the page it cannot vanish without a reviewed replacement acknowledgement (M2, 2026-09-21).
+BLOCK_CLASSES = ("absent", "banner", "result-change")
 BLOCK_RATCHET_BASE_REFS = ("b8925e04~1",)
 RETRACTION_RE = {
     phrase: re.compile(r"\b" + r"\s+".join(map(re.escape, phrase.split())) + r"\b", re.IGNORECASE)
@@ -135,7 +137,7 @@ def _tracked_class(raw: str | None) -> str | None:
 
 
 def blocks(src: str) -> list[dict[str, str]]:
-    """Return visible absent/banner blocks with their rendered text digest."""
+    """Return visible absent/banner/result-change blocks with their rendered text digest."""
     parser = _BlockParser()
     parser.feed(src)
     parser.close()
@@ -174,6 +176,108 @@ def compare(base_html: str, new_html: str, acknowledgements: Any = None, page: s
             if page and _marker_decrease_acknowledged(acknowledgements, page, kind, base[kind], new[kind]):
                 continue
             out.append(f"{kind}: base count {base[kind]}, new count {new[kind]}")
+    return out
+
+
+_PARITY_ACK_REQUIRED = ("slug", "old_relation", "new_relation", "left_pool", "entered_pool", "reason", "by", "when_utc")
+
+
+def _parity_ack_entries(acknowledgements: Any) -> list[dict[str, Any]]:
+    if isinstance(acknowledgements, dict):
+        raw = acknowledgements.get("parity_acknowledgements", [])
+    else:
+        raw = []
+    return [e for e in raw if isinstance(e, dict)]
+
+
+def _parity_facts(review_json: Any) -> tuple[str | None, list[str]]:
+    """(computed parity relation, primary-outcome pooled trial ids) of one review.json, or (None, [])."""
+    if not isinstance(review_json, dict):
+        return None, []
+    parity = ((review_json.get("reproduction") or {}).get("parity")) or {}
+    relation = (parity.get("parity_relation") or {}).get("relation")
+    pooled: list[str] = []
+    for outcome in review_json.get("outcomes") or []:
+        if isinstance(outcome, dict) and outcome.get("primary"):
+            pooled = [str(t.get("id")) for t in (outcome.get("trials") or []) if isinstance(t, dict)]
+            break
+    return (str(relation) if relation else None), sorted(pooled)
+
+
+def compare_parity(base_review: Any, new_review: Any, acknowledgements: Any, slug: str) -> list[str]:
+    """The computed parity relation is a claim about our agreement with an external benchmark. It is
+    derived, so it moves whenever the pool moves -- and a silent SUPERSET -> OVERLAPPING would hide a
+    degradation against the one external check we have. A changed relation is admitted only under an
+    acknowledgement naming the topic, the old and new relation, EVERY trial that left or entered the
+    primary pool (exactly), why, and who. A topic with no served relation has nothing to acknowledge."""
+    base_rel, base_pool = _parity_facts(base_review)
+    new_rel, new_pool = _parity_facts(new_review)
+    if base_rel is None or new_rel is None or base_rel == new_rel:
+        return []
+    left = sorted(set(base_pool) - set(new_pool))
+    entered = sorted(set(new_pool) - set(base_pool))
+    for e in _parity_ack_entries(acknowledgements):
+        if any(not isinstance(e.get(k), (str, list)) or (isinstance(e.get(k), str) and not e[k].strip())
+               for k in _PARITY_ACK_REQUIRED):
+            continue
+        if (e["slug"] == slug and e["old_relation"] == base_rel and e["new_relation"] == new_rel
+                and sorted(map(str, e["left_pool"])) == left and sorted(map(str, e["entered_pool"])) == entered):
+            return []
+    return [
+        f"parity relation changed {base_rel} -> {new_rel} for {slug} "
+        f"(left the primary pool: {', '.join(left) or 'none'}; entered: {', '.join(entered) or 'none'}) -- "
+        "not acknowledged: docs/ratchet_acknowledgements.json parity_acknowledgements needs an entry naming the "
+        "slug, old_relation, new_relation, left_pool and entered_pool exactly, reason, by, when_utc"
+    ]
+
+
+RESULT_CHANGES_PATH = Path("docs") / "result_changes.json"
+
+
+def _load_result_change_notices(root: str | os.PathLike[str]) -> list[dict[str, Any]]:
+    from harness import result_changes
+    return result_changes.load(str(root))
+
+
+def compare_results(base_review: Any, new_review: Any, notices: Any, slug: str) -> list[str]:
+    """A served pooled result that changes -- k, estimate, interval, or the estimate disappearing -- is admitted
+    only under a notice naming the outcome, BOTH results exactly, every trial that left or entered the pool, why,
+    and who (docs/result_changes.json). A reversal of significance is named in the refusal as the withdrawal of a
+    conclusion. A rebuilt page must not quietly re-render with a new number (esketamine, 2026-09-20)."""
+    from harness import result_changes
+    if not isinstance(base_review, dict) or not isinstance(new_review, dict):
+        return []
+    rows = notices.get("notices") if isinstance(notices, dict) else (notices if isinstance(notices, list) else [])
+    rows = [n for n in (rows or []) if isinstance(n, dict)]
+    new_by_name = {o.get("name"): o for o in new_review.get("outcomes") or [] if isinstance(o, dict)}
+    out = []
+    for o in base_review.get("outcomes") or []:
+        if not isinstance(o, dict):
+            continue
+        name = o.get("name")
+        n = new_by_name.get(name)
+        if n is None:
+            continue
+        before, after = result_changes.result_tuple(o.get("result")), result_changes.result_tuple(n.get("result"))
+        if result_changes._same(before, after):
+            continue
+        base_pool = sorted(str(t.get("id")) for t in (o.get("trials") or []) if isinstance(t, dict))
+        new_pool = sorted(str(t.get("id")) for t in (n.get("trials") or []) if isinstance(t, dict))
+        left = sorted(set(base_pool) - set(new_pool))
+        entered = sorted(set(new_pool) - set(base_pool))
+        if result_changes.notice_for(rows, slug, name, before, after, left, entered):
+            continue
+        scale = (o.get("result") or {}).get("scale") or o.get("estimand")
+        change = result_changes.conclusion_changed(before, after, scale)
+        out.append(
+            f"result changed for {slug} / {name}: k {before.get('k')} -> {after.get('k')}, estimate "
+            f"{before.get('estimate')} ({before.get('ci_low')} to {before.get('ci_high')}) -> {after.get('estimate')} "
+            f"({after.get('ci_low')} to {after.get('ci_high')})"
+            + (f"; {change}" if change else "")
+            + f" (left the pool: {', '.join(left) or 'none'}; entered: {', '.join(entered) or 'none'}) -- not acknowledged: "
+            "docs/result_changes.json needs a notice naming slug, outcome, before, after, left_pool and entered_pool "
+            "exactly, reason, by, when_utc"
+        )
     return out
 
 
@@ -293,6 +397,19 @@ def _base_pages(root: str | os.PathLike[str], ref: str) -> tuple[list[str] | Non
     return sorted(pages), None
 
 
+def _base_reviews(root: str | os.PathLike[str], ref: str) -> tuple[list[str] | None, str | None]:
+    p = _run(root, ["ls-tree", "-r", "--name-only", ref, "--", "docs/reviews"])
+    if p.returncode != 0:
+        return None, f"COULD-NOT-EXECUTE: cannot list base reviews at {ref}: {p.stderr.strip() or p.stdout.strip()}"
+    out = []
+    for line in p.stdout.splitlines():
+        path = line.strip().replace("\\", "/")
+        parts = path.split("/")
+        if len(parts) == 4 and parts[0] == "docs" and parts[1] == "reviews" and parts[3] == "review.json":
+            out.append(path)
+    return sorted(out), None
+
+
 def _block_base_refs(root: str | os.PathLike[str], ref: str) -> list[str]:
     seen = {ref}
     out = [ref]
@@ -358,6 +475,33 @@ def check(root: str | os.PathLike[str], base_ref: str | None = None) -> tuple[bo
             reasons.append(f"COULD-NOT-EXECUTE: cannot read working-tree {rel}: {exc}")
             continue
         for violation in compare(base_html or "", new_html, acknowledgements, rel):
+            reasons.append(f"{rel}: {violation}")
+
+    # Parity relation ratchet: the served relation in each committed review.json vs the working tree's.
+    review_paths, err = _base_reviews(root, ref)
+    if err:
+        reasons.append(err)
+    for rel in review_paths or []:
+        base_raw, err = _show(root, ref, rel)
+        if err:
+            reasons.append(err)
+            continue
+        new_path = root_path.joinpath(*rel.split("/"))
+        try:
+            new_raw = new_path.read_text(encoding="utf-8") if new_path.exists() else ""
+        except OSError as exc:
+            reasons.append(f"COULD-NOT-EXECUTE: cannot read working-tree {rel}: {exc}")
+            continue
+        try:
+            base_json = json.loads(base_raw or "null")
+            new_json = json.loads(new_raw or "null")
+        except json.JSONDecodeError as exc:
+            reasons.append(f"COULD-NOT-EXECUTE: cannot parse {rel}: {exc}")
+            continue
+        slug = rel.split("/")[2]
+        for violation in compare_parity(base_json, new_json, acknowledgements, slug):
+            reasons.append(f"{rel}: {violation}")
+        for violation in compare_results(base_json, new_json, _load_result_change_notices(root), slug):
             reasons.append(f"{rel}: {violation}")
 
     for block_ref in _block_base_refs(root, ref):

@@ -74,13 +74,69 @@ def test_absence_claims_judged_from_recomputed_preservation(baseline):
     assert all(c["agrees"] for c in neg if "agrees" in c)
 
 
+# The predicate each limb is DESIGNED to break (the verifier's own limb table, scripts/verify_bundle.py --corrupt).
+# Stated here as intent, not derived from a run: a limb that trips a different predicate is a wrong-reason refusal.
+INTENDED_PREDICATE = {
+    "span": "P2_span_located", "effect": "P3_effect_tokens_in_span", "components": "P4_endpoint_components",
+    "eligibility": "P5_family_eligible", "conflict": "P6_no_unresolved_conflict",
+    "nontarget_span": "P2_span_located", "unlisted_span": "P2_span_located", "fragment": "P1_source_bytes",
+    "ci_high_rounded": "P3_effect_tokens_in_span", "ci_low_truncated": "P3_effect_tokens_in_span",
+    "duplicate_span_no_offsets": "P2_span_located", "near_match": "P4_endpoint_components",
+}
+INTENDED_REFUSAL_CODE = {  # where the verifier names a code, the code is part of the intended reason
+    "span": "SPAN_NOT_IN_SOURCE", "nontarget_span": "SPAN_NOT_IN_SOURCE", "unlisted_span": "SPAN_NOT_IN_SOURCE",
+    "fragment": "SELECTOR_MISMATCH", "duplicate_span_no_offsets": "SPAN_LOCATION_AMBIGUOUS",
+}
+assert set(INTENDED_PREDICATE) == set(PER_ROW_LIMBS)
+
+
+def _sha256_of_served_files():
+    import hashlib
+    out = {}
+    for rel in (os.path.join("docs", "reviews", SLUG, "BUNDLE.json"), os.path.join("docs", "reviews", SLUG, "review.json"),
+                os.path.join("cache", SLUG, "records.json")):
+        out[rel] = hashlib.sha256(open(os.path.join(ROOT, rel), "rb").read()).hexdigest()
+    return out
+
+
 @pytest.mark.parametrize("pmid", ["40162642", "27295427"])
 @pytest.mark.parametrize("limb", PER_ROW_LIMBS)
-def test_one_corrupted_limb_makes_exactly_that_row_inadmissible(baseline, pmid, limb):
-    base_bad = {r["pmid"] for r in baseline["rows"] if r["final"] == "INADMISSIBLE"}
+def test_PLANT_one_corrupted_limb_refuses_that_admissible_row_for_the_intended_reason_and_restores(baseline, pmid, limb):
+    """A mutation test is evidence of causation only as a positive control: the target is ADMISSIBLE at baseline
+    (a row already refused cannot show that the corruption did anything -- the old assertion
+    `now_bad == base_bad | {pmid}` was vacuously true for HARMONY, PMID 30291013, which is INADMISSIBLE at
+    baseline), ONE limb changes, the refusal is checked by state AND by reason (the predicate the limb is designed
+    to break, and the named code where one exists), every other row is unchanged in state and predicates, and an
+    exact restoration -- the served bytes untouched, the verifier re-run -- accepts the row again."""
+    base_row = next(r for r in baseline["rows"] if r["pmid"] == pmid)
+    assert base_row["final"] == "ADMISSIBLE" and all(base_row["predicates"].values()),         f"{pmid} is not a positive control: it is {base_row['final']} at baseline"
+    before = _sha256_of_served_files()
     rep = _run("--corrupt", pmid, limb)
+    assert rep["corruption"] == {"pmid": pmid, "limb": limb}          # one dependency, the one asked for
+    row = next(r for r in rep["rows"] if r["pmid"] == pmid)
+    assert row["final"] == "INADMISSIBLE", (limb, row["final"])
+    failed = sorted(k for k, v in row["predicates"].items() if not v)
+    assert INTENDED_PREDICATE[limb] in failed, (limb, failed)             # refused for the intended reason
+    if limb in INTENDED_REFUSAL_CODE:
+        assert row["refusal"] == INTENDED_REFUSAL_CODE[limb], (limb, row["refusal"])
+    others_now = {r["pmid"]: (r["final"], r["predicates"]) for r in rep["rows"] if r["pmid"] != pmid}
+    others_base = {r["pmid"]: (r["final"], r["predicates"]) for r in baseline["rows"] if r["pmid"] != pmid}
+    assert others_now == others_base                                    # no other row moved, in state or in reason
+    assert _sha256_of_served_files() == before                           # the corruption lived in memory only
+    restored = next(r for r in _run()["rows"] if r["pmid"] == pmid)
+    assert restored["final"] == "ADMISSIBLE" and restored["predicates"] == base_row["predicates"]
+
+
+def test_control_a_row_already_refused_at_baseline_cannot_serve_as_a_mutation_target(baseline):
+    """The hole the old assertion had, kept as a control: corrupting HARMONY (INADMISSIBLE at baseline on
+    P5_family_eligible) leaves the set of refused rows unchanged, so a set-union assertion passes without the
+    corruption having been shown to do anything. The positive-control test above refuses such a target by name."""
+    harmony = next(r for r in baseline["rows"] if r["pmid"] == "30291013")
+    assert harmony["final"] == "INADMISSIBLE" and not harmony["predicates"]["P5_family_eligible"]
+    base_bad = {r["pmid"] for r in baseline["rows"] if r["final"] == "INADMISSIBLE"}
+    rep = _run("--corrupt", "30291013", "span")
     now_bad = {r["pmid"] for r in rep["rows"] if r["final"] == "INADMISSIBLE"}
-    assert now_bad == base_bad | {pmid}, (limb, sorted(now_bad))
+    assert now_bad == base_bad | {"30291013"} and now_bad == base_bad   # the old form: satisfied, and uninformative
 
 
 @pytest.mark.parametrize("pmid", ["40162642", "27295427"])
@@ -96,12 +152,35 @@ def test_unbinding_a_row_makes_it_a_migration_state_not_admissible_and_not_refus
 
 
 def test_rendered_unbound_legacy_rows_are_reported_and_never_counted_admissible(baseline):
+    """Property on the served corpus: a migration-state row is never folded into an admissible count, and every rendered
+    row that is not BOUND names its class. The two glp1 harm rows that were unbound_legacy until 2026-09-20
+    (Gastrointestinal adverse events PMID 31189511; Adverse events leading to discontinuation PMID 27295427) were bound
+    by the hand-row binder to held bytes on 2026-09-21 (M2: endpoint_binding result_span_enumerates_components,
+    hand_binding_state BOUND) -- recovered evidence, so the corpus now has 0 migration-state rows here; the bundle's
+    class rule names only the definition-span route as BOUND and reports theirs as OTHER (a rule limit raised with the
+    bundle lane, not a pooling defect). The migration property itself is planted below, independent of the corpus."""
     bs = baseline["binding_states"]
-    assert bs["migration_state_unbound_legacy"] == 2
-    unbound = {(r["outcome"], r["id"]) for r in bs["rendered_rows"] if r["binding_class"] != "BOUND"}
-    assert unbound == {("Gastrointestinal adverse events", "PMID 31189511"), ("Adverse events leading to discontinuation", "PMID 27295427")}
     assert bs["migration_rows_counted_admissible"] == 0
+    assert all(r["binding_class"] in ("BOUND", "MIGRATION_STATE_UNBOUND_LEGACY", "OTHER") for r in bs["rendered_rows"])
+    recovered = {(r["outcome"], r["id"]): r["binding_class"] for r in bs["rendered_rows"]
+                 if (r["outcome"], r["id"]) in {("Gastrointestinal adverse events", "PMID 31189511"), ("Adverse events leading to discontinuation", "PMID 27295427")}}
+    assert len(recovered) == 2 and all(c != "MIGRATION_STATE_UNBOUND_LEGACY" for c in recovered.values()), recovered
     assert all(r["final"] == "ADMISSIBLE" for r in baseline["rows"] if r["predicates"]["P8_endpoint_bound"] and all(r["predicates"].values()))
+
+
+def test_PLANT_a_rendered_unbound_legacy_row_is_a_migration_state_never_counted_admissible():
+    """The property, planted on a synthetic review so it does not depend on which corpus rows happen to be unbound."""
+    import build_bundle as bb
+    review = {"outcomes": [{"name": "Primary", "primary": True, "trials": [
+        {"id": "PMID 1", "endpoint_binding": "named_endpoint_resolved_to_definition_span"},
+        {"id": "PMID 2", "endpoint_binding": "unbound_legacy"}]},
+        {"name": "Harm", "trials": [{"id": "PMID 3", "endpoint_binding": "unbound_legacy"}]}]}
+    bs = bb.binding_states(review, {"PMID 1", "PMID 2"})     # the producer-side object; the verifier reports it as binding_states
+    classes = {(r["outcome"], r["trial"]["id"]): r["binding_class"] for r in bs["rows"]}
+    assert classes[("Primary", "PMID 1")] == "BOUND"
+    assert classes[("Primary", "PMID 2")] == classes[("Harm", "PMID 3")] == "MIGRATION_STATE_UNBOUND_LEGACY"
+    assert bs["counts"]["migration_state_unbound_legacy"] == 2
+    assert all(r["counted_in_admissible_rows"] is False for r in bs["rows"] if r["binding_class"] != "BOUND")
 
 
 def test_failures_carry_named_codes():

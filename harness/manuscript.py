@@ -121,6 +121,12 @@ def object_numerals(review):
             units[unit] = units.get(unit, 0) + 1
         for v in units.values():
             add(v)
+    # the STALE-membership sentence's count of eligible families not in the pool: the SAME derivation the sentence
+    # uses (grade.missing_family_count -- distinct known-missing rows, else declared-absent rows), so the numeral
+    # the manuscript prints is registered by the function that produces it, never re-derived here. Latent until
+    # iv-iron's count reached 10 on 2026-09-20 (the gate scans integers >= 10) and the page was withheld.
+    from . import grade as _grade_mod
+    add(_grade_mod.missing_family_count(review))
     # grade downgrades, rob coverage
     g = review.get("grade") or {}
     add(g.get("downgrades"))
@@ -411,7 +417,10 @@ def render(review, neutral: bool = False) -> str:
         + (f"<figure>{forest}<figcaption class='note'>{forest_caption}</figcaption></figure>" if forest else "")
     )
     suppressed = _rob_sensitivity_mod.suppression_reason(sens, review)
-    if sens.get("full") and suppressed:
+    if not sens.get("full") and (_omit := review.get("rob_sensitivity_omitted")):
+        results += (f"<p><strong>Risk-of-bias sensitivity.</strong> Not computed ({_e(_omit.get('reason_code'))}): "
+                    f"{_e(_omit.get('reason'))}.</p>")
+    elif sens.get("full") and suppressed:
         results += f"<p>{_e(suppressed)}</p>"
     elif sens.get("full"):
         n_rated, n_tr = sens.get("n_rob_rated"), sens.get("n_trials")

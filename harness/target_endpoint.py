@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from . import extract
+from . import extract, hand_binding
 from .ctgov_results import _classify_arms, _num, _registry_measure_type
 
 EXACT_TARGET = "EXACT_TARGET"
@@ -46,6 +46,95 @@ _QUALIFIER_RX = re.compile(
     r"\b(?:(?P<sec>(?:key |first |second |main )?secondary)|(?P<pri>co-?primary|primary|second primary|first primary))[\s-]+"
     r"(?:[a-z][a-z-]*\s+){0,3}?(?:outcome|end[\s-]?point|measure|variable)s?\b", re.I)
 _MACE_RX = re.compile(r"\bmace\b|major adverse cardiovascular|major cardiovascular|(?:major|serious) (?:adverse )?vascular event", re.I)
+# Endpoint REFERENCE identity (audit 2026-09-20): which defined endpoint a sentence is about is settled by the
+# ordinal / timepoint / population it names, before any component comparison.
+_ORDINAL_WORDS = {"first": 1, "second": 2, "third": 3, "fourth": 4}
+_ORDINAL_RX = re.compile(r"\b(first|second|third|fourth)\s+(?:co-?primary|primary|(?:key |main )?secondary)\b", re.I)
+_TIMEPOINT_RX = re.compile(
+    r"\b(?:within|at|over|through|by|during|after|to)\s+(?:the\s+first\s+)?(\d+)\s*(days?|weeks?|months?|years?)\b"
+    r"|\b(\d+)-(day|week|month|year)\b|\bat\s+(week|month|day|year)\s+(\d+)\b", re.I)
+_POPULATION_RX = re.compile(
+    r"\b(?:in|among)\s+(?:the\s+)?((?:all\s+)?randomi[sz]ed\s+(?:participants|patients)"
+    r"|(?:participants|patients|those)\s+(?:aged|older than|younger than|with|without)\s+[a-z0-9][a-z0-9 ]{1,40}?)"
+    r"(?=[,.;:]|\s+(?:was|were|had|the|there)\b)", re.I)
+
+
+def _reference_of(text: str) -> dict[str, Any]:
+    """The endpoint reference a sentence carries: ordinal, qualifier, timepoint, population (None when absent)."""
+    tl = _fold(text)
+    o = _ORDINAL_RX.search(tl)
+    q = _QUALIFIER_RX.search(tl)
+    qualifier = "secondary" if (q and q.group("sec")) else ("primary" if q else None)
+    t = _TIMEPOINT_RX.search(tl)
+    timepoint = None
+    if t:
+        if t.group(1):
+            timepoint = f"{t.group(1)} {t.group(2).rstrip('s')}"
+        elif t.group(3):
+            timepoint = f"{t.group(3)} {t.group(4)}"
+        else:
+            timepoint = f"{t.group(6)} {t.group(5)}"
+    pop = _POPULATION_RX.search(tl)
+    population = re.sub(r"\s+", " ", pop.group(1)).strip() if pop else None
+    return {"ordinal": _ORDINAL_WORDS[o.group(1).lower()] if o else None, "qualifier": qualifier,
+            "timepoint": timepoint, "population": population}
+
+
+def _resolve_reference(rs: str, pool: list[dict[str, Any]]) -> dict[str, Any]:
+    """Select the definition the result REFERS to. Returns {selected, record, how} where record carries
+    definition_candidates / endpoint_reference / selected_definition / unresolved_alternatives."""
+    ref = _reference_of(rs)
+    cands = []
+    seen = set()
+    for d in pool:
+        key = re.sub(r"\W+", " ", d["span"].lower()).strip()
+        if key in seen:
+            continue            # an identical repeated definition is a harmless duplicate, not a second endpoint
+        seen.add(key)
+        cands.append(d)
+    record = {"definition_candidates": [{"span": d["span"], "components": sorted(d["components"]),
+                                         "ordinal": d.get("ordinal"), "timepoint": d.get("timepoint"),
+                                         "population": d.get("population")} for d in cands],
+              "endpoint_reference": ref, "selected_definition": None, "unresolved_alternatives": []}
+    how = []
+    narrowed = list(cands)
+    if len(narrowed) > 1 and ref["ordinal"]:
+        explicit = [d for d in narrowed if d.get("ordinal") == ref["ordinal"]]
+        if explicit:
+            narrowed, how = explicit, how + ["ordinal"]
+        elif not any(d.get("ordinal") for d in narrowed):
+            narrowed = [narrowed[ref["ordinal"] - 1]] if ref["ordinal"] <= len(narrowed) else []
+            how.append("ordinal (positional: no definition carries an ordinal)")
+        else:
+            narrowed = []       # definitions carry ordinals and none is the one named
+    if len(narrowed) > 1 and ref["timepoint"]:
+        m = [d for d in narrowed if d.get("timepoint") == ref["timepoint"]]
+        if m:
+            narrowed, how = m, how + ["timepoint"]
+    if len(narrowed) > 1 and ref["population"]:
+        m = [d for d in narrowed if d.get("population") and (d["population"] == ref["population"]
+                                                              or d["population"] in ref["population"]
+                                                              or ref["population"] in d["population"])]
+        if m:
+            narrowed, how = m, how + ["population"]
+    if len(narrowed) > 1:
+        # compatibility: two candidates are one endpoint unless BOTH state an attribute with different values
+        def _conflict(x, y):
+            return any(x.get(k) is not None and y.get(k) is not None and x.get(k) != y.get(k)
+                       for k in ("ordinal", "timepoint", "population"))
+        conflicting = any(_conflict(narrowed[i], narrowed[j])
+                          for i in range(len(narrowed)) for j in range(i + 1, len(narrowed)))
+        if not conflicting:
+            # prefer the candidate whose stated attributes match the result's reference, else the first definition
+            def _matches(d):
+                return sum(1 for k in ("timepoint", "population") if ref.get(k) and d.get(k) == ref[k])
+            best = max(narrowed, key=_matches)
+            narrowed, how = [best], how + ["every candidate states a compatible endpoint identity"]
+    if len(narrowed) == 1:
+        record["selected_definition"] = narrowed[0]["span"]
+        return {"selected": narrowed[0], "record": record, "how": how}
+    record["unresolved_alternatives"] = [d["span"] for d in (narrowed or cands)]
+    return {"selected": None, "record": record, "how": how}
 
 PUBLISHED_TARGET_EFFECT = "published_target_effect"
 REGISTRY_PUBLISHED_EFFECT = "registry_published_effect"
@@ -85,6 +174,10 @@ def _fold(text: str | None) -> str:
     }
     for old, new in replacements.items():
         s = s.replace(old, new)
+    # the adverse-event families abbreviated, as safety tables label them (esketamine Table 4: 'TEAEs | 120 (95.2)')
+    s = re.sub(r"\bteaes?\b", "treatment-emergent adverse events", s)
+    s = re.sub(r"\bsaes?\b", "serious adverse events", s)
+    s = re.sub(r"\baes?\b", "adverse events", s)
     return re.sub(r"\s+", " ", s)
 
 
@@ -112,8 +205,13 @@ def _components_from_text(text: str | None, expand_named_composites: bool = True
     if "transient ischemic attack" in s or "transient ischaemic attack" in s or re.search(r"\btia\b", s):
         comps.add("transient ischemic attack")
     if (("heart failure" in s and "hospitalization" in s)
-            or "hospitalizations due to heart failure" in s):
+            or "hospitalizations due to heart failure" in s
+            # 'hospitalized HF' / 'HF hospitalisation' (CANVAS HF paper: 'hospitalized HF alone (HR, 0.67 ...)')
+            or (re.search(r"\bhf\b", s) and re.search(r"hospitali[sz]", s))):
         comps.add("heart failure hospitalization")
+    # 'fatal or hospitalized HF' / 'death from heart failure' is a heart-failure death component, not HHF alone
+    if re.search(r"\bfatal\b.{0,25}\b(?:hf|heart failure)\b|death from heart failure|heart failure death", s):
+        comps.add("heart failure death")
     if "urgent visit" in s and ("heart failure" in s or re.search(r"\bhf\b", s)):
         comps.add("urgent heart failure visit")
     if (
@@ -193,9 +291,11 @@ def _definition_sentences(abstract: str) -> list[dict[str, Any]]:
         if not comps:
             continue
         q = _QUALIFIER_RX.search(xl)
+        ref = _reference_of(x)
         out.append({
             "span": x.strip(),
             "components": comps,
+            "ordinal": ref["ordinal"], "timepoint": ref["timepoint"], "population": ref["population"],
             "primary": bool(q and q.group("pri")) or bool(extract._ANCHOR_RX.search(xl)) or bool(re.search(r"\bprimary (?:[a-z-]+ ){0,3}?(?:measure|variable)s?\b", xl)),
             "secondary": bool(q and q.group("sec")),
             "mace": bool(_MACE_RX.search(xl)),
@@ -248,21 +348,33 @@ def bind_result_span(abstract: str, result_span: str | None) -> dict[str, Any]:
             return {"binding": BINDING_NONE, "endpoint_result_span": rs,
                     "endpoint_definition_span": None, "components": set(),
                     "binding_reason": "named endpoint has no definition span in the held text"}
-        sets = {frozenset(d["components"]) for d in pool}
-        if len(sets) == 1:
-            d = pool[0]
-            return {"binding": BINDING_DEFINITION, "endpoint_result_span": rs,
-                    "endpoint_definition_span": d["span"], "components": set(d["components"]),
-                    "binding_reason": "result sentence names an endpoint; one definition span found"}
-        if not sets:
+        if not pool:
             return {"binding": BINDING_NONE, "endpoint_result_span": rs,
                     "endpoint_definition_span": None, "components": set(),
                     "binding_reason": ("result sentence names an endpoint but the held text holds no "
                                        "definition span enumerating its components")}
+        # RESOLVE THE REFERENCE FIRST, THEN COMPARE COMPONENTS (audit 2026-09-20): which defined endpoint does the
+        # result refer to? Two definitions with identical event names can be different endpoints (30 days vs 36
+        # months; all randomised vs >= 65 years); the ordinal / timepoint / population the result names decides,
+        # never the sentence order, and an unresolved reference is an explicit ambiguity, never 'the first one'.
+        res = _resolve_reference(rs, pool)
+        rec = res["record"]
+        if res["selected"] is not None:
+            d = res["selected"]
+            n = len(rec["definition_candidates"])
+            by = (" by " + " + ".join(res["how"])) if res["how"] else ""
+            return {"binding": BINDING_DEFINITION, "endpoint_result_span": rs,
+                    "endpoint_definition_span": d["span"], "components": set(d["components"]),
+                    "binding_reason": (f"result sentence names an endpoint; {n} candidate definition"
+                                       f"{'s' if n != 1 else ''} in the held text; selected{by}"),
+                    **rec}
+        n = len(rec["unresolved_alternatives"])
         return {"binding": BINDING_NONE, "endpoint_result_span": rs,
                 "endpoint_definition_span": None, "components": set(),
-                "binding_reason": ("result sentence names an endpoint but the held text holds "
-                                   f"{len(sets)} different definitions of it")}
+                "binding_reason": (f"result sentence names an endpoint but the held text holds {n} candidate "
+                                   "definitions and the result's reference does not resolve which one "
+                                   "(ambiguity abstains; the candidates are listed)"),
+                **rec}
     return {"binding": BINDING_NONE, "endpoint_result_span": rs,
             "endpoint_definition_span": None, "components": set(),
             "binding_reason": "result sentence names neither components nor an endpoint"}
@@ -279,6 +391,7 @@ def _unbound_classification(binding: dict[str, Any]) -> dict[str, Any]:
         "endpoint_result_span": binding.get("endpoint_result_span"),
         "endpoint_definition_span": binding.get("endpoint_definition_span"),
         "endpoint_binding_reason": binding.get("binding_reason"),
+        **{k: binding[k] for k in ("definition_candidates", "endpoint_reference", "unresolved_alternatives") if k in binding},
     }
 
 
@@ -404,11 +517,41 @@ def admissibility(spec: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
     labelled; binding those rows to held bytes is the FACT-object landing, not this one)."""
     cls = row.get("target_endpoint_class")
     name = spec.get("name", "")
-    if cls in (EXACT_TARGET, NEAR_MATCH, DIFFERENT_OUTCOME, ENDPOINT_UNBOUND):
+    # Arithmetic impossibility needs no document: a point estimate outside its own interval is not a result
+    # (M2: 0.68 (0.77-0.96) was pooled with  on the served release).
+    if all(row.get(k) is not None for k in ("effect", "ci_low", "ci_high")):
+        try:
+            _e, _lo, _hi = float(row["effect"]), float(row["ci_low"]), float(row["ci_high"])
+        except (TypeError, ValueError):
+            _e = _lo = _hi = None
+        if _e is not None and not (min(_lo, _hi) <= _e <= max(_lo, _hi)):
+            return {"admissible": False, "verdict": "RESULT_INCOMPATIBLE",
+                    "reason": f"point estimate {_e:g} lies outside its own interval ({_lo:g}-{_hi:g}); not a result"}
+    # A HAND ROW is bound by the hand binder whatever an earlier route wrote in its class field: the abstract
+    # route matches digits and resolves the endpoint, it does not check the declared scale / CI level /
+    # direction / analysis set, so returning on its class let SOUL pool as an OR (M2 W1b, both trees).
+    if cls in (EXACT_TARGET, NEAR_MATCH, DIFFERENT_OUTCOME, ENDPOINT_UNBOUND) and not hand_binding.is_hand_row(row):
         return _class_verdict(spec, cls,
                               row.get("target_endpoint_extra_components") or row.get("extra_components"),
                               row.get("target_endpoint_missing_components") or row.get("missing_components"),
                               name, row.get("endpoint_binding_reason"))
+    # HAND-EXTRACTED ROW (verified_effects / verified_arms, any override route): bound to the HELD BYTES its
+    # document_ref names, or ABSTAIN. Never the  string, never UNBOUND_LEGACY (M2, 2026-09-20: a gate
+    # whose failure mode is "admit" rewards exactly the input it exists to stop -- a wrong tuple broke the abstract
+    # binding and the row was admitted because it no longer matched).
+    if hand_binding.is_hand_row(row):
+        bound = hand_binding.bind_hand_row(spec, row)
+        row.update(bound)
+        if bound.get("direction_conflict"):
+            return {"admissible": False, "verdict": "RESULT_INCOMPATIBLE", "reason": bound["direction_conflict"]}
+        if bound["target_endpoint_class"] == ENDPOINT_UNBOUND:
+            return {"admissible": False, "verdict": ENDPOINT_UNBOUND, "abstain": True,
+                    "candidate_locations": bound.get("candidate_locations") or [],
+                    "reason": ("the hand-extracted number is not bound to an endpoint in the held document ("
+                               + str(bound.get("endpoint_binding_reason")) + "); the candidate extraction is set aside "
+                               "for review -- the trial stays eligible evidence awaiting adjudication")}
+        return _class_verdict(spec, bound["target_endpoint_class"], bound.get("extra_components"),
+                              bound.get("missing_components"), name, bound.get("endpoint_binding_reason"))
     # A route that never classified (hand-verified effect/arms, override, dose rule, registry or
     # full-text fallback): its `source` is a hand-written DESCRIPTION, not a definition span, and
     # classifying prose that explains an override (ORIGIN: "...the abstract's stated PRIMARY outcome is
@@ -434,6 +577,29 @@ def admit_rows(spec: dict[str, Any], trials: list[dict[str, Any]]):
             t["endpoint_definition_span"] = v["endpoint_definition_span"]
         if v["admissible"]:
             kept.append(t)
+            continue
+        if v.get("abstain"):
+            # ABSTAIN: not pooled, not refused on evidence -- the candidate extraction is set aside and the trial
+            # stays visible as eligible evidence awaiting adjudication (existing states: machine_absent /
+            # EXTRACTION_DEBT / ENDPOINT_UNBOUND; no new vocabulary).
+            refused.append({
+                "label": t.get("label"), "id": t.get("id"), "absent_kind": "machine_absent",
+                "state": "EXTRACTION_DEBT", "reason_code": ENDPOINT_UNBOUND,
+                "endpoint_admissibility": ENDPOINT_UNBOUND, "hand_binding_state": t.get("hand_binding_state"),
+                "endpoint_binding": t.get("endpoint_binding"), "endpoint_binding_reason": t.get("endpoint_binding_reason"),
+                "endpoint_result_span": t.get("endpoint_result_span"), "held_document": t.get("held_document"),
+                "candidate_locations": v.get("candidate_locations") or [],
+                "candidate_tuple": {k: t.get(k) for k in ("effect", "ci_low", "ci_high", "scale", "ai", "n1i", "ci", "n2i",
+                                                          "mean1", "sd1", "nc1", "mean2", "sd2", "nc2")
+                                    if t.get(k) is not None},
+                "refused_effect": {k: t.get(k) for k in ("effect", "ci_low", "ci_high", "scale", "ai", "n1i", "ci", "n2i",
+                                                         "mean1", "sd1", "nc1", "mean2", "sd2", "nc2")
+                                   if t.get(k) is not None},
+                "source": t.get("source", ""), "provenance": t.get("provenance"),
+                "reason": v["reason"],
+                "recovery": "a reviewer binds the tuple to one span of the held document (or records a typed refusal "
+                            "with the span) -- recorded, source-linked, under the same numeric and freshness checks",
+            })
             continue
         refused.append({
             "label": t.get("label"), "id": t.get("id"), "absent_kind": "refused_on_evidence",

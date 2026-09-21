@@ -265,6 +265,15 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
     poolable. It never changes extraction order and never makes a non-pooled value poolable.
     """
     row = row or {}
+    # A row `admit_rows` refused or set aside on its endpoint binding keeps the code it was given
+    # (RESULT_INCOMPATIBLE / ENDPOINT_UNBOUND): on the served release this layer overwrote a
+    # RESULT_INCOMPATIBLE refusal with EXTRACTION_NOT_PERFORMED -- the right reason, mislabelled before
+    # publication (M2, 2026-09-20).
+    if row.get("endpoint_admissibility") in ("RESULT_INCOMPATIBLE", "ENDPOINT_UNBOUND") and row.get("reason_code"):
+        span = row.get("endpoint_result_span") or row.get("source_span") or row.get("source") or ""
+        return {"reason_code": row["reason_code"], "state": row.get("state") or REFUSED_ON_EVIDENCE,
+                "state_basis": _basis(row["reason_code"], span, reason),
+                "source_span": _clip(span), "verbatim_span": _clip(span)}
     # All lane adjudications require a recognized reason and an exact held span.
     code = row.get("refusal_provenance") or row.get("reason_code") or row.get("state")
     span = row.get("source_span") or row.get("verbatim_span")

@@ -46,9 +46,21 @@ def test_rebuilt_esketamine_membership_is_consistent_and_parity_row_current():
     assert membership.consistency_violations(review) == []
     parity = (review.get("reproduction") or {}).get("parity") or {}
     assert parity.get("membership_status") is None
-    assert parity.get("our_k") == 4
+    # the parity row is CURRENT: its served our_k is the live primary k (derived, never the hand snapshot), and its
+    # status word is the computed relation; the hand words, when stale, are shown as stale beside it. (Until
+    # 2026-09-20 this asserted our_k == 4; k moved to 3 when TRANSFORM-1 was set aside, with a notice.)
+    prim = next(o for o in review["outcomes"] if o.get("primary"))
+    assert parity.get("our_k") == prim["result"]["k"] == len(prim["trials"])
+    assert parity.get("status") == (parity.get("parity_relation") or {}).get("relation")
+    if parity.get("hand_our_k") is not None and parity["hand_our_k"] != parity["our_k"]:
+        assert parity.get("hand_our_k_stale") is True
     assert parity.get("comparable_comparator_k") == 4
-    assert (parity.get("parity_relation") or {}).get("relation") == "IDENTICAL_SET"
+    # the relation is COMPUTED from the live pool (IDENTICAL_SET while all four were pooled; OVERLAPPING since
+    # TRANSFORM-1 was set aside, acknowledged in docs/ratchet_acknowledgements.json parity_acknowledgements)
+    from harness import parity_relation
+    hand_row = {k: parity.get(k) for k in ("slug", "our_k", "comparable_comparator_k", "status", "reason")}
+    hand_row["status"] = parity.get("hand_status", parity.get("status"))
+    assert (parity.get("parity_relation") or {}).get("relation") == parity_relation.compute(hand_row, review)["relation"]
     html = open(
         os.path.join(ROOT, "docs", "reviews", "esketamine-trd-madrs", "index.html"),
         encoding="utf-8",

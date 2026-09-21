@@ -8,7 +8,11 @@
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['heart failure with mildly reduced or preserved ejection fraction', 'mildly reduced or preserved ejection fraction', 'preserved ejection fraction', 'HFpEF', 'HFmrEF', 'left ventricular ejection fraction of more than 40%', 'left ventricular ejection fraction >40%', 'ejection fraction greater than 40%', 'ejection fraction >=50%', 'mildly reduced ejection fraction', 'heart failure with mildly reduced ejection fraction']; and none of ['heart failure with reduced ejection fraction', 'reduced ejection fraction', 'HFrEF', 'ejection fraction of 40% or less', 'left ventricular ejection fraction of 40% or less', 'type 2 diabetes', 'diabetes', 'diabetic', 'chronic kidney disease', 'kidney disease', 'myocardial infarction', 'acute myocardial infarction', 'Fontan', 'single ventricle']; randomised intervention is one of ['dapagliflozin', 'Farxiga', 'Forxiga'] (named in title/conditions); a comparator among ['placebo', 'matching placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
-    "text": "# Protocol - Dapagliflozin for cardiovascular death or worsening heart failure in HFmrEF/HFpEF\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure and mildly reduced or preserved ejection fraction\n  (HFmrEF/HFpEF; operationally LVEF >40% or preserved-EF trial eligibility).\n- **I** - dapagliflozin 10 mg daily, added to usual heart-failure therapy.\n- **C** - placebo or matching placebo, added to usual heart-failure therapy.\n- **O (primary)** - time to first composite cardiovascular death or worsening heart\n  failure, where worsening heart failure includes hospitalization or urgent visit for\n  heart failure as defined by the trial.\n- **Estimand** - hazard ratio (HR) with 95% confidence interval.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **Population** - adult HFmrEF/HFpEF or preserved-EF heart-failure population,\n  judged from the title, registry conditions, or trial acronym.\n- **Intervention** - dapagliflozin is named in the title or registry condition/acronym.\n- **Comparator** - placebo or matching placebo.\n- **Design** - randomized, double-blind, placebo-controlled trial.\n\nExclude (reason must be true of the record):\n- **X1** - not a randomized controlled trial.\n- **X2** - wrong population, including HFrEF/LVEF <=40%, diabetes-only, CKD-only,\n  myocardial-infarction, or other non-HFmrEF/HFpEF populations.\n- **X3** - wrong intervention or comparator.\n- **X-DESIGN** - not double-blind/placebo-controlled in the machine-readable record.\n\nEligibility is not decided by outcome reporting. An eligible dapagliflozin HFpEF trial\nthat reports symptoms, hemodynamics, or safety but not the target composite HR is kept\nas target-result absent, not excluded.\n\n## Outcomes\n- **Primary efficacy outcome** - composite cardiovascular death or worsening heart\n  failure; HR estimand; intention-to-treat/randomized population; longest\n  trial-reported randomized follow-up.\n- **Secondary outcomes** - none preregistered for this topic.\n- **Harms** - none preregistered for this topic.\n\n## Search\n- PubMed: UID-anchored queries for DELIVER (PMID 36027570), PRESERVED-HF\n  (PMID 34711976), and CAMEO-DAPA (PMID 37534453), plus configured comparator and\n  negative-control PMIDs.\n- ClinicalTrials.gov: condition \"heart failure with preserved ejection fraction\",\n  intervention \"dapagliflozin\".\n- Citation chasing: enabled and bounded; every reached record is still screened by\n  the same P/I/C/design rules.\n\n## Synthesis method\nRandom-effects inverse-variance on log(HR) using source-reported trial HRs and 95%\nCIs only. Paule-Mandel tau^2; HKSJ 95% CI on t(k-1) with variance floor\nmax(1, Q/(k-1)); prediction interval mu +/- t(k-1)*sqrt(tau^2 + se^2). For k=1,\nthe result is reported as the single trial's own HR with no random-effects pooling.\n\n## Comparator\nPal et al., *Indian Heart Journal* 2023, \"SGLT2 inhibitors and cardiovascular outcomes\nin heart failure with mildly reduced and preserved ejection fraction: A systematic\nreview and meta-analysis\" (PMID 36914068, DOI 10.1016/j.ihj.2023.03.003; Unpaywall\nis_oa=true). This comparator matches the HFmrEF/HFpEF population, placebo comparison,\ncomposite cardiovascular-death/HF-worsening outcome, and HR estimand, but is class-level\nSGLT2 inhibitor evidence rather than dapagliflozin-only evidence; the overlap tab must\ntherefore not claim an identical trial set.\n\n## Controls\n- **Positive** - DELIVER (PMID 36027570) must be recovered and included.\n- **Negative** - DAPA-HF (PMID 31535829), a dapagliflozin/placebo trial with the same\n  endpoint but HFrEF/LVEF <=40%, must be recovered and excluded as wrong population.\n"
+    "text": "# Protocol - Dapagliflozin for cardiovascular death or worsening heart failure in HFmrEF/HFpEF\n\n**Registration.** The commit that adds/updates this file is the registration of this\nreview; its SHA is embedded in the page's Protocol tab and its Reproducibility tab.\nCommitted BEFORE the synthesis is run.\n\n## PICO\n- **P** - adults with heart failure and mildly reduced or preserved ejection fraction\n  (HFmrEF/HFpEF; operationally LVEF >40% or preserved-EF trial eligibility).\n- **I** - dapagliflozin 10 mg daily, added to usual heart-failure therapy.\n- **C** - placebo or matching placebo, added to usual heart-failure therapy.\n- **O (primary)** - time to first composite cardiovascular death or worsening heart\n  failure, where worsening heart failure includes hospitalization or urgent visit for\n  heart failure as defined by the trial.\n- **Estimand** - hazard ratio (HR) with 95% confidence interval.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **Population** - adult HFmrEF/HFpEF or preserved-EF heart-failure population,\n  judged from the title, registry conditions, or trial acronym.\n- **Intervention** - dapagliflozin is named in the title or registry condition/acronym.\n- **Comparator** - placebo or matching placebo.\n- **Design** - randomized, double-blind, placebo-controlled trial.\n\nExclude (reason must be true of the record):\n- **X1** - not a randomized controlled trial.\n- **X2** - wrong population, including HFrEF/LVEF <=40%, diabetes-only, CKD-only,\n  myocardial-infarction, or other non-HFmrEF/HFpEF populations.\n- **X3** - wrong intervention or comparator.\n- **X-DESIGN** - not double-blind/placebo-controlled in the machine-readable record.\n\nEligibility is not decided by outcome reporting. An eligible dapagliflozin HFpEF trial\nthat reports symptoms, hemodynamics, or safety but not the target composite HR is kept\nas target-result absent, not excluded.\n\n## Outcomes\n- **Primary efficacy outcome** - composite cardiovascular death or worsening heart\n  failure; HR estimand; intention-to-treat/randomized population; longest\n  trial-reported randomized follow-up.\n- **Secondary outcomes** - none preregistered for this topic.\n- **Harms** - none preregistered for this topic.\n\n## Search\n- PubMed: UID-anchored queries for DELIVER (PMID 36027570), PRESERVED-HF\n  (PMID 34711976), and CAMEO-DAPA (PMID 37534453), plus configured comparator and\n  negative-control PMIDs.\n- ClinicalTrials.gov: condition \"heart failure with preserved ejection fraction\",\n  intervention \"dapagliflozin\".\n- Citation chasing: enabled and bounded; every reached record is still screened by\n  the same P/I/C/design rules.\n\n## Synthesis method\nRandom-effects inverse-variance on log(HR) using source-reported trial HRs and 95%\nCIs only. Paule-Mandel tau^2; HKSJ 95% CI on t(k-1) with variance floor\nmax(1, Q/(k-1)); prediction interval mu +/- t(k-1)*sqrt(tau^2 + se^2). For k=1,\nthe result is reported as the single trial's own HR with no random-effects pooling.\n\n## Comparator\nPal et al., *Indian Heart Journal* 2023, \"SGLT2 inhibitors and cardiovascular outcomes\nin heart failure with mildly reduced and preserved ejection fraction: A systematic\nreview and meta-analysis\" (PMID 36914068, DOI 10.1016/j.ihj.2023.03.003; Unpaywall\nis_oa=true). This comparator matches the HFmrEF/HFpEF population, placebo comparison,\ncomposite cardiovascular-death/HF-worsening outcome, and HR estimand, but is class-level\nSGLT2 inhibitor evidence rather than dapagliflozin-only evidence; the overlap tab must\ntherefore not claim an identical trial set.\n\n## Controls\n- **Positive** - DELIVER (PMID 36027570) must be recovered and included.\n- **Negative** - DAPA-HF (PMID 31535829), a dapagliflozin/placebo trial with the same\n  endpoint but HFrEF/LVEF <=40%, must be recovered and excluded as wrong population.\n",
+    "target_endpoint_selection": {
+      "summary": "Target endpoint selector: EXACT_TARGET beats NEAR_MATCH; a near-match may be pooled only when no exact target is held. Within the same endpoint class, source-reported target-estimand effects beat registry effect estimates, which beat crude reconstructions. For multiple registered primaries in the same outcome family, choose the prespecified primary whose component set is closest to the canonical review definition; ties use registration order and alternatives render as sensitivity rows. Rule applied after results were already known in this lane, so the timing is disclosed.",
+      "results_known_at_rule_time": true
+    }
   },
   "search": {
     "n_records": 97,
@@ -1996,10 +2000,37 @@
           "n2i": 162,
           "provenance": "abstract_verified_arms",
           "document_ref": "cache/dapagliflozin-hfpef-hosp/records.json",
+          "source_span": "Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively). These results indicate that 12 weeks of dapagliflozin treatment significantly improved patient-reported symptoms, physical limitations and exercise function and was well tolerated in chronic HFpEF.",
           "source_level": 1,
+          "kind": "extracted_counts",
+          "verification": "Published patients with adverse events; denominators 162 per arm independently read from NCT03030235 AACT safety totals and checked against 27.2% and 23.5%.",
+          "handed_abstract": "Patients with heart failure and preserved ejection fraction (HFpEF) have a high burden of symptoms and functional limitations, and have a poor quality of life. By targeting cardiometabolic abmormalities, sodium glucose cotransporter 2 (SGLT2) inhibitors may improve these impairments. In this multicenter, randomized trial of patients with HFpEF (NCT03030235), we evaluated whether the SGLT2 inhibitor dapagliflozin improves the primary endpoint of Kansas City Cardiomyopathy Questionnaire Clinical Summary Score (KCCQ-CS), a measure of heart failure-related health status, at 12 weeks after treatment initiation. Secondary endpoints included the 6-minute walk test (6MWT), KCCQ Overall Summary Score (KCCQ-OS), clinically meaningful changes in KCCQ-CS and -OS, and changes in weight, natriuretic peptides, glycated hemoglobin and systolic blood pressure. In total, 324 patients were randomized to dapagliflozin or placebo. Dapagliflozin improved KCCQ-CS (effect size, 5.8 points (95% confidence interval (CI) 2.3-9.2, P = 0.001), meeting the predefined primary endpoint, due to improvements in both KCCQ total symptom score (KCCQ-TS) (5.8 points (95% CI 2.0-9.6, P = 0.003)) and physical limitations scores (5.3 points (95% CI 0.7-10.0, P = 0.026)). Dapagliflozin also improved 6MWT (mean effect size of 20.1 m (95% CI 5.6-34.7, P = 0.007)), KCCQ-OS (4.5 points (95% CI 1.1-7.8, P = 0.009)), proportion of participants with 5-point or greater improvements in KCCQ-OS (odds ratio (OR) = 1.73 (95% CI 1.05-2.85, P = 0.03)) and reduced weight (mean effect size, 0.72 kg (95% CI 0.01-1.42, P = 0.046)). There were no significant differences in other secondary endpoints. Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively). These results indicate that 12 weeks of dapagliflozin treatment significantly improved patient-reported symptoms, physical limitations and exercise function and was well tolerated in chronic HFpEF.",
+          "document_candidates": [
+            "cache/dapagliflozin-hfpef-hosp/records.json#PMID-34711976"
+          ],
           "source": "Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively). These results indicate that 12 weeks of dapagliflozin treatment significantly improved patient-reported symptoms, physical limitations and exercise function and was well tolerated in chronic HFpEF.\nAACT denominator source outputs/handover/in3/aact/reported_event_totals.txt:\n227530878|NCT03030235|EG000|serious|Total, serious adverse events|31|162|2026-08-30 03:24:43.815253|2026-08-30 03:24:43.815253\n227530879|NCT03030235|EG001|serious|Total, serious adverse events|22|162|2026-08-30 03:24:43.815253|2026-08-30 03:24:43.815253",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively).",
+          "endpoint_definition_span": "Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively).",
+          "endpoint_binding_reason": "span names the outcome family",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively)."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/dapagliflozin-hfpef-hosp/records.json",
+            "sha256": "1c107de913f0e4a035f14f93e0c714f1078acbec87a2102f5a2460d6e787af95",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reconstructed",
           "selection_rule": "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT",
           "selected_estimator": "reconstructed",
@@ -2334,7 +2365,7 @@
             "label": "34711976",
             "state": "EXTRACTED",
             "extracted": true,
-            "span": "Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively). These results indicate that 12 weeks of dapagliflozin treatment significantly improved patient-reported symptoms, physical limitations and exercise function and was well tolerated in chronic HFpEF.\nAACT denominator source outputs/handover/in3/aact/reported_event_totals.txt:\n227530878|NCT03030235|EG000|serious|Total, serious adverse events|31|162|2026-08-30 03:24:43.815253|2026-08-30 03:24:43.815253\n227530879|NCT03030235|EG001|serious|Total, serious adverse events|22|162|2026-08-30 03:24:43.815253|2026-08-30 03:24:43.815253",
+            "span": "Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively). These results indicate that 12 weeks of dapagliflozin treatment significantly improved patient-reported symptoms, physical limitations and exercise function and was well tolerated in chronic HFpEF.",
             "source_ladder": [
               {
                 "rung": "abstract",
@@ -2351,7 +2382,7 @@
               },
               {
                 "rung": "located adjudication source: cache/dapagliflozin-hfpef-hosp/records.json",
-                "state": "SPAN_NOT_VERIFIED",
+                "state": "CHECKED_LOCATED_SPAN",
                 "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
@@ -3272,6 +3303,11 @@
       }
     ]
   },
+  "rob_sensitivity_omitted": {
+    "reason_code": "PRIMARY_ABSENT",
+    "reason": "the primary outcome has no pooled result (present = False)",
+    "outcome": "Composite cardiovascular death or worsening heart failure"
+  },
   "trial_families": [
     {
       "family_id": "NCT03030235",
@@ -3857,16 +3893,16 @@
             "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
           },
           "measured": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            "state": "YES",
+            "span": "Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively). These results indicate that 12 weeks of dapagliflozin treatment significantly improved patient-reported symptoms, physical limitations and exercise function and was well tolerated in chronic HFpEF."
           },
           "reported": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            "state": "YES",
+            "span": "Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively). These results indicate that 12 weeks of dapagliflozin treatment significantly improved patient-reported symptoms, physical limitations and exercise function and was well tolerated in chronic HFpEF."
           },
           "extractable": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            "state": "YES",
+            "span": "Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively). These results indicate that 12 weeks of dapagliflozin treatment significantly improved patient-reported symptoms, physical limitations and exercise function and was well tolerated in chronic HFpEF."
           },
           "in_primary_pool": {
             "state": "NO",
@@ -5373,16 +5409,16 @@
           "state": "POOLED",
           "span": {
             "measured": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+              "state": "YES",
+              "span": "Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively). These results indicate that 12 weeks of dapagliflozin treatment significantly improved patient-reported symptoms, physical limitations and exercise function and was well tolerated in chronic HFpEF."
             },
             "reported": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+              "state": "YES",
+              "span": "Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively). These results indicate that 12 weeks of dapagliflozin treatment significantly improved patient-reported symptoms, physical limitations and exercise function and was well tolerated in chronic HFpEF."
             },
             "extractable": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+              "state": "YES",
+              "span": "Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively). These results indicate that 12 weeks of dapagliflozin treatment significantly improved patient-reported symptoms, physical limitations and exercise function and was well tolerated in chronic HFpEF."
             }
           },
           "analysis_input": true,
@@ -57317,8 +57353,8 @@
       "source_fields": [
         "/outcomes/*/result/harm_reporting_trials"
       ],
-      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>34711976</td><td>EXTRACTED / : </td><td>Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively). These results indicate that 12 weeks of dapagliflozin treatment significantly improved patient-reported symptoms, physical limitations and exercise function and was well tolerated in chronic HFpEF. AACT denominator source outputs/handover/in3/aact/reported_event_totals.txt: 227530878|NCT03030235|EG000|serious|Total, serious adverse events|31|162|2026-08-30 03:24:43.815253|2026-08-30 03:24:43.815253 227530879|NCT03030235|EG001|serious|Total, serious adverse events|22|162|2026-08-30 03:24:43.815253|2026-08-30 03:24:43.815253</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/dapagliflozin-hfpef-hosp/records.json: SPAN_NOT_VERIFIED Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>36027570</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: Narrative similarity supplies no all-adverse-event numerator or effect and CI. Held AACT separates serious and other adverse events; these overlapping populations cannot be summed into any-AE patients.</td><td>The incidence of adverse events was similar in the two groups. CONCLUSIONS: Dapagliflozin reduced the combined risk of worsening heart failure or cardiovascular death among patients with heart failure and a mildly reduced or preserved ejection fraction. (Funded by AstraZeneca; DELIVER ClinicalTrials.gov number, NCT03619213.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/dapagliflozin-hfpef-hosp/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>37534453</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: Held registry reports serious and other adverse-event totals, not a deduplicated any-adverse-event total. The sets may overlap; summing them would invent unique patients.</td><td>227415112|NCT04730947|EG000|other|Total, other adverse events|21|21|2026-08-29 19:49:34.7096|2026-08-29 19:49:34.7096</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: outputs/handover/in3/aact/reported_event_totals.txt: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
-      "text_sha256": "2d29bbb0a85c5f553296059ac68a0d01e6a56cc9cd9727751c4bdeb56d2b1da9",
+      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>34711976</td><td>EXTRACTED / : </td><td>Adverse events were similar between dapagliflozin and placebo (44 (27.2%) versus 38 (23.5%) patients, respectively). These results indicate that 12 weeks of dapagliflozin treatment significantly improved patient-reported symptoms, physical limitations and exercise function and was well tolerated in chronic HFpEF.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/dapagliflozin-hfpef-hosp/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>36027570</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: Narrative similarity supplies no all-adverse-event numerator or effect and CI. Held AACT separates serious and other adverse events; these overlapping populations cannot be summed into any-AE patients.</td><td>The incidence of adverse events was similar in the two groups. CONCLUSIONS: Dapagliflozin reduced the combined risk of worsening heart failure or cardiovascular death among patients with heart failure and a mildly reduced or preserved ejection fraction. (Funded by AstraZeneca; DELIVER ClinicalTrials.gov number, NCT03619213.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/dapagliflozin-hfpef-hosp/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>37534453</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: Held registry reports serious and other adverse-event totals, not a deduplicated any-adverse-event total. The sets may overlap; summing them would invent unique patients.</td><td>227415112|NCT04730947|EG000|other|Total, other adverse events|21|21|2026-08-29 19:49:34.7096|2026-08-29 19:49:34.7096</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: outputs/handover/in3/aact/reported_event_totals.txt: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
+      "text_sha256": "8c0e0df58b07194c14aea2e5dc630d2508c468df747c8a70ee87c2007b080218",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "compat-check:harms-incomplete",
@@ -57409,6 +57445,34 @@
         "reason": "Funding and conflict-of-interest are disclosed for interpretation; the harness does not estimate a per-trial funding adjustment and no analytic gate consumes the partial state.",
         "tranche": "TRANCHE-hazard-consumers",
         "ack_id": "HC-FUNDING_COI-PARTIAL"
+      }
+    },
+    {
+      "limitation_id": "topic:dapagliflozin-hfpef-hosp:riskofbias:rob-sensitivity",
+      "kind": "ROB_SENSITIVITY",
+      "limitation_class": "INFORMATIONAL",
+      "severity": "QUALIFIES_CLAIM",
+      "claim_affected": "risk-of-bias sensitivity interpretation",
+      "evidence_state": "PARTIAL",
+      "source_fields": [
+        "/rob_sensitivity_omitted"
+      ],
+      "rendered_text": "<h4>Risk-of-bias sensitivity (re-pooled with the same estimator)</h4><div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> Not computed (PRIMARY_ABSENT): the primary outcome has no pooled result (present = False). The per-trial rows and their risk-of-bias ratings are shown above; the omission is recorded in the review object as <code>rob_sensitivity_omitted</code>, not left silent.</div>",
+      "text_sha256": "334792a60451d4d060107fc0380bfbafa5aa223489874f09bef3dd503b72606f",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "risk-of-bias sensitivity is disclosed as an interpretation aid; no gate consumes the partial state",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "Risk-of-bias sensitivity is rendered as an interpretive disclosure; no executable analytic gate changes on the partial state. Integrator note: a sensitivity re-pool that moves the estimate across the null is a validity signal, not only an interpretive disclosure; a consumer is owed (GATE_GAPS).",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-ROB_SENSITIVITY-PARTIAL"
       }
     },
     {
@@ -57563,7 +57627,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "a6788cc518027a2b1b2aa9e94ac45b393a13efca",
-    "review_sha256": "cb69fe238adb0ae66c56fa0755572420b0e5eae91013dacbb8d634a1dc0d35f8",
+    "review_sha256": "fd73d38ce0f545d0bab8fb6bf569f372744b28234744ab347ba2ebb27a435e29",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -57672,19 +57736,19 @@
         }
       ],
       "config_sha256": "8760471506ef98436ff00f1df6fc956e460763651a6b0c8dea02d045e0c60dfd",
-      "analysis_code_sha256": "46622f5c2c7fe32b2bd27f43738301104eb87221f84379ee7e5da40963f2b827",
+      "analysis_code_sha256": "fd5ccc59cf078077fa5c788ed90b4fddce9767cdf4cfd00998fa1ce03ee1c40b",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
         "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
-        "harness/absence.py": "2db42260d7a5ac5d9b708f3cca8513d94c5c5584",
+        "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
         "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
         "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
         "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
         "harness/arm_object.py": "c6e2a9d0ea0263eba72c3453d52bc5a05b06e0b2",
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
-        "harness/census.py": "8909d29924df518d99ca9a73691c92e2e50557f8",
+        "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
         "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
@@ -57709,10 +57773,11 @@
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "81e3b42415047edde8fb39dce964e1ff415963c8",
+        "harness/gate.py": "20a5ce33e2c111d23993e208d00c88e04afda5ca",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
+        "harness/hand_binding.py": "d48224edf7e0e22dd0111e3c1a72565c25b93dd8",
         "harness/harms.py": "64f79ea3db77361f8076c8017af851f388183ef7",
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
@@ -57722,14 +57787,14 @@
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "abf2d38fbf9800b23d83289febd289fa53c6b2e6",
+        "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
-        "harness/manuscript.py": "6a18509615e91f32727923a43b569ff2181a5b5f",
+        "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "eec920650e986ee7a18e7549c60915a9ce6405b9",
-        "harness/parity_relation.py": "55a2602e97e0ee4518aa4d083e5ff4500afe4bf0",
-        "harness/pipeline.py": "4b1743b9dfa13b70612f435081f9009638a6ef10",
+        "harness/page.py": "4dad90b0facdea7c0f89fd0bc5dd1dd1ce04d31f",
+        "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
+        "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -57737,8 +57802,9 @@
         "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
         "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
         "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
+        "harness/result_changes.py": "b7a2eb8c55276a0335312a9ea389631216a9449d",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
-        "harness/rob_sensitivity.py": "026441df1eac7e36710fe170eba196ca5b085a3c",
+        "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
         "harness/screen.py": "e2864719b75c355abfcff1dbde0b376c45bdd84e",
@@ -57747,14 +57813,14 @@
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
-        "harness/target_endpoint.py": "554df973c35f7c9d29070e29cb7075ec9026e574",
+        "harness/target_endpoint.py": "f605e0f513e3524baac0a9e5f36ced5b926ed6e3",
         "harness/trial_family.py": "57882f159bbfd8d91b60deaf5956e409de6c484f",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
         "harness/verify.py": "e5187ea9cc8e9b92a02a98e7bc84ed1cfd0a99f5",
         "scripts/build_topic.py": "ddfab3d8415edb0b5a7f8e1a091f10e0520cfd18",
-        "scripts/reproduce_review.py": "eab6807e05abf130e79db5d0e9354598c4cf7dfe"
+        "scripts/reproduce_review.py": "b8f090b9ac3699ced2181aa9366b098678c29dbe"
       },
       "certificate_scope": {
         "method": "analysis_code_blobs is the static import closure (ast; module-level and function-local import statements, relative and absolute) of the roots, restricted to modules that resolve to a file under harness/ or scripts/. Nothing in the map is listed by hand. Values are Git SHA-1 blob identities: sha1('blob ' + len + NUL + bytes) over the file with CRLF normalised to LF, recomputable with `git hash-object -- <path>` at the anchoring commit.",
@@ -57767,7 +57833,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "80 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "82 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -57796,8 +57862,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "8f68c82d1ca471dc56a9638a8fc58d9e91c71e4743476c15bd1394ee8e11ff7f",
-      "review_sha256": "cb69fe238adb0ae66c56fa0755572420b0e5eae91013dacbb8d634a1dc0d35f8",
+      "manuscript_sha256": "9b669008450f64fcaacd84fcd99e35c8857c20b1737e1142472d722b33720bfb",
+      "review_sha256": "fd73d38ce0f545d0bab8fb6bf569f372744b28234744ab347ba2ebb27a435e29",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/dapagliflozin-hfpef-hosp.md UTF-8 text, universal newlines",
@@ -57817,7 +57883,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "83ca939bf82589cb6516a8eed06356bb4ee513d412f1d78a1a18ea7bbd1bde0c"
+      "release_sha256": "11d71fc484c5545a7c46a71b80d85afedd60ca7ae0b7e1a5bb8907db34a75a94"
     }
   }
 }

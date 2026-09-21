@@ -26,11 +26,25 @@ def test_rebuilt_pages_account_for_every_baseline_harm():
             html = (folder/'index.html').read_text(encoding='utf-8')
             assert d['trial'] in html
         else:
-            row = next(t for t in outcome['trials'] if t['id'].replace('PMID ','')==d['trial'])
-            for field in ('ai','n1i','ci','n2i','effect','ci_low','ci_high','scale'):
-                if field in d['entry']:
-                    assert row[field] == d['entry'][field]
-            assert row['verified'] == 'verified'
+            # a decided harm row is POOLED with the decided values, or SET ASIDE with those values visible as the
+            # candidate tuple and a named reason (the hand binder could not bind them to held bytes) -- never
+            # silently absent. Until 2026-09-20 this required the row to be pooled; the set-aside state is the
+            # binder's honest answer and the reviewer's decision is recorded in docs/error_rate.json.
+            row = next((t for t in outcome['trials'] if t['id'].replace('PMID ','')==d['trial']), None)
+            if row is not None:
+                for field in ('ai','n1i','ci','n2i','effect','ci_low','ci_high','scale'):
+                    if field in d['entry']:
+                        assert row[field] == d['entry'][field]
+                assert row['verified'] == 'verified'
+            else:
+                row = next(t for t in outcome['declared_absent_trials'] if t['id'].replace('PMID ','')==d['trial'])
+                assert row.get('reason_code') in ('ENDPOINT_UNBOUND','RESULT_INCOMPATIBLE'), (d['topic'],d['trial'],row.get('reason_code'))
+                cand = row.get('candidate_tuple') or {}
+                for field in ('ai','n1i','ci','n2i','effect','ci_low','ci_high'):
+                    if field in d['entry']:
+                        assert cand.get(field) == d['entry'][field], (d['trial'], field, cand)
+                html = (folder/'index.html').read_text(encoding='utf-8')
+                assert d['trial'] in html
 
 
 def test_primary_trial_values_and_membership_are_unchanged():

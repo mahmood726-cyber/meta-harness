@@ -162,6 +162,14 @@ LIMITS = [
      "whose evidence is a text artefact (FDA extraction) is not expressible as a verification row and is carried under regulatory_facts[] with its own "
      "identity binding. A fixture that sources a primary row from a text artefact will fail P1/P2 for that reason, not for a defect in the row."},
     {"id": "L9_production_path", "limit": "nothing here tests the producer's admission gate; no production falsification test has been executed by anyone."},
+    {"id": "L16_definition_detector_over_collects", "limit": "P8's definition span comes from harness/target_endpoint.py, whose definition detector "
+     "OVER-COLLECTS: on the served corpus (scripts/endpoint_reference_sweep.py, 2026-09-21) 31 of 265 held documents carried two or more candidate "
+     "definition sentences for one endpoint, of which 6 were pairs sharing the same component set; all 6 were restatements of one endpoint (a discussion "
+     "sentence mentioning the trial population beside a definition stating none), resolved by the compatibility rule (two candidates conflict only "
+     "when BOTH state an identity attribute -- ordinal, timepoint, population -- with different values). The strict rule (merge identical text only) "
+     "would have set EXSCEL and VITAL aside. A detector that collects a discussion restatement as a 'definition' is a detector limit the bundle "
+     "inherits: the record exposes definition_candidates, endpoint_reference, selected_definition and unresolved_alternatives so a reader can "
+     "see which sentences competed, but the bundle cannot tell a genuine second endpoint from a loose restatement beyond that rule."},
 ]
 ANCHOR_HOWTO = ("parse ACQUIRED_SOURCE (EFetch XML) with any XML parser; take every //Abstract/AbstractText element in document order; for each, "
                 "join its text nodes, collapse whitespace runs to one space and strip; that unit must be a substring of PARSED_SOURCE (the cached "

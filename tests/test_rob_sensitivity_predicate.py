@@ -73,11 +73,21 @@ def _withdrawn_slugs() -> list[str]:
     return out
 
 
-# Assessed pages with NO re-pool and NO named reason. The old literal `31` silently left these out of the population;
-# they are named here so the gap is visible and any NEW unexplained page fails this test by name (a page must not
-# lose its re-pool quietly). iv-iron-hfref-hosp: RoB 2 assessed, no rob_sensitivity, primary neither refused nor
-# withdrawn -- a pre-existing gap recorded 2026-09-20, not fixed here.
-KNOWN_UNEXPLAINED_NO_REPOOL = ["iv-iron-hfref-hosp"]
+def _omitted_slugs() -> list[str]:
+    """Pages whose object records WHY the re-pool is not computed (rob_sensitivity_omitted: primary pool suppressed
+    as incompatible / refused / absent). iv-iron-hfref-hosp was the one assessed page with no re-pool and no reason
+    (recorded 2026-09-20, closed the same day by recording the reason at cause)."""
+    out = []
+    for path in sorted((ROOT / "docs" / "reviews").glob("*/review.json")):
+        review = json.loads(path.read_text(encoding="utf-8"))
+        if review.get("rob_sensitivity_omitted") and not review.get("rob_sensitivity"):
+            out.append(path.parent.name)
+    return out
+
+
+# Assessed pages with NO re-pool and NO named reason. Empty: every assessed page is in a named state (re-pool,
+# refused, withdrawn, or an omission object that says why). Any NEW unexplained page fails this test by name.
+KNOWN_UNEXPLAINED_NO_REPOOL: list[str] = []
 
 
 def _rob_population() -> list[str]:
@@ -189,9 +199,10 @@ def test_prefix_rendered_predicate_fires_on_identical_low_only_pages():
     # from the committed object so the pre-fix count stays a statement about aa8ed28a.
     # Every page in the RoB population is in exactly one named state: has a re-pool (a row here), primary row
     # refused, or result withdrawn. The population is derived from the corpus, not asserted as a count.
-    accounted = sorted([s for s, _, _ in rows] + _refused_pool_slugs() + _withdrawn_slugs() + KNOWN_UNEXPLAINED_NO_REPOOL)
+    accounted = sorted(set([s for s, _, _ in rows] + _refused_pool_slugs() + _withdrawn_slugs() + _omitted_slugs()
+                           + KNOWN_UNEXPLAINED_NO_REPOOL))
     assert accounted == sorted(_rob_population()), (set(accounted) ^ set(_rob_population()))
-    excluded = set(_refused_pool_slugs()) | set(_withdrawn_slugs())
+    excluded = set(_refused_pool_slugs()) | set(_withdrawn_slugs()) | set(_omitted_slugs())
     assert failures == [s for s in EXPECTED_IDENTICAL_SLUGS if s not in excluded]
     assert fewer_true == [s for s in EXPECTED_FEWER_SLUGS if s not in excluded]
 
@@ -216,7 +227,7 @@ def test_postfix_rebuilt_pages_satisfy_relation_predicate():
     print(f"post-fix predicate passes: {count_line}")
     # Post-fix population: pages that still have a re-pool. A refused pooled row has none by design and
     # renders the refusal statement instead (asserted by name, not silently dropped).
-    accounted = sorted(rows + _refused_pool_slugs() + _withdrawn_slugs() + KNOWN_UNEXPLAINED_NO_REPOOL)
+    accounted = sorted(set(rows + _refused_pool_slugs() + _withdrawn_slugs() + _omitted_slugs() + KNOWN_UNEXPLAINED_NO_REPOOL))
     assert accounted == sorted(_rob_population()), (set(accounted) ^ set(_rob_population()))
     assert count_line == f"{len(rows)} of {len(rows)}"
     assert failures == []
@@ -274,3 +285,22 @@ def test_synthetic_fewer_trials_sentence_survives_and_renderers_agree():
         assert expected_phrase in page_cell
         assert expected_phrase in limitations_cell
         assert page_cell == limitations_cell
+
+
+def test_PLANT_iv_iron_omitted_repool_names_its_reason():
+    """The re-pool is skipped because the primary pool is suppressed as incompatible estimands; the object says so
+    and the page renders it. Before 2026-09-20 this page had an assessment, no re-pool and no sentence."""
+    review = _current_review("iv-iron-hfref-hosp")
+    assert review.get("rob2") and not review.get("rob_sensitivity")
+    omit = review.get("rob_sensitivity_omitted") or {}
+    assert omit.get("reason_code") == "PRIMARY_POOL_SUPPRESSED_INCOMPATIBLE", omit
+    html = _current_html("iv-iron-hfref-hosp")
+    assert "Not computed (PRIMARY_POOL_SUPPRESSED_INCOMPATIBLE)" in html
+
+
+def test_omission_reason_is_none_when_the_repool_is_computable():
+    assert rs.omission_reason({"outcomes": [{"primary": True, "trials": [{"id": "x"}], "result": {"k": 2, "estimate": 0.8}}]}) is None
+    assert rs.omission_reason({"outcomes": [{"primary": True, "trials": [{"id": "x"}],
+                                             "result": {"suppressed_incompatible": True, "scale": "INCOMPATIBLE (A + B)"}}]})["reason_code"] == "PRIMARY_POOL_SUPPRESSED_INCOMPATIBLE"
+    assert rs.omission_reason({"outcomes": [{"primary": True, "trials": [{"id": "x"}],
+                                             "result": {"pool_refused": {"code": "K2_DIRECTION_CONFLICT"}}}]})["refusal_code"] == "K2_DIRECTION_CONFLICT"

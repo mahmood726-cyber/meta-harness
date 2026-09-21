@@ -8,7 +8,11 @@
     "committed_utc": "2026-09-12",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['venous thromboembolism', 'VTE', 'deep-vein thrombosis', 'deep vein thrombosis', 'pulmonary embolism', 'DVT', 'PE']; and none of ['cancer-associated', 'cancer associated', 'cancer', 'thrombophilia', 'thrombophilic', 'antiphospholipid', 'cerebral venous thrombosis', 'cerebral venous', 'cerebral vein', 'children', 'pediatric', 'paediatric', 'postoperative', 'post-operative', 'surgery', 'surgical', 'prophylaxis', 'gynecologic', 'gynaecologic', 'malignant', 'neoplasm', 'extended treatment', 'continued treatment', 'secondary prevention', 'long-term prevention', 'after symptomatic venous thromboembolism', 'after completion']; randomised intervention is one of ['dabigatran', 'rivaroxaban', 'apixaban', 'edoxaban', 'direct oral anticoagulant', 'direct oral anticoagulants', 'DOAC', 'DOACs', 'novel oral anticoagulant', 'novel oral anticoagulants', 'new oral anticoagulant', 'new oral anticoagulants', 'NOAC', 'NOACs', 'non-vitamin K antagonist oral anticoagulant', 'non-vitamin K antagonist oral anticoagulants', 'DU-176b', 'DU 176b', 'BIBR 1048', 'BIBR1048', 'BAY 59-7939', 'BMS-562247'] (named in title/conditions); a comparator among ['warfarin', 'vitamin K antagonist', 'vitamin k antagonist', 'VKA', 'standard therapy', 'standard treatment', 'conventional therapy', 'conventional treatment', 'conventional anticoagulant therapy']. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator.",
-    "text": "# Protocol - direct oral anticoagulants for recurrent VTE in acute symptomatic venous thromboembolism\n\n**Registration.** This topic is preregistered in `PREREGISTRATION_v2.md` before\nsearch, screening, extraction, or synthesis. The per-topic protocol records the\nsame P/I/C/design-only eligibility and is committed with the generated review\nartifacts. Outcome reporting affects extraction status, not screening.\n\n## PICO\n- **P** - adults with acute symptomatic venous thromboembolism (deep-vein\n  thrombosis and/or pulmonary embolism).\n- **I** - direct oral anticoagulants: dabigatran, rivaroxaban, apixaban, or\n  edoxaban.\n- **C** - warfarin or another vitamin-K antagonist strategy, including initial\n  parenteral anticoagulation followed by VKA.\n- **O (primary)** - trial-reported recurrent VTE. RE-COVER, RE-COVER II, and\n  AMPLIFY include VTE-related death in the primary recurrent-VTE composite; the\n  EINSTEIN and Hokusai acute-treatment reports count recurrent VTE as reported.\n\n## Estimand / population / timepoint\n- **Estimand** - trial-reported ratio-scale effect for DOAC vs VKA, pooled on the\n  log-ratio scale. Five pivotal trials report HRs and AMPLIFY reports an RR; this\n  mixed HR/RR pool is declared because recurrent-event rates are low but the\n  estimand labels are not identical.\n- **Population** - intention-to-treat as randomised / full analysis set, as\n  reported by each pivotal acute-treatment trial.\n- **Timepoint** - trial end / longest randomized acute-treatment follow-up.\n\n## Eligibility - P/I/C/DESIGN only\nInclude a record iff all hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is adults with acute symptomatic VTE, DVT, and/or PE;\n- **I3** - dabigatran, rivaroxaban, apixaban, edoxaban, or a DOAC/NOAC as the\n  randomised intervention;\n- **I4** - warfarin / VKA / conventional anticoagulant therapy comparator;\n- **design** - randomised DOAC-vs-VKA allocation; double-blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or\n  meta-analysis);\n- **X2** - wrong population, including cancer-only, thrombophilia-only,\n  antiphospholipid-only, cerebral-vein thrombosis, postoperative prophylaxis,\n  pediatric, or extended/secondary-prevention populations;\n- **X3** - wrong intervention/comparison, including placebo, aspirin, no-treatment,\n  enoxaparin-only prophylaxis, or active comparators other than VKA/warfarin;\n- **X5** - off-topic: a primary trial of another topic in this set (negative\n  control).\n\nEligibility is NOT on the outcome axis. Whether an eligible acute-treatment trial\nreports recurrent VTE, and whether it reports arm counts or only an effect plus\nconfidence interval, is recorded at extraction. A published HR/RR plus 95% CI is\na poolable input.\n\n## Search\n- PubMed: direct UID queries for RE-COVER, RE-COVER II, EINSTEIN-DVT,\n  EINSTEIN-PE, AMPLIFY, and Hokusai-VTE primary acute-treatment reports.\n- ClinicalTrials.gov: condition \"venous thromboembolism\", intervention \"direct\n  oral anticoagulant\".\n- Comparator-reference seeding is disabled; the six pivotal PubMed records are\n  specified directly so the embedded EINSTEIN placebo-extension substudy cannot\n  enlarge the DOAC-vs-VKA evidence set.\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log ratio; Paule-Mandel tau2; HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1,Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau2+se2)`. DerSimonian-Laird forbidden. Published HR and\nRR inputs are pooled on the log ratio scale and the mixed effect-label is shown.\n\n## Comparator (resolved; OA confirmed by build gate)\nvan Es et al., *Blood* 2014, \"Direct oral anticoagulants compared with vitamin K\nantagonists for acute venous thromboembolism: evidence from phase 3 trials\"\n(PMID 24963045, DOI 10.1182/blood-2014-04-571232). This is a scope-matched\nopen-access pooled analysis of the six phase-3 acute symptomatic VTE DOAC-vs-VKA\ntrials and reports recurrent VTE, including VTE-related death, as RR 0.90 (95%\nCI 0.77-1.06). van der Hulle et al. 2014 (PMID 24330006) was checked first as\nthe canonical JTH systematic review/meta-analysis, but Unpaywall reported it\nclosed access during the build, so it was not used as the comparator.\n\n## Pivotal\n- **RE-COVER** - PMID 19966341; NCT00291330; dabigatran; HR 1.10 (0.65-1.84).\n- **RE-COVER II** - PMID 24344086; NCT00680186; dabigatran; HR 1.08 (0.64-1.80).\n- **EINSTEIN-DVT** - PMID 21128814; NCT00440193; rivaroxaban; HR 0.68\n  (0.44-1.04) for the acute DVT VKA comparison.\n- **EINSTEIN-PE** - PMID 22449293; NCT00439777; rivaroxaban; HR 1.12\n  (0.75-1.68).\n- **AMPLIFY** - PMID 23808982; NCT00643201; apixaban; RR 0.84 (0.60-1.18).\n- **Hokusai-VTE** - PMID 23991658; NCT00986154; edoxaban; HR 0.89 (0.70-1.13).\n\n## Controls\n- **Positive** - the search must recover and include RE-COVER (PMID 19966341),\n  RE-COVER II (PMID 24344086), EINSTEIN-DVT (PMID 21128814), EINSTEIN-PE\n  (PMID 22449293), AMPLIFY (PMID 23808982), and Hokusai-VTE (PMID 23991658).\n- **Negative** - AMPLIFY-EXT (PMID 23216615), apixaban vs placebo for extended\n  treatment after completion of anticoagulation, must be recovered and EXCLUDED\n  as wrong comparator / wrong phase of therapy.\n\n## Estimand exclusions\n- **EINSTEIN-Extension** - the continued-treatment substudy embedded in PMID\n  21128814 (NCT00439725) reports rivaroxaban vs placebo, 8/602 vs 42/594, HR\n  0.18 (0.09-0.39). It is excluded from the DOAC-vs-VKA pool because the\n  comparator is placebo and the phase is extended/secondary prevention, not\n  acute VTE treatment.\n"
+    "text": "# Protocol - direct oral anticoagulants for recurrent VTE in acute symptomatic venous thromboembolism\n\n**Registration.** This topic is preregistered in `PREREGISTRATION_v2.md` before\nsearch, screening, extraction, or synthesis. The per-topic protocol records the\nsame P/I/C/design-only eligibility and is committed with the generated review\nartifacts. Outcome reporting affects extraction status, not screening.\n\n## PICO\n- **P** - adults with acute symptomatic venous thromboembolism (deep-vein\n  thrombosis and/or pulmonary embolism).\n- **I** - direct oral anticoagulants: dabigatran, rivaroxaban, apixaban, or\n  edoxaban.\n- **C** - warfarin or another vitamin-K antagonist strategy, including initial\n  parenteral anticoagulation followed by VKA.\n- **O (primary)** - trial-reported recurrent VTE. RE-COVER, RE-COVER II, and\n  AMPLIFY include VTE-related death in the primary recurrent-VTE composite; the\n  EINSTEIN and Hokusai acute-treatment reports count recurrent VTE as reported.\n\n## Estimand / population / timepoint\n- **Estimand** - trial-reported ratio-scale effect for DOAC vs VKA, pooled on the\n  log-ratio scale. Five pivotal trials report HRs and AMPLIFY reports an RR; this\n  mixed HR/RR pool is declared because recurrent-event rates are low but the\n  estimand labels are not identical.\n- **Population** - intention-to-treat as randomised / full analysis set, as\n  reported by each pivotal acute-treatment trial.\n- **Timepoint** - trial end / longest randomized acute-treatment follow-up.\n\n## Eligibility - P/I/C/DESIGN only\nInclude a record iff all hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is adults with acute symptomatic VTE, DVT, and/or PE;\n- **I3** - dabigatran, rivaroxaban, apixaban, edoxaban, or a DOAC/NOAC as the\n  randomised intervention;\n- **I4** - warfarin / VKA / conventional anticoagulant therapy comparator;\n- **design** - randomised DOAC-vs-VKA allocation; double-blinding is not required.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or\n  meta-analysis);\n- **X2** - wrong population, including cancer-only, thrombophilia-only,\n  antiphospholipid-only, cerebral-vein thrombosis, postoperative prophylaxis,\n  pediatric, or extended/secondary-prevention populations;\n- **X3** - wrong intervention/comparison, including placebo, aspirin, no-treatment,\n  enoxaparin-only prophylaxis, or active comparators other than VKA/warfarin;\n- **X5** - off-topic: a primary trial of another topic in this set (negative\n  control).\n\nEligibility is NOT on the outcome axis. Whether an eligible acute-treatment trial\nreports recurrent VTE, and whether it reports arm counts or only an effect plus\nconfidence interval, is recorded at extraction. A published HR/RR plus 95% CI is\na poolable input.\n\n## Search\n- PubMed: direct UID queries for RE-COVER, RE-COVER II, EINSTEIN-DVT,\n  EINSTEIN-PE, AMPLIFY, and Hokusai-VTE primary acute-treatment reports.\n- ClinicalTrials.gov: condition \"venous thromboembolism\", intervention \"direct\n  oral anticoagulant\".\n- Comparator-reference seeding is disabled; the six pivotal PubMed records are\n  specified directly so the embedded EINSTEIN placebo-extension substudy cannot\n  enlarge the DOAC-vs-VKA evidence set.\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log ratio; Paule-Mandel tau2; HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1,Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau2+se2)`. DerSimonian-Laird forbidden. Published HR and\nRR inputs are pooled on the log ratio scale and the mixed effect-label is shown.\n\n## Comparator (resolved; OA confirmed by build gate)\nvan Es et al., *Blood* 2014, \"Direct oral anticoagulants compared with vitamin K\nantagonists for acute venous thromboembolism: evidence from phase 3 trials\"\n(PMID 24963045, DOI 10.1182/blood-2014-04-571232). This is a scope-matched\nopen-access pooled analysis of the six phase-3 acute symptomatic VTE DOAC-vs-VKA\ntrials and reports recurrent VTE, including VTE-related death, as RR 0.90 (95%\nCI 0.77-1.06). van der Hulle et al. 2014 (PMID 24330006) was checked first as\nthe canonical JTH systematic review/meta-analysis, but Unpaywall reported it\nclosed access during the build, so it was not used as the comparator.\n\n## Pivotal\n- **RE-COVER** - PMID 19966341; NCT00291330; dabigatran; HR 1.10 (0.65-1.84).\n- **RE-COVER II** - PMID 24344086; NCT00680186; dabigatran; HR 1.08 (0.64-1.80).\n- **EINSTEIN-DVT** - PMID 21128814; NCT00440193; rivaroxaban; HR 0.68\n  (0.44-1.04) for the acute DVT VKA comparison.\n- **EINSTEIN-PE** - PMID 22449293; NCT00439777; rivaroxaban; HR 1.12\n  (0.75-1.68).\n- **AMPLIFY** - PMID 23808982; NCT00643201; apixaban; RR 0.84 (0.60-1.18).\n- **Hokusai-VTE** - PMID 23991658; NCT00986154; edoxaban; HR 0.89 (0.70-1.13).\n\n## Controls\n- **Positive** - the search must recover and include RE-COVER (PMID 19966341),\n  RE-COVER II (PMID 24344086), EINSTEIN-DVT (PMID 21128814), EINSTEIN-PE\n  (PMID 22449293), AMPLIFY (PMID 23808982), and Hokusai-VTE (PMID 23991658).\n- **Negative** - AMPLIFY-EXT (PMID 23216615), apixaban vs placebo for extended\n  treatment after completion of anticoagulation, must be recovered and EXCLUDED\n  as wrong comparator / wrong phase of therapy.\n\n## Estimand exclusions\n- **EINSTEIN-Extension** - the continued-treatment substudy embedded in PMID\n  21128814 (NCT00439725) reports rivaroxaban vs placebo, 8/602 vs 42/594, HR\n  0.18 (0.09-0.39). It is excluded from the DOAC-vs-VKA pool because the\n  comparator is placebo and the phase is extended/secondary prevention, not\n  acute VTE treatment.\n",
+    "target_endpoint_selection": {
+      "summary": "Target endpoint selector: EXACT_TARGET beats NEAR_MATCH; a near-match may be pooled only when no exact target is held. Within the same endpoint class, source-reported target-estimand effects beat registry effect estimates, which beat crude reconstructions. For multiple registered primaries in the same outcome family, choose the prespecified primary whose component set is closest to the canonical review definition; ties use registration order and alternatives render as sensitivity rows. Rule applied after results were already known in this lane, so the timing is disclosed.",
+      "results_known_at_rule_time": true
+    }
   },
   "search": {
     "n_records": 234,
@@ -3618,14 +3622,14 @@
               "validity_critical": false
             }
           },
-          "analysis_set_literal": "mITT",
-          "endpoint_definition": "Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)",
+          "analysis_set": "intention-to-treat",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "recurrent symptomatic objectively confirmed VTE",
             "VTE-related death"
           ],
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
-          "analysis_set": "intention-to-treat",
+          "endpoint_definition": "Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)",
+          "analysis_set_literal": "mITT",
           "study_effect": {
             "effect_estimate": 1.08,
             "standard_error": 0.2637991758234285,
@@ -3751,14 +3755,14 @@
               "validity_critical": false
             }
           },
-          "analysis_set_literal": "ITT",
-          "endpoint_definition": "primary outcome was the 6-month incidence of recurrent symptomatic, objectively confirmed venous thromboembolism and related deaths",
+          "analysis_set": "intention-to-treat",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "recurrent symptomatic objectively confirmed venous thromboembolism",
             "related death"
           ],
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
-          "analysis_set": "intention-to-treat",
+          "endpoint_definition": "primary outcome was the 6-month incidence of recurrent symptomatic, objectively confirmed venous thromboembolism and related deaths",
+          "analysis_set_literal": "ITT",
           "study_effect": {
             "effect_estimate": 1.1,
             "standard_error": 0.2654509205069742,
@@ -3884,13 +3888,13 @@
               "validity_critical": false
             }
           },
-          "analysis_set_literal": "ITT",
-          "endpoint_definition": "Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)",
+          "analysis_set": "intention-to-treat",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "symptomatic recurrent venous thromboembolism"
           ],
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
-          "analysis_set": "intention-to-treat",
+          "endpoint_definition": "Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)",
+          "analysis_set_literal": "ITT",
           "study_effect": {
             "effect_estimate": 1.12,
             "standard_error": 0.20573741972513965,
@@ -4004,13 +4008,13 @@
               "validity_critical": false
             }
           },
-          "analysis_set_literal": "ITT",
-          "endpoint_definition": "Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)",
+          "analysis_set": "intention-to-treat",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "recurrent venous thromboembolism"
           ],
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
-          "analysis_set": "intention-to-treat",
+          "endpoint_definition": "Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)",
+          "analysis_set_literal": "ITT",
           "study_effect": {
             "effect_estimate": 0.68,
             "standard_error": 0.21944313059022244,
@@ -4147,13 +4151,13 @@
               "validity_critical": false
             }
           },
-          "analysis_set_literal": "mITT",
-          "endpoint_definition": "Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)",
+          "analysis_set": "intention-to-treat",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "recurrent symptomatic venous thromboembolism"
           ],
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
-          "analysis_set": "intention-to-treat",
+          "endpoint_definition": "Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)",
+          "analysis_set_literal": "mITT",
           "study_effect": {
             "effect_estimate": 0.89,
             "standard_error": 0.12216871851738735,
@@ -4308,14 +4312,14 @@
               "validity_critical": false
             }
           },
-          "analysis_set_literal": "ITT",
-          "endpoint_definition": "Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)",
+          "analysis_set": "intention-to-treat",
+          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
           "components": [
             "recurrent symptomatic venous thromboembolism",
             "VTE-related death"
           ],
-          "endpoint_event_time": "TIME_TO_FIRST_EVENT",
-          "analysis_set": "intention-to-treat",
+          "endpoint_definition": "Symptomatic recurrent VTE (DVT / nonfatal PE / fatal PE or VTE-related death)",
+          "analysis_set_literal": "ITT",
           "study_effect": {
             "effect_estimate": 0.84,
             "standard_error": 0.17253890060696223,
@@ -4868,9 +4872,38 @@
           "ci_high": 1.32,
           "scale": "HR",
           "provenance": "abstract_verified",
+          "document_ref": "cache/doac-vte-recurrence/records.json",
+          "source_span": "The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32). Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
+          "source_level": 1,
+          "kind": "extracted_effect",
+          "verification": "Exact arm-oriented published effect and two-sided CI in held abstract; not a reconstructed effect.",
+          "handed_abstract": "BACKGROUND: Dabigatran and warfarin have been compared for the treatment of acute venous thromboembolism (VTE) in a previous trial. We undertook this study to extend those findings. METHODS AND RESULTS: In a randomized, double-blind, double-dummy trial of 2589 patients with acute VTE treated with low-molecular-weight or unfractionated heparin for 5 to 11 days, we compared dabigatran 150 mg twice daily with warfarin. The primary outcome, recurrent symptomatic, objectively confirmed VTE and related deaths during 6 months of treatment occurred in 30 of the 1279 dabigatran patients (2.3%) compared with 28 of the 1289 warfarin patients (2.2%; hazard ratio, 1.08; 95% confidence interval [CI], 0.64-1.80; absolute risk difference, 0.2%; 95% CI, -1.0 to 1.3; P<0.001 for the prespecified noninferiority margin for both criteria). The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32). Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
+          "document_candidates": [
+            "cache/doac-vte-recurrence/records.json#PMID-24344086"
+          ],
           "source": "The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32). Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32).",
+          "endpoint_definition_span": "The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32).",
+          "endpoint_binding_reason": "span names the outcome family",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32)."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/doac-vte-recurrence/records.json",
+            "sha256": "5a8887072f40d8841e56e7eb4edfe328c06e7b4a2a6ded5c4eeb16b32afb8b52",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -4985,9 +5018,38 @@
           "ci_high": 1.48,
           "scale": "HR",
           "provenance": "abstract_verified",
+          "document_ref": "cache/doac-vte-recurrence/records.json",
+          "source_span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
+          "source_level": 1,
+          "kind": "extracted_effect",
+          "verification": "Exact arm-oriented published effect and two-sided CI in held abstract; not a reconstructed effect.",
+          "handed_abstract": "BACKGROUND: The direct oral thrombin inhibitor dabigatran has a predictable anticoagulant effect and may be an alternative therapy to warfarin for patients who have acute venous thromboembolism. METHODS: In a randomized, double-blind, noninferiority trial involving patients with acute venous thromboembolism who were initially given parenteral anticoagulation therapy for a median of 9 days (interquartile range, 8 to 11), we compared oral dabigatran, administered at a dose of 150 mg twice daily, with warfarin that was dose-adjusted to achieve an international normalized ratio of 2.0 to 3.0. The primary outcome was the 6-month incidence of recurrent symptomatic, objectively confirmed venous thromboembolism and related deaths. Safety end points included bleeding events, acute coronary syndromes, other adverse events, and results of liver-function tests. RESULTS: A total of 30 of the 1274 patients randomly assigned to receive dabigatran (2.4%), as compared with 27 of the 1265 patients randomly assigned to warfarin (2.1%), had recurrent venous thromboembolism; the difference in risk was 0.4 percentage points (95% confidence interval [CI], -0.8 to 1.5; P<0.001 for the prespecified noninferiority margin). The hazard ratio with dabigatran was 1.10 (95% CI, 0.65 to 1.84). Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
+          "document_candidates": [
+            "cache/doac-vte-recurrence/records.json#PMID-19966341"
+          ],
           "source": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85).",
+          "endpoint_definition_span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48)",
+          "endpoint_binding_reason": "span names the outcome family",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85)."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/doac-vte-recurrence/records.json",
+            "sha256": "5a8887072f40d8841e56e7eb4edfe328c06e7b4a2a6ded5c4eeb16b32afb8b52",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -5102,9 +5164,38 @@
           "ci_high": 0.79,
           "scale": "HR",
           "provenance": "abstract_verified",
+          "document_ref": "cache/doac-vte-recurrence/records.json",
+          "source_span": "Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
+          "source_level": 1,
+          "kind": "extracted_effect",
+          "verification": "Exact arm-oriented published effect and two-sided CI in held abstract; not a reconstructed effect.",
+          "handed_abstract": "BACKGROUND: A fixed-dose regimen of rivaroxaban, an oral factor Xa inhibitor, has been shown to be as effective as standard anticoagulant therapy for the treatment of deep-vein thrombosis, without the need for laboratory monitoring. This approach may also simplify the treatment of pulmonary embolism. METHODS: In a randomized, open-label, event-driven, noninferiority trial involving 4832 patients who had acute symptomatic pulmonary embolism with or without deep-vein thrombosis, we compared rivaroxaban (15 mg twice daily for 3 weeks, followed by 20 mg once daily) with standard therapy with enoxaparin followed by an adjusted-dose vitamin K antagonist for 3, 6, or 12 months. The primary efficacy outcome was symptomatic recurrent venous thromboembolism. The principal safety outcome was major or clinically relevant nonmajor bleeding. RESULTS: Rivaroxaban was noninferior to standard therapy (noninferiority margin, 2.0; P=0.003) for the primary efficacy outcome, with 50 events in the rivaroxaban group (2.1%) versus 44 events in the standard-therapy group (1.8%) (hazard ratio, 1.12; 95% confidence interval [CI], 0.75 to 1.68). The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23). Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
+          "document_candidates": [
+            "cache/doac-vte-recurrence/records.json#PMID-22449293"
+          ],
           "source": "Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003).",
+          "endpoint_definition_span": "Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003).",
+          "endpoint_binding_reason": "span names the outcome family",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003)."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/doac-vte-recurrence/records.json",
+            "sha256": "5a8887072f40d8841e56e7eb4edfe328c06e7b4a2a6ded5c4eeb16b32afb8b52",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -5456,6 +5547,11 @@
                 "rung": "supplement / registry results / regulatory source",
                 "state": "NOT_CHECKED_BY_HARMS_AUDIT",
                 "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: cache/doac-vte-recurrence/records.json",
+                "state": "CHECKED_LOCATED_SPAN",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
           },
@@ -5478,6 +5574,11 @@
                 "rung": "supplement / registry results / regulatory source",
                 "state": "NOT_CHECKED_BY_HARMS_AUDIT",
                 "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: cache/doac-vte-recurrence/records.json",
+                "state": "CHECKED_LOCATED_SPAN",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
           },
@@ -5500,6 +5601,11 @@
                 "rung": "supplement / registry results / regulatory source",
                 "state": "NOT_CHECKED_BY_HARMS_AUDIT",
                 "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: cache/doac-vte-recurrence/records.json",
+                "state": "CHECKED_LOCATED_SPAN",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
           },
@@ -5713,9 +5819,38 @@
           "ci_high": 1.07,
           "scale": "HR",
           "provenance": "abstract_verified",
+          "document_ref": "cache/doac-vte-recurrence/records.json",
+          "source_span": "The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23). Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
+          "source_level": 1,
+          "kind": "extracted_effect",
+          "verification": "Exact arm-oriented published effect and two-sided CI in held abstract; not a reconstructed effect.",
+          "handed_abstract": "BACKGROUND: A fixed-dose regimen of rivaroxaban, an oral factor Xa inhibitor, has been shown to be as effective as standard anticoagulant therapy for the treatment of deep-vein thrombosis, without the need for laboratory monitoring. This approach may also simplify the treatment of pulmonary embolism. METHODS: In a randomized, open-label, event-driven, noninferiority trial involving 4832 patients who had acute symptomatic pulmonary embolism with or without deep-vein thrombosis, we compared rivaroxaban (15 mg twice daily for 3 weeks, followed by 20 mg once daily) with standard therapy with enoxaparin followed by an adjusted-dose vitamin K antagonist for 3, 6, or 12 months. The primary efficacy outcome was symptomatic recurrent venous thromboembolism. The principal safety outcome was major or clinically relevant nonmajor bleeding. RESULTS: Rivaroxaban was noninferior to standard therapy (noninferiority margin, 2.0; P=0.003) for the primary efficacy outcome, with 50 events in the rivaroxaban group (2.1%) versus 44 events in the standard-therapy group (1.8%) (hazard ratio, 1.12; 95% confidence interval [CI], 0.75 to 1.68). The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23). Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
+          "document_candidates": [
+            "cache/doac-vte-recurrence/records.json#PMID-22449293"
+          ],
           "source": "The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23). Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23).",
+          "endpoint_definition_span": "The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23).",
+          "endpoint_binding_reason": "span names the outcome family",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23)."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/doac-vte-recurrence/records.json",
+            "sha256": "5a8887072f40d8841e56e7eb4edfe328c06e7b4a2a6ded5c4eeb16b32afb8b52",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -5830,9 +5965,38 @@
           "ci_high": 0.94,
           "scale": "HR",
           "provenance": "abstract_verified",
+          "document_ref": "cache/doac-vte-recurrence/records.json",
+          "source_span": "The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority). The rates of other adverse events were similar in the two groups. A total of 938 patients with pulmonary embolism had right ventricular dysfunction, as assessed by measurement of N-terminal pro-brain natriuretic peptide levels; the rate of recurrent venous thromboembolism in this subgroup was 3.3% in the edoxaban group and 6.2% in the warfarin group (hazard ratio, 0.52; 95% CI, 0.28 to 0.98). CONCLUSIONS: Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.).",
+          "source_level": 1,
+          "kind": "extracted_effect",
+          "verification": "Exact arm-oriented published effect and two-sided CI in held abstract; not a reconstructed effect.",
+          "handed_abstract": "BACKGROUND: Whether the oral factor Xa inhibitor edoxaban can be an alternative to warfarin in patients with venous thromboembolism is unclear. METHODS: In a randomized, double-blind, noninferiority study, we randomly assigned patients with acute venous thromboembolism, who had initially received heparin, to receive edoxaban at a dose of 60 mg once daily, or 30 mg once daily (e.g., in the case of patients with creatinine clearance of 30 to 50 ml per minute or a body weight below 60 kg), or to receive warfarin. Patients received the study drug for 3 to 12 months. The primary efficacy outcome was recurrent symptomatic venous thromboembolism. The principal safety outcome was major or clinically relevant nonmajor bleeding. RESULTS: A total of 4921 patients presented with deep-vein thrombosis, and 3319 with a pulmonary embolism. Among patients receiving warfarin, the time in the therapeutic range was 63.5%. Edoxaban was noninferior to warfarin with respect to the primary efficacy outcome, which occurred in 130 patients in the edoxaban group (3.2%) and 146 patients in the warfarin group (3.5%) (hazard ratio, 0.89; 95% confidence interval [CI], 0.70 to 1.13; P<0.001 for noninferiority). The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority). The rates of other adverse events were similar in the two groups. A total of 938 patients with pulmonary embolism had right ventricular dysfunction, as assessed by measurement of N-terminal pro-brain natriuretic peptide levels; the rate of recurrent venous thromboembolism in this subgroup was 3.3% in the edoxaban group and 6.2% in the warfarin group (hazard ratio, 0.52; 95% CI, 0.28 to 0.98). CONCLUSIONS: Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.).",
+          "document_candidates": [
+            "cache/doac-vte-recurrence/records.json#PMID-23991658"
+          ],
           "source": "The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority). The rates of other adverse events were similar in the two groups. A total of 938 patients with pulmonary embolism had right ventricular dysfunction, as assessed by measurement of N-terminal pro-brain natriuretic peptide levels; the rate of recurrent venous thromboembolism in this subgroup was 3.3% in the edoxaban group and 6.2% in the warfarin group (hazard ratio, 0.52; 95% CI, 0.28 to 0.98). CONCLUSIONS: Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.).",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority).",
+          "endpoint_definition_span": "The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority).",
+          "endpoint_binding_reason": "span names the outcome family",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority)."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/doac-vte-recurrence/records.json",
+            "sha256": "5a8887072f40d8841e56e7eb4edfe328c06e7b4a2a6ded5c4eeb16b32afb8b52",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -6244,6 +6408,11 @@
                 "rung": "supplement / registry results / regulatory source",
                 "state": "NOT_CHECKED_BY_HARMS_AUDIT",
                 "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: cache/doac-vte-recurrence/records.json",
+                "state": "CHECKED_LOCATED_SPAN",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
           },
@@ -6266,6 +6435,11 @@
                 "rung": "supplement / registry results / regulatory source",
                 "state": "NOT_CHECKED_BY_HARMS_AUDIT",
                 "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: cache/doac-vte-recurrence/records.json",
+                "state": "CHECKED_LOCATED_SPAN",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
           },
@@ -6442,9 +6616,38 @@
           "ci_high": 0.81,
           "scale": "HR",
           "provenance": "abstract_verified",
+          "document_ref": "cache/doac-vte-recurrence/records.json",
+          "source_span": "Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
+          "source_level": 1,
+          "kind": "extracted_effect",
+          "verification": "Exact arm-oriented published effect and two-sided CI in held abstract; not a reconstructed effect.",
+          "handed_abstract": "BACKGROUND: Dabigatran and warfarin have been compared for the treatment of acute venous thromboembolism (VTE) in a previous trial. We undertook this study to extend those findings. METHODS AND RESULTS: In a randomized, double-blind, double-dummy trial of 2589 patients with acute VTE treated with low-molecular-weight or unfractionated heparin for 5 to 11 days, we compared dabigatran 150 mg twice daily with warfarin. The primary outcome, recurrent symptomatic, objectively confirmed VTE and related deaths during 6 months of treatment occurred in 30 of the 1279 dabigatran patients (2.3%) compared with 28 of the 1289 warfarin patients (2.2%; hazard ratio, 1.08; 95% confidence interval [CI], 0.64-1.80; absolute risk difference, 0.2%; 95% CI, -1.0 to 1.3; P<0.001 for the prespecified noninferiority margin for both criteria). The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32). Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
+          "document_candidates": [
+            "cache/doac-vte-recurrence/records.json#PMID-24344086"
+          ],
           "source": "Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients.",
+          "endpoint_definition_span": "Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients.",
+          "endpoint_binding_reason": "span names the outcome family",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/doac-vte-recurrence/records.json",
+            "sha256": "5a8887072f40d8841e56e7eb4edfe328c06e7b4a2a6ded5c4eeb16b32afb8b52",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -6559,9 +6762,38 @@
           "ci_high": 0.85,
           "scale": "HR",
           "provenance": "abstract_verified",
+          "document_ref": "cache/doac-vte-recurrence/records.json",
+          "source_span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
+          "source_level": 1,
+          "kind": "extracted_effect",
+          "verification": "Exact arm-oriented published effect and two-sided CI in held abstract; not a reconstructed effect.",
+          "handed_abstract": "BACKGROUND: The direct oral thrombin inhibitor dabigatran has a predictable anticoagulant effect and may be an alternative therapy to warfarin for patients who have acute venous thromboembolism. METHODS: In a randomized, double-blind, noninferiority trial involving patients with acute venous thromboembolism who were initially given parenteral anticoagulation therapy for a median of 9 days (interquartile range, 8 to 11), we compared oral dabigatran, administered at a dose of 150 mg twice daily, with warfarin that was dose-adjusted to achieve an international normalized ratio of 2.0 to 3.0. The primary outcome was the 6-month incidence of recurrent symptomatic, objectively confirmed venous thromboembolism and related deaths. Safety end points included bleeding events, acute coronary syndromes, other adverse events, and results of liver-function tests. RESULTS: A total of 30 of the 1274 patients randomly assigned to receive dabigatran (2.4%), as compared with 27 of the 1265 patients randomly assigned to warfarin (2.1%), had recurrent venous thromboembolism; the difference in risk was 0.4 percentage points (95% confidence interval [CI], -0.8 to 1.5; P<0.001 for the prespecified noninferiority margin). The hazard ratio with dabigatran was 1.10 (95% CI, 0.65 to 1.84). Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
+          "document_candidates": [
+            "cache/doac-vte-recurrence/records.json#PMID-19966341"
+          ],
           "source": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85).",
+          "endpoint_definition_span": "episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85)",
+          "endpoint_binding_reason": "span names the outcome family",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85)."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/doac-vte-recurrence/records.json",
+            "sha256": "5a8887072f40d8841e56e7eb4edfe328c06e7b4a2a6ded5c4eeb16b32afb8b52",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -6970,6 +7202,11 @@
                 "rung": "supplement / registry results / regulatory source",
                 "state": "NOT_CHECKED_BY_HARMS_AUDIT",
                 "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: cache/doac-vte-recurrence/records.json",
+                "state": "CHECKED_LOCATED_SPAN",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
           },
@@ -6992,6 +7229,11 @@
                 "rung": "supplement / registry results / regulatory source",
                 "state": "NOT_CHECKED_BY_HARMS_AUDIT",
                 "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: cache/doac-vte-recurrence/records.json",
+                "state": "CHECKED_LOCATED_SPAN",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
           }
@@ -19490,27 +19732,15 @@
           },
           "measured": {
             "state": "YES",
-            "span": {
-              "quote": "For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
-              "source": "held abstract",
-              "report_id": "19966341"
-            }
+            "span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)"
           },
           "reported": {
             "state": "YES",
-            "span": {
-              "quote": "For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
-              "source": "held abstract",
-              "report_id": "19966341"
-            }
+            "span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)"
           },
           "extractable": {
             "state": "YES",
-            "span": {
-              "quote": "For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
-              "source": "held abstract",
-              "report_id": "19966341"
-            }
+            "span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)"
           },
           "in_primary_pool": {
             "state": "NO",
@@ -19556,27 +19786,15 @@
           },
           "measured": {
             "state": "YES",
-            "span": {
-              "quote": "For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
-              "source": "held abstract",
-              "report_id": "19966341"
-            }
+            "span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)"
           },
           "reported": {
             "state": "YES",
-            "span": {
-              "quote": "For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
-              "source": "held abstract",
-              "report_id": "19966341"
-            }
+            "span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)"
           },
           "extractable": {
             "state": "YES",
-            "span": {
-              "quote": "For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
-              "source": "held abstract",
-              "report_id": "19966341"
-            }
+            "span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)"
           },
           "in_primary_pool": {
             "state": "NO",
@@ -21540,27 +21758,15 @@
           "span": {
             "measured": {
               "state": "YES",
-              "span": {
-                "quote": "For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
-                "source": "held abstract",
-                "report_id": "19966341"
-              }
+              "span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)"
             },
             "reported": {
               "state": "YES",
-              "span": {
-                "quote": "For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
-                "source": "held abstract",
-                "report_id": "19966341"
-              }
+              "span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)"
             },
             "extractable": {
               "state": "YES",
-              "span": {
-                "quote": "For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
-                "source": "held abstract",
-                "report_id": "19966341"
-              }
+              "span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)"
             }
           },
           "analysis_input": true,
@@ -21607,27 +21813,15 @@
           "span": {
             "measured": {
               "state": "YES",
-              "span": {
-                "quote": "For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
-                "source": "held abstract",
-                "report_id": "19966341"
-              }
+              "span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)"
             },
             "reported": {
               "state": "YES",
-              "span": {
-                "quote": "For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
-                "source": "held abstract",
-                "report_id": "19966341"
-              }
+              "span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)"
             },
             "extractable": {
               "state": "YES",
-              "span": {
-                "quote": "For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)",
-                "source": "held abstract",
-                "report_id": "19966341"
-              }
+              "span": "Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)"
             }
           },
           "analysis_input": true,
@@ -24657,19 +24851,161 @@
           "outcome": "Adverse events leading to discontinuation",
           "prospectively_specified": {
             "state": "UNKNOWN",
-            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+            "absence_code": "REGISTRY_HISTORY_OR_DATED_PROTOCOL_NOT_HELD",
+            "span": {
+              "source": "AACT.design_outcomes",
+              "rows": [
+                {
+                  "id": "1416616008",
+                  "measure": "Number of Participants With Serious Adverse Events (SAEs), Bleeding Adverse Events (AEs), AEs Leading to Discontinuation, and Deaths - Treated Population",
+                  "nct_id": "NCT00371683",
+                  "outcome_type": "secondary",
+                  "source_reference": {
+                    "table": "design_outcomes",
+                    "nct_id": "NCT00371683",
+                    "row_key": {
+                      "id": "1416616008"
+                    },
+                    "row_sha256": "44deeeced8f7f51bb861d677584c21de2da092dfec9f49b8a7c1b3bd5a70b2ef",
+                    "snapshot": "2026-08-30"
+                  }
+                }
+              ]
+            },
+            "registered_in_current_snapshot": true
           },
           "measured": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            "state": "YES",
+            "span": {
+              "source": "AACT registry results",
+              "outcome_row": {
+                "id": "258907189",
+                "nct_id": "NCT00371683",
+                "title": "Number of Participants With Serious Adverse Events (SAEs), Bleeding Adverse Events (AEs), AEs Leading to Discontinuation, and Deaths - Treated Population",
+                "source_reference": {
+                  "table": "outcomes",
+                  "nct_id": "NCT00371683",
+                  "row_key": {
+                    "id": "258907189"
+                  },
+                  "row_sha256": "f02dee27a13346b524a163e4abd73d96da5ae745c8018a1523550ca2795e3d19",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "typed_values": [
+                {
+                  "value": 123.0,
+                  "param_type": "NUMBER",
+                  "source_row": {
+                    "id": "1931090964",
+                    "nct_id": "NCT00371683",
+                    "outcome_id": "258907189",
+                    "param_type": "NUMBER",
+                    "param_value": "123",
+                    "param_value_num": "123.0",
+                    "source_reference": {
+                      "table": "outcome_measurements",
+                      "nct_id": "NCT00371683",
+                      "row_key": {
+                        "id": "1931090964"
+                      },
+                      "row_sha256": "d6f7eb00ebc48dbc8601b79152c5eea70a983b721760d43f9c360329a2431838",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_measurements"
+                }
+              ]
+            }
           },
           "reported": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            "state": "YES",
+            "span": {
+              "source": "AACT registry results",
+              "outcome_row": {
+                "id": "258907189",
+                "nct_id": "NCT00371683",
+                "title": "Number of Participants With Serious Adverse Events (SAEs), Bleeding Adverse Events (AEs), AEs Leading to Discontinuation, and Deaths - Treated Population",
+                "source_reference": {
+                  "table": "outcomes",
+                  "nct_id": "NCT00371683",
+                  "row_key": {
+                    "id": "258907189"
+                  },
+                  "row_sha256": "f02dee27a13346b524a163e4abd73d96da5ae745c8018a1523550ca2795e3d19",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "typed_values": [
+                {
+                  "value": 123.0,
+                  "param_type": "NUMBER",
+                  "source_row": {
+                    "id": "1931090964",
+                    "nct_id": "NCT00371683",
+                    "outcome_id": "258907189",
+                    "param_type": "NUMBER",
+                    "param_value": "123",
+                    "param_value_num": "123.0",
+                    "source_reference": {
+                      "table": "outcome_measurements",
+                      "nct_id": "NCT00371683",
+                      "row_key": {
+                        "id": "1931090964"
+                      },
+                      "row_sha256": "d6f7eb00ebc48dbc8601b79152c5eea70a983b721760d43f9c360329a2431838",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_measurements"
+                }
+              ]
+            }
           },
           "extractable": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            "state": "YES",
+            "span": {
+              "source": "AACT registry results",
+              "outcome_row": {
+                "id": "258907189",
+                "nct_id": "NCT00371683",
+                "title": "Number of Participants With Serious Adverse Events (SAEs), Bleeding Adverse Events (AEs), AEs Leading to Discontinuation, and Deaths - Treated Population",
+                "source_reference": {
+                  "table": "outcomes",
+                  "nct_id": "NCT00371683",
+                  "row_key": {
+                    "id": "258907189"
+                  },
+                  "row_sha256": "f02dee27a13346b524a163e4abd73d96da5ae745c8018a1523550ca2795e3d19",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "typed_values": [
+                {
+                  "value": 123.0,
+                  "param_type": "NUMBER",
+                  "source_row": {
+                    "id": "1931090964",
+                    "nct_id": "NCT00371683",
+                    "outcome_id": "258907189",
+                    "param_type": "NUMBER",
+                    "param_value": "123",
+                    "param_value_num": "123.0",
+                    "source_reference": {
+                      "table": "outcome_measurements",
+                      "nct_id": "NCT00371683",
+                      "row_key": {
+                        "id": "1931090964"
+                      },
+                      "row_sha256": "d6f7eb00ebc48dbc8601b79152c5eea70a983b721760d43f9c360329a2431838",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_measurements"
+                }
+              ]
+            },
+            "scope": "Typed registry outcome values; not automatically a poolable contrast or target effect measure."
           },
           "in_primary_pool": {
             "state": "NO",
@@ -24678,7 +25014,30 @@
               "family_id": "NCT00371683"
             }
           },
-          "registered_outcome_candidates": []
+          "registered_outcome_candidates": [
+            {
+              "row": {
+                "id": "1416616008",
+                "measure": "Number of Participants With Serious Adverse Events (SAEs), Bleeding Adverse Events (AEs), AEs Leading to Discontinuation, and Deaths - Treated Population",
+                "nct_id": "NCT00371683",
+                "outcome_type": "secondary",
+                "source_reference": {
+                  "table": "design_outcomes",
+                  "nct_id": "NCT00371683",
+                  "row_key": {
+                    "id": "1416616008"
+                  },
+                  "row_sha256": "44deeeced8f7f51bb861d677584c21de2da092dfec9f49b8a7c1b3bd5a70b2ef",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "target_endpoint_class": "EXACT_TARGET",
+              "target_components": [],
+              "extra_components": [],
+              "missing_components": [],
+              "component_distance": 0
+            }
+          ]
         }
       ],
       "eligibility": {
@@ -29867,19 +30226,140 @@
         },
         {
           "outcome": "Adverse events leading to discontinuation",
-          "state": "UNKNOWN",
+          "state": "EXTRACTABLE",
           "span": {
             "measured": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+              "state": "YES",
+              "span": {
+                "source": "AACT registry results",
+                "outcome_row": {
+                  "id": "258907189",
+                  "nct_id": "NCT00371683",
+                  "title": "Number of Participants With Serious Adverse Events (SAEs), Bleeding Adverse Events (AEs), AEs Leading to Discontinuation, and Deaths - Treated Population",
+                  "source_reference": {
+                    "table": "outcomes",
+                    "nct_id": "NCT00371683",
+                    "row_key": {
+                      "id": "258907189"
+                    },
+                    "row_sha256": "f02dee27a13346b524a163e4abd73d96da5ae745c8018a1523550ca2795e3d19",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "typed_values": [
+                  {
+                    "value": 123.0,
+                    "param_type": "NUMBER",
+                    "source_row": {
+                      "id": "1931090964",
+                      "nct_id": "NCT00371683",
+                      "outcome_id": "258907189",
+                      "param_type": "NUMBER",
+                      "param_value": "123",
+                      "param_value_num": "123.0",
+                      "source_reference": {
+                        "table": "outcome_measurements",
+                        "nct_id": "NCT00371683",
+                        "row_key": {
+                          "id": "1931090964"
+                        },
+                        "row_sha256": "d6f7eb00ebc48dbc8601b79152c5eea70a983b721760d43f9c360329a2431838",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_measurements"
+                  }
+                ]
+              }
             },
             "reported": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+              "state": "YES",
+              "span": {
+                "source": "AACT registry results",
+                "outcome_row": {
+                  "id": "258907189",
+                  "nct_id": "NCT00371683",
+                  "title": "Number of Participants With Serious Adverse Events (SAEs), Bleeding Adverse Events (AEs), AEs Leading to Discontinuation, and Deaths - Treated Population",
+                  "source_reference": {
+                    "table": "outcomes",
+                    "nct_id": "NCT00371683",
+                    "row_key": {
+                      "id": "258907189"
+                    },
+                    "row_sha256": "f02dee27a13346b524a163e4abd73d96da5ae745c8018a1523550ca2795e3d19",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "typed_values": [
+                  {
+                    "value": 123.0,
+                    "param_type": "NUMBER",
+                    "source_row": {
+                      "id": "1931090964",
+                      "nct_id": "NCT00371683",
+                      "outcome_id": "258907189",
+                      "param_type": "NUMBER",
+                      "param_value": "123",
+                      "param_value_num": "123.0",
+                      "source_reference": {
+                        "table": "outcome_measurements",
+                        "nct_id": "NCT00371683",
+                        "row_key": {
+                          "id": "1931090964"
+                        },
+                        "row_sha256": "d6f7eb00ebc48dbc8601b79152c5eea70a983b721760d43f9c360329a2431838",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_measurements"
+                  }
+                ]
+              }
             },
             "extractable": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+              "state": "YES",
+              "span": {
+                "source": "AACT registry results",
+                "outcome_row": {
+                  "id": "258907189",
+                  "nct_id": "NCT00371683",
+                  "title": "Number of Participants With Serious Adverse Events (SAEs), Bleeding Adverse Events (AEs), AEs Leading to Discontinuation, and Deaths - Treated Population",
+                  "source_reference": {
+                    "table": "outcomes",
+                    "nct_id": "NCT00371683",
+                    "row_key": {
+                      "id": "258907189"
+                    },
+                    "row_sha256": "f02dee27a13346b524a163e4abd73d96da5ae745c8018a1523550ca2795e3d19",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "typed_values": [
+                  {
+                    "value": 123.0,
+                    "param_type": "NUMBER",
+                    "source_row": {
+                      "id": "1931090964",
+                      "nct_id": "NCT00371683",
+                      "outcome_id": "258907189",
+                      "param_type": "NUMBER",
+                      "param_value": "123",
+                      "param_value_num": "123.0",
+                      "source_reference": {
+                        "table": "outcome_measurements",
+                        "nct_id": "NCT00371683",
+                        "row_key": {
+                          "id": "1931090964"
+                        },
+                        "row_sha256": "d6f7eb00ebc48dbc8601b79152c5eea70a983b721760d43f9c360329a2431838",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_measurements"
+                  }
+                ]
+              },
+              "scope": "Typed registry outcome values; not automatically a poolable contrast or target effect measure."
             }
           },
           "analysis_input": false,
@@ -43982,27 +44462,15 @@
           },
           "measured": {
             "state": "YES",
-            "span": {
-              "quote": "A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
-              "source": "held abstract",
-              "report_id": "22449293"
-            }
+            "span": "Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.)."
           },
           "reported": {
             "state": "YES",
-            "span": {
-              "quote": "A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
-              "source": "held abstract",
-              "report_id": "22449293"
-            }
+            "span": "Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.)."
           },
           "extractable": {
             "state": "YES",
-            "span": {
-              "quote": "A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
-              "source": "held abstract",
-              "report_id": "22449293"
-            }
+            "span": "Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.)."
           },
           "in_primary_pool": {
             "state": "NO",
@@ -44021,27 +44489,15 @@
           },
           "measured": {
             "state": "YES",
-            "span": {
-              "quote": "A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
-              "source": "held abstract",
-              "report_id": "22449293"
-            }
+            "span": "The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23). Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.)."
           },
           "reported": {
             "state": "YES",
-            "span": {
-              "quote": "A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
-              "source": "held abstract",
-              "report_id": "22449293"
-            }
+            "span": "The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23). Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.)."
           },
           "extractable": {
             "state": "YES",
-            "span": {
-              "quote": "A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
-              "source": "held abstract",
-              "report_id": "22449293"
-            }
+            "span": "The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23). Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.)."
           },
           "in_primary_pool": {
             "state": "NO",
@@ -46330,27 +46786,15 @@
           "span": {
             "measured": {
               "state": "YES",
-              "span": {
-                "quote": "A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
-                "source": "held abstract",
-                "report_id": "22449293"
-              }
+              "span": "Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.)."
             },
             "reported": {
               "state": "YES",
-              "span": {
-                "quote": "A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
-                "source": "held abstract",
-                "report_id": "22449293"
-              }
+              "span": "Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.)."
             },
             "extractable": {
               "state": "YES",
-              "span": {
-                "quote": "A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
-                "source": "held abstract",
-                "report_id": "22449293"
-              }
+              "span": "Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.)."
             }
           },
           "analysis_input": true,
@@ -46372,27 +46816,15 @@
           "span": {
             "measured": {
               "state": "YES",
-              "span": {
-                "quote": "A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
-                "source": "held abstract",
-                "report_id": "22449293"
-              }
+              "span": "The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23). Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.)."
             },
             "reported": {
               "state": "YES",
-              "span": {
-                "quote": "A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
-                "source": "held abstract",
-                "report_id": "22449293"
-              }
+              "span": "The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23). Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.)."
             },
             "extractable": {
               "state": "YES",
-              "span": {
-                "quote": "A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).",
-                "source": "held abstract",
-                "report_id": "22449293"
-              }
+              "span": "The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23). Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.)."
             }
           },
           "analysis_input": true,
@@ -82821,27 +83253,15 @@
           },
           "measured": {
             "state": "YES",
-            "span": {
-              "quote": "Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
-              "source": "held abstract",
-              "report_id": "24344086"
-            }
+            "span": "The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32). Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330."
           },
           "reported": {
             "state": "YES",
-            "span": {
-              "quote": "Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
-              "source": "held abstract",
-              "report_id": "24344086"
-            }
+            "span": "The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32). Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330."
           },
           "extractable": {
             "state": "YES",
-            "span": {
-              "quote": "Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
-              "source": "held abstract",
-              "report_id": "24344086"
-            }
+            "span": "The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32). Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330."
           },
           "in_primary_pool": {
             "state": "NO",
@@ -82908,27 +83328,15 @@
           },
           "measured": {
             "state": "YES",
-            "span": {
-              "quote": "Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
-              "source": "held abstract",
-              "report_id": "24344086"
-            }
+            "span": "Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330."
           },
           "reported": {
             "state": "YES",
-            "span": {
-              "quote": "Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
-              "source": "held abstract",
-              "report_id": "24344086"
-            }
+            "span": "Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330."
           },
           "extractable": {
             "state": "YES",
-            "span": {
-              "quote": "Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
-              "source": "held abstract",
-              "report_id": "24344086"
-            }
+            "span": "Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330."
           },
           "in_primary_pool": {
             "state": "NO",
@@ -85052,27 +85460,15 @@
           "span": {
             "measured": {
               "state": "YES",
-              "span": {
-                "quote": "Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
-                "source": "held abstract",
-                "report_id": "24344086"
-              }
+              "span": "The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32). Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330."
             },
             "reported": {
               "state": "YES",
-              "span": {
-                "quote": "Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
-                "source": "held abstract",
-                "report_id": "24344086"
-              }
+              "span": "The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32). Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330."
             },
             "extractable": {
               "state": "YES",
-              "span": {
-                "quote": "Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
-                "source": "held abstract",
-                "report_id": "24344086"
-              }
+              "span": "The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32). Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330."
             }
           },
           "analysis_input": true,
@@ -85119,27 +85515,15 @@
           "span": {
             "measured": {
               "state": "YES",
-              "span": {
-                "quote": "Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
-                "source": "held abstract",
-                "report_id": "24344086"
-              }
+              "span": "Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330."
             },
             "reported": {
               "state": "YES",
-              "span": {
-                "quote": "Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
-                "source": "held abstract",
-                "report_id": "24344086"
-              }
+              "span": "Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330."
             },
             "extractable": {
               "state": "YES",
-              "span": {
-                "quote": "Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.",
-                "source": "held abstract",
-                "report_id": "24344086"
-              }
+              "span": "Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330."
             }
           },
           "analysis_input": true,
@@ -86151,27 +86535,15 @@
           },
           "measured": {
             "state": "YES",
-            "span": {
-              "quote": "Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.).",
-              "source": "held abstract",
-              "report_id": "23991658"
-            }
+            "span": "The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority). The rates of other adverse events were similar in the two groups. A total of 938 patients with pulmonary embolism had right ventricular dysfunction, as assessed by measurement of N-terminal pro-brain natriuretic peptide levels; the rate of recurrent venous thromboembolism in this subgroup was 3.3% in the edoxaban group and 6.2% in the warfarin group (hazard ratio, 0.52; 95% CI, 0.28 to 0.98). CONCLUSIONS: Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.)."
           },
           "reported": {
             "state": "YES",
-            "span": {
-              "quote": "Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.).",
-              "source": "held abstract",
-              "report_id": "23991658"
-            }
+            "span": "The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority). The rates of other adverse events were similar in the two groups. A total of 938 patients with pulmonary embolism had right ventricular dysfunction, as assessed by measurement of N-terminal pro-brain natriuretic peptide levels; the rate of recurrent venous thromboembolism in this subgroup was 3.3% in the edoxaban group and 6.2% in the warfarin group (hazard ratio, 0.52; 95% CI, 0.28 to 0.98). CONCLUSIONS: Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.)."
           },
           "extractable": {
             "state": "YES",
-            "span": {
-              "quote": "Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.).",
-              "source": "held abstract",
-              "report_id": "23991658"
-            }
+            "span": "The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority). The rates of other adverse events were similar in the two groups. A total of 938 patients with pulmonary embolism had right ventricular dysfunction, as assessed by measurement of N-terminal pro-brain natriuretic peptide levels; the rate of recurrent venous thromboembolism in this subgroup was 3.3% in the edoxaban group and 6.2% in the warfarin group (hazard ratio, 0.52; 95% CI, 0.28 to 0.98). CONCLUSIONS: Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.)."
           },
           "in_primary_pool": {
             "state": "NO",
@@ -87599,27 +87971,15 @@
           "span": {
             "measured": {
               "state": "YES",
-              "span": {
-                "quote": "Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.).",
-                "source": "held abstract",
-                "report_id": "23991658"
-              }
+              "span": "The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority). The rates of other adverse events were similar in the two groups. A total of 938 patients with pulmonary embolism had right ventricular dysfunction, as assessed by measurement of N-terminal pro-brain natriuretic peptide levels; the rate of recurrent venous thromboembolism in this subgroup was 3.3% in the edoxaban group and 6.2% in the warfarin group (hazard ratio, 0.52; 95% CI, 0.28 to 0.98). CONCLUSIONS: Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.)."
             },
             "reported": {
               "state": "YES",
-              "span": {
-                "quote": "Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.).",
-                "source": "held abstract",
-                "report_id": "23991658"
-              }
+              "span": "The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority). The rates of other adverse events were similar in the two groups. A total of 938 patients with pulmonary embolism had right ventricular dysfunction, as assessed by measurement of N-terminal pro-brain natriuretic peptide levels; the rate of recurrent venous thromboembolism in this subgroup was 3.3% in the edoxaban group and 6.2% in the warfarin group (hazard ratio, 0.52; 95% CI, 0.28 to 0.98). CONCLUSIONS: Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.)."
             },
             "extractable": {
               "state": "YES",
-              "span": {
-                "quote": "Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.).",
-                "source": "held abstract",
-                "report_id": "23991658"
-              }
+              "span": "The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority). The rates of other adverse events were similar in the two groups. A total of 938 patients with pulmonary embolism had right ventricular dysfunction, as assessed by measurement of N-terminal pro-brain natriuretic peptide levels; the rate of recurrent venous thromboembolism in this subgroup was 3.3% in the edoxaban group and 6.2% in the warfarin group (hazard ratio, 0.52; 95% CI, 0.28 to 0.98). CONCLUSIONS: Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.)."
             }
           },
           "analysis_input": true,
@@ -269418,8 +269778,8 @@
       "source_fields": [
         "/outcomes/*/result/harm_reporting_trials"
       ],
-      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>24344086</td><td>EXTRACTED / : </td><td>The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32). Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr><tr><td>19966341</td><td>EXTRACTED / : </td><td>Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr><tr><td>22449293</td><td>EXTRACTED / : </td><td>Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr><tr><td>21128814</td><td>RETRIEVED_INCOMPATIBLE_STRUCTURE / POPULATION_MISMATCH: The numerically reported major bleeding is the extended-treatment placebo comparison, not the acute-DVT VKA comparison; registry preferred terms do not establish the adjudicated major-bleeding endpoint.</td><td>In the continued-treatment study, which included 602 patients in the rivaroxaban group and 594 in the placebo group, rivaroxaban had superior efficacy (8 events [1.3%], vs. 42 with placebo [7.1%]; hazard ratio, 0.18; 95% CI, 0.09 to 0.39; P&lt;0.001). Four patients in the rivaroxaban group had nonfatal major bleeding (0.7%), versus none in the placebo group (P=0.11).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>23991658</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The reported safety effect combines major and clinically relevant nonmajor bleeding. It cannot be used as major bleeding alone; preferred-term AACT diagnoses cannot reconstruct an adjudicated major-bleeding aggregate.</td><td>The principal safety outcome was major or clinically relevant nonmajor bleeding. RESULTS: A total of 4921 patients presented with deep-vein thrombosis, and 3319 with a pulmonary embolism. Among patients receiving warfarin, the time in the therapeutic range was 63.5%. Edoxaban was noninferior to warfarin with respect to the primary efficacy outcome, which occurred in 130 patients in the edoxaban group (3.2%) and 146 patients in the warfarin group (3.5%) (hazard ratio, 0.89; 95% confidence interval [CI], 0.70 to 1.13; P&lt;0.001 for noninferiority). The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority). The rates of other adverse events were similar in the two groups. A total of 938 patients with pulmonary embolism had right ventricular dysfunction, as assessed by measurement of N-terminal pro-brain natriuretic peptide levels; the rate of recurrent venous thromboembolism in this subgroup was 3.3% in the edoxaban group and 6.2% in the warfarin group (hazard ratio, 0.52; 95% CI, 0.28 to 0.98). CONCLUSIONS: Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>23808982</td><td>RETRIEVED_INCOMPATIBLE_STRUCTURE / EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH: Published major-bleeding effect is a risk ratio, not the registered hazard ratio. Percentages do not supply an HR or its variance.</td><td>Major bleeding occurred in 0.6% of patients who received apixaban and in 1.8% of those who received conventional therapy (relative risk, 0.31; 95% CI, 0.17 to 0.55; P&lt;0.001 for superiority). The composite outcome of major bleeding and clinically relevant nonmajor bleeding occurred in 4.3% of the patients in the apixaban group, as compared with 9.7% of those in the conventional-therapy group (relative risk, 0.44; 95% CI, 0.36 to 0.55; P&lt;0.001). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of apixaban alone was noninferior to conventional therapy for the treatment of acute venous thromboembolism and was associated with significantly less bleeding (Funded by Pfizer and Bristol-Myers Squibb; ClinicalTrials.gov number, NCT00643201).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
-      "text_sha256": "b46d16a56786ccd64636acd99c104ce923c967b38fb1de3ad934fa19640c71c5",
+      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>24344086</td><td>EXTRACTED / : </td><td>The safety end point, major bleeding, occurred in 15 patients receiving dabigatran (1.2%) and in 22 receiving warfarin (1.7%; hazard ratio, 0.69; 95% CI, 0.36-1.32). Any bleeding occurred in 200 dabigatran (15.6%) and 285 warfarin (22.1%; hazard ratio, 0.67; 95% CI, 0.56-0.81) patients. Deaths, adverse events, and acute coronary syndromes were similar in both groups. Pooled analysis of this study RE-COVER II and the RE-COVER trial gave hazard ratios for recurrent VTE of 1.09 (95% CI, 0.76-1.57), for major bleeding of 0.73 (95% CI, 0.48-1.11), and for any bleeding of 0.70 (95% CI, 0.61-0.79). CONCLUSION: Dabigatran has similar effects on VTE recurrence and a lower risk of bleeding compared with warfarin for the treatment of acute VTE. CLINICAL TRIAL REGISTRATION URL: www.clinicaltrials.gov. Unique identifiers: NCT00680186 and NCT00291330.</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>19966341</td><td>EXTRACTED / : </td><td>Major bleeding episodes occurred in 20 patients assigned to dabigatran (1.6%) and in 24 patients assigned to warfarin (1.9%) (hazard ratio with dabigatran, 0.82; 95% CI, 0.45 to 1.48), and episodes of any bleeding were observed in 205 patients assigned to dabigatran (16.1%) and 277 patients assigned to warfarin (21.9%; hazard ratio with dabigatran, 0.71; 95% CI, 0.59 to 0.85). The numbers of deaths, acute coronary syndromes, and abnormal liver-function tests were similar in the two groups. Adverse events leading to discontinuation of the study drug occurred in 9.0% of patients assigned to dabigatran and in 6.8% of patients assigned to warfarin (P=0.05). CONCLUSIONS: For the treatment of acute venous thromboembolism, a fixed dose of dabigatran is as effective as warfarin, has a safety profile that is similar to that of warfarin, and does not require laboratory monitoring. (ClinicalTrials.gov number, NCT00291330.)</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>22449293</td><td>EXTRACTED / : </td><td>Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>21128814</td><td>RETRIEVED_INCOMPATIBLE_STRUCTURE / POPULATION_MISMATCH: The numerically reported major bleeding is the extended-treatment placebo comparison, not the acute-DVT VKA comparison; registry preferred terms do not establish the adjudicated major-bleeding endpoint.</td><td>In the continued-treatment study, which included 602 patients in the rivaroxaban group and 594 in the placebo group, rivaroxaban had superior efficacy (8 events [1.3%], vs. 42 with placebo [7.1%]; hazard ratio, 0.18; 95% CI, 0.09 to 0.39; P&lt;0.001). Four patients in the rivaroxaban group had nonfatal major bleeding (0.7%), versus none in the placebo group (P=0.11).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>23991658</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: The reported safety effect combines major and clinically relevant nonmajor bleeding. It cannot be used as major bleeding alone; preferred-term AACT diagnoses cannot reconstruct an adjudicated major-bleeding aggregate.</td><td>The principal safety outcome was major or clinically relevant nonmajor bleeding. RESULTS: A total of 4921 patients presented with deep-vein thrombosis, and 3319 with a pulmonary embolism. Among patients receiving warfarin, the time in the therapeutic range was 63.5%. Edoxaban was noninferior to warfarin with respect to the primary efficacy outcome, which occurred in 130 patients in the edoxaban group (3.2%) and 146 patients in the warfarin group (3.5%) (hazard ratio, 0.89; 95% confidence interval [CI], 0.70 to 1.13; P&lt;0.001 for noninferiority). The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority). The rates of other adverse events were similar in the two groups. A total of 938 patients with pulmonary embolism had right ventricular dysfunction, as assessed by measurement of N-terminal pro-brain natriuretic peptide levels; the rate of recurrent venous thromboembolism in this subgroup was 3.3% in the edoxaban group and 6.2% in the warfarin group (hazard ratio, 0.52; 95% CI, 0.28 to 0.98). CONCLUSIONS: Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>23808982</td><td>RETRIEVED_INCOMPATIBLE_STRUCTURE / EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH: Published major-bleeding effect is a risk ratio, not the registered hazard ratio. Percentages do not supply an HR or its variance.</td><td>Major bleeding occurred in 0.6% of patients who received apixaban and in 1.8% of those who received conventional therapy (relative risk, 0.31; 95% CI, 0.17 to 0.55; P&lt;0.001 for superiority). The composite outcome of major bleeding and clinically relevant nonmajor bleeding occurred in 4.3% of the patients in the apixaban group, as compared with 9.7% of those in the conventional-therapy group (relative risk, 0.44; 95% CI, 0.36 to 0.55; P&lt;0.001). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of apixaban alone was noninferior to conventional therapy for the treatment of acute venous thromboembolism and was associated with significantly less bleeding (Funded by Pfizer and Bristol-Myers Squibb; ClinicalTrials.gov number, NCT00643201).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
+      "text_sha256": "56f72ae76f376d3a15e782cfc378d2d59b26ffd86f46bef8846ff4bc84af0df1",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "compat-check:harms-incomplete",
@@ -269441,8 +269801,8 @@
       "source_fields": [
         "/outcomes/*/result/harm_reporting_trials"
       ],
-      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>22449293</td><td>EXTRACTED / : </td><td>The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23). Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr><tr><td>23991658</td><td>EXTRACTED / : </td><td>The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority). The rates of other adverse events were similar in the two groups. A total of 938 patients with pulmonary embolism had right ventricular dysfunction, as assessed by measurement of N-terminal pro-brain natriuretic peptide levels; the rate of recurrent venous thromboembolism in this subgroup was 3.3% in the edoxaban group and 6.2% in the warfarin group (hazard ratio, 0.52; 95% CI, 0.28 to 0.98). CONCLUSIONS: Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr><tr><td>21128814</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: Only equal rounded percentages are given for the acute-treatment safety composite; no HR and CI. AACT individual bleeding diagnoses cannot recover that adjudicated composite effect.</td><td>The principal safety outcome occurred in 8.1% of the patients in each group. In the continued-treatment study, which included 602 patients in the rivaroxaban group and 594 in the placebo group, rivaroxaban had superior efficacy (8 events [1.3%], vs. 42 with placebo [7.1%]; hazard ratio, 0.18; 95% CI, 0.09 to 0.39; P&lt;0.001). Four patients in the rivaroxaban group had nonfatal major bleeding (0.7%), versus none in the placebo group (P=0.11). CONCLUSIONS: Rivaroxaban offers a simple, single-drug approach to the short-term and continued treatment of venous thrombosis that may improve the benefit-to-risk profile of anticoagulation. (Funded by Bayer Schering Pharma and Ortho-McNeil; ClinicalTrials.gov numbers, NCT00440193 and NCT00439725.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>23808982</td><td>RETRIEVED_INCOMPATIBLE_STRUCTURE / EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH: The composite effect is a risk ratio rather than the registered hazard ratio; no HR variance is supplied.</td><td>The composite outcome of major bleeding and clinically relevant nonmajor bleeding occurred in 4.3% of the patients in the apixaban group, as compared with 9.7% of those in the conventional-therapy group (relative risk, 0.44; 95% CI, 0.36 to 0.55; P&lt;0.001). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of apixaban alone was noninferior to conventional therapy for the treatment of acute venous thromboembolism and was associated with significantly less bleeding (Funded by Pfizer and Bristol-Myers Squibb; ClinicalTrials.gov number, NCT00643201).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
-      "text_sha256": "851018f64107b3cb6b3d4665b5cb80721ec6470d91a5e0da1a457f2a36e546f0",
+      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>22449293</td><td>EXTRACTED / : </td><td>The principal safety outcome occurred in 10.3% of patients in the rivaroxaban group and 11.4% of those in the standard-therapy group (hazard ratio, 0.90; 95% CI, 0.76 to 1.07; P=0.23). Major bleeding was observed in 26 patients (1.1%) in the rivaroxaban group and 52 patients (2.2%) in the standard-therapy group (hazard ratio, 0.49; 95% CI, 0.31 to 0.79; P=0.003). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of rivaroxaban alone was noninferior to standard therapy for the initial and long-term treatment of pulmonary embolism and had a potentially improved benefit-risk profile. (Funded by Bayer HealthCare and Janssen Pharmaceuticals; EINSTEIN-PE ClinicalTrials.gov number, NCT00439777.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>23991658</td><td>EXTRACTED / : </td><td>The safety outcome occurred in 349 patients (8.5%) in the edoxaban group and 423 patients (10.3%) in the warfarin group (hazard ratio, 0.81; 95% CI, 0.71 to 0.94; P=0.004 for superiority). The rates of other adverse events were similar in the two groups. A total of 938 patients with pulmonary embolism had right ventricular dysfunction, as assessed by measurement of N-terminal pro-brain natriuretic peptide levels; the rate of recurrent venous thromboembolism in this subgroup was 3.3% in the edoxaban group and 6.2% in the warfarin group (hazard ratio, 0.52; 95% CI, 0.28 to 0.98). CONCLUSIONS: Edoxaban administered once daily after initial treatment with heparin was noninferior to high-quality standard therapy and caused significantly less bleeding in a broad spectrum of patients with venous thromboembolism, including those with severe pulmonary embolism. (Funded by Daiichi-Sankyo; Hokusai-VTE ClinicalTrials.gov number, NCT00986154.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>21128814</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: Only equal rounded percentages are given for the acute-treatment safety composite; no HR and CI. AACT individual bleeding diagnoses cannot recover that adjudicated composite effect.</td><td>The principal safety outcome occurred in 8.1% of the patients in each group. In the continued-treatment study, which included 602 patients in the rivaroxaban group and 594 in the placebo group, rivaroxaban had superior efficacy (8 events [1.3%], vs. 42 with placebo [7.1%]; hazard ratio, 0.18; 95% CI, 0.09 to 0.39; P&lt;0.001). Four patients in the rivaroxaban group had nonfatal major bleeding (0.7%), versus none in the placebo group (P=0.11). CONCLUSIONS: Rivaroxaban offers a simple, single-drug approach to the short-term and continued treatment of venous thrombosis that may improve the benefit-to-risk profile of anticoagulation. (Funded by Bayer Schering Pharma and Ortho-McNeil; ClinicalTrials.gov numbers, NCT00440193 and NCT00439725.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>23808982</td><td>RETRIEVED_INCOMPATIBLE_STRUCTURE / EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH: The composite effect is a risk ratio rather than the registered hazard ratio; no HR variance is supplied.</td><td>The composite outcome of major bleeding and clinically relevant nonmajor bleeding occurred in 4.3% of the patients in the apixaban group, as compared with 9.7% of those in the conventional-therapy group (relative risk, 0.44; 95% CI, 0.36 to 0.55; P&lt;0.001). Rates of other adverse events were similar in the two groups. CONCLUSIONS: A fixed-dose regimen of apixaban alone was noninferior to conventional therapy for the treatment of acute venous thromboembolism and was associated with significantly less bleeding (Funded by Pfizer and Bristol-Myers Squibb; ClinicalTrials.gov number, NCT00643201).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/doac-vte-recurrence/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
+      "text_sha256": "32cd1c93c3ab85c4a20cfb4862ddf2345b2481ea3492b28621dfcf9009cbf5d9",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "compat-check:harms-incomplete",
@@ -269851,7 +270211,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "4fc26adec9aa19de6e0b2d51b368f26015fab2c8",
-    "review_sha256": "a9525591b1e3a7362fcbfb7e5802ae89705383894f5c2b2f9a91aa8c8c664e5d",
+    "review_sha256": "1af9c75f3135b59641800bdedbf459cd10bb181ce7c2916d416b04827054d256",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -269950,19 +270310,19 @@
         }
       ],
       "config_sha256": "31bde5d462d8564529c55fa297af7ba5d30da7f8f8861b5bae6e2b2ab9c90207",
-      "analysis_code_sha256": "46622f5c2c7fe32b2bd27f43738301104eb87221f84379ee7e5da40963f2b827",
+      "analysis_code_sha256": "fd5ccc59cf078077fa5c788ed90b4fddce9767cdf4cfd00998fa1ce03ee1c40b",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
         "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
-        "harness/absence.py": "2db42260d7a5ac5d9b708f3cca8513d94c5c5584",
+        "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
         "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
         "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
         "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
         "harness/arm_object.py": "c6e2a9d0ea0263eba72c3453d52bc5a05b06e0b2",
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
-        "harness/census.py": "8909d29924df518d99ca9a73691c92e2e50557f8",
+        "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
         "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
@@ -269987,10 +270347,11 @@
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "81e3b42415047edde8fb39dce964e1ff415963c8",
+        "harness/gate.py": "20a5ce33e2c111d23993e208d00c88e04afda5ca",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
+        "harness/hand_binding.py": "d48224edf7e0e22dd0111e3c1a72565c25b93dd8",
         "harness/harms.py": "64f79ea3db77361f8076c8017af851f388183ef7",
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
@@ -270000,14 +270361,14 @@
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "abf2d38fbf9800b23d83289febd289fa53c6b2e6",
+        "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
-        "harness/manuscript.py": "6a18509615e91f32727923a43b569ff2181a5b5f",
+        "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "eec920650e986ee7a18e7549c60915a9ce6405b9",
-        "harness/parity_relation.py": "55a2602e97e0ee4518aa4d083e5ff4500afe4bf0",
-        "harness/pipeline.py": "4b1743b9dfa13b70612f435081f9009638a6ef10",
+        "harness/page.py": "4dad90b0facdea7c0f89fd0bc5dd1dd1ce04d31f",
+        "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
+        "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -270015,8 +270376,9 @@
         "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
         "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
         "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
+        "harness/result_changes.py": "b7a2eb8c55276a0335312a9ea389631216a9449d",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
-        "harness/rob_sensitivity.py": "026441df1eac7e36710fe170eba196ca5b085a3c",
+        "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
         "harness/screen.py": "e2864719b75c355abfcff1dbde0b376c45bdd84e",
@@ -270025,14 +270387,14 @@
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
-        "harness/target_endpoint.py": "554df973c35f7c9d29070e29cb7075ec9026e574",
+        "harness/target_endpoint.py": "f605e0f513e3524baac0a9e5f36ced5b926ed6e3",
         "harness/trial_family.py": "57882f159bbfd8d91b60deaf5956e409de6c484f",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
         "harness/verify.py": "e5187ea9cc8e9b92a02a98e7bc84ed1cfd0a99f5",
         "scripts/build_topic.py": "ddfab3d8415edb0b5a7f8e1a091f10e0520cfd18",
-        "scripts/reproduce_review.py": "eab6807e05abf130e79db5d0e9354598c4cf7dfe"
+        "scripts/reproduce_review.py": "b8f090b9ac3699ced2181aa9366b098678c29dbe"
       },
       "certificate_scope": {
         "method": "analysis_code_blobs is the static import closure (ast; module-level and function-local import statements, relative and absolute) of the roots, restricted to modules that resolve to a file under harness/ or scripts/. Nothing in the map is listed by hand. Values are Git SHA-1 blob identities: sha1('blob ' + len + NUL + bytes) over the file with CRLF normalised to LF, recomputable with `git hash-object -- <path>` at the anchoring commit.",
@@ -270045,7 +270407,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "80 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "82 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -270075,7 +270437,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "b40350e5a50ade7974a287bbe3f2f206989f3b10ddd8cc92e2569ed0954409be",
-      "review_sha256": "a9525591b1e3a7362fcbfb7e5802ae89705383894f5c2b2f9a91aa8c8c664e5d",
+      "review_sha256": "1af9c75f3135b59641800bdedbf459cd10bb181ce7c2916d416b04827054d256",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/doac-vte-recurrence.md UTF-8 text, universal newlines",
@@ -270095,7 +270457,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "e0dd0adbacfa9a3470326e2f710c4554f20a644ff72258e743da5d000deb9a2e"
+      "release_sha256": "701eac5cbf8f5c83ec991e51c09db4cc9962979ebbd2144a086446a0e67e8da3"
     }
   }
 }

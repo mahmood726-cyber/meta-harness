@@ -26,10 +26,12 @@ def _limitation_block_texts(review):
 
 
 def _page_limitation_block_texts(review):
+    # result-change notices are ratchet blocks (they cannot vanish unacknowledged) but not limitation objects: their
+    # object is docs/result_changes.json and the gate's check_result_change_countersigned holds embedded == file
     return Counter(
         block["text"]
         for block in blocks(render_page(review))
-        if not block["text"].startswith("UNRENDERABLE claimgraph object")
+        if not block["text"].startswith("UNRENDERABLE claimgraph object") and block["cls"] != "result-change"
     )
 
 

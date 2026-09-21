@@ -107,7 +107,10 @@ def test_verifier_baseline_reports_pins_and_absence_agree(tmp_path):
     root = T._doctored_site(tmp_path)
     rep = T._verify(root)
     cp = rep["certificate_pins"]
-    assert cp["entries"] == 81 and cp["blob_ids"] == 80 and cp["sentinels"] == ["harness/effect_type.py"] == cp["declared_but_absent"] and cp["malformed"] == {}
+    # the closure's size is a property of the import graph (81 at 2026-09-20; 83 after M2 added harness/hand_binding.py and
+    # harness/result_changes.py) -- the invariant is the accounting: every entry is a blob id or a declared-absent sentinel
+    assert cp["entries"] == cp["blob_ids"] + len(cp["sentinels"]) and cp["entries"] >= 81
+    assert cp["sentinels"] == ["harness/effect_type.py"] == cp["declared_but_absent"] and cp["malformed"] == {}
     er_rep = rep["execution_record"]
     assert er_rep["present"] and er_rep["sha256_matches_bundle"] and er_rep["release_sha256_matches_certificate"] and er_rep["review_sha256_matches_certificate"], er_rep
     assert not any(f.startswith("CERTIFICATE_PIN_MALFORMED") or f.startswith("CERTIFICATE_ABSENCE_UNDECLARED") for f in rep["failures"])

@@ -653,6 +653,11 @@ def _protocol_control_block(ctrl: dict[str, Any]) -> str:
     )
 
 
+_ROB_SENS_OMITTED_HTML = ("<h4>Risk-of-bias sensitivity (re-pooled with the same estimator)</h4><div class='absent'>"
+                          "<strong>Does the result survive dropping the trials that are not low risk of bias?</strong> "
+                          "Not computed ({code}): {reason}. The per-trial rows and their risk-of-bias ratings are shown "
+                          "above; the omission is recorded in the review object as <code>rob_sensitivity_omitted</code>, "
+                          "not left silent.</div>")
 _ROB_SENS_REFUSED_HTML = "<h4>Risk-of-bias sensitivity (re-pooled with the same estimator)</h4><div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> Not computed: the primary pooled row is REFUSED ({code}), so there is no pooled estimate to re-pool by risk-of-bias stratum. The per-trial rows and their risk-of-bias ratings are shown above; a stratified re-pool of a refused pool would be a number about nothing.</div>"
 
 
@@ -1309,6 +1314,19 @@ def _add_risk_of_bias_limitations(add: Any, review: dict[str, Any]) -> None:
             EvidenceState.PARTIAL,
             ["/outcomes/*/result/pool_refused"],
             _ROB_SENS_REFUSED_HTML.format(code=str(_prim_refused.get("code"))),
+        )
+    _omit = review.get("rob_sensitivity_omitted")
+    if not sens.get("full") and not _prim_refused and _omit:
+        # the skipped re-pool is a NAMED omission (iv-iron: primary pool suppressed as incompatible estimands;
+        # dapagliflozin-hfpef: primary absent) -- a limitation object like the refused case, never bare page prose
+        add(
+            "riskofbias:rob-sensitivity",
+            LimitationKind.ROB_SENSITIVITY,
+            Severity.QUALIFIES_CLAIM,
+            "risk-of-bias sensitivity interpretation",
+            EvidenceState.PARTIAL,
+            ["/rob_sensitivity_omitted"],
+            _ROB_SENS_OMITTED_HTML.format(code=str(_omit.get("reason_code")), reason=str(_omit.get("reason"))),
         )
     if sens.get("full"):
         add(

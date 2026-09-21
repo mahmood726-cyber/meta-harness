@@ -8,7 +8,9 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from harness.pipeline import _build_outcome  # noqa: E402
 
-SPEC = {"name": "Heart-failure hospitalization", "keywords": ["heart failure hospitali"],
+# the served iv-iron spec's family vocabulary (CONFIRM-HF's abstract says 'hospitalizations for worsening HF')
+SPEC = {"name": "Heart-failure hospitalization",
+        "keywords": ["heart failure hospitali", "hospitalizations for worsening HF", "hospitalization for worsening HF"],
         "estimand": "RR", "primary": True}
 # a trial whose ABSTRACT yields no extractable HF-hospitalisation number
 INCLUDED = [{"id": "25176939", "id_type": "pmid", "label": "CONFIRM-HF"}]
@@ -18,14 +20,28 @@ VE = {"25176939": {"outcome": "Heart-failure hospitalization", "effect": 0.39, "
                    "source": "PMC4359359 Table 2: HF hospitalisation HR 0.39 (0.19-0.82), P=0.009"}}
 
 
-def test_verified_effect_pooled_and_verified():
-    o = _build_outcome(SPEC, "efficacy", INCLUDED, REC, ["ferric", "FCM"], ["placebo"],
-                       verified_effects=VE)
+HELD = "cache/iv-iron-hfref-hosp/records.json#PMID-25176939"   # CONFIRM-HF's held abstract carries 0.39 (0.19-0.82)
+
+
+def test_verified_effect_pooled_when_it_binds_to_a_held_document():
+    ve = {"25176939": dict(VE["25176939"], document_ref=HELD)}
+    o = _build_outcome(SPEC, "efficacy", INCLUDED, REC, ["ferric", "FCM"], ["placebo"], verified_effects=ve)
     assert len(o["trials"]) == 1, o
     t = o["trials"][0]
     assert t["effect"] == 0.39 and t["scale"] == "HR" and t["provenance"] == "fulltext_verified"
-    # verifies against its own committed span (0.39 is present there), not the abstract
+    assert t["hand_binding_state"] == "BOUND" and t["held_document"]["ref"] == HELD
     assert t["verified"] == "verified", t
+
+
+def test_verified_effect_with_no_held_document_is_set_aside_not_pooled():
+    """Before M2 (2026-09-20) this test asserted the opposite -- 'verifies against its own committed span, not the
+    abstract' -- i.e. the haystack was the self-authored source string. A number no held document carries is
+    set aside with its candidate tuple visible; it is never pooled on the strength of its own description."""
+    o = _build_outcome(SPEC, "efficacy", INCLUDED, REC, ["ferric", "FCM"], ["placebo"], verified_effects=VE)
+    assert o["trials"] == []
+    absent = [a for a in o["declared_absent_trials"] if a["id"] == "PMID 25176939"]
+    assert absent and absent[0]["reason_code"] == "ENDPOINT_UNBOUND", o["declared_absent_trials"]
+    assert absent[0]["candidate_tuple"]["effect"] == 0.39
 
 
 def test_verified_effect_ignored_for_wrong_outcome():

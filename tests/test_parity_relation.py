@@ -31,7 +31,7 @@ def _prefix_parity_row(slug):
         ("ticagrelor-vs-clopidogrel-acs", "SUPERSET"),
     ],
 )
-def test_PLANT_prefix_hand_parity_status_refused(slug, relation):
+def test_PLANT_prefix_hand_parity_status_flagged_stale(slug, relation):
     rel = parity_relation.compute(_prefix_parity_row(slug), _prefix_review(slug))
     assert rel["relation"] == relation
     assert rel["hand_status_disagrees"] is True

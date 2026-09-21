@@ -1,0 +1,27 @@
+# M2: hand-extracted rows bound to held bytes, or set aside (2026-09-20)
+
+**Fix state (orthogonal fields rule): LANDED / NONE / CORPUS / CURRENT** - generated from M2-hand-row-binding-2026-09-20
+
+Lane `m2/bind-hand-rows` on `8b1fb37d`. Every hand-extracted number (verified_effects / verified_arms, any override
+route) is bound by `harness/hand_binding.py` to the held document its entry names -- the tuple located verbatim, the
+scale / CI level / direction / analysis set checked against the span, ownership resolved from the result clause,
+row label, section heading, column headers or a definition span -- or set aside as `machine_absent /
+EXTRACTION_DEBT / ENDPOINT_UNBOUND` with the candidate tuple and the candidate spans on the record. The parity
+status is computed and a changed relation needs an acknowledgement; a changed served result needs a notice.
+
+Files: 01 the 28-case battery (served / step 1 with its parity-cascade pairs / final); 02 the row census (rule and
+denominators in scripts/m2_row_census.py); 03 the 18 set-asides; 04 the 13 changed results (4 primaries; esketamine's
+interval now includes zero -- the previous conclusion is withdrawn on the page); 05 the design note; 06 the
+reproducible-AI note (every model call in the pinned path counted: 0 of 82; scripts/audit_model_calls.py).
+
+The 13 notices were countersigned on 2026-09-21 on Mahmood's reply, each against the sha256 shown to him
+(re-checked immediately before signing; none had moved), 8 per-notice and 5 in one batch; every signature
+records `how_it_reached_the_reviewer` -- a relay by the orchestrating lane, with what the relay conveyed and
+which notices were not read letter-for-letter -- because a signature whose basis is recorded is honest even
+when the basis is a relay, and one that hides the relay is the defect the field exists to prevent.
+
+Measured on the landing bytes (regen #7, battery #5, 2026-09-21): attacks refused for the correct reason 17 of 19
+(W4a/W4b: layer-1 exclusion, not this object; W2a/W5b: whole-topic refusal at load, unchanged); unnecessary refusals
+among positives 0 of 8; rows previously pooled now out 18 of 145; topics that no longer publish 0 of 32 (10 pages held
+only for an OPEN reviewer countersignature on a result-change notice); UNBOUND_LEGACY 121 -> 65; hand rows BOUND 39;
+reviewer rows 557 -> 517; outcomes moved 13, of which 4 primary, every one carrying a notice.

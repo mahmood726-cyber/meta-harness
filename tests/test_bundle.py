@@ -399,21 +399,32 @@ def test_every_anchored_document_says_how_to_compare(bundle):
 
 def test_limits_section_prints_the_closed_vocabulary_and_self_consistency_limits(bundle):
     ids = {l["id"] for l in bundle["limits"]}
-    assert {"L1_self_consistency", "L2_closed_vocabulary", "L5_extraction_object_coverage", "L9_production_path"} <= ids
+    assert {"L1_self_consistency", "L2_closed_vocabulary", "L5_extraction_object_coverage", "L9_production_path",
+            "L16_definition_detector_over_collects"} <= ids
     assert any("closed list" in l["limit"] for l in bundle["limits"])
+    assert any("OVER-COLLECTS" in l["limit"] and "31 of 265" in l["limit"] for l in bundle["limits"])
 
 
 # ------------------------------------------------------------------ 3.3: the admit_rows fail-open as a visible migration state
 
 def test_unbound_legacy_rows_are_a_migration_state_outside_the_admissible_count(bundle):
+    """Property, not a corpus snapshot: the migration count equals the rows so classed, and none is counted admissible.
+    Until 2026-09-20 the two glp1 harm rows (Gastrointestinal adverse events PMID 31189511; Adverse events leading to
+    discontinuation PMID 27295427) were the corpus's two unbound_legacy rows; the hand-row binder bound them to held bytes
+    on 2026-09-21 (recovered evidence), so they must no longer be a migration state. The bundle's class rule names only
+    the definition-span route as BOUND and reports theirs as OTHER -- a rule limit raised with the bundle lane."""
     bs = bundle["binding_states"]
-    assert bs["counts"]["migration_state_unbound_legacy"] == 2 and bs["counts"]["rows"] == 10
+    assert bs["counts"]["rows"] == len(bs["rows"])
     unbound = [r for r in bs["rows"] if r["binding_class"] == "MIGRATION_STATE_UNBOUND_LEGACY"]
-    assert {(r["outcome"], r["trial"]["id"]) for r in unbound} == {("Gastrointestinal adverse events", "PMID 31189511"), ("Adverse events leading to discontinuation", "PMID 27295427")}
-    assert all(r["counted_in_admissible_rows"] is False and r["producer_labels"]["verified"] == "verified" for r in unbound)
-    rewind = next(r for r in unbound if r["trial"]["id"] == "PMID 31189511")
+    assert bs["counts"]["migration_state_unbound_legacy"] == len(unbound)
+    assert all(r["counted_in_admissible_rows"] is False for r in unbound)
+    recovered = {(r["outcome"], r["trial"]["id"]): r["binding_class"] for r in bs["rows"]
+                 if (r["outcome"], r["trial"]["id"]) in {("Gastrointestinal adverse events", "PMID 31189511"), ("Adverse events leading to discontinuation", "PMID 27295427")}}
+    assert len(recovered) == 2 and all(c != "MIGRATION_STATE_UNBOUND_LEGACY" for c in recovered.values()), recovered
+    # the observations object still describes every non-BOUND row (the two recovered rows are OTHER under the bundle's rule)
+    rewind = next(r for r in bs["rows"] if r["trial"]["id"] == "PMID 31189511" and not r["primary"])
     assert rewind["observations"]["definition_names_another_outcome"] is True          # the CV primary definition on a GI row
-    leader = next(r for r in unbound if r["trial"]["id"] == "PMID 27295427")
+    leader = next(r for r in bs["rows"] if r["trial"]["id"] == "PMID 27295427" and not r["primary"])
     assert leader["observations"]["table_sourced"] is True                              # the multi-span case
     assert bundle["counts"]["unbound_legacy_rows_inside_admissible_rows"] == 0
     assert bundle["counts"]["admissible_rows"] + bundle["counts"]["migration_state_rows_in_primary_pool"] + bundle["counts"]["inadmissible_rows_in_primary_pool"] == 8
@@ -425,7 +436,10 @@ def test_unbound_legacy_rows_are_a_migration_state_outside_the_admissible_count(
     assert bs["gate"]["admit_rows_applies_to_every_route"] is True and bs["gate"]["appends_to_trials_after_gate_in_same_function"] == 0
     assert all(r["route"] == "OVERRIDE_BEFORE_CLASSIFICATION" and r["gate_state"] == "REACHED_GATE_UNCLASSIFIED"
                and r["route_evidence"] == "cache/glp1-ra-mace-t2d/verified_arms.json" for r in unbound)
-    assert bs["counts"]["gate_states"] == {"REACHED_GATE_CLASSIFIED": 8, "REACHED_GATE_UNCLASSIFIED": 2, "NEVER_REACHED_GATE": 0}
+    # every rendered row reached the gate; none never reached it (the two harm rows reach it CLASSIFIED since 2026-09-21)
+    assert sum(v for k, v in bs["counts"]["gate_states"].items() if k != "NEVER_REACHED_GATE") == bs["counts"]["rows"]
+    assert bs["counts"]["gate_states"]["NEVER_REACHED_GATE"] == 0
+    assert bs["counts"]["gate_states"].get("REACHED_GATE_UNCLASSIFIED", 0) == len(unbound)
     assert "UNVERIFIABLE" not in bs["statement"] and "pinned" in bs["statement"]
 
 
@@ -711,7 +725,11 @@ def test_assessment_states_cover_every_row_and_never_render_alike(bundle):
     n_rows = sum(len(o["trials"]) + len(o.get("declared_absent_trials") or []) for o in review["outcomes"])
     assert len(a["rows"]) == n_rows
     assert set(a["counts"]) <= set(bundle["vocabulary"]["assessment_states"]) - {"rule"}
-    assert a["counts"]["ASSESSED"] >= 8 + 4 and a["counts"]["MIGRATION_STATE"] == 2 and a["counts"]["NOT_ASSESSED_BY_BUNDLE"] == 13
+    # every row has exactly one state; the migration count is the binding_states count (0 since the two glp1 harm rows
+    # were bound by the hand-row binder on 2026-09-21; 2 before); ASSESSED covers the 8 primary rows and the 4 negatives
+    assert sum(a["counts"].values()) == n_rows
+    assert a["counts"]["ASSESSED"] >= 8 + 4
+    assert a["counts"].get("MIGRATION_STATE", 0) == bundle["binding_states"]["counts"]["migration_state_unbound_legacy"]
     assert "WITHDRAWN" not in a["counts"]
 
 
@@ -807,7 +825,10 @@ def test_bundle_renders_pooled_state_and_component_lists_per_row(bundle):
         assert r["admission"]["predicates"]["P13_no_extra_components"]["state"] == "PASS"
         assert r["admission"]["predicates"]["P14_missing_components_consistent"]["state"] == "PASS"
     bs = bundle["binding_states"]
-    assert bs["counts"]["pooled_states"] == {"EXACT_TARGET_POOLED": 8, "UNBOUND_POOLED": 2} and bs["counts"]["rows_with_extra_components"] == 0
+    # pooled states partition the rendered rows; UNBOUND_POOLED is exactly the migration rows (0 since 2026-09-21, 2 before)
+    assert sum(bs["counts"]["pooled_states"].values()) == bs["counts"]["rows"] and bs["counts"]["rows_with_extra_components"] == 0
+    assert bs["counts"]["pooled_states"].get("UNBOUND_POOLED", 0) == bs["counts"]["migration_state_unbound_legacy"]
+    assert bs["counts"]["pooled_states"].get("EXACT_TARGET_POOLED", 0) >= 8
     for r in bs["rows"]:
         assert "extra_components" in r and "missing_components" in r and "components_as_classified" in r
     assert any(l["id"] == "L15_pooled_state_is_rendered_not_enforced_upstream" for l in bundle["limits"])

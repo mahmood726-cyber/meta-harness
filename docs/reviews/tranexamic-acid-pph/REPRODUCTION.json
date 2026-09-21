@@ -1,7 +1,7 @@
 {
   "failures": 0,
   "protocol_sha": "dcb1b98082b6416b68ee073b09460626cfe07f0a",
-  "review_sha256": "7a2e52ca0e1f7c3f8be8c9f561f1d4afe240526a40d1505889391256f5693066",
+  "review_sha256": "020c16cefa47ca77a59576ffc1fafaa25411214b969fab33eb8900e642ff172a",
   "from_cache": true,
   "preregistration": {
     "prospective": false,
@@ -32,6 +32,8 @@
       "hand_status_normalized": "SUBSET",
       "hand_status_disagrees": false
     },
+    "hand_status": "SUBSET",
+    "hand_status_stale": false,
     "input_set_version": "d48fc63a3e85d3849133cdaee0358d7e348f4a36a0d4fd47b8fc5c917c62671f",
     "claim_id": "6d98bc56fab2d384",
     "depends_on": {
@@ -52,6 +54,39 @@
       "claim_kind": "refusal"
     }
   ],
+  "result_changes": [
+    {
+      "slug": "tranexamic-acid-pph",
+      "outcome": "Thromboembolic events",
+      "before": {
+        "k": 1,
+        "estimate": 0.8781,
+        "ci_low": 0.5379,
+        "ci_high": 1.4336
+      },
+      "after": {
+        "k": null,
+        "estimate": null,
+        "ci_low": null,
+        "ci_high": null
+      },
+      "left_pool": [
+        "PMID 28456509"
+      ],
+      "entered_pool": [],
+      "reason": "PMID 28456509 set aside (ENDPOINT_UNBOUND): tuple not located in the held document cache/tranexamic-acid-pph/records.json#PMID-28456509 (abstract): no span carries it. Mechanism: the hand-row binder landing (m2/bind-hand-rows) binds every hand-extracted row to held bytes or sets it aside; a set-aside trial stays eligible evidence awaiting adjudication; the numbers are not asserted wrong.",
+      "by": "Claude Opus 5 (lane m2/bind-hand-rows, 2026-09-20); reviewer countersignature owed: Mahmood",
+      "when_utc": "2026-09-20T23:30:00Z",
+      "reviewer_countersignature": {
+        "state": "SEEN_AND_SIGNED",
+        "by": "Mahmood",
+        "when_utc": "2026-09-21T10:38:14Z",
+        "rendered_sha256": "bffe51380555a1e9549e214033f2bc812ca978196f442b61f6b89c6227d34108",
+        "how_it_reached_the_reviewer": "relayed by the orchestrating lane, 2026-09-21; for each notice the figures, the departing trial(s) and the stated reason were conveyed in full, and the shared mechanism sentence was quoted verbatim; the full rendered block was offered and not read letter-for-letter for the seven first-shown notices; this notice: one of the seven first-shown, not read letter-for-letter"
+      },
+      "conclusion_changed": "the outcome no longer has a pooled estimate"
+    }
+  ],
   "dual": {
     "agree": 0,
     "reconcile": 0,
@@ -59,21 +94,21 @@
     "conflict": 0
   },
   "claim_check": {
-    "claims_checked": 2,
+    "claims_checked": 1,
     "surfaces": [
       "outcome block",
       "overview",
       "manuscript"
     ],
     "scope_counts": {
-      "outcome_result": 2,
+      "outcome_result": 1,
       "strand_pool": 0,
       "rob_sensitivity": 2,
       "grade": 1
     },
     "scope": {
       "counts": {
-        "outcome_result": 2,
+        "outcome_result": 1,
         "strand_pool": 0,
         "rob_sensitivity": 2,
         "grade": 1
@@ -149,19 +184,19 @@
       }
     ],
     "config_sha256": "bbf006593ba50d97d7fb6c08f46cb77bc7ce6cd6f754887061f6a4235dc728b6",
-    "analysis_code_sha256": "46622f5c2c7fe32b2bd27f43738301104eb87221f84379ee7e5da40963f2b827",
+    "analysis_code_sha256": "fd5ccc59cf078077fa5c788ed90b4fddce9767cdf4cfd00998fa1ce03ee1c40b",
     "analysis_code_blobs": {
       "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
       "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
       "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
-      "harness/absence.py": "2db42260d7a5ac5d9b708f3cca8513d94c5c5584",
+      "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
       "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
       "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
       "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
       "harness/arm_object.py": "c6e2a9d0ea0263eba72c3453d52bc5a05b06e0b2",
       "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
       "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
-      "harness/census.py": "8909d29924df518d99ca9a73691c92e2e50557f8",
+      "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
       "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
       "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
       "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
@@ -186,10 +221,11 @@
       "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
       "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
       "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-      "harness/gate.py": "81e3b42415047edde8fb39dce964e1ff415963c8",
+      "harness/gate.py": "20a5ce33e2c111d23993e208d00c88e04afda5ca",
       "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
       "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
       "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
+      "harness/hand_binding.py": "d48224edf7e0e22dd0111e3c1a72565c25b93dd8",
       "harness/harms.py": "64f79ea3db77361f8076c8017af851f388183ef7",
       "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
       "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
@@ -199,14 +235,14 @@
       "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
       "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
       "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-      "harness/limitations.py": "abf2d38fbf9800b23d83289febd289fa53c6b2e6",
+      "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
       "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
-      "harness/manuscript.py": "6a18509615e91f32727923a43b569ff2181a5b5f",
+      "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
       "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
       "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-      "harness/page.py": "eec920650e986ee7a18e7549c60915a9ce6405b9",
-      "harness/parity_relation.py": "55a2602e97e0ee4518aa4d083e5ff4500afe4bf0",
-      "harness/pipeline.py": "4b1743b9dfa13b70612f435081f9009638a6ef10",
+      "harness/page.py": "4dad90b0facdea7c0f89fd0bc5dd1dd1ce04d31f",
+      "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
+      "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
       "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
       "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
       "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -214,8 +250,9 @@
       "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
       "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
       "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
+      "harness/result_changes.py": "b7a2eb8c55276a0335312a9ea389631216a9449d",
       "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
-      "harness/rob_sensitivity.py": "026441df1eac7e36710fe170eba196ca5b085a3c",
+      "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
       "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
       "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
       "harness/screen.py": "e2864719b75c355abfcff1dbde0b376c45bdd84e",
@@ -224,14 +261,14 @@
       "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
       "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
       "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
-      "harness/target_endpoint.py": "554df973c35f7c9d29070e29cb7075ec9026e574",
+      "harness/target_endpoint.py": "f605e0f513e3524baac0a9e5f36ced5b926ed6e3",
       "harness/trial_family.py": "57882f159bbfd8d91b60deaf5956e409de6c484f",
       "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
       "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
       "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
       "harness/verify.py": "e5187ea9cc8e9b92a02a98e7bc84ed1cfd0a99f5",
       "scripts/build_topic.py": "ddfab3d8415edb0b5a7f8e1a091f10e0520cfd18",
-      "scripts/reproduce_review.py": "eab6807e05abf130e79db5d0e9354598c4cf7dfe"
+      "scripts/reproduce_review.py": "b8f090b9ac3699ced2181aa9366b098678c29dbe"
     },
     "certificate_scope": {
       "method": "analysis_code_blobs is the static import closure (ast; module-level and function-local import statements, relative and absolute) of the roots, restricted to modules that resolve to a file under harness/ or scripts/. Nothing in the map is listed by hand. Values are Git SHA-1 blob identities: sha1('blob ' + len + NUL + bytes) over the file with CRLF normalised to LF, recomputable with `git hash-object -- <path>` at the anchoring commit.",
@@ -244,7 +281,7 @@
         "harness/certificate.py",
         "scripts/reproduce_review.py"
       ],
-      "covers": "80 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+      "covers": "82 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
       "declared_but_absent": [
         "harness/effect_type.py"
       ],
@@ -274,7 +311,7 @@
       "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
     },
     "manuscript_sha256": "ad34cda80e3e3cdddc9be833948f14b3b93455c9f8448c4df65c9c3dfe726ffd",
-    "review_sha256": "7a2e52ca0e1f7c3f8be8c9f561f1d4afe240526a40d1505889391256f5693066",
+    "review_sha256": "020c16cefa47ca77a59576ffc1fafaa25411214b969fab33eb8900e642ff172a",
     "hash_inputs": {
       "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
       "protocol_text_sha256": "protocols/tranexamic-acid-pph.md UTF-8 text, universal newlines",
@@ -294,9 +331,9 @@
       "review_sha256": "canonical review core (excludes reproduction)",
       "release_sha256": "canonical entire certificate excluding only release_sha256"
     },
-    "release_sha256": "0635cd9dce747379ef6ad985fc3cf2014bf641ca499120e4b51cfc57e30e569d"
+    "release_sha256": "0e5fc220e773e54435870b5c80e40700b6628f4e227fdd83e71e2cb0c2c87475"
   },
-  "html_sha256": "b32a3d06f3fed3fb25b72eb17ea307aeb212bc36025b918f9d9ee18393625626",
+  "html_sha256": "c50cc7f7710865688a6953b6487a709bdde533eec82c6d0df1a4e4240dbcc32f",
   "checks": [
     {
       "check": "render is deterministic",

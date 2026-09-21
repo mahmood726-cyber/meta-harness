@@ -1147,6 +1147,37 @@ def check_certainty_surfaces_agree(review_dir):
     return reasons
 
 
+def check_result_change_countersigned(review_dir):
+    """A page whose served result changed publishes only when the reviewer has SEEN the rendered notice and signed
+    it: the signature names sha256 of the rendered block (page.result_change_block minus its signature line). A
+    withdrawn conclusion (interval now includes the null; estimate gone) needs a per-notice signature; a
+    direction-preserving change may carry a batch signature. 'Agreed in advance' is not a state."""
+    from . import page as _page_mod, result_changes as _rc
+    with open(os.path.join(review_dir, "review.json"), encoding="utf-8") as f:
+        rev = json.load(f)
+    out = []
+    # the page embeds the notices as they were at build time; the committed docs/result_changes.json is the
+    # source. A page whose embedded notices differ from the file (a notice rebuilt, added or dropped after the
+    # build) carries a stale claim and must be rebuilt before it can publish.
+    slug = rev.get("slug") or os.path.basename(os.path.normpath(review_dir))
+    current = [n for n in _rc.load() if n.get("slug") == slug]
+    embedded = (rev.get("reproduction") or {}).get("result_changes") or []
+    key = lambda n: (n.get("outcome"), json.dumps(_rc.result_tuple(n.get("before")), sort_keys=True),
+                     json.dumps(_rc.result_tuple(n.get("after")), sort_keys=True),
+                     tuple(sorted(map(str, n.get("left_pool") or []))), tuple(sorted(map(str, n.get("entered_pool") or []))),
+                     n.get("reason"), json.dumps(n.get("reviewer_countersignature") or {}, sort_keys=True))
+    if sorted(key(n) for n in current) != sorted(key(n) for n in embedded):
+        out.append("result_change_countersigned: the page's embedded result-change notices differ from docs/result_changes.json "
+                   "(rebuilt, added, dropped or signed after the page was built): rebuild the page")
+    for n in embedded:
+        block = _page_mod.result_change_block(n)
+        block = block[:block.rfind("<p class='muted'>Reviewer countersignature")]
+        problem = _rc.signature_problem(n, block)
+        if problem:
+            out.append(f"result_change_countersigned: {n.get('outcome')}: {problem}")
+    return out
+
+
 def check_rob_sensitivity_surfaces(review_dir):
     from .rob_sensitivity import suppression_reason
     rev, soup = _certainty_inputs(review_dir)
@@ -1264,6 +1295,7 @@ def gate_page(review_dir):
     reasons = (check_limb1(review_dir, manifest, html, rep)
                + check_certainty_surfaces_agree(review_dir)
                + check_rob_sensitivity_surfaces(review_dir)
+               + check_result_change_countersigned(review_dir)
                + check_stale_heterogeneity_surfaces(review_dir)
                + check_certificate(review_dir)
                + check_no_independent_corroboration_claim(review_dir, html)

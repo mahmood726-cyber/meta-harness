@@ -1,0 +1,74 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>06-reproducible-ai-design-note.md (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>06-reproducible-ai-design-note.md</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/m2-hand-row-binding-2026-09-20/06-reproducible-ai-design-note.md</code>; its SHA-256 is <code>880f03b9ed0357948f8fd9060fbb377985790f50b708eff5d360c65e48e917a3</code> (5,671 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> Reproducible AI: every model call in the pinned path counted by scripts/audit_model_calls.py (0 of 82 present pinned files; subprocess programs git and python only; the three dynamic imports named), where model-authored text enters the record and how it is marked, and the limits of the sweep.</p><pre># Reproducible AI: every model call in the pinned path, counted (2026-09-21)
+
+Standing instruction (Mahmood): everything runs in the reproducible harness -- regex and reproducible AI -- as
+pinned modules, never as scratch scripts. This note states, by measurement rather than assumption, where a model
+is called on the path that produces a served number, and where model-authored text enters the record.
+
+## What was measured
+
+The pinned path is the certificate&#x27;s code closure: `CERTIFICATE.json#analysis_code_blobs` on the landing tree
+lists **83 paths, 82 present** (81 `harness/*.py`, `scripts/build_topic.py`, `scripts/reproduce_review.py`; the
+listed `harness/effect_type.py` is a recorded NOT_PRESENT entry). `scripts/audit_model_calls.py` parses every
+present file (AST, not grep) for (a) an import of a model client (`anthropic`, `openai`, `google.generativeai`,
+`google.genai`, `vertexai`, `cohere`, `mistralai`, `groq`, `litellm`, `langchain`, `transformers`, `ollama`) or of an
+HTTP library, (b) every `subprocess` invocation and the program it runs, (c) dynamic imports, and (d) model words
+(`anthropic|openai|claude|gpt|gemini|codex|llm|messages.create|chat.completions|model_call`).
+
+## Result: model calls in the pinned path -- 0 of 82
+
+- **Imports.** The only network client in the closure is `harness/http.py` (stdlib `urllib`), used by
+  `harness/fetch.py` and `harness/acquisition.py` to reach PubMed / ClinicalTrials.gov -- data sources, not
+  models -- and the build itself runs under `aact_cache.cache_only_build` (`build_review_core` is decorated), so a
+  regeneration reads the committed cache and calls nothing. No model client is imported anywhere in the closure.
+- **Subprocesses: 22 sites in 11 modules; programs `git` and `python`** (`git hash-object` / `show` /
+  `ls-files` / `ls-tree` / `rev-parse`; `python` = `scripts/reproduce_review.py` running `build_topic.py`). None
+  invokes a model CLI.
+- **Dynamic imports: 3, none a model** -- `harness/acquisition.py:164-166` resolves a fetch adapter&#x27;s `__file__`
+  to hash it for provenance; `harness/architecture_identity.py:13` is `importlib.metadata` (package versions).
+- **Model words: 24 lines, none a call.** They are (1) the acquisition-ledger vocabulary `MODEL_CALL` in
+  `harness/acquisition.py:128` and its label in `harness/pipeline.py:1728` -- a provenance *kind* for a record a
+  model was once asked to find, with the verbatim prompt as the query; **0 records in `cache/*/records.json` and
+  0 rows in `docs/reviews/*/review.json` carry it**; (2) `harness/index.py` and `harness/page.py` rendering
+  `docs/crossfamily.json`, the committed outputs of the cross-family checks (Gemini via AGY, Fable, a GPT-5
+  checker) -- &quot;a model call is treated as a source; the outputs are committed, so this regenerates without
+  re-calling the model&quot; (`harness/index.py:640-641`); (3) regex `fullmatch` / enrollment-floor lines caught by the
+  pattern, unrelated.
+
+So: **none in the pinned path** -- stated from the sweep above, not assumed. Said plainly: **there is no AI in
+the path that produces a served number, so there is nothing in that path to make reproducible.** The
+&#x27;reproducible AI&#x27; requirement therefore binds the places listed below where a model&#x27;s WORDS enter the record
+(each named with its author and, for a signature, its basis), and any future model call, which this audit
+would count on the tree it lands in.
+
+## The M2 landing specifically
+
+Every module and script this landing adds or edits is regex and arithmetic only:
+`harness/hand_binding.py`, `harness/target_endpoint.py` (endpoint-reference resolution), `harness/parity_relation.py`,
+`harness/result_changes.py`, `harness/honest_ratchet.py`, `harness/rob_sensitivity.py`, `harness/page.py`,
+`harness/pipeline.py`, `scripts/m2_battery.py`, `scripts/m2_row_census.py`, `scripts/endpoint_reference_sweep.py`,
+`scripts/refresh_result_change_notices.py`, `scripts/countersign_result_change.py`. **0 of 13 call a model.**
+The battery (`tests/test_m2_battery.py`, 28 cases) and the census run the same code the build runs.
+
+## Where a model&#x27;s words DO enter the record, and how they are marked
+
+A model never supplies a number here. Model-authored text enters in three places, each recorded with its author:
+
+1. **Result-change notice reasons** (`docs/result_changes.json`): built mechanically by
+   `refresh_result_change_notices.py` from the set-aside records (specific reason, mechanism sentence,
+   surviving sentence); two carry a hand-written reason (`reason_locked`: esketamine, pcsk9 injection-site)
+   authored by the lane (Claude Opus 5) and named in `by`. The reviewer&#x27;s countersignature names the sha256 of
+   the rendered block and `how_it_reached_the_reviewer`.
+2. **Parity acknowledgement** (`docs/ratchet_acknowledgements.json`): `by` = the lane, countersignature owed.
+3. **Fix-ledger entry, evidence README and this note**: authored by the lane, `author` field named.
+
+None of these is consumed by the build to produce a served number; each is rendered as text with its author.
+
+## Limits of this measurement
+
+- The closure is the certificate&#x27;s list; a module imported dynamically (by string) would not be in it. The
+  three dynamic imports in the closure are listed above with what they resolve.
+- The client list is the one above; a client not in it would be missed by (a) but not by the cache-only guard
+  and the subprocess-program check, which is why all four were run and reported.
+- Measured on the landing tree (F:\mh-bind2, base 8b1fb37d); the sweep is `scripts/audit_model_calls.py`, run
+  by the gate as `tests/test_no_model_call_in_pinned_path.py`, so the count is re-derived on every tree.
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

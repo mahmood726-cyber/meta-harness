@@ -104,7 +104,10 @@ def test_real_review_reproduces_and_passes_full_gate():
     # outside the repo (no docs/reviews present).
     import os as _os
     root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
-    d = _os.path.join(root, "docs", "reviews", "noac-vs-warfarin-af-stroke")
+    # glp1-ra-mace-t2d: a real committed page with no result-change notice pending a countersignature. (noac's
+    # major-bleeding outcome carries a notice held OPEN until the reviewer signs it -- a designed hold, not a
+    # broken page -- so it cannot be the "passes the whole gate" control while unsigned.)
+    d = _os.path.join(root, "docs", "reviews", "glp1-ra-mace-t2d")
     if not _os.path.isdir(d):
         return
     ok, reasons = gate_page(d)

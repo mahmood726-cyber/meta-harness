@@ -8,7 +8,11 @@
     "committed_utc": "2026-09-11",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['community-acquired pneumonia', 'community acquired pneumonia', 'severe community-acquired pneumonia', 'severe community acquired pneumonia', 'pneumonia, community-acquired']; and none of ['covid', 'sars-cov-2', 'influenza', 'pediatric', 'paediatric', 'children', 'child', 'mycoplasma', 'pneumocystis', 'scrub typhus', 'acute respiratory distress syndrome', 'ards']; randomised intervention is one of ['corticosteroid', 'corticosteroids', 'steroid', 'steroids', 'glucocorticoid', 'glucocorticoids', 'hydrocortisone', 'methylprednisolone', 'prednisone', 'prednisolone', 'dexamethasone'] (named in title/conditions); a comparator among ['placebo', 'control', 'standard care', 'standard therapy', 'usual care', 'conventional therapy']. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator.",
-    "text": "# Protocol - systemic corticosteroids for mortality in hospitalised community-acquired pneumonia\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs.\n\n## PICO\n- **P** - adults hospitalised with community-acquired pneumonia (CAP).\n- **I** - systemic corticosteroids added to standard antimicrobial/supportive care.\n- **C** - placebo, usual care, standard care, or conventional therapy.\n- **O (primary)** - all-cause mortality at 30 days or in hospital.\n- **O (harms)** - hyperglycaemia; gastrointestinal bleeding.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), systemic corticosteroid vs placebo/usual care.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - 30-day mortality preferred; in-hospital mortality accepted when\n  that is the trial's reported short-term mortality window.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **I1** - randomised controlled trial;\n- **I2** - adult hospitalised CAP or severe CAP population by title or registry conditions;\n- **I3** - systemic corticosteroid vs placebo/usual/standard care;\n- **design** - randomised comparison; double-blinding is not required because the\n  target comparator includes placebo or standard-care controls.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational study, protocol-only);\n- **X2** - wrong population (for example COVID-19/SARS-CoV-2 pneumonia, influenza,\n  paediatric CAP, Pneumocystis pneumonia, scrub typhus pneumonitis, or ARDS without\n  CAP as the title/condition population);\n- **X3** - wrong intervention/comparison (no systemic corticosteroid-vs-control contrast);\n- **X5** - off-topic: a primary trial of another topic/disease in this set\n  (negative control).\n\n> Eligibility is NOT on the outcome axis. Whether an included trial reports\n> 30-day or in-hospital all-cause mortality in an abstract-extractable form is\n> recorded as target-result status at extraction, never as an exclusion. A\n> published effect plus 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/corticosteroids-cap-mortality/records.json; screening replays offline)\n- PubMed: targeted corticosteroid x community-acquired pneumonia x randomised\n  placebo/control queries for hydrocortisone, methylprednisolone, prednisone, and\n  dexamethasone trial reports.\n- ClinicalTrials.gov: condition \"community-acquired pneumonia\", intervention\n  \"hydrocortisone\".\n- Comparator-reference seeding is disabled for this topic because the fixed NCT\n  deduplication rule can let later secondary/subgroup reports replace the original\n  trial report. Recall is instead checked with named positive controls.\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells\nof a study only if it has a zero cell. DerSimonian-Laird forbidden. Engine\nvalidated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nWu et al., *Journal of Critical Care* 2024, \"Efficacy and safety of corticosteroids\nfor the treatment of community-acquired pneumonia: A systematic review and\nmeta-analysis of randomized controlled trials\" (PMID 38128217, DOI\n10.1016/j.jcrc.2023.154507; Unpaywall is_oa=true; no direct PubMed Central full\ntext resolved). Its abstract reports 15 RCTs and all-cause mortality RR 0.69\n(95% CI 0.53-0.89).\n\n## Controls\n- **Positive** - the search must recover and include CAPE COD hydrocortisone\n  (PMID 36942789), Torres/JAMA methylprednisolone severe CAP (PMID 25688779),\n  and STEP prednisone CAP (PMID 25608756).\n- **Negative** - RECOVERY dexamethasone for COVID-19 (PMID 32678530) must be\n  recovered and excluded as the wrong population.\n"
+    "text": "# Protocol - systemic corticosteroids for mortality in hospitalised community-acquired pneumonia\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs.\n\n## PICO\n- **P** - adults hospitalised with community-acquired pneumonia (CAP).\n- **I** - systemic corticosteroids added to standard antimicrobial/supportive care.\n- **C** - placebo, usual care, standard care, or conventional therapy.\n- **O (primary)** - all-cause mortality at 30 days or in hospital.\n- **O (harms)** - hyperglycaemia; gastrointestinal bleeding.\n\n## Estimand / population / timepoint\n- **Estimand** - risk ratio (RR), systemic corticosteroid vs placebo/usual care.\n- **Population** - intention-to-treat as randomised.\n- **Timepoint** - 30-day mortality preferred; in-hospital mortality accepted when\n  that is the trial's reported short-term mortality window.\n\n## Eligibility - on P/I/C/DESIGN ONLY\nInclude a record iff all hold:\n- **I1** - randomised controlled trial;\n- **I2** - adult hospitalised CAP or severe CAP population by title or registry conditions;\n- **I3** - systemic corticosteroid vs placebo/usual/standard care;\n- **design** - randomised comparison; double-blinding is not required because the\n  target comparator includes placebo or standard-care controls.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational study, protocol-only);\n- **X2** - wrong population (for example COVID-19/SARS-CoV-2 pneumonia, influenza,\n  paediatric CAP, Pneumocystis pneumonia, scrub typhus pneumonitis, or ARDS without\n  CAP as the title/condition population);\n- **X3** - wrong intervention/comparison (no systemic corticosteroid-vs-control contrast);\n- **X5** - off-topic: a primary trial of another topic/disease in this set\n  (negative control).\n\n> Eligibility is NOT on the outcome axis. Whether an included trial reports\n> 30-day or in-hospital all-cause mortality in an abstract-extractable form is\n> recorded as target-result status at extraction, never as an exclusion. A\n> published effect plus 95% CI is a poolable input.\n\n## Search (fetch-once; raw results committed under cache/corticosteroids-cap-mortality/records.json; screening replays offline)\n- PubMed: targeted corticosteroid x community-acquired pneumonia x randomised\n  placebo/control queries for hydrocortisone, methylprednisolone, prednisone, and\n  dexamethasone trial reports.\n- ClinicalTrials.gov: condition \"community-acquired pneumonia\", intervention\n  \"hydrocortisone\".\n- Comparator-reference seeding is disabled for this topic because the fixed NCT\n  deduplication rule can let later secondary/subgroup reports replace the original\n  trial report. Recall is instead checked with named positive controls.\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log(RR); Paule-Mandel tau^2; HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1, Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau^2+se^2)`. 0.5 continuity correction to all four cells\nof a study only if it has a zero cell. DerSimonian-Laird forbidden. Engine\nvalidated vs metafor 5.0.1 (<1e-6).\n\n## Comparator (resolved; open-access confirmed)\nWu et al., *Journal of Critical Care* 2024, \"Efficacy and safety of corticosteroids\nfor the treatment of community-acquired pneumonia: A systematic review and\nmeta-analysis of randomized controlled trials\" (PMID 38128217, DOI\n10.1016/j.jcrc.2023.154507; Unpaywall is_oa=true; no direct PubMed Central full\ntext resolved). Its abstract reports 15 RCTs and all-cause mortality RR 0.69\n(95% CI 0.53-0.89).\n\n## Controls\n- **Positive** - the search must recover and include CAPE COD hydrocortisone\n  (PMID 36942789), Torres/JAMA methylprednisolone severe CAP (PMID 25688779),\n  and STEP prednisone CAP (PMID 25608756).\n- **Negative** - RECOVERY dexamethasone for COVID-19 (PMID 32678530) must be\n  recovered and excluded as the wrong population.\n",
+    "target_endpoint_selection": {
+      "summary": "Target endpoint selector: EXACT_TARGET beats NEAR_MATCH; a near-match may be pooled only when no exact target is held. Within the same endpoint class, source-reported target-estimand effects beat registry effect estimates, which beat crude reconstructions. For multiple registered primaries in the same outcome family, choose the prespecified primary whose component set is closest to the canonical review definition; ties use registration order and alternatives render as sensitivity rows. Rule applied after results were already known in this lane, so the timing is disclosed.",
+      "results_known_at_rule_time": true
+    }
   },
   "search": {
     "n_records": 114,
@@ -2860,10 +2864,37 @@
           "n2i": 198,
           "provenance": "abstract_verified_arms",
           "document_ref": "cache/corticosteroids-cap-mortality/records.json",
+          "source_span": "RESULTS: Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. ",
           "source_level": 1,
+          "kind": "extracted_counts",
+          "verification": "Explicit randomized arm denominators and hyperglycaemia counts in the same results paragraph; no percentage inversion.",
+          "handed_abstract": "BACKGROUND: Adjunctive intravenous corticosteroid treatment has been shown to reduce length of stay (LOS) in adults hospitalised with community-acquired pneumonia (CAP). We aimed to assess the effect of oral dexamethasone on LOS and whether this effect is disease severity dependent. METHODS: In this multicentre, stratified randomised, double-blind, placebo-controlled trial, immunocompetent adults with CAP were randomly assigned (1:1 ratio) to receive oral dexamethasone (6 mg once daily) or placebo for 4 days in four teaching hospitals in the Netherlands. Randomisation (blocks of four) was stratified by CAP severity (pneumonia severity index class I-III and IV-V). The primary outcome was LOS. RESULTS: Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. CONCLUSION: Oral dexamethasone reduced LOS and ICU admission rate in adults hospitalised with CAP. It remains unclear for which patients the risk-benefit ratio is optimal.",
+          "document_candidates": [
+            "cache/corticosteroids-cap-mortality/records.json#PMID-33446608"
+          ],
           "source": "RESULTS: Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. ",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent.",
+          "endpoint_definition_span": "In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent.",
+          "endpoint_binding_reason": "span names the outcome family",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/corticosteroids-cap-mortality/records.json",
+            "sha256": "ce1169669dd255dce8f83c85846730a490b2f684015fe380d42e3f1c2621b591",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reconstructed",
           "selection_rule": "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT",
           "selected_estimator": "reconstructed",
@@ -3108,10 +3139,37 @@
           "n2i": 153,
           "provenance": "abstract_verified_arms",
           "document_ref": "cache/corticosteroids-cap-mortality/records.json",
+          "source_span": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001).",
           "source_level": 1,
+          "kind": "extracted_counts",
+          "verification": "Explicit per-arm patients with hyperglycaemia and denominators in the same sentence.",
+          "handed_abstract": "BACKGROUND: Whether addition of corticosteroids to antibiotic treatment benefits patients with community-acquired pneumonia who are not in intensive care units is unclear. We aimed to assess effect of addition of dexamethasone on length of stay in this group, which might result in earlier resolution of pneumonia through dampening of systemic inflammation. METHODS: In our double-blind, placebo-controlled trial, we randomly assigned adults aged 18 years or older with confirmed community-acquired pneumonia who presented to emergency departments of two teaching hospitals in the Netherlands to receive intravenous dexamethasone (5 mg once a day) or placebo for 4 days from admission. Patients were ineligible if they were immunocompromised, needed immediate transfer to an intensive-care unit, or were already receiving corticosteroids or immunosuppressive drugs. We randomly allocated patients on a one-to-one basis to treatment groups with a computerised randomisation allocation sequence in blocks of 20. The primary outcome was length of hospital stay in all enrolled patients. This study is registered with ClinicalTrials.gov, number NCT00471640. FINDINGS: Between November, 2007, and September, 2010, we enrolled 304 patients and randomly allocated 153 to the placebo group and 151 to the dexamethasone group. 143 (47%) of 304 enrolled patients had pneumonia of pneumonia severity index class 4-5 (79 [52%] patients in the dexamethasone group and 64 [42%] controls). Median length of stay was 6·5 days (IQR 5·0-9·0) in the dexamethasone group compared with 7·5 days (5·3-11·5) in the placebo group (95% CI of difference in medians 0-2 days; p=0·0480). In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001). INTERPRETATION: Dexamethasone can reduce length of hospital stay when added to antibiotic treatment in non-immunocompromised patients with community-acquired pneumonia. FUNDING: None.",
+          "document_candidates": [
+            "cache/corticosteroids-cap-mortality/records.json#PMID-21636122"
+          ],
           "source": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001).",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0.0001).",
+          "endpoint_definition_span": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0.0001).",
+          "endpoint_binding_reason": "span names the outcome family",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0.0001)."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/corticosteroids-cap-mortality/records.json",
+            "sha256": "ce1169669dd255dce8f83c85846730a490b2f684015fe380d42e3f1c2621b591",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reconstructed",
           "selection_rule": "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT",
           "selected_estimator": "reconstructed",
@@ -3506,7 +3564,7 @@
               },
               {
                 "rung": "located adjudication source: cache/corticosteroids-cap-mortality/records.json",
-                "state": "SPAN_NOT_VERIFIED",
+                "state": "CHECKED_LOCATED_SPAN",
                 "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
@@ -3555,7 +3613,7 @@
               },
               {
                 "rung": "located adjudication source: cache/corticosteroids-cap-mortality/records.json",
-                "state": "SPAN_NOT_VERIFIED",
+                "state": "CHECKED_LOCATED_SPAN",
                 "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
@@ -6521,27 +6579,15 @@
           },
           "measured": {
             "state": "YES",
-            "span": {
-              "quote": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001).",
-              "source": "held abstract",
-              "report_id": "21636122"
-            }
+            "span": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001)."
           },
           "reported": {
             "state": "YES",
-            "span": {
-              "quote": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001).",
-              "source": "held abstract",
-              "report_id": "21636122"
-            }
+            "span": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001)."
           },
           "extractable": {
             "state": "YES",
-            "span": {
-              "quote": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001).",
-              "source": "held abstract",
-              "report_id": "21636122"
-            }
+            "span": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001)."
           },
           "in_primary_pool": {
             "state": "NO",
@@ -6996,27 +7042,15 @@
           "span": {
             "measured": {
               "state": "YES",
-              "span": {
-                "quote": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001).",
-                "source": "held abstract",
-                "report_id": "21636122"
-              }
+              "span": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001)."
             },
             "reported": {
               "state": "YES",
-              "span": {
-                "quote": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001).",
-                "source": "held abstract",
-                "report_id": "21636122"
-              }
+              "span": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001)."
             },
             "extractable": {
               "state": "YES",
-              "span": {
-                "quote": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001).",
-                "source": "held abstract",
-                "report_id": "21636122"
-              }
+              "span": "In-hospital mortality and severe adverse events were infrequent and rates did not differ between groups, although 67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls (p<0·0001)."
             }
           },
           "analysis_input": true,
@@ -12054,27 +12088,15 @@
           },
           "measured": {
             "state": "YES",
-            "span": {
-              "quote": "Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. ",
-              "source": "held abstract",
-              "report_id": "33446608"
-            }
+            "span": "RESULTS: Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. "
           },
           "reported": {
             "state": "YES",
-            "span": {
-              "quote": "Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. ",
-              "source": "held abstract",
-              "report_id": "33446608"
-            }
+            "span": "RESULTS: Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. "
           },
           "extractable": {
             "state": "YES",
-            "span": {
-              "quote": "Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. ",
-              "source": "held abstract",
-              "report_id": "33446608"
-            }
+            "span": "RESULTS: Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. "
           },
           "in_primary_pool": {
             "state": "NO",
@@ -12938,27 +12960,15 @@
           "span": {
             "measured": {
               "state": "YES",
-              "span": {
-                "quote": "Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. ",
-                "source": "held abstract",
-                "report_id": "33446608"
-              }
+              "span": "RESULTS: Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. "
             },
             "reported": {
               "state": "YES",
-              "span": {
-                "quote": "Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. ",
-                "source": "held abstract",
-                "report_id": "33446608"
-              }
+              "span": "RESULTS: Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. "
             },
             "extractable": {
               "state": "YES",
-              "span": {
-                "quote": "Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. ",
-                "source": "held abstract",
-                "report_id": "33446608"
-              }
+              "span": "RESULTS: Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. "
             }
           },
           "analysis_input": true,
@@ -72597,27 +72607,15 @@
       "span": {
         "measured": {
           "state": "YES",
-          "span": {
-            "quote": "Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. ",
-            "source": "held abstract",
-            "report_id": "33446608"
-          }
+          "span": "RESULTS: Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. "
         },
         "reported": {
           "state": "YES",
-          "span": {
-            "quote": "Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. ",
-            "source": "held abstract",
-            "report_id": "33446608"
-          }
+          "span": "RESULTS: Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. "
         },
         "extractable": {
           "state": "YES",
-          "span": {
-            "quote": "Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. ",
-            "source": "held abstract",
-            "report_id": "33446608"
-          }
+          "span": "RESULTS: Between December 2012 and November 2018, 401 patients were randomised to receive dexamethasone (n=203) or placebo (n=198). Median LOS was shorter in the dexamethasone group (4.5 days, 95% CI 4.0-5.0 days) than in the placebo group (5.0 days, 95% CI 4.6-5.4 days; p=0.033). Within both CAP severity subgroups, differences in LOS between treatment groups were not statistically significant. The secondary ICU admission rate was lower in the dexamethasone arm (5 (3%) versus 14 (7%); p=0.030); 30-day mortality did not differ between groups. In the dexamethasone group the rate of hospital readmission tended to be higher (20 (10%) versus 9 (5%); p=0.051) and hyperglycaemia (14 (7%) versus 1 (1%); p=0.001) was more prevalent. "
         }
       },
       "absence_code": "POOL_REFUSED",
@@ -73432,7 +73430,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "036ee46c6c45cb5c10607def1eeda86ba536d750",
-    "review_sha256": "b10344aa96d7579e895a0c4629504806f4d0a3cbca26bcb814bc4790962cd219",
+    "review_sha256": "d26a4681fa259b8274aa7f8fcbe22f049842d3a4c425438d66637839417398bb",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -73548,19 +73546,19 @@
         }
       ],
       "config_sha256": "b8cdfb79e7ec2f13ece39b095f067b879067545dd8d91478f732bd995846cebb",
-      "analysis_code_sha256": "46622f5c2c7fe32b2bd27f43738301104eb87221f84379ee7e5da40963f2b827",
+      "analysis_code_sha256": "fd5ccc59cf078077fa5c788ed90b4fddce9767cdf4cfd00998fa1ce03ee1c40b",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
         "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
-        "harness/absence.py": "2db42260d7a5ac5d9b708f3cca8513d94c5c5584",
+        "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
         "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
         "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
         "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
         "harness/arm_object.py": "c6e2a9d0ea0263eba72c3453d52bc5a05b06e0b2",
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
-        "harness/census.py": "8909d29924df518d99ca9a73691c92e2e50557f8",
+        "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
         "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
@@ -73585,10 +73583,11 @@
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "81e3b42415047edde8fb39dce964e1ff415963c8",
+        "harness/gate.py": "20a5ce33e2c111d23993e208d00c88e04afda5ca",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
+        "harness/hand_binding.py": "d48224edf7e0e22dd0111e3c1a72565c25b93dd8",
         "harness/harms.py": "64f79ea3db77361f8076c8017af851f388183ef7",
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
@@ -73598,14 +73597,14 @@
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "abf2d38fbf9800b23d83289febd289fa53c6b2e6",
+        "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
-        "harness/manuscript.py": "6a18509615e91f32727923a43b569ff2181a5b5f",
+        "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "eec920650e986ee7a18e7549c60915a9ce6405b9",
-        "harness/parity_relation.py": "55a2602e97e0ee4518aa4d083e5ff4500afe4bf0",
-        "harness/pipeline.py": "4b1743b9dfa13b70612f435081f9009638a6ef10",
+        "harness/page.py": "4dad90b0facdea7c0f89fd0bc5dd1dd1ce04d31f",
+        "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
+        "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -73613,8 +73612,9 @@
         "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
         "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
         "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
+        "harness/result_changes.py": "b7a2eb8c55276a0335312a9ea389631216a9449d",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
-        "harness/rob_sensitivity.py": "026441df1eac7e36710fe170eba196ca5b085a3c",
+        "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
         "harness/screen.py": "e2864719b75c355abfcff1dbde0b376c45bdd84e",
@@ -73623,14 +73623,14 @@
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
-        "harness/target_endpoint.py": "554df973c35f7c9d29070e29cb7075ec9026e574",
+        "harness/target_endpoint.py": "f605e0f513e3524baac0a9e5f36ced5b926ed6e3",
         "harness/trial_family.py": "57882f159bbfd8d91b60deaf5956e409de6c484f",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
         "harness/verify.py": "e5187ea9cc8e9b92a02a98e7bc84ed1cfd0a99f5",
         "scripts/build_topic.py": "ddfab3d8415edb0b5a7f8e1a091f10e0520cfd18",
-        "scripts/reproduce_review.py": "eab6807e05abf130e79db5d0e9354598c4cf7dfe"
+        "scripts/reproduce_review.py": "b8f090b9ac3699ced2181aa9366b098678c29dbe"
       },
       "certificate_scope": {
         "method": "analysis_code_blobs is the static import closure (ast; module-level and function-local import statements, relative and absolute) of the roots, restricted to modules that resolve to a file under harness/ or scripts/. Nothing in the map is listed by hand. Values are Git SHA-1 blob identities: sha1('blob ' + len + NUL + bytes) over the file with CRLF normalised to LF, recomputable with `git hash-object -- <path>` at the anchoring commit.",
@@ -73643,7 +73643,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "80 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "82 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -73673,7 +73673,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "4a148770ade7d891e4c97d1df5311b5a6b4d6408ed8dde0c09553ffc0897c22c",
-      "review_sha256": "b10344aa96d7579e895a0c4629504806f4d0a3cbca26bcb814bc4790962cd219",
+      "review_sha256": "d26a4681fa259b8274aa7f8fcbe22f049842d3a4c425438d66637839417398bb",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/corticosteroids-cap-mortality.md UTF-8 text, universal newlines",
@@ -73693,7 +73693,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "3212173ad429f1b9d8a765b4e75fb3c74bfd1c6f120d95d058d2ee603bf66437"
+      "release_sha256": "005ef236026da3031528c290aa86693c338f922690f47b3d6621d1fe6a8bbb8d"
     }
   }
 }

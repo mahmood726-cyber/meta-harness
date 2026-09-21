@@ -1840,7 +1840,7 @@
       "estimand": "RR",
       "population": null,
       "timepoint": null,
-      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
+      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
       "served_estimand": "RR",
       "estimand_decision": {
         "declared_estimand": "RR",
@@ -1852,126 +1852,7 @@
         "reason": "declared cumulative risk-ratio estimand",
         "rule": "prefer published RR; otherwise reconstruct RR from counts consistently"
       },
-      "trials": [
-        {
-          "label": "28456509",
-          "id": "PMID 28456509",
-          "ai": 30,
-          "n1i": 10033,
-          "ci": 34,
-          "n2i": 9985,
-          "provenance": "fulltext_verified_arms",
-          "source": "WOMAN trial (PMID 28456509, PMC5446563) full text, Table 5: 'Thromboembolic events | 10 033 | 9985 | Any event 30 (0.3%) | 34 (0.3%) | 0.88 (0.54-1.43) | 0.603'. Per-arm any-thromboembolic-event counts (normalised denominators for the thromboembolic analysis): 30 of 10033 (tranexamic acid) vs 34 of 9985 (placebo). Tranexamic acid vs placebo in women with a clinical diagnosis of postpartum haemorrhage (treatment). WOMAN is this topic's sole pooled trial (the primary is k=1 WOMAN; the other TXA-PPH trials are PREVENTION, correctly declined), so this thromboembolic harm is the representative single-trial estimate for the treatment PICO.",
-          "derivation": "reconstructed",
-          "selection_rule": "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT",
-          "selected_estimator": "reconstructed",
-          "alternatives": [],
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
-          "verified": "verified",
-          "verify_basis": "arm counts present in committed source",
-          "design": {
-            "unit_of_randomisation": "INDIVIDUAL",
-            "design": "PARALLEL",
-            "estimator_source": "RECONSTRUCTED",
-            "adjustment_status": "UNRESOLVED",
-            "adjustment_axis": {
-              "status": "UNRESOLVED"
-            },
-            "correlation_handling": {
-              "method": "none",
-              "evidence": []
-            },
-            "se_provenance": "synth.Study.yi_vi:2x2:RR",
-            "basis": [
-              {
-                "source": "AACT designs.intervention_model",
-                "span": "PARALLEL"
-              }
-            ],
-            "design_action": {
-              "action": "ALLOW",
-              "gate_id": "design-key:parallel",
-              "decision_state": "no detected validity-critical design hazard",
-              "reason": "individually randomised parallel design established from committed evidence",
-              "validity_critical": false
-            }
-          },
-          "study_effect": {
-            "effect_estimate": 0.878131577558762,
-            "standard_error": 0.2500905370629996,
-            "estimand": "RR",
-            "analysis_population": "UNKNOWN",
-            "randomisation_unit": "INDIVIDUAL",
-            "study_design": "PARALLEL",
-            "estimator_method": "RECONSTRUCTED",
-            "correlation_handling": {
-              "method": "none",
-              "evidence": []
-            },
-            "source_provenance": {
-              "source": "fulltext_verified_arms",
-              "span": "WOMAN trial (PMID 28456509, PMC5446563) full text, Table 5: 'Thromboembolic events | 10 033 | 9985 | Any event 30 (0.3%) | 34 (0.3%) | 0.88 (0.54-1.43) | 0.603'. Per-arm any-thromboembolic-event counts (normalised denominators for the thromboembolic analysis): 30 of 10033 (tranexamic acid) vs 34 of 9985 (placebo). Tranexamic acid vs placebo in women with a clinical diagnosis of postpartum haemorrhage (treatment). WOMAN is this topic's sole pooled trial (the primary is k=1 WOMAN; the other TXA-PPH trials are PREVENTION, correctly declined), so this thromboembolic harm is the representative single-trial estimate for the treatment PICO."
-            },
-            "design_action": {
-              "action": "ALLOW",
-              "gate_id": "design-key:parallel",
-              "decision_state": "no detected validity-critical design hazard",
-              "reason": "individually randomised parallel design established from committed evidence",
-              "validity_critical": false
-            }
-          },
-          "effect_object": {
-            "reported_label": "RR",
-            "statistical_model": null,
-            "canonical_estimand": "RISK_RATIO"
-          },
-          "trial_family_id": "NCT00872469",
-          "publication_role": "primary",
-          "analysis_set": "intention-to-treat",
-          "follow_up_window": null,
-          "endpoint_definition": "Thromboembolic events",
-          "population_age": "not_stated",
-          "intervention_ontology": {
-            "intervention_class": null
-          },
-          "compat_dimensions": {
-            "trial_id": "28456509",
-            "trial_label": "28456509",
-            "analysis_set": {
-              "value": "intention-to-treat",
-              "source": "committed source text",
-              "span": "the effect of tranexamic acid on the risk of death from post-partum haemorrhage. All analyses were done on an intention-to-treat basis. This trial is registered with ISRCTN76912190 (Dec 8, 2008); ClinicalTrials.gov, number NCT00872469; an"
-            },
-            "follow_up_window": {
-              "value": null,
-              "source": "underivable",
-              "span": ""
-            },
-            "endpoint_definition": {
-              "value": "Thromboembolic events",
-              "source": "outcome.name",
-              "span": "Thromboembolic events"
-            },
-            "population_age": {
-              "value": "not_stated",
-              "source": "committed source text",
-              "span": ""
-            },
-            "intervention_ontology": {
-              "intervention_class": null
-            }
-          },
-          "trial_id": "PMID 28456509",
-          "report_id": "PMID 28456509",
-          "effect_source_id": "PMID 28456509",
-          "outcome_effect_id": "tranexamic-acid-pph::Thromboembolic events::PMID 28456509::PMID 28456509",
-          "harm_absence_state": "EXTRACTED",
-          "harm_source_reported": true,
-          "family_identity_state": "REGISTRY_ANCHORED",
-          "family_id": "NCT00872469"
-        }
-      ],
+      "trials": [],
       "declared_absent_trials": [
         {
           "label": "32143721",
@@ -2001,10 +1882,10 @@
           "harm_source_reported": false,
           "family_id": "NCT02805426",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "6c1ca6bfa9f372aa8e2294f1045e0ea1d8fe70ed11b09ca9f755e1c0d9d78ed5",
-          "claim_id": "31ddebe25360eb17",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "ffaa0c9e7b4febf4",
           "depends_on": {
-            "input_set_version": "6c1ca6bfa9f372aa8e2294f1045e0ea1d8fe70ed11b09ca9f755e1c0d9d78ed5"
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           },
           "claim_kind": "membership_state"
         },
@@ -2036,10 +1917,10 @@
           "harm_source_reported": false,
           "family_id": "NCT02797119",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "6c1ca6bfa9f372aa8e2294f1045e0ea1d8fe70ed11b09ca9f755e1c0d9d78ed5",
-          "claim_id": "31ddebe25360eb17",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "ffaa0c9e7b4febf4",
           "depends_on": {
-            "input_set_version": "6c1ca6bfa9f372aa8e2294f1045e0ea1d8fe70ed11b09ca9f755e1c0d9d78ed5"
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           },
           "claim_kind": "membership_state"
         },
@@ -2073,75 +1954,119 @@
           "harm_source_reported": false,
           "family_id": "NCT02026297",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "6c1ca6bfa9f372aa8e2294f1045e0ea1d8fe70ed11b09ca9f755e1c0d9d78ed5",
-          "claim_id": "31ddebe25360eb17",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "ffaa0c9e7b4febf4",
           "depends_on": {
-            "input_set_version": "6c1ca6bfa9f372aa8e2294f1045e0ea1d8fe70ed11b09ca9f755e1c0d9d78ed5"
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          "claim_kind": "membership_state"
+        },
+        {
+          "label": "28456509",
+          "id": "PMID 28456509",
+          "absent_kind": "machine_absent",
+          "state": "EXTRACTION_DEBT",
+          "reason_code": "ENDPOINT_UNBOUND",
+          "endpoint_admissibility": "ENDPOINT_UNBOUND",
+          "hand_binding_state": "ABSTAIN",
+          "endpoint_binding": "unbound",
+          "endpoint_binding_reason": "tuple not located in the held document cache/tranexamic-acid-pph/records.json#PMID-28456509 (abstract): no span carries it",
+          "endpoint_result_span": null,
+          "held_document": {
+            "ref": "cache/tranexamic-acid-pph/records.json#PMID-28456509",
+            "sha256": "283b2c2862f0dd20e2087c7625f444acf2093d7bf70482f7ebcb52ac40162520",
+            "representation": "abstract"
+          },
+          "candidate_locations": [],
+          "candidate_tuple": {
+            "ai": 30,
+            "n1i": 10033,
+            "ci": 34,
+            "n2i": 9985
+          },
+          "refused_effect": {
+            "ai": 30,
+            "n1i": 10033,
+            "ci": 34,
+            "n2i": 9985
+          },
+          "source": "WOMAN trial (PMID 28456509, PMC5446563) full text, Table 5: 'Thromboembolic events | 10 033 | 9985 | Any event 30 (0.3%) | 34 (0.3%) | 0.88 (0.54-1.43) | 0.603'. Per-arm any-thromboembolic-event counts (normalised denominators for the thromboembolic analysis): 30 of 10033 (tranexamic acid) vs 34 of 9985 (placebo). Tranexamic acid vs placebo in women with a clinical diagnosis of postpartum haemorrhage (treatment). WOMAN is this topic's sole pooled trial (the primary is k=1 WOMAN; the other TXA-PPH trials are PREVENTION, correctly declined), so this thromboembolic harm is the representative single-trial estimate for the treatment PICO.",
+          "provenance": "fulltext_verified_arms",
+          "reason": "the hand-extracted number is not bound to an endpoint in the held document (tuple not located in the held document cache/tranexamic-acid-pph/records.json#PMID-28456509 (abstract): no span carries it); the candidate extraction is set aside for review -- the trial stays eligible evidence awaiting adjudication",
+          "recovery": "a reviewer binds the tuple to one span of the held document (or records a typed refusal with the span) -- recorded, source-linked, under the same numeric and freshness checks",
+          "trial_family_id": "NCT00872469",
+          "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "completion_date": "2017-04-30",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
+          "state_basis": "ENDPOINT_UNBOUND: source span: \"WOMAN trial (PMID 28456509, PMC5446563) full text, Table 5: 'Thromboembolic events | 10 033 | 9985 | Any event 30 (0.3%) | 34 (0.3%) | 0.88 (0.54-1.43) | 0.603'. Per-arm any-thromboembolic-event coun...\"; the hand-extracted number is not bound to an endpoint in the held document (tuple not located in the held document cache/tranexamic-acid-pph/records.json#PMID-28456509 (abstract): no span carries it); the candidate extraction is set aside for review -- the trial stays eligible evidence awaiting adjudication",
+          "source_span": "WOMAN trial (PMID 28456509, PMC5446563) full text, Table 5: 'Thromboembolic events | 10 033 | 9985 | Any event 30 (0.3%) | 34 (0.3%) | 0.88 (0.54-1.43) | 0.603'. Per-arm any-thromboembolic-event coun...",
+          "verbatim_span": "WOMAN trial (PMID 28456509, PMC5446563) full text, Table 5: 'Thromboembolic events | 10 033 | 9985 | Any event 30 (0.3%) | 34 (0.3%) | 0.88 (0.54-1.43) | 0.603'. Per-arm any-thromboembolic-event coun...",
+          "trial_id": "PMID 28456509",
+          "report_id": "PMID 28456509",
+          "effect_source_id": "PMID 28456509",
+          "outcome_effect_id": "tranexamic-acid-pph::Thromboembolic events::PMID 28456509::PMID 28456509",
+          "reason_code_audit": {
+            "verdict": "REASON_TRUE",
+            "detail": "value absent from every held source inspected; code is consistent",
+            "stated_reason_code": "ENDPOINT_UNBOUND"
+          },
+          "harm_absence_state": "RETRIEVED_OUTCOME_NOT_REPORTED",
+          "harm_source_reported": true,
+          "harm_source_span": "Adverse events (including thromboembolic events) did not differ significantly in the tranexamic acid versus placebo group.",
+          "harm_source_signal": "term_signal",
+          "family_id": "NCT00872469",
+          "family_identity_state": "REGISTRY_ANCHORED",
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "claim_id": "ffaa0c9e7b4febf4",
+          "depends_on": {
+            "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
           },
           "claim_kind": "membership_state"
         }
       ],
       "membership": {
-        "analysis_input_family_ids": [
-          "NCT00872469"
-        ],
-        "pooled_family_ids": [
-          "NCT00872469"
-        ],
-        "pooled_family_count": 1,
-        "pooled": [
-          "PMID 28456509"
-        ],
+        "analysis_input_family_ids": [],
+        "pooled_family_ids": [],
+        "pooled_family_count": 0,
+        "pooled": [],
         "unresolved_pooled_candidate_ids": [],
         "declared_absent": [
           "PMID 32143721",
           "PMID 36243576",
-          "NCT02026297"
+          "NCT02026297",
+          "PMID 28456509"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "a9b5587a67785366ed98eab0f81c0e774ae7867a0acee405f1c35a806e54aaf2"
+        "input_set_version": "94b918f2345f1465f07a758795574e311ea7ed263cc10c32029723f9faa32832"
       },
       "result": {
-        "k": 1,
-        "estimate": 0.8781,
-        "scale": "RR",
-        "ci_low": 0.5379,
-        "ci_high": 1.4336,
-        "Q": 0.0,
-        "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
-        "pi_note": "prediction interval undefined for k=1",
-        "estmeasure": {
-          "status": "homogeneous",
-          "classes": [
-            "FIRST_EVENT_RATIO"
-          ],
-          "canonicals": [
-            "RISK_RATIO"
-          ],
-          "labels": [
-            "RR"
-          ]
-        },
-        "leave_one_out": {
-          "note": "not assessable at k=1 (leave-one-out needs k>=3)"
-        },
-        "claim": {
-          "present": true,
-          "significant": false,
-          "crosses_null": true,
-          "touches_null": false,
-          "null": 1.0,
-          "direction": "benefit",
-          "significant_fixed": null
-        },
+        "present": false,
+        "state": "HARMS_INCOMPLETE",
+        "n_reporting_pool_trials": 1,
+        "n_pooled": 0,
+        "known_eligible_outcome_reports_unresolved": [
+          {
+            "trial_id": "28456509",
+            "trial_label": "28456509",
+            "terms": [
+              "thromboembolic events"
+            ],
+            "span": "acid group vs 546 [5·5%] in the placebo group, rr 0·97, 95% ci 0·87-1·09; p=0·65). adverse events (including thromboembolic events) did not differ significantly in the tranexamic acid versus placebo group. interpretation: tranexamic acid re"
+          }
+        ],
+        "reason": "No harm value is poolable, but the registered trials are not all certified RETRIEVED_OUTCOME_NOT_REPORTED; states=NOT_RETRIEVED, RETRIEVED_OUTCOME_NOT_REPORTED",
         "harm_reporting_trials": [
           {
             "id": "28456509",
             "label": "28456509",
-            "state": "EXTRACTED",
-            "extracted": true,
-            "span": "WOMAN trial (PMID 28456509, PMC5446563) full text, Table 5: 'Thromboembolic events | 10 033 | 9985 | Any event 30 (0.3%) | 34 (0.3%) | 0.88 (0.54-1.43) | 0.603'. Per-arm any-thromboembolic-event counts (normalised denominators for the thromboembolic analysis): 30 of 10033 (tranexamic acid) vs 34 of 9985 (placebo). Tranexamic acid vs placebo in women with a clinical diagnosis of postpartum haemorrhage (treatment). WOMAN is this topic's sole pooled trial (the primary is k=1 WOMAN; the other TXA-PPH trials are PREVENTION, correctly declined), so this thromboembolic harm is the representative single-trial estimate for the treatment PICO.",
+            "state": "RETRIEVED_OUTCOME_NOT_REPORTED",
+            "extracted": false,
+            "reason_code": "ENDPOINT_UNBOUND",
+            "reason": "the hand-extracted number is not bound to an endpoint in the held document (tuple not located in the held document cache/tranexamic-acid-pph/records.json#PMID-28456509 (abstract): no span carries it); the candidate extraction is set aside for review -- the trial stays eligible evidence awaiting adjudication",
+            "span": "WOMAN trial (PMID 28456509, PMC5446563) full text, Table 5: 'Thromboembolic events | 10 033 | 9985 | Any event 30 (0.3%) | 34 (0.3%) | 0.88 (0.54-1.43) | 0.603'. Per-arm any-thromboembolic-event coun...",
             "source_ladder": [
               {
                 "rung": "abstract",
@@ -2160,81 +2085,41 @@
           }
         ],
         "harm_reporting_trials_n": 1,
-        "harm_extracted_trials_n": 1,
+        "harm_extracted_trials_n": 0,
         "harm_registered_trials_n": 4,
-        "input_set_version": "6c1ca6bfa9f372aa8e2294f1045e0ea1d8fe70ed11b09ca9f755e1c0d9d78ed5",
-        "claim_id": "4922220b89ec0a3c",
+        "harms_synthesis_suppressed": true,
+        "claim": {
+          "present": false,
+          "pooled_claim": false,
+          "state": "HARMS_INCOMPLETE",
+          "significant": false,
+          "crosses_null": null,
+          "touches_null": null,
+          "null": null,
+          "direction": null,
+          "basis": "No quantitative safety conclusion while source-reporting trials remain unresolved"
+        },
+        "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "claim_id": "9f55a589bb2ed6b6",
         "depends_on": {
-          "input_set_version": "6c1ca6bfa9f372aa8e2294f1045e0ea1d8fe70ed11b09ca9f755e1c0d9d78ed5"
+          "input_set_version": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
         },
         "claim_kind": "outcome_result"
       },
-      "endpoint_canonical": {
-        "label": "THROMBOEMBOLIC_EVENTS",
-        "event_time": "TIME_TO_FIRST_EVENT",
-        "components": [],
-        "component_sets": [],
-        "status": "NOT_DECLARED"
-      },
-      "compat_key": {
-        "effect_measure": [
-          "RR"
-        ],
-        "event_process": [
-          "FIRST_EVENT_RATIO"
-        ],
-        "endpoint": "trial-defined Thromboembolic events (definitions listed per trial)",
-        "follow_up_window": null,
-        "analysis_set": null,
-        "analysis_set_declared": null,
-        "randomised_contrast": {
-          "verified": 1,
-          "total": 1
-        },
-        "matched": true,
-        "mismatches": [],
-        "endpoint_canonical": {
-          "label": "THROMBOEMBOLIC_EVENTS",
-          "event_time": "TIME_TO_FIRST_EVENT",
-          "components": [],
-          "component_sets": [],
-          "status": "NOT_DECLARED"
-        },
-        "endpoint_canonical_status": "NOT_DECLARED",
-        "dimension_matches": {
-          "endpoint": false
-        },
-        "underlying_checked": true,
-        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS"
-      },
-      "recovery_recheck": {
-        "hard_incompatible": false,
-        "mismatches": [],
-        "effect_measure_labels": [
-          "RR"
-        ],
-        "k": 1,
-        "reconstructed_members": [
-          "28456509"
-        ],
-        "label_mix_small_k": false
-      },
-      "compat_underlying": {
-        "status": "COMPAT_DIMENSION_HETEROGENEOUS",
-        "dimensions": [
-          "endpoint"
-        ],
-        "per_trial": {
-          "endpoint": [
-            {
-              "trial_id": "28456509",
-              "trial_label": "28456509",
-              "value": "Thromboembolic events",
-              "source": "outcome.name",
-              "span": "Thromboembolic events"
-            }
-          ]
-        }
+      "harms_incomplete": {
+        "state": "HARMS_INCOMPLETE",
+        "n_reporting_pool_trials": 1,
+        "n_pooled": 0,
+        "unresolved": [
+          {
+            "trial_id": "28456509",
+            "trial_label": "28456509",
+            "terms": [
+              "thromboembolic events"
+            ],
+            "span": "acid group vs 546 [5·5%] in the placebo group, rr 0·97, 95% ci 0·87-1·09; p=0·65). adverse events (including thromboembolic events) did not differ significantly in the tranexamic acid versus placebo group. interpretation: tranexamic acid re"
+          }
+        ]
       }
     },
     {
@@ -2996,7 +2881,7 @@
   },
   "compat_underlying": {
     "checked": true,
-    "n_pre_fix_asserted_not_underlying": 2,
+    "n_pre_fix_asserted_not_underlying": 1,
     "n_post_fix_asserted_not_underlying": 0,
     "pre_fix_violations": [
       {
@@ -3014,31 +2899,15 @@
           }
         ],
         "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
-      },
-      {
-        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
-        "outcome": "Thromboembolic events",
-        "dimension": "endpoint",
-        "asserted": "THROMBOEMBOLIC_EVENTS",
-        "per_trial_values": [
-          {
-            "trial_id": "28456509",
-            "trial_label": "28456509",
-            "value": "Thromboembolic events",
-            "source": "outcome.name",
-            "span": "Thromboembolic events"
-          }
-        ],
-        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
       }
     ],
     "post_fix_violations": []
   },
   "reason_code_audit": {
     "denominator_source": "declared_absent_trials reason_code/state rows on this page",
-    "N": 10,
+    "N": 11,
     "counts": {
-      "REASON_TRUE": 5,
+      "REASON_TRUE": 6,
       "REASON_FALSE_VALUE_HELD": 0,
       "REASON_WRONG_KIND": 2,
       "NOT_VERIFIABLE": 3
@@ -3057,6 +2926,12 @@
         "REASON_FALSE_VALUE_HELD": 0,
         "REASON_WRONG_KIND": 0,
         "NOT_VERIFIABLE": 3
+      },
+      "ENDPOINT_UNBOUND": {
+        "REASON_TRUE": 1,
+        "REASON_FALSE_VALUE_HELD": 0,
+        "REASON_WRONG_KIND": 0,
+        "NOT_VERIFIABLE": 0
       },
       "REFUSED_ON_EVIDENCE": {
         "REASON_TRUE": 0,
@@ -3134,6 +3009,17 @@
       },
       {
         "slug": "tranexamic-acid-pph",
+        "outcome": "Thromboembolic events",
+        "outcome_kind": "harm",
+        "trial_key": "28456509",
+        "label": "28456509",
+        "id": "PMID 28456509",
+        "stated_reason_code": "ENDPOINT_UNBOUND",
+        "verdict": "REASON_TRUE",
+        "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "tranexamic-acid-pph",
         "outcome": "Adverse events",
         "outcome_kind": "harm",
         "trial_key": "32143721",
@@ -3182,9 +3068,9 @@
     "denominator_source": "included screening records x registered outcomes in this review",
     "N": 12,
     "counts": {
-      "EXTRACTED": 2,
+      "EXTRACTED": 1,
       "HELD_NOT_EXTRACTED": 0,
-      "NOT_IN_HELD_SOURCES": 8,
+      "NOT_IN_HELD_SOURCES": 9,
       "ABSENT_BY_DESIGN": 2
     },
     "n_held_not_extracted": 0,
@@ -3196,9 +3082,9 @@
         "ABSENT_BY_DESIGN": 0
       },
       "harm": {
-        "EXTRACTED": 1,
+        "EXTRACTED": 0,
         "HELD_NOT_EXTRACTED": 0,
-        "NOT_IN_HELD_SOURCES": 5,
+        "NOT_IN_HELD_SOURCES": 6,
         "ABSENT_BY_DESIGN": 2
       }
     },
@@ -3257,7 +3143,7 @@
         "trial_label": "28456509",
         "outcome": "Thromboembolic events",
         "outcome_kind": "harm",
-        "status": "EXTRACTED"
+        "status": "NOT_IN_HELD_SOURCES"
       },
       {
         "slug": "tranexamic-acid-pph",
@@ -4389,10 +4275,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -6041,7 +5932,7 @@
         },
         {
           "outcome": "Thromboembolic events",
-          "state": "POOLED",
+          "state": "UNKNOWN",
           "span": {
             "measured": {
               "state": "UNKNOWN",
@@ -6056,18 +5947,18 @@
               "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
             }
           },
-          "analysis_input": true,
-          "pool_refusal": null,
-          "pooled": {
-            "state": "YES",
-            "span": {
-              "source": "review.outcomes.trials",
-              "report_ids": [
-                "PMID 28456509"
-              ]
-            }
+          "analysis_input": false,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
           },
-          "poolable_value": true
+          "pooled": {
+            "state": "UNKNOWN",
+            "absence_code": "POOL_REFUSED"
+          },
+          "poolable_value": false
         },
         {
           "outcome": "Adverse events",
@@ -7513,10 +7404,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -9095,10 +8991,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -10756,10 +10657,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -11971,10 +11877,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -14044,10 +13955,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -15923,10 +15839,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -17207,10 +17128,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -18376,10 +18302,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -20098,10 +20029,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -21010,10 +20946,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -24716,10 +24657,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -27100,10 +27046,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -30365,10 +30316,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -32455,10 +32411,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -36378,10 +36339,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -37645,10 +37611,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -38858,10 +38829,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -40098,10 +40074,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -41650,10 +41631,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -44784,10 +44770,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -45997,10 +45988,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -47529,10 +47525,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -49176,10 +49177,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -50566,10 +50572,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -52016,10 +52027,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -53067,10 +53083,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -54221,10 +54242,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -55743,10 +55769,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -56857,10 +56888,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -58332,10 +58368,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -59363,10 +59404,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -60623,10 +60669,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -61906,10 +61957,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -62876,10 +62932,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -63867,10 +63928,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -64837,10 +64903,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -65912,10 +65983,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -66309,10 +66385,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -66708,10 +66789,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -67107,10 +67193,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -67510,10 +67601,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -67985,10 +68081,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -68382,10 +68483,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -68784,10 +68890,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -69184,10 +69295,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -69583,10 +69699,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -69980,10 +70101,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -70377,10 +70503,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -70774,10 +70905,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -71171,10 +71307,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -71568,10 +71709,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -71969,10 +72115,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -72366,10 +72517,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -72763,10 +72919,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -73160,10 +73321,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -73591,10 +73757,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -73988,10 +74159,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -74387,10 +74563,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -74787,10 +74968,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -75188,10 +75374,15 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": null,
+          "pool_refusal": {
+            "source": "review.outcomes.result",
+            "present": false,
+            "suppressed_incompatible": null,
+            "pool_refused": null
+          },
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "NO_POOLABLE_VALUE"
+            "absence_code": "POOL_REFUSED"
           },
           "poolable_value": false
         },
@@ -75240,6 +75431,32 @@
     "registry_records_screened": 30
   },
   "family_missing_evidence": [
+    {
+      "family_id": "NCT00872469",
+      "outcome": "Thromboembolic events",
+      "state": "UNKNOWN",
+      "span": {
+        "measured": {
+          "state": "UNKNOWN",
+          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+        },
+        "reported": {
+          "state": "UNKNOWN",
+          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+        },
+        "extractable": {
+          "state": "UNKNOWN",
+          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+        }
+      },
+      "absence_code": "POOL_REFUSED",
+      "pool_refusal": {
+        "source": "review.outcomes.result",
+        "present": false,
+        "suppressed_incompatible": null,
+        "pool_refused": null
+      }
+    },
     {
       "family_id": "NCT00872469",
       "outcome": "Adverse events",
@@ -75305,8 +75522,13 @@
           "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
         }
       },
-      "absence_code": "NO_POOLABLE_VALUE",
-      "pool_refusal": null
+      "absence_code": "POOL_REFUSED",
+      "pool_refusal": {
+        "source": "review.outcomes.result",
+        "present": false,
+        "suppressed_incompatible": null,
+        "pool_refused": null
+      }
     },
     {
       "family_id": "NCT02026297",
@@ -75373,8 +75595,13 @@
           "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
         }
       },
-      "absence_code": "NO_POOLABLE_VALUE",
-      "pool_refusal": null
+      "absence_code": "POOL_REFUSED",
+      "pool_refusal": {
+        "source": "review.outcomes.result",
+        "present": false,
+        "suppressed_incompatible": null,
+        "pool_refused": null
+      }
     },
     {
       "family_id": "NCT02302456",
@@ -75441,8 +75668,13 @@
           "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
         }
       },
-      "absence_code": "NO_POOLABLE_VALUE",
-      "pool_refusal": null
+      "absence_code": "POOL_REFUSED",
+      "pool_refusal": {
+        "source": "review.outcomes.result",
+        "present": false,
+        "suppressed_incompatible": null,
+        "pool_refused": null
+      }
     },
     {
       "family_id": "NCT02805426",
@@ -75509,8 +75741,13 @@
           "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
         }
       },
-      "absence_code": "NO_POOLABLE_VALUE",
-      "pool_refusal": null
+      "absence_code": "POOL_REFUSED",
+      "pool_refusal": {
+        "source": "review.outcomes.result",
+        "present": false,
+        "suppressed_incompatible": null,
+        "pool_refused": null
+      }
     },
     {
       "family_id": "NCT02936661",
@@ -75848,6 +76085,29 @@
       }
     },
     {
+      "limitation_id": "topic:tranexamic-acid-pph:harms:0:thromboembolic-events:harms-incomplete",
+      "kind": "HARMS_INCOMPLETE",
+      "limitation_class": "VALIDITY_THREATENING",
+      "severity": "BLOCKS_CLAIM",
+      "claim_affected": "outcome result: Thromboembolic events",
+      "evidence_state": "PARTIAL",
+      "source_fields": [
+        "/outcomes/*/result/harm_reporting_trials"
+      ],
+      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>28456509</td><td>RETRIEVED_OUTCOME_NOT_REPORTED / ENDPOINT_UNBOUND: the hand-extracted number is not bound to an endpoint in the held document (tuple not located in the held document cache/tranexamic-acid-pph/records.json#PMID-28456509 (abstract): no span carries it); the candidate extraction is set aside for review -- the trial stays eligible evidence awaiting adjudication</td><td>WOMAN trial (PMID 28456509, PMC5446563) full text, Table 5: &#x27;Thromboembolic events | 10 033 | 9985 | Any event 30 (0.3%) | 34 (0.3%) | 0.88 (0.54-1.43) | 0.603&#x27;. Per-arm any-thromboembolic-event coun...</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr></table>",
+      "text_sha256": "38bec39a24024ba51046ecc39fe00dd64708d6d2394c26bd8cc2f1223b6cda36",
+      "linked_decision": {
+        "action": "REFUSE",
+        "gate_id": "compat-check:harms-incomplete",
+        "decision_state": "isolated harms estimate is suppressed until known primary-pool reports are extracted or typed-refused"
+      },
+      "consumer": {
+        "gate_id": "compat_check.harms_incomplete",
+        "gate_input_path": "/harms/*/result/state",
+        "gate_verdict_at_build": "HARMS_INCOMPLETE: Thromboembolic events"
+      }
+    },
+    {
       "limitation_id": "topic:tranexamic-acid-pph:harms:1:adverse-events:harms-incomplete",
       "kind": "HARMS_INCOMPLETE",
       "limitation_class": "VALIDITY_THREATENING",
@@ -75867,7 +76127,7 @@
       "consumer": {
         "gate_id": "compat_check.harms_incomplete",
         "gate_input_path": "/harms/*/result/state",
-        "gate_verdict_at_build": "NO_HARMS_INCOMPLETE"
+        "gate_verdict_at_build": "HARMS_INCOMPLETE: Thromboembolic events"
       }
     },
     {
@@ -75920,7 +76180,7 @@
       "consumer": {
         "gate_id": "compat.outcome_key",
         "gate_input_path": "/arm_contrast/trials",
-        "gate_verdict_at_build": "Death due to bleeding: verified 1/1; Thromboembolic events: verified 1/1"
+        "gate_verdict_at_build": "Death due to bleeding: verified 1/1"
       }
     },
     {
@@ -76162,7 +76422,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "dcb1b98082b6416b68ee073b09460626cfe07f0a",
-    "review_sha256": "7a2e52ca0e1f7c3f8be8c9f561f1d4afe240526a40d1505889391256f5693066",
+    "review_sha256": "020c16cefa47ca77a59576ffc1fafaa25411214b969fab33eb8900e642ff172a",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -76193,6 +76453,8 @@
         "hand_status_normalized": "SUBSET",
         "hand_status_disagrees": false
       },
+      "hand_status": "SUBSET",
+      "hand_status_stale": false,
       "input_set_version": "d48fc63a3e85d3849133cdaee0358d7e348f4a36a0d4fd47b8fc5c917c62671f",
       "claim_id": "6d98bc56fab2d384",
       "depends_on": {
@@ -76213,6 +76475,39 @@
         "claim_kind": "refusal"
       }
     ],
+    "result_changes": [
+      {
+        "slug": "tranexamic-acid-pph",
+        "outcome": "Thromboembolic events",
+        "before": {
+          "k": 1,
+          "estimate": 0.8781,
+          "ci_low": 0.5379,
+          "ci_high": 1.4336
+        },
+        "after": {
+          "k": null,
+          "estimate": null,
+          "ci_low": null,
+          "ci_high": null
+        },
+        "left_pool": [
+          "PMID 28456509"
+        ],
+        "entered_pool": [],
+        "reason": "PMID 28456509 set aside (ENDPOINT_UNBOUND): tuple not located in the held document cache/tranexamic-acid-pph/records.json#PMID-28456509 (abstract): no span carries it. Mechanism: the hand-row binder landing (m2/bind-hand-rows) binds every hand-extracted row to held bytes or sets it aside; a set-aside trial stays eligible evidence awaiting adjudication; the numbers are not asserted wrong.",
+        "by": "Claude Opus 5 (lane m2/bind-hand-rows, 2026-09-20); reviewer countersignature owed: Mahmood",
+        "when_utc": "2026-09-20T23:30:00Z",
+        "reviewer_countersignature": {
+          "state": "SEEN_AND_SIGNED",
+          "by": "Mahmood",
+          "when_utc": "2026-09-21T10:38:14Z",
+          "rendered_sha256": "bffe51380555a1e9549e214033f2bc812ca978196f442b61f6b89c6227d34108",
+          "how_it_reached_the_reviewer": "relayed by the orchestrating lane, 2026-09-21; for each notice the figures, the departing trial(s) and the stated reason were conveyed in full, and the shared mechanism sentence was quoted verbatim; the full rendered block was offered and not read letter-for-letter for the seven first-shown notices; this notice: one of the seven first-shown, not read letter-for-letter"
+        },
+        "conclusion_changed": "the outcome no longer has a pooled estimate"
+      }
+    ],
     "dual": {
       "agree": 0,
       "reconcile": 0,
@@ -76220,21 +76515,21 @@
       "conflict": 0
     },
     "claim_check": {
-      "claims_checked": 2,
+      "claims_checked": 1,
       "surfaces": [
         "outcome block",
         "overview",
         "manuscript"
       ],
       "scope_counts": {
-        "outcome_result": 2,
+        "outcome_result": 1,
         "strand_pool": 0,
         "rob_sensitivity": 2,
         "grade": 1
       },
       "scope": {
         "counts": {
-          "outcome_result": 2,
+          "outcome_result": 1,
           "strand_pool": 0,
           "rob_sensitivity": 2,
           "grade": 1
@@ -76310,19 +76605,19 @@
         }
       ],
       "config_sha256": "bbf006593ba50d97d7fb6c08f46cb77bc7ce6cd6f754887061f6a4235dc728b6",
-      "analysis_code_sha256": "46622f5c2c7fe32b2bd27f43738301104eb87221f84379ee7e5da40963f2b827",
+      "analysis_code_sha256": "fd5ccc59cf078077fa5c788ed90b4fddce9767cdf4cfd00998fa1ce03ee1c40b",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
         "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
-        "harness/absence.py": "2db42260d7a5ac5d9b708f3cca8513d94c5c5584",
+        "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
         "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
         "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
         "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
         "harness/arm_object.py": "c6e2a9d0ea0263eba72c3453d52bc5a05b06e0b2",
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
-        "harness/census.py": "8909d29924df518d99ca9a73691c92e2e50557f8",
+        "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
         "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
@@ -76347,10 +76642,11 @@
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "81e3b42415047edde8fb39dce964e1ff415963c8",
+        "harness/gate.py": "20a5ce33e2c111d23993e208d00c88e04afda5ca",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
+        "harness/hand_binding.py": "d48224edf7e0e22dd0111e3c1a72565c25b93dd8",
         "harness/harms.py": "64f79ea3db77361f8076c8017af851f388183ef7",
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
@@ -76360,14 +76656,14 @@
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "abf2d38fbf9800b23d83289febd289fa53c6b2e6",
+        "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
-        "harness/manuscript.py": "6a18509615e91f32727923a43b569ff2181a5b5f",
+        "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "eec920650e986ee7a18e7549c60915a9ce6405b9",
-        "harness/parity_relation.py": "55a2602e97e0ee4518aa4d083e5ff4500afe4bf0",
-        "harness/pipeline.py": "4b1743b9dfa13b70612f435081f9009638a6ef10",
+        "harness/page.py": "4dad90b0facdea7c0f89fd0bc5dd1dd1ce04d31f",
+        "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
+        "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -76375,8 +76671,9 @@
         "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
         "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
         "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
+        "harness/result_changes.py": "b7a2eb8c55276a0335312a9ea389631216a9449d",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
-        "harness/rob_sensitivity.py": "026441df1eac7e36710fe170eba196ca5b085a3c",
+        "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
         "harness/screen.py": "e2864719b75c355abfcff1dbde0b376c45bdd84e",
@@ -76385,14 +76682,14 @@
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
-        "harness/target_endpoint.py": "554df973c35f7c9d29070e29cb7075ec9026e574",
+        "harness/target_endpoint.py": "f605e0f513e3524baac0a9e5f36ced5b926ed6e3",
         "harness/trial_family.py": "57882f159bbfd8d91b60deaf5956e409de6c484f",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
         "harness/verify.py": "e5187ea9cc8e9b92a02a98e7bc84ed1cfd0a99f5",
         "scripts/build_topic.py": "ddfab3d8415edb0b5a7f8e1a091f10e0520cfd18",
-        "scripts/reproduce_review.py": "eab6807e05abf130e79db5d0e9354598c4cf7dfe"
+        "scripts/reproduce_review.py": "b8f090b9ac3699ced2181aa9366b098678c29dbe"
       },
       "certificate_scope": {
         "method": "analysis_code_blobs is the static import closure (ast; module-level and function-local import statements, relative and absolute) of the roots, restricted to modules that resolve to a file under harness/ or scripts/. Nothing in the map is listed by hand. Values are Git SHA-1 blob identities: sha1('blob ' + len + NUL + bytes) over the file with CRLF normalised to LF, recomputable with `git hash-object -- <path>` at the anchoring commit.",
@@ -76405,7 +76702,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "80 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "82 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -76435,7 +76732,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "ad34cda80e3e3cdddc9be833948f14b3b93455c9f8448c4df65c9c3dfe726ffd",
-      "review_sha256": "7a2e52ca0e1f7c3f8be8c9f561f1d4afe240526a40d1505889391256f5693066",
+      "review_sha256": "020c16cefa47ca77a59576ffc1fafaa25411214b969fab33eb8900e642ff172a",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/tranexamic-acid-pph.md UTF-8 text, universal newlines",
@@ -76455,7 +76752,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "0635cd9dce747379ef6ad985fc3cf2014bf641ca499120e4b51cfc57e30e569d"
+      "release_sha256": "0e5fc220e773e54435870b5c80e40700b6628f4e227fdd83e71e2cb0c2c87475"
     }
   }
 }

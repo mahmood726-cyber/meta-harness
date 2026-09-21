@@ -71,6 +71,9 @@ def reproduce(slug):
     _rd = os.path.join(ROOT, "cache", slug, "research_diff.json")
     if os.path.exists(_rd):
         repro["research_diff"] = json.load(open(_rd, encoding="utf-8"))
+    _rc = census._result_change_notices(ROOT, slug, core)
+    if _rc:
+        repro["result_changes"] = _rc
     _pa = membership.annotate_parity(census._parity_row(ROOT, slug, core), core)
     if _pa:
         repro["parity"] = _pa

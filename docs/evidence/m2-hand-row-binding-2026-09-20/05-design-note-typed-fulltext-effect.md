@@ -1,0 +1,124 @@
+# M2 design note — a typed evidence object for the hand-extraction / full-text route ONLY
+
+Status: design before code (Mahmood, 2026-09-20). Scope is NARROW by decision: the route that carries
+`verified_effects.json` / `verified_arms.json` rows and the pipeline's `fulltext_verified`,
+`fulltext_verified_arms`, `abstract_verified` provenance, including the three override routes
+(`pipeline.py` 1044–1108: verified-arms override, continuous override, verified-effects override) that
+append rows BEFORE classification. The general typed rewrite, the membership object, a new reason-code
+taxonomy and the two-role pool remain FROZEN. If anything below needs a field the abstract
+machine-extraction route or the registry route would also have to carry, that is the signal to stop.
+
+## 1. What was demonstrated (M2 battery, real route: `scripts/build_topic.py` + `python -m harness.gate`, 8b1fb37d)
+
+- **A gate whose failure mode is "admit" rewards exactly the input it exists to stop.** SOUL's hand
+  entry with `ci_high` 0.96→0.98: the wrong tuple no longer matched the abstract, `bind_verified_row`
+  returned no location, the row fell to `fulltext_verified / target_endpoint_class None`, `admit_rows`
+  returned `UNBOUND_LEGACY` (admissible) and the row was pooled *because* it no longer matched. Corrupting
+  the data removed the only objector.
+- **The haystack is the self-authored string.** effect 0.68 with the hand-written `source` also saying
+  0.68 while the held abstract says 0.86: pooled **0.68 (0.77–0.96)** — a point estimate outside its own
+  interval — `verified: verified`, basis "effect present in committed source", estimate 0.856→0.807,
+  `GATE PASS`. `verify.verify_pooled` checked the row's own `source` field; no consumer read the held bytes.
+- **A mixed-scale pool reports `estimate: None` at k=8 and the gate passes.** scale HR→OR on one row.
+  The gate is not scoped to the thing it protects (an estimate).
+- **Right reason, wrong granularity.** effect 0.68 with the source string unchanged: `check_pooled_verified`
+  refuses the PAGE (not-yet) while the bad row stays in the pool. A page-level refusal for a row-level defect
+  fails the reader in the other direction (whole review withheld; nothing tells the reader which row).
+- **`UNBOUND_LEGACY` is the dominant admission path on published pages**: 121 of 145 pooled rows on 30 of
+  32 pages at 8b1fb37d, 115 pooled into a served estimate, 71 primary-outcome rows. glp1's primary MACE pool
+  is 8 of 8 `EXACT_TARGET` and is NOT contaminated; its two harm rows (REWIND GI, LEADER discontinuation)
+  are `UNBOUND_LEGACY` and are each the whole of a k=1 served harm estimate.
+- **We were not short of evidence; we were short of a reader.** INFERRED by a reference locator over the
+  held bytes (not yet a measurement of a repaired harness): 78 of the 121 locate to exactly one held span
+  that names the outcome family or binds to exactly one definition span; 12 are ambiguous and must abstain
+  (one of them, dpp4 30418475, "binds" to a citation title in the reference list — the fail-open with a
+  confident face); 14 are registry/derived provenance (a different binder — the corrections lane's
+  selection-by-identity); 7 name a document not held; 8 are not locatable in the held text.
+- **The two lanes built the two halves of one object without coordinating.** The bundle lane's format 3.6
+  `spans[]` with roles (result, definition, column_header, section_heading, analysis_method, footnote) is the
+  exact shape LEADER's Table 2 row needs (cell `444 (9.5)`, row label "Any adverse event", section heading
+  "Adverse event leading to permanent discontinuation of trial regimen", column header
+  "Liraglutide (N = 4668)"), and the third lane's `verify.py` fix #3 (haystack = `source_span` in the held
+  document) is the numeric half of the same consumer: `pipeline.py` already propagates `document_ref` +
+  `document_sha256` for typed refusals and some verified-arms overrides, and `verify.py` has no
+  `document_sha256` consumer at all.
+
+## 2. The object (read from held bytes; nothing in it is self-reported)
+
+One record per hand extraction, produced at load (`harness/verified_inputs.py`) from the committed entry
+and the held document, carried on the row through `pipeline._build_outcome`, consumed by `admit_rows`,
+`verify_pooled` and the page. Field names reuse what the bundle lane and the typed refusals already use.
+
+| field | source | rule |
+|---|---|---|
+| `document_ref` | entry | `cache/<slug>/records.json#PMID-<pid>` or `cache/<slug>/ft_<pid>.txt` (or an `outputs/handover/...` held text). REQUIRED for a hand row to be BOUND; a legacy entry without it is ABSTAIN, never `UNBOUND_LEGACY`. |
+| `document_sha256` | entry, checked against the held file at build | mismatch → ABSTAIN, reason `held document changed since approval` (this is the stale-approval class; the approval is pinned to bytes, not to a date). |
+| `representation` | derived | `abstract` / `pmc_xml` / `pdf_text` — decides which locator runs (sentence vs table row). |
+| `spans[]` | entry (`source_span`) + locator | each `{role, text, offset}`; `text` MUST be a verbatim substring of the held bytes (existing `_validate`), roles from the bundle vocabulary: `result`, `definition`, `row_label`, `section_heading`, `column_header`, `caption`, `footnote`. A legacy free-form `source` is NOT a span; it becomes `verification_note` and is never searched. |
+| `tuple` | entry | `{effect, ci_low, ci_high, scale, ci_pct}` or `{ai, n1i, ci, n2i}`; every number located losslessly (`_Exact`) inside the `result` span; the scale word (hazard ratio / HR / odds ratio / OR / relative risk / RR / rate ratio) inside the `result` span or a `column_header`; `ci_pct` (default 95) must appear as a `<pct>%` token in the same span; per-arm counts need denominator-or-percentage adjacent in the same span. A tuple whose point lies outside its own interval is refused at load (arithmetic, no document needed). |
+| `endpoint_ownership` | locator | components of the `result` span if it enumerates its own; else `row_label` + `section_heading` + `caption`; else exactly one `definition` span in the held text (existing `bind_result_span`, restricted to prose — never the reference list, never a table); classified by the existing `_classify` → `EXACT_TARGET` / `NEAR_MATCH` / `DIFFERENT_OUTCOME` / `ENDPOINT_UNBOUND`. |
+| `analysis_identity` | entry + span | population / analysis set, comparator direction, timepoint — carried, compared with the outcome's declaration when declared, rendered; mismatch → refuse with the existing `RESULT_INCOMPATIBLE`. |
+| `adjudication` | entry | `{reviewer, date, reason}` for a human decision; recorded, source-linked, under the same numeric and freshness checks (Mahmood: acceptable in v1, never an undocumented bypass). |
+
+Ambiguity rule (the one that matters most): if the tuple locates in more than one held span, if a named
+endpoint has more than one definition span, or if one sentence carries more than one tuple and the
+locator cannot scope the clause, the object is **ABSTAIN** — the row is not pooled, is rendered as
+declared-absent with `absent_kind: machine_absent`, `reason_code: ENDPOINT_UNBOUND`, the candidate tuple,
+the candidate spans and a recovery line naming the reviewer decision that would resolve it. No new
+reason code: `ENDPOINT_UNBOUND` and `machine_absent` already exist; the reviewer-owed state is the
+existing "unresolved eligible evidence" state (the one ELIXA is in today).
+
+## 3. What changes in the harness (and what does not)
+
+- `harness/verified_inputs.py`: build the object at load; refuse at load only for arithmetic
+  impossibility (point outside interval, events > n); everything else is a per-row state, never a crash of
+  the whole topic (today a canonical span absent from the held document raises and kills the build —
+  a topic-level refusal for a row-level defect).
+- `harness/target_endpoint.py`: locator repairs, smallest first — (1) sentence split after `).` when a
+  digit follows; (2) keyword plural/singular tolerance in `_keyword_family_match`; (3) table-row spans with
+  `row_label` / `section_heading` / `column_header` / `caption` context; (4) definition-span binding limited
+  to prose sentences (exclude reference-list / citation chunks); (5) clause-scoped tuple location when a
+  sentence carries several results. `admissibility()`: a hand row with an object → its class verdict; a hand
+  row without an object → ABSTAIN (not `UNBOUND_LEGACY`). `UNBOUND_LEGACY` stays as the label for the
+  routes this note does not cover, so its count can only fall.
+- `harness/pipeline.py`: propagate `document_ref`, `document_sha256`, `spans`, `analysis_identity`,
+  `adjudication` on every hand/full-text row and on the three override routes (the capability already
+  exists for typed refusals — use it there). No route may `continue` past `admit_rows`.
+- `harness/verify.py`: owned by the third lane. This note's only requirement on it: `verify_pooled`
+  reads the bytes at `document_ref` (checked against `document_sha256`), never the row's `source`; the
+  interval and the scale are verified, not only the point. That is their fix #1/#3/#4 — one object.
+- `harness/gate.py`: `check_pooled_verified` names the row and the page renders the row refused; the page
+  is withheld only when the primary pool has NO admitted row. A primary result with `k>0` and
+  `estimate: None` refuses (`check_primary_result`).
+- `harness/page.py`: render the object (document, sha, spans by role, class, adjudication) on the row;
+  ABSTAIN rows render in the declared-absent table with their candidate tuple.
+
+Not changed: the abstract machine-extraction route (`extract.extract_trial` + `classify_bound`), the
+registry route (`ctgov_results`, selection-by-identity is the corrections lane), derived provenance
+(`published_rate`, `aact_verified`), the canonical JSON, the certificate encoding.
+
+## 4. Proof plan (plants fire before the fix)
+
+1. The 18-case M2 battery (`scratchpad/m2_counterexamples.py`), unchanged, run before and after.
+2. The LEADER semantic suite from one held document (`ded4c69e…`): control 0.87 (0.78–0.97) → ADMIT;
+   attacks with the same digest, representation, population, comparator and route: MI 0.86 (0.73–1.00),
+   stroke 0.86 (0.71–1.06), expanded composite 0.88 (0.81–0.96), CV death 0.78 (0.66–0.93) → REFUSE
+   `RESULT_INCOMPATIBLE`; comparator-direction reversal → REFUSE; a different analysis set / timepoint →
+   REFUSE; a declared harmless normalisation (middle-dot decimals, "HR" for "hazard ratio") → ADMIT;
+   ambiguity (tuple in two rows) → ABSTAIN.
+3. dpp4 `30418475`: the definition span the binder found is a citation title — must ABSTAIN.
+4. REWIND GI and LEADER discontinuation → ADMIT with a filled class (the v1 contradiction closes by binding).
+5. The four numbers per topic, before and after: wrong admissions (battery), unnecessary refusals
+   (positive controls), unresolved eligible evidence (declared-absent without a documented decision),
+   reviewer rows (unresolved + ABSTAIN + any row still admitted unbound). Corpus-wide the "after" is a
+   MEASUREMENT of the repaired binder over the 121, replacing the INFERRED 78.
+
+## 5. Sentences to carry verbatim (commit message, disclosure, limitations)
+
+- "A gate whose failure mode is 'admit' rewards exactly the input it exists to stop."
+- "The haystack was the self-authored string: `verify_pooled` checked a hand-written description
+  against itself and stamped the row verified."
+- "`UNBOUND_LEGACY` is operational at scale in served pooled estimates (121 of 145 rows at 8b1fb37d);
+  glp1's primary MACE pool is 8 of 8 EXACT_TARGET and is not contaminated."
+- "We were not short of evidence; we were short of a reader."
+- "Right reason, wrong granularity: a page-level refusal for a row-level defect."

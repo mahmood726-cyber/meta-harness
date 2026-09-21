@@ -8,7 +8,11 @@
     "committed_utc": "2026-09-12",
     "method_declared": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
     "eligibility": "Included iff ALL hold: a randomised controlled trial; population (in title/registry conditions) mentions one of ['type 2 diabetes', 'type 2 diabetes mellitus', 'type 2 diabetic', 'cardiovascular risk', 'cardiovascular disease', 'atherosclerotic cardiovascular disease']; and none of ['heart failure with reduced ejection fraction', 'heart failure and reduced ejection fraction', 'reduced ejection fraction', 'HFrEF', 'preserved ejection fraction', 'HFpEF', 'chronic kidney disease', 'diabetic kidney disease', 'diabetic nephropathy', 'nephropathy']; randomised intervention is one of ['empagliflozin', 'canagliflozin', 'dapagliflozin', 'ertugliflozin', 'SGLT2', 'SGLT-2', 'sodium-glucose cotransporter 2', 'sodium-glucose co-transporter 2', 'sodium glucose cotransporter 2', 'sodium glucose co-transporter 2'] (named in title/conditions); a comparator among ['placebo']; double-blind or placebo-controlled. Excluded (rule id + verbatim span on each record): X1 not an RCT · X2 wrong/off-topic population · X3 wrong intervention/comparator · X-DESIGN not double-blind/placebo-controlled.",
-    "text": "# Protocol - SGLT2 inhibitors for hospitalization for heart failure in type 2 diabetes or cardiovascular risk\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs. Eligibility is on\nP/I/C/design only; outcome reporting affects extraction status, not screening.\n\n## PICO\n- **P** - adults with type 2 diabetes or cardiovascular risk enrolled in broad\n  cardiovascular outcome trials, not trials whose entry criterion is HFrEF/HFpEF\n  or chronic kidney disease.\n- **I** - SGLT2 inhibitors, including empagliflozin, canagliflozin,\n  dapagliflozin, and ertugliflozin.\n- **C** - placebo.\n- **O (primary)** - hospitalization for heart failure, using the trial-reported\n  time-to-first-event effect for HHF.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio (HR), SGLT2 inhibitor vs placebo, pooled on the log\n  ratio scale.\n- **Population** - intention-to-treat as randomised / full analysis set, as\n  reported by each cardiovascular outcome trial.\n- **Timepoint** - trial end / longest trial-reported follow-up.\n\n## Eligibility - P/I/C/DESIGN only\nInclude a record iff all hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is adults with type 2 diabetes or cardiovascular risk in a\n  broad cardiovascular outcome trial;\n- **I3** - empagliflozin, canagliflozin, dapagliflozin, ertugliflozin, or SGLT2\n  inhibitor as the randomised intervention;\n- **I4** - placebo comparator;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or\n  meta-analysis);\n- **X2** - wrong population, including heart failure with reduced or preserved\n  ejection fraction as an entry criterion, chronic kidney disease / diabetic\n  nephropathy as an entry criterion, type 1 diabetes, or no diabetes/CV-risk\n  population;\n- **X3** - wrong intervention/comparison, including active comparators;\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative\n  control).\n\nEligibility is NOT on the outcome axis. Whether an eligible trial reports HHF,\nand whether it reports arm counts or only an effect plus confidence interval, is\nrecorded at extraction. A published HR plus 95% CI is a poolable input; crude\nevent counts from CT.gov or labels are not substituted for HRs.\n\n## Search\n- PubMed: direct UID queries for EMPA-REG OUTCOME, CANVAS Program,\n  DECLARE-TIMI 58, VERTIS CV, and an OA SGLT2 heart-failure-hospitalization\n  meta-analysis comparator.\n- ClinicalTrials.gov: condition \"type 2 diabetes cardiovascular\", intervention\n  \"SGLT2 inhibitor\".\n- Registry-first enumeration: condition \"type 2 diabetes\", intervention\n  \"SGLT2 inhibitor\".\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log ratio; Paule-Mandel tau2; HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1,Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau2+se2)`. DerSimonian-Laird forbidden. Published HR\ninputs are pooled on the log ratio scale.\n\n## Comparator (resolved; OA confirmed)\nZhang et al., *Frontiers in Endocrinology* 2021, \"Sodium Glucose Cotransporter 2\nInhibitors Reduce the Risk of Heart Failure Hospitalization in Patients With Type\n2 Diabetes Mellitus: A Systematic Review and Meta-Analysis of Randomized\nControlled Trials\" (PMID 33519713, PMCID PMC7843571, DOI\n10.3389/fendo.2020.604250). Zelniker et al. 2019 (PMID 30424892) was considered\nfirst for CVOT scope, but Unpaywall reported the article closed access.\n\n## Pivotal\n- **DECLARE-TIMI 58** - NCT01730534; positive-control PMID 30415602.\n\n## Controls\n- **Positive** - the search must recover and include DECLARE-TIMI 58 (PMID\n  30415602).\n- **Negative** - FIDELIO-DKD (finerenone in CKD and type 2 diabetes, PMID\n  33264825) must be recovered and EXCLUDED as wrong intervention.\n\n## Retrospective executable-screen amendment (2026-09-16)\n`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that the\nprotocol's broad cardiovascular-outcome-trial scope was not executable. The config\nnow requires cardiovascular-outcome / cardiovascular-events / MACE wording, so\nshort glycaemic or imaging-marker diabetes trials are not included merely because\nthey are randomized SGLT2 placebo trials. This amendment changes screening only.\n"
+    "text": "# Protocol - SGLT2 inhibitors for hospitalization for heart failure in type 2 diabetes or cardiovascular risk\n\n**Registration.** The commit adding this file registers the review; its SHA is\nembedded in the page. Committed before the synthesis runs. Eligibility is on\nP/I/C/design only; outcome reporting affects extraction status, not screening.\n\n## PICO\n- **P** - adults with type 2 diabetes or cardiovascular risk enrolled in broad\n  cardiovascular outcome trials, not trials whose entry criterion is HFrEF/HFpEF\n  or chronic kidney disease.\n- **I** - SGLT2 inhibitors, including empagliflozin, canagliflozin,\n  dapagliflozin, and ertugliflozin.\n- **C** - placebo.\n- **O (primary)** - hospitalization for heart failure, using the trial-reported\n  time-to-first-event effect for HHF.\n\n## Estimand / population / timepoint\n- **Estimand** - hazard ratio (HR), SGLT2 inhibitor vs placebo, pooled on the log\n  ratio scale.\n- **Population** - intention-to-treat as randomised / full analysis set, as\n  reported by each cardiovascular outcome trial.\n- **Timepoint** - trial end / longest trial-reported follow-up.\n\n## Eligibility - P/I/C/DESIGN only\nInclude a record iff all hold:\n- **I1** - randomised controlled trial;\n- **I2** - population is adults with type 2 diabetes or cardiovascular risk in a\n  broad cardiovascular outcome trial;\n- **I3** - empagliflozin, canagliflozin, dapagliflozin, ertugliflozin, or SGLT2\n  inhibitor as the randomised intervention;\n- **I4** - placebo comparator;\n- **design** - double-blind, placebo-controlled.\n\nExclude (reason must be true of the record):\n- **X1** - not an RCT (review, guideline, observational, protocol-only, or\n  meta-analysis);\n- **X2** - wrong population, including heart failure with reduced or preserved\n  ejection fraction as an entry criterion, chronic kidney disease / diabetic\n  nephropathy as an entry criterion, type 1 diabetes, or no diabetes/CV-risk\n  population;\n- **X3** - wrong intervention/comparison, including active comparators;\n- **X-DESIGN** - not double-blind and placebo-controlled;\n- **X5** - off-topic: a primary trial of another topic in this set (negative\n  control).\n\nEligibility is NOT on the outcome axis. Whether an eligible trial reports HHF,\nand whether it reports arm counts or only an effect plus confidence interval, is\nrecorded at extraction. A published HR plus 95% CI is a poolable input; crude\nevent counts from CT.gov or labels are not substituted for HRs.\n\n## Search\n- PubMed: direct UID queries for EMPA-REG OUTCOME, CANVAS Program,\n  DECLARE-TIMI 58, VERTIS CV, and an OA SGLT2 heart-failure-hospitalization\n  meta-analysis comparator.\n- ClinicalTrials.gov: condition \"type 2 diabetes cardiovascular\", intervention\n  \"SGLT2 inhibitor\".\n- Registry-first enumeration: condition \"type 2 diabetes\", intervention\n  \"SGLT2 inhibitor\".\n\n## Synthesis method (DECLARED = served)\nRandom-effects inverse-variance on log ratio; Paule-Mandel tau2; HKSJ 95% CI on\n`t_{k-1}` with variance floor `max(1,Q/(k-1))`; prediction interval\n`mu +/- t_{k-1}*sqrt(tau2+se2)`. DerSimonian-Laird forbidden. Published HR\ninputs are pooled on the log ratio scale.\n\n## Comparator (resolved; OA confirmed)\nZhang et al., *Frontiers in Endocrinology* 2021, \"Sodium Glucose Cotransporter 2\nInhibitors Reduce the Risk of Heart Failure Hospitalization in Patients With Type\n2 Diabetes Mellitus: A Systematic Review and Meta-Analysis of Randomized\nControlled Trials\" (PMID 33519713, PMCID PMC7843571, DOI\n10.3389/fendo.2020.604250). Zelniker et al. 2019 (PMID 30424892) was considered\nfirst for CVOT scope, but Unpaywall reported the article closed access.\n\n## Pivotal\n- **DECLARE-TIMI 58** - NCT01730534; positive-control PMID 30415602.\n\n## Controls\n- **Positive** - the search must recover and include DECLARE-TIMI 58 (PMID\n  30415602).\n- **Negative** - FIDELIO-DKD (finerenone in CKD and type 2 diabetes, PMID\n  33264825) must be recovered and EXCLUDED as wrong intervention.\n\n## Retrospective executable-screen amendment (2026-09-16)\n`PROTOCOL_CONFIG_DIVERGENCE`: known-answer screening audit SC found that the\nprotocol's broad cardiovascular-outcome-trial scope was not executable. The config\nnow requires cardiovascular-outcome / cardiovascular-events / MACE wording, so\nshort glycaemic or imaging-marker diabetes trials are not included merely because\nthey are randomized SGLT2 placebo trials. This amendment changes screening only.\n",
+    "target_endpoint_selection": {
+      "summary": "Target endpoint selector: EXACT_TARGET beats NEAR_MATCH; a near-match may be pooled only when no exact target is held. Within the same endpoint class, source-reported target-estimand effects beat registry effect estimates, which beat crude reconstructions. For multiple registered primaries in the same outcome family, choose the prespecified primary whose component set is closest to the canonical review definition; ties use registration order and alternatives render as sensitivity rows. Rule applied after results were already known in this lane, so the timing is disclosed.",
+      "results_known_at_rule_time": true
+    }
   },
   "search": {
     "n_records": 294,
@@ -4339,9 +4343,37 @@
           "ci_high": 0.87,
           "scale": "HR",
           "provenance": "fulltext_verified",
+          "kind": "extracted_effect",
+          "handed_abstract": "Background Canagliflozin is a sodium-glucose cotransporter 2 inhibitor that reduces glycemia as well as blood pressure, body weight, and albuminuria in people with diabetes. We report the effects of treatment with canagliflozin on cardiovascular, renal, and safety outcomes. Methods The CANVAS Program integrated data from two trials involving a total of 10,142 participants with type 2 diabetes and high cardiovascular risk. Participants in each trial were randomly assigned to receive canagliflozin or placebo and were followed for a mean of 188.2 weeks. The primary outcome was a composite of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke. Results The mean age of the participants was 63.3 years, 35.8% were women, the mean duration of diabetes was 13.5 years, and 65.6% had a history of cardiovascular disease. The rate of the primary outcome was lower with canagliflozin than with placebo (occurring in 26.9 vs. 31.5 participants per 1000 patient-years; hazard ratio, 0.86; 95% confidence interval [CI], 0.75 to 0.97; P<0.001 for noninferiority; P=0.02 for superiority). Although on the basis of the prespecified hypothesis testing sequence the renal outcomes are not viewed as statistically significant, the results showed a possible benefit of canagliflozin with respect to the progression of albuminuria (hazard ratio, 0.73; 95% CI, 0.67 to 0.79) and the composite outcome of a sustained 40% reduction in the estimated glomerular filtration rate, the need for renal-replacement therapy, or death from renal causes (hazard ratio, 0.60; 95% CI, 0.47 to 0.77). Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.).",
+          "document_candidates": [
+            "cache/sglt2-primary-prevention-hf/records.json#PMID-29526832",
+            "cache/sglt2-primary-prevention-hf/records.json#PMID-28605608"
+          ],
           "source": "cache/sglt2-primary-prevention-hf/records.json hhf_source_records PMID 29526832 abstract: Overall, cardiovascular death or hospitalized HF was reduced in those treated with canagliflozin compared with placebo (16.3 versus 20.8 per 1000 patient-years; hazard ratio [HR], 0.78; 95% confidence interval [CI], 0.67-0.91), as was fatal or hospitalized HF (HR, 0.70; 95% CI, 0.55-0.89) and hospitalized HF alone (HR, 0.67; 95% CI, 0.52-0.87)",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [
+            "heart failure hospitalization"
+          ],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "Overall, cardiovascular death or hospitalized HF was reduced in those treated with canagliflozin compared with placebo (16.3 versus 20.8 per 1000 patient-years; hazard ratio [HR], 0.78; 95% confidence interval [CI], 0.67-0.91), as was fatal or hospitalized HF (HR, 0.70; 95% CI, 0.55-0.89) and hospitalized HF alone (HR, 0.67; 95% CI, 0.52-0.87).",
+          "endpoint_definition_span": "hospitalized HF alone (HR, 0.67; 95% CI, 0.52-0.87)",
+          "endpoint_binding_reason": "span names its own component set: heart failure hospitalization",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "Overall, cardiovascular death or hospitalized HF was reduced in those treated with canagliflozin compared with placebo (16.3 versus 20.8 per 1000 patient-years; hazard ratio [HR], 0.78; 95% confidence interval [CI], 0.67-0.91), as was fatal or hospitalized HF (HR, 0.70; 95% CI, 0.55-0.89) and hospitalized HF alone (HR, 0.67; 95% CI, 0.52-0.87)."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/sglt2-primary-prevention-hf/records.json#PMID-29526832",
+            "sha256": "8aa92759095be6b9178838fc90b95cbb810a32e952d40147920dcda9eab26c22",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -4455,9 +4487,38 @@
           "ci_high": 0.85,
           "scale": "HR",
           "provenance": "fulltext_verified",
+          "kind": "extracted_effect",
+          "handed_abstract": "BACKGROUND: The effects of empagliflozin, an inhibitor of sodium-glucose cotransporter 2, in addition to standard care, on cardiovascular morbidity and mortality in patients with type 2 diabetes at high cardiovascular risk are not known. METHODS: We randomly assigned patients to receive 10 mg or 25 mg of empagliflozin or placebo once daily. The primary composite outcome was death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke, as analyzed in the pooled empagliflozin group versus the placebo group. The key secondary composite outcome was the primary outcome plus hospitalization for unstable angina. RESULTS: A total of 7020 patients were treated (median observation time, 3.1 years). The primary outcome occurred in 490 of 4687 patients (10.5%) in the pooled empagliflozin group and in 282 of 2333 patients (12.1%) in the placebo group (hazard ratio in the empagliflozin group, 0.86; 95.02% confidence interval, 0.74 to 0.99; P=0.04 for superiority). There were no significant between-group differences in the rates of myocardial infarction or stroke, but in the empagliflozin group there were significantly lower rates of death from cardiovascular causes (3.7%, vs. 5.9% in the placebo group; 38% relative risk reduction), hospitalization for heart failure (2.7% and 4.1%, respectively; 35% relative risk reduction), and death from any cause (5.7% and 8.3%, respectively; 32% relative risk reduction). There was no significant between-group difference in the key secondary outcome (P=0.08 for superiority). Among patients receiving empagliflozin, there was an increased rate of genital infection but no increase in other adverse events. CONCLUSIONS: Patients with type 2 diabetes at high risk for cardiovascular events who received empagliflozin, as compared with placebo, had a lower rate of the primary composite cardiovascular outcome and of death from any cause when the study drug was added to standard care. (Funded by Boehringer Ingelheim and Eli Lilly; EMPA-REG OUTCOME ClinicalTrials.gov number, NCT01131676.).",
+          "document_candidates": [
+            "cache/sglt2-primary-prevention-hf/pmc_26819227_fulltext.txt",
+            "cache/sglt2-primary-prevention-hf/records.json#PMID-26378978"
+          ],
           "source": "cache/sglt2-primary-prevention-hf/pmc_26819227_fulltext.txt (PMID 26819227): As previously reported, hospitalization for heart failure occurred in a significantly lower percentage of patients treated with empagliflozin [126/4687 patients (2.7%)] than with placebo [95/2333 patients (4.1%)] [HR: 0.65 (95% CI: 0.50–0.85); P = 0.002]",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [
+            "heart failure hospitalization"
+          ],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "As previously reported, hospitalization for heart failure occurred in a significantly lower percentage of patients treated with empagliflozin [126/4687 patients (2.7%)] than with placebo [95/2333 patients (4.1%)] [HR: 0.65 (95% CI: 0.50–0.85); P = 0.002]. 19 The effect of empagliflozin on this outcome was consistent across doses, sensitivity analyses, and subgroups defined by baseline characteristics ( Figure 2 ; see Supplementary material online, Table S1 Supplementary Data ).",
+          "endpoint_definition_span": "As previously reported, hospitalization for heart failure occurred in a significantly lower percentage of patients treated with empagliflozin [126/4687 patients (2.7%)] than with placebo [95/2333 patients (4.1%)] [HR: 0.65 (95% CI: 0.50–0.85); P = 0.002]. 19 The effect of empagliflozin on this outcome was consistent across doses, sensitivity analyses, and subgroups defined by baseline characteristics ( Figure 2 ; see Supplementary material online, Table S1 Supplementary Data ).",
+          "endpoint_binding_reason": "span names its own component set: heart failure hospitalization",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "As previously reported, hospitalization for heart failure occurred in a significantly lower percentage of patients treated with empagliflozin [126/4687 patients (2.7%)] than with placebo [95/2333 patients (4.1%)] [HR: 0.65 (95% CI: 0.50–0.85); P = 0.002]. 19 The effect of empagliflozin on this outcome was consistent across doses, sensitivity analyses, and subgroups defined by baseline characteristics ( Figure 2 ; see Supplementary material online, Table S1 Supplementary Data )."
+            }
+          ],
+          "duplicate_locations": 1,
+          "held_document": {
+            "ref": "cache/sglt2-primary-prevention-hf/pmc_26819227_fulltext.txt",
+            "sha256": "5accb7c8c720dfa649f31bfb3153140dce70df360dabfae77c67cef747912c76",
+            "representation": "text"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -4571,9 +4632,37 @@
           "ci_high": 0.9,
           "scale": "HR",
           "provenance": "fulltext_verified",
+          "kind": "extracted_effect",
+          "handed_abstract": "BACKGROUND: The cardiovascular effects of ertugliflozin, an inhibitor of sodium-glucose cotransporter 2, have not been established. METHODS: In a multicenter, double-blind trial, we randomly assigned patients with type 2 diabetes and atherosclerotic cardiovascular disease to receive 5 mg or 15 mg of ertugliflozin or placebo once daily. With the data from the two ertugliflozin dose groups pooled for analysis, the primary objective was to show the noninferiority of ertugliflozin to placebo with respect to the primary outcome, major adverse cardiovascular events (a composite of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke). The noninferiority margin was 1.3 (upper boundary of a 95.6% confidence interval for the hazard ratio [ertugliflozin vs. placebo] for major adverse cardiovascular events). The first key secondary outcome was a composite of death from cardiovascular causes or hospitalization for heart failure. RESULTS: A total of 8246 patients underwent randomization and were followed for a mean of 3.5 years. Among 8238 patients who received at least one dose of ertugliflozin or placebo, a major adverse cardiovascular event occurred in 653 of 5493 patients (11.9%) in the ertugliflozin group and in 327 of 2745 patients (11.9%) in the placebo group (hazard ratio, 0.97; 95.6% confidence interval [CI], 0.85 to 1.11; P<0.001 for noninferiority). Death from cardiovascular causes or hospitalization for heart failure occurred in 444 of 5499 patients (8.1%) in the ertugliflozin group and in 250 of 2747 patients (9.1%) in the placebo group (hazard ratio, 0.88; 95.8% CI, 0.75 to 1.03; P = 0.11 for superiority). The hazard ratio for death from cardiovascular causes was 0.92 (95.8% CI, 0.77 to 1.11), and the hazard ratio for death from renal causes, renal replacement therapy, or doubling of the serum creatinine level was 0.81 (95.8% CI, 0.63 to 1.04). Amputations were performed in 54 patients (2.0%) who received the 5-mg dose of ertugliflozin and in 57 patients (2.1%) who received the 15-mg dose, as compared with 45 patients (1.6%) who received placebo. CONCLUSIONS: Among patients with type 2 diabetes and atherosclerotic cardiovascular disease, ertugliflozin was noninferior to placebo with respect to major adverse cardiovascular events. (Funded by Merck Sharp & Dohme and Pfizer; VERTIS CV ClinicalTrials.gov number, NCT01986881.).",
+          "document_candidates": [
+            "cache/sglt2-primary-prevention-hf/records.json#PMID-33026243",
+            "cache/sglt2-primary-prevention-hf/records.json#PMID-32966714"
+          ],
           "source": "cache/sglt2-primary-prevention-hf/records.json hhf_source_records PMID 33026243 abstract: Overall, ertugliflozin reduced risk for first HHF (HR, 0.70 [95% CI, 0.54-0.90]; P=0.006)",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [
+            "heart failure hospitalization"
+          ],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "Overall, ertugliflozin reduced risk for first HHF (HR, 0.70 [95% CI, 0.54-0.90]; P=0.006).",
+          "endpoint_definition_span": "Overall, ertugliflozin reduced risk for first HHF (HR, 0.70 [95% CI, 0.54-0.90]; P=0.006).",
+          "endpoint_binding_reason": "span names its own component set: heart failure hospitalization",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "Overall, ertugliflozin reduced risk for first HHF (HR, 0.70 [95% CI, 0.54-0.90]; P=0.006)."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/sglt2-primary-prevention-hf/records.json#PMID-33026243",
+            "sha256": "8aa92759095be6b9178838fc90b95cbb810a32e952d40147920dcda9eab26c22",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -4699,9 +4788,37 @@
           "ci_high": 0.88,
           "scale": "HR",
           "provenance": "fulltext_verified",
+          "kind": "extracted_effect",
+          "handed_abstract": "BACKGROUND: The cardiovascular safety profile of dapagliflozin, a selective inhibitor of sodium-glucose cotransporter 2 that promotes glucosuria in patients with type 2 diabetes, is undefined. METHODS: We randomly assigned patients with type 2 diabetes who had or were at risk for atherosclerotic cardiovascular disease to receive either dapagliflozin or placebo. The primary safety outcome was a composite of major adverse cardiovascular events (MACE), defined as cardiovascular death, myocardial infarction, or ischemic stroke. The primary efficacy outcomes were MACE and a composite of cardiovascular death or hospitalization for heart failure. Secondary efficacy outcomes were a renal composite (≥40% decrease in estimated glomerular filtration rate to <60 ml per minute per 1.73 m2 of body-surface area, new end-stage renal disease, or death from renal or cardiovascular causes) and death from any cause. RESULTS: We evaluated 17,160 patients, including 10,186 without atherosclerotic cardiovascular disease, who were followed for a median of 4.2 years. In the primary safety outcome analysis, dapagliflozin met the prespecified criterion for noninferiority to placebo with respect to MACE (upper boundary of the 95% confidence interval [CI], <1.3; P<0.001 for noninferiority). In the two primary efficacy analyses, dapagliflozin did not result in a lower rate of MACE (8.8% in the dapagliflozin group and 9.4% in the placebo group; hazard ratio, 0.93; 95% CI, 0.84 to 1.03; P=0.17) but did result in a lower rate of cardiovascular death or hospitalization for heart failure (4.9% vs. 5.8%; hazard ratio, 0.83; 95% CI, 0.73 to 0.95; P=0.005), which reflected a lower rate of hospitalization for heart failure (hazard ratio, 0.73; 95% CI, 0.61 to 0.88); there was no between-group difference in cardiovascular death (hazard ratio, 0.98; 95% CI, 0.82 to 1.17). A renal event occurred in 4.3% in the dapagliflozin group and in 5.6% in the placebo group (hazard ratio, 0.76; 95% CI, 0.67 to 0.87), and death from any cause occurred in 6.2% and 6.6%, respectively (hazard ratio, 0.93; 95% CI, 0.82 to 1.04). Diabetic ketoacidosis was more common with dapagliflozin than with placebo (0.3% vs. 0.1%, P=0.02), as was the rate of genital infections that led to discontinuation of the regimen or that were considered to be serious adverse events (0.9% vs. 0.1%, P<0.001). CONCLUSIONS: In patients with type 2 diabetes who had or were at risk for atherosclerotic cardiovascular disease, treatment with dapagliflozin did not result in a higher or lower rate of MACE than placebo but did result in a lower rate of cardiovascular death or hospitalization for heart failure, a finding that reflects a lower rate of hospitalization for heart failure. (Funded by AstraZeneca; DECLARE-TIMI 58 ClinicalTrials.gov number, NCT01730534 .).",
+          "document_candidates": [
+            "cache/sglt2-primary-prevention-hf/records.json#PMID-30415602",
+            "cache/sglt2-primary-prevention-hf/records.json#PMID-30415602"
+          ],
           "source": "cache/sglt2-primary-prevention-hf/records.json records PMID 30415602 abstract: which reflected a lower rate of hospitalization for heart failure (hazard ratio, 0.73; 95% CI, 0.61 to 0.88)",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [
+            "heart failure hospitalization"
+          ],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "In the two primary efficacy analyses, dapagliflozin did not result in a lower rate of MACE (8.8% in the dapagliflozin group and 9.4% in the placebo group; hazard ratio, 0.93; 95% CI, 0.84 to 1.03; P=0.17) but did result in a lower rate of cardiovascular death or hospitalization for heart failure (4.9% vs. 5.8%; hazard ratio, 0.83; 95% CI, 0.73 to 0.95; P=0.005), which reflected a lower rate of hospitalization for heart failure (hazard ratio, 0.73; 95% CI, 0.61 to 0.88); there was no between-group difference in cardiovascular death (hazard ratio, 0.98; 95% CI, 0.82 to 1.17).",
+          "endpoint_definition_span": "which reflected a lower rate of hospitalization for heart failure (hazard ratio, 0.73; 95% CI, 0.61 to 0.88)",
+          "endpoint_binding_reason": "span names its own component set: heart failure hospitalization",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "In the two primary efficacy analyses, dapagliflozin did not result in a lower rate of MACE (8.8% in the dapagliflozin group and 9.4% in the placebo group; hazard ratio, 0.93; 95% CI, 0.84 to 1.03; P=0.17) but did result in a lower rate of cardiovascular death or hospitalization for heart failure (4.9% vs. 5.8%; hazard ratio, 0.83; 95% CI, 0.73 to 0.95; P=0.005), which reflected a lower rate of hospitalization for heart failure (hazard ratio, 0.73; 95% CI, 0.61 to 0.88); there was no between-group difference in cardiovascular death (hazard ratio, 0.98; 95% CI, 0.82 to 1.17)."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/sglt2-primary-prevention-hf/records.json#PMID-30415602",
+            "sha256": "8aa92759095be6b9178838fc90b95cbb810a32e952d40147920dcda9eab26c22",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -5559,9 +5676,38 @@
           "ci_high": 2.75,
           "scale": "HR",
           "provenance": "abstract_verified",
+          "document_ref": "cache/sglt2-primary-prevention-hf/records.json",
+          "source_span": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.).",
+          "source_level": 1,
+          "kind": "extracted_effect",
+          "verification": "Exact arm-oriented published effect and two-sided CI in held abstract; not a reconstructed effect.",
+          "handed_abstract": "Background Canagliflozin is a sodium-glucose cotransporter 2 inhibitor that reduces glycemia as well as blood pressure, body weight, and albuminuria in people with diabetes. We report the effects of treatment with canagliflozin on cardiovascular, renal, and safety outcomes. Methods The CANVAS Program integrated data from two trials involving a total of 10,142 participants with type 2 diabetes and high cardiovascular risk. Participants in each trial were randomly assigned to receive canagliflozin or placebo and were followed for a mean of 188.2 weeks. The primary outcome was a composite of death from cardiovascular causes, nonfatal myocardial infarction, or nonfatal stroke. Results The mean age of the participants was 63.3 years, 35.8% were women, the mean duration of diabetes was 13.5 years, and 65.6% had a history of cardiovascular disease. The rate of the primary outcome was lower with canagliflozin than with placebo (occurring in 26.9 vs. 31.5 participants per 1000 patient-years; hazard ratio, 0.86; 95% confidence interval [CI], 0.75 to 0.97; P<0.001 for noninferiority; P=0.02 for superiority). Although on the basis of the prespecified hypothesis testing sequence the renal outcomes are not viewed as statistically significant, the results showed a possible benefit of canagliflozin with respect to the progression of albuminuria (hazard ratio, 0.73; 95% CI, 0.67 to 0.79) and the composite outcome of a sustained 40% reduction in the estimated glomerular filtration rate, the need for renal-replacement therapy, or death from renal causes (hazard ratio, 0.60; 95% CI, 0.47 to 0.77). Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.).",
+          "document_candidates": [
+            "cache/sglt2-primary-prevention-hf/records.json#PMID-28605608"
+          ],
           "source": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.).",
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
+          "target_endpoint_class": "EXACT_TARGET",
+          "target_components": [],
+          "extra_components": [],
+          "missing_components": [],
+          "component_distance": 0,
+          "endpoint_binding": "result_span_enumerates_components",
+          "endpoint_result_span": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal.",
+          "endpoint_definition_span": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal.",
+          "endpoint_binding_reason": "span names the outcome family",
+          "hand_binding_state": "BOUND",
+          "spans": [
+            {
+              "role": "result",
+              "text": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal."
+            }
+          ],
+          "held_document": {
+            "ref": "cache/sglt2-primary-prevention-hf/records.json",
+            "sha256": "8aa92759095be6b9178838fc90b95cbb810a32e952d40147920dcda9eab26c22",
+            "representation": "abstract"
+          },
+          "endpoint_admissibility": "EXACT_TARGET",
           "derivation": "reported",
           "selection_rule": "KEEP_REPORTED_EFFECT",
           "selected_estimator": "published_effect_ci",
@@ -5946,6 +6092,11 @@
                 "rung": "supplement / registry results / regulatory source",
                 "state": "NOT_CHECKED_BY_HARMS_AUDIT",
                 "obligation": "Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred."
+              },
+              {
+                "rung": "located adjudication source: cache/sglt2-primary-prevention-hf/records.json",
+                "state": "CHECKED_LOCATED_SPAN",
+                "obligation": "Typed refusal resolves the extraction obligation; other routes remain unverified."
               }
             ]
           },
@@ -73850,19 +74001,392 @@
           "outcome": "Adverse events",
           "prospectively_specified": {
             "state": "UNKNOWN",
-            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+            "absence_code": "REGISTRY_HISTORY_OR_DATED_PROTOCOL_NOT_HELD",
+            "span": {
+              "source": "AACT.design_outcomes",
+              "rows": [
+                {
+                  "id": "1415718572",
+                  "measure": "Percentage of Participants Experiencing an Adverse Event (AE) (Overall Cardiovascular Study)",
+                  "nct_id": "NCT01986881",
+                  "outcome_type": "secondary",
+                  "source_reference": {
+                    "table": "design_outcomes",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "1415718572"
+                    },
+                    "row_sha256": "f47db9463875f9c076c9026948fa790b658009c9fc27d620ab16395ca752ead8",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                {
+                  "id": "1415718573",
+                  "measure": "Percentage of Participants Experiencing an Adverse Event (AE) (Insulin With or Without Metformin Add-on Glycemic Sub-study)",
+                  "nct_id": "NCT01986881",
+                  "outcome_type": "secondary",
+                  "source_reference": {
+                    "table": "design_outcomes",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "1415718573"
+                    },
+                    "row_sha256": "2a7168e18ce5994f63d5263ad012635b3de0c44625408320fe0d2af624ba3553",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                {
+                  "id": "1415718574",
+                  "measure": "Percentage of Participants Experiencing an Adverse Event (AE) (Sulfonylurea Monotherapy Add-on Glycemic Sub-Study)",
+                  "nct_id": "NCT01986881",
+                  "outcome_type": "secondary",
+                  "source_reference": {
+                    "table": "design_outcomes",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "1415718574"
+                    },
+                    "row_sha256": "dd0dd7a88a85fb952f02b1b6070824b61488b8a339fdb68988c1b3e10cc474d4",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                {
+                  "id": "1415718575",
+                  "measure": "Percentage of Participants Experiencing an Adverse Event (AE) (Metformin With Sulfonylurea Add-on Glycemic Sub-study)",
+                  "nct_id": "NCT01986881",
+                  "outcome_type": "secondary",
+                  "source_reference": {
+                    "table": "design_outcomes",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "1415718575"
+                    },
+                    "row_sha256": "85f670dc5b6127ec07639c5f98c00fc11ebfef4f9103d980b1624a44feb4018e",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                {
+                  "id": "1415718576",
+                  "measure": "Percentage of Participants Discontinuing Study Treatment Due to An AE (Overall Cardiovascular Study)",
+                  "nct_id": "NCT01986881",
+                  "outcome_type": "secondary",
+                  "source_reference": {
+                    "table": "design_outcomes",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "1415718576"
+                    },
+                    "row_sha256": "f49561097b400e3f85283a9018956a8e15dce0b287f78378a055652fd4a3c5dd",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                {
+                  "id": "1415718577",
+                  "measure": "Percentage of Participants Discontinuing Study Treatment Due to An AE (Insulin With or Without Metformin Add-on Glycemic Sub-study)",
+                  "nct_id": "NCT01986881",
+                  "outcome_type": "secondary",
+                  "source_reference": {
+                    "table": "design_outcomes",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "1415718577"
+                    },
+                    "row_sha256": "18a5f9440849431291cd59ba2e8a65f29f51e43153d35a18577204538b6a8b91",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                {
+                  "id": "1415718578",
+                  "measure": "Percentage of Participants Discontinuing Study Treatment Due to An AE (Sulfonylurea Monotherapy Add-on Glycemic Sub-Study)",
+                  "nct_id": "NCT01986881",
+                  "outcome_type": "secondary",
+                  "source_reference": {
+                    "table": "design_outcomes",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "1415718578"
+                    },
+                    "row_sha256": "9332c191fa705b4a4a6af2b14537963c220250a94a26816463ea0e406ac152ef",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                {
+                  "id": "1415718579",
+                  "measure": "Percentage of Participants Discontinuing Study Treatment Due to An AE (Metformin With Sulfonylurea Add-on Glycemic Sub-study)",
+                  "nct_id": "NCT01986881",
+                  "outcome_type": "secondary",
+                  "source_reference": {
+                    "table": "design_outcomes",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "1415718579"
+                    },
+                    "row_sha256": "e216097e3d36432e8462fa943d957dfd21781b726fcb564c50a87df93f9de23e",
+                    "snapshot": "2026-08-30"
+                  }
+                }
+              ]
+            },
+            "registered_in_current_snapshot": true
           },
           "measured": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            "state": "YES",
+            "span": {
+              "source": "AACT registry results",
+              "outcome_row": {
+                "id": "258751311",
+                "nct_id": "NCT01986881",
+                "title": "Percentage of Participants Experiencing an Adverse Event (AE) (Overall Cardiovascular Study)",
+                "source_reference": {
+                  "table": "outcomes",
+                  "nct_id": "NCT01986881",
+                  "row_key": {
+                    "id": "258751311"
+                  },
+                  "row_sha256": "9c9529ce05985abf73e7004590c1bd71a91d345e85079de38eab0d5b861c0b15",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "typed_values": [
+                {
+                  "value": 85.8,
+                  "param_type": "NUMBER",
+                  "source_row": {
+                    "id": "1929890994",
+                    "nct_id": "NCT01986881",
+                    "outcome_id": "258751311",
+                    "param_type": "NUMBER",
+                    "param_value": "85.8",
+                    "param_value_num": "85.8",
+                    "source_reference": {
+                      "table": "outcome_measurements",
+                      "nct_id": "NCT01986881",
+                      "row_key": {
+                        "id": "1929890994"
+                      },
+                      "row_sha256": "18d18612311fc74e17232ba1394d2669437d7821254b30ef335c98ae81f8ead7",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_measurements"
+                },
+                {
+                  "value": -0.9,
+                  "param_type": "Difference in % vs Placebo",
+                  "source_row": {
+                    "id": "129038977",
+                    "nct_id": "NCT01986881",
+                    "outcome_id": "258751311",
+                    "param_type": "Difference in % vs Placebo",
+                    "param_value": "-0.9",
+                    "source_reference": {
+                      "table": "outcome_analyses",
+                      "nct_id": "NCT01986881",
+                      "row_key": {
+                        "id": "129038977"
+                      },
+                      "row_sha256": "e16666c90213128adf01ccc55e38592d055224efe55edde115e15fb521420011",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_analyses"
+                },
+                {
+                  "value": 0.3,
+                  "param_type": "Difference in % vs Placebo",
+                  "source_row": {
+                    "id": "129038978",
+                    "nct_id": "NCT01986881",
+                    "outcome_id": "258751311",
+                    "param_type": "Difference in % vs Placebo",
+                    "param_value": "0.3",
+                    "source_reference": {
+                      "table": "outcome_analyses",
+                      "nct_id": "NCT01986881",
+                      "row_key": {
+                        "id": "129038978"
+                      },
+                      "row_sha256": "d0cb009313df17d9e8092b62f109f55067b190abf2aa069ffc7bd0c74396c13f",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_analyses"
+                }
+              ]
+            }
           },
           "reported": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            "state": "YES",
+            "span": {
+              "source": "AACT registry results",
+              "outcome_row": {
+                "id": "258751311",
+                "nct_id": "NCT01986881",
+                "title": "Percentage of Participants Experiencing an Adverse Event (AE) (Overall Cardiovascular Study)",
+                "source_reference": {
+                  "table": "outcomes",
+                  "nct_id": "NCT01986881",
+                  "row_key": {
+                    "id": "258751311"
+                  },
+                  "row_sha256": "9c9529ce05985abf73e7004590c1bd71a91d345e85079de38eab0d5b861c0b15",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "typed_values": [
+                {
+                  "value": 85.8,
+                  "param_type": "NUMBER",
+                  "source_row": {
+                    "id": "1929890994",
+                    "nct_id": "NCT01986881",
+                    "outcome_id": "258751311",
+                    "param_type": "NUMBER",
+                    "param_value": "85.8",
+                    "param_value_num": "85.8",
+                    "source_reference": {
+                      "table": "outcome_measurements",
+                      "nct_id": "NCT01986881",
+                      "row_key": {
+                        "id": "1929890994"
+                      },
+                      "row_sha256": "18d18612311fc74e17232ba1394d2669437d7821254b30ef335c98ae81f8ead7",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_measurements"
+                },
+                {
+                  "value": -0.9,
+                  "param_type": "Difference in % vs Placebo",
+                  "source_row": {
+                    "id": "129038977",
+                    "nct_id": "NCT01986881",
+                    "outcome_id": "258751311",
+                    "param_type": "Difference in % vs Placebo",
+                    "param_value": "-0.9",
+                    "source_reference": {
+                      "table": "outcome_analyses",
+                      "nct_id": "NCT01986881",
+                      "row_key": {
+                        "id": "129038977"
+                      },
+                      "row_sha256": "e16666c90213128adf01ccc55e38592d055224efe55edde115e15fb521420011",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_analyses"
+                },
+                {
+                  "value": 0.3,
+                  "param_type": "Difference in % vs Placebo",
+                  "source_row": {
+                    "id": "129038978",
+                    "nct_id": "NCT01986881",
+                    "outcome_id": "258751311",
+                    "param_type": "Difference in % vs Placebo",
+                    "param_value": "0.3",
+                    "source_reference": {
+                      "table": "outcome_analyses",
+                      "nct_id": "NCT01986881",
+                      "row_key": {
+                        "id": "129038978"
+                      },
+                      "row_sha256": "d0cb009313df17d9e8092b62f109f55067b190abf2aa069ffc7bd0c74396c13f",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_analyses"
+                }
+              ]
+            }
           },
           "extractable": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            "state": "YES",
+            "span": {
+              "source": "AACT registry results",
+              "outcome_row": {
+                "id": "258751311",
+                "nct_id": "NCT01986881",
+                "title": "Percentage of Participants Experiencing an Adverse Event (AE) (Overall Cardiovascular Study)",
+                "source_reference": {
+                  "table": "outcomes",
+                  "nct_id": "NCT01986881",
+                  "row_key": {
+                    "id": "258751311"
+                  },
+                  "row_sha256": "9c9529ce05985abf73e7004590c1bd71a91d345e85079de38eab0d5b861c0b15",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "typed_values": [
+                {
+                  "value": 85.8,
+                  "param_type": "NUMBER",
+                  "source_row": {
+                    "id": "1929890994",
+                    "nct_id": "NCT01986881",
+                    "outcome_id": "258751311",
+                    "param_type": "NUMBER",
+                    "param_value": "85.8",
+                    "param_value_num": "85.8",
+                    "source_reference": {
+                      "table": "outcome_measurements",
+                      "nct_id": "NCT01986881",
+                      "row_key": {
+                        "id": "1929890994"
+                      },
+                      "row_sha256": "18d18612311fc74e17232ba1394d2669437d7821254b30ef335c98ae81f8ead7",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_measurements"
+                },
+                {
+                  "value": -0.9,
+                  "param_type": "Difference in % vs Placebo",
+                  "source_row": {
+                    "id": "129038977",
+                    "nct_id": "NCT01986881",
+                    "outcome_id": "258751311",
+                    "param_type": "Difference in % vs Placebo",
+                    "param_value": "-0.9",
+                    "source_reference": {
+                      "table": "outcome_analyses",
+                      "nct_id": "NCT01986881",
+                      "row_key": {
+                        "id": "129038977"
+                      },
+                      "row_sha256": "e16666c90213128adf01ccc55e38592d055224efe55edde115e15fb521420011",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_analyses"
+                },
+                {
+                  "value": 0.3,
+                  "param_type": "Difference in % vs Placebo",
+                  "source_row": {
+                    "id": "129038978",
+                    "nct_id": "NCT01986881",
+                    "outcome_id": "258751311",
+                    "param_type": "Difference in % vs Placebo",
+                    "param_value": "0.3",
+                    "source_reference": {
+                      "table": "outcome_analyses",
+                      "nct_id": "NCT01986881",
+                      "row_key": {
+                        "id": "129038978"
+                      },
+                      "row_sha256": "d0cb009313df17d9e8092b62f109f55067b190abf2aa069ffc7bd0c74396c13f",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_analyses"
+                }
+              ]
+            },
+            "scope": "Typed registry outcome values; not automatically a poolable contrast or target effect measure."
           },
           "in_primary_pool": {
             "state": "NO",
@@ -73871,7 +74395,184 @@
               "family_id": "NCT01986881"
             }
           },
-          "registered_outcome_candidates": []
+          "registered_outcome_candidates": [
+            {
+              "row": {
+                "id": "1415718572",
+                "measure": "Percentage of Participants Experiencing an Adverse Event (AE) (Overall Cardiovascular Study)",
+                "nct_id": "NCT01986881",
+                "outcome_type": "secondary",
+                "source_reference": {
+                  "table": "design_outcomes",
+                  "nct_id": "NCT01986881",
+                  "row_key": {
+                    "id": "1415718572"
+                  },
+                  "row_sha256": "f47db9463875f9c076c9026948fa790b658009c9fc27d620ab16395ca752ead8",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "target_endpoint_class": "EXACT_TARGET",
+              "target_components": [],
+              "extra_components": [],
+              "missing_components": [],
+              "component_distance": 0
+            },
+            {
+              "row": {
+                "id": "1415718573",
+                "measure": "Percentage of Participants Experiencing an Adverse Event (AE) (Insulin With or Without Metformin Add-on Glycemic Sub-study)",
+                "nct_id": "NCT01986881",
+                "outcome_type": "secondary",
+                "source_reference": {
+                  "table": "design_outcomes",
+                  "nct_id": "NCT01986881",
+                  "row_key": {
+                    "id": "1415718573"
+                  },
+                  "row_sha256": "2a7168e18ce5994f63d5263ad012635b3de0c44625408320fe0d2af624ba3553",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "target_endpoint_class": "EXACT_TARGET",
+              "target_components": [],
+              "extra_components": [],
+              "missing_components": [],
+              "component_distance": 0
+            },
+            {
+              "row": {
+                "id": "1415718574",
+                "measure": "Percentage of Participants Experiencing an Adverse Event (AE) (Sulfonylurea Monotherapy Add-on Glycemic Sub-Study)",
+                "nct_id": "NCT01986881",
+                "outcome_type": "secondary",
+                "source_reference": {
+                  "table": "design_outcomes",
+                  "nct_id": "NCT01986881",
+                  "row_key": {
+                    "id": "1415718574"
+                  },
+                  "row_sha256": "dd0dd7a88a85fb952f02b1b6070824b61488b8a339fdb68988c1b3e10cc474d4",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "target_endpoint_class": "EXACT_TARGET",
+              "target_components": [],
+              "extra_components": [],
+              "missing_components": [],
+              "component_distance": 0
+            },
+            {
+              "row": {
+                "id": "1415718575",
+                "measure": "Percentage of Participants Experiencing an Adverse Event (AE) (Metformin With Sulfonylurea Add-on Glycemic Sub-study)",
+                "nct_id": "NCT01986881",
+                "outcome_type": "secondary",
+                "source_reference": {
+                  "table": "design_outcomes",
+                  "nct_id": "NCT01986881",
+                  "row_key": {
+                    "id": "1415718575"
+                  },
+                  "row_sha256": "85f670dc5b6127ec07639c5f98c00fc11ebfef4f9103d980b1624a44feb4018e",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "target_endpoint_class": "EXACT_TARGET",
+              "target_components": [],
+              "extra_components": [],
+              "missing_components": [],
+              "component_distance": 0
+            },
+            {
+              "row": {
+                "id": "1415718576",
+                "measure": "Percentage of Participants Discontinuing Study Treatment Due to An AE (Overall Cardiovascular Study)",
+                "nct_id": "NCT01986881",
+                "outcome_type": "secondary",
+                "source_reference": {
+                  "table": "design_outcomes",
+                  "nct_id": "NCT01986881",
+                  "row_key": {
+                    "id": "1415718576"
+                  },
+                  "row_sha256": "f49561097b400e3f85283a9018956a8e15dce0b287f78378a055652fd4a3c5dd",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "target_endpoint_class": "EXACT_TARGET",
+              "target_components": [],
+              "extra_components": [],
+              "missing_components": [],
+              "component_distance": 0
+            },
+            {
+              "row": {
+                "id": "1415718577",
+                "measure": "Percentage of Participants Discontinuing Study Treatment Due to An AE (Insulin With or Without Metformin Add-on Glycemic Sub-study)",
+                "nct_id": "NCT01986881",
+                "outcome_type": "secondary",
+                "source_reference": {
+                  "table": "design_outcomes",
+                  "nct_id": "NCT01986881",
+                  "row_key": {
+                    "id": "1415718577"
+                  },
+                  "row_sha256": "18a5f9440849431291cd59ba2e8a65f29f51e43153d35a18577204538b6a8b91",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "target_endpoint_class": "EXACT_TARGET",
+              "target_components": [],
+              "extra_components": [],
+              "missing_components": [],
+              "component_distance": 0
+            },
+            {
+              "row": {
+                "id": "1415718578",
+                "measure": "Percentage of Participants Discontinuing Study Treatment Due to An AE (Sulfonylurea Monotherapy Add-on Glycemic Sub-Study)",
+                "nct_id": "NCT01986881",
+                "outcome_type": "secondary",
+                "source_reference": {
+                  "table": "design_outcomes",
+                  "nct_id": "NCT01986881",
+                  "row_key": {
+                    "id": "1415718578"
+                  },
+                  "row_sha256": "9332c191fa705b4a4a6af2b14537963c220250a94a26816463ea0e406ac152ef",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "target_endpoint_class": "EXACT_TARGET",
+              "target_components": [],
+              "extra_components": [],
+              "missing_components": [],
+              "component_distance": 0
+            },
+            {
+              "row": {
+                "id": "1415718579",
+                "measure": "Percentage of Participants Discontinuing Study Treatment Due to An AE (Metformin With Sulfonylurea Add-on Glycemic Sub-study)",
+                "nct_id": "NCT01986881",
+                "outcome_type": "secondary",
+                "source_reference": {
+                  "table": "design_outcomes",
+                  "nct_id": "NCT01986881",
+                  "row_key": {
+                    "id": "1415718579"
+                  },
+                  "row_sha256": "e216097e3d36432e8462fa943d957dfd21781b726fcb564c50a87df93f9de23e",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "target_endpoint_class": "EXACT_TARGET",
+              "target_components": [],
+              "extra_components": [],
+              "missing_components": [],
+              "component_distance": 0
+            }
+          ]
         },
         {
           "outcome": "Lower-limb amputation",
@@ -93233,19 +93934,266 @@
         },
         {
           "outcome": "Adverse events",
-          "state": "UNKNOWN",
+          "state": "EXTRACTABLE",
           "span": {
             "measured": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+              "state": "YES",
+              "span": {
+                "source": "AACT registry results",
+                "outcome_row": {
+                  "id": "258751311",
+                  "nct_id": "NCT01986881",
+                  "title": "Percentage of Participants Experiencing an Adverse Event (AE) (Overall Cardiovascular Study)",
+                  "source_reference": {
+                    "table": "outcomes",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "258751311"
+                    },
+                    "row_sha256": "9c9529ce05985abf73e7004590c1bd71a91d345e85079de38eab0d5b861c0b15",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "typed_values": [
+                  {
+                    "value": 85.8,
+                    "param_type": "NUMBER",
+                    "source_row": {
+                      "id": "1929890994",
+                      "nct_id": "NCT01986881",
+                      "outcome_id": "258751311",
+                      "param_type": "NUMBER",
+                      "param_value": "85.8",
+                      "param_value_num": "85.8",
+                      "source_reference": {
+                        "table": "outcome_measurements",
+                        "nct_id": "NCT01986881",
+                        "row_key": {
+                          "id": "1929890994"
+                        },
+                        "row_sha256": "18d18612311fc74e17232ba1394d2669437d7821254b30ef335c98ae81f8ead7",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_measurements"
+                  },
+                  {
+                    "value": -0.9,
+                    "param_type": "Difference in % vs Placebo",
+                    "source_row": {
+                      "id": "129038977",
+                      "nct_id": "NCT01986881",
+                      "outcome_id": "258751311",
+                      "param_type": "Difference in % vs Placebo",
+                      "param_value": "-0.9",
+                      "source_reference": {
+                        "table": "outcome_analyses",
+                        "nct_id": "NCT01986881",
+                        "row_key": {
+                          "id": "129038977"
+                        },
+                        "row_sha256": "e16666c90213128adf01ccc55e38592d055224efe55edde115e15fb521420011",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_analyses"
+                  },
+                  {
+                    "value": 0.3,
+                    "param_type": "Difference in % vs Placebo",
+                    "source_row": {
+                      "id": "129038978",
+                      "nct_id": "NCT01986881",
+                      "outcome_id": "258751311",
+                      "param_type": "Difference in % vs Placebo",
+                      "param_value": "0.3",
+                      "source_reference": {
+                        "table": "outcome_analyses",
+                        "nct_id": "NCT01986881",
+                        "row_key": {
+                          "id": "129038978"
+                        },
+                        "row_sha256": "d0cb009313df17d9e8092b62f109f55067b190abf2aa069ffc7bd0c74396c13f",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_analyses"
+                  }
+                ]
+              }
             },
             "reported": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+              "state": "YES",
+              "span": {
+                "source": "AACT registry results",
+                "outcome_row": {
+                  "id": "258751311",
+                  "nct_id": "NCT01986881",
+                  "title": "Percentage of Participants Experiencing an Adverse Event (AE) (Overall Cardiovascular Study)",
+                  "source_reference": {
+                    "table": "outcomes",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "258751311"
+                    },
+                    "row_sha256": "9c9529ce05985abf73e7004590c1bd71a91d345e85079de38eab0d5b861c0b15",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "typed_values": [
+                  {
+                    "value": 85.8,
+                    "param_type": "NUMBER",
+                    "source_row": {
+                      "id": "1929890994",
+                      "nct_id": "NCT01986881",
+                      "outcome_id": "258751311",
+                      "param_type": "NUMBER",
+                      "param_value": "85.8",
+                      "param_value_num": "85.8",
+                      "source_reference": {
+                        "table": "outcome_measurements",
+                        "nct_id": "NCT01986881",
+                        "row_key": {
+                          "id": "1929890994"
+                        },
+                        "row_sha256": "18d18612311fc74e17232ba1394d2669437d7821254b30ef335c98ae81f8ead7",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_measurements"
+                  },
+                  {
+                    "value": -0.9,
+                    "param_type": "Difference in % vs Placebo",
+                    "source_row": {
+                      "id": "129038977",
+                      "nct_id": "NCT01986881",
+                      "outcome_id": "258751311",
+                      "param_type": "Difference in % vs Placebo",
+                      "param_value": "-0.9",
+                      "source_reference": {
+                        "table": "outcome_analyses",
+                        "nct_id": "NCT01986881",
+                        "row_key": {
+                          "id": "129038977"
+                        },
+                        "row_sha256": "e16666c90213128adf01ccc55e38592d055224efe55edde115e15fb521420011",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_analyses"
+                  },
+                  {
+                    "value": 0.3,
+                    "param_type": "Difference in % vs Placebo",
+                    "source_row": {
+                      "id": "129038978",
+                      "nct_id": "NCT01986881",
+                      "outcome_id": "258751311",
+                      "param_type": "Difference in % vs Placebo",
+                      "param_value": "0.3",
+                      "source_reference": {
+                        "table": "outcome_analyses",
+                        "nct_id": "NCT01986881",
+                        "row_key": {
+                          "id": "129038978"
+                        },
+                        "row_sha256": "d0cb009313df17d9e8092b62f109f55067b190abf2aa069ffc7bd0c74396c13f",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_analyses"
+                  }
+                ]
+              }
             },
             "extractable": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+              "state": "YES",
+              "span": {
+                "source": "AACT registry results",
+                "outcome_row": {
+                  "id": "258751311",
+                  "nct_id": "NCT01986881",
+                  "title": "Percentage of Participants Experiencing an Adverse Event (AE) (Overall Cardiovascular Study)",
+                  "source_reference": {
+                    "table": "outcomes",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "258751311"
+                    },
+                    "row_sha256": "9c9529ce05985abf73e7004590c1bd71a91d345e85079de38eab0d5b861c0b15",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "typed_values": [
+                  {
+                    "value": 85.8,
+                    "param_type": "NUMBER",
+                    "source_row": {
+                      "id": "1929890994",
+                      "nct_id": "NCT01986881",
+                      "outcome_id": "258751311",
+                      "param_type": "NUMBER",
+                      "param_value": "85.8",
+                      "param_value_num": "85.8",
+                      "source_reference": {
+                        "table": "outcome_measurements",
+                        "nct_id": "NCT01986881",
+                        "row_key": {
+                          "id": "1929890994"
+                        },
+                        "row_sha256": "18d18612311fc74e17232ba1394d2669437d7821254b30ef335c98ae81f8ead7",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_measurements"
+                  },
+                  {
+                    "value": -0.9,
+                    "param_type": "Difference in % vs Placebo",
+                    "source_row": {
+                      "id": "129038977",
+                      "nct_id": "NCT01986881",
+                      "outcome_id": "258751311",
+                      "param_type": "Difference in % vs Placebo",
+                      "param_value": "-0.9",
+                      "source_reference": {
+                        "table": "outcome_analyses",
+                        "nct_id": "NCT01986881",
+                        "row_key": {
+                          "id": "129038977"
+                        },
+                        "row_sha256": "e16666c90213128adf01ccc55e38592d055224efe55edde115e15fb521420011",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_analyses"
+                  },
+                  {
+                    "value": 0.3,
+                    "param_type": "Difference in % vs Placebo",
+                    "source_row": {
+                      "id": "129038978",
+                      "nct_id": "NCT01986881",
+                      "outcome_id": "258751311",
+                      "param_type": "Difference in % vs Placebo",
+                      "param_value": "0.3",
+                      "source_reference": {
+                        "table": "outcome_analyses",
+                        "nct_id": "NCT01986881",
+                        "row_key": {
+                          "id": "129038978"
+                        },
+                        "row_sha256": "d0cb009313df17d9e8092b62f109f55067b190abf2aa069ffc7bd0c74396c13f",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_analyses"
+                  }
+                ]
+              },
+              "scope": "Typed registry outcome values; not automatically a poolable contrast or target effect measure."
             }
           },
           "analysis_input": false,
@@ -106091,7 +107039,28 @@
           "outcome": "Hospitalization for heart failure",
           "prospectively_specified": {
             "state": "UNKNOWN",
-            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+            "absence_code": "REGISTRY_HISTORY_OR_DATED_PROTOCOL_NOT_HELD",
+            "span": {
+              "source": "AACT.design_outcomes",
+              "rows": [
+                {
+                  "id": "1414140893",
+                  "measure": "Cardiac death and rehospitalization for HF",
+                  "nct_id": "NCT02638142",
+                  "outcome_type": "primary",
+                  "source_reference": {
+                    "table": "design_outcomes",
+                    "nct_id": "NCT02638142",
+                    "row_key": {
+                      "id": "1414140893"
+                    },
+                    "row_sha256": "a8cc66971d958663109233e5c6083778711d09729c463810262dfa4ba0d2ad5a",
+                    "snapshot": "2026-08-30"
+                  }
+                }
+              ]
+            },
+            "registered_in_current_snapshot": true
           },
           "measured": {
             "state": "UNKNOWN",
@@ -106112,7 +107081,32 @@
               "family_id": "NCT02638142"
             }
           },
-          "registered_outcome_candidates": []
+          "registered_outcome_candidates": [
+            {
+              "row": {
+                "id": "1414140893",
+                "measure": "Cardiac death and rehospitalization for HF",
+                "nct_id": "NCT02638142",
+                "outcome_type": "primary",
+                "source_reference": {
+                  "table": "design_outcomes",
+                  "nct_id": "NCT02638142",
+                  "row_key": {
+                    "id": "1414140893"
+                  },
+                  "row_sha256": "a8cc66971d958663109233e5c6083778711d09729c463810262dfa4ba0d2ad5a",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "target_endpoint_class": "EXACT_TARGET",
+              "target_components": [
+                "heart failure hospitalization"
+              ],
+              "extra_components": [],
+              "missing_components": [],
+              "component_distance": 0
+            }
+          ]
         },
         {
           "outcome": "Adverse events",
@@ -157969,19 +158963,161 @@
           "outcome": "Hospitalization for heart failure",
           "prospectively_specified": {
             "state": "UNKNOWN",
-            "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
+            "absence_code": "REGISTRY_HISTORY_OR_DATED_PROTOCOL_NOT_HELD",
+            "span": {
+              "source": "AACT.design_outcomes",
+              "rows": [
+                {
+                  "id": "1415807746",
+                  "measure": "Participants From Time of Randomisation to First Occurrence of HF Requiring Hospitalisation or Urgent HF Visit",
+                  "nct_id": "NCT03574597",
+                  "outcome_type": "secondary",
+                  "source_reference": {
+                    "table": "design_outcomes",
+                    "nct_id": "NCT03574597",
+                    "row_key": {
+                      "id": "1415807746"
+                    },
+                    "row_sha256": "f24348f115b95b5641fe51e81080b0a6658014b469526c322a06915f3695ae64",
+                    "snapshot": "2026-08-30"
+                  }
+                }
+              ]
+            },
+            "registered_in_current_snapshot": true
           },
           "measured": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            "state": "YES",
+            "span": {
+              "source": "AACT registry results",
+              "outcome_row": {
+                "id": "258769021",
+                "nct_id": "NCT03574597",
+                "title": "Participants From Time of Randomisation to First Occurrence of HF Requiring Hospitalisation or Urgent HF Visit",
+                "source_reference": {
+                  "table": "outcomes",
+                  "nct_id": "NCT03574597",
+                  "row_key": {
+                    "id": "258769021"
+                  },
+                  "row_sha256": "d2d31e71ce9dc51813fae7681a774c613587b3941f484cd4cc99e927f123f927",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "typed_values": [
+                {
+                  "value": 97.0,
+                  "param_type": "COUNT_OF_PARTICIPANTS",
+                  "source_row": {
+                    "id": "1930022707",
+                    "nct_id": "NCT03574597",
+                    "outcome_id": "258769021",
+                    "param_type": "COUNT_OF_PARTICIPANTS",
+                    "param_value": "97",
+                    "param_value_num": "97.0",
+                    "source_reference": {
+                      "table": "outcome_measurements",
+                      "nct_id": "NCT03574597",
+                      "row_key": {
+                        "id": "1930022707"
+                      },
+                      "row_sha256": "6d7c26277aca1f6854a6000589600fe048973f308ba7355611eb73e28747c48e",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_measurements"
+                }
+              ]
+            }
           },
           "reported": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            "state": "YES",
+            "span": {
+              "source": "AACT registry results",
+              "outcome_row": {
+                "id": "258769021",
+                "nct_id": "NCT03574597",
+                "title": "Participants From Time of Randomisation to First Occurrence of HF Requiring Hospitalisation or Urgent HF Visit",
+                "source_reference": {
+                  "table": "outcomes",
+                  "nct_id": "NCT03574597",
+                  "row_key": {
+                    "id": "258769021"
+                  },
+                  "row_sha256": "d2d31e71ce9dc51813fae7681a774c613587b3941f484cd4cc99e927f123f927",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "typed_values": [
+                {
+                  "value": 97.0,
+                  "param_type": "COUNT_OF_PARTICIPANTS",
+                  "source_row": {
+                    "id": "1930022707",
+                    "nct_id": "NCT03574597",
+                    "outcome_id": "258769021",
+                    "param_type": "COUNT_OF_PARTICIPANTS",
+                    "param_value": "97",
+                    "param_value_num": "97.0",
+                    "source_reference": {
+                      "table": "outcome_measurements",
+                      "nct_id": "NCT03574597",
+                      "row_key": {
+                        "id": "1930022707"
+                      },
+                      "row_sha256": "6d7c26277aca1f6854a6000589600fe048973f308ba7355611eb73e28747c48e",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_measurements"
+                }
+              ]
+            }
           },
           "extractable": {
-            "state": "UNKNOWN",
-            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+            "state": "YES",
+            "span": {
+              "source": "AACT registry results",
+              "outcome_row": {
+                "id": "258769021",
+                "nct_id": "NCT03574597",
+                "title": "Participants From Time of Randomisation to First Occurrence of HF Requiring Hospitalisation or Urgent HF Visit",
+                "source_reference": {
+                  "table": "outcomes",
+                  "nct_id": "NCT03574597",
+                  "row_key": {
+                    "id": "258769021"
+                  },
+                  "row_sha256": "d2d31e71ce9dc51813fae7681a774c613587b3941f484cd4cc99e927f123f927",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "typed_values": [
+                {
+                  "value": 97.0,
+                  "param_type": "COUNT_OF_PARTICIPANTS",
+                  "source_row": {
+                    "id": "1930022707",
+                    "nct_id": "NCT03574597",
+                    "outcome_id": "258769021",
+                    "param_type": "COUNT_OF_PARTICIPANTS",
+                    "param_value": "97",
+                    "param_value_num": "97.0",
+                    "source_reference": {
+                      "table": "outcome_measurements",
+                      "nct_id": "NCT03574597",
+                      "row_key": {
+                        "id": "1930022707"
+                      },
+                      "row_sha256": "6d7c26277aca1f6854a6000589600fe048973f308ba7355611eb73e28747c48e",
+                      "snapshot": "2026-08-30"
+                    }
+                  },
+                  "source_table": "outcome_measurements"
+                }
+              ]
+            },
+            "scope": "Typed registry outcome values; not automatically a poolable contrast or target effect measure."
           },
           "in_primary_pool": {
             "state": "NO",
@@ -158017,6 +159153,30 @@
               ],
               "missing_components": [],
               "component_distance": 1
+            },
+            {
+              "row": {
+                "id": "1415807746",
+                "measure": "Participants From Time of Randomisation to First Occurrence of HF Requiring Hospitalisation or Urgent HF Visit",
+                "nct_id": "NCT03574597",
+                "outcome_type": "secondary",
+                "source_reference": {
+                  "table": "design_outcomes",
+                  "nct_id": "NCT03574597",
+                  "row_key": {
+                    "id": "1415807746"
+                  },
+                  "row_sha256": "f24348f115b95b5641fe51e81080b0a6658014b469526c322a06915f3695ae64",
+                  "snapshot": "2026-08-30"
+                }
+              },
+              "target_endpoint_class": "EXACT_TARGET",
+              "target_components": [
+                "heart failure hospitalization"
+              ],
+              "extra_components": [],
+              "missing_components": [],
+              "component_distance": 0
             }
           ]
         },
@@ -161187,19 +162347,140 @@
       "poolability": [
         {
           "outcome": "Hospitalization for heart failure",
-          "state": "UNKNOWN",
+          "state": "EXTRACTABLE",
           "span": {
             "measured": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+              "state": "YES",
+              "span": {
+                "source": "AACT registry results",
+                "outcome_row": {
+                  "id": "258769021",
+                  "nct_id": "NCT03574597",
+                  "title": "Participants From Time of Randomisation to First Occurrence of HF Requiring Hospitalisation or Urgent HF Visit",
+                  "source_reference": {
+                    "table": "outcomes",
+                    "nct_id": "NCT03574597",
+                    "row_key": {
+                      "id": "258769021"
+                    },
+                    "row_sha256": "d2d31e71ce9dc51813fae7681a774c613587b3941f484cd4cc99e927f123f927",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "typed_values": [
+                  {
+                    "value": 97.0,
+                    "param_type": "COUNT_OF_PARTICIPANTS",
+                    "source_row": {
+                      "id": "1930022707",
+                      "nct_id": "NCT03574597",
+                      "outcome_id": "258769021",
+                      "param_type": "COUNT_OF_PARTICIPANTS",
+                      "param_value": "97",
+                      "param_value_num": "97.0",
+                      "source_reference": {
+                        "table": "outcome_measurements",
+                        "nct_id": "NCT03574597",
+                        "row_key": {
+                          "id": "1930022707"
+                        },
+                        "row_sha256": "6d7c26277aca1f6854a6000589600fe048973f308ba7355611eb73e28747c48e",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_measurements"
+                  }
+                ]
+              }
             },
             "reported": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+              "state": "YES",
+              "span": {
+                "source": "AACT registry results",
+                "outcome_row": {
+                  "id": "258769021",
+                  "nct_id": "NCT03574597",
+                  "title": "Participants From Time of Randomisation to First Occurrence of HF Requiring Hospitalisation or Urgent HF Visit",
+                  "source_reference": {
+                    "table": "outcomes",
+                    "nct_id": "NCT03574597",
+                    "row_key": {
+                      "id": "258769021"
+                    },
+                    "row_sha256": "d2d31e71ce9dc51813fae7681a774c613587b3941f484cd4cc99e927f123f927",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "typed_values": [
+                  {
+                    "value": 97.0,
+                    "param_type": "COUNT_OF_PARTICIPANTS",
+                    "source_row": {
+                      "id": "1930022707",
+                      "nct_id": "NCT03574597",
+                      "outcome_id": "258769021",
+                      "param_type": "COUNT_OF_PARTICIPANTS",
+                      "param_value": "97",
+                      "param_value_num": "97.0",
+                      "source_reference": {
+                        "table": "outcome_measurements",
+                        "nct_id": "NCT03574597",
+                        "row_key": {
+                          "id": "1930022707"
+                        },
+                        "row_sha256": "6d7c26277aca1f6854a6000589600fe048973f308ba7355611eb73e28747c48e",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_measurements"
+                  }
+                ]
+              }
             },
             "extractable": {
-              "state": "UNKNOWN",
-              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+              "state": "YES",
+              "span": {
+                "source": "AACT registry results",
+                "outcome_row": {
+                  "id": "258769021",
+                  "nct_id": "NCT03574597",
+                  "title": "Participants From Time of Randomisation to First Occurrence of HF Requiring Hospitalisation or Urgent HF Visit",
+                  "source_reference": {
+                    "table": "outcomes",
+                    "nct_id": "NCT03574597",
+                    "row_key": {
+                      "id": "258769021"
+                    },
+                    "row_sha256": "d2d31e71ce9dc51813fae7681a774c613587b3941f484cd4cc99e927f123f927",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "typed_values": [
+                  {
+                    "value": 97.0,
+                    "param_type": "COUNT_OF_PARTICIPANTS",
+                    "source_row": {
+                      "id": "1930022707",
+                      "nct_id": "NCT03574597",
+                      "outcome_id": "258769021",
+                      "param_type": "COUNT_OF_PARTICIPANTS",
+                      "param_value": "97",
+                      "param_value_num": "97.0",
+                      "source_reference": {
+                        "table": "outcome_measurements",
+                        "nct_id": "NCT03574597",
+                        "row_key": {
+                          "id": "1930022707"
+                        },
+                        "row_sha256": "6d7c26277aca1f6854a6000589600fe048973f308ba7355611eb73e28747c48e",
+                        "snapshot": "2026-08-30"
+                      }
+                    },
+                    "source_table": "outcome_measurements"
+                  }
+                ]
+              },
+              "scope": "Typed registry outcome values; not automatically a poolable contrast or target effect measure."
             }
           },
           "analysis_input": false,
@@ -306338,27 +307619,15 @@
           },
           "measured": {
             "state": "YES",
-            "span": {
-              "quote": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.).",
-              "source": "held abstract",
-              "report_id": "28605608"
-            }
+            "span": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.)."
           },
           "reported": {
             "state": "YES",
-            "span": {
-              "quote": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.).",
-              "source": "held abstract",
-              "report_id": "28605608"
-            }
+            "span": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.)."
           },
           "extractable": {
             "state": "YES",
-            "span": {
-              "quote": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.).",
-              "source": "held abstract",
-              "report_id": "28605608"
-            }
+            "span": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.)."
           },
           "in_primary_pool": {
             "state": "NO",
@@ -306566,27 +307835,15 @@
           "span": {
             "measured": {
               "state": "YES",
-              "span": {
-                "quote": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.).",
-                "source": "held abstract",
-                "report_id": "28605608"
-              }
+              "span": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.)."
             },
             "reported": {
               "state": "YES",
-              "span": {
-                "quote": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.).",
-                "source": "held abstract",
-                "report_id": "28605608"
-              }
+              "span": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.)."
             },
             "extractable": {
               "state": "YES",
-              "span": {
-                "quote": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.).",
-                "source": "held abstract",
-                "report_id": "28605608"
-              }
+              "span": "Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.)."
             }
           },
           "analysis_input": true,
@@ -328976,19 +330233,266 @@
     {
       "family_id": "NCT01986881",
       "outcome": "Adverse events",
-      "state": "UNKNOWN",
+      "state": "EXTRACTABLE",
       "span": {
         "measured": {
-          "state": "UNKNOWN",
-          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          "state": "YES",
+          "span": {
+            "source": "AACT registry results",
+            "outcome_row": {
+              "id": "258751311",
+              "nct_id": "NCT01986881",
+              "title": "Percentage of Participants Experiencing an Adverse Event (AE) (Overall Cardiovascular Study)",
+              "source_reference": {
+                "table": "outcomes",
+                "nct_id": "NCT01986881",
+                "row_key": {
+                  "id": "258751311"
+                },
+                "row_sha256": "9c9529ce05985abf73e7004590c1bd71a91d345e85079de38eab0d5b861c0b15",
+                "snapshot": "2026-08-30"
+              }
+            },
+            "typed_values": [
+              {
+                "value": 85.8,
+                "param_type": "NUMBER",
+                "source_row": {
+                  "id": "1929890994",
+                  "nct_id": "NCT01986881",
+                  "outcome_id": "258751311",
+                  "param_type": "NUMBER",
+                  "param_value": "85.8",
+                  "param_value_num": "85.8",
+                  "source_reference": {
+                    "table": "outcome_measurements",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "1929890994"
+                    },
+                    "row_sha256": "18d18612311fc74e17232ba1394d2669437d7821254b30ef335c98ae81f8ead7",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_measurements"
+              },
+              {
+                "value": -0.9,
+                "param_type": "Difference in % vs Placebo",
+                "source_row": {
+                  "id": "129038977",
+                  "nct_id": "NCT01986881",
+                  "outcome_id": "258751311",
+                  "param_type": "Difference in % vs Placebo",
+                  "param_value": "-0.9",
+                  "source_reference": {
+                    "table": "outcome_analyses",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "129038977"
+                    },
+                    "row_sha256": "e16666c90213128adf01ccc55e38592d055224efe55edde115e15fb521420011",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_analyses"
+              },
+              {
+                "value": 0.3,
+                "param_type": "Difference in % vs Placebo",
+                "source_row": {
+                  "id": "129038978",
+                  "nct_id": "NCT01986881",
+                  "outcome_id": "258751311",
+                  "param_type": "Difference in % vs Placebo",
+                  "param_value": "0.3",
+                  "source_reference": {
+                    "table": "outcome_analyses",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "129038978"
+                    },
+                    "row_sha256": "d0cb009313df17d9e8092b62f109f55067b190abf2aa069ffc7bd0c74396c13f",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_analyses"
+              }
+            ]
+          }
         },
         "reported": {
-          "state": "UNKNOWN",
-          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          "state": "YES",
+          "span": {
+            "source": "AACT registry results",
+            "outcome_row": {
+              "id": "258751311",
+              "nct_id": "NCT01986881",
+              "title": "Percentage of Participants Experiencing an Adverse Event (AE) (Overall Cardiovascular Study)",
+              "source_reference": {
+                "table": "outcomes",
+                "nct_id": "NCT01986881",
+                "row_key": {
+                  "id": "258751311"
+                },
+                "row_sha256": "9c9529ce05985abf73e7004590c1bd71a91d345e85079de38eab0d5b861c0b15",
+                "snapshot": "2026-08-30"
+              }
+            },
+            "typed_values": [
+              {
+                "value": 85.8,
+                "param_type": "NUMBER",
+                "source_row": {
+                  "id": "1929890994",
+                  "nct_id": "NCT01986881",
+                  "outcome_id": "258751311",
+                  "param_type": "NUMBER",
+                  "param_value": "85.8",
+                  "param_value_num": "85.8",
+                  "source_reference": {
+                    "table": "outcome_measurements",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "1929890994"
+                    },
+                    "row_sha256": "18d18612311fc74e17232ba1394d2669437d7821254b30ef335c98ae81f8ead7",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_measurements"
+              },
+              {
+                "value": -0.9,
+                "param_type": "Difference in % vs Placebo",
+                "source_row": {
+                  "id": "129038977",
+                  "nct_id": "NCT01986881",
+                  "outcome_id": "258751311",
+                  "param_type": "Difference in % vs Placebo",
+                  "param_value": "-0.9",
+                  "source_reference": {
+                    "table": "outcome_analyses",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "129038977"
+                    },
+                    "row_sha256": "e16666c90213128adf01ccc55e38592d055224efe55edde115e15fb521420011",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_analyses"
+              },
+              {
+                "value": 0.3,
+                "param_type": "Difference in % vs Placebo",
+                "source_row": {
+                  "id": "129038978",
+                  "nct_id": "NCT01986881",
+                  "outcome_id": "258751311",
+                  "param_type": "Difference in % vs Placebo",
+                  "param_value": "0.3",
+                  "source_reference": {
+                    "table": "outcome_analyses",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "129038978"
+                    },
+                    "row_sha256": "d0cb009313df17d9e8092b62f109f55067b190abf2aa069ffc7bd0c74396c13f",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_analyses"
+              }
+            ]
+          }
         },
         "extractable": {
-          "state": "UNKNOWN",
-          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
+          "state": "YES",
+          "span": {
+            "source": "AACT registry results",
+            "outcome_row": {
+              "id": "258751311",
+              "nct_id": "NCT01986881",
+              "title": "Percentage of Participants Experiencing an Adverse Event (AE) (Overall Cardiovascular Study)",
+              "source_reference": {
+                "table": "outcomes",
+                "nct_id": "NCT01986881",
+                "row_key": {
+                  "id": "258751311"
+                },
+                "row_sha256": "9c9529ce05985abf73e7004590c1bd71a91d345e85079de38eab0d5b861c0b15",
+                "snapshot": "2026-08-30"
+              }
+            },
+            "typed_values": [
+              {
+                "value": 85.8,
+                "param_type": "NUMBER",
+                "source_row": {
+                  "id": "1929890994",
+                  "nct_id": "NCT01986881",
+                  "outcome_id": "258751311",
+                  "param_type": "NUMBER",
+                  "param_value": "85.8",
+                  "param_value_num": "85.8",
+                  "source_reference": {
+                    "table": "outcome_measurements",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "1929890994"
+                    },
+                    "row_sha256": "18d18612311fc74e17232ba1394d2669437d7821254b30ef335c98ae81f8ead7",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_measurements"
+              },
+              {
+                "value": -0.9,
+                "param_type": "Difference in % vs Placebo",
+                "source_row": {
+                  "id": "129038977",
+                  "nct_id": "NCT01986881",
+                  "outcome_id": "258751311",
+                  "param_type": "Difference in % vs Placebo",
+                  "param_value": "-0.9",
+                  "source_reference": {
+                    "table": "outcome_analyses",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "129038977"
+                    },
+                    "row_sha256": "e16666c90213128adf01ccc55e38592d055224efe55edde115e15fb521420011",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_analyses"
+              },
+              {
+                "value": 0.3,
+                "param_type": "Difference in % vs Placebo",
+                "source_row": {
+                  "id": "129038978",
+                  "nct_id": "NCT01986881",
+                  "outcome_id": "258751311",
+                  "param_type": "Difference in % vs Placebo",
+                  "param_value": "0.3",
+                  "source_reference": {
+                    "table": "outcome_analyses",
+                    "nct_id": "NCT01986881",
+                    "row_key": {
+                      "id": "129038978"
+                    },
+                    "row_sha256": "d0cb009313df17d9e8092b62f109f55067b190abf2aa069ffc7bd0c74396c13f",
+                    "snapshot": "2026-08-30"
+                  }
+                },
+                "source_table": "outcome_analyses"
+              }
+            ]
+          },
+          "scope": "Typed registry outcome values; not automatically a poolable contrast or target effect measure."
         }
       },
       "absence_code": "POOL_REFUSED",
@@ -329889,8 +331393,8 @@
       "source_fields": [
         "/outcomes/*/result/harm_reporting_trials"
       ],
-      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>28605608</td><td>EXTRACTED / : </td><td>Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.</td></tr><tr><td>32966714</td><td>RETRIEVED_INCOMPATIBLE_STRUCTURE / EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH: Dose-specific counts and rounded percentages are reported, but no hazard ratio or CI; a cumulative count RR cannot supply the registered HR.</td><td>Amputations were performed in 54 patients (2.0%) who received the 5-mg dose of ertugliflozin and in 57 patients (2.1%) who received the 15-mg dose, as compared with 45 patients (1.6%) who received placebo. CONCLUSIONS: Among patients with type 2 diabetes and atherosclerotic cardiovascular disease, ertugliflozin was noninferior to placebo with respect to major adverse cardiovascular events. (Funded by Merck Sharp &amp; Dohme and Pfizer; VERTIS CV ClinicalTrials.gov number, NCT01986881.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/sglt2-primary-prevention-hf/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>30415602</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: Registry amputation terms include traumatic amputation and/or stump complications; these do not establish the trial-defined lower-limb-amputation endpoint or its hazard ratio.</td><td>177518320|NCT01730534|838034696|EG000|up to 5.2 years|serious|||2|8574|All-Cause Mortality was assessed for all participants. Serious and Other Adverse Events were only assessed for the Safety Analysis Population, which included participants that received at least one dose of study drug and who have data observed at any time after first randomized dose until the end of the study.|2|Injury, poisoning and procedural complications|Limb traumatic amputation|1|MedDRA 21|SYSTEMATIC_ASSESSMENT</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: outputs/handover/in3/aact/reported_events.txt: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
-      "text_sha256": "02e8d2bdcabdabe2ee7b01ab83543f3e4987782d1e54b237fd0795adf9e3d877",
+      "rendered_text": "<div class='absent harms-synthesis-gated'><strong>HARMS EXTRACTION INCOMPLETE — no class-level quantitative safety conclusion issued</strong></div><table class='arms harms-debt-ledger'><tr><th>Reporting trial</th><th>Extraction state / refusal reason</th><th>Located span</th><th>Source-ladder obligations</th></tr><tr><td>28605608</td><td>EXTRACTED / : </td><td>Adverse reactions were consistent with the previously reported risks associated with canagliflozin except for an increased risk of amputation (6.3 vs. 3.4 participants per 1000 patient-years; hazard ratio, 1.97; 95% CI, 1.41 to 2.75); amputations were primarily at the level of the toe or metatarsal. Conclusions In two trials involving patients with type 2 diabetes and an elevated risk of cardiovascular disease, patients treated with canagliflozin had a lower risk of cardiovascular events than those who received placebo but a greater risk of amputation, primarily at the level of the toe or metatarsal. (Funded by Janssen Research and Development; CANVAS and CANVAS-R ClinicalTrials.gov numbers, NCT01032629 and NCT01989754 , respectively.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/sglt2-primary-prevention-hf/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>32966714</td><td>RETRIEVED_INCOMPATIBLE_STRUCTURE / EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH: Dose-specific counts and rounded percentages are reported, but no hazard ratio or CI; a cumulative count RR cannot supply the registered HR.</td><td>Amputations were performed in 54 patients (2.0%) who received the 5-mg dose of ertugliflozin and in 57 patients (2.1%) who received the 15-mg dose, as compared with 45 patients (1.6%) who received placebo. CONCLUSIONS: Among patients with type 2 diabetes and atherosclerotic cardiovascular disease, ertugliflozin was noninferior to placebo with respect to major adverse cardiovascular events. (Funded by Merck Sharp &amp; Dohme and Pfizer; VERTIS CV ClinicalTrials.gov number, NCT01986881.).</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: cache/sglt2-primary-prevention-hf/records.json: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr><tr><td>30415602</td><td>RETRIEVED_REFUSED_WITH_REASON / REFUSED_ON_EVIDENCE: Registry amputation terms include traumatic amputation and/or stump complications; these do not establish the trial-defined lower-limb-amputation endpoint or its hazard ratio.</td><td>177518320|NCT01730534|838034696|EG000|up to 5.2 years|serious|||2|8574|All-Cause Mortality was assessed for all participants. Serious and Other Adverse Events were only assessed for the Safety Analysis Population, which included participants that received at least one dose of study drug and who have data observed at any time after first randomized dose until the end of the study.|2|Injury, poisoning and procedural complications|Limb traumatic amputation|1|MedDRA 21|SYSTEMATIC_ASSESSMENT</td><td>abstract: CHECKED ; held full text: NOT_CHECKED ; supplement / registry results / regulatory source: NOT_CHECKED_BY_HARMS_AUDIT Locate outcome-specific evidence or record a source-backed refusal; no completed search inferred.; located adjudication source: outputs/handover/in3/aact/reported_events.txt: CHECKED_LOCATED_SPAN Typed refusal resolves the extraction obligation; other routes remain unverified.</td></tr></table>",
+      "text_sha256": "32b54a7c9dc82e3e884683ce37c430512709ddf4ea1a36d6989cb5afcf167d85",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "compat-check:harms-incomplete",
@@ -330249,7 +331753,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "04902ecfbb6d1a9ab7904062c8f1683dfd9e9db9",
-    "review_sha256": "0afb258af39a48006a8ee8e94828270afb28f7fbf955d87a177b276fdd00786f",
+    "review_sha256": "070466d62cad8196d656c61e701f16d065e6e45445fcd6f04c8bb483d6e23d7c",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -330372,19 +331876,19 @@
         }
       ],
       "config_sha256": "0e010b1905e9e3841a201b44d1ef8a71d69f1b9c36f642cd06856dd00936c2c1",
-      "analysis_code_sha256": "46622f5c2c7fe32b2bd27f43738301104eb87221f84379ee7e5da40963f2b827",
+      "analysis_code_sha256": "fd5ccc59cf078077fa5c788ed90b4fddce9767cdf4cfd00998fa1ce03ee1c40b",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
         "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
-        "harness/absence.py": "2db42260d7a5ac5d9b708f3cca8513d94c5c5584",
+        "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
         "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
         "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
         "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
         "harness/arm_object.py": "c6e2a9d0ea0263eba72c3453d52bc5a05b06e0b2",
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
         "harness/canonical.py": "65b5ae3d6553cef3001e6a6e98ce8e8f29b7f904",
-        "harness/census.py": "8909d29924df518d99ca9a73691c92e2e50557f8",
+        "harness/census.py": "9ae39b7175f4be44969df4c31bfba56021783cee",
         "harness/certificate.py": "da6b28c1f09a8080b7bfb3a20e0458e1a1dd9537",
         "harness/claim.py": "28685fe243066e95cd11d77db3313b1fffbf2f46",
         "harness/claimgraph.py": "3a1dfe515689b6ffc8160dc2a3ee2386379c4b7f",
@@ -330409,10 +331913,11 @@
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "81e3b42415047edde8fb39dce964e1ff415963c8",
+        "harness/gate.py": "20a5ce33e2c111d23993e208d00c88e04afda5ca",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
+        "harness/hand_binding.py": "d48224edf7e0e22dd0111e3c1a72565c25b93dd8",
         "harness/harms.py": "64f79ea3db77361f8076c8017af851f388183ef7",
         "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
@@ -330422,14 +331927,14 @@
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
         "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "abf2d38fbf9800b23d83289febd289fa53c6b2e6",
+        "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
-        "harness/manuscript.py": "6a18509615e91f32727923a43b569ff2181a5b5f",
+        "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "eec920650e986ee7a18e7549c60915a9ce6405b9",
-        "harness/parity_relation.py": "55a2602e97e0ee4518aa4d083e5ff4500afe4bf0",
-        "harness/pipeline.py": "4b1743b9dfa13b70612f435081f9009638a6ef10",
+        "harness/page.py": "4dad90b0facdea7c0f89fd0bc5dd1dd1ce04d31f",
+        "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
+        "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -330437,8 +331942,9 @@
         "harness/recovery_recheck.py": "2df1cdd48f4e4c5c6ccf8c918cdecdbc49e3f2fe",
         "harness/registration.py": "25cb6d9b6b331596c6559042667ab795ecba91de",
         "harness/registry_first.py": "acb2bae5f3e3c37e538547944574ea72cac4b324",
+        "harness/result_changes.py": "b7a2eb8c55276a0335312a9ea389631216a9449d",
         "harness/rob2.py": "d3a0e2e31050d86fa600a75773126d069132eff0",
-        "harness/rob_sensitivity.py": "026441df1eac7e36710fe170eba196ca5b085a3c",
+        "harness/rob_sensitivity.py": "dda177ec5e49804afa98167d4d3666942e22c729",
         "harness/scope.py": "d4f3ba5a20f25e6691cb5ded3bfed69d03f03fbf",
         "harness/scope_identity.py": "d651ee050cf4b9f6ec795cfc8d86eaeaa3851a3f",
         "harness/screen.py": "e2864719b75c355abfcff1dbde0b376c45bdd84e",
@@ -330447,14 +331953,14 @@
         "harness/source_hierarchy.py": "311a9e3380f542c2103d30480a989fd1b33cee35",
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
-        "harness/target_endpoint.py": "554df973c35f7c9d29070e29cb7075ec9026e574",
+        "harness/target_endpoint.py": "f605e0f513e3524baac0a9e5f36ced5b926ed6e3",
         "harness/trial_family.py": "57882f159bbfd8d91b60deaf5956e409de6c484f",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
         "harness/verify.py": "e5187ea9cc8e9b92a02a98e7bc84ed1cfd0a99f5",
         "scripts/build_topic.py": "ddfab3d8415edb0b5a7f8e1a091f10e0520cfd18",
-        "scripts/reproduce_review.py": "eab6807e05abf130e79db5d0e9354598c4cf7dfe"
+        "scripts/reproduce_review.py": "b8f090b9ac3699ced2181aa9366b098678c29dbe"
       },
       "certificate_scope": {
         "method": "analysis_code_blobs is the static import closure (ast; module-level and function-local import statements, relative and absolute) of the roots, restricted to modules that resolve to a file under harness/ or scripts/. Nothing in the map is listed by hand. Values are Git SHA-1 blob identities: sha1('blob ' + len + NUL + bytes) over the file with CRLF normalised to LF, recomputable with `git hash-object -- <path>` at the anchoring commit.",
@@ -330467,7 +331973,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "80 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "82 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -330497,7 +332003,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "2f693d8712733ddc176c053d63e2170e0b5d5eef245b5fef8ae651a42b4ac163",
-      "review_sha256": "0afb258af39a48006a8ee8e94828270afb28f7fbf955d87a177b276fdd00786f",
+      "review_sha256": "070466d62cad8196d656c61e701f16d065e6e45445fcd6f04c8bb483d6e23d7c",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/sglt2-primary-prevention-hf.md UTF-8 text, universal newlines",
@@ -330517,7 +332023,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "92088ac5194e08e381dce34467a232fee040d0bf0b68c480b832df6373bef354"
+      "release_sha256": "f2d4fd447cc966c1460b44d8c0074319429a4a2c1728d646c3024711178a3de5"
     }
   }
 }
