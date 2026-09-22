@@ -97,6 +97,7 @@ _INCOMPATIBLE_CODES = {
 _REFUSAL_CODES = {
     absence.REFUSED_ON_EVIDENCE,
     absence.SIGNAL_SPURIOUS,
+    "P5_family_eligible",   # set aside / refused on ADMISSION (harness/admission.py): the harm IS reported; the row is refused with reason
 }
 
 _EFFECT_OR_COMPARISON = re.compile(

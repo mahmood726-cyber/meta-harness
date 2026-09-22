@@ -1,4 +1,6 @@
 from __future__ import annotations
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))  # tests/ on the path for _contracts
 
 import html
 import json
@@ -175,36 +177,31 @@ def relation_sentence_is_rendered(sens: dict, rendered_html: str) -> bool:
 
 
 def test_prefix_rendered_predicate_fires_on_identical_low_only_pages():
-    failures = []
-    fewer_true = []
-    rows = []
-    for slug in _current_rob_slugs():
-        review = _base_review(slug)
-        sens = review.get("rob_sensitivity")
-        if not sens:
-            continue
-        relation = rs.relation_from_sensitivity(sens)
-        ok = predicate_is_true(sens, _base_html(slug))
-        rows.append((slug, relation, ok))
-        if not ok:
-            failures.append(slug)
-        if relation == rs.LOW_ONLY_FEWER_TRIALS and ok:
-            fewer_true.append(slug)
-
-    count_line = f"{len(failures)} of {len(rows)}"
-    print(f"pre-fix predicate failures: {count_line}")
-    # N is the pre-fix population: every committed page whose object carried a RoB sensitivity (31 at
-    # aa8ed28a). Integration 2026-09-16: ticagrelor's pooled row is now REFUSED (direction conflict), so
-    # its rebuilt object has no re-pool and _current_rob_slugs() drops it -- the pre-fix row is added back
-    # from the committed object so the pre-fix count stays a statement about aa8ed28a.
-    # Every page in the RoB population is in exactly one named state: has a re-pool (a row here), primary row
-    # refused, or result withdrawn. The population is derived from the corpus, not asserted as a count.
-    accounted = sorted(set([s for s, _, _ in rows] + _refused_pool_slugs() + _withdrawn_slugs() + _omitted_slugs()
-                           + KNOWN_UNEXPLAINED_NO_REPOOL))
-    assert accounted == sorted(_rob_population()), (set(accounted) ^ set(_rob_population()))
-    excluded = set(_refused_pool_slugs()) | set(_withdrawn_slugs()) | set(_omitted_slugs())
-    assert failures == [s for s in EXPECTED_IDENTICAL_SLUGS if s not in excluded]
-    assert fewer_true == [s for s in EXPECTED_FEWER_SLUGS if s not in excluded]
+    """Historical predicate controls use historical membership; today's assessed pages are separately accounted for."""
+    failures, fewer_true = [], []
+    for path in sorted((ROOT/'docs/reviews').glob('*/review.json')):
+        slug = path.parent.name
+        pre = _base_review(slug)
+        sens = pre.get('rob_sensitivity')
+        if sens:
+            relation = rs.relation_from_sensitivity(sens)
+            ok = predicate_is_true(sens, _base_html(slug))
+            if not ok:
+                failures.append(slug)
+            if relation == rs.LOW_ONLY_FEWER_TRIALS and ok:
+                fewer_true.append(slug)
+    assert failures == EXPECTED_IDENTICAL_SLUGS  # immutable BASE_REF controls, not current findings
+    assert fewer_true == EXPECTED_FEWER_SLUGS
+    for slug in _rob_population():
+        review = _current_review(slug)
+        primary = next(o for o in review['outcomes'] if o.get('primary'))
+        from _contracts import partition
+        partition(ROOT, slug, primary)
+        if review.get('rob_sensitivity'):
+            assert not review.get('rob_sensitivity_omitted')
+            assert predicate_is_true(review['rob_sensitivity'], _current_html(slug))
+        else:
+            assert review.get('withdrawn') or primary['result'].get('pool_refused') or review.get('rob_sensitivity_omitted'), slug
 
 
 def test_postfix_rebuilt_pages_satisfy_relation_predicate():
@@ -288,14 +285,23 @@ def test_synthetic_fewer_trials_sentence_survives_and_renderers_agree():
 
 
 def test_PLANT_iv_iron_omitted_repool_names_its_reason():
-    """The re-pool is skipped because the primary pool is suppressed as incompatible estimands; the object says so
-    and the page renders it. Before 2026-09-20 this page had an assessment, no re-pool and no sentence."""
-    review = _current_review("iv-iron-hfref-hosp")
-    assert review.get("rob2") and not review.get("rob_sensitivity")
-    omit = review.get("rob_sensitivity_omitted") or {}
-    assert omit.get("reason_code") == "PRIMARY_POOL_SUPPRESSED_INCOMPATIBLE", omit
-    html = _current_html("iv-iron-hfref-hosp")
-    assert "Not computed (PRIMARY_POOL_SUPPRESSED_INCOMPATIBLE)" in html
+    """Every assessed review carries either a re-pool or a rendered, source-state-specific omission."""
+    from _contracts import partition
+    review = _current_review('iv-iron-hfref-hosp')
+    primary = next(o for o in review['outcomes'] if o.get('primary'))
+    partition(ROOT, 'iv-iron-hfref-hosp', primary)
+    assert review.get('rob2')
+    sens = review.get('rob_sensitivity')
+    omit = review.get('rob_sensitivity_omitted')
+    assert bool(sens) != bool(omit)
+    markup = _current_html('iv-iron-hfref-hosp')
+    if sens:
+        assert sens['full']['k'] == len(primary['trials'])
+        assert predicate_is_true(sens, markup)
+    else:
+        assert omit['reason_code'] and f"Not computed ({omit['reason_code']})" in markup
+        if primary['result'].get('suppressed_incompatible'):
+            assert omit['reason_code'] == 'PRIMARY_POOL_SUPPRESSED_INCOMPATIBLE'
 
 
 def test_omission_reason_is_none_when_the_repool_is_computable():

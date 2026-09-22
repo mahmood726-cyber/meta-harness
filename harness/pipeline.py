@@ -43,6 +43,7 @@ from . import unextracted as unextracted_mod
 from . import harms as harms_mod
 from . import protocol_compiler as protocol_compiler_mod
 from . import target_endpoint as target_endpoint_mod
+from . import admission as admission_mod
 from . import second_source as second_source_mod
 from . import propositions as propositions_mod
 from . import eligibility_chain as eligibility_chain_mod
@@ -1038,7 +1039,8 @@ def _apply_trial_annotations(spec, trials):
 def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=None,
                    fulltext_by_pmid=None, outcome_judgments=None, verified_arms=None,
                    locate_judgments=None, verified_effects=None, dose_selection=None,
-                   registry_designs=None, k2_anchor_config=None, eligibility_contract=None, slug=None):
+                   registry_designs=None, k2_anchor_config=None, eligibility_contract=None, slug=None,
+                   family_nodes=None):
     ctgov_results = ctgov_results or {}
     fulltext_by_pmid = fulltext_by_pmid or {}
     dose_selection = dose_selection or {}
@@ -1431,6 +1433,18 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
     trials, design_refusals = design_key.split_design_refusals(trials)
     for t in design_refusals:
         absent.append(design_variance.refusal_absence(t))
+    # ADMISSION (2026-09-21): the build READS the admission decision it used to only describe. The family
+    # eligibility the structural screen established before pooling (outcome_inputs -> trial_family.prepare) is
+    # applied here -- the LAST step before the pool is computed, after every route has converged
+    # (target_endpoint.admit_rows), after a declared withdrawal, the opt-in eligibility chain and the typed design
+    # refusals have taken the rows they name (a more specific served reason is never overwritten by P5; at the first
+    # rebuild, placed earlier, it relabelled three cluster-crossover design refusals and a withdrawn row) -- by the one
+    # implementation the gate re-reads (harness/admission.py: P5 family eligible / P8 endpoint bound; the other bundle
+    # predicates are named as not evaluated in-build). A row whose family is not ELIGIBLE is set aside with the tuple
+    # it carried -- the trial stays on the outcome; a build handed no family ledger admits nothing. Until this line
+    # the page said "existing pooling membership is preserved" over 53 of 87 INADMISSIBLE primary rows.
+    trials, _not_admitted = admission_mod.admit(trials, family_nodes, spec)
+    absent.extend(_not_admitted)
     included_meta = {
         str(d.get("id")): {k: d.get(k) for k in screen_entry.DECISION_EXTRA_KEYS if k in d}
         for d in included
@@ -1449,6 +1463,8 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
            "timepoint": spec.get("timepoint"), "method": METHOD,
            "served_estimand": selector_estimand, "estimand_decision": estimand_decision,
            "trials": trials, "declared_absent_trials": absent}
+    # What the build decided and the scope of that decision, rendered on the page and re-read by the gate.
+    out["admission_summary"] = admission_mod.summary(out)
     if spec.get("component_compat_key"):
         out["component_compat_key"] = True
     if design_refusals:
@@ -1674,7 +1690,15 @@ def _build_outcome(spec, kind, included, rec_by_id, interv, comp, ctgov_results=
             _ab = ((rec_by_id.get(d["id"], {}) or {}).get("abstract", "") or "").lower()
             if _ab and any(k in _ab for k in _kws):
                 _reported_by.append(d["id"])
-        if _reported_by:
+        _aside = [a for a in absent if admission_mod.is_set_aside(a)]
+        if _aside:
+            # every candidate row that reached the pool was set aside on admission: say so, never "not extractable"
+            # (lane R finding R9: the empty-pool text explained an admission refusal as an extraction failure)
+            out["result"] = {"present": False, "set_aside_on_admission": [str(a.get("id")) for a in _aside],
+                             "reason": (f"no admitted trial: {len(_aside)} candidate extraction(s) reached the pool and were set aside "
+                                        "on admission (family eligibility not established by held evidence, P5); each stays listed "
+                                        "below with the value it carried; no pooled result until eligibility is established")}
+        elif _reported_by:
             out["result"] = {
                 "present": False, "reported_not_extracted": True, "reported_by": _reported_by[:10],
                 "reason": ("REPORTED but not extractable as a pooled value: " + ", ".join(_reported_by[:6])
@@ -1871,7 +1895,8 @@ def build_outcome_from_inputs(inp, spec, kind, slug, **overrides):
                           verified_effects=kw["veffs"], dose_selection=kw["dsel"],
                           registry_designs=kw["registry_designs"],
                           k2_anchor_config=kw["config"].get("k2_direction_conflict_anchor"),
-                          eligibility_contract=kw["eligibility_contract"], slug=slug)
+                          eligibility_contract=kw["eligibility_contract"], slug=slug,
+                          family_nodes=kw["family_nodes"])
 
 
 @aact_cache.cache_only_build
@@ -1889,7 +1914,8 @@ def build_review_core(slug, config, records, protocol_sha):
                                verified_effects=veffs, dose_selection=dsel,
                                registry_designs=registry_designs,
                                k2_anchor_config=config.get("k2_direction_conflict_anchor"),
-                               eligibility_contract=eligibility_contract, slug=slug)
+                               eligibility_contract=eligibility_contract, slug=slug,
+                               family_nodes=family_nodes)
                 for spec, kind in _outcome_specs(config)]
     primary = outcomes[0]
 
@@ -2085,6 +2111,9 @@ def build_review_core(slug, config, records, protocol_sha):
     # DECLARED STRANDS are result-bearing objects for this topic, not index-only prose.
     # Attach them before invalidation so strand members count as pooled membership.
     claimgraph_mod.attach_strands(review, ROOT)
+    # a declared strand pools only admitted members (harness/admission.py::admit_strands): a member whose family
+    # eligibility is not established refuses the strand's saved result on the page and on the index
+    review["strands_admission"] = admission_mod.admit_strands(review.get("strands"), family_nodes)
     # PROTOCOL COMPILER (two independent sources): compare the PROSE protocol against the executable
     # config before invalidation, because identifier-scope needs the PICO I-line quote for its reason.
     _protocol_i_line = ""
@@ -2121,7 +2150,7 @@ def build_review_core(slug, config, records, protocol_sha):
     # eligible-not-pooled. Built from the merged records' own nct field; verified 0 cross-space cases
     # today, wired as defense-in-depth so it stays 0.
     _inv_sig["id_nct"] = {str(r["id"]): str(r.get("nct")) for r in merged if r.get("nct")}
-    review["invalidation"] = invalidation_mod.assess(review, _inv_sig)
+    review["invalidation"] = invalidation_mod.assess(review, _inv_sig, family_nodes=family_nodes)
     if _inv_sig.get("never_considered"):
         review["never_considered"] = _inv_sig["never_considered"]
     # COMPATIBILITY KEY: the explicit key each pooled outcome satisfies (effect measure, event
@@ -2194,7 +2223,7 @@ def build_review_core(slug, config, records, protocol_sha):
     compat_check_mod.enrich(review, records)
     # KNOWN-MISSING SENSITIVITY: invalidation names eligible evidence outside the primary pool.
     # This panel keeps the primary untouched and shows only source-backed re-pools as SENSITIVITY.
-    known_missing_mod.build(review, _inv_sig, rec_by_id, records)
+    known_missing_mod.build(review, _inv_sig, rec_by_id, records, family_nodes=family_nodes)
     consumer_consistency_mod.annotate_review(review, slug, config, records)
     # RX measurement layer: verify the declared reason codes and enumerate included-trial x
     # registered-outcome values visible in held sources but not extracted. This is deliberately
@@ -2244,6 +2273,11 @@ def build_review_core(slug, config, records, protocol_sha):
         # a certainty surface for a claim the page no longer makes (the gate checks every surface against the
         # canonical rating, so the rating is omitted rather than left stale).
         pass
+    elif not _prim_res.get("k"):
+        # No pooled primary result (every candidate row set aside on admission, 2026-09-21): the same rule -- no
+        # certainty rating for a claim the page does not make; the page is refused by check_primary_result until
+        # eligibility is established for its rows, and it must not carry a GRADE surface meanwhile.
+        pass
     elif (_grade := grade_mod.grade(review, _load_ghost(slug))):
         review["grade"] = _grade
         design_variance.annotate_grade(review)
@@ -2258,7 +2292,7 @@ def build_review_core(slug, config, records, protocol_sha):
     # Scientific consumers above join held report-keyed RoB/GRADE evidence.
     # Family identity is additive; regenerate the dependent sensitivity stamp afterwards.
     trial_family_mod.attach_review(review, family_nodes)
-    known_missing_mod.build(review, _inv_sig, rec_by_id, records)
+    known_missing_mod.build(review, _inv_sig, rec_by_id, records, family_nodes=family_nodes)
     claimgraph_mod.stamp_review(review)
     _cg_bad = claimgraph_mod.check(review)
     if _cg_bad:

@@ -231,6 +231,55 @@ def compare_parity(base_review: Any, new_review: Any, acknowledgements: Any, slu
     ]
 
 
+_SCREENING_ACK_REQUIRED = ("slug", "record_id", "old_decision", "new_decision", "reason", "by", "when_utc")
+
+
+def _screening_ack_entries(acknowledgements: Any) -> list[dict[str, Any]]:
+    raw = acknowledgements.get("screening_acknowledgements", []) if isinstance(acknowledgements, dict) else []
+    return [e for e in raw if isinstance(e, dict)]
+
+
+def _screening_decisions(review_json: Any) -> dict[str, str]:
+    if not isinstance(review_json, dict):
+        return {}
+    out: dict[str, str] = {}
+    for r in ((review_json.get("screening") or {}).get("records") or []):
+        if isinstance(r, dict) and r.get("id") is not None:
+            out[str(r.get("id")).strip()] = str(r.get("decision") or "")
+    return out
+
+
+def compare_screening(base_review: Any, new_review: Any, acknowledgements: Any, slug: str) -> list[str]:
+    """NOT SATISFIABLE BY DROPPING ROWS (enforcement gate, 2026-09-21; lane R finding R1): a trial screened IN on the
+    served page that is screened OUT -- or gone from the screening ledger -- on the rebuilt page has left the
+    candidate set BEFORE admission, where the admission gate cannot see it (a consistent rebuild after editing the
+    topic's executable include list passed the whole gate with no refusal naming the trial). Every such departure is
+    admitted only under an acknowledgement naming the slug, the record, the old and new decision, why, and who
+    (docs/ratchet_acknowledgements.json screening_acknowledgements). A record that stays screened in, or a new
+    record, needs nothing: the ratchet is one-directional -- the candidate set may not get quieter."""
+    base, new = _screening_decisions(base_review), _screening_decisions(new_review)
+    if not base:
+        return []
+    acks = [e for e in _screening_ack_entries(acknowledgements)
+            if all(isinstance(e.get(k), str) and e[k].strip() for k in _SCREENING_ACK_REQUIRED)]
+    out = []
+    for rid, old in sorted(base.items()):
+        if old != "include":
+            continue
+        cur = new.get(rid, "ABSENT_FROM_SCREENING")
+        if cur == "include":
+            continue
+        if any(e["slug"] == slug and e["record_id"] == rid and e["old_decision"] == old and e["new_decision"] == cur for e in acks):
+            continue
+        out.append(
+            f"screened-in record {rid} left the candidate set for {slug}: decision {old} -> {cur} -- not acknowledged: "
+            "docs/ratchet_acknowledgements.json screening_acknowledgements needs an entry naming slug, record_id, "
+            "old_decision, new_decision exactly, reason, by, when_utc (a refused extraction is set aside on the page "
+            "with its reason; a trial never leaves the candidate set silently)"
+        )
+    return out
+
+
 RESULT_CHANGES_PATH = Path("docs") / "result_changes.json"
 
 
@@ -257,6 +306,22 @@ def compare_results(base_review: Any, new_review: Any, notices: Any, slug: str) 
         name = o.get("name")
         n = new_by_name.get(name)
         if n is None:
+            # the outcome itself is gone from the rebuilt review (lane V2 attempt A9-drop-outcome, 2026-09-21: a harm
+            # outcome deleted from the topic config took its pooled rows with it and no refusal named them): a served
+            # pooled result that DISAPPEARS is a result change -- admitted only under a notice naming the outcome, the
+            # before tuple, an empty after, and every row that left
+            base_pool = sorted(str(t.get("id")) for t in (o.get("trials") or []) if isinstance(t, dict))
+            before = result_changes.result_tuple(o.get("result"))
+            if not base_pool and not (before or {}).get("k"):
+                continue
+            if result_changes.notice_for(rows, slug, name, before, None, base_pool, []):
+                continue
+            out.append(
+                f"outcome removed for {slug} / {name!r}: the served page pooled k {before.get('k')} "
+                f"({', '.join(base_pool) or 'no rows'}) and the rebuilt review has no such outcome -- not acknowledged: "
+                "docs/result_changes.json needs a notice naming slug, outcome, before, an empty after, every row in left_pool, "
+                "reason, by, when_utc (a trial never leaves a served pool by the outcome vanishing)"
+            )
             continue
         before, after = result_changes.result_tuple(o.get("result")), result_changes.result_tuple(n.get("result"))
         if result_changes._same(before, after):
@@ -502,6 +567,8 @@ def check(root: str | os.PathLike[str], base_ref: str | None = None) -> tuple[bo
         for violation in compare_parity(base_json, new_json, acknowledgements, slug):
             reasons.append(f"{rel}: {violation}")
         for violation in compare_results(base_json, new_json, _load_result_change_notices(root), slug):
+            reasons.append(f"{rel}: {violation}")
+        for violation in compare_screening(base_json, new_json, acknowledgements, slug):
             reasons.append(f"{rel}: {violation}")
 
     for block_ref in _block_base_refs(root, ref):

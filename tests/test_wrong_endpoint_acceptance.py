@@ -21,6 +21,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _families import eligible_by_construction  # noqa: E402  (families ELIGIBLE by construction: the admission gate is on by default)
 
 from harness import pipeline  # noqa: E402
 from harness import target_endpoint as TE  # noqa: E402
@@ -67,7 +69,7 @@ def _build(abstract, pmid="99999901"):
     topic, spec, interv, comp = _glp1_spec()
     included = [{"id": pmid, "id_type": "pmid", "label": "PLANT"}]
     rec_by_id = {pmid: {"id": pmid, "abstract": abstract, "acronym": "PLANT"}}
-    return pipeline._build_outcome(spec, "primary", included, rec_by_id, interv, comp)
+    return pipeline._build_outcome(spec, "primary", included, rec_by_id, interv, comp, family_nodes=eligible_by_construction(rec_by_id))
 
 
 def _pooled_rows(outcome):
@@ -140,7 +142,16 @@ def test_glp1_served_primary_rows_unchanged_in_number():
     by_id = {str(r["id"]): r for r in records["records"]}
     served = _json("docs/reviews/glp1-ra-mace-t2d/review.json")
     rows = [t for t in served["outcomes"][0]["trials"] if t.get("provenance") == "abstract"]
-    assert len(rows) == 7
+    from _contracts import partition
+    outcome = served["outcomes"][0]
+    partition(ROOT, "glp1-ra-mace-t2d", outcome)
+    assert rows, "keep a controlled abstract-route fixture if the admitted pool empties"
+    for absent in outcome.get("declared_absent_trials", []):
+        if absent.get("provenance") == "abstract" and absent.get("admission_verdict"):
+            pmid = absent["id"].replace("PMID ", "")
+            sel = TE.select_target_endpoint(spec, by_id[pmid]["abstract"], None, interv, comp)["selected"]
+            assert sel is not None and sel["target_endpoint_class"] == TE.EXACT_TARGET
+            assert all(absent["candidate_tuple"][key] == sel[key] for key in ("effect", "ci_low", "ci_high"))
     for row in rows:
         pmid = row["id"].replace("PMID ", "")
         sel = TE.select_target_endpoint(spec, by_id[pmid]["abstract"], None, interv, comp)["selected"]

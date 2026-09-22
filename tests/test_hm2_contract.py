@@ -2,6 +2,7 @@
 import json
 
 from harness import absence, gate, harms, pipeline, verify
+from _families import eligible_by_construction  # noqa: E402  (families ELIGIBLE by construction: the admission gate is on by default)
 
 
 def test_hm2_unresolved_fixture_refuses_gate(tmp_path):
@@ -51,7 +52,7 @@ def test_multiple_verified_outcomes_preserve_legacy_and_refusals(tmp_path, monke
     spec = {"name": "GI", "keywords": ["gastrointestinal"], "estimand": "RR"}
     out = pipeline._build_outcome(spec, "harm", [{"id": "1", "id_type": "pmid"}],
         {"1": {"abstract": "Background gastrointestinal disease was assessed."}},
-        ["drug"], ["placebo"], verified_effects=entries)
+        ["drug"], ["placebo"], verified_effects=entries, family_nodes=eligible_by_construction({"1": {}}))
     row = out["declared_absent_trials"][0]
     # Efficacy-strand membership annotation must not erase a harm adjudication.
     row["absent_kind"] = "pooled_in_strand"
@@ -96,7 +97,7 @@ def test_analysis_set_mismatch_does_not_evict_before_pooling():
         {"12345678": {"abstract": "Double-blind placebo-controlled trial at trial end; available-case analyzed patients."}},
         ["drug"], ["placebo"], verified_arms={"12345678": {"outcome": "GI", "override": True,
             "ai": 1, "n1i": 20, "ci": 2, "n2i": 20, "source": "1 of 20 versus 2 of 20"}},
-        eligibility_contract=contract)
+        eligibility_contract=contract, family_nodes=eligible_by_construction({"12345678": {}}))
     assert len(out["trials"]) == 1
     admission = eligibility_chain.admission_record(out['trials'][0],
         {'abstract': 'Double-blind placebo-controlled trial at trial end; available-case analyzed patients.'},

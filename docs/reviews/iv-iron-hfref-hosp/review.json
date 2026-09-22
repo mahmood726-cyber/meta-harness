@@ -888,7 +888,7 @@
       "estimand": "RR",
       "population": "intention-to-treat",
       "timepoint": "trial end / longest reported follow-up",
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
+      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
       "served_estimand": "HR",
       "estimand_decision": {
         "declared_estimand": "RR",
@@ -905,163 +905,6 @@
         "rule": "prefer published HR; keep reconstruction only when no HR exists"
       },
       "trials": [
-        {
-          "label": "40159390",
-          "id": "PMID 40159390",
-          "effect": 0.8,
-          "ci_low": 0.6,
-          "ci_high": 1.06,
-          "scale": "IRR",
-          "source": "abstract effect+CI (IRR): The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12",
-          "provenance": "abstract",
-          "derivation": "reported",
-          "selection_rule": "KEEP_REPORTED_EFFECT",
-          "selected_estimator": "published_effect_ci",
-          "alternatives": [
-            {
-              "derivation": "reported",
-              "provenance": "abstract",
-              "source_span": "abstract effect+CI (HR): RESULTS: Of the 1105 participants (mean age, 70 years [SD, 12 years]; 33% were women), cardiovascular death or first heart failure hospitalization (first primary outcome) o...",
-              "effect": 0.79,
-              "ci_low": 0.63,
-              "ci_high": 0.99,
-              "scale": "HR",
-              "estimand_class": "FIRST_EVENT_RATIO",
-              "not_selected_reason": "source_hierarchy_lower_precedence"
-            },
-            {
-              "derivation": "reported",
-              "provenance": "abstract",
-              "source_span": "abstract effect+CI (HR): The third primary outcome (cardiovascular death or first heart failure hospitalization in patients with a transferrin saturation <20%) occurred in 103 patients in the ferri...",
-              "effect": 0.79,
-              "ci_low": 0.61,
-              "ci_high": 1.02,
-              "scale": "HR",
-              "estimand_class": "FIRST_EVENT_RATIO",
-              "not_selected_reason": "source_hierarchy_lower_precedence"
-            }
-          ],
-          "endpoint_admissibility": "UNBOUND_LEGACY",
-          "endpoint_binding": "unbound_legacy",
-          "source_hierarchy_limitations": [
-            {
-              "code": "MIXED_BY_SOURCE_LIMIT",
-              "reason": "Outcome decision prefers published HR, but this row has no committed HR effect+CI; the row remains on the reconstructed/available scale and the pool is mixed by source limit.",
-              "citation": "SOURCE_NOT_RETRIEVED_FULL_TEXT_NEEDED"
-            }
-          ],
-          "verified": "verified",
-          "verify_basis": "effect present in committed source",
-          "design": {
-            "unit_of_randomisation": "INDIVIDUAL",
-            "design": "PARALLEL",
-            "estimator_source": "PUBLISHED_IRR",
-            "adjustment_status": "UNRESOLVED",
-            "adjustment_axis": {
-              "status": "UNRESOLVED"
-            },
-            "correlation_handling": {
-              "method": "none",
-              "evidence": []
-            },
-            "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [
-              {
-                "source": "AACT designs.intervention_model",
-                "span": "PARALLEL"
-              },
-              {
-                "source": "trial reported estimate label",
-                "span": "rate ratio, 0.80 [95% CI, 0.60-1.06"
-              }
-            ],
-            "published_alternative": {
-              "effect": 0.8,
-              "ci_low": 0.6,
-              "ci_high": 1.06,
-              "scale": "IRR",
-              "adjusted": false,
-              "span": "rate ratio, 0.80 [95% CI, 0.60-1.06"
-            },
-            "design_action": {
-              "action": "ALLOW",
-              "gate_id": "design-key:parallel",
-              "decision_state": "no detected validity-critical design hazard",
-              "reason": "individually randomised parallel design established from committed evidence",
-              "validity_critical": false
-            }
-          },
-          "study_effect": {
-            "effect_estimate": 0.8,
-            "standard_error": 0.14517984421624877,
-            "estimand": "HR",
-            "analysis_population": "intention-to-treat",
-            "randomisation_unit": "INDIVIDUAL",
-            "study_design": "PARALLEL",
-            "estimator_method": "PUBLISHED_IRR",
-            "correlation_handling": {
-              "method": "none",
-              "evidence": []
-            },
-            "source_provenance": {
-              "source": "abstract",
-              "span": "abstract effect+CI (IRR): The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12"
-            },
-            "design_action": {
-              "action": "ALLOW",
-              "gate_id": "design-key:parallel",
-              "decision_state": "no detected validity-critical design hazard",
-              "reason": "individually randomised parallel design established from committed evidence",
-              "validity_critical": false
-            }
-          },
-          "effect_object": {
-            "reported_label": "IRR",
-            "statistical_model": "rate / person-time",
-            "canonical_estimand": "INCIDENCE_RATE_RATIO"
-          },
-          "trial_family_id": "NCT03036462",
-          "publication_role": "primary",
-          "analysis_set": "intention-to-treat",
-          "follow_up_window": "trial end / longest reported follow-up",
-          "endpoint_definition": "Total (recurrent) HF hospitalizations = rate ratio.; ALREADY DISCLOSED (labelled IRR / mixed scale)",
-          "population_age": "not_stated",
-          "intervention_ontology": {
-            "intervention_class": null
-          },
-          "compat_dimensions": {
-            "trial_id": "40159390",
-            "trial_label": "40159390",
-            "analysis_set": {
-              "value": "intention-to-treat",
-              "source": "study_effect.analysis_population",
-              "span": "intention-to-treat"
-            },
-            "follow_up_window": {
-              "value": "trial end / longest reported follow-up",
-              "source": "outcome.timepoint",
-              "span": "trial end / longest reported follow-up"
-            },
-            "endpoint_definition": {
-              "value": "Total (recurrent) HF hospitalizations = rate ratio.; ALREADY DISCLOSED (labelled IRR / mixed scale)",
-              "source": "docs/definition_audit.json",
-              "span": "Total (recurrent) HF hospitalizations = rate ratio.; ALREADY DISCLOSED (labelled IRR / mixed scale)"
-            },
-            "population_age": {
-              "value": "not_stated",
-              "source": "committed source text",
-              "span": ""
-            },
-            "intervention_ontology": {
-              "intervention_class": null
-            }
-          },
-          "trial_id": "PMID 40159390",
-          "report_id": "PMID 40159390",
-          "outcome_effect_id": "iv-iron-hfref-hosp::Heart-failure hospitalization::PMID 40159390::PMID 40159390",
-          "family_identity_state": "REGISTRY_ANCHORED",
-          "family_id": "NCT03036462"
-        },
         {
           "label": "25176939",
           "id": "PMID 25176939",
@@ -1137,6 +980,44 @@
               "validity_critical": false
             }
           },
+          "admission_verdict": {
+            "final": "ADMISSIBLE",
+            "failing": [],
+            "predicates": {
+              "P5_family_eligible": {
+                "state": "PASS",
+                "family_id": "NCT01453608",
+                "eligibility_state": "ELIGIBLE",
+                "absence_code": null,
+                "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+              },
+              "P8_endpoint_bound": {
+                "state": "PASS",
+                "endpoint_binding": "result_span_enumerates_components",
+                "endpoint_admissibility": "EXACT_TARGET",
+                "bundle_rule_agreement": "OTHER_ROUTE"
+              }
+            },
+            "evaluated": [
+              "P5_family_eligible",
+              "P8_endpoint_bound"
+            ],
+            "not_evaluated": [
+              "P1_source_bytes",
+              "P2_span_located",
+              "P3_effect_tokens_in_span",
+              "P4_endpoint_components",
+              "P6_no_unresolved_conflict",
+              "P7_coverage_adequate_for_claim",
+              "P9_span_target_mention",
+              "P10_estimand_evidence",
+              "P11_registered_estimand",
+              "P12_ci_level",
+              "P13_no_extra_components",
+              "P14_missing_components_consistent"
+            ]
+          },
+          "family_id": "NCT01453608",
           "study_effect": {
             "effect_estimate": 0.39,
             "standard_error": 0.3730375352894474,
@@ -1205,8 +1086,7 @@
           "trial_id": "PMID 25176939",
           "report_id": "PMID 25176939",
           "outcome_effect_id": "iv-iron-hfref-hosp::Heart-failure hospitalization::PMID 25176939::PMID 25176939",
-          "family_identity_state": "REGISTRY_ANCHORED",
-          "family_id": "NCT01453608"
+          "family_identity_state": "REGISTRY_ANCHORED"
         }
       ],
       "declared_absent_trials": [
@@ -1254,10 +1134,10 @@
           },
           "family_id": "NCT02937454",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d",
-          "claim_id": "df594fd627172e1d",
+          "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+          "claim_id": "1d63fc90175983a0",
           "depends_on": {
-            "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
+            "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
           },
           "claim_kind": "membership_state"
         },
@@ -1303,10 +1183,10 @@
           },
           "family_id": "NCT02642562",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d",
-          "claim_id": "df594fd627172e1d",
+          "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+          "claim_id": "1d63fc90175983a0",
           "depends_on": {
-            "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
+            "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
           },
           "claim_kind": "membership_state"
         },
@@ -1345,10 +1225,10 @@
           },
           "family_id": "NCT03037931",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d",
-          "claim_id": "df594fd627172e1d",
+          "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+          "claim_id": "1d63fc90175983a0",
           "depends_on": {
-            "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
+            "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
           },
           "claim_kind": "membership_state"
         },
@@ -1381,10 +1261,10 @@
           },
           "family_id": "SYN-489065e1dcc1",
           "family_identity_state": "UNRESOLVED_REPORT_CANDIDATE",
-          "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d",
-          "claim_id": "df594fd627172e1d",
+          "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+          "claim_id": "1d63fc90175983a0",
           "depends_on": {
-            "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
+            "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
           },
           "claim_kind": "membership_state"
         },
@@ -1414,10 +1294,10 @@
           },
           "family_id": "NCT01394562",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d",
-          "claim_id": "df594fd627172e1d",
+          "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+          "claim_id": "1d63fc90175983a0",
           "depends_on": {
-            "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
+            "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
           },
           "claim_kind": "membership_state"
         },
@@ -1447,10 +1327,10 @@
           },
           "family_id": "NCT00520780",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d",
-          "claim_id": "df594fd627172e1d",
+          "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+          "claim_id": "1d63fc90175983a0",
           "depends_on": {
-            "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
+            "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
           },
           "claim_kind": "membership_state"
         },
@@ -1480,23 +1360,166 @@
           },
           "family_id": "NCT00125996",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d",
-          "claim_id": "df594fd627172e1d",
+          "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+          "claim_id": "1d63fc90175983a0",
           "depends_on": {
-            "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
+            "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
+          },
+          "claim_kind": "membership_state"
+        },
+        {
+          "label": "40159390",
+          "id": "PMID 40159390",
+          "family_id": "NCT03036462",
+          "absent_kind": "pooled_in_strand",
+          "state": "FAMILY_ELIGIBILITY_NOT_ESTABLISHED",
+          "reason_code": "P5_family_eligible",
+          "eligibility_state": "UNKNOWN",
+          "absence_code": "INTERVENTION_CONTRAST_NOT_PROVEN",
+          "endpoint_binding": "unbound_legacy",
+          "endpoint_admissibility": "UNBOUND_LEGACY",
+          "endpoint_result_span": null,
+          "held_document": null,
+          "candidate_tuple": {
+            "effect": 0.8,
+            "ci_low": 0.6,
+            "ci_high": 1.06,
+            "scale": "IRR"
+          },
+          "refused_effect": {
+            "effect": 0.8,
+            "ci_low": 0.6,
+            "ci_high": 1.06,
+            "scale": "IRR"
+          },
+          "source": "abstract effect+CI (IRR): The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12",
+          "provenance": "abstract",
+          "admission_verdict": {
+            "final": "INADMISSIBLE",
+            "failing": [
+              "P5_family_eligible",
+              "P8_endpoint_bound"
+            ],
+            "predicates": {
+              "P5_family_eligible": {
+                "state": "FAIL",
+                "family_id": "NCT03036462",
+                "eligibility_state": "UNKNOWN",
+                "absence_code": "INTERVENTION_CONTRAST_NOT_PROVEN",
+                "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+              },
+              "P8_endpoint_bound": {
+                "state": "FAIL",
+                "endpoint_binding": "unbound_legacy",
+                "endpoint_admissibility": "UNBOUND_LEGACY",
+                "bundle_rule_agreement": "MIGRATION_STATE"
+              }
+            },
+            "evaluated": [
+              "P5_family_eligible",
+              "P8_endpoint_bound"
+            ],
+            "not_evaluated": [
+              "P1_source_bytes",
+              "P2_span_located",
+              "P3_effect_tokens_in_span",
+              "P4_endpoint_components",
+              "P6_no_unresolved_conflict",
+              "P7_coverage_adequate_for_claim",
+              "P9_span_target_mention",
+              "P10_estimand_evidence",
+              "P11_registered_estimand",
+              "P12_ci_level",
+              "P13_no_extra_components",
+              "P14_missing_components_consistent"
+            ]
+          },
+          "reason": "family eligibility UNKNOWN (INTERVENTION_CONTRAST_NOT_PROVEN) for 'Heart-failure hospitalization': the candidate extraction is set aside (P5_family_eligible FAIL); the trial stays on this outcome as evidence whose eligibility the held record does not establish",
+          "recovery": "a reviewer establishes the family's eligibility from held evidence (entry population, randomised contrast, design) or resolves the registry parent so the structural screen can read it; the candidate tuple then re-enters admission under the same checks -- never by deleting the trial",
+          "trial_family_id": "NCT03036462",
+          "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "completion_date": "2024-05-02",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
+          "pooled_in_strands": [
+            "B"
+          ],
+          "state_basis": "P5_family_eligible: source span: \"abstract effect+CI (IRR): The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [...\"; family eligibility UNKNOWN (INTERVENTION_CONTRAST_NOT_PROVEN) for 'Heart-failure hospitalization': the candidate extraction is set aside (P5_family_eligible FAIL); the trial stays on this outcome as evidence whose eligibility the held record does not establish",
+          "source_span": "abstract effect+CI (IRR): The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [...",
+          "verbatim_span": "abstract effect+CI (IRR): The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [...",
+          "trial_id": "PMID 40159390",
+          "report_id": "PMID 40159390",
+          "outcome_effect_id": "iv-iron-hfref-hosp::Heart-failure hospitalization::PMID 40159390::PMID 40159390",
+          "reason_code_audit": {
+            "verdict": "REASON_FALSE_VALUE_HELD",
+            "detail": "REASON_FALSE_VALUE_HELD(abstract:40159390, \"RESULTS: Of the 1105 participants (mean age, 70 years [SD, 12 years]; 33% were women), cardiovascular death or first heart failure hospitalization (first primary outcome) occurred in 141 in the ferric carboxymaltose group vs 166 in the pla...\")",
+            "stated_reason_code": "P5_family_eligible",
+            "source_id": "abstract:40159390",
+            "source_kind": "abstract",
+            "source_span": "RESULTS: Of the 1105 participants (mean age, 70 years [SD, 12 years]; 33% were women), cardiovascular death or first heart failure hospitalization (first primary outcome) occurred in 141 in the ferric carboxymaltose group vs 166 in the pla...",
+            "source_contains": "RESULTS: Of the 1105 participants (mean age, 70 years [SD, 12 years]; 33% were women), cardiovascular death or first heart failure hospitalization (first primary outcome) occurred in 141 in the ferric carboxymaltose group vs 166 in the pla..."
+          },
+          "family_identity_state": "REGISTRY_ANCHORED",
+          "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+          "claim_id": "1d63fc90175983a0",
+          "depends_on": {
+            "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
           },
           "claim_kind": "membership_state"
         }
       ],
+      "admission_summary": {
+        "state": "EVALUATED",
+        "rule": "final = ADMISSIBLE if no evaluated predicate fails; MIGRATION_STATE_UNBOUND_LEGACY if P8 is the only failing predicate and the binding is unbound_legacy; INADMISSIBLE otherwise. A row with no family ledger fails P5.",
+        "evaluated_in_build": [
+          "P5_family_eligible",
+          "P8_endpoint_bound"
+        ],
+        "not_evaluated_in_build": [
+          "P1_source_bytes",
+          "P2_span_located",
+          "P3_effect_tokens_in_span",
+          "P4_endpoint_components",
+          "P6_no_unresolved_conflict",
+          "P7_coverage_adequate_for_claim",
+          "P9_span_target_mention",
+          "P10_estimand_evidence",
+          "P11_registered_estimand",
+          "P12_ci_level",
+          "P13_no_extra_components",
+          "P14_missing_components_consistent"
+        ],
+        "where_the_rest_is_evaluated": "scripts/build_bundle.py (verification_rows) against the bundle's own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them",
+        "p8_divergence": "in-build P8 passes every producer binding route other than unbound_legacy; the bundle's P8 passes only the definition-span route (rows bound by another route read INADMISSIBLE there: a rule limit raised with the bundle lane, recorded per row as bundle_rule_agreement)",
+        "pooled_rows": 1,
+        "admissible_rows": [
+          "PMID 25176939"
+        ],
+        "migration_state_rows": [],
+        "other_route_rows": [
+          "PMID 25176939"
+        ],
+        "set_aside_rows": [
+          {
+            "id": "PMID 40159390",
+            "state": "FAMILY_ELIGIBILITY_NOT_ESTABLISHED",
+            "eligibility_state": "UNKNOWN",
+            "absence_code": "INTERVENTION_CONTRAST_NOT_PROVEN"
+          }
+        ],
+        "unstamped_rows": [],
+        "pooled_with_a_verdict_other_than_admissible_or_migration": []
+      },
       "membership": {
         "analysis_input_family_ids": [
-          "NCT01453608",
-          "NCT03036462"
+          "NCT01453608"
         ],
-        "pooled_family_ids": [],
-        "pooled_family_count": 0,
+        "pooled_family_ids": [
+          "NCT01453608"
+        ],
+        "pooled_family_count": 1,
         "pooled": [
-          "PMID 40159390",
           "PMID 25176939"
         ],
         "unresolved_pooled_candidate_ids": [],
@@ -1507,80 +1530,139 @@
           "PMID 34080008",
           "PMID 28701470",
           "PMID 19920054",
-          "PMID 18191732"
+          "PMID 18191732",
+          "PMID 40159390"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "0081f6d9eaae798423998ee35df6b767a5896653ee9d1c5576a712f10a27b125"
+        "input_set_version": "9ecb2cae79d0fbd98db5601a43f4c244b4add63dd6b8cf4fe222817b4a6a7083"
       },
       "result": {
-        "k": 2,
-        "scale": "INCOMPATIBLE (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO)",
-        "Q": 3.22148,
-        "i2": 69.0,
-        "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
+        "k": 1,
+        "estimate": 0.39,
+        "scale": "HR",
+        "ci_low": 0.19,
+        "ci_high": 0.82,
+        "Q": 0.0,
+        "ci_provenance": "source-reported-CI:k=1-verbatim",
+        "ci_note": "k=1: point estimate and 95% CI are the single trial's reported values, verbatim.",
+        "pi_note": "prediction interval undefined for k=1",
         "estmeasure": {
-          "status": "incompatible",
+          "status": "homogeneous",
           "classes": [
-            "FIRST_EVENT_RATIO",
-            "RATE"
+            "FIRST_EVENT_RATIO"
           ],
           "canonicals": [
-            "HAZARD_RATIO_FIRST_EVENT",
-            "INCIDENCE_RATE_RATIO"
+            "HAZARD_RATIO_FIRST_EVENT"
           ],
           "labels": [
-            "HR",
-            "IRR"
+            "HR"
           ]
         },
-        "counterfactual": {
-          "reason_code": "INCOMPATIBLE_ESTIMANDS",
-          "would_be_estimate": 0.6064,
-          "would_be_ci_low": 0.0071,
-          "would_be_ci_high": 51.5861,
-          "note": "this is what pooling these incompatible estimand classes would have yielded; it is INVALID and is shown only so the refusal is auditable, never as a result"
+        "leave_one_out": {
+          "note": "not assessable at k=1 (leave-one-out needs k>=3)"
         },
-        "scale_mixed": [
-          "HR",
-          "IRR"
-        ],
-        "estmeasure_incompatible": true,
-        "suppressed_incompatible": true,
-        "suppressed_reason": "pooled effect SUPPRESSED: the trials mix incompatible estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO) — these effect measures are not one quantity without an explicit, source-backed conversion, so no pooled effect, CI, heterogeneity or sensitivity is valid. The per-trial estimates are shown; pool each coherent strand separately.",
         "claim": {
-          "present": false,
-          "significant": false,
-          "crosses_null": null,
-          "touches_null": null,
-          "null": null,
-          "direction": null
+          "present": true,
+          "significant": true,
+          "crosses_null": false,
+          "touches_null": false,
+          "null": 1.0,
+          "direction": "benefit",
+          "significant_fixed": null
         },
-        "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d",
-        "claim_id": "afa3543b798b6414",
+        "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+        "claim_id": "68b22e8b3b165757",
         "depends_on": {
-          "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
+          "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
         },
         "claim_kind": "outcome_result"
+      },
+      "endpoint_canonical": {
+        "label": "HEART_FAILURE_HOSPITALIZATION",
+        "event_time": "TIME_TO_FIRST_EVENT",
+        "components": [],
+        "component_sets": [],
+        "status": "NOT_DECLARED"
+      },
+      "compat_key": {
+        "effect_measure": [
+          "HR"
+        ],
+        "event_process": [
+          "FIRST_EVENT_RATIO"
+        ],
+        "endpoint": "trial-defined Heart-failure hospitalization (definitions listed per trial)",
+        "follow_up_window": "trial end / longest reported follow-up",
+        "analysis_set": "intention-to-treat",
+        "analysis_set_declared": "intention-to-treat",
+        "randomised_contrast": {
+          "verified": 1,
+          "total": 1
+        },
+        "matched": true,
+        "mismatches": [],
+        "endpoint_canonical": {
+          "label": "HEART_FAILURE_HOSPITALIZATION",
+          "event_time": "TIME_TO_FIRST_EVENT",
+          "components": [],
+          "component_sets": [],
+          "status": "NOT_DECLARED"
+        },
+        "endpoint_canonical_status": "NOT_DECLARED",
+        "dimension_matches": {
+          "endpoint": false
+        },
+        "underlying_checked": true,
+        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS"
+      },
+      "recovery_recheck": {
+        "hard_incompatible": false,
+        "mismatches": [],
+        "effect_measure_labels": [
+          "HR"
+        ],
+        "k": 1,
+        "reconstructed_members": [],
+        "label_mix_small_k": false
+      },
+      "compat_underlying": {
+        "status": "COMPAT_DIMENSION_HETEROGENEOUS",
+        "dimensions": [
+          "endpoint"
+        ],
+        "per_trial": {
+          "endpoint": [
+            {
+              "trial_id": "25176939",
+              "trial_label": "25176939",
+              "value": "Heart-failure hospitalization",
+              "source": "outcome.name",
+              "span": "Heart-failure hospitalization"
+            }
+          ]
+        }
       },
       "known_missing_sensitivity": {
         "claim_id": "iv-iron-hfref-hosp::primary::known_missing_sensitivity",
         "depends_on": {
-          "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
+          "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
         },
         "depends_on_detail": [
           {
             "path": "/invalidation/reasons",
             "codes": [
               "search_not_executed",
+              "audit_eligibility_vs_screen_conflict",
+              "audit_eligibility_vs_screen_conflict",
               "known_eligible_missing",
               "eligible_declared_absent"
             ]
           },
           {
             "path": "/outcomes/primary/result",
-            "k": 2,
-            "estimate": null
+            "k": 1,
+            "estimate": 0.39
           }
         ],
         "heading": "Known eligible trials not in this pool, and what they would do",
@@ -1596,7 +1678,47 @@
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
             "why_eligible": "known_eligible_missing via no-PMID",
             "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": null,
+                  "eligibility_state": null,
+                  "absence_code": null,
+                  "basis": "no family ledger / no family for this row: eligibility not evaluated, therefore not established"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "known_missing_candidate",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "conclusion_effect": "NOT_COMPUTABLE",
+            "not_repooled": "INADMISSIBLE on P5_family_eligible: family None eligibility None -- not re-pooled; the candidate value stays visible"
           },
           {
             "trial_key": "IRON-HF",
@@ -1608,7 +1730,47 @@
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
             "why_eligible": "known_eligible_missing via concept-query",
             "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": null,
+                  "eligibility_state": null,
+                  "absence_code": null,
+                  "basis": "no family ledger / no family for this row: eligibility not evaluated, therefore not established"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "known_missing_candidate",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "conclusion_effect": "NOT_COMPUTABLE",
+            "not_repooled": "INADMISSIBLE on P5_family_eligible: family None eligibility None -- not re-pooled; the candidate value stays visible"
           },
           {
             "trial_key": "33197395",
@@ -1620,7 +1782,47 @@
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
             "why_eligible": "eligible randomised controlled trial: intervention ferric carboxymaltose, comparator placebo, population heart failure — P/I/C/design met.",
             "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": "NCT02937454",
+                  "eligibility_state": "UNKNOWN",
+                  "absence_code": "INTERVENTION_CONTRAST_NOT_PROVEN",
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "known_missing_candidate",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "conclusion_effect": "NOT_COMPUTABLE",
+            "not_repooled": "INADMISSIBLE on P5_family_eligible: family NCT02937454 eligibility UNKNOWN (INTERVENTION_CONTRAST_NOT_PROVEN) -- not re-pooled; the candidate value stays visible"
           },
           {
             "trial_key": "36347265",
@@ -1632,7 +1834,47 @@
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
             "why_eligible": "eligible randomised controlled trial: intervention ferric derisomaltose, comparator usual care, population heart failure — P/I/C/design met.",
             "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": "NCT02642562",
+                  "eligibility_state": "UNKNOWN",
+                  "absence_code": "INTERVENTION_CONTRAST_NOT_PROVEN",
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "known_missing_candidate",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "conclusion_effect": "NOT_COMPUTABLE",
+            "not_repooled": "INADMISSIBLE on P5_family_eligible: family NCT02642562 eligibility UNKNOWN (INTERVENTION_CONTRAST_NOT_PROVEN) -- not re-pooled; the candidate value stays visible"
           },
           {
             "trial_key": "37632463",
@@ -1644,6 +1886,43 @@
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
             "why_eligible": "eligible randomised controlled trial: intervention ferric carboxymaltose, comparator placebo, population heart failure — P/I/C/design met.",
             "sensitivity_label": "SENSITIVITY",
+            "admission_verdict": {
+              "final": "ADMISSIBLE",
+              "failing": [],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "PASS",
+                  "family_id": "NCT03037931",
+                  "eligibility_state": "ELIGIBLE",
+                  "absence_code": null,
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "known_missing_candidate",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
             "conclusion_effect": "NOT_COMPUTABLE"
           },
           {
@@ -1656,7 +1935,47 @@
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
             "why_eligible": "eligible randomised controlled trial: intervention ferric carboxymaltose, comparator placebo, population heart failure — P/I/C/design met.",
             "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": "SYN-489065e1dcc1",
+                  "eligibility_state": "UNKNOWN",
+                  "absence_code": "REGISTRY_PARENT_UNRESOLVED",
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "known_missing_candidate",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "conclusion_effect": "NOT_COMPUTABLE",
+            "not_repooled": "INADMISSIBLE on P5_family_eligible: family SYN-489065e1dcc1 eligibility UNKNOWN (REGISTRY_PARENT_UNRESOLVED) -- not re-pooled; the candidate value stays visible"
           },
           {
             "trial_key": "28701470",
@@ -1668,7 +1987,47 @@
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
             "why_eligible": "eligible randomised controlled trial: intervention ferric carboxymaltose, comparator standard of care, population heart failure — P/I/C/design met.",
             "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": "NCT01394562",
+                  "eligibility_state": "UNKNOWN",
+                  "absence_code": "INTERVENTION_CONTRAST_NOT_PROVEN",
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "known_missing_candidate",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "conclusion_effect": "NOT_COMPUTABLE",
+            "not_repooled": "INADMISSIBLE on P5_family_eligible: family NCT01394562 eligibility UNKNOWN (INTERVENTION_CONTRAST_NOT_PROVEN) -- not re-pooled; the candidate value stays visible"
           },
           {
             "trial_key": "19920054",
@@ -1680,7 +2039,47 @@
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
             "why_eligible": "eligible randomised controlled trial: intervention ferric carboxymaltose, comparator placebo, population heart failure — P/I/C/design met.",
             "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": "NCT00520780",
+                  "eligibility_state": "UNKNOWN",
+                  "absence_code": "INTERVENTION_CONTRAST_NOT_PROVEN",
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "known_missing_candidate",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "conclusion_effect": "NOT_COMPUTABLE",
+            "not_repooled": "INADMISSIBLE on P5_family_eligible: family NCT00520780 eligibility UNKNOWN (INTERVENTION_CONTRAST_NOT_PROVEN) -- not re-pooled; the candidate value stays visible"
           },
           {
             "trial_key": "18191732",
@@ -1692,7 +2091,47 @@
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
             "why_eligible": "eligible randomised controlled trial: intervention iron sucrose, comparator control, population heart failure — P/I/C/design met.",
             "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": "NCT00125996",
+                  "eligibility_state": "UNKNOWN",
+                  "absence_code": "INSUFFICIENT_PICD_EVIDENCE",
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "known_missing_candidate",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "conclusion_effect": "NOT_COMPUTABLE",
+            "not_repooled": "INADMISSIBLE on P5_family_eligible: family NCT00125996 eligibility UNKNOWN (INSUFFICIENT_PICD_EVIDENCE) -- not re-pooled; the candidate value stays visible"
           }
         ],
         "headline_conclusion_effect": "NOT_COMPUTABLE"
@@ -2049,6 +2488,37 @@
           "claim_kind": "membership_state"
         }
       ],
+      "admission_summary": {
+        "state": "NO_CANDIDATE_ROWS",
+        "rule": "final = ADMISSIBLE if no evaluated predicate fails; MIGRATION_STATE_UNBOUND_LEGACY if P8 is the only failing predicate and the binding is unbound_legacy; INADMISSIBLE otherwise. A row with no family ledger fails P5.",
+        "evaluated_in_build": [
+          "P5_family_eligible",
+          "P8_endpoint_bound"
+        ],
+        "not_evaluated_in_build": [
+          "P1_source_bytes",
+          "P2_span_located",
+          "P3_effect_tokens_in_span",
+          "P4_endpoint_components",
+          "P6_no_unresolved_conflict",
+          "P7_coverage_adequate_for_claim",
+          "P9_span_target_mention",
+          "P10_estimand_evidence",
+          "P11_registered_estimand",
+          "P12_ci_level",
+          "P13_no_extra_components",
+          "P14_missing_components_consistent"
+        ],
+        "where_the_rest_is_evaluated": "scripts/build_bundle.py (verification_rows) against the bundle's own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them",
+        "p8_divergence": "in-build P8 passes every producer binding route other than unbound_legacy; the bundle's P8 passes only the definition-span route (rows bound by another route read INADMISSIBLE there: a rule limit raised with the bundle lane, recorded per row as bundle_rule_agreement)",
+        "pooled_rows": 0,
+        "admissible_rows": [],
+        "migration_state_rows": [],
+        "other_route_rows": [],
+        "set_aside_rows": [],
+        "unstamped_rows": [],
+        "pooled_with_a_verdict_other_than_admissible_or_migration": []
+      },
       "membership": {
         "analysis_input_family_ids": [],
         "pooled_family_ids": [],
@@ -2445,6 +2915,37 @@
           "claim_kind": "membership_state"
         }
       ],
+      "admission_summary": {
+        "state": "NO_CANDIDATE_ROWS",
+        "rule": "final = ADMISSIBLE if no evaluated predicate fails; MIGRATION_STATE_UNBOUND_LEGACY if P8 is the only failing predicate and the binding is unbound_legacy; INADMISSIBLE otherwise. A row with no family ledger fails P5.",
+        "evaluated_in_build": [
+          "P5_family_eligible",
+          "P8_endpoint_bound"
+        ],
+        "not_evaluated_in_build": [
+          "P1_source_bytes",
+          "P2_span_located",
+          "P3_effect_tokens_in_span",
+          "P4_endpoint_components",
+          "P6_no_unresolved_conflict",
+          "P7_coverage_adequate_for_claim",
+          "P9_span_target_mention",
+          "P10_estimand_evidence",
+          "P11_registered_estimand",
+          "P12_ci_level",
+          "P13_no_extra_components",
+          "P14_missing_components_consistent"
+        ],
+        "where_the_rest_is_evaluated": "scripts/build_bundle.py (verification_rows) against the bundle's own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them",
+        "p8_divergence": "in-build P8 passes every producer binding route other than unbound_legacy; the bundle's P8 passes only the definition-span route (rows bound by another route read INADMISSIBLE there: a rule limit raised with the bundle lane, recorded per row as bundle_rule_agreement)",
+        "pooled_rows": 0,
+        "admissible_rows": [],
+        "migration_state_rows": [],
+        "other_route_rows": [],
+        "set_aside_rows": [],
+        "unstamped_rows": [],
+        "pooled_with_a_verdict_other_than_admissible_or_migration": []
+      },
       "membership": {
         "analysis_input_family_ids": [],
         "pooled_family_ids": [],
@@ -2542,7 +3043,7 @@
       "note": "same-question comparator (matching intervention level and population)"
     },
     "overlap": {
-      "ours_k": 2,
+      "ours_k": 1,
       "theirs_k": 6,
       "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
       "only_ours": [
@@ -2997,6 +3498,17 @@
     "metric_label": "parser-confirmed contrast",
     "metric_scope": "AACT arm-label parser output; this measures the parser, not trial validity",
     "trials": {
+      "25176939": {
+        "nct": "NCT01453608",
+        "status": "verified",
+        "basis": "parser-confirmed contrast: keyword 'ferric carboxymaltose' matched AACT arm intervention 'ferinject (ferric carboxymaltose)'; the intervention of interest DIFFERS across the randomised arms",
+        "common": [],
+        "differing": [
+          "ferinject (ferric carboxymaltose)"
+        ]
+      }
+    },
+    "trials_all": {
       "40159390": {
         "nct": "NCT03036462",
         "status": "verified",
@@ -3016,12 +3528,25 @@
           "ferinject (ferric carboxymaltose)"
         ]
       }
+    },
+    "current_pooled_trial_ids": [
+      "25176939"
+    ],
+    "stale_block_unrenderable": {
+      "state": "UNRENDERABLE",
+      "reason": "cached arm-contrast membership named trials not in the current consumed pool",
+      "dropped_trial_ids": [
+        "40159390"
+      ],
+      "current_pooled_trial_ids": [
+        "25176939"
+      ]
     }
   },
   "integrity": {
     "checked_utc": "2026-09-13T08:44:18Z",
     "source": "PubMed efetch (PublicationType + CommentsCorrections)",
-    "n_pooled": 2,
+    "n_pooled": 1,
     "retracted": [],
     "concern": [],
     "retrospectively_registered": [],
@@ -3051,19 +3576,10 @@
         "evidence": "no retraction/concern notice in PubMed"
       }
     },
-    "n_pubmed_checked": 2,
+    "n_pubmed_checked": 1,
     "n_not_checkable": 0,
     "n_not_assessed": 0,
     "per_trial": {
-      "PMID 40159390": {
-        "trial_key": "PMID 40159390",
-        "pubmed_key": "40159390",
-        "pubmed_checked": true,
-        "integrity_source": "PubMed efetch (PublicationType + CommentsCorrections)",
-        "retracted": false,
-        "concern": false,
-        "evidence": "no retraction/concern notice in PubMed"
-      },
       "PMID 25176939": {
         "trial_key": "PMID 25176939",
         "pubmed_key": "25176939",
@@ -3075,19 +3591,10 @@
       }
     },
     "membership_pooled": [
-      "PMID 40159390",
       "PMID 25176939"
     ]
   },
   "funding": [
-    {
-      "id": "PMID 40159390",
-      "type": "not stated (full text scanned)",
-      "span": "",
-      "source": "full text",
-      "scanned": "full text",
-      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
-    },
     {
       "id": "PMID 25176939",
       "type": "industry",
@@ -3151,6 +3658,14 @@
       "source": "abstract",
       "scanned": "abstract",
       "funding_state": "INDUSTRY_SPONSORED"
+    },
+    {
+      "id": "PMID 40159390",
+      "type": "not stated (full text scanned)",
+      "span": "",
+      "source": "full text",
+      "scanned": "full text",
+      "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
     }
   ],
   "definition_audit": {
@@ -3206,7 +3721,45 @@
             "scale": "HR",
             "event_process": "FIRST_EVENT_RATIO",
             "endpoint": "HF hospitalisation (alone)",
-            "source": "CONFIRM-HF full text (PMC4359359): 'HR of 0.39 with a 95% CI of (0.19-0.82) (P = 0.009)' for time-to-first hospitalisation due to worsening HF."
+            "source": "CONFIRM-HF full text (PMC4359359): 'HR of 0.39 with a 95% CI of (0.19-0.82) (P = 0.009)' for time-to-first hospitalisation due to worsening HF.",
+            "admission_verdict": {
+              "final": "ADMISSIBLE",
+              "failing": [],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "PASS",
+                  "family_id": "NCT01453608",
+                  "eligibility_state": "ELIGIBLE",
+                  "absence_code": null,
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "strand_member_declared",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "family_id": "NCT01453608"
           }
         ],
         "pool": null,
@@ -3235,7 +3788,47 @@
             "scale": "RR",
             "event_process": "RATE",
             "endpoint": "HF hospitalisation (alone)",
-            "source": "Lancet 2020;396:1895-1904 (abstract): '217 total heart failure hospitalisations occurred in the ferric carboxymaltose group and 294 occurred in the placebo group (RR 0.74; 95% CI 0.58-0.94, p=0.013)'."
+            "source": "Lancet 2020;396:1895-1904 (abstract): '217 total heart failure hospitalisations occurred in the ferric carboxymaltose group and 294 occurred in the placebo group (RR 0.74; 95% CI 0.58-0.94, p=0.013)'.",
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": "NCT02937454",
+                  "eligibility_state": "UNKNOWN",
+                  "absence_code": "INTERVENTION_CONTRAST_NOT_PROVEN",
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "strand_member_declared",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "family_id": "NCT02937454"
           },
           {
             "trial": "FAIR-HF2",
@@ -3247,7 +3840,47 @@
             "scale": "RR",
             "event_process": "RATE",
             "endpoint": "HF hospitalisation (alone)",
-            "source": "JAMA 2025 (abstract): 'The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12)'."
+            "source": "JAMA 2025 (abstract): 'The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12)'.",
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": "NCT03036462",
+                  "eligibility_state": "UNKNOWN",
+                  "absence_code": "INTERVENTION_CONTRAST_NOT_PROVEN",
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "strand_member_declared",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "family_id": "NCT03036462"
           }
         ],
         "pool": {
@@ -3274,6 +3907,17 @@
           "claim_kind": "strand_pool.result"
         },
         "k": 2,
+        "admission_refused": {
+          "members": [
+            "AFFIRM-AHF: P5_family_eligible (family NCT02937454, eligibility UNKNOWN INTERVENTION_CONTRAST_NOT_PROVEN)",
+            "FAIR-HF2: P5_family_eligible (family NCT03036462, eligibility UNKNOWN INTERVENTION_CONTRAST_NOT_PROVEN)"
+          ],
+          "scope": [
+            "P5_family_eligible",
+            "P8_endpoint_bound"
+          ],
+          "reason": "a declared strand pools only admitted members; its saved result is withheld until every member's family eligibility is established (recovery as for any set-aside row)"
+        },
         "input_set_version": "ca8fb880b4f2b3a9c251ac8e399e071a2335d0d353994791806ea04763a718d1",
         "claim_id": "74e7ecafb5537a58",
         "depends_on": {
@@ -3298,7 +3942,47 @@
             "scale": "RR",
             "event_process": "RATE",
             "endpoint": "HF hospitalisation + cardiovascular death (composite)",
-            "source": "Lancet 2020;396:1895-1904 (abstract): '293 primary events (57.2 per 100 patient-years) occurred in the ferric carboxymaltose group and 372 (72.5 per 100 patient-years) occurred in the placebo group (rate ratio [RR] 0.79, 95% CI 0.62-1.01, p=0.059)'. Primary = total HF hospitalisations AND cardiovascular death."
+            "source": "Lancet 2020;396:1895-1904 (abstract): '293 primary events (57.2 per 100 patient-years) occurred in the ferric carboxymaltose group and 372 (72.5 per 100 patient-years) occurred in the placebo group (rate ratio [RR] 0.79, 95% CI 0.62-1.01, p=0.059)'. Primary = total HF hospitalisations AND cardiovascular death.",
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": "NCT02937454",
+                  "eligibility_state": "UNKNOWN",
+                  "absence_code": "INTERVENTION_CONTRAST_NOT_PROVEN",
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "strand_member_declared",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "family_id": "NCT02937454"
           },
           {
             "trial": "IRONMAN",
@@ -3310,7 +3994,47 @@
             "scale": "RR",
             "event_process": "RATE",
             "endpoint": "HF hospitalisation + cardiovascular death (composite)",
-            "source": "Lancet 2022;400:2199-2209 (abstract): '336 primary endpoints (22.4 per 100 patient-years) occurred in the ferric derisomaltose group and 411 (27.5 per 100 patient-years) occurred in the usual care group (rate ratio [RR] 0.82 [95% CI 0.66 to 1.02]; p=0.070)'. Primary = recurrent HF hospitalisations AND cardiovascular death."
+            "source": "Lancet 2022;400:2199-2209 (abstract): '336 primary endpoints (22.4 per 100 patient-years) occurred in the ferric derisomaltose group and 411 (27.5 per 100 patient-years) occurred in the usual care group (rate ratio [RR] 0.82 [95% CI 0.66 to 1.02]; p=0.070)'. Primary = recurrent HF hospitalisations AND cardiovascular death.",
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": "NCT02642562",
+                  "eligibility_state": "UNKNOWN",
+                  "absence_code": "INTERVENTION_CONTRAST_NOT_PROVEN",
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "strand_member_declared",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "family_id": "NCT02642562"
           }
         ],
         "pool": {
@@ -3337,6 +4061,17 @@
           "claim_kind": "strand_pool.result"
         },
         "k": 2,
+        "admission_refused": {
+          "members": [
+            "AFFIRM-AHF: P5_family_eligible (family NCT02937454, eligibility UNKNOWN INTERVENTION_CONTRAST_NOT_PROVEN)",
+            "IRONMAN: P5_family_eligible (family NCT02642562, eligibility UNKNOWN INTERVENTION_CONTRAST_NOT_PROVEN)"
+          ],
+          "scope": [
+            "P5_family_eligible",
+            "P8_endpoint_bound"
+          ],
+          "reason": "a declared strand pools only admitted members; its saved result is withheld until every member's family eligibility is established (recovery as for any set-aside row)"
+        },
         "input_set_version": "b852b58f56df10c39bcea5362194c359617127ecc82ce1213a7fad4d54221805",
         "claim_id": "834831466165b4d5",
         "depends_on": {
@@ -3360,7 +4095,45 @@
             "counts": "10 of ~132 (FCM) vs 25 of ~129 (placebo) with >=1 HF hospitalisation",
             "crude_rr": 0.39,
             "scale": "RR (crude)",
-            "source": "CONFIRM-HF full text (PMC4359359, Table 2): 10 (7.6%) vs 25 (19.4%) patients with >=1 HF hospitalisation; crude RR 0.39 corroborates the time-to-event HR."
+            "source": "CONFIRM-HF full text (PMC4359359, Table 2): 10 (7.6%) vs 25 (19.4%) patients with >=1 HF hospitalisation; crude RR 0.39 corroborates the time-to-event HR.",
+            "admission_verdict": {
+              "final": "ADMISSIBLE",
+              "failing": [],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "PASS",
+                  "family_id": "NCT01453608",
+                  "eligibility_state": "ELIGIBLE",
+                  "absence_code": null,
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "strand_member_declared",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "family_id": "NCT01453608"
           }
         ],
         "pool": null,
@@ -3373,6 +4146,10 @@
         "claim_kind": "strand_pool"
       }
     ]
+  },
+  "strands_admission": {
+    "strands": 4,
+    "refused": 2
   },
   "protocol_config": {
     "divergences": [],
@@ -3410,6 +4187,16 @@
         "detail": "no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic."
       },
       {
+        "code": "audit_eligibility_vs_screen_conflict",
+        "trial": "Toblli 2007",
+        "detail": "Toblli 2007: named eligible by an audit, but not admitted on this page (INADMISSIBLE_ON_ADMISSION, no family); not re-pooled; the audit's eligibility claim and the structural screen disagree -- adjudication owed"
+      },
+      {
+        "code": "audit_eligibility_vs_screen_conflict",
+        "trial": "IRON-HF",
+        "detail": "IRON-HF: named eligible by an audit, but not admitted on this page (INADMISSIBLE_ON_ADMISSION, no family); not re-pooled; the audit's eligibility claim and the structural screen disagree -- adjudication owed"
+      },
+      {
         "code": "known_eligible_missing",
         "detail": "a trial identified as eligible under the registered PICO is not pooled (Toblli 2007, IRON-HF) — the pooled result and completeness claim cannot be current"
       },
@@ -3421,21 +4208,38 @@
   },
   "compat_underlying": {
     "checked": true,
-    "n_pre_fix_asserted_not_underlying": 0,
+    "n_pre_fix_asserted_not_underlying": 1,
     "n_post_fix_asserted_not_underlying": 0,
-    "pre_fix_violations": [],
+    "pre_fix_violations": [
+      {
+        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
+        "outcome": "Heart-failure hospitalization",
+        "dimension": "endpoint",
+        "asserted": "HEART_FAILURE_HOSPITALIZATION",
+        "per_trial_values": [
+          {
+            "trial_id": "25176939",
+            "trial_label": "25176939",
+            "value": "Heart-failure hospitalization",
+            "source": "outcome.name",
+            "span": "Heart-failure hospitalization"
+          }
+        ],
+        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
+      }
+    ],
     "post_fix_violations": []
   },
   "reason_code_audit": {
     "denominator_source": "declared_absent_trials reason_code/state rows on this page",
-    "N": 25,
+    "N": 26,
     "counts": {
       "REASON_TRUE": 21,
-      "REASON_FALSE_VALUE_HELD": 4,
+      "REASON_FALSE_VALUE_HELD": 5,
       "REASON_WRONG_KIND": 0,
       "NOT_VERIFIABLE": 0
     },
-    "n_false_value_held": 4,
+    "n_false_value_held": 5,
     "n_not_verifiable": 0,
     "by_code_kind": {
       "EFFECT_PRESENT_ESTIMAND_CLASS_MISMATCH": {
@@ -3452,6 +4256,12 @@
       },
       "OUTCOME_NOT_IN_SOURCE": {
         "REASON_TRUE": 21,
+        "REASON_FALSE_VALUE_HELD": 1,
+        "REASON_WRONG_KIND": 0,
+        "NOT_VERIFIABLE": 0
+      },
+      "P5_family_eligible": {
+        "REASON_TRUE": 0,
         "REASON_FALSE_VALUE_HELD": 1,
         "REASON_WRONG_KIND": 0,
         "NOT_VERIFIABLE": 0
@@ -3551,6 +4361,21 @@
         "stated_reason_code": "OUTCOME_NOT_IN_SOURCE",
         "verdict": "REASON_TRUE",
         "detail": "value absent from every held source inspected; code is consistent"
+      },
+      {
+        "slug": "iv-iron-hfref-hosp",
+        "outcome": "Heart-failure hospitalization",
+        "outcome_kind": "primary",
+        "trial_key": "40159390",
+        "label": "40159390",
+        "id": "PMID 40159390",
+        "stated_reason_code": "P5_family_eligible",
+        "verdict": "REASON_FALSE_VALUE_HELD",
+        "detail": "REASON_FALSE_VALUE_HELD(abstract:40159390, \"RESULTS: Of the 1105 participants (mean age, 70 years [SD, 12 years]; 33% were women), cardiovascular death or first heart failure hospitalization (first primary outcome) occurred in 141 in the ferric carboxymaltose group vs 166 in the pla...\")",
+        "source_id": "abstract:40159390",
+        "source_kind": "abstract",
+        "source_span": "RESULTS: Of the 1105 participants (mean age, 70 years [SD, 12 years]; 33% were women), cardiovascular death or first heart failure hospitalization (first primary outcome) occurred in 141 in the ferric carboxymaltose group vs 166 in the pla...",
+        "source_contains": "RESULTS: Of the 1105 participants (mean age, 70 years [SD, 12 years]; 33% were women), cardiovascular death or first heart failure hospitalization (first primary outcome) occurred in 141 in the ferric carboxymaltose group vs 166 in the pla..."
       },
       {
         "slug": "iv-iron-hfref-hosp",
@@ -3756,16 +4581,16 @@
     "denominator_source": "included screening records x registered outcomes in this review",
     "N": 27,
     "counts": {
-      "EXTRACTED": 2,
-      "HELD_NOT_EXTRACTED": 4,
+      "EXTRACTED": 1,
+      "HELD_NOT_EXTRACTED": 5,
       "NOT_IN_HELD_SOURCES": 21,
       "ABSENT_BY_DESIGN": 0
     },
-    "n_held_not_extracted": 4,
+    "n_held_not_extracted": 5,
     "by_outcome_kind": {
       "primary": {
-        "EXTRACTED": 2,
-        "HELD_NOT_EXTRACTED": 4,
+        "EXTRACTED": 1,
+        "HELD_NOT_EXTRACTED": 5,
         "NOT_IN_HELD_SOURCES": 3,
         "ABSENT_BY_DESIGN": 0
       },
@@ -3783,7 +4608,10 @@
         "trial_label": "40159390",
         "outcome": "Heart-failure hospitalization",
         "outcome_kind": "primary",
-        "status": "EXTRACTED"
+        "status": "HELD_NOT_EXTRACTED",
+        "source_id": "abstract:40159390",
+        "source_kind": "abstract",
+        "source_span": "RESULTS: Of the 1105 participants (mean age, 70 years [SD, 12 years]; 33% were women), cardiovascular death or first heart failure hospitalization (first primary outcome) occurred in 141 in the ferric carboxymaltose group vs 166 in the pla..."
       },
       {
         "slug": "iv-iron-hfref-hosp",
@@ -4008,10 +4836,55 @@
       }
     ]
   },
-  "rob_sensitivity_omitted": {
-    "reason_code": "PRIMARY_POOL_SUPPRESSED_INCOMPATIBLE",
-    "reason": "the primary pool is SUPPRESSED as incompatible estimands; re-pooling incompatible estimands by risk-of-bias stratum would be as invalid as the primary pool itself (declared scales: INCOMPATIBLE (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO))",
-    "outcome": "Heart-failure hospitalization"
+  "rob_sensitivity": {
+    "outcome": "Heart-failure hospitalization",
+    "estimand": "RR",
+    "levels": {
+      "25176939": "some_concerns"
+    },
+    "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+    "n_trials": 1,
+    "n_rob_rated": 1,
+    "rob_covered": true,
+    "any_high": false,
+    "full": {
+      "k": 1,
+      "estimate": 0.39,
+      "scale": "HR",
+      "ci_low": 0.1877,
+      "ci_high": 0.8102,
+      "tau2": 0.0,
+      "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+      "claim_id": "932bc9af2680d7c0",
+      "depends_on": {
+        "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
+      },
+      "claim_kind": "rob_sensitivity.full"
+    },
+    "drop_high": {
+      "k": 1,
+      "estimate": 0.39,
+      "scale": "HR",
+      "ci_low": 0.1877,
+      "ci_high": 0.8102,
+      "tau2": 0.0,
+      "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+      "claim_id": "d87efaaf8849ff59",
+      "depends_on": {
+        "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
+      },
+      "claim_kind": "rob_sensitivity.drop_high"
+    },
+    "low_only": null,
+    "drop_high_informative": false,
+    "low_only_relation": "empty",
+    "low_only_kind": "bias_sensitivity",
+    "low_only_excluded_adverse": 1,
+    "low_only_excluded_unassessed": 0,
+    "low_only_informative": false,
+    "low_only_predicate": "not_estimable",
+    "formally_assessed": false,
+    "suppression_reason": "RoB-restricted re-pool suppressed: formal RoB 2 not yet assessed"
   },
   "grade": {
     "start": "high",
@@ -4020,8 +4893,8 @@
         "downgrade": 1,
         "coverage_incomplete": false,
         "assessed": false,
-        "n_trials": 2,
-        "n_rated": 2,
+        "n_trials": 1,
+        "n_rated": 1,
         "n_high": 0,
         "n_some": 1,
         "basis": "FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below",
@@ -4032,11 +4905,8 @@
       },
       "inconsistency": {
         "downgrade": 0,
-        "not_assessable_automatically": true,
-        "k2_not_automatic": true,
+        "not_estimable": true,
         "assessed": false,
-        "direction_conflict": false,
-        "i2": 69.0,
         "basis": "not assessable: STALE: pooled membership known incomplete (9 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
         "stale": true,
         "state": "NOT_ASSESSABLE",
@@ -4047,16 +4917,13 @@
       "imprecision": {
         "downgrade": 0,
         "assessed": false,
-        "state": "NOT_ASSESSABLE",
-        "crosses_null": null,
+        "state": "REQUIRES_JUDGEMENT",
+        "crosses_null": false,
         "missing_inputs": [
-          "valid confidence interval",
-          "supported effect scale",
           "clinical threshold / MID with basis",
           "information-size assessment with adequacy and basis"
         ],
-        "basis": "95% CI [None, None]; missing/insufficient: valid confidence interval; supported effect scale; clinical threshold / MID with basis; information-size assessment with adequacy and basis",
-        "not_assessable_automatically": false
+        "basis": "95% CI [0.19, 0.82]; missing/insufficient: clinical threshold / MID with basis; information-size assessment with adequacy and basis"
       },
       "publication_bias": {
         "downgrade": 0,
@@ -4076,16 +4943,21 @@
         "downgrade": 0,
         "not_auto_rated": true,
         "assessed": false,
-        "basis": "not auto-rated (human judgement)",
+        "basis": "directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)",
         "state": "REQUIRES_JUDGEMENT",
         "missing_inputs": [
-          "not auto-rated (human judgement)"
+          "directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)"
         ]
       }
     },
     "downgrades": 1,
+    "conservative_downgrades_pending_human_judgement": [],
     "certainty": "provisional",
     "certainty_state": "GRADE provisional -- not yet fully assessable",
+    "certainty_capped_by_rob_coverage": false,
+    "certainty_capped_single_trial": false,
+    "certainty_capped_d3_unassessed": false,
+    "certainty_capped_unassessed_domain": false,
     "unassessed_domains": [
       "risk_of_bias",
       "inconsistency",
@@ -4093,13 +4965,12 @@
       "publication_bias",
       "indirectness"
     ],
-    "rob_basis": "machine-assessed domains only; D3 unassessed on 2 of 2 trial(s)",
-    "not_rateable_reason": "the primary pool mixes INCOMPATIBLE estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO); an overall certainty cannot be produced from an incoherent effect object — the domain signals are shown, the overall is suppressed until the estimand is made coherent (harmonise the measure or split the outcome)",
-    "basis": "partial GRADE: overall certainty NOT RATEABLE (estimand-incompatible pool).",
-    "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d",
-    "claim_id": "478013ca25c7a275",
+    "rob_basis": "machine-assessed domains only; D3 unassessed on 1 of 1 trial(s)",
+    "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
+    "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+    "claim_id": "264066d470087936",
     "depends_on": {
-      "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
+      "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
     },
     "claim_kind": "grade"
   },
@@ -4305,10 +5176,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "ISRCTN09143837"
             }
           },
           "registered_outcome_candidates": []
@@ -4452,15 +5321,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -4846,10 +5710,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT00125996"
             }
           },
           "registered_outcome_candidates": []
@@ -5530,15 +6392,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -6073,10 +6930,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT00520780"
             }
           },
           "registered_outcome_candidates": []
@@ -6639,15 +7494,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -7156,10 +8006,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT01394562"
             }
           },
           "registered_outcome_candidates": []
@@ -7670,15 +8518,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -8288,12 +9131,10 @@
             "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
           },
           "in_primary_pool": {
-            "state": "NO",
+            "state": "YES",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "report_id": "25176939"
             }
           },
           "registered_outcome_candidates": []
@@ -8917,7 +9758,7 @@
       "poolability": [
         {
           "outcome": "Heart-failure hospitalization",
-          "state": "UNKNOWN",
+          "state": "POOLED",
           "span": {
             "measured": {
               "state": "UNKNOWN",
@@ -8933,17 +9774,17 @@
             }
           },
           "analysis_input": true,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
-            "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "state": "YES",
+            "span": {
+              "source": "review.outcomes.trials",
+              "report_ids": [
+                "PMID 25176939"
+              ]
+            }
           },
-          "poolable_value": false
+          "poolable_value": true
         },
         {
           "outcome": "Injection-site reactions",
@@ -9449,10 +10290,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT02642562"
             }
           },
           "registered_outcome_candidates": [
@@ -10556,15 +11395,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -11079,10 +11913,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT02937454"
             }
           },
           "registered_outcome_candidates": []
@@ -13906,15 +14738,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -14427,36 +15254,22 @@
             "absence_code": "NO_EXACT_REGISTERED_OUTCOME_MATCH"
           },
           "measured": {
-            "state": "YES",
-            "span": {
-              "quote": "The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12",
-              "source": "held abstract",
-              "report_id": "40159390"
-            }
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
           },
           "reported": {
-            "state": "YES",
-            "span": {
-              "quote": "The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12",
-              "source": "held abstract",
-              "report_id": "40159390"
-            }
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
           },
           "extractable": {
-            "state": "YES",
-            "span": {
-              "quote": "The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12",
-              "source": "held abstract",
-              "report_id": "40159390"
-            }
+            "state": "UNKNOWN",
+            "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
           },
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT03036462"
             }
           },
           "registered_outcome_candidates": []
@@ -15336,43 +16149,26 @@
       "poolability": [
         {
           "outcome": "Heart-failure hospitalization",
-          "state": "EXTRACTABLE",
+          "state": "UNKNOWN",
           "span": {
             "measured": {
-              "state": "YES",
-              "span": {
-                "quote": "The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12",
-                "source": "held abstract",
-                "report_id": "40159390"
-              }
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
             },
             "reported": {
-              "state": "YES",
-              "span": {
-                "quote": "The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12",
-                "source": "held abstract",
-                "report_id": "40159390"
-              }
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
             },
             "extractable": {
-              "state": "YES",
-              "span": {
-                "quote": "The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12",
-                "source": "held abstract",
-                "report_id": "40159390"
-              }
+              "state": "UNKNOWN",
+              "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
             }
           },
-          "analysis_input": true,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "analysis_input": false,
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -15988,10 +16784,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT03037931"
             }
           },
           "registered_outcome_candidates": []
@@ -16990,15 +17784,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -17590,10 +18379,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT03079518"
             }
           },
           "registered_outcome_candidates": []
@@ -18289,15 +19076,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -18896,10 +19678,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT03803111"
             }
           },
           "registered_outcome_candidates": []
@@ -19633,15 +20413,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -20182,10 +20957,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT03991000"
             }
           },
           "registered_outcome_candidates": []
@@ -20813,15 +21586,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -21239,10 +22007,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT04974021"
             }
           },
           "registered_outcome_candidates": []
@@ -22498,15 +23264,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -23243,10 +24004,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT06434025"
             }
           },
           "registered_outcome_candidates": []
@@ -24186,15 +24945,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -24599,10 +25353,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT06542822"
             }
           },
           "registered_outcome_candidates": []
@@ -25373,15 +26125,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -26075,10 +26822,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT06703411"
             }
           },
           "registered_outcome_candidates": []
@@ -26651,15 +27396,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -27214,10 +27954,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "NCT07053475"
             }
           },
           "registered_outcome_candidates": []
@@ -28069,15 +28807,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -28339,10 +29072,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-2d863d2110e8"
             }
           },
           "registered_outcome_candidates": []
@@ -28480,15 +29211,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -28751,10 +29477,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-489065e1dcc1"
             }
           },
           "registered_outcome_candidates": []
@@ -28894,15 +29618,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -29164,10 +29883,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-4e341d43b777"
             }
           },
           "registered_outcome_candidates": []
@@ -29307,15 +30024,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -29577,10 +30289,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-50667e34cdd4"
             }
           },
           "registered_outcome_candidates": []
@@ -29718,15 +30428,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -29988,10 +30693,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-5f2e4d5968cf"
             }
           },
           "registered_outcome_candidates": []
@@ -30127,15 +30830,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -30397,10 +31095,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-66bfdc702716"
             }
           },
           "registered_outcome_candidates": []
@@ -30536,15 +31232,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -30806,10 +31497,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-7df2b58683af"
             }
           },
           "registered_outcome_candidates": []
@@ -30945,15 +31634,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -31215,10 +31899,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-7edf183e4519"
             }
           },
           "registered_outcome_candidates": []
@@ -31360,15 +32042,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -31630,10 +32307,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-87345abc9580"
             }
           },
           "registered_outcome_candidates": []
@@ -31771,15 +32446,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -32041,10 +32711,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-90a762a76c33"
             }
           },
           "registered_outcome_candidates": []
@@ -32182,15 +32850,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -32452,10 +33115,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-9958c18829f1"
             }
           },
           "registered_outcome_candidates": []
@@ -32595,15 +33256,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -32865,10 +33521,8 @@
           "in_primary_pool": {
             "state": "NO",
             "span": {
-              "source": "review.outcomes.result",
-              "present": null,
-              "suppressed_incompatible": true,
-              "pool_refused": null
+              "source": "review.outcomes.trials",
+              "family_id": "SYN-d083e23c7ca5"
             }
           },
           "registered_outcome_candidates": []
@@ -33008,15 +33662,10 @@
             }
           },
           "analysis_input": false,
-          "pool_refusal": {
-            "source": "review.outcomes.result",
-            "present": null,
-            "suppressed_incompatible": true,
-            "pool_refused": null
-          },
+          "pool_refusal": null,
           "pooled": {
             "state": "UNKNOWN",
-            "absence_code": "POOL_REFUSED"
+            "absence_code": "NO_POOLABLE_VALUE"
           },
           "poolable_value": false
         },
@@ -33086,43 +33735,15 @@
   "family_count_chain": {
     "trial_families": 17,
     "eligible_families": 2,
-    "contributing": 2,
-    "pooled": 0,
+    "contributing": 1,
+    "pooled": 1,
     "eligibility_unresolved": 13,
     "unresolved_report_candidates": 12,
-    "contributing_without_structural_eligibility": [
-      "NCT03036462"
-    ],
+    "contributing_without_structural_eligibility": [],
     "publications_screened": 21,
     "registry_records_screened": 9
   },
   "family_missing_evidence": [
-    {
-      "family_id": "NCT01453608",
-      "outcome": "Heart-failure hospitalization",
-      "state": "UNKNOWN",
-      "span": {
-        "measured": {
-          "state": "UNKNOWN",
-          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-        },
-        "reported": {
-          "state": "UNKNOWN",
-          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-        },
-        "extractable": {
-          "state": "UNKNOWN",
-          "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
-        }
-      },
-      "absence_code": "POOL_REFUSED",
-      "pool_refusal": {
-        "source": "review.outcomes.result",
-        "present": null,
-        "suppressed_incompatible": true,
-        "pool_refused": null
-      }
-    },
     {
       "family_id": "NCT01453608",
       "outcome": "Injection-site reactions",
@@ -33193,13 +33814,8 @@
           "absence_code": "NO_VERIFIED_OUTCOME_SPAN"
         }
       },
-      "absence_code": "POOL_REFUSED",
-      "pool_refusal": {
-        "source": "review.outcomes.result",
-        "present": null,
-        "suppressed_incompatible": true,
-        "pool_refused": null
-      }
+      "absence_code": "NO_POOLABLE_VALUE",
+      "pool_refusal": null
     },
     {
       "family_id": "NCT03037931",
@@ -33257,10 +33873,17 @@
   "claimgraph": {
     "objects": [
       {
-        "kind": "manuscript_result_sentence",
-        "claim_id": "d2ef77b37359bf55",
+        "kind": "rob_sensitivity_prose",
+        "claim_id": "004472bb1d8e1b98",
         "depends_on": {
-          "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
+          "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
+        }
+      },
+      {
+        "kind": "manuscript_result_sentence",
+        "claim_id": "bd6bd7c6b5f27142",
+        "depends_on": {
+          "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
         }
       }
     ]
@@ -33386,8 +34009,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate.  See the <a href='#known-missing-sensitivity'>known-missing sensitivity panel</a>.<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>a trial identified as eligible under the registered PICO is not pooled (Toblli 2007, IRON-HF) — the pooled result and completeness claim cannot be current</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT03037931, PMID:34080008, NCT01394562, NCT00520780, NCT00125996; the completeness claim cannot be current</li></ul></div>",
-      "text_sha256": "991f9e7bc4d8e10f534bf0bee43b18f4a699dbf16b4901ed38d74e2374b1e264",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate.  See the <a href='#known-missing-sensitivity'>known-missing sensitivity panel</a>.<ul><li>no genuine executed concept search (TITLE_SEEDED_RETRIEVAL): We retract any claim of a registry-first or systematic search for this topic.</li><li>Toblli 2007: named eligible by an audit, but not admitted on this page (INADMISSIBLE_ON_ADMISSION, no family); not re-pooled; the audit&#x27;s eligibility claim and the structural screen disagree -- adjudication owed</li><li>IRON-HF: named eligible by an audit, but not admitted on this page (INADMISSIBLE_ON_ADMISSION, no family); not re-pooled; the audit&#x27;s eligibility claim and the structural screen disagree -- adjudication owed</li><li>a trial identified as eligible under the registered PICO is not pooled (Toblli 2007, IRON-HF) — the pooled result and completeness claim cannot be current</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT03037931, PMID:34080008, NCT01394562, NCT00520780, NCT00125996; the completeness claim cannot be current</li></ul></div>",
+      "text_sha256": "61cb1489adf7b1567c43375ca32dcc9654692adb33d17dcddf8e7f82d865ac5e",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -33396,7 +34019,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/invalidation/stale",
-        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, audit_eligibility_vs_screen_conflict, known_eligible_missing, eligible_declared_absent"
       }
     },
     {
@@ -33420,7 +34043,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/retrieval_auditable",
-        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, audit_eligibility_vs_screen_conflict, known_eligible_missing, eligible_declared_absent"
       }
     },
     {
@@ -33452,43 +34075,20 @@
       }
     },
     {
-      "limitation_id": "topic:iv-iron-hfref-hosp:overview:suppressed-pool:primary",
-      "kind": "SUPPRESSED_POOL",
-      "limitation_class": "VALIDITY_THREATENING",
-      "severity": "BLOCKS_CLAIM",
-      "claim_affected": "primary pooled estimate",
-      "evidence_state": "SUPPRESSED",
-      "source_fields": [
-        "/outcomes/*/result/suppressed_incompatible",
-        "/outcomes/*/result/suppressed_reason"
-      ],
-      "rendered_text": "<div class='absent'><strong>Pooled result SUPPRESSED (estimand-incompatible).</strong> pooled effect SUPPRESSED: the trials mix incompatible estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO) — these effect measures are not one quantity without an explicit, source-backed conversion, so no pooled effect, CI, heterogeneity or sensitivity is valid. The per-trial estimates are shown; pool each coherent strand separately. <em>Estimand classes: HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO; the 2 eligible trials are shown individually in Results, not pooled.</em></div>",
-      "text_sha256": "d1610bfc6483b7464b9ba20f6dbc9224ffd4648a4fc972fa7d9ac53b79a660e7",
-      "linked_decision": {
-        "action": "REFUSE",
-        "gate_id": "limitation:suppressed_pool",
-        "decision_state": "SUPPRESSED_POOL blocks the affected analytic claim"
-      },
-      "consumer": {
-        "gate_id": "estmeasure.pool_compatibility",
-        "gate_input_path": "/outcomes/*/result/estmeasure/status",
-        "gate_verdict_at_build": "SUPPRESSED: Heart-failure hospitalization: incompatible"
-      }
-    },
-    {
       "limitation_id": "topic:iv-iron-hfref-hosp:overview:declared-strands",
       "kind": "DECLARED_STRANDS",
       "limitation_class": "VALIDITY_THREATENING",
       "severity": "QUALIFIES_CLAIM",
-      "claim_affected": "endpoint-clean decomposition after refused cross-endpoint pool",
+      "claim_affected": "endpoint-clean decomposition beside the single pool",
       "evidence_state": "REFUSED_ON_EVIDENCE",
       "source_fields": [
         "/strands/why_topic_is_suppressed",
         "/strands/strands",
-        "/strands/refused_cross_endpoint_pool"
+        "/strands/refused_cross_endpoint_pool",
+        "/strands_admission"
       ],
-      "rendered_text": "<div class='banner'><h3>Declared strands (the single pool is suppressed; these are the endpoint-clean decompositions)</h3><p>Strands A and B measure the SAME endpoint (HF hospitalisation) two incompatible ways -- first-event HR (CONFIRM-HF) vs recurrent rate ratio (AFFIRM-AHF + FAIR-HF2). A hazard ratio of the first event and a rate ratio of all events are not the same quantity and cannot be pooled; the single-pool primary is therefore correctly suppressed. The strands below are the honest decomposition.</p><ul><li><strong>Strand A</strong> — First-event hazard ratio (time to first HF hospitalisation) [<code>FIRST_EVENT_RATIO</code>]: CONFIRM-HF 0.39 (HR), k=1 (single trial)</li><li><strong>Strand B</strong> — Recurrent-event rate ratio, HF hospitalisation ALONE [<code>RATE</code>]: pooled 0.765 (0.232–2.522), k=2, HKSJ/PM &tau;&sup2;=0.0, <strong>crosses null</strong> <span class='note'>[common-effect sensitivity 0.765 (0.636–0.919), NOT the registered result]</span></li><li><strong>Strand C</strong> — Recurrent-event rate ratio, HF hospitalisation + CV death COMPOSITE [<code>RATE</code>]: pooled 0.807 (0.281–2.312), k=2, HKSJ/PM &tau;&sup2;=0.0, <strong>crosses null</strong> <span class='note'>[common-effect sensitivity 0.807 (0.686–0.949), NOT the registered result]</span></li><li><strong>Strand D</strong> — Participant-level risk (patients with &gt;=1 HF hospitalisation) [<code>PARTICIPANT_RISK</code>]: CONFIRM-HF 0.39 (RR (crude)), k=1 (single trial)</li></ul><p><strong>Refused cross-endpoint pool:</strong> The recurrent-event rate ratios do NOT form one pool. A pool of AFFIRM-AHF&#x27;s HF-hosp-ALONE rate (0.74) with IRONMAN&#x27;s HF-hosp+CV-death COMPOSITE rate (0.82) crosses the endpoint dimension of the compatibility key. If forced it would be 0.783 (0.275-2.233) -- this is the 0.783 figure previously treated as the recurrent strand; it mixes endpoints and is refused, not published. — <code>REFUSED -- endpoint mismatch (HF-hosp alone vs composite)</code>.</p><p class='note'>Every effect source-verified; intervals from the canonical engine. The compatibility key keeps strands apart; a cross-strand pool is refused, not computed.</p></div>",
-      "text_sha256": "e0fadc8d6107d61d7f6d1552efc081b9465edc4028d740ea87c1cabd944c21d8",
+      "rendered_text": "<div class='banner'><h3>Declared strands (endpoint-clean decompositions beside the single pool; each strand pools only admitted members)</h3><p><em>Hand note from the declared-strands document, written while the single pool was suppressed; the single pool's current state is stated above, not here:</em> Strands A and B measure the SAME endpoint (HF hospitalisation) two incompatible ways -- first-event HR (CONFIRM-HF) vs recurrent rate ratio (AFFIRM-AHF + FAIR-HF2). A hazard ratio of the first event and a rate ratio of all events are not the same quantity and cannot be pooled; the single-pool primary is therefore correctly suppressed. The strands below are the honest decomposition.</p><ul><li><strong>Strand A</strong> — First-event hazard ratio (time to first HF hospitalisation) [<code>FIRST_EVENT_RATIO</code>]: CONFIRM-HF 0.39 (HR), k=1 (single trial)</li><li><strong>Strand B</strong> — Recurrent-event rate ratio, HF hospitalisation ALONE [<code>RATE</code>]: <strong>REFUSED on admission</strong> -- saved result withheld: AFFIRM-AHF: P5_family_eligible (family NCT02937454, eligibility UNKNOWN INTERVENTION_CONTRAST_NOT_PROVEN); FAIR-HF2: P5_family_eligible (family NCT03036462, eligibility UNKNOWN INTERVENTION_CONTRAST_NOT_PROVEN). a declared strand pools only admitted members; its saved result is withheld until every member&#x27;s family eligibility is established (recovery as for any set-aside row)</li><li><strong>Strand C</strong> — Recurrent-event rate ratio, HF hospitalisation + CV death COMPOSITE [<code>RATE</code>]: <strong>REFUSED on admission</strong> -- saved result withheld: AFFIRM-AHF: P5_family_eligible (family NCT02937454, eligibility UNKNOWN INTERVENTION_CONTRAST_NOT_PROVEN); IRONMAN: P5_family_eligible (family NCT02642562, eligibility UNKNOWN INTERVENTION_CONTRAST_NOT_PROVEN). a declared strand pools only admitted members; its saved result is withheld until every member&#x27;s family eligibility is established (recovery as for any set-aside row)</li><li><strong>Strand D</strong> — Participant-level risk (patients with &gt;=1 HF hospitalisation) [<code>PARTICIPANT_RISK</code>]: CONFIRM-HF 0.39 (RR (crude)), k=1 (single trial)</li></ul><p><strong>Refused cross-endpoint pool:</strong> The recurrent-event rate ratios do NOT form one pool. A pool of AFFIRM-AHF&#x27;s HF-hosp-ALONE rate (0.74) with IRONMAN&#x27;s HF-hosp+CV-death COMPOSITE rate (0.82) crosses the endpoint dimension of the compatibility key. If forced it would be 0.783 (0.275-2.233) -- this is the 0.783 figure previously treated as the recurrent strand; it mixes endpoints and is refused, not published. — <code>REFUSED -- endpoint mismatch (HF-hosp alone vs composite)</code>.</p><p class='note'>Every effect source-verified; intervals from the canonical engine. The compatibility key keeps strands apart; a cross-strand pool is refused, not computed.</p></div>",
+      "text_sha256": "486c8e304d49e5b241133551a2d97b0e0ee43e0f07679acfcf3868d741422b5e",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:evidence-state",
@@ -33555,7 +34155,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/retrieval_auditable",
-        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, audit_eligibility_vs_screen_conflict, known_eligible_missing, eligible_declared_absent"
       }
     },
     {
@@ -33578,7 +34178,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/search_provenance",
-        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, eligible_declared_absent"
+        "gate_verdict_at_build": "STALE: search_not_executed, audit_eligibility_vs_screen_conflict, known_eligible_missing, eligible_declared_absent"
       }
     },
     {
@@ -33610,27 +34210,72 @@
       }
     },
     {
-      "limitation_id": "topic:iv-iron-hfref-hosp:outcomes:0:heart-failure-hospitalization:suppressed-pool",
-      "kind": "SUPPRESSED_POOL",
-      "limitation_class": "VALIDITY_THREATENING",
-      "severity": "BLOCKS_CLAIM",
-      "claim_affected": "pooled estimate: Heart-failure hospitalization",
-      "evidence_state": "SUPPRESSED",
+      "limitation_id": "topic:iv-iron-hfref-hosp:outcomes:0:admission",
+      "kind": "ADMISSION",
+      "limitation_class": "INFORMATIONAL",
+      "severity": "QUALIFIES_CLAIM",
+      "claim_affected": "admission of candidate extractions into the pool of 'Heart-failure hospitalization'",
+      "evidence_state": "RECORDED",
       "source_fields": [
-        "/outcomes/*/result/suppressed_incompatible",
-        "/outcomes/*/result/suppressed_reason"
+        "/outcomes/0/admission_summary"
       ],
-      "rendered_text": "<div class='absent'><strong>Pooled result SUPPRESSED (estimand-incompatible).</strong> pooled effect SUPPRESSED: the trials mix incompatible estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO) — these effect measures are not one quantity without an explicit, source-backed conversion, so no pooled effect, CI, heterogeneity or sensitivity is valid. The per-trial estimates are shown; pool each coherent strand separately. <em>Estimand classes: HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO; k = 2 trials, shown individually below, not pooled.</em> <em>Refusal is reversible and auditable &mdash; reason code <code>INCOMPATIBLE_ESTIMANDS</code>; had these classes been pooled anyway the (INVALID) result would have been 0.61 (0.01&ndash;51.59) &mdash; shown only so the refusal is inspectable, never as a usable number.</em></div>",
-      "text_sha256": "cf46b5719e8726862e20dbbca2157f1df66f530b308b241d385ab31d0e56cef2",
+      "rendered_text": "<div class='absent'><strong>Admission at pooling (P5_family_eligible, P8_endpoint_bound).</strong> Admission evaluated in-build on P5_family_eligible, P8_endpoint_bound only (P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are not evaluated here: scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them). Pooled 1: admissible 1; migration state (unbound_legacy, pooled and counted separately) 0; bound by a producer route the bundle&#x27;s P8 does not name 1 [PMID 25176939]. Set aside on P5 (family eligibility) 1: PMID 40159390 UNKNOWN (INTERVENTION_CONTRAST_NOT_PROVEN). in-build P8 passes every producer binding route other than unbound_legacy; the bundle&#x27;s P8 passes only the definition-span route (rows bound by another route read INADMISSIBLE there: a rule limit raised with the bundle lane, recorded per row as bundle_rule_agreement).</div>",
+      "text_sha256": "c6e18a8782c3f242f7d0ed11d8c8982e73b931f2fe0acab6d71c54be9685ba84",
       "linked_decision": {
-        "action": "REFUSE",
-        "gate_id": "limitation:suppressed_pool",
-        "decision_state": "SUPPRESSED_POOL blocks the affected analytic claim"
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
       },
       "consumer": {
-        "gate_id": "estmeasure.pool_compatibility",
-        "gate_input_path": "/outcomes/*/result/estmeasure/status",
-        "gate_verdict_at_build": "SUPPRESSED: Heart-failure hospitalization: incompatible"
+        "gate_id": "gate.check_admission_enforced",
+        "gate_input_path": "/outcomes/*/admission_summary",
+        "gate_verdict_at_build": "PASS: every pooled row admitted; 1 candidate row(s) set aside on admission"
+      }
+    },
+    {
+      "limitation_id": "topic:iv-iron-hfref-hosp:outcomes:1:admission",
+      "kind": "ADMISSION",
+      "limitation_class": "INFORMATIONAL",
+      "severity": "NOTE",
+      "claim_affected": "admission of candidate extractions into the pool of 'Injection-site reactions'",
+      "evidence_state": "RECORDED",
+      "source_fields": [
+        "/outcomes/1/admission_summary"
+      ],
+      "rendered_text": "<div class='absent'><strong>Admission at pooling (P5_family_eligible, P8_endpoint_bound).</strong> Admission: no candidate row reached this outcome&#x27;s pool (nothing pooled, nothing set aside on P5); in-build scope is P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).</div>",
+      "text_sha256": "7338c8eb5d49d6695fe0e99b82fb9e05aa2b6d9dca4dc808a9ae7b1959594e49",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": {
+        "gate_id": "gate.check_admission_enforced",
+        "gate_input_path": "/outcomes/*/admission_summary",
+        "gate_verdict_at_build": "PASS: every pooled row admitted; 1 candidate row(s) set aside on admission"
+      }
+    },
+    {
+      "limitation_id": "topic:iv-iron-hfref-hosp:outcomes:2:admission",
+      "kind": "ADMISSION",
+      "limitation_class": "INFORMATIONAL",
+      "severity": "NOTE",
+      "claim_affected": "admission of candidate extractions into the pool of 'Hypersensitivity reactions'",
+      "evidence_state": "RECORDED",
+      "source_fields": [
+        "/outcomes/2/admission_summary"
+      ],
+      "rendered_text": "<div class='absent'><strong>Admission at pooling (P5_family_eligible, P8_endpoint_bound).</strong> Admission: no candidate row reached this outcome&#x27;s pool (nothing pooled, nothing set aside on P5); in-build scope is P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).</div>",
+      "text_sha256": "7338c8eb5d49d6695fe0e99b82fb9e05aa2b6d9dca4dc808a9ae7b1959594e49",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": {
+        "gate_id": "gate.check_admission_enforced",
+        "gate_input_path": "/outcomes/*/admission_summary",
+        "gate_verdict_at_build": "PASS: every pooled row admitted; 1 candidate row(s) set aside on admission"
       }
     },
     {
@@ -33722,6 +34367,30 @@
       }
     },
     {
+      "limitation_id": "topic:iv-iron-hfref-hosp:riskofbias:stale-randomised-contrast",
+      "kind": "RANDOMISED_CONTRAST",
+      "limitation_class": "INFORMATIONAL",
+      "severity": "QUALIFIES_CLAIM",
+      "claim_affected": "randomised-contrast membership for current pooled trials",
+      "evidence_state": "PARTIAL",
+      "source_fields": [
+        "/arm_contrast/stale_block_unrenderable",
+        "/arm_contrast/trials"
+      ],
+      "rendered_text": "<div class='absent'><strong>UNRENDERABLE stale contrast block.</strong> cached arm-contrast membership named trials not in the current consumed pool; current pooled trial ids: 25176939; suppressed stale ids: 40159390.</div>",
+      "text_sha256": "26493d7ecf2e4bc722613145741e2d9be78ca0f46507e2daf94c19e887b3cc54",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": {
+        "gate_id": "compat.outcome_key",
+        "gate_input_path": "/arm_contrast/trials",
+        "gate_verdict_at_build": "Heart-failure hospitalization: verified 1/1"
+      }
+    },
+    {
       "limitation_id": "topic:iv-iron-hfref-hosp:riskofbias:randomised-contrast",
       "kind": "RANDOMISED_CONTRAST",
       "limitation_class": "INFORMATIONAL",
@@ -33731,8 +34400,8 @@
       "source_fields": [
         "/arm_contrast/trials"
       ],
-      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>2 of 2</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>25176939</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;ferric carboxymaltose&#x27; matched AACT arm intervention &#x27;ferinject (ferric carboxymaltose)&#x27;; the intervention of interest DIFFERS across the randomised arms'>ferinject (ferric carboxymaltose)</td></tr><tr><td>40159390</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;iron sucrose&#x27; matched AACT arm intervention &#x27;iron&#x27;; the intervention of interest DIFFERS across the randomised arms'>iron; saline</td></tr></table></div>",
-      "text_sha256": "39164d344f684292a3dd3bd133eb43fd2b2c0f7693c7d058398c02e331d3ea81",
+      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>1 of 1</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>25176939</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;ferric carboxymaltose&#x27; matched AACT arm intervention &#x27;ferinject (ferric carboxymaltose)&#x27;; the intervention of interest DIFFERS across the randomised arms'>ferinject (ferric carboxymaltose)</td></tr></table></div>",
+      "text_sha256": "058910b24639a9f8b263de10c81d05be45016ce785ac0f026038d90334f005b4",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -33741,7 +34410,7 @@
       "consumer": {
         "gate_id": "compat.outcome_key",
         "gate_input_path": "/arm_contrast/trials",
-        "gate_verdict_at_build": "NO_POOLED_COMPAT_KEY"
+        "gate_verdict_at_build": "Heart-failure hospitalization: verified 1/1"
       }
     },
     {
@@ -33754,8 +34423,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>5 of 6 known</strong> (3 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 25176939</td><td><strong>industry</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: &lt;/ext-link&gt;&lt;/p&gt;&lt;/sec&gt;&lt;sec id=&quot;s6&quot;&gt;&lt;title&gt;Funding&lt;/title&gt;&lt;p&gt;This work was supported by Vifor Pharma Ltd., Glattbrugg, Switzerland.&lt;/p&gt;&lt;p&gt;&lt;bold&gt;Conflict of interest:&lt;/bold&gt; P.P. received honoraria from Vifor Pharma Ltd. as member of the CONFIRM-HF Steering Committee, is a consultant and has received honoraria for speaking from Vifor Pharma Ltd. and Amgen, Inc.</td></tr><tr><td>PMID 28701470</td><td><strong>industry</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;/sec&gt;&lt;sec&gt;&lt;title&gt;Sources of Funding&lt;/title&gt;&lt;p&gt;The study was sponsored by Vifor Pharma, Switzerland.</td></tr><tr><td>PMID 33197395</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: FUNDING: Vifor Pharma.</td></tr><tr><td>PMID 34080008</td><td><strong>industry</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;/caption&gt;&lt;/media&gt;&lt;/supplementary-material&gt;&lt;/sec&gt;&lt;/body&gt;&lt;back&gt;&lt;ack id=&quot;ack1&quot;&gt;&lt;title&gt;Acknowledgements&lt;/title&gt;&lt;p&gt;We are grateful to the patients, their families, and the investigators for their participation in this study; Dr Teba Haboubi, Dr Emanuele Noseda, and the respective study teams for study monitoring and management; and Dr Bridget-Anne Kirwan, Ms Caroline Gombault, Mr Robin Wegmüller (SOCAR Research), and Ms Helen Sims (AXON Communications) who provided editorial assistance with the preparation of the tables and figures, funded by Vifor Pharma.&lt;/p&gt;&lt;sec&gt;&lt;title&gt;Funding&lt;/title&gt;&lt;p&gt;The AFFIRM-AHF trial was funded by Vifor Pharma.&lt;/p&gt;&lt;p&gt; &lt;bold&gt;Conflict of interest:&lt;/bold&gt; E.A.J. has received research grants and personal fees from Vifor Pharma (co-PI of the AFFIRM trial); personal fees from Bayer, Novartis, Abbott, Boehringer Ingelheim, Pfizer, Servier, AstraZeneca, Berlin Chemie, Cardiac Dimensions, Fresenius, and Gedeon Richter.</td></tr><tr><td>PMID 37632463</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by American Regent, a Daiichi Sankyo Group company; HEART-FID ClinicalTrials.gov number, NCT03037931.).</td></tr><tr><td>PMID 36347265</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: FUNDING: British Heart Foundation and Pharmacosmos.</td></tr><tr><td>PMID 40159390</td><td><strong>not stated (full text scanned)</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr><tr><td>PMID 18191732</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 19920054</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
-      "text_sha256": "8d7505c17b4f107253060bae10db4deb29ce250ab3f2edb6807ec8f881c735aa",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>5 of 6 known</strong> (3 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 25176939</td><td><strong>industry</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: &lt;/ext-link&gt;&lt;/p&gt;&lt;/sec&gt;&lt;sec id=&quot;s6&quot;&gt;&lt;title&gt;Funding&lt;/title&gt;&lt;p&gt;This work was supported by Vifor Pharma Ltd., Glattbrugg, Switzerland.&lt;/p&gt;&lt;p&gt;&lt;bold&gt;Conflict of interest:&lt;/bold&gt; P.P. received honoraria from Vifor Pharma Ltd. as member of the CONFIRM-HF Steering Committee, is a consultant and has received honoraria for speaking from Vifor Pharma Ltd. and Amgen, Inc.</td></tr><tr><td>PMID 28701470</td><td><strong>industry</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;/sec&gt;&lt;sec&gt;&lt;title&gt;Sources of Funding&lt;/title&gt;&lt;p&gt;The study was sponsored by Vifor Pharma, Switzerland.</td></tr><tr><td>PMID 33197395</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: FUNDING: Vifor Pharma.</td></tr><tr><td>PMID 34080008</td><td><strong>industry</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: &lt;/p&gt;&lt;/caption&gt;&lt;/media&gt;&lt;/supplementary-material&gt;&lt;/sec&gt;&lt;/body&gt;&lt;back&gt;&lt;ack id=&quot;ack1&quot;&gt;&lt;title&gt;Acknowledgements&lt;/title&gt;&lt;p&gt;We are grateful to the patients, their families, and the investigators for their participation in this study; Dr Teba Haboubi, Dr Emanuele Noseda, and the respective study teams for study monitoring and management; and Dr Bridget-Anne Kirwan, Ms Caroline Gombault, Mr Robin Wegmüller (SOCAR Research), and Ms Helen Sims (AXON Communications) who provided editorial assistance with the preparation of the tables and figures, funded by Vifor Pharma.&lt;/p&gt;&lt;sec&gt;&lt;title&gt;Funding&lt;/title&gt;&lt;p&gt;The AFFIRM-AHF trial was funded by Vifor Pharma.&lt;/p&gt;&lt;p&gt; &lt;bold&gt;Conflict of interest:&lt;/bold&gt; E.A.J. has received research grants and personal fees from Vifor Pharma (co-PI of the AFFIRM trial); personal fees from Bayer, Novartis, Abbott, Boehringer Ingelheim, Pfizer, Servier, AstraZeneca, Berlin Chemie, Cardiac Dimensions, Fresenius, and Gedeon Richter.</td></tr><tr><td>PMID 37632463</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by American Regent, a Daiichi Sankyo Group company; HEART-FID ClinicalTrials.gov number, NCT03037931.).</td></tr><tr><td>PMID 36347265</td><td><strong>public/non-profit</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: FUNDING: British Heart Foundation and Pharmacosmos.</td></tr><tr><td>PMID 18191732</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 19920054</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr><tr><td>PMID 40159390</td><td><strong>not stated (full text scanned)</strong></td><td>&mdash;</td><td>full text</td><td><strong>full text</strong>: </td></tr></table></div>",
+      "text_sha256": "6bded8e6666c01a5b642c616ecc812f1c5cf58cd73742bf174c49f01eb940223",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -33780,10 +34449,12 @@
       "claim_affected": "risk-of-bias sensitivity interpretation",
       "evidence_state": "PARTIAL",
       "source_fields": [
-        "/rob_sensitivity_omitted"
+        "/rob_sensitivity/full",
+        "/rob_sensitivity/drop_high",
+        "/rob_sensitivity/low_only"
       ],
-      "rendered_text": "<h4>Risk-of-bias sensitivity (re-pooled with the same estimator)</h4><div class='absent'><strong>Does the result survive dropping the trials that are not low risk of bias?</strong> Not computed (PRIMARY_POOL_SUPPRESSED_INCOMPATIBLE): the primary pool is SUPPRESSED as incompatible estimands; re-pooling incompatible estimands by risk-of-bias stratum would be as invalid as the primary pool itself (declared scales: INCOMPATIBLE (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO)). The per-trial rows and their risk-of-bias ratings are shown above; the omission is recorded in the review object as <code>rob_sensitivity_omitted</code>, not left silent.</div>",
-      "text_sha256": "1603f68874b70a9eee2b0d5886752076dfd27018e03dc1f2da9ffbf28d41b1c0",
+      "rendered_text": "<div class='absent'>RoB-restricted re-pool suppressed: formal RoB 2 not yet assessed</div>",
+      "text_sha256": "4750f80048d58a5a2cabab02fde417f0ee9b3d33e76f85c791979ce075e42d77",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -33806,13 +34477,13 @@
       "limitation_class": "INFORMATIONAL",
       "severity": "QUALIFIES_CLAIM",
       "claim_affected": "overall GRADE certainty",
-      "evidence_state": "NOT_ASSESSED",
+      "evidence_state": "PROVISIONAL",
       "source_fields": [
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. the primary pool mixes INCOMPATIBLE estimand classes (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO); an overall certainty cannot be produced from an incoherent effect object — the domain signals are shown, the overall is suppressed until the estimand is made coherent (harmonise the measure or split the outcome)<table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (9 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>95% CI [None, None]; missing/insufficient: valid confidence interval; supported effect scale; clinical threshold / MID with basis; information-size assessment with adequacy and basis</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>not auto-rated (human judgement)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>missing/invalid registry census inputs: enumerated, ongoing_or_recent, ghost_upper_bound, positive completed-trial denominator</td></tr></table></div>",
-      "text_sha256": "33e236535af59c1116c63aec2d205dcff768e98e9ba9667a51b53cdd33e4685b",
+      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. <table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (9 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>95% CI [0.19, 0.82]; missing/insufficient: clinical threshold / MID with basis; information-size assessment with adequacy and basis</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>missing/invalid registry census inputs: enumerated, ongoing_or_recent, ghost_upper_bound, positive completed-trial denominator</td></tr></table></div>",
+      "text_sha256": "b19b05d1dbcc0aaa2fc11cfbc6209e0d294f5bf7dc5b448dbab7cb12aed55289",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -33824,9 +34495,9 @@
       "unwired_acknowledged": {
         "signed_by": "Codex lane AD",
         "date": "2026-09-15",
-        "reason": "GRADE certainty is a downstream label rather than a publication gate; no executable analytic gate changes on the not-assessed certainty state.",
+        "reason": "GRADE certainty is a downstream label rather than a publication gate; no executable analytic gate changes on the provisional certainty state.",
         "tranche": "TRANCHE-hazard-consumers",
-        "ack_id": "HC-GRADE_CERTAINTY-NOT_ASSESSED"
+        "ack_id": "HC-GRADE_CERTAINTY-PROVISIONAL"
       }
     },
     {
@@ -33945,14 +34616,22 @@
         "surface": "overview/results/manuscript",
         "source_path": "/outcomes/*[primary]/result/k",
         "subject": "primary_effect_objects",
-        "count": 2,
+        "count": 1,
         "claim_id": "5cb7cb94b7a46f28"
+      },
+      {
+        "kind": "rated_count",
+        "surface": "riskofbias/manuscript",
+        "source_path": "/rob_sensitivity",
+        "rated": 1,
+        "total": 1,
+        "claim_id": "f3cfb5ce652671d4"
       },
       {
         "kind": "retracted_count",
         "surface": "riskofbias/integrity",
         "source_path": "/integrity",
-        "pooled": 2,
+        "pooled": 1,
         "retracted": 0,
         "claim_id": "03bfa63d09bd1b11"
       }
@@ -33962,7 +34641,7 @@
       "declared_equals_enforced": 1,
       "byte_reproducible": 1,
       "pooled_count": 1,
-      "rated_count": 0,
+      "rated_count": 1,
       "retracted_count": 1,
       "search_found": 0,
       "state_collapsed": 0
@@ -33994,7 +34673,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "a56039f46158272c40c9565150903cf87db37c3c",
-    "review_sha256": "ed77a1831cf817a596da92d4052080709c646dcd78d9b70d4e74d1a34542a51d",
+    "review_sha256": "0ec32353e1c17e3241dbb92c2a087035e7aa8e67ff6c08305c18bcf747039cb8",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -34004,7 +34683,7 @@
     },
     "parity": {
       "slug": "iv-iron-hfref-hosp",
-      "our_k": 2,
+      "our_k": 1,
       "comparable_comparator_k": 3,
       "status": "OVERLAPPING",
       "reason": "2/3. Gap = HEART-FID + AFFIRM-AHF, refused on estimand: CT.gov labels HEART-FID heart-failure hospitalizations as COUNT_OF_PARTICIPANTS (297/1532 vs 332/1533) but the publication says \"297 hospitalizations\" = RECURRENT EVENTS, not patients — pooling the CT.gov count as a binary would produce a wrong number, so the recurrent-event guard refuses it. FAIR-HF = no extractable data; EFFECT-HF = open-label (design-excluded). CONFIRM-HF recovered.",
@@ -34012,12 +34691,13 @@
         "relation": "OVERLAPPING",
         "label": "INFERRED overlapping -- neither trial set contains the other",
         "inferred": true,
-        "our_k": 2,
+        "our_k": 1,
         "hand_our_k": 2,
-        "hand_our_k_stale": false,
+        "hand_our_k_stale": true,
         "their_k": 3,
         "their_k_source": "comparable_comparator_k",
         "shared_k": null,
+        "shared_k_clamped_to_pool": false,
         "only_ours_n": 1,
         "only_theirs_n": 0,
         "dominance": null,
@@ -34025,12 +34705,14 @@
         "hand_status_normalized": "OVERLAPPING",
         "hand_status_disagrees": false
       },
+      "hand_our_k": 2,
+      "hand_our_k_stale": true,
       "hand_status": "OVERLAPPING",
       "hand_status_stale": false,
-      "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d",
-      "claim_id": "914795149f17cd3a",
+      "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+      "claim_id": "1a1d7fa618305a65",
       "depends_on": {
-        "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
+        "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
       },
       "claim_kind": "parity"
     },
@@ -34039,10 +34721,10 @@
         "trial": "AFFIRM-AHF (PMID 33197395), HEART-FID (PMID 37632463), IRONMAN (PMID 36347265)",
         "verified": "total HF hospitalisations located (e.g. AFFIRM-AHF 217 vs 294)",
         "not_pooled_because": "these are RECURRENT-EVENT totals (rate ratios), not patients-with->=1-event; pooling them as a binomial 2x2 would over-count. Estimand mismatch with the count-based pool.",
-        "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d",
-        "claim_id": "5c7b201ca5852e79",
+        "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+        "claim_id": "ae37aae0223f27ca",
         "depends_on": {
-          "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
+          "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
         },
         "claim_kind": "refusal"
       },
@@ -34050,12 +34732,43 @@
         "trial": "FAIR-HF (PMID 19920054), EFFECT-HF (PMID 28701470)",
         "verified": "abstracts fetched",
         "not_pooled_because": "FAIR-HF reports only PGA/NYHA (no HF-hospitalisation counts); EFFECT-HF is open-label with peak-VO2 as primary and no HF-hospitalisation result. Named data/outcome gaps.",
-        "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d",
-        "claim_id": "5c7b201ca5852e79",
+        "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792",
+        "claim_id": "ae37aae0223f27ca",
         "depends_on": {
-          "input_set_version": "688b826c3ac14d8652e38db67bcd1cf9ab11dfeb399a025ebad9c2775543b34d"
+          "input_set_version": "114abfe6ccf374a75f4f4cbd641dae5542097c21837c8b8325130c4c33df9792"
         },
         "claim_kind": "refusal"
+      }
+    ],
+    "result_changes": [
+      {
+        "slug": "iv-iron-hfref-hosp",
+        "outcome": "Heart-failure hospitalization",
+        "before": {
+          "k": 2,
+          "estimate": null,
+          "ci_low": null,
+          "ci_high": null
+        },
+        "after": {
+          "k": 1,
+          "estimate": 0.39,
+          "ci_low": 0.19,
+          "ci_high": 0.82
+        },
+        "left_pool": [
+          "PMID 40159390"
+        ],
+        "entered_pool": [],
+        "before_note": "pool suppressed: incompatible estimands, INCOMPATIBLE (HAZARD_RATIO_FIRST_EVENT + INCIDENCE_RATE_RATIO)",
+        "reason": "PMID 40159390 set aside on admission (P5_family_eligible): family eligibility UNKNOWN (INTERVENTION_CONTRAST_NOT_PROVEN) for 'Heart-failure hospitalization': the candidate extraction is set aside (P5_family_eligible FAIL); the trial stays on this outcome as evidence whose eligibility the held record does not establish. Mechanism: the enforcement gate (branch enforcement-gate, 2026-09-21): the build now reads the admission decision at the pooling convergence point; a row whose trial family eligibility is not established by held registry evidence (P5_family_eligible) is set aside with the value it carried, the trial stays on the page as candidate evidence awaiting adjudication, the numbers are not asserted wrong, and the recovery is eligibility evidence for the family -- never deletion of the trial.",
+        "by": "Claude Opus 5 (branch enforcement-gate, 2026-09-21); reviewer countersignature owed: Mahmood",
+        "when_utc": "2026-09-21T21:18:50Z",
+        "reviewer_countersignature": {
+          "state": "OPEN",
+          "note": "the reviewer has not yet seen the rendered notice; sign with scripts/countersign_result_change.py after reading it"
+        },
+        "conclusion_changed": "a pooled estimate is now served where none was served before: a new claim, not a continuation"
       }
     ],
     "dual": {
@@ -34065,23 +34778,23 @@
       "conflict": 0
     },
     "claim_check": {
-      "claims_checked": 4,
+      "claims_checked": 5,
       "surfaces": [
         "outcome block",
         "overview",
         "manuscript"
       ],
       "scope_counts": {
-        "outcome_result": 0,
+        "outcome_result": 1,
         "strand_pool": 4,
-        "rob_sensitivity": 0,
+        "rob_sensitivity": 2,
         "grade": 1
       },
       "scope": {
         "counts": {
-          "outcome_result": 0,
+          "outcome_result": 1,
           "strand_pool": 4,
-          "rob_sensitivity": 0,
+          "rob_sensitivity": 2,
           "grade": 1
         },
         "surfaces_checked": [
@@ -34105,7 +34818,7 @@
         "declared_equals_enforced": 1,
         "byte_reproducible": 1,
         "pooled_count": 1,
-        "rated_count": 0,
+        "rated_count": 1,
         "retracted_count": 1,
         "search_found": 0,
         "state_collapsed": 0
@@ -34116,7 +34829,7 @@
           "declared_equals_enforced": 1,
           "byte_reproducible": 1,
           "pooled_count": 1,
-          "rated_count": 0,
+          "rated_count": 1,
           "retracted_count": 1,
           "search_found": 0,
           "state_collapsed": 0
@@ -34142,7 +34855,7 @@
       "retrieval_ledger_sha256": "ad0e01ca49f119e15f4611b66042558f16d62fc866dc7f2e89ecb0f047fc949c",
       "screening_ledger_sha256": "278f07fedbd77ce7ae94ba9332ba09f08395ad741205fa2a07bcf47493aa86c7",
       "extraction_objects_sha256": "0ff977d0db2510dfb4ec6db72fe981055f7c39b5a46ea4ce160b7e2141ebbf98",
-      "trial_family_map_sha256": "a8ad60051b4dbf50636fd8a0ecc50ca77c7c4ed473acfb7f3b1147e928dcb916",
+      "trial_family_map_sha256": "0ef84a35afaf49bc1b284e4ff3952b9b4558dfa8e1fbbd6cc89c3fefe3397801",
       "rob_object_sha256": "02a961fd0b5297a2f2a19b2756be2dd1d11d61118c016a466542b70cf8d556e8",
       "held_documents": [
         {
@@ -34171,14 +34884,15 @@
         }
       ],
       "config_sha256": "f09cda80d6a994f59d417d8384380d846eab17f9fa1828dad1ae2c37d17272c2",
-      "analysis_code_sha256": "fd5ccc59cf078077fa5c788ed90b4fddce9767cdf4cfd00998fa1ce03ee1c40b",
+      "analysis_code_sha256": "693c59fc08290e2a1616e5b6ba4ccd5e24182d34980e96d015c859bba5ced8cb",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
         "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
-        "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
+        "harness/absence.py": "66b5562b6a58c0aae9768b18edf2d8a07f96e069",
         "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
         "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
+        "harness/admission.py": "dbe5ffb09c87b954e440dba4bf1fca38e2718d7c",
         "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
         "harness/arm_object.py": "c6e2a9d0ea0263eba72c3453d52bc5a05b06e0b2",
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
@@ -34194,42 +34908,42 @@
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
         "harness/compat_check.py": "cffd42ff12742bc3cbe2bd4a617c645a090decfc",
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
-        "harness/consumer_consistency.py": "191dab38f85d1a06b3557ce1c51263f0b8909a47",
+        "harness/consumer_consistency.py": "9652457cb932121c169506da22667f9d6a0cb173",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
         "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
-        "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
+        "harness/design_variance.py": "b2ef45023d0f0030b1bb8d751301dfcb401a317f",
         "harness/effect_type.py": "NOT_PRESENT",
         "harness/eligibility_chain.py": "497b923f46ea530cfc60f8724aeea0e12859147c",
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
-        "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
+        "harness/endpoint_canonical.py": "c85337faf26f090f650f4817d446f38b8eac8a14",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
         "harness/extract.py": "bbd47c664627986e71d078ad9b979d1a32e2e7e5",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "20a5ce33e2c111d23993e208d00c88e04afda5ca",
+        "harness/gate.py": "209770f4e8c54203bf68aefb88875d9347b32c0f",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
         "harness/hand_binding.py": "d48224edf7e0e22dd0111e3c1a72565c25b93dd8",
-        "harness/harms.py": "64f79ea3db77361f8076c8017af851f388183ef7",
-        "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
+        "harness/harms.py": "16bcc3c7d9ad5d550387cfb41bcef67243788d64",
+        "harness/hazard_consumers.py": "09a2b973ee9d8ba1afa2145679cf6380191de9ed",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
         "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
-        "harness/index.py": "2ea249513fbe6f92747821c2f77ca4f47bbcf47e",
-        "harness/invalidation.py": "0fc003b15552b45fcb5e1f4d2cebbf3fe344951c",
+        "harness/index.py": "dc23318ed2b877bdee7cd33a23069d4498a83acd",
+        "harness/invalidation.py": "1a358de66917e6eda49b1a6a350e01e060aa003b",
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
-        "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
+        "harness/known_missing.py": "a12e8a9215186c0a892075dcbb6791b4b9ac25b4",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
+        "harness/limitations.py": "5616f4ae8851299d3e76e4424e973be6aa096ecc",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "4dad90b0facdea7c0f89fd0bc5dd1dd1ce04d31f",
-        "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
+        "harness/page.py": "ba9cc07c0cfef7df16cd2392938e5e4170c70eae",
+        "harness/parity_relation.py": "835063791f551cd327e5cc46ca50d06702bb85e4",
+        "harness/pipeline.py": "5b865ec7c997b04614890d487ad662c1fa1b1903",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -34249,7 +34963,7 @@
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "f605e0f513e3524baac0a9e5f36ced5b926ed6e3",
-        "harness/trial_family.py": "57882f159bbfd8d91b60deaf5956e409de6c484f",
+        "harness/trial_family.py": "e80228988ebb6d4a1f382f52225c3be2e9dc4740",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -34268,7 +34982,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "82 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "83 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -34297,8 +35011,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "d4cb21fc24566444c0c8c921c4228f7b0a729c93c9db18626233e60d8cf84fad",
-      "review_sha256": "ed77a1831cf817a596da92d4052080709c646dcd78d9b70d4e74d1a34542a51d",
+      "manuscript_sha256": "e576624ce483081bc315b011611f8f73def02bec719621d183d8c04ec9de6d9d",
+      "review_sha256": "0ec32353e1c17e3241dbb92c2a087035e7aa8e67ff6c08305c18bcf747039cb8",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/iv-iron-hfref-hosp.md UTF-8 text, universal newlines",
@@ -34318,7 +35032,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "906721ffa96b08cdc261411c99d9508e6babb8098a79868084e381770835e8dd"
+      "release_sha256": "76202aa98ed5dbd41ea1801e6267305e02f6dd0489f0595462eb6a344bf2830f"
     }
   }
 }

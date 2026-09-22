@@ -5,6 +5,8 @@ import json
 import os
 import subprocess
 
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from harness import known_missing
 from harness.gate import check_known_missing_panel
 from harness.synth import Study, pool
@@ -67,22 +69,46 @@ def test_glp1_rows_report_cache_measured_statuses_without_numbers():
     assert "components" in panel and panel["components"] == "CV_DEATH | NONFATAL_MI | NONFATAL_STROKE"
 
 
-def test_colchicine_panel_passes_and_combined_sensitivity_changes_null_crossing(tmp_path):
+def _ledger_for(review, state="ELIGIBLE"):
+    """A family ledger for every screened-in record of the review, ELIGIBLE by construction (or every family in a
+    named non-eligible state), so the panel's re-pool admission can be exercised both ways."""
+    from _families import eligible_by_construction
+    from harness.trial_family import cell
+    ids = [r["id"] for r in review["screening"]["records"] if r.get("decision") == "include"]
+    nodes = eligible_by_construction({i: {} for i in ids})
+    if state != "ELIGIBLE":
+        for f in nodes:
+            f["eligibility"] = cell(code=state)
+    return nodes
+
+
+def test_colchicine_panel_repools_only_admitted_candidates(tmp_path):
+    """Until 2026-09-21 this test pinned the combined pool's numbers (k=6, 0.6488 ...) -- a pool that re-added COCS and
+    22090167 without admission (lane R finding R2). The requirement: a committed-source candidate enters the
+    sensitivity re-pool only when the ledger admits it; a candidate the ledger does not admit is shown, named as not
+    re-pooled, and never counted."""
     slug = "colchicine-postop-af"
-    review = _prefix_review(slug)
     records = _cache(slug)
-    known_missing.build(review, {"known_eligible_missing": [{"trial": "five audit-named trials"}]},
-                        _rec_by_id(records), records)
+    signals = {"known_eligible_missing": [{"trial": "five audit-named trials"}]}
+    review = _prefix_review(slug)
+    base_k = next(o for o in review["outcomes"] if o.get("primary"))["result"]["k"]
+    known_missing.build(review, signals, _rec_by_id(records), records, family_nodes=_ledger_for(review))
     panel = next(o for o in review["outcomes"] if o.get("primary"))["known_missing_sensitivity"]
     rows = {r["trial_key"]: r for r in panel["rows"]}
-    assert rows["36286314"]["value_status"] == "IN_COMMITTED_SOURCE"
-    assert rows["22090167"]["value_status"] == "IN_COMMITTED_SOURCE"
-    assert panel["combined"]["k"] == 6
-    assert panel["combined"]["estimate"] == 0.6488
-    assert panel["combined"]["ci_low"] == 0.4782
-    assert panel["combined"]["ci_high"] == 0.8802
-    assert panel["combined"]["conclusion_effect"] == "CHANGES_CI_NULL_CROSSING"
+    assert rows["36286314"]["value_status"] == "IN_COMMITTED_SOURCE" and rows["36286314"].get("sensitivity")
+    computable = [r for r in panel["rows"] if r.get("sensitivity")]
+    assert panel["combined"]["k"] == base_k + len(computable)
     assert check_known_missing_panel(_write_review(tmp_path, review)) == []
+    review2 = _prefix_review(slug)
+    known_missing.build(review2, signals, _rec_by_id(records), records,
+                        family_nodes=_ledger_for(review2, state="ENTRY_POPULATION_NOT_ESTABLISHED"))
+    panel2 = next(o for o in review2["outcomes"] if o.get("primary"))["known_missing_sensitivity"]
+    assert all(not r.get("sensitivity") and r.get("not_repooled") for r in panel2["rows"] if r.get("value_status") == "IN_COMMITTED_SOURCE")
+    assert "combined" not in panel2 and panel2["headline_conclusion_effect"] == "NOT_COMPUTABLE"
+    review3 = _prefix_review(slug)
+    known_missing.build(review3, signals, _rec_by_id(records), records)          # no ledger: nothing re-pooled
+    panel3 = next(o for o in review3["outcomes"] if o.get("primary"))["known_missing_sensitivity"]
+    assert "combined" not in panel3
 
 
 def test_uncommitted_missing_trial_has_no_numeric_fields():
@@ -108,7 +134,7 @@ def test_committed_counts_sensitivity_equals_direct_synth_pool():
     slug = "colchicine-postop-af"
     review = _prefix_review(slug)
     records = _cache(slug)
-    known_missing.build(review, {}, _rec_by_id(records), records)
+    known_missing.build(review, {}, _rec_by_id(records), records, family_nodes=_ledger_for(review))
     primary = next(o for o in review["outcomes"] if o.get("primary"))
     cocs = next(r for r in primary["known_missing_sensitivity"]["rows"] if r["trial_key"] == "36286314")
     direct_studies = [

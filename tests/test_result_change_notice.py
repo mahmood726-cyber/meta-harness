@@ -216,7 +216,9 @@ def test_PLANT_every_committed_notice_keeps_the_not_asserted_wrong_sentence():
     it must survive every edit of every notice in docs/result_changes.json."""
     for n in result_changes.load():
         assert "the numbers are not asserted wrong" in n["reason"], (n["slug"], n["outcome"])
-        assert "eligible evidence awaiting adjudication" in n["reason"], (n["slug"], n["outcome"])
+        # the trial stays visible AWAITING ADJUDICATION -- whatever it is called ('eligible evidence' for a binder set-aside,
+        # 'candidate evidence' for an admission set-aside whose eligibility is exactly what is not established)
+        assert "awaiting adjudication" in n["reason"], (n["slug"], n["outcome"])
 
 
 def test_PLANT_a_page_carrying_a_notice_the_file_no_longer_has_is_held(tmp_path, monkeypatch):

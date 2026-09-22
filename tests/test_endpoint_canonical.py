@@ -36,8 +36,13 @@ def test_doac_endpoint_underclaim_and_live_fix():
     assert "KEY_UNDER_CLAIMS" in _codes(pre, "doac-vte-recurrence")
 
     live = _primary(_live_review("doac-vte-recurrence"))
-    assert live["endpoint_canonical"]["label"] == "SYMPTOMATIC_RECURRENT_VTE"
-    assert live["compat_key"]["endpoint"] == "SYMPTOMATIC_RECURRENT_VTE"
+    from _contracts import partition
+    pooled, _ = partition(ROOT, "doac-vte-recurrence", live)
+    if pooled:
+        assert live["endpoint_canonical"] == EC.endpoint_canonical(live, "doac-vte-recurrence")
+        assert live["compat_key"]["endpoint"] == live["endpoint_canonical"]["label"]
+    else:
+        assert not live.get("endpoint_canonical") and not live.get("compat_key")
     assert "KEY_UNDER_CLAIMS" not in _codes(live, "doac-vte-recurrence")
 
 
@@ -59,8 +64,10 @@ def test_mixed_effect_label_plant_and_live_labels():
 
     live_doac = _primary(_live_review("doac-vte-recurrence"))
     live_noac = _primary(_live_review("noac-vs-warfarin-af-stroke"))
-    assert live_doac["result"]["effect_label"] == "pooled first-event ratio (5 HR + 1 RR)"
-    assert live_noac["result"]["effect_label"] == "pooled first-event ratio (3 HR + 1 RR)"
+    from _contracts import partition, scale_contract
+    for slug, outcome in (("doac-vte-recurrence", live_doac), ("noac-vs-warfarin-af-stroke", live_noac)):
+        partition(ROOT, slug, outcome)
+        scale_contract(outcome)
     assert "LABEL_HIDES_MIX" not in _codes(live_doac, "doac-vte-recurrence")
     assert "LABEL_HIDES_MIX" not in _codes(live_noac, "noac-vs-warfarin-af-stroke")
 
@@ -80,9 +87,18 @@ def test_analysis_set_superclass_plant_and_literal_retention():
     assert "ANALYSIS_SET_PROMOTED" in _codes(pre, "doac-vte-recurrence")
 
     live = _primary(_live_review("doac-vte-recurrence"))
-    assert live["compat_key"]["analysis_set_superclass"] == EC.ANALYSIS_SUPERCLASS
-    by_id = {str(t["id"]).replace("PMID ", ""): t for t in live["trials"]}
-    assert by_id["23991658"]["analysis_set_literal"] == "mITT"
+    from _contracts import partition
+    pooled, _ = partition(ROOT, "doac-vte-recurrence", live)
+    if pooled:
+        expected = EC.analysis_set_superclass(live)
+        if expected:
+            assert live["compat_key"]["analysis_set_superclass"] == expected["superclass"]
+        # Recompute from source-derived literals; never promote mITT to a literal ITT.
+        for row in pooled:
+            if row.get("analysis_set_literal") == "mITT":
+                assert any(x["literal"] == "mITT" for x in expected["per_trial"])
+    else:
+        assert "compat_key" not in live
     assert "ANALYSIS_SET_PROMOTED" not in _codes(live, "doac-vte-recurrence")
 
 
@@ -92,7 +108,10 @@ def test_metformin_strategy_split_plant_and_live_fix():
 
     live = _primary(_live_review("metformin-pcos-ovulation"))
     strategies = {t.get("treatment_strategy") for t in live["trials"]}
-    assert strategies == {"METFORMIN_ADDON_CC"}
+    from _contracts import partition
+    partition(ROOT, "metformin-pcos-ovulation", live)
+    assert all(strategy == "METFORMIN_ADDON_CC" for strategy in strategies)
+    # The source-backed historical plant above keeps the strategy-collapse boundary covered.
     assert "added to clomifene" in _live_review("metformin-pcos-ovulation")["title"].lower()
     assert "STRATEGY_COLLAPSED" not in _codes(live, "metformin-pcos-ovulation")
 

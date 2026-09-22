@@ -44,8 +44,16 @@ def test_plant_prefixed_ticagrelor_direction_conflict_and_live_refuses_pool_row(
     pre_o = _primary(_prefix("ticagrelor-vs-clopidogrel-acs"))
     assert k2.k2_check(pre_o["result"], pre_o["trials"]) == k2.DIRECTION_CONFLICT_K2
 
-    live_o = _primary(_live("ticagrelor-vs-clopidogrel-acs"))
-    live = live_o["result"]
+    import copy
+    from _contracts import partition
+    served = _primary(_live("ticagrelor-vs-clopidogrel-acs"))
+    partition(ROOT, "ticagrelor-vs-clopidogrel-acs", served)
+    assert k2.k2_check(served["result"], served["trials"]) is None
+    # Preserve the actual k=2 conflict control independently of today's membership.
+    live_o = copy.deepcopy(pre_o)
+    with open(os.path.join(ROOT, "topics", "ticagrelor-vs-clopidogrel-acs.json"), encoding="utf-8") as f:
+        config = json.load(f)
+    live = k2.apply_k2_policy(live_o["result"], live_o["trials"], config.get("k2_direction_conflict_anchor"))
     assert live["pool_refused"]["code"] == k2.DIRECTION_CONFLICT_K2
     assert live.get("estimate") is None and live.get("ci_low") is None and live.get("ci_high") is None
     assert live["pool_refused"]["honest_k1_anchor"]["name"] == "PLATO"
@@ -62,10 +70,20 @@ def test_plant_prefixed_ticagrelor_grade_inconsistency_missing_and_live_has_stat
     assert k2.k2_grade_check(_primary(pre)["result"], pre_inc) == k2.INCONSISTENCY_NOT_ASSESSABLE_AUTOMATICALLY
 
     live = _live("ticagrelor-vs-clopidogrel-acs")
-    live_inc = live["grade"]["domains"]["inconsistency"]
-    assert live_inc["not_assessable_automatically"] is True
-    assert live_inc["assessed"] is False
-    assert k2.k2_grade_check(_primary(live)["result"], live_inc) is None
+    from _contracts import partition
+    primary = _primary(live)
+    pooled, _ = partition(ROOT, "ticagrelor-vs-clopidogrel-acs", primary)
+    if not pooled:
+        assert "grade" not in live
+    else:
+        live_inc = live["grade"]["domains"]["inconsistency"]
+        assert k2.k2_grade_check(primary["result"], live_inc) is None
+    # Non-vacuous k=2 unassessed-domain control, independent of the current primary pool.
+    import copy
+    controlled = copy.deepcopy(_primary(pre))
+    k2.apply_k2_policy(controlled["result"], controlled["trials"])
+    inc = grade._inconsistency_domain(controlled["result"])
+    assert inc["not_assessable_automatically"] is True and inc["assessed"] is False
 
 
 def test_synthetic_k3_pool_serves_ci_unchanged():

@@ -358,7 +358,9 @@ def diagnose(
                 "detail": "trial literal analysis sets include a non-ITT randomized/full-analysis label under a promoted ITT key",
             })
 
-    if _is_metformin(slug, o):
+    if _is_metformin(slug, o) and (o.get("trials") or []):
+        # a headline that does not exist cannot collapse: with every candidate set aside on admission (2026-09-21) the
+        # empty pool read as STRATEGY_COLLAPSED -- the same shape as the GRADE-rationale check on an absent GRADE
         strategies = sorted({str(t.get("treatment_strategy")) for t in (o.get("trials") or []) if t.get("treatment_strategy")})
         if strategies != ["METFORMIN_ADDON_CC"]:
             violations.append({

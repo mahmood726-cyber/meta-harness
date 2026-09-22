@@ -528,7 +528,7 @@
       "estimand": "HR",
       "population": "intention-to-treat",
       "timepoint": "longest reported trial follow-up",
-      "method": "Random-effects inverse-variance on the log ratio (log RR/OR/HR/IRR as configured for the outcome); Paule-Mandel tau^2; HKSJ 95% CI on t_{k-1} (variance floor max(1,Q/(k-1))); prediction interval mu +/- t_{k-1}*sqrt(tau2+se^2). Validated vs metafor 5.0.1 (this canonical code path; every rendered interval is gate-checked to originate here).",
+      "method": "Single included trial that reported this outcome — the estimate is that trial's own effect; no random-effects pooling (tau^2, HKSJ and prediction interval are not applicable at k=1).",
       "served_estimand": "HR",
       "estimand_decision": {
         "declared_estimand": "HR",
@@ -543,256 +543,6 @@
         "rule": "prefer published HR; keep reconstruction only when no HR exists"
       },
       "trials": [
-        {
-          "label": "28304224",
-          "id": "PMID 28304224",
-          "source": "ClinicalTrials.gov results (structured target endpoint): outcome 'Time to Cardiovascular Death, Myocardial Infarction, or Stroke' HR 0.8 (95% CI 0.73 to 0.88)",
-          "provenance": "ctgov_results",
-          "target_endpoint_class": "EXACT_TARGET",
-          "target_endpoint_source_rank": "registry_published_effect",
-          "target_endpoint_components": [
-            "cardiovascular death",
-            "myocardial infarction",
-            "stroke"
-          ],
-          "components": [
-            "cardiovascular death",
-            "myocardial infarction",
-            "stroke"
-          ],
-          "target_endpoint_extra_components": [],
-          "target_endpoint_missing_components": [],
-          "results_known_at_rule_time": true,
-          "endpoint_binding": "registry_outcome_measure",
-          "endpoint_result_span": "ClinicalTrials.gov outcome measure #1: Time to Cardiovascular Death, Myocardial Infarction, or Stroke -- analysis: If the primary endpoint reached statistical significance at the 0.05 level, the key secondary endpoint (composite of cardiovascular death, myocardial infarction, and stroke) was tested at a significance level of 0.05.: Hazard Ratio (HR) 0.80 (95% CI 0.73 to 0.88; Log Rank)",
-          "endpoint_definition_span": "Time to Cardiovascular Death, Myocardial Infarction, or Stroke All deaths and potential endpoint events were adjudicated by an independent external CEC led by the TIMI Study Group, using standardized definitions based on the \"Standardized Definitions for Cardiovascular and Stroke End Point Events in Clinical Trials and the Third Universal Definition of Myocardial Infarction\". Time to cardiovascular death, myocardial infarction, or stroke was defined as the time from randomization to the first occurrence of any component of the composite endpoint and was analyzed using Kaplan-Meier (KM) survival analysis. KM estimates of the percentage of participants with an event are reported. Participants with no event were censored based on last non-fatal potential endpoint collection date.",
-          "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result",
-          "effect": 0.8,
-          "ci_low": 0.73,
-          "ci_high": 0.88,
-          "scale": "HR",
-          "registry_title": "Time to Cardiovascular Death, Myocardial Infarction, or Stroke",
-          "registry_type": "SECONDARY",
-          "registry_measure_type": "KM_ESTIMATE",
-          "registry_timeframe": "Events that occurred from randomization to the last confirmed survival status date; the median duration of follow-up was 26 months. KM estimates at 6, 12, 18, 24, 30 and 36 months are reported.",
-          "target_endpoint_alternatives": [
-            {
-              "candidate_id": "ctgov:2",
-              "source_type": "ctgov_results",
-              "source_kind": "registry_published_effect",
-              "registry_title": "Time to Cardiovascular Death",
-              "registry_type": "SECONDARY",
-              "target_endpoint_class": "EXACT_TARGET",
-              "source_rank_kind": "registry_published_effect",
-              "endpoint_binding": "registry_outcome_measure",
-              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
-            },
-            {
-              "candidate_id": "abstract:published_target_effect:0",
-              "source_type": "abstract",
-              "source_kind": "published_target_effect",
-              "target_endpoint_class": "NEAR_MATCH",
-              "extra_components": [
-                "coronary revascularization",
-                "unstable angina"
-              ],
-              "source_rank_kind": "published_target_effect",
-              "endpoint_binding": "named_endpoint_resolved_to_definition_span",
-              "endpoint_binding_reason": "result sentence names an endpoint; 1 candidate definition in the held text; selected"
-            },
-            {
-              "candidate_id": "ctgov:0",
-              "source_type": "ctgov_results",
-              "source_kind": "registry_published_effect",
-              "registry_title": "Time to Cardiovascular Death, Myocardial Infarction, Hospitalization for Unstable Angina, Stroke, or Coronary Revascularization",
-              "registry_type": "PRIMARY",
-              "target_endpoint_class": "NEAR_MATCH",
-              "extra_components": [
-                "coronary revascularization",
-                "unstable angina"
-              ],
-              "source_rank_kind": "registry_published_effect",
-              "endpoint_binding": "registry_outcome_measure",
-              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
-            },
-            {
-              "candidate_id": "ctgov:4",
-              "source_type": "ctgov_results",
-              "source_kind": "registry_published_effect",
-              "registry_title": "Time to First Myocardial Infarction",
-              "registry_type": "SECONDARY",
-              "target_endpoint_class": "NEAR_MATCH",
-              "missing_components": [
-                "cardiovascular death"
-              ],
-              "source_rank_kind": "registry_published_effect",
-              "endpoint_binding": "registry_outcome_measure",
-              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
-            },
-            {
-              "candidate_id": "ctgov:5",
-              "source_type": "ctgov_results",
-              "source_kind": "registry_published_effect",
-              "registry_title": "Time to First Stroke",
-              "registry_type": "SECONDARY",
-              "target_endpoint_class": "NEAR_MATCH",
-              "missing_components": [
-                "cardiovascular death"
-              ],
-              "source_rank_kind": "registry_published_effect",
-              "endpoint_binding": "registry_outcome_measure",
-              "endpoint_binding_reason": "registry outcome measure title/description is the definition span of its own result"
-            }
-          ],
-          "cross_source": {
-            "ctgov_rr": 0.887,
-            "ctgov_source": "ClinicalTrials.gov results (structured): outcome 'Time to Cardiovascular Death, Myocardial Infarction, or Stroke' KM_ESTIMATE 1.65 (Evolocumab) vs 1.86 (Placebo); denominators 13784 vs 13780",
-            "registry_title": "Time to Cardiovascular Death, Myocardial Infarction, or Stroke",
-            "registry_description": "All deaths and potential endpoint events were adjudicated by an independent external CEC led by the TIMI Study Group, using standardized definitions based on the \"Standardized Definitions for Cardiovascular and Stroke End Point Events in Clinical Trials and the Third Universal Definition of Myocardial Infarction\". Time to cardiovascular death, myocardial infarction, or stroke was defined as the time from randomization to the first occurrence of any component of the composite endpoint and was analyzed using Kaplan-Meier (KM) survival analysis. KM estimates of the percentage of participants with an event are reported. Participants with no event were censored based on last non-fatal potential endpoint collection date.",
-            "registry_type": "SECONDARY",
-            "registry_param_type": "NUMBER",
-            "registry_measure_type": "KM_ESTIMATE",
-            "registry_timeframe": "Events that occurred from randomization to the last confirmed survival status date; the median duration of follow-up was 26 months. KM estimates at 6, 12, 18, 24, 30 and 36 months are reported.",
-            "registry_selected_timepoint": "KM estimate at 6 months",
-            "registry_population": "All randomized participants; The number of participants entered at each time point represents the number of participants at risk.",
-            "registry_implied_effect": 0.887097,
-            "pooled_effect_for_endpoint_match": 0.8,
-            "pooled_scale_for_endpoint_match": "HR",
-            "endpoint_match_tolerance_log": 0.12,
-            "registry_intervention_value": 1.65,
-            "registry_comparator_value": 1.86,
-            "identity": {
-              "title_match": true,
-              "component_match": true,
-              "measure_type": "KM estimate ratio",
-              "population_match": true,
-              "verdict": "SECOND_SOURCE_DIFFERENT_MEASURE"
-            },
-            "second_source_verdict": "SECOND_SOURCE_DIFFERENT_MEASURE",
-            "endpoint_match": "SECOND_SOURCE_DIFFERENT_MEASURE",
-            "endpoint_match_reason": "registry value is a Kaplan-Meier estimate ratio, not a risk ratio (KM estimate at 6 months): Time to Cardiovascular Death, Myocardial Infarction, or Stroke",
-            "registry_effect_label": "CT.gov KM estimate ratio",
-            "agree": null,
-            "corroborates_endpoint": false,
-            "note": "SECOND_SOURCE_DIFFERENT_MEASURE: registry value is a Kaplan-Meier estimate ratio, not a risk ratio (KM estimate at 6 months): Time to Cardiovascular Death, Myocardial Infarction, or Stroke"
-          },
-          "endpoint_admissibility": "EXACT_TARGET",
-          "derivation": "reported",
-          "selection_rule": "KEEP_REPORTED_EFFECT",
-          "selected_estimator": "published_effect_ci",
-          "alternatives": [],
-          "verified": "verified",
-          "verify_basis": "effect present in committed source",
-          "design": {
-            "unit_of_randomisation": "INDIVIDUAL",
-            "design": "PARALLEL",
-            "estimator_source": "PUBLISHED_HR",
-            "adjustment_status": "UNRESOLVED",
-            "adjustment_axis": {
-              "status": "UNRESOLVED"
-            },
-            "correlation_handling": {
-              "method": "none",
-              "evidence": []
-            },
-            "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
-            "basis": [
-              {
-                "source": "AACT designs.intervention_model",
-                "span": "PARALLEL"
-              },
-              {
-                "source": "trial reported estimate label",
-                "span": "HR 0.8 (95% CI 0.73 to 0.88"
-              }
-            ],
-            "published_alternative": {
-              "effect": 0.8,
-              "ci_low": 0.73,
-              "ci_high": 0.88,
-              "scale": "HR",
-              "adjusted": false,
-              "span": "HR 0.8 (95% CI 0.73 to 0.88"
-            },
-            "design_action": {
-              "action": "ALLOW",
-              "gate_id": "design-key:parallel",
-              "decision_state": "no detected validity-critical design hazard",
-              "reason": "individually randomised parallel design established from committed evidence",
-              "validity_critical": false
-            }
-          },
-          "endpoint_definition": "FOURIER: 5-point primary (adds unstable angina, revascularization).; DISCLOSED (composite-heterogeneity note)",
-          "study_effect": {
-            "effect_estimate": 0.8,
-            "standard_error": 0.04767367533380211,
-            "estimand": "HR",
-            "analysis_population": "intention-to-treat",
-            "randomisation_unit": "INDIVIDUAL",
-            "study_design": "PARALLEL",
-            "estimator_method": "PUBLISHED_HR",
-            "correlation_handling": {
-              "method": "none",
-              "evidence": []
-            },
-            "source_provenance": {
-              "source": "ctgov_results",
-              "span": "ClinicalTrials.gov results (structured target endpoint): outcome 'Time to Cardiovascular Death, Myocardial Infarction, or Stroke' HR 0.8 (95% CI 0.73 to 0.88)"
-            },
-            "design_action": {
-              "action": "ALLOW",
-              "gate_id": "design-key:parallel",
-              "decision_state": "no detected validity-critical design hazard",
-              "reason": "individually randomised parallel design established from committed evidence",
-              "validity_critical": false
-            }
-          },
-          "effect_object": {
-            "reported_label": "HR",
-            "statistical_model": null,
-            "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
-          },
-          "trial_family_id": "NCT01764633",
-          "publication_role": "primary",
-          "analysis_set": "intention-to-treat",
-          "follow_up_window": "longest reported trial follow-up",
-          "population_age": "not_stated",
-          "intervention_ontology": {
-            "intervention_class": null
-          },
-          "compat_dimensions": {
-            "trial_id": "28304224",
-            "trial_label": "28304224",
-            "analysis_set": {
-              "value": "intention-to-treat",
-              "source": "study_effect.analysis_population",
-              "span": "intention-to-treat"
-            },
-            "follow_up_window": {
-              "value": "longest reported trial follow-up",
-              "source": "outcome.timepoint",
-              "span": "longest reported trial follow-up"
-            },
-            "endpoint_definition": {
-              "value": "FOURIER: 5-point primary (adds unstable angina, revascularization).; DISCLOSED (composite-heterogeneity note)",
-              "source": "docs/definition_audit.json",
-              "span": "FOURIER: 5-point primary (adds unstable angina, revascularization).; DISCLOSED (composite-heterogeneity note)"
-            },
-            "population_age": {
-              "value": "not_stated",
-              "source": "committed source text",
-              "span": ""
-            },
-            "intervention_ontology": {
-              "intervention_class": null
-            }
-          },
-          "trial_id": "PMID 28304224",
-          "report_id": "PMID 28304224",
-          "outcome_effect_id": "pcsk9-mace::Major adverse cardiovascular events::PMID 28304224::PMID 28304224",
-          "family_identity_state": "REGISTRY_ANCHORED",
-          "family_id": "NCT01764633"
-        },
         {
           "label": "30403574",
           "id": "PMID 30403574",
@@ -951,6 +701,44 @@
               "validity_critical": false
             }
           },
+          "admission_verdict": {
+            "final": "ADMISSIBLE",
+            "failing": [],
+            "predicates": {
+              "P5_family_eligible": {
+                "state": "PASS",
+                "family_id": "NCT01663402",
+                "eligibility_state": "ELIGIBLE",
+                "absence_code": null,
+                "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+              },
+              "P8_endpoint_bound": {
+                "state": "PASS",
+                "endpoint_binding": "named_endpoint_resolved_to_definition_span",
+                "endpoint_admissibility": "NEAR_MATCH_DECLARED",
+                "bundle_rule_agreement": "BOUND"
+              }
+            },
+            "evaluated": [
+              "P5_family_eligible",
+              "P8_endpoint_bound"
+            ],
+            "not_evaluated": [
+              "P1_source_bytes",
+              "P2_span_located",
+              "P3_effect_tokens_in_span",
+              "P4_endpoint_components",
+              "P6_no_unresolved_conflict",
+              "P7_coverage_adequate_for_claim",
+              "P9_span_target_mention",
+              "P10_estimand_evidence",
+              "P11_registered_estimand",
+              "P12_ci_level",
+              "P13_no_extra_components",
+              "P14_missing_components_consistent"
+            ]
+          },
+          "family_id": "NCT01663402",
           "endpoint_definition": "ODYSSEY: 4-point primary (adds unstable angina requiring hospitalization).; DISCLOSED (composite-heterogeneity note)",
           "study_effect": {
             "effect_estimate": 0.85,
@@ -1019,8 +807,7 @@
           "trial_id": "PMID 30403574",
           "report_id": "PMID 30403574",
           "outcome_effect_id": "pcsk9-mace::Major adverse cardiovascular events::PMID 30403574::PMID 30403574",
-          "family_identity_state": "REGISTRY_ANCHORED",
-          "family_id": "NCT01663402"
+          "family_identity_state": "REGISTRY_ANCHORED"
         }
       ],
       "declared_absent_trials": [
@@ -1071,10 +858,10 @@
           },
           "family_id": "NCT01507831",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6",
-          "claim_id": "471dfd7b2a77aef2",
+          "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26",
+          "claim_id": "757aced577565bf6",
           "depends_on": {
-            "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6"
+            "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26"
           },
           "claim_kind": "membership_state"
         },
@@ -1113,10 +900,10 @@
           },
           "family_id": "NCT01813422",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6",
-          "claim_id": "471dfd7b2a77aef2",
+          "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26",
+          "claim_id": "757aced577565bf6",
           "depends_on": {
-            "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6"
+            "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26"
           },
           "claim_kind": "membership_state"
         },
@@ -1168,54 +955,188 @@
           },
           "family_id": "NCT03872401",
           "family_identity_state": "REGISTRY_ANCHORED",
-          "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6",
-          "claim_id": "471dfd7b2a77aef2",
+          "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26",
+          "claim_id": "757aced577565bf6",
           "depends_on": {
-            "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6"
+            "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26"
+          },
+          "claim_kind": "membership_state"
+        },
+        {
+          "label": "28304224",
+          "id": "PMID 28304224",
+          "family_id": "NCT01764633",
+          "absent_kind": "pooled_in_strand",
+          "state": "FAMILY_ELIGIBILITY_NOT_ESTABLISHED",
+          "reason_code": "P5_family_eligible",
+          "eligibility_state": "UNKNOWN",
+          "absence_code": "ENTRY_POPULATION_NOT_ESTABLISHED",
+          "endpoint_binding": "registry_outcome_measure",
+          "endpoint_admissibility": "EXACT_TARGET",
+          "endpoint_result_span": "ClinicalTrials.gov outcome measure #1: Time to Cardiovascular Death, Myocardial Infarction, or Stroke -- analysis: If the primary endpoint reached statistical significance at the 0.05 level, the key secondary endpoint (composite of cardiovascular death, myocardial infarction, and stroke) was tested at a significance level of 0.05.: Hazard Ratio (HR) 0.80 (95% CI 0.73 to 0.88; Log Rank)",
+          "held_document": null,
+          "candidate_tuple": {
+            "effect": 0.8,
+            "ci_low": 0.73,
+            "ci_high": 0.88,
+            "scale": "HR"
+          },
+          "refused_effect": {
+            "effect": 0.8,
+            "ci_low": 0.73,
+            "ci_high": 0.88,
+            "scale": "HR"
+          },
+          "source": "ClinicalTrials.gov results (structured target endpoint): outcome 'Time to Cardiovascular Death, Myocardial Infarction, or Stroke' HR 0.8 (95% CI 0.73 to 0.88)",
+          "provenance": "ctgov_results",
+          "admission_verdict": {
+            "final": "INADMISSIBLE",
+            "failing": [
+              "P5_family_eligible"
+            ],
+            "predicates": {
+              "P5_family_eligible": {
+                "state": "FAIL",
+                "family_id": "NCT01764633",
+                "eligibility_state": "UNKNOWN",
+                "absence_code": "ENTRY_POPULATION_NOT_ESTABLISHED",
+                "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+              },
+              "P8_endpoint_bound": {
+                "state": "PASS",
+                "endpoint_binding": "registry_outcome_measure",
+                "endpoint_admissibility": "EXACT_TARGET",
+                "bundle_rule_agreement": "OTHER_ROUTE"
+              }
+            },
+            "evaluated": [
+              "P5_family_eligible",
+              "P8_endpoint_bound"
+            ],
+            "not_evaluated": [
+              "P1_source_bytes",
+              "P2_span_located",
+              "P3_effect_tokens_in_span",
+              "P4_endpoint_components",
+              "P6_no_unresolved_conflict",
+              "P7_coverage_adequate_for_claim",
+              "P9_span_target_mention",
+              "P10_estimand_evidence",
+              "P11_registered_estimand",
+              "P12_ci_level",
+              "P13_no_extra_components",
+              "P14_missing_components_consistent"
+            ]
+          },
+          "reason": "family eligibility UNKNOWN (ENTRY_POPULATION_NOT_ESTABLISHED) for 'Major adverse cardiovascular events': the candidate extraction is set aside (P5_family_eligible FAIL); the trial stays on this outcome as evidence whose eligibility the held record does not establish",
+          "recovery": "a reviewer establishes the family's eligibility from held evidence (entry population, randomised contrast, design) or resolves the registry parent so the structural screen can read it; the candidate tuple then re-enters admission under the same checks -- never by deleting the trial",
+          "trial_family_id": "NCT01764633",
+          "publication_role": "primary",
+          "completeness_state": "eligible+completed+results_available",
+          "registry_status": "COMPLETED",
+          "results_first_posted_date": "2018-02-15",
+          "completion_date": "2016-11-11",
+          "completeness_basis": "CT.gov status/results dates from local AACT snapshot",
+          "pooled_in_strands": [
+            "Strict 3-point MACE (CV/CHD death, MI, stroke)"
+          ],
+          "state_basis": "P5_family_eligible: source span: \"ClinicalTrials.gov outcome measure #1: Time to Cardiovascular Death, Myocardial Infarction, or Stroke -- analysis: If the primary endpoint reached statistical significance at the 0.05 level, the key...\"; family eligibility UNKNOWN (ENTRY_POPULATION_NOT_ESTABLISHED) for 'Major adverse cardiovascular events': the candidate extraction is set aside (P5_family_eligible FAIL); the trial stays on this outcome as evidence whose eligibility the held record does not establish",
+          "source_span": "ClinicalTrials.gov outcome measure #1: Time to Cardiovascular Death, Myocardial Infarction, or Stroke -- analysis: If the primary endpoint reached statistical significance at the 0.05 level, the key...",
+          "verbatim_span": "ClinicalTrials.gov outcome measure #1: Time to Cardiovascular Death, Myocardial Infarction, or Stroke -- analysis: If the primary endpoint reached statistical significance at the 0.05 level, the key...",
+          "trial_id": "PMID 28304224",
+          "report_id": "PMID 28304224",
+          "outcome_effect_id": "pcsk9-mace::Major adverse cardiovascular events::PMID 28304224::PMID 28304224",
+          "reason_code_audit": {
+            "verdict": "REASON_FALSE_VALUE_HELD",
+            "detail": "REASON_FALSE_VALUE_HELD(abstract:28304224, \"Relative to placebo, evolocumab treatment significantly reduced the risk of the primary end point (1344 patients [9.8%] vs. 1563 patients [11.3%]; hazard ratio, 0.85; 95% confidence interval [CI], 0.79 to 0.92; P<0.001) and the key seconda...\")",
+            "stated_reason_code": "P5_family_eligible",
+            "source_id": "abstract:28304224",
+            "source_kind": "abstract",
+            "source_span": "Relative to placebo, evolocumab treatment significantly reduced the risk of the primary end point (1344 patients [9.8%] vs. 1563 patients [11.3%]; hazard ratio, 0.85; 95% confidence interval [CI], 0.79 to 0.92; P<0.001) and the key seconda...",
+            "source_contains": "Relative to placebo, evolocumab treatment significantly reduced the risk of the primary end point (1344 patients [9.8%] vs. 1563 patients [11.3%]; hazard ratio, 0.85; 95% confidence interval [CI], 0.79 to 0.92; P<0.001) and the key seconda..."
+          },
+          "family_identity_state": "REGISTRY_ANCHORED",
+          "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26",
+          "claim_id": "757aced577565bf6",
+          "depends_on": {
+            "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26"
           },
           "claim_kind": "membership_state"
         }
       ],
+      "admission_summary": {
+        "state": "EVALUATED",
+        "rule": "final = ADMISSIBLE if no evaluated predicate fails; MIGRATION_STATE_UNBOUND_LEGACY if P8 is the only failing predicate and the binding is unbound_legacy; INADMISSIBLE otherwise. A row with no family ledger fails P5.",
+        "evaluated_in_build": [
+          "P5_family_eligible",
+          "P8_endpoint_bound"
+        ],
+        "not_evaluated_in_build": [
+          "P1_source_bytes",
+          "P2_span_located",
+          "P3_effect_tokens_in_span",
+          "P4_endpoint_components",
+          "P6_no_unresolved_conflict",
+          "P7_coverage_adequate_for_claim",
+          "P9_span_target_mention",
+          "P10_estimand_evidence",
+          "P11_registered_estimand",
+          "P12_ci_level",
+          "P13_no_extra_components",
+          "P14_missing_components_consistent"
+        ],
+        "where_the_rest_is_evaluated": "scripts/build_bundle.py (verification_rows) against the bundle's own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them",
+        "p8_divergence": "in-build P8 passes every producer binding route other than unbound_legacy; the bundle's P8 passes only the definition-span route (rows bound by another route read INADMISSIBLE there: a rule limit raised with the bundle lane, recorded per row as bundle_rule_agreement)",
+        "pooled_rows": 1,
+        "admissible_rows": [
+          "PMID 30403574"
+        ],
+        "migration_state_rows": [],
+        "other_route_rows": [],
+        "set_aside_rows": [
+          {
+            "id": "PMID 28304224",
+            "state": "FAMILY_ELIGIBILITY_NOT_ESTABLISHED",
+            "eligibility_state": "UNKNOWN",
+            "absence_code": "ENTRY_POPULATION_NOT_ESTABLISHED"
+          }
+        ],
+        "unstamped_rows": [],
+        "pooled_with_a_verdict_other_than_admissible_or_migration": []
+      },
       "component_compat_key": true,
       "membership": {
         "analysis_input_family_ids": [
-          "NCT01663402",
-          "NCT01764633"
+          "NCT01663402"
         ],
         "pooled_family_ids": [
-          "NCT01663402",
-          "NCT01764633"
+          "NCT01663402"
         ],
-        "pooled_family_count": 2,
+        "pooled_family_count": 1,
         "pooled": [
-          "PMID 28304224",
           "PMID 30403574"
         ],
         "unresolved_pooled_candidate_ids": [],
         "declared_absent": [
           "PMID 25773378",
           "PMID 27846344",
-          "PMID 41211925"
+          "PMID 41211925",
+          "PMID 28304224"
         ],
         "refused": [],
         "screened_in_not_pooled": [],
-        "input_set_version": "8764e7b878c3ad5f132c7b4075b2eca8d5054f10a4d25aca3157842d91bcb83c"
+        "input_set_version": "d27b468e04825538986235a77c3951801a85eb4103c98532615bdb0fee017f3f"
       },
       "result": {
-        "k": 2,
-        "estimate": 0.8261,
+        "k": 1,
+        "estimate": 0.85,
         "scale": "HR",
-        "ci_low": null,
-        "ci_high": null,
-        "tau2": 0.0,
-        "Q": 0.85749,
-        "i2": 0.0,
-        "ci_provenance": "synth.pool:PM-tau2+HKSJ-t(k-1)+floor-max(1,Q/(k-1)):v1",
-        "pi_note": "prediction interval not estimated (k=2): it requires a t-quantile on a single degree of freedom and is not reliable at k=2 (Cochrane) — see the common-effect sensitivity CI instead.",
-        "ci_low_fixed": 0.7749,
-        "ci_high_fixed": 0.8808,
-        "estimate_fixed": 0.8261,
-        "fixed_note": "common-effect sensitivity (z-based; not the registered interval): this uses inverse-variance common-effect weights and a normal quantile, not the registered PM/HKSJ interval.",
+        "ci_low": 0.78,
+        "ci_high": 0.93,
+        "Q": 0.0,
+        "ci_provenance": "source-reported-CI:k=1-verbatim",
+        "ci_note": "k=1: point estimate and 95% CI are the single trial's reported values, verbatim.",
+        "pi_note": "prediction interval undefined for k=1",
         "estmeasure": {
           "status": "homogeneous",
           "classes": [
@@ -1228,58 +1149,22 @@
             "HR"
           ]
         },
-        "k2_trial_diagnostics": {
-          "conflict": false,
-          "reasons": [],
-          "trials": [
-            {
-              "label": "28304224",
-              "id": "PMID 28304224",
-              "effect": 0.8,
-              "ci_low": 0.73,
-              "ci_high": 0.88,
-              "scale": "HR"
-            },
-            {
-              "label": "30403574",
-              "id": "PMID 30403574",
-              "effect": 0.85,
-              "ci_low": 0.78,
-              "ci_high": 0.93,
-              "scale": "HR"
-            }
-          ]
-        },
-        "pooled_ci_refused": {
-          "code": "K2_SINGLE_DF",
-          "detail": "Registered PM/HKSJ uses t(1)=12.71 at k=2; the interval is not served as a pooled confidence interval because a single degree of freedom is not reliable here."
-        },
-        "ci_hksj_unserved": {
-          "ci_low": 0.5454,
-          "ci_high": 1.2513,
-          "method": "PM tau^2 + HKSJ on t(1)",
-          "note": "computed for auditability only; not served as the registered interval at k=2"
-        },
-        "composite_heterogeneity": "pooled trials use each trial's OWN primary composite; component sets differ across trials (endpoint definitions: CHD_DEATH | MI | ISCHEMIC_STROKE | UNSTABLE_ANGINA_HOSPITALIZATION; CV_DEATH | MI | STROKE | UNSTABLE_ANGINA_HOSPITALIZATION | CORONARY_REVASCULARIZATION) -- the pooled estimate mixes composite definitions (disclosed, not adjusted)",
         "leave_one_out": {
-          "note": "not assessable at k=2 (leave-one-out needs k>=3)"
+          "note": "not assessable at k=1 (leave-one-out needs k>=3)"
         },
         "claim": {
-          "present": false,
-          "pooled_claim": false,
-          "state": "NO_POOLED_CLAIM_K2",
-          "refusal_code": "K2_SINGLE_DF",
-          "significant": false,
-          "crosses_null": null,
-          "touches_null": null,
+          "present": true,
+          "significant": true,
+          "crosses_null": false,
+          "touches_null": false,
           "null": 1.0,
-          "direction": null,
-          "basis": "no significance/null-crossing claim is emitted for a refused k=2 HKSJ CI"
+          "direction": "benefit",
+          "significant_fixed": null
         },
-        "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6",
-        "claim_id": "760cdab12c2d78a0",
+        "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26",
+        "claim_id": "9b9e09f152e5eea6",
         "depends_on": {
-          "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6"
+          "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26"
         },
         "claim_kind": "outcome_result"
       },
@@ -1287,21 +1172,10 @@
         "label": "TRIAL_DEFINED_MAJOR_CORONARY_CARDIOVASCULAR_COMPOSITE",
         "event_time": "TIME_TO_FIRST_EVENT",
         "components": [
-          "CARDIOVASCULAR_DEATH",
           "MYOCARDIAL_INFARCTION",
           "STROKE"
         ],
         "component_sets": [
-          {
-            "components": [
-              "CARDIOVASCULAR_DEATH",
-              "MYOCARDIAL_INFARCTION",
-              "STROKE"
-            ],
-            "trials": [
-              "28304224"
-            ]
-          },
           {
             "components": [
               "MYOCARDIAL_INFARCTION",
@@ -1312,7 +1186,7 @@
             ]
           }
         ],
-        "status": "HETEROGENEOUS"
+        "status": "HOMOGENEOUS"
       },
       "compat_key": {
         "effect_measure": [
@@ -1321,27 +1195,22 @@
         "event_process": [
           "FIRST_EVENT_RATIO"
         ],
-        "endpoint": "trial-defined Major adverse cardiovascular events (definitions listed per trial)",
+        "endpoint": "TRIAL_DEFINED_MAJOR_CORONARY_CARDIOVASCULAR_COMPOSITE",
         "follow_up_window": "longest reported trial follow-up",
         "analysis_set": "intention-to-treat",
         "analysis_set_declared": "intention-to-treat",
         "randomised_contrast": {
-          "verified": 2,
-          "total": 2
+          "verified": 1,
+          "total": 1
         },
         "matched": true,
         "mismatches": [],
         "endpoint_components": {
           "values": [
-            "CARDIOVASCULAR_DEATH | MYOCARDIAL_INFARCTION | STROKE",
             "CORONARY_HEART_DISEASE_DEATH | MYOCARDIAL_INFARCTION | STROKE | UNSTABLE_ANGINA"
           ],
-          "matched": false,
+          "matched": true,
           "per_trial": [
-            {
-              "trial": "28304224",
-              "value": "CARDIOVASCULAR_DEATH | MYOCARDIAL_INFARCTION | STROKE"
-            },
             {
               "trial": "30403574",
               "value": "CORONARY_HEART_DISEASE_DEATH | MYOCARDIAL_INFARCTION | STROKE | UNSTABLE_ANGINA"
@@ -1352,21 +1221,10 @@
           "label": "TRIAL_DEFINED_MAJOR_CORONARY_CARDIOVASCULAR_COMPOSITE",
           "event_time": "TIME_TO_FIRST_EVENT",
           "components": [
-            "CARDIOVASCULAR_DEATH",
             "MYOCARDIAL_INFARCTION",
             "STROKE"
           ],
           "component_sets": [
-            {
-              "components": [
-                "CARDIOVASCULAR_DEATH",
-                "MYOCARDIAL_INFARCTION",
-                "STROKE"
-              ],
-              "trials": [
-                "28304224"
-              ]
-            },
             {
               "components": [
                 "MYOCARDIAL_INFARCTION",
@@ -1377,46 +1235,26 @@
               ]
             }
           ],
-          "status": "HETEROGENEOUS"
+          "status": "HOMOGENEOUS"
         },
-        "endpoint_canonical_status": "HETEROGENEOUS",
-        "limitations": [
-          {
-            "code": "COMPAT_DIMENSION_HETEROGENEOUS",
-            "dimension": "endpoint_components",
-            "detail": "pooled trials differ on composite components: CARDIOVASCULAR_DEATH | MYOCARDIAL_INFARCTION | STROKE; CORONARY_HEART_DISEASE_DEATH | MYOCARDIAL_INFARCTION | STROKE | UNSTABLE_ANGINA",
-            "hard": false
-          }
-        ],
-        "dimension_matches": {
-          "endpoint": false
-        },
-        "underlying_checked": true,
-        "limitation_code": "COMPAT_DIMENSION_HETEROGENEOUS"
+        "endpoint_canonical_status": "HOMOGENEOUS"
       },
       "compat_direction": {
         "dimensions": [
           {
             "dimension": "endpoint_definition",
             "label": "Endpoint definition",
-            "key_direction": "ASSERTED_HOMOGENEOUS_UNDERLYING_HETEROGENEOUS",
+            "key_direction": "CONSISTENT",
             "asserted_key_state": "homogeneous",
-            "rendered_warning_state": "heterogeneous",
+            "rendered_warning_state": "not_asserted",
             "underlying": {
               "derivable": true,
-              "matched": false,
+              "matched": true,
               "values": [
-                "CHD_DEATH | MI | STROKE | UNSTABLE_ANGINA_HOSPITALIZATION",
-                "CV_DEATH | MI | STROKE"
+                "CHD_DEATH | MI | STROKE | UNSTABLE_ANGINA_HOSPITALIZATION"
               ],
               "missing_trials": [],
               "per_trial": [
-                {
-                  "trial": "28304224",
-                  "id": "PMID 28304224",
-                  "value": "CV_DEATH | MI | STROKE",
-                  "basis": "canonicalized from trial components"
-                },
                 {
                   "trial": "30403574",
                   "id": "PMID 30403574",
@@ -1425,7 +1263,7 @@
                 }
               ]
             },
-            "n_trials": 2
+            "n_trials": 1
           }
         ]
       },
@@ -1435,33 +1273,9 @@
         "effect_measure_labels": [
           "HR"
         ],
-        "k": 2,
+        "k": 1,
         "reconstructed_members": [],
         "label_mix_small_k": false
-      },
-      "compat_underlying": {
-        "status": "COMPAT_DIMENSION_HETEROGENEOUS",
-        "dimensions": [
-          "endpoint"
-        ],
-        "per_trial": {
-          "endpoint": [
-            {
-              "trial_id": "28304224",
-              "trial_label": "28304224",
-              "value": "FOURIER: 5-point primary (adds unstable angina, revascularization).; DISCLOSED (composite-heterogeneity note)",
-              "source": "docs/definition_audit.json",
-              "span": "FOURIER: 5-point primary (adds unstable angina, revascularization).; DISCLOSED (composite-heterogeneity note)"
-            },
-            {
-              "trial_id": "30403574",
-              "trial_label": "30403574",
-              "value": "ODYSSEY: 4-point primary (adds unstable angina requiring hospitalization).; DISCLOSED (composite-heterogeneity note)",
-              "source": "docs/definition_audit.json",
-              "span": "ODYSSEY: 4-point primary (adds unstable angina requiring hospitalization).; DISCLOSED (composite-heterogeneity note)"
-            }
-          ]
-        }
       }
     },
     {
@@ -1718,6 +1532,37 @@
           "claim_kind": "membership_state"
         }
       ],
+      "admission_summary": {
+        "state": "NO_CANDIDATE_ROWS",
+        "rule": "final = ADMISSIBLE if no evaluated predicate fails; MIGRATION_STATE_UNBOUND_LEGACY if P8 is the only failing predicate and the binding is unbound_legacy; INADMISSIBLE otherwise. A row with no family ledger fails P5.",
+        "evaluated_in_build": [
+          "P5_family_eligible",
+          "P8_endpoint_bound"
+        ],
+        "not_evaluated_in_build": [
+          "P1_source_bytes",
+          "P2_span_located",
+          "P3_effect_tokens_in_span",
+          "P4_endpoint_components",
+          "P6_no_unresolved_conflict",
+          "P7_coverage_adequate_for_claim",
+          "P9_span_target_mention",
+          "P10_estimand_evidence",
+          "P11_registered_estimand",
+          "P12_ci_level",
+          "P13_no_extra_components",
+          "P14_missing_components_consistent"
+        ],
+        "where_the_rest_is_evaluated": "scripts/build_bundle.py (verification_rows) against the bundle's own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them",
+        "p8_divergence": "in-build P8 passes every producer binding route other than unbound_legacy; the bundle's P8 passes only the definition-span route (rows bound by another route read INADMISSIBLE there: a rule limit raised with the bundle lane, recorded per row as bundle_rule_agreement)",
+        "pooled_rows": 0,
+        "admissible_rows": [],
+        "migration_state_rows": [],
+        "other_route_rows": [],
+        "set_aside_rows": [],
+        "unstamped_rows": [],
+        "pooled_with_a_verdict_other_than_admissible_or_migration": []
+      },
       "membership": {
         "analysis_input_family_ids": [],
         "pooled_family_ids": [],
@@ -2086,6 +1931,37 @@
           "claim_kind": "membership_state"
         }
       ],
+      "admission_summary": {
+        "state": "NO_CANDIDATE_ROWS",
+        "rule": "final = ADMISSIBLE if no evaluated predicate fails; MIGRATION_STATE_UNBOUND_LEGACY if P8 is the only failing predicate and the binding is unbound_legacy; INADMISSIBLE otherwise. A row with no family ledger fails P5.",
+        "evaluated_in_build": [
+          "P5_family_eligible",
+          "P8_endpoint_bound"
+        ],
+        "not_evaluated_in_build": [
+          "P1_source_bytes",
+          "P2_span_located",
+          "P3_effect_tokens_in_span",
+          "P4_endpoint_components",
+          "P6_no_unresolved_conflict",
+          "P7_coverage_adequate_for_claim",
+          "P9_span_target_mention",
+          "P10_estimand_evidence",
+          "P11_registered_estimand",
+          "P12_ci_level",
+          "P13_no_extra_components",
+          "P14_missing_components_consistent"
+        ],
+        "where_the_rest_is_evaluated": "scripts/build_bundle.py (verification_rows) against the bundle's own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them",
+        "p8_divergence": "in-build P8 passes every producer binding route other than unbound_legacy; the bundle's P8 passes only the definition-span route (rows bound by another route read INADMISSIBLE there: a rule limit raised with the bundle lane, recorded per row as bundle_rule_agreement)",
+        "pooled_rows": 0,
+        "admissible_rows": [],
+        "migration_state_rows": [],
+        "other_route_rows": [],
+        "set_aside_rows": [],
+        "unstamped_rows": [],
+        "pooled_with_a_verdict_other_than_admissible_or_migration": []
+      },
       "membership": {
         "analysis_input_family_ids": [],
         "pooled_family_ids": [],
@@ -2169,7 +2045,7 @@
       "comparator_agent_scope_sentence": "Frontiers in Cardiovascular Medicine 2297-055X Frontiers Media SA PMC9755489 PMC9755489.1 9755489 9755489 36531722 10.3389/fcvm.2022.1016802 1 Cardiovascular Medicine Systematic Review Effect of alirocumab and evolocumab on all-cause mortality and major cardiovascular events: A meta-analysis focusing on the number needed to treat Wang Hong-Fei 1 2 Mao Yu-Cheng 1 2 Xu Xin-Yi 3 4 Zhao Si-Yu 1 2 Han Dan-Dan 1 2 Ge Shi-Yao 1 2 Song Kai 1 2 Geng Chang 1 2 Tian Qing-Bao 1 2 * 1 Department of Epidemiology and Statistics, School of Public Health, Hebei Medical University , Shijiazhuang , China 2 Hebei Province Key Laboratory of Environment and Human Health , Shijiazhuang , China 3 Postdoctoral Research Station in Basic Medicine, Hebei Medical University , Shijiazhuang , China 4 School of Nursing, Hebei Medical University , Shijiazhuang , China Edited by: Yansheng Feng, The University of Texas Health Science Center at San Antonio, United States Reviewed by: Federica Fogacci, University of Bologna, Italy; Aleksey M."
     },
     "overlap": {
-      "ours_k": 2,
+      "ours_k": 1,
       "theirs_k": 12,
       "theirs_k_source": "Comparator (Rahhal 2022, PMID 36531722), verbatim: \"a total of 12 RCTs were identified which comprised 53,486 patients\" — the PCSK9-inhibitor MACE meta.",
       "shared_k": "not exactly verifiable (comparator trial table not machine-exposed)",
@@ -3013,15 +2889,6 @@
     "metric_label": "parser-confirmed contrast",
     "metric_scope": "AACT arm-label parser output; this measures the parser, not trial validity",
     "trials": {
-      "28304224": {
-        "nct": "NCT01764633",
-        "status": "verified",
-        "basis": "parser-confirmed contrast: keyword 'evolocumab' matched AACT arm intervention 'evolocumab'; the intervention of interest DIFFERS across the randomised arms",
-        "common": [],
-        "differing": [
-          "evolocumab"
-        ]
-      },
       "30403574": {
         "nct": "NCT01663402",
         "status": "verified",
@@ -3064,17 +2931,16 @@
       }
     },
     "current_pooled_trial_ids": [
-      "28304224",
       "30403574"
     ],
     "stale_block_unrenderable": {
       "state": "UNRENDERABLE",
       "reason": "cached arm-contrast membership named trials not in the current consumed pool",
       "dropped_trial_ids": [
+        "28304224",
         "41211925"
       ],
       "current_pooled_trial_ids": [
-        "28304224",
         "30403574"
       ]
     }
@@ -3082,7 +2948,7 @@
   "integrity": {
     "checked_utc": "2026-09-16T00:00:00Z",
     "source": "Committed PubMed metadata in LANE_PROMPT.md for PMID 41211925 plus existing PubMed efetch snapshot for prior pooled trials; no live efetch in no-network lane",
-    "n_pooled": 2,
+    "n_pooled": 1,
     "retracted": [],
     "concern": [],
     "retrospectively_registered": [],
@@ -3123,19 +2989,10 @@
         "evidence": "committed PubMed metadata block does not identify a retraction or expression of concern; live PubMed efetch not run because LANE_PROMPT.md forbids network"
       }
     },
-    "n_pubmed_checked": 2,
+    "n_pubmed_checked": 1,
     "n_not_checkable": 0,
     "n_not_assessed": 0,
     "per_trial": {
-      "PMID 28304224": {
-        "trial_key": "PMID 28304224",
-        "pubmed_key": "28304224",
-        "pubmed_checked": true,
-        "integrity_source": "Committed PubMed metadata in LANE_PROMPT.md for PMID 41211925 plus existing PubMed efetch snapshot for prior pooled trials; no live efetch in no-network lane",
-        "retracted": false,
-        "concern": false,
-        "evidence": "no retraction/concern notice in PubMed"
-      },
       "PMID 30403574": {
         "trial_key": "PMID 30403574",
         "pubmed_key": "30403574",
@@ -3147,19 +3004,10 @@
       }
     },
     "membership_pooled": [
-      "PMID 28304224",
       "PMID 30403574"
     ]
   },
   "funding": [
-    {
-      "id": "PMID 28304224",
-      "type": "industry",
-      "span": "(Funded by Amgen; FOURIER ClinicalTrials.gov number, NCT01764633 .).",
-      "source": "abstract",
-      "scanned": "abstract",
-      "funding_state": "INDUSTRY_SPONSORED"
-    },
     {
       "id": "PMID 30403574",
       "type": "industry",
@@ -3183,6 +3031,14 @@
       "source": "abstract",
       "scanned": "abstract",
       "funding_state": "NOT_STATED_IN_RETRIEVED_SOURCE"
+    },
+    {
+      "id": "PMID 28304224",
+      "type": "industry",
+      "span": "(Funded by Amgen; FOURIER ClinicalTrials.gov number, NCT01764633 .).",
+      "source": "abstract",
+      "scanned": "abstract",
+      "funding_state": "INDUSTRY_SPONSORED"
     },
     {
       "id": "PMID 41211925",
@@ -3250,7 +3106,47 @@
               "STROKE"
             ],
             "source": "FOURIER (PMID 28304224) abstract reports the key secondary endpoint as cardiovascular death, myocardial infarction, or stroke: 816 patients (5.9%) vs. 1013 patients (7.4%); hazard ratio, 0.80; 95% CI, 0.73 to 0.88; P<0.001.",
-            "selection_note": "Key secondary endpoint; same canonical 3-point component set."
+            "selection_note": "Key secondary endpoint; same canonical 3-point component set.",
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": "NCT01764633",
+                  "eligibility_state": "UNKNOWN",
+                  "absence_code": "ENTRY_POPULATION_NOT_ESTABLISHED",
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "strand_member_declared",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "family_id": "NCT01764633"
           },
           {
             "trial": "VESALIUS-CV",
@@ -3265,7 +3161,45 @@
               "ISCHEMIC_STROKE"
             ],
             "source": "VESALIUS-CV (PMID 41211925) abstract: A total of 12,257 patients were randomly assigned to receive evolocumab (6129 patients) or placebo (6128) and were included in the efficacy analyses. A 3-point MACE event occurred in 336 patients (5-year Kaplan-Meier estimate, 6.2%) in the evolocumab group, as compared with 443 (8.0%) in the placebo group (hazard ratio, 0.75; 95% confidence interval [CI], 0.65 to 0.86; P<0.001). A 4-point MACE event occurred in 747 patients (5-year Kaplan-Meier estimate, 13.4%) in the evolocumab group, as compared with 907 (16.2%) in the placebo group (hazard ratio, 0.81; 95% CI, 0.73 to 0.89; P<0.001).",
-            "selection_note": "Selected prespecified co-primary by the 2026-09-16 component-set rule."
+            "selection_note": "Selected prespecified co-primary by the 2026-09-16 component-set rule.",
+            "admission_verdict": {
+              "final": "ADMISSIBLE",
+              "failing": [],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "PASS",
+                  "family_id": "NCT03872401",
+                  "eligibility_state": "ELIGIBLE",
+                  "absence_code": null,
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "strand_member_declared",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "family_id": "NCT03872401"
           }
         ],
         "pool": {
@@ -3301,6 +3235,16 @@
             "reason": "Cached abstract reports a four-component composite including unstable-angina hospitalization; matching 3-point ODYSSEY OUTCOMES is not in the committed abstract."
           }
         ],
+        "admission_refused": {
+          "members": [
+            "FOURIER: P5_family_eligible (family NCT01764633, eligibility UNKNOWN ENTRY_POPULATION_NOT_ESTABLISHED)"
+          ],
+          "scope": [
+            "P5_family_eligible",
+            "P8_endpoint_bound"
+          ],
+          "reason": "a declared strand pools only admitted members; its saved result is withheld until every member's family eligibility is established (recovery as for any set-aside row)"
+        },
         "input_set_version": "41732c595d29baac9d9385574bd2bcf357fcfcc7b0968ad37db120213d1f7ac0",
         "claim_id": "b0e7fee5ee1ed097",
         "depends_on": {
@@ -3309,6 +3253,10 @@
         "claim_kind": "strand_pool"
       }
     ]
+  },
+  "strands_admission": {
+    "strands": 1,
+    "refused": 1
   },
   "protocol_config": {
     "divergences": [
@@ -3363,45 +3311,21 @@
   },
   "compat_underlying": {
     "checked": true,
-    "n_pre_fix_asserted_not_underlying": 1,
+    "n_pre_fix_asserted_not_underlying": 0,
     "n_post_fix_asserted_not_underlying": 0,
-    "pre_fix_violations": [
-      {
-        "code": "COMPAT_ASSERTED_NOT_UNDERLYING",
-        "outcome": "Major adverse cardiovascular events",
-        "dimension": "endpoint",
-        "asserted": "TRIAL_DEFINED_MAJOR_CORONARY_CARDIOVASCULAR_COMPOSITE",
-        "per_trial_values": [
-          {
-            "trial_id": "28304224",
-            "trial_label": "28304224",
-            "value": "FOURIER: 5-point primary (adds unstable angina, revascularization).; DISCLOSED (composite-heterogeneity note)",
-            "source": "docs/definition_audit.json",
-            "span": "FOURIER: 5-point primary (adds unstable angina, revascularization).; DISCLOSED (composite-heterogeneity note)"
-          },
-          {
-            "trial_id": "30403574",
-            "trial_label": "30403574",
-            "value": "ODYSSEY: 4-point primary (adds unstable angina requiring hospitalization).; DISCLOSED (composite-heterogeneity note)",
-            "source": "docs/definition_audit.json",
-            "span": "ODYSSEY: 4-point primary (adds unstable angina requiring hospitalization).; DISCLOSED (composite-heterogeneity note)"
-          }
-        ],
-        "detail": "outcome-level key asserts a uniform value but pooled trial rows differ"
-      }
-    ],
+    "pre_fix_violations": [],
     "post_fix_violations": []
   },
   "reason_code_audit": {
     "denominator_source": "declared_absent_trials reason_code/state rows on this page",
-    "N": 13,
+    "N": 14,
     "counts": {
       "REASON_TRUE": 9,
-      "REASON_FALSE_VALUE_HELD": 2,
+      "REASON_FALSE_VALUE_HELD": 3,
       "REASON_WRONG_KIND": 2,
       "NOT_VERIFIABLE": 0
     },
-    "n_false_value_held": 2,
+    "n_false_value_held": 3,
     "n_not_verifiable": 0,
     "by_code_kind": {
       "outcome_post_hoc_not_pooled": {
@@ -3417,6 +3341,12 @@
         "NOT_VERIFIABLE": 0
       },
       "RESULT_INCOMPATIBLE": {
+        "REASON_TRUE": 0,
+        "REASON_FALSE_VALUE_HELD": 1,
+        "REASON_WRONG_KIND": 0,
+        "NOT_VERIFIABLE": 0
+      },
+      "P5_family_eligible": {
         "REASON_TRUE": 0,
         "REASON_FALSE_VALUE_HELD": 1,
         "REASON_WRONG_KIND": 0,
@@ -3488,6 +3418,21 @@
         "source_kind": "abstract",
         "source_span": "A 3-point MACE event occurred in 336 patients (5-year Kaplan-Meier estimate, 6.2%) in the evolocumab group, as compared with 443 (8.0%) in the placebo group (hazard ratio, 0.75; 95% confidence interval [CI], 0.65 to 0.86; P<0.001).",
         "source_contains": "A 3-point MACE event occurred in 336 patients (5-year Kaplan-Meier estimate, 6.2%) in the evolocumab group, as compared with 443 (8.0%) in the placebo group (hazard ratio, 0.75; 95% confidence interval [CI], 0.65 to 0.86; P<0.001)."
+      },
+      {
+        "slug": "pcsk9-mace",
+        "outcome": "Major adverse cardiovascular events",
+        "outcome_kind": "primary",
+        "trial_key": "28304224",
+        "label": "28304224",
+        "id": "PMID 28304224",
+        "stated_reason_code": "P5_family_eligible",
+        "verdict": "REASON_FALSE_VALUE_HELD",
+        "detail": "REASON_FALSE_VALUE_HELD(abstract:28304224, \"Relative to placebo, evolocumab treatment significantly reduced the risk of the primary end point (1344 patients [9.8%] vs. 1563 patients [11.3%]; hazard ratio, 0.85; 95% confidence interval [CI], 0.79 to 0.92; P<0.001) and the key seconda...\")",
+        "source_id": "abstract:28304224",
+        "source_kind": "abstract",
+        "source_span": "Relative to placebo, evolocumab treatment significantly reduced the risk of the primary end point (1344 patients [9.8%] vs. 1563 patients [11.3%]; hazard ratio, 0.85; 95% confidence interval [CI], 0.79 to 0.92; P<0.001) and the key seconda...",
+        "source_contains": "Relative to placebo, evolocumab treatment significantly reduced the risk of the primary end point (1344 patients [9.8%] vs. 1563 patients [11.3%]; hazard ratio, 0.85; 95% confidence interval [CI], 0.79 to 0.92; P<0.001) and the key seconda..."
       },
       {
         "slug": "pcsk9-mace",
@@ -3605,16 +3550,16 @@
     "denominator_source": "included screening records x registered outcomes in this review",
     "N": 15,
     "counts": {
-      "EXTRACTED": 2,
-      "HELD_NOT_EXTRACTED": 2,
+      "EXTRACTED": 1,
+      "HELD_NOT_EXTRACTED": 3,
       "NOT_IN_HELD_SOURCES": 9,
       "ABSENT_BY_DESIGN": 2
     },
-    "n_held_not_extracted": 2,
+    "n_held_not_extracted": 3,
     "by_outcome_kind": {
       "primary": {
-        "EXTRACTED": 2,
-        "HELD_NOT_EXTRACTED": 2,
+        "EXTRACTED": 1,
+        "HELD_NOT_EXTRACTED": 3,
         "NOT_IN_HELD_SOURCES": 1,
         "ABSENT_BY_DESIGN": 0
       },
@@ -3632,7 +3577,10 @@
         "trial_label": "28304224",
         "outcome": "Major adverse cardiovascular events",
         "outcome_kind": "primary",
-        "status": "EXTRACTED"
+        "status": "HELD_NOT_EXTRACTED",
+        "source_id": "abstract:28304224",
+        "source_kind": "abstract",
+        "source_span": "Relative to placebo, evolocumab treatment significantly reduced the risk of the primary end point (1344 patients [9.8%] vs. 1563 patients [11.3%]; hazard ratio, 0.85; 95% confidence interval [CI], 0.79 to 0.92; P<0.001) and the key seconda..."
       },
       {
         "slug": "pcsk9-mace",
@@ -3760,68 +3708,52 @@
     "outcome": "Major adverse cardiovascular events",
     "estimand": "HR",
     "levels": {
-      "28304224": "low",
       "30403574": "low"
     },
-    "input_set_version": "06781bed738c4e6a252924685cc8f122e088a7c52f3bcf3fb368e3113278a3b1",
-    "n_trials": 2,
-    "n_rob_rated": 2,
+    "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26",
+    "n_trials": 1,
+    "n_rob_rated": 1,
     "rob_covered": true,
     "any_high": false,
     "full": {
-      "k": 2,
-      "estimate": 0.8261,
+      "k": 1,
+      "estimate": 0.85,
       "scale": "HR",
-      "ci_low": null,
-      "ci_high": null,
+      "ci_low": 0.7784,
+      "ci_high": 0.9281,
       "tau2": 0.0,
-      "ci_hksj_unserved": {
-        "ci_low": 0.5454,
-        "ci_high": 1.2513
-      },
-      "ci_refused": "K2_SINGLE_DF",
-      "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6",
-      "claim_id": "afd612c997023c52",
+      "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26",
+      "claim_id": "f2280c43eea7590d",
       "depends_on": {
-        "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6"
+        "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26"
       },
       "claim_kind": "rob_sensitivity.full"
     },
     "drop_high": {
-      "k": 2,
-      "estimate": 0.8261,
+      "k": 1,
+      "estimate": 0.85,
       "scale": "HR",
-      "ci_low": null,
-      "ci_high": null,
+      "ci_low": 0.7784,
+      "ci_high": 0.9281,
       "tau2": 0.0,
-      "ci_hksj_unserved": {
-        "ci_low": 0.5454,
-        "ci_high": 1.2513
-      },
-      "ci_refused": "K2_SINGLE_DF",
-      "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6",
-      "claim_id": "c554eef40c7fc8b8",
+      "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26",
+      "claim_id": "b49c1b52221509f4",
       "depends_on": {
-        "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6"
+        "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26"
       },
       "claim_kind": "rob_sensitivity.drop_high"
     },
     "low_only": {
-      "k": 2,
-      "estimate": 0.8261,
+      "k": 1,
+      "estimate": 0.85,
       "scale": "HR",
-      "ci_low": null,
-      "ci_high": null,
+      "ci_low": 0.7784,
+      "ci_high": 0.9281,
       "tau2": 0.0,
-      "ci_hksj_unserved": {
-        "ci_low": 0.5454,
-        "ci_high": 1.2513
-      },
-      "ci_refused": "K2_SINGLE_DF",
-      "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6",
-      "claim_id": "d4c2abd1ef4e2931",
+      "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26",
+      "claim_id": "6c2def1cf0385103",
       "depends_on": {
-        "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6"
+        "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26"
       },
       "claim_kind": "rob_sensitivity.low_only"
     },
@@ -3833,8 +3765,7 @@
     "low_only_informative": false,
     "low_only_predicate": "same_trial_set",
     "formally_assessed": false,
-    "suppression_reason": "RoB-restricted re-pool suppressed: formal RoB 2 not yet assessed; the machine-signal low-only set equals the full pool (k=2 of 2)",
-    "ci_refused": "K2_SINGLE_DF"
+    "suppression_reason": "RoB-restricted re-pool suppressed: formal RoB 2 not yet assessed; the machine-signal low-only set equals the full pool (k=1 of 1)"
   },
   "grade": {
     "start": "high",
@@ -3843,8 +3774,8 @@
         "downgrade": 0,
         "coverage_incomplete": false,
         "assessed": false,
-        "n_trials": 2,
-        "n_rated": 2,
+        "n_trials": 1,
+        "n_rated": 1,
         "n_high": 0,
         "n_some": 0,
         "basis": "FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below",
@@ -3855,32 +3786,25 @@
       },
       "inconsistency": {
         "downgrade": 0,
-        "not_assessable_automatically": false,
-        "k2_not_automatic": true,
+        "not_estimable": true,
         "assessed": false,
-        "direction_conflict": false,
-        "i2": 0.0,
-        "basis": "not assessable: STALE: pooled membership known incomplete (3 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
+        "basis": "not assessable: STALE: pooled membership known incomplete (4 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.",
         "stale": true,
         "state": "NOT_ASSESSABLE",
         "missing_inputs": [
-          "not assessable: STALE: pooled membership known incomplete (3 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
+          "not assessable: STALE: pooled membership known incomplete (4 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable."
         ]
       },
       "imprecision": {
-        "downgrade": 1,
+        "downgrade": 0,
         "assessed": false,
-        "state": "NOT_ASSESSABLE",
-        "crosses_null": null,
+        "state": "REQUIRES_JUDGEMENT",
+        "crosses_null": false,
         "missing_inputs": [
-          "valid confidence interval",
-          "served pooled CI (refused)",
           "clinical threshold / MID with basis",
           "information-size assessment with adequacy and basis"
         ],
-        "basis": "95% CI [None, None]; missing/insufficient: valid confidence interval; served pooled CI (refused); clinical threshold / MID with basis; information-size assessment with adequacy and basis | counted as ONE conservative downgrade pending human judgement (a check that could not run cannot raise certainty)",
-        "not_assessable_automatically": true,
-        "conservative": true
+        "basis": "95% CI [0.78, 0.93]; missing/insufficient: clinical threshold / MID with basis; information-size assessment with adequacy and basis"
       },
       "publication_bias": {
         "downgrade": 0,
@@ -3904,14 +3828,12 @@
         ]
       }
     },
-    "downgrades": 1,
-    "conservative_downgrades_pending_human_judgement": [
-      "imprecision"
-    ],
+    "downgrades": 0,
+    "conservative_downgrades_pending_human_judgement": [],
     "certainty": "provisional",
     "certainty_state": "GRADE provisional -- not yet fully assessable",
     "certainty_capped_by_rob_coverage": false,
-    "certainty_capped_single_trial": false,
+    "certainty_capped_single_trial": true,
     "certainty_capped_d3_unassessed": false,
     "certainty_capped_unassessed_domain": false,
     "unassessed_domains": [
@@ -3921,12 +3843,12 @@
       "publication_bias",
       "indirectness"
     ],
-    "rob_basis": "machine-assessed domains only; D3 unassessed on 2 of 2 trial(s)",
+    "rob_basis": "machine-assessed domains only; D3 unassessed on 1 of 1 trial(s)",
     "basis": "partial GRADE: risk-of-bias, inconsistency, imprecision and (registry-based) publication bias are computed from committed fields; indirectness is left to human judgement.",
-    "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6",
-    "claim_id": "0c624f000acb675a",
+    "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26",
+    "claim_id": "0ad878aba2e493fa",
     "depends_on": {
-      "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6"
+      "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26"
     },
     "claim_kind": "grade"
   },
@@ -13322,10 +13244,10 @@
             "scope": "Typed registry outcome values; not automatically a poolable contrast or target effect measure."
           },
           "in_primary_pool": {
-            "state": "YES",
+            "state": "NO",
             "span": {
               "source": "review.outcomes.trials",
-              "report_id": "28304224"
+              "family_id": "NCT01764633"
             }
           },
           "registered_outcome_candidates": [
@@ -15115,7 +15037,7 @@
       "poolability": [
         {
           "outcome": "Major adverse cardiovascular events",
-          "state": "POOLED",
+          "state": "EXTRACTABLE",
           "span": {
             "measured": {
               "state": "YES",
@@ -15314,18 +15236,13 @@
               "scope": "Typed registry outcome values; not automatically a poolable contrast or target effect measure."
             }
           },
-          "analysis_input": true,
+          "analysis_input": false,
           "pool_refusal": null,
           "pooled": {
-            "state": "YES",
-            "span": {
-              "source": "review.outcomes.trials",
-              "report_ids": [
-                "PMID 28304224"
-              ]
-            }
+            "state": "UNKNOWN",
+            "absence_code": "NO_POOLABLE_VALUE"
           },
-          "poolable_value": true
+          "poolable_value": false
         },
         {
           "outcome": "Injection-site reactions",
@@ -29765,13 +29682,11 @@
   "family_count_chain": {
     "trial_families": 9,
     "eligible_families": 2,
-    "contributing": 2,
-    "pooled": 2,
+    "contributing": 1,
+    "pooled": 1,
     "eligibility_unresolved": 7,
     "unresolved_report_candidates": 2,
-    "contributing_without_structural_eligibility": [
-      "NCT01764633"
-    ],
+    "contributing_without_structural_eligibility": [],
     "publications_screened": 8,
     "registry_records_screened": 3
   },
@@ -30090,16 +30005,16 @@
     "objects": [
       {
         "kind": "rob_sensitivity_prose",
-        "claim_id": "734c66db6485d635",
+        "claim_id": "2e96520a3c90e439",
         "depends_on": {
-          "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6"
+          "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26"
         }
       },
       {
         "kind": "manuscript_result_sentence",
-        "claim_id": "2ae5b64947f6954b",
+        "claim_id": "07d9f84633f169a3",
         "depends_on": {
-          "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6"
+          "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26"
         }
       }
     ]
@@ -30291,6 +30206,37 @@
       }
     },
     {
+      "limitation_id": "topic:pcsk9-mace:overview:declared-strands",
+      "kind": "DECLARED_STRANDS",
+      "limitation_class": "VALIDITY_THREATENING",
+      "severity": "QUALIFIES_CLAIM",
+      "claim_affected": "endpoint-clean decomposition beside the single pool",
+      "evidence_state": "REFUSED_ON_EVIDENCE",
+      "source_fields": [
+        "/strands/why_topic_is_suppressed",
+        "/strands/strands",
+        "/strands/refused_cross_endpoint_pool",
+        "/strands_admission"
+      ],
+      "rendered_text": "<div class='banner'><h3>Declared strands (endpoint-clean decompositions beside the single pool; each strand pools only admitted members)</h3><p><em>Hand note from the declared-strands document, written while the single pool was suppressed; the single pool's current state is stated above, not here:</em> Not suppressed. The strand is supplemental because the registered page already has a broader primary composite pool, and the search remains stale.</p><ul><li><strong>Strand </strong> — Strict 3-point MACE (CV/CHD death, MI, stroke) [<code>FIRST_EVENT_RATIO</code>]: <strong>REFUSED on admission</strong> -- saved result withheld: FOURIER: P5_family_eligible (family NCT01764633, eligibility UNKNOWN ENTRY_POPULATION_NOT_ESTABLISHED). a declared strand pools only admitted members; its saved result is withheld until every member&#x27;s family eligibility is established (recovery as for any set-aside row)</li></ul><p class='note'>Every effect source-verified; intervals from the canonical engine. The compatibility key keeps strands apart; a cross-strand pool is refused, not computed.</p></div>",
+      "text_sha256": "556077218bd8c526ae3c4796ffe77103ac1b3d4d46d7aaa12a24e1bd9c179c1f",
+      "linked_decision": {
+        "action": "REFUSE",
+        "gate_id": "limitation:evidence-state",
+        "decision_state": "REFUSED_ON_EVIDENCE blocks the affected claim unless specifically resolved"
+      },
+      "consumer": null,
+      "unwired": true,
+      "unwired_reason": "the suppressed-pool object carries the consuming estimand gate; strand disclosure is a decomposition label",
+      "unwired_acknowledged": {
+        "signed_by": "Codex lane AD",
+        "date": "2026-09-15",
+        "reason": "The consuming gate is on the paired SUPPRESSED_POOL object; the strands object is the visible endpoint-clean decomposition after that refusal.",
+        "tranche": "TRANCHE-hazard-consumers",
+        "ack_id": "HC-DECLARED_STRANDS-REFUSED_ON_EVIDENCE"
+      }
+    },
+    {
       "limitation_id": "topic:pcsk9-mace:search:retrieval-snapshot",
       "kind": "RETRIEVAL_SNAPSHOT",
       "limitation_class": "INFORMATIONAL",
@@ -30395,32 +30341,72 @@
       }
     },
     {
-      "limitation_id": "topic:pcsk9-mace:outcomes:0:major-adverse-cardiovascular-events:k2-ci-refused",
-      "kind": "GRADE_CERTAINTY",
+      "limitation_id": "topic:pcsk9-mace:outcomes:0:admission",
+      "kind": "ADMISSION",
       "limitation_class": "INFORMATIONAL",
       "severity": "QUALIFIES_CLAIM",
-      "claim_affected": "pooled confidence interval: Major adverse cardiovascular events",
-      "evidence_state": "NOT_ASSESSED",
+      "claim_affected": "admission of candidate extractions into the pool of 'Major adverse cardiovascular events'",
+      "evidence_state": "RECORDED",
       "source_fields": [
-        "/outcomes/*/result/pooled_ci_refused",
-        "/outcomes/*/result/ci_hksj_unserved"
+        "/outcomes/0/admission_summary"
       ],
-      "rendered_text": "<div class='absent'><strong>Registered pooled CI REFUSED at k=2.</strong> Registered PM/HKSJ uses t(1)=12.71 at k=2; the interval is not served as a pooled confidence interval because a single degree of freedom is not reliable here. The point estimate may be displayed, but no pooled significance/null-crossing claim is emitted.</div>",
-      "text_sha256": "c8be08262b22a7e90b1d5d8aa29b9b0712078cd1d52b1bd802603c41097ddf9a",
+      "rendered_text": "<div class='absent'><strong>Admission at pooling (P5_family_eligible, P8_endpoint_bound).</strong> Admission evaluated in-build on P5_family_eligible, P8_endpoint_bound only (P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are not evaluated here: scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them). Pooled 1: admissible 1; migration state (unbound_legacy, pooled and counted separately) 0; bound by a producer route the bundle&#x27;s P8 does not name 0. Set aside on P5 (family eligibility) 1: PMID 28304224 UNKNOWN (ENTRY_POPULATION_NOT_ESTABLISHED). in-build P8 passes every producer binding route other than unbound_legacy; the bundle&#x27;s P8 passes only the definition-span route (rows bound by another route read INADMISSIBLE there: a rule limit raised with the bundle lane, recorded per row as bundle_rule_agreement).</div>",
+      "text_sha256": "4325582da97ddaa8dbc12621ad7d845063165f83fbdfafc5553b8a3ca63486ce",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
         "decision_state": "validity threat is explicitly labelled on the affected claim"
       },
-      "consumer": null,
-      "unwired": true,
-      "unwired_reason": "GRADE certainty is a downstream label; no publication gate consumes it",
-      "unwired_acknowledged": {
-        "signed_by": "Codex lane AD",
-        "date": "2026-09-15",
-        "reason": "GRADE certainty is a downstream label rather than a publication gate; no executable analytic gate changes on the not-assessed certainty state.",
-        "tranche": "TRANCHE-hazard-consumers",
-        "ack_id": "HC-GRADE_CERTAINTY-NOT_ASSESSED"
+      "consumer": {
+        "gate_id": "gate.check_admission_enforced",
+        "gate_input_path": "/outcomes/*/admission_summary",
+        "gate_verdict_at_build": "PASS: every pooled row admitted; 1 candidate row(s) set aside on admission"
+      }
+    },
+    {
+      "limitation_id": "topic:pcsk9-mace:outcomes:1:admission",
+      "kind": "ADMISSION",
+      "limitation_class": "INFORMATIONAL",
+      "severity": "NOTE",
+      "claim_affected": "admission of candidate extractions into the pool of 'Injection-site reactions'",
+      "evidence_state": "RECORDED",
+      "source_fields": [
+        "/outcomes/1/admission_summary"
+      ],
+      "rendered_text": "<div class='absent'><strong>Admission at pooling (P5_family_eligible, P8_endpoint_bound).</strong> Admission: no candidate row reached this outcome&#x27;s pool (nothing pooled, nothing set aside on P5); in-build scope is P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).</div>",
+      "text_sha256": "7338c8eb5d49d6695fe0e99b82fb9e05aa2b6d9dca4dc808a9ae7b1959594e49",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": {
+        "gate_id": "gate.check_admission_enforced",
+        "gate_input_path": "/outcomes/*/admission_summary",
+        "gate_verdict_at_build": "PASS: every pooled row admitted; 1 candidate row(s) set aside on admission"
+      }
+    },
+    {
+      "limitation_id": "topic:pcsk9-mace:outcomes:2:admission",
+      "kind": "ADMISSION",
+      "limitation_class": "INFORMATIONAL",
+      "severity": "NOTE",
+      "claim_affected": "admission of candidate extractions into the pool of 'Adverse events leading to discontinuation'",
+      "evidence_state": "RECORDED",
+      "source_fields": [
+        "/outcomes/2/admission_summary"
+      ],
+      "rendered_text": "<div class='absent'><strong>Admission at pooling (P5_family_eligible, P8_endpoint_bound).</strong> Admission: no candidate row reached this outcome&#x27;s pool (nothing pooled, nothing set aside on P5); in-build scope is P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).</div>",
+      "text_sha256": "7338c8eb5d49d6695fe0e99b82fb9e05aa2b6d9dca4dc808a9ae7b1959594e49",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": {
+        "gate_id": "gate.check_admission_enforced",
+        "gate_input_path": "/outcomes/*/admission_summary",
+        "gate_verdict_at_build": "PASS: every pooled row admitted; 1 candidate row(s) set aside on admission"
       }
     },
     {
@@ -30516,8 +30502,8 @@
         "/arm_contrast/stale_block_unrenderable",
         "/arm_contrast/trials"
       ],
-      "rendered_text": "<div class='absent'><strong>UNRENDERABLE stale contrast block.</strong> cached arm-contrast membership named trials not in the current consumed pool; current pooled trial ids: 28304224, 30403574; suppressed stale ids: 41211925.</div>",
-      "text_sha256": "89535f2ae134e101cb700d78736722da646da41590bf4a226ce712fc8789bc10",
+      "rendered_text": "<div class='absent'><strong>UNRENDERABLE stale contrast block.</strong> cached arm-contrast membership named trials not in the current consumed pool; current pooled trial ids: 30403574; suppressed stale ids: 28304224, 41211925.</div>",
+      "text_sha256": "9237951b9c28c69cc3f87ac9205c3dddf8d344dbf327003156ab0ba2f1fb4e06",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -30526,7 +30512,7 @@
       "consumer": {
         "gate_id": "compat.outcome_key",
         "gate_input_path": "/arm_contrast/trials",
-        "gate_verdict_at_build": "Major adverse cardiovascular events: verified 2/2"
+        "gate_verdict_at_build": "Major adverse cardiovascular events: verified 1/1"
       }
     },
     {
@@ -30539,8 +30525,8 @@
       "source_fields": [
         "/arm_contrast/trials"
       ],
-      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>2 of 2</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>28304224</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;evolocumab&#x27; matched AACT arm intervention &#x27;evolocumab&#x27;; the intervention of interest DIFFERS across the randomised arms'>evolocumab</td></tr><tr><td>30403574</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;alirocumab&#x27; matched AACT arm intervention &#x27;alirocumab&#x27;; the intervention of interest DIFFERS across the randomised arms'>alirocumab</td></tr></table></div>",
-      "text_sha256": "f225ef5059a730afac42fb1139f116250a3188fb4b7be8e2284c25571b0f8d2d",
+      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>1 of 1</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>30403574</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;alirocumab&#x27; matched AACT arm intervention &#x27;alirocumab&#x27;; the intervention of interest DIFFERS across the randomised arms'>alirocumab</td></tr></table></div>",
+      "text_sha256": "908a8d497cad2bc03438a7479ad474686af71d2e674c0d8549467563380c2e5d",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -30549,7 +30535,7 @@
       "consumer": {
         "gate_id": "compat.outcome_key",
         "gate_input_path": "/arm_contrast/trials",
-        "gate_verdict_at_build": "Major adverse cardiovascular events: verified 2/2"
+        "gate_verdict_at_build": "Major adverse cardiovascular events: verified 1/1"
       }
     },
     {
@@ -30562,8 +30548,8 @@
       "source_fields": [
         "/funding"
       ],
-      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>4 of 4 known</strong> (1 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 28304224</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Amgen; FOURIER ClinicalTrials.gov number, NCT01764633 .).</td></tr><tr><td>PMID 30403574</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Sanofi and Regeneron Pharmaceuticals; ODYSSEY OUTCOMES ClinicalTrials.gov number, NCT01663402 .).</td></tr><tr><td>PMID 25773378</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Sanofi and Regeneron Pharmaceuticals; ODYSSEY LONG TERM ClinicalTrials.gov number, NCT01507831.).</td></tr><tr><td>PMID 41211925</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Amgen; VESALIUS-CV ClinicalTrials.gov number, NCT03872401.).</td></tr><tr><td>PMID 27846344</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
-      "text_sha256": "6be65192406c5e342aeee8f3fd424ec5cf4cdd2973a26c8de275f166d0520eb4",
+      "rendered_text": "<div class='absent'><strong>Funding / conflict-of-interest disclosure (per pooled trial, from source &mdash; disclosed, not adjusted).</strong> Industry-funded trials are a documented reporting-bias dimension (they tend to report more favourable results). For each pooled trial the funding source is classified from held text (full text preferred, abstract fallback) and the registry sponsor is shown as a second source when available; when held text and registry disagree, both source spans are rendered. Industry author affiliations are flagged only as affiliations, never sponsor evidence. Including an industry <em>drug-supply</em> tie in an otherwise independently funded trial: <strong>4 of 4 known</strong> (1 unknown) pooled trials are industry-funded or industry-tied (the industry-funded proportion of trials with KNOWN funding &mdash; unknown-funding trials are reported separately below, not counted as independently funded &mdash; for comparison against a comparator's). Absence is labelled by how deeply we looked &mdash; 0 with no funding statement in the <strong>full text</strong> (genuinely silent) and 0 where only the <strong>abstract</strong> was available (full text not retrieved) &mdash; so 'not stated' is never presented as 'independently funded'. The harness <strong>does not adjust</strong> for funding (the per-trial bias magnitude is not quantifiable from a funding line) &mdash; it is disclosed so a reader can weigh it. Never inferred.<table class='arms'><tr><th>Trial</th><th>Funding</th><th>Sponsors / roles</th><th>Scanned</th><th>Source evidence</th></tr><tr><td>PMID 30403574</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Sanofi and Regeneron Pharmaceuticals; ODYSSEY OUTCOMES ClinicalTrials.gov number, NCT01663402 .).</td></tr><tr><td>PMID 25773378</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Sanofi and Regeneron Pharmaceuticals; ODYSSEY LONG TERM ClinicalTrials.gov number, NCT01507831.).</td></tr><tr><td>PMID 28304224</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Amgen; FOURIER ClinicalTrials.gov number, NCT01764633 .).</td></tr><tr><td>PMID 41211925</td><td><strong>industry</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: (Funded by Amgen; VESALIUS-CV ClinicalTrials.gov number, NCT03872401.).</td></tr><tr><td>PMID 27846344</td><td><strong>not stated (abstract only - full text not retrieved)</strong></td><td>&mdash;</td><td>abstract</td><td><strong>abstract</strong>: </td></tr></table></div>",
+      "text_sha256": "c527dd0e66827d390b3bad70084efcd2489a83240a5b39dd92540123d861069d",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -30592,8 +30578,8 @@
         "/rob_sensitivity/drop_high",
         "/rob_sensitivity/low_only"
       ],
-      "rendered_text": "<div class='absent'>RoB-restricted re-pool suppressed: formal RoB 2 not yet assessed; the machine-signal low-only set equals the full pool (k=2 of 2)</div>",
-      "text_sha256": "099a3b3a6e474d4e4ba83290ad540a9778c3ac50084ff763ac09ba8963fe3e23",
+      "rendered_text": "<div class='absent'>RoB-restricted re-pool suppressed: formal RoB 2 not yet assessed; the machine-signal low-only set equals the full pool (k=1 of 1)</div>",
+      "text_sha256": "263d1a211a93f9b7de5ac7013679ac9c792f90492ebb90d5239151091d7ea0a3",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -30621,8 +30607,8 @@
         "/grade/certainty",
         "/grade/domains"
       ],
-      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. <table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (3 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>95% CI [None, None]; missing/insufficient: valid confidence interval; served pooled CI (refused); clinical threshold / MID with basis; information-size assessment with adequacy and basis | counted as ONE conservative downgrade pending human judgement (a check that could not run cannot raise certainty)</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>registry census (4 of ~32 completed unpublished, 12%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
-      "text_sha256": "6eded927e7090a6c2c50086aa67702fb7eca8d87082bffe1f86f88c8ef456e61",
+      "rendered_text": "<div class='absent'><strong data-grade-certainty='true'>GRADE provisional -- not yet fully assessable</strong> (downgrade arithmetic not stated while a domain is unassessed). Unassessed domains: risk_of_bias, inconsistency, imprecision, publication_bias, indirectness; unassessed never counts as favourable. Registry-machine-signal-restricted signals are not a formal human RoB 2 assessment. <table class='arms'><tr><th>Domain</th><th>Effect on certainty</th><th>Basis</th></tr><tr><td>Risk of bias</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>FORMAL RoB 2 NOT YET ASSESSED — machine signals shown below</td></tr><tr><td>Inconsistency</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>not assessable: STALE: pooled membership known incomplete (4 eligible families not in the pool); tau^2, I^2 and the prediction interval are descriptive only, not interpretable.</td></tr><tr><td>Imprecision</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>95% CI [0.78, 0.93]; missing/insufficient: clinical threshold / MID with basis; information-size assessment with adequacy and basis</td></tr><tr><td>Indirectness</td><td><strong>REQUIRES_JUDGEMENT</strong> (NOT ASSESSED)</td><td>directness of population/intervention/comparator/outcome is a human judgement; not auto-rated (the scope note on the page states the PICO)</td></tr><tr><td>Publication bias (registry-based)</td><td><strong>NOT_ASSESSABLE</strong> (NOT ASSESSED)</td><td>registry census (4 of ~32 completed unpublished, 12%) was enumerated over a BROAD condition+drug universe, not the screened-eligible PICO -- a contaminated denominator cannot be this PICO&#x27;s publication-bias rate, so publication bias is NOT downgraded here (descriptive only; a PICO-scoped census is the fix)</td></tr></table></div>",
+      "text_sha256": "1b064029338efc07b34c10339a81edbc6686a796edb1e9d47621335adaacee14",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -30734,22 +30720,22 @@
         "surface": "overview/results/manuscript",
         "source_path": "/outcomes/*[primary]/result/k",
         "subject": "primary_effect_objects",
-        "count": 2,
+        "count": 1,
         "claim_id": "5cb7cb94b7a46f28"
       },
       {
         "kind": "rated_count",
         "surface": "riskofbias/manuscript",
         "source_path": "/rob_sensitivity",
-        "rated": 2,
-        "total": 2,
+        "rated": 1,
+        "total": 1,
         "claim_id": "f3cfb5ce652671d4"
       },
       {
         "kind": "retracted_count",
         "surface": "riskofbias/integrity",
         "source_path": "/integrity",
-        "pooled": 2,
+        "pooled": 1,
         "retracted": 0,
         "claim_id": "03bfa63d09bd1b11"
       }
@@ -30791,7 +30777,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "dd2403f56a1025c011e6d6a601d25817aab3c9e7",
-    "review_sha256": "f7132bc2485488fe81a931aabe5477566518460f91b09f482549984552449567",
+    "review_sha256": "f566c0479aa67234b2570e89a6a5a4dfe1e4a698c8e0c8db36f1566ecd47b90c",
     "from_cache": true,
     "preregistration": {
       "prospective": false,
@@ -30815,7 +30801,7 @@
     },
     "parity": {
       "slug": "pcsk9-mace",
-      "our_k": 2,
+      "our_k": 1,
       "comparable_comparator_k": 12,
       "status": "DOMINANT_SUBSET",
       "reason": "2/12 but our 2 (FOURIER+ODYSSEY) = ~87% of comparator patients; 10 gaps = non-prespecified MACE tallies",
@@ -30823,12 +30809,13 @@
         "relation": "DOMINANT_SUBSET",
         "label": "INFERRED dominant-trial subset -- ours is contained in the comparator; carries 87% of comparator patients/events (source: parity reason text)",
         "inferred": true,
-        "our_k": 2,
+        "our_k": 1,
         "hand_our_k": 2,
-        "hand_our_k_stale": false,
+        "hand_our_k_stale": true,
         "their_k": 12,
         "their_k_source": "comparable_comparator_k",
         "shared_k": null,
+        "shared_k_clamped_to_pool": false,
         "only_ours_n": 1,
         "only_theirs_n": 0,
         "dominance": {
@@ -30839,12 +30826,14 @@
         "hand_status_normalized": "DOMINANT_SUBSET",
         "hand_status_disagrees": false
       },
+      "hand_our_k": 2,
+      "hand_our_k_stale": true,
       "hand_status": "DOMINANT_SUBSET",
       "hand_status_stale": false,
-      "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6",
-      "claim_id": "d0d783e76c190517",
+      "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26",
+      "claim_id": "f7600fcf9d6ce58a",
       "depends_on": {
-        "input_set_version": "51db304d7b96c021cddf4378f304382b07cba7e517678bfcb63dfd76ab5c3aa6"
+        "input_set_version": "ee8478a48e9510ac58ac3cd24279e32aa08516baf1df1f22bcd9338bc9df5e26"
       },
       "claim_kind": "parity"
     },
@@ -30913,6 +30902,35 @@
         },
         "reason_locked": true,
         "conclusion_changed": "the outcome no longer has a pooled estimate"
+      },
+      {
+        "slug": "pcsk9-mace",
+        "outcome": "Major adverse cardiovascular events",
+        "before": {
+          "k": 2,
+          "estimate": 0.8261,
+          "ci_low": null,
+          "ci_high": null
+        },
+        "after": {
+          "k": 1,
+          "estimate": 0.85,
+          "ci_low": 0.78,
+          "ci_high": 0.93
+        },
+        "left_pool": [
+          "PMID 28304224"
+        ],
+        "entered_pool": [],
+        "before_note": "refused at k = 2, K2_SINGLE_DF",
+        "reason": "PMID 28304224 set aside on admission (P5_family_eligible): family eligibility UNKNOWN (ENTRY_POPULATION_NOT_ESTABLISHED) for 'Major adverse cardiovascular events': the candidate extraction is set aside (P5_family_eligible FAIL); the trial stays on this outcome as evidence whose eligibility the held record does not establish. Mechanism: the enforcement gate (branch enforcement-gate, 2026-09-21): the build now reads the admission decision at the pooling convergence point; a row whose trial family eligibility is not established by held registry evidence (P5_family_eligible) is set aside with the value it carried, the trial stays on the page as candidate evidence awaiting adjudication, the numbers are not asserted wrong, and the recovery is eligibility evidence for the family -- never deletion of the trial.",
+        "by": "Claude Opus 5 (branch enforcement-gate, 2026-09-21); reviewer countersignature owed: Mahmood",
+        "when_utc": "2026-09-21T21:18:50Z",
+        "reviewer_countersignature": {
+          "state": "OPEN",
+          "note": "the reviewer has not yet seen the rendered notice; sign with scripts/countersign_result_change.py after reading it"
+        },
+        "conclusion_changed": null
       }
     ],
     "dual": {
@@ -30922,21 +30940,21 @@
       "conflict": 0
     },
     "claim_check": {
-      "claims_checked": 1,
+      "claims_checked": 2,
       "surfaces": [
         "outcome block",
         "overview",
         "manuscript"
       ],
       "scope_counts": {
-        "outcome_result": 0,
+        "outcome_result": 1,
         "strand_pool": 1,
         "rob_sensitivity": 3,
         "grade": 1
       },
       "scope": {
         "counts": {
-          "outcome_result": 0,
+          "outcome_result": 1,
           "strand_pool": 1,
           "rob_sensitivity": 3,
           "grade": 1
@@ -30999,7 +31017,7 @@
       "retrieval_ledger_sha256": "a2b21c1dbe65987d57093c77f364ea19aada315810e8edb1560d76ed28784b50",
       "screening_ledger_sha256": "449b5ee0b299a67134e9211b35e2b8ec95445bda95e1c3b5250a3c927b5f9e3b",
       "extraction_objects_sha256": "d50e6c3bd1163f53bff2514bc7f22f60972560e4f04a569d34182c4805e81f20",
-      "trial_family_map_sha256": "3d8c9c2b22b57ad3fdd487ff97b8aea080be7aef30c7bad8ad24aabe71a2330b",
+      "trial_family_map_sha256": "e5e6d1b03147f5ada4befe3080f90d3aa2a3b5cb210f508a8ae5f4f93a7f90c2",
       "rob_object_sha256": "c774ee1aafa7962ca7566f06c61ce9a6d3ede658e73b4a4d34500c5f7744fe9f",
       "held_documents": [
         {
@@ -31012,14 +31030,15 @@
         }
       ],
       "config_sha256": "d4a0c9b2985287d75b845c4798201150d2092bd9250480e969dc95cdede68a46",
-      "analysis_code_sha256": "fd5ccc59cf078077fa5c788ed90b4fddce9767cdf4cfd00998fa1ce03ee1c40b",
+      "analysis_code_sha256": "693c59fc08290e2a1616e5b6ba4ccd5e24182d34980e96d015c859bba5ced8cb",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
         "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
-        "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
+        "harness/absence.py": "66b5562b6a58c0aae9768b18edf2d8a07f96e069",
         "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
         "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
+        "harness/admission.py": "dbe5ffb09c87b954e440dba4bf1fca38e2718d7c",
         "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
         "harness/arm_object.py": "c6e2a9d0ea0263eba72c3453d52bc5a05b06e0b2",
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
@@ -31035,42 +31054,42 @@
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
         "harness/compat_check.py": "cffd42ff12742bc3cbe2bd4a617c645a090decfc",
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
-        "harness/consumer_consistency.py": "191dab38f85d1a06b3557ce1c51263f0b8909a47",
+        "harness/consumer_consistency.py": "9652457cb932121c169506da22667f9d6a0cb173",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
         "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
-        "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
+        "harness/design_variance.py": "b2ef45023d0f0030b1bb8d751301dfcb401a317f",
         "harness/effect_type.py": "NOT_PRESENT",
         "harness/eligibility_chain.py": "497b923f46ea530cfc60f8724aeea0e12859147c",
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
-        "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
+        "harness/endpoint_canonical.py": "c85337faf26f090f650f4817d446f38b8eac8a14",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
         "harness/extract.py": "bbd47c664627986e71d078ad9b979d1a32e2e7e5",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "20a5ce33e2c111d23993e208d00c88e04afda5ca",
+        "harness/gate.py": "209770f4e8c54203bf68aefb88875d9347b32c0f",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
         "harness/hand_binding.py": "d48224edf7e0e22dd0111e3c1a72565c25b93dd8",
-        "harness/harms.py": "64f79ea3db77361f8076c8017af851f388183ef7",
-        "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
+        "harness/harms.py": "16bcc3c7d9ad5d550387cfb41bcef67243788d64",
+        "harness/hazard_consumers.py": "09a2b973ee9d8ba1afa2145679cf6380191de9ed",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
         "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
-        "harness/index.py": "2ea249513fbe6f92747821c2f77ca4f47bbcf47e",
-        "harness/invalidation.py": "0fc003b15552b45fcb5e1f4d2cebbf3fe344951c",
+        "harness/index.py": "dc23318ed2b877bdee7cd33a23069d4498a83acd",
+        "harness/invalidation.py": "1a358de66917e6eda49b1a6a350e01e060aa003b",
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
-        "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
+        "harness/known_missing.py": "a12e8a9215186c0a892075dcbb6791b4b9ac25b4",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
+        "harness/limitations.py": "5616f4ae8851299d3e76e4424e973be6aa096ecc",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "4dad90b0facdea7c0f89fd0bc5dd1dd1ce04d31f",
-        "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
+        "harness/page.py": "ba9cc07c0cfef7df16cd2392938e5e4170c70eae",
+        "harness/parity_relation.py": "835063791f551cd327e5cc46ca50d06702bb85e4",
+        "harness/pipeline.py": "5b865ec7c997b04614890d487ad662c1fa1b1903",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -31090,7 +31109,7 @@
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "f605e0f513e3524baac0a9e5f36ced5b926ed6e3",
-        "harness/trial_family.py": "57882f159bbfd8d91b60deaf5956e409de6c484f",
+        "harness/trial_family.py": "e80228988ebb6d4a1f382f52225c3be2e9dc4740",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -31109,7 +31128,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "82 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "83 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -31138,8 +31157,8 @@
         "pins_bytes_not_self_reports": "the map binds the BYTES of each module at the anchoring commit. It does not vouch for what any pinned component's own status fields say about themselves: a status value carried in the review or its cache (for example a span_location_check of OWED, or a REASON_TRUE on an absence row) is data recorded at build time and is covered as bytes by review_sha256 or extraction_objects_sha256, but this certificate does not assert that such a field is current, true of the implementation, or wired to code that enforces it. An OWED field can be stale in either direction. Whether a pinned check is in fact wired is established only by exercising the pinned bytes at the pinned commit, never by reading the field.",
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
-      "manuscript_sha256": "627609d7fa475bd895a6b205d5812d034237be1cd121515602093f7dee9669ed",
-      "review_sha256": "f7132bc2485488fe81a931aabe5477566518460f91b09f482549984552449567",
+      "manuscript_sha256": "b8e6f5e7abeb5854e4ea42005c299bc7e808fc37420fba34f219c017d7e2b098",
+      "review_sha256": "f566c0479aa67234b2570e89a6a5a4dfe1e4a698c8e0c8db36f1566ecd47b90c",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/pcsk9-mace.md UTF-8 text, universal newlines",
@@ -31159,7 +31178,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "30ee947197290bc36d4de2d7a3eb8fb0fff616d5c72c357bd4bd83275d17e40e"
+      "release_sha256": "7e9c0ff409e1e07d758836698c6a27f96b5214c11c84378a149ce4fbed0a63c8"
     }
   }
 }

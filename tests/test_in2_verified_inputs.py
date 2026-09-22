@@ -1,6 +1,7 @@
 """Synthetic schema plants; these are never clinical inputs."""
 import json
 import pytest
+from _families import eligible_by_construction  # noqa: E402  (families ELIGIBLE by construction: the admission gate is on by default)
 
 
 @pytest.mark.parametrize('legacy', [
@@ -56,7 +57,7 @@ def test_design_failure_remains_eligibility_failure():
         ['drug'], ['usual care'], verified_arms={'fixture': {
             'outcome': 'Synthetic harm', 'override': True, 'ai': 1, 'n1i': 20,
             'ci': 2, 'n2i': 20, 'source': 'Synthetic 1/20 versus 2/20'}},
-        eligibility_contract=contract)
+        eligibility_contract=contract, family_nodes=eligible_by_construction({'fixture': {}}))
     assert not out['trials']
     assert 'design_masking' in out['declared_absent_trials'][0]['eligibility_chain_rationale']
 

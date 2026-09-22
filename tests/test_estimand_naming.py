@@ -5,6 +5,8 @@ defect is detectable there, then checks the rebuilt live object carries the new
 typed disclosure. The pre-fix object is read with git show only; no checkout.
 """
 from __future__ import annotations
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))  # tests/ on the path for _contracts
 
 import json
 import subprocess
@@ -93,9 +95,16 @@ def test_metformin_background_therapy_dimension_plant():
     assert len(clomifene_rows) >= 2
     assert "background_therapy" not in (_primary(pre).get("compat_key") or {})
 
-    live_key = _primary(_live_review("metformin-pcos-ovulation")).get("compat_key") or {}
-    assert live_key["background_therapy"]["matched"] is True
-    assert live_key["background_therapy"]["values"] == ["clomifene"]
+    from _contracts import partition
+    live = _live_review("metformin-pcos-ovulation")
+    outcome = _primary(live)
+    pooled, _ = partition(ROOT, "metformin-pcos-ovulation", outcome)
+    if pooled:
+        expected = CM.outcome_key(outcome, live)["background_therapy"]
+        assert outcome["compat_key"]["background_therapy"] == expected
+        assert expected["values"] == ["clomifene"]
+    else:
+        assert not outcome.get("compat_key")
 
 
 def test_pericarditis_prior_disease_stage_dimension_plant():
@@ -124,12 +133,19 @@ def test_statins_subgroup_evidence_unit_plant():
 
     live = _live_review("statins-primary-prevention-elderly")
     live_primary = _primary(live)
-    live_jupiter = next(t for t in _pooled_trials(live) if t.get("id") == "PMID 20404379")
-    assert live_jupiter["evidence_unit"] == "prespecified_subgroup"
+    from _contracts import accounted_row
+    live_jupiter, pooled = accounted_row(ROOT, "statins-primary-prevention-elderly", live_primary, "20404379")
+    if pooled:
+        assert live_jupiter["evidence_unit"] == "prespecified_subgroup"
+    else:
+        assert live_jupiter["candidate_tuple"] and live_jupiter["reason"]
     assert "subgroup" in live_primary["population"].lower()
     page = open(ROOT / "docs" / "reviews" / "statins-primary-prevention-elderly" / "index.html",
                 encoding="utf-8").read()
-    assert "k = 2 (1 trial + 1 pre-specified subgroup of JUPITER)" in page
+    if pooled:
+        assert "pre-specified subgroup of JUPITER" in page
+    else:
+        assert "20404379" in page and "set aside on admission" in page
 
 
 def test_synthetic_prior_stage_and_background_dimension_controls():

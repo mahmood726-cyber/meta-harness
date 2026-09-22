@@ -90,7 +90,13 @@ def test_corpus_unassessed_domains_never_render_as_not_downgraded():
         # the GRADE table exists and names the unassessed domains as NOT ASSESSED / human judgement
         assert "NOT ASSESSED" in html or "human judgement" in html, os.path.basename(d)
         checked += 1
-    assert checked >= 20, checked
+    eligible = []
+    for rp in glob.glob(os.path.join(_ROOT, "docs", "reviews", "*", "review.json")):
+        g = json.load(open(rp, encoding="utf-8")).get("grade") or {}
+        if g.get("certainty") not in (None, "not_rateable"):
+            eligible.append(rp)
+    assert eligible, "retain a controlled unassessed-domain fixture if no served rating remains"
+    assert checked == len(eligible)
 
 
 def test_corpus_no_high_certainty_survives():

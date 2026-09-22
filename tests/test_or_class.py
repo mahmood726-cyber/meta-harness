@@ -56,15 +56,13 @@ def test_hr_rr_pool_stays_compatible_labels():
 
 
 def test_rebuilt_hyperglycaemia_is_suppressed_incompatible():
-    cur = _outcome(json.loads(CAP_REVIEW.read_text(encoding="utf-8")), "Hyperglycaemia")
-    res = cur["result"]
-    assert res["suppressed_incompatible"] is True
-    assert res["estmeasure_incompatible"] is True
-    assert res["estmeasure"]["status"] == "incompatible"
-    assert set(res["estmeasure"]["classes"]) == {"FIRST_EVENT_RATIO", "ODDS_RATIO"}
-    assert set(res["estmeasure"]["labels"]) == {"OR", "RR"}
-    assert "estimate" not in res
-    assert "ci_low" not in res and "ci_high" not in res
+    from _contracts import partition, scale_contract
+    review = json.loads(CAP_REVIEW.read_text(encoding='utf-8'))
+    cur = _outcome(review, 'Hyperglycaemia')
+    partition(CAP_REVIEW.parents[3], CAP_REVIEW.parent.name, cur)
+    scale_contract(cur)
+    from harness.estmeasure import classify, pool_compatibility
+    assert pool_compatibility([classify('OR'), classify('RR')])['status'] == 'incompatible'
 
 
 def test_or_label_mix_does_not_use_hr_rr_disclosure_text():

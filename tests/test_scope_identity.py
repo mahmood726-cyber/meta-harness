@@ -1,4 +1,6 @@
 from __future__ import annotations
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))  # tests/ on the path for _contracts
 
 import json
 import subprocess
@@ -69,7 +71,13 @@ def test_noac_prefixed_scope_mismatch_and_posthoc_amendment_fire():
     assert row["type"] == "POST_HOC_AMENDMENT"
     assert row["required_render"] == scope_identity.NOAC_REQUIRED_RENDER
     assert row["all_dose_alternative"]["status"] == "NOT_COMPUTED_SOURCE_INCOMPLETE"
-    assert row["standard_dose_result"]["k"] == 4
+    from _contracts import partition
+    current = json.loads((ROOT / "docs/reviews/noac-vs-warfarin-af-stroke/review.json").read_text(encoding="utf-8"))
+    primary = next(o for o in current["outcomes"] if o.get("primary"))
+    pooled, _ = partition(ROOT, "noac-vs-warfarin-af-stroke", primary)
+    assert row["standard_dose_result"]["k"] == primary["result"].get("k")
+    if not pooled:
+        assert primary["result"].get("estimate") is None and primary["result"].get("reason")
 
 
 def test_noac_rebuilt_scope_mismatch_is_qualified_and_passes_check():

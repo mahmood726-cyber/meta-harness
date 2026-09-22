@@ -120,7 +120,8 @@ def limb_gate_every_page():
         ok, reasons = gate_page(d)
         if not ok:
             bad.append(f"{os.path.basename(d)}: " + "; ".join(reasons))
-    detail = f"{len(dirs)} pages gated" if not bad else "\n".join(bad)
+    from harness.gate import admission_scope
+    detail = (f"{len(dirs)} pages gated; " + admission_scope(dirs[0])) if not bad else "\n".join(bad)
     return (PASS if not bad else REFUSED), _append_target(target_line, detail)
 
 

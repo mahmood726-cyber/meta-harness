@@ -57,12 +57,13 @@ def test_baseline_passes_and_agrees_with_bundle(baseline):
 
 
 def test_pool_reproduced_without_the_harness(baseline):
-    p = baseline["pool"]
-    assert p["reproduced_to_1e-9"], p["abs_deltas"]
-    assert abs(p["recomputed"]["estimate"] - 0.8559934175938467) < 1e-9
-    assert abs(p["recomputed"]["tau2"] - 0.00004447972517261924) < 1e-9
-    assert abs(p["t_crit_recomputed"] - 2.3646242515927853) < 1e-9   # t_{0.975, 7}
-    assert p["k_declared"] == 8 and p["admissible_rows"] == 7
+    p = baseline['pool']
+    assert p['reproduced_to_1e-9'], p['abs_deltas']
+    assert all(delta < 1e-9 for delta in p['abs_deltas'].values())
+    assert p['k_declared'] == len(baseline['rows'])
+    assert p['admissible_rows'] == sum(r['final'] == 'ADMISSIBLE' for r in baseline['rows'])
+    from scipy.stats import t
+    assert abs(p['t_crit_recomputed'] - t.ppf(0.975, p['k_declared'] - 1)) < 1e-9
 
 
 def test_absence_claims_judged_from_recomputed_preservation(baseline):
@@ -128,15 +129,22 @@ def test_PLANT_one_corrupted_limb_refuses_that_admissible_row_for_the_intended_r
 
 
 def test_control_a_row_already_refused_at_baseline_cannot_serve_as_a_mutation_target(baseline):
-    """The hole the old assertion had, kept as a control: corrupting HARMONY (INADMISSIBLE at baseline on
-    P5_family_eligible) leaves the set of refused rows unchanged, so a set-union assertion passes without the
-    corruption having been shown to do anything. The positive-control test above refuses such a target by name."""
-    harmony = next(r for r in baseline["rows"] if r["pmid"] == "30291013")
-    assert harmony["final"] == "INADMISSIBLE" and not harmony["predicates"]["P5_family_eligible"]
-    base_bad = {r["pmid"] for r in baseline["rows"] if r["final"] == "INADMISSIBLE"}
-    rep = _run("--corrupt", "30291013", "span")
-    now_bad = {r["pmid"] for r in rep["rows"] if r["final"] == "INADMISSIBLE"}
-    assert now_bad == base_bad | {"30291013"} and now_bad == base_bad   # the old form: satisfied, and uninformative
+    """A mutation proves refusal only if its target was present and admissible before corruption."""
+    assert baseline['rows']
+    target = next(r for r in baseline['rows'] if r['final'] == 'ADMISSIBLE')
+    first = _run('--corrupt', target['pmid'], 'eligibility')
+    bad = {r['pmid'] for r in first['rows'] if r['final'] == 'INADMISSIBLE'}
+    base_bad = {r['pmid'] for r in baseline['rows'] if r['final'] == 'INADMISSIBLE'}
+    assert target['pmid'] not in base_bad
+    assert bad == base_bad | {target['pmid']}
+    # Against an already-refused baseline, the old union-only form is vacuous.
+    assert bad == bad | {target['pmid']}
+    def require_admissible(report, pmid):
+        row = next(r for r in report['rows'] if r['pmid'] == pmid)
+        assert row['final'] == 'ADMISSIBLE', 'already-refused mutation target'
+    require_admissible(baseline, target['pmid'])
+    with pytest.raises(AssertionError, match='already-refused mutation target'):
+        require_admissible(first, target['pmid'])
 
 
 @pytest.mark.parametrize("pmid", ["40162642", "27295427"])

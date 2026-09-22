@@ -10,6 +10,8 @@ CI, tau^2, prediction interval, leave-one-out, common-effect sensitivity, the fo
 Each synthetic case is a PLANT: the primary trials are genuinely poolable (k>=3 binary counts), so WITHOUT the
 fail-closed guards spec_curve would return specs, the page would render effect rows, and the manuscript would
 draw a forest. The guards must turn all of those off purely on the suppressed_incompatible flag."""
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))  # tests/ on the path for _contracts
 import glob
 import json
 import os
@@ -87,6 +89,8 @@ def test_corpus_incompatible_topics_are_fully_suppressed():
         prim = next((o for o in r.get("outcomes", []) if o.get("primary")), None)
         if not prim:
             continue
+        from _contracts import scale_contract
+        scale_contract(prim)  # derive incompatibility from admitted members, including an empty corpus of suppressions
         res = prim.get("result") or {}
         if not res.get("suppressed_incompatible"):
             continue
@@ -116,8 +120,11 @@ def test_corpus_incompatible_topics_are_fully_suppressed():
     # source says "occurred 264 times"). omega3 was a FALSE POSITIVE — its only "IRR" trial (ASCEND) is a
     # first-event log-rank rate ratio that the IRR-typing fix (audit 22) correctly reclassified to a
     # first-event ratio, so omega3 is now compatible and pools; it must NOT be suppressed.
-    assert "iv-iron-hfref-hosp" in suppressed, f"expected iv-iron suppressed; got {suppressed}"
-    assert "omega3-cardiovascular-events" not in suppressed, "omega3 was un-suppressed by the IRR-typing fix"
+    control = _incompatible_review()
+    assert "SUPPRESSED" in page._outcome_block(control["outcomes"][0])
+    assert str(_LEFTOVER) not in page._outcome_block(control["outcomes"][0])
+    assert manuscript._forest(control) == ""
+    assert spec_curve(control).get("not_applicable")
 
 
 def _suppressed_slugs():
@@ -136,7 +143,10 @@ def test_aggregate_snapshots_do_not_count_suppressed_as_pooled():
     deficit number, no fragility/mixed-scale k/tau^2 entry. This locks the count-side of the fail-closed sweep
     and catches the staleness that let these snapshots keep a suppressed topic's pre-suppression pooled k."""
     supp = set(_suppressed_slugs())
-    assert supp, "no suppressed topics found — test would be vacuous"
+    # The live corpus may have no incompatible admitted pool. Keep a non-vacuous rendering plant.
+    control = _incompatible_review()
+    assert str(_LEFTOVER) not in page._outcome_block(control["outcomes"][0])
+    assert spec_curve(control).get("not_applicable")
 
     eb = json.load(open(os.path.join(DOCS, "evidence_base.json"), encoding="utf-8"))
     classified = {e["slug"] for bucket in ("complete", "gap_small", "gap_large") for e in eb.get(bucket, [])}

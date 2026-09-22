@@ -109,6 +109,10 @@ _ABSENCE_STATE_LABEL = {
     "EXTRACTION_NOT_PERFORMED": "not extracted — the outcome's number IS in the source (extraction gap, not trial absence)",
     "SOURCE_NOT_RETRIEVED": "source not retrieved -- cached abstract text is missing",
     "EXTRACTION_DEBT": "extraction debt -- source-visible value shown below, not pooled",
+    "FAMILY_ELIGIBILITY_NOT_ESTABLISHED": "set aside on admission -- family eligibility not established by held evidence "
+                                          "(P5); candidate value shown below, not pooled",
+    "FAMILY_INELIGIBLE": "refused on admission -- family INELIGIBLE on held evidence (P5); candidate value shown below, not pooled",
+    "ADMISSION_ENDPOINT_UNBOUND": "set aside on admission -- endpoint not bound (P8); candidate value shown below, not pooled",
     "KNOWN_REPORTED_NOT_YET_EXTRACTED": "extraction debt -- source-visible value shown below, not pooled",
     "RETRIEVED_INCOMPATIBLE_STRUCTURE": "retrieved but incompatible with the registered structure",
     "RETRIEVED_REFUSED_WITH_REASON": "retrieved and refused with a source-backed reason",
@@ -444,6 +448,10 @@ def _known_missing_sensitivity_panel(o: dict) -> str:
                         f"{_num(sens.get('ci_low'))}-{_num(sens.get('ci_high'))}; "
                         f"tau2={_tau(sens.get('tau2'))}")
             conclusion = sens.get("conclusion_effect")
+        elif r.get("not_repooled"):
+            # the candidate was not admitted (harness/admission.py): its number is shown, never pooled
+            sens_txt = "NOT RE-POOLED: " + _e(r.get("not_repooled"))
+            conclusion = r.get("conclusion_effect") or "NOT_COMPUTABLE"
         else:
             sens_txt = "not computable"
             conclusion = r.get("conclusion_effect") or "NOT_COMPUTABLE"
@@ -528,7 +536,7 @@ def _transparency_counts(r):
     return ok, total, comp
 
 
-def render_strands_section(d: dict) -> str:
+def render_strands_section(d: dict, suppressed: bool = True) -> str:
     """Render a topic's declared strands (docs/<*>_strands.json content). Shared by the topic page
     (where the single pool is suppressed) and the index, so both surfaces show the SAME strands from
     the ONE artefact -- no categorical/state contradiction between two surfaces."""
@@ -538,7 +546,12 @@ def render_strands_section(d: dict) -> str:
     rows = []
     for s in strands:
         pool = s.get("pool")
-        if pool:
+        ref_adm = s.get("admission_refused")
+        if ref_adm:
+            # a strand with a member the build did not admit renders its refusal, never its saved result
+            res = ("<strong>REFUSED on admission</strong> -- saved result withheld: "
+                   + _e("; ".join(ref_adm.get("members") or [])) + ". " + _e(ref_adm.get("reason") or ""))
+        elif pool:
             sig = "crosses null" if pool.get("crosses_null") else "significant"
             sens = pool.get("common_effect_sensitivity") or {}
             senstxt = (f" <span class='note'>[common-effect sensitivity {_e(sens.get('effect'))} "
@@ -557,8 +570,14 @@ def render_strands_section(d: dict) -> str:
     refline = (f"<p><strong>Refused cross-endpoint pool:</strong> {_e(ref.get('description'))} "
                f"If forced it would be {_e(ref.get('if_forced_it_would_be'))} — "
                f"<code>{_e(ref.get('verdict'))}</code>.</p>" if ref else "")
-    return (f"<div class='banner'><h3>Declared strands (the single pool is suppressed; these are the "
-            f"endpoint-clean decompositions)</h3><p>{_e(d.get('why_topic_is_suppressed'))}</p>"
+    head = ("Declared strands (the single pool is suppressed; these are the endpoint-clean decompositions)" if suppressed else
+            "Declared strands (endpoint-clean decompositions beside the single pool; each strand pools only admitted members)")
+    why = _e(d.get('why_topic_is_suppressed'))
+    if not suppressed:
+        # the declared document's paragraph was written while the single pool was suppressed; it is a hand note now,
+        # not a description of the current pool (whose state the page states above it)
+        why = "<em>Hand note from the declared-strands document, written while the single pool was suppressed; the single pool's current state is stated above, not here:</em> " + why
+    return (f"<div class='banner'><h3>{head}</h3><p>{why}</p>"
             f"<ul>{''.join(rows)}</ul>{refline}"
             f"<p class='note'>Every effect source-verified; intervals from the canonical engine. The "
             f"compatibility key keeps strands apart; a cross-strand pool is refused, not computed.</p></div>")
@@ -804,6 +823,12 @@ def _overview(r, neutral):
             rows.append(("Method", prim.get("method") or r.get("method_declared")))
             parts.append(_kv(rows))
             parts.append(_known_missing_sensitivity_panel(prim))
+        if r.get("strands") and not res.get("suppressed_incompatible"):
+            # a review that DECLARES strands renders them whatever its single pool's state (the suppressed branch above
+            # already did): when iv-iron's primary fell from a suppressed k=2 to an admitted k=1 (2026-09-21) the whole
+            # strand block vanished from the topic page while the index still rendered it -- a disclosure lost on one
+            # surface (lane ACK, unexplained pair). The block carries each strand's admission verdict.
+            parts.append(render_strands_section(r["strands"], suppressed=False))
     if not neutral:
         _tok, _ttot, _tcomp = _transparency_counts(r)
         if _ttot:
@@ -1633,8 +1658,21 @@ def _trial_inputs(o):
                            f"<td class='absent-cell'>{_e(absent_label)}</td>"
                            f"<td>{reason_detail}{alt_txt}</td></tr>")
     absent = "".join(absent_rows)
-    return ("<table class='arms'><tr><th>Trial</th><th>Id</th><th>Input</th><th>Source</th></tr>"
+    return (_admission_block(o)
+            + "<table class='arms'><tr><th>Trial</th><th>Id</th><th>Input</th><th>Source</th></tr>"
             + rows_join(rows) + absent + "</table>")
+
+
+def _admission_block(o):
+    """What the build decided at the pooling convergence point and the scope of that decision (harness/admission.py):
+    rendered from the outcome's admission_summary object, never typed. A page with no summary renders no block --
+    and the gate refuses it (check_admission_enforced), so the block cannot go missing quietly."""
+    from . import admission as _adm
+    s = o.get("admission_summary")
+    if not isinstance(s, dict):
+        return ""
+    return ("<div class='absent'><strong>Admission at pooling (" + _e(", ".join(s.get("evaluated_in_build") or [])) + ").</strong> "
+            + _e(_adm.describe(s)) + "</div>")
 
 
 def rows_join(rows):
@@ -2786,8 +2824,17 @@ def _riskofbias(r, neutral):
     # silent verified-looking inclusion. Never an adjustment; a disclosure computed from AACT arm structure.
     ac = (r.get("arm_contrast") or {}).get("trials") or {}
     ac_html = ""
+    stale = (r.get("arm_contrast") or {}).get("stale_block_unrenderable") or {}
+    if stale and not ac:
+        # the cache named trials and the current pool holds none of them (every candidate set aside on admission,
+        # 2026-09-21): the stale-membership statement renders even though there is no contrast table to render
+        ac_html += (
+            "<div class='absent'><strong>UNRENDERABLE stale contrast block.</strong> "
+            f"{_e(stale.get('reason'))}; current pooled trial ids: "
+            f"{_e(', '.join(stale.get('current_pooled_trial_ids') or []) or 'none')}; suppressed stale ids: "
+            f"{_e(', '.join(stale.get('dropped_trial_ids') or []))}.</div>"
+        )
     if ac:
-        stale = (r.get("arm_contrast") or {}).get("stale_block_unrenderable") or {}
         _AC_LABEL = {"verified": "parser-confirmed contrast",
                      "background_only": "BACKGROUND IN ALL ARMS — not a randomised contrast",
                      "unverified_granularity": "contrast unverified (registry class label / dev code)",
@@ -2805,7 +2852,7 @@ def _riskofbias(r, neutral):
             ac_html += (
                 "<div class='absent'><strong>UNRENDERABLE stale contrast block.</strong> "
                 f"{_e(stale.get('reason'))}; current pooled trial ids: "
-                f"{_e(', '.join(stale.get('current_pooled_trial_ids') or []))}; suppressed stale ids: "
+                f"{_e(', '.join(stale.get('current_pooled_trial_ids') or []) or 'none')}; suppressed stale ids: "
                 f"{_e(', '.join(stale.get('dropped_trial_ids') or []))}.</div>"
             )
         ac_html += ("<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the "

@@ -1,4 +1,6 @@
 """ELX plants: held custody must constrain missing-state decisions and rendering."""
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))  # tests/ on the path for _contracts
 import hashlib
 import html
 import json
@@ -64,12 +66,18 @@ def test_elixa_conflict_spans_primary_unchanged():
         'table8_ontreatment_3p': 24, 'executive_summary_3p': 7,
         'primary_4p_table6': 22, 'primary_4p_text': 35, 'primary_4p_unrounded_text': 8}
     base = json.loads(subprocess.check_output(['git', 'show', f'237e9094:docs/reviews/{SLUG}/review.json']))
-    assert outcome['result']['k'] == 8
+    from _contracts import partition
+    partition(ROOT, SLUG, outcome)
+    assert outcome['result']['k'] == len(outcome['trials'])
+    assert '26630143' not in {t['id'].replace('PMID ', '') for t in outcome['trials']}
     # the primary RESULT is unchanged: every scientific field equal; the dependency stamps (input_set_version,
     # claim_id, depends_on) are re-derived by later landings (ws/TF widened the input set) and are not the result
     _stamps = {'input_set_version', 'claim_id', 'depends_on', 'claim_kind'}
     scientific = lambda res: {k: v for k, v in res.items() if k not in _stamps}
-    assert scientific(outcome['result']) == scientific(primary(base)['result'])
+    from harness.synth import Study, pool
+    result = pool([Study(label=t['id'], effect=t['effect'], ci_low=t['ci_low'], ci_high=t['ci_high'], measure='HR') for t in outcome['trials']], scale='HR')
+    for field in ('estimate', 'ci_low', 'ci_high', 'tau2'):
+        assert outcome['result'][field] == pytest.approx(round(getattr(result, field), 4), abs=1e-6)
     from harness.page import _stale_topic_overview
     assert '1.02' not in _stale_topic_overview(review)
 
@@ -91,7 +99,8 @@ def test_membership_demonstration_recomputed():
     assert demo['proposed']['pi_high'] > 1
     page = (ROOT / 'docs/reviews' / SLUG / 'index.html').read_text(encoding='utf-8')
     assert demo['state'] in page
-    assert 'under the PROPOSED adjudication -- not a result; the primary k=8 pool is unchanged' in page
+    assert f"under the PROPOSED adjudication -- not a result; the primary k={len(outcome['trials'])} pool is unchanged" in page
+    assert elixa['trial_key'] not in {t['id'].replace('PMID ', '') for t in outcome['trials']}
 
 
 def test_state_derivation_proposed_cannot_promote():

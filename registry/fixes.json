@@ -7139,6 +7139,121 @@
     }
    },
    "note": "Tests that asserted a FINDING rather than a property, found while repairing the population pins (2026-09-20): tests/test_continuous_multiarm.py::test_esketamine_transform1_combined_arm_pooled asserted 'CI now excludes 0' -- a hard-coded RESULT, which would have failed the moment the evidence changed and read as a regression rather than as the conclusion never having been a requirement; tests/test_verified_effects.py asserted 'verifies against its own committed span, not the abstract' (the haystack defect as the requirement); tests/test_verified_override.py pooled an override on a hand-written source string; test_compat_key / test_harms_recovery / test_membership_consistency asserted literal k. Each is rewritten to the property it protected. A test that asserts a finding will defend that finding against the evidence. INCIDENT on the countersignature file (2026-09-21 ~10:35Z, before signing): a shell heredoc collapsed the backslashes in a patch script, the patch failed, and a ';'-chained probe on the same command line ran the PRE-patch countersign script on esketamine with '--by X' and no basis, writing a signature that named no basis into docs/result_changes.json. Caught at once (the probe's own output named the signer), restored from the byte-identical mirror tree, verified 13 OPEN and 0 rendered hashes moved, and only then signed through the patched script with --basis required. Nothing was regenerated or published in between. Recorded because a near-miss on the one file built to be tamper-evident belongs in the ledger; rule adopted: a state-changing command is never chained after a patch with ';'."
+  },
+  {
+   "finding_id": "enforcement-gate-2026-09-21",
+   "fix_id": "enforcement-gate-2026-09-21",
+   "title": "The build reads the admission decision at the pooling convergence point (P5 family eligibility, P8 endpoint bound) and the page gate enforces it",
+   "kind": "fix",
+   "implementation": "REPORTED",
+   "verification": "NONE",
+   "scope": "CORPUS",
+   "author": "Claude Opus 5 (branch enforcement-gate)",
+   "opened_utc": "2026-09-21T21:41:54Z",
+   "evidence_dir": "docs/evidence/enforcement-gate-2026-09-21",
+   "events": [
+    {
+     "implementation": "REPORTED",
+     "verification": "NONE",
+     "scope": "CORPUS",
+     "when_utc": "2026-09-21T21:41:54Z",
+     "by": "Claude Opus 5 (branch enforcement-gate)",
+     "commit": "38c04411484dbea035a8e4c8e22c57c2794f9495",
+     "evidence": [
+      "docs/evidence/enforcement-gate-2026-09-21/00-shadow-census-38c04411.json",
+      "docs/evidence/enforcement-gate-2026-09-21/01-prefix-gate-passes-unknown-families.txt",
+      "docs/evidence/enforcement-gate-2026-09-21/02-red-today-38c04411.txt",
+      "docs/evidence/enforcement-gate-2026-09-21/03-red-today-rows-38c04411.json",
+      "docs/evidence/enforcement-gate-2026-09-21/04-after-admission-census.json",
+      "docs/evidence/enforcement-gate-2026-09-21/04-after-admission-census.txt",
+      "docs/evidence/enforcement-gate-2026-09-21/05-gate-sweep-after.txt",
+      "docs/evidence/enforcement-gate-2026-09-21/06-families-state-identity.txt",
+      "docs/evidence/enforcement-gate-2026-09-21/07-result-change-notices.txt",
+      "docs/evidence/enforcement-gate-2026-09-21/08-lane-V-reproduction-and-red-team.md",
+      "docs/evidence/enforcement-gate-2026-09-21/09-lane-R-adversarial-review.md",
+      "docs/evidence/enforcement-gate-2026-09-21/10-lane-S-decision-consumption-sweep.md",
+      "docs/evidence/enforcement-gate-2026-09-21/11-lane-T-test-triage.md",
+      "docs/evidence/enforcement-gate-2026-09-21/12-lane-ACK-acknowledgement-pairs.md",
+      "docs/evidence/enforcement-gate-2026-09-21/13-verify-all-observed-run3.log",
+      "docs/evidence/enforcement-gate-2026-09-21/14-verify-all-superseded-runs-1-2.log",
+      "docs/evidence/enforcement-gate-2026-09-21/README.md"
+     ],
+     "reason": "Measured first on the served bytes of main 38c04411: the served gate PASSED probiotics-aad-prevention with 11 of 11 pooled primary rows in family state UNKNOWN (01), and the new check, run on those untouched pages, refuses 32 of 32 and names 53 of 87 pooled primary rows INADMISSIBLE on P5 -- cell-for-cell the shadow census's distribution (00, 02, 03). One implementation (harness/admission.py) is read by the build at target_endpoint.admit_rows and re-read by gate.check_admission_enforced; a P5 refusal sets the candidate extraction aside on the outcome with the tuple it carried, the absence code and the recovery -- the trial is not erased; a screened-in row that vanishes is a refusal; a build handed no family ledger admits nothing; every outcome carries an admission_summary that names the in-build scope (P5, P8) and the twelve predicates only the bundle evaluates. Twelve plants (tests/test_admission_enforced.py) were observed failing on 38c04411 before the fix. After the regeneration of 32 of 32 topics: primary candidate rows N = 87 = pooled 34 + set aside 53 (04); gate sweep after the regeneration: pages refused 24 of 32; refusal reasons by kind {'result-change notice OPEN': 41, 'no pooled primary result': 11} (05: no pooled primary result, and OPEN result-change notices awaiting Mahmood's countersignature) -- the RED state is the deliverable, and it lands only with the reviewer's decisions, never by dropping rows. Two Codex lanes reproduced the numbers and found nine defects by execution (08, 09), a third swept the harness for the same defect class elsewhere (10: F1/F2/F5 confirmed, NOT fixed here -- their own decision), a fourth read 56 failing tests into three buckets (11), a fifth read every acknowledgement pair (12). Eight consumers broke because a pool went EMPTY -- the corpus had never had one (README)."
+    }
+   ],
+   "verified_by": {
+    "identity": null,
+    "kind": null
+   },
+   "verifications": [],
+   "authored_against": [
+    "38c04411484dbea035a8e4c8e22c57c2794f9495"
+   ],
+   "generalized_on": [],
+   "executable_evidence": {
+    "command": "python -m pytest tests/test_admission_enforced.py tests/test_admission_routes.py -q && python scripts/admission_census.py",
+    "expected_substring": "passed",
+    "scope_basis": "Twelve property plants (build set-aside / refusal / migration state / no ledger; real-route paired plant on glp1; gate refusals for unstamped, disagreeing-stamp and vanished rows; NOT_EVALUATED and NO_CANDIDATE_ROWS summaries; bundle vocabulary), nine plants from lane R's executed findings (screening ratchet; known-missing, invalidation and strand re-pool admission; census/summary refusal; scope on pass; predicate-named set-aside; all-set-aside explanation) and the stamp-reading census over every served page.",
+    "topic_list": "32 of 32 served topics regenerated and censused (scripts/admission_census.py; every docs/reviews/<slug> named in 04); the real-route plant is glp1-ra-mace-t2d only (named)"
+   },
+   "seal": {
+    "sealed_utc": "2026-09-21T21:41:54Z",
+    "commit": "",
+    "dependencies": {
+     "docs/error_rate.json": "ce740cc05a89c633326115b580cace2b88c47d12",
+     "docs/evidence/enforcement-gate-2026-09-21/00-shadow-census-38c04411.json": "aa6c800284f5d8d1dd3abdf423e03e93eda09de6",
+     "docs/evidence/enforcement-gate-2026-09-21/01-prefix-gate-passes-unknown-families.txt": "6dc86c24760b71873c42d58e38b5d1375310b021",
+     "docs/evidence/enforcement-gate-2026-09-21/02-red-today-38c04411.txt": "b262e0b82b2eb4dedffb1384a93d2610000a16a9",
+     "docs/evidence/enforcement-gate-2026-09-21/03-red-today-rows-38c04411.json": "ca52b4143f91431be007ec3fdc319a35064201fa",
+     "docs/evidence/enforcement-gate-2026-09-21/04-after-admission-census.json": "96e97e8422537fda5a3282fa51213b877b2f2922",
+     "docs/evidence/enforcement-gate-2026-09-21/04-after-admission-census.txt": "f65b4f654d1dacbe4bc7b515d61082f0e1148e09",
+     "docs/evidence/enforcement-gate-2026-09-21/05-gate-sweep-after.txt": "5c5875c65f7d943cfcd2c2c1fef8ede208e8b926",
+     "docs/evidence/enforcement-gate-2026-09-21/06-families-state-identity.txt": "af7e541c984b9e17c9745fbe0fa70e954ad75e29",
+     "docs/evidence/enforcement-gate-2026-09-21/07-result-change-notices.txt": "8969b38438dd4c5598b50ef2619a502e8aa7130f",
+     "docs/evidence/enforcement-gate-2026-09-21/08-lane-V-reproduction-and-red-team.md": "373ed060df8aa7421162b17fca66539829f4b2a9",
+     "docs/evidence/enforcement-gate-2026-09-21/09-lane-R-adversarial-review.md": "9dbc8c7b5396e43f37f15f43b9e0f01fbc437591",
+     "docs/evidence/enforcement-gate-2026-09-21/10-lane-S-decision-consumption-sweep.md": "d8dd31c6a469af0bf80990cb3651a45804f2bfcf",
+     "docs/evidence/enforcement-gate-2026-09-21/11-lane-T-test-triage.md": "aed99a68012e1fe9e9543d8ef51e3b08ca8150bc",
+     "docs/evidence/enforcement-gate-2026-09-21/12-lane-ACK-acknowledgement-pairs.md": "5975af4eaa83ddbf0463cc770d3523885a999db4",
+     "docs/evidence/enforcement-gate-2026-09-21/13-verify-all-observed-run3.log": "a59c0c49012888ee2a57a52a86683a9435216626",
+     "docs/evidence/enforcement-gate-2026-09-21/14-verify-all-superseded-runs-1-2.log": "79afa94eda469be5325356826f2297b03e0c6d6b",
+     "docs/evidence/enforcement-gate-2026-09-21/README.md": "c25cc543bfb7ed8435f3604e9a05f5b9ac1b4ade",
+     "docs/ratchet_acknowledgements.json": "5c348da13cea5bf920ffc427a59d90f54283592d",
+     "docs/result_changes.json": "1f06c10550939b726457ac7242df4b47ad32df82",
+     "harness/absence.py": "66b5562b6a58c0aae9768b18edf2d8a07f96e069",
+     "harness/admission.py": "dbe5ffb09c87b954e440dba4bf1fca38e2718d7c",
+     "harness/consumer_consistency.py": "9652457cb932121c169506da22667f9d6a0cb173",
+     "harness/design_variance.py": "b2ef45023d0f0030b1bb8d751301dfcb401a317f",
+     "harness/endpoint_canonical.py": "c85337faf26f090f650f4817d446f38b8eac8a14",
+     "harness/gate.py": "209770f4e8c54203bf68aefb88875d9347b32c0f",
+     "harness/harms.py": "16bcc3c7d9ad5d550387cfb41bcef67243788d64",
+     "harness/hazard_consumers.py": "09a2b973ee9d8ba1afa2145679cf6380191de9ed",
+     "harness/honest_ratchet.py": "25cc571297bced66b92a767e352fe64b9d6b9864",
+     "harness/index.py": "dc23318ed2b877bdee7cd33a23069d4498a83acd",
+     "harness/invalidation.py": "1a358de66917e6eda49b1a6a350e01e060aa003b",
+     "harness/known_missing.py": "a12e8a9215186c0a892075dcbb6791b4b9ac25b4",
+     "harness/limitations.py": "5616f4ae8851299d3e76e4424e973be6aa096ecc",
+     "harness/page.py": "ba9cc07c0cfef7df16cd2392938e5e4170c70eae",
+     "harness/parity_relation.py": "835063791f551cd327e5cc46ca50d06702bb85e4",
+     "harness/pipeline.py": "5b865ec7c997b04614890d487ad662c1fa1b1903",
+     "harness/trial_family.py": "e80228988ebb6d4a1f382f52225c3be2e9dc4740",
+     "registry/gate_scorecard.json": "62eb7237c8166504577330c92084d740f13fc2d2",
+     "scripts/admission_census.py": "cd2dd0dcdaacf25f754f2ed5486856a91770c187",
+     "scripts/refresh_result_change_notices.py": "88833da0dd965e098e2c3d815065d7e24a09a0a9",
+     "scripts/verify_all.py": "cb769c56a81f0fa24b2983762499576aa1ddacb8",
+     "tests/_contracts.py": "ae45234c7fe2c242f67b1c90e277a05af0a5a58f",
+     "tests/_families.py": "c389ba89498f2c1edf30732839c542f8c2cdd6d9",
+     "tests/test_admission_enforced.py": "71bad45dbdb35250e4736f98249bd34130cbeaf8",
+     "tests/test_admission_routes.py": "e6197d9b2ce65c5ee8f23e4d14781616d26eae01"
+    },
+    "configuration": {
+     "schema": "fixes-v3",
+     "lane": "enforcement-gate",
+     "base": "38c04411",
+     "note": "sealed against the lane tree's bytes; the landing commit cannot name itself"
+    }
+   },
+   "note": "Decisions this landing does NOT make: whether each of the 53 rows is truly inadmissible (the structural screen proves eligibility from registry evidence only; a trial without a resolved registry parent is UNKNOWN by construction) is the reviewer's, per family; the 4 rows bound by a producer route the bundle's P8 does not name are pooled in-build and recorded per row as bundle_rule_agreement OTHER_ROUTE (a rule limit raised with the bundle lane, not a refusal); the certified cache/<slug>/families.json copies (compact form) were regenerated here from the same derivation the page uses (build_families.py --offline; 29 of 32 moved on membership fields stale since the M2 landing; eligibility states identical, 06). Two Codex lanes at xhigh (08, 09) reproduced the arrival numbers and found nine defects by execution, each fixed at cause with a plant (tests/test_admission_routes.py); the most important, R1, a consistent rebuild that dropped a trial by editing the topic's include list and passed the whole gate, is closed by the screening ratchet."
   }
  ]
 }

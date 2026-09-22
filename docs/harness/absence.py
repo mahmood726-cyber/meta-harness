@@ -274,6 +274,15 @@ def classify_reason(keywords, abstract, fulltext=None, outcome_name=None, declar
         return {"reason_code": row["reason_code"], "state": row.get("state") or REFUSED_ON_EVIDENCE,
                 "state_basis": _basis(row["reason_code"], span, reason),
                 "source_span": _clip(span), "verbatim_span": _clip(span)}
+    # A row the build set aside on ADMISSION (harness/admission.py, P5 family eligibility, 2026-09-21) keeps its
+    # state too: its number WAS extracted and refused on admission, so relabelling it EXTRACTION_NOT_PERFORMED /
+    # ESTIMAND_CLASS_MISMATCH from the source text would state a wrong reason (observed on the first rebuild).
+    from .admission import ADMISSION_SET_ASIDE_STATES
+    if row.get("state") in ADMISSION_SET_ASIDE_STATES and isinstance(row.get("admission_verdict"), dict):
+        span = row.get("endpoint_result_span") or row.get("source_span") or row.get("source") or ""
+        return {"reason_code": row.get("reason_code") or "P5_family_eligible", "state": row["state"],
+                "state_basis": _basis(row.get("reason_code") or "P5_family_eligible", span, reason),
+                "source_span": _clip(span), "verbatim_span": _clip(span)}
     # All lane adjudications require a recognized reason and an exact held span.
     code = row.get("refusal_provenance") or row.get("reason_code") or row.get("state")
     span = row.get("source_span") or row.get("verbatim_span")

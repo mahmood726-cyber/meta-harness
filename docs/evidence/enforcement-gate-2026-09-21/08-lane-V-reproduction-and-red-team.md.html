@@ -1,0 +1,1397 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>08-lane-V-reproduction-and-red-team.md (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>08-lane-V-reproduction-and-red-team.md</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/enforcement-gate-2026-09-21/08-lane-V-reproduction-and-red-team.md</code>; its SHA-256 is <code>e3b2e9b2a171a4a6c30168a8f8ec428f2e106a993463963394f5d0b85b974cf6</code> (160,673 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> Codex lane V (xhigh): independent reproduction of the measurements and the drop-the-rows red team, commands and outputs.</p><pre># Lane V — enforcement-gate reproduction and red-team audit
+
+Audit complete. No commits requested or made. Served pages were not edited or rebuilt.
+
+Key findings, with the full commands and evidence in the four parts below:
+
+- Pre-fix plants: 12 of 12 fail, consisting of 11 of 12 ImportError and 1 of 12 KeyError; no semantic assertion failure. The independent real-page witness passes with 11 of 11 primary family states UNKNOWN.
+- Post-fix plants: 12 of 12 pass. Untouched-page enforcement refuses 32 of 32 pages; recomputation marks 53 of 87 primary pooled rows INADMISSIBLE. The stamp census exits with code `1`, with 127 of 127 pooled rows unstamped.
+- Red team: 6 of 6 variants refuse. V1/V3 detect the vanished trial internally but omit its name from emitted reasons; V2 shrinks the included denominator from 57 of 57 to 56 of 57 and loses that signal. V6 is an admission refusal, not merely a hash catch.
+- The global single-computing-site claim fails: 3 distinct algorithms across 4 physical sites; only 1 of 4 sites is the shared in-build verdict. Details distinguish the bundle builder, independent verifier, and identical shipped verifier mirror.
+- Preservation: 194 of 194 served review files and 937 of 937 cache files match the baseline. Tracked served/cache diff is empty, and HEAD is unchanged.
+
+## Scope and evidence handling
+
+The commands below run with Windows `python` in this checkout. Command output is recorded verbatim, including denominator lines and native exit codes. Counts in interpretation are expressed against their named denominator; identifiers, source line numbers, versions, and verbatim output retain their original notation.
+
+Initial preflight: `git status --short` showed only `LANE_PROMPT.md`, `lane.log`, and `source.patch` untracked. `git rev-parse HEAD` returned `38c04411484dbea035a8e4c8e22c57c2794f9495`. `python --version` returned `Python 3.13.13`. The project index and rewrite workbook were read first, but their large output was truncated; a targeted `rg -n &#x27;meta-harness|mh-g-V&#x27;` over both returned no matches. Neither is edited by this lane. No portfolio or submission status is changed.
+
+Operational disclosure: the initial oversized context read was polled with a Ctrl-C input while the lane instructions were being retrieved. The response reported that the process had already completed with exit code zero; no termination was reported. Subsequent processes were allowed to finish naturally; no further stop, kill, or signal operation was issued.
+
+| Material | Static or dynamic | Disclosure |
+| --- | --- | --- |
+| `source.patch` and baseline served/cache files | Static supplied inputs | Inspected from disk; no live acquisition or clinical claim validation is inferred. |
+| Pre/post tests and census | Dynamic measured results | Actual process output and exit status recorded below. |
+| `.tmp/rt` variants | Deliberately altered copies | Forged eligibility/stamps are adversarial fixtures, never research output. |
+| Reader inventory and gap analysis | Source-derived | File/line evidence and bounded conclusions; no second verdict implementation added. |
+
+## Part 1 — pre-fix plants and served gate
+
+
+### Test-only patch application
+
+Command:
+
+```text
+git apply --include=tests/* source.patch
+```
+
+Real output:
+
+```text
+
+```
+
+Native exit code: `0`.
+
+### Pre-fix admission plants
+
+Command:
+
+```text
+python -m pytest tests/test_admission_enforced.py -q -p no:cacheprovider --basetemp .tmp/pt1
+```
+
+Real output:
+
+```text
+FFFFFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+___ test_build_sets_aside_a_row_whose_family_eligibility_is_not_established ___
+
+    def test_build_sets_aside_a_row_whose_family_eligibility_is_not_established():
+        &quot;&quot;&quot;P5 FAIL by UNKNOWN: the candidate extraction is rejected, the trial is not.&quot;&quot;&quot;
+&gt;       from harness import admission
+E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)
+
+tests\test_admission_enforced.py:78: ImportError
+_______ test_build_refuses_on_evidence_a_row_whose_family_is_ineligible _______
+
+    def test_build_refuses_on_evidence_a_row_whose_family_is_ineligible():
+        &quot;&quot;&quot;P5 FAIL by INELIGIBLE (a positive finding with a span): refused on evidence, span carried, trial kept.&quot;&quot;&quot;
+&gt;       from harness import admission
+E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)
+
+tests\test_admission_enforced.py:95: ImportError
+____________ test_build_keeps_the_migration_state_pooled_and_named ____________
+
+    def test_build_keeps_the_migration_state_pooled_and_named():
+        &quot;&quot;&quot;An unbound_legacy row whose family is ELIGIBLE is the bundle&#x27;s MIGRATION state: pooled, counted separately.&quot;&quot;&quot;
+&gt;       from harness import admission
+E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)
+
+tests\test_admission_enforced.py:104: ImportError
+______________ test_build_handed_no_family_ledger_admits_nothing ______________
+
+    def test_build_handed_no_family_ledger_admits_nothing():
+        &quot;&quot;&quot;ON by default: a build that has no family ledger cannot establish P5 and pools nothing.&quot;&quot;&quot;
+&gt;       from harness import admission
+E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)
+
+tests\test_admission_enforced.py:114: ImportError
+________ test_the_producer_route_reads_the_decision_on_the_real_inputs ________
+
+    def test_the_producer_route_reads_the_decision_on_the_real_inputs():
+        &quot;&quot;&quot;The real route (pipeline.outcome_inputs + the real _build_outcome) on committed glp1 inputs: flipping ONE
+        family&#x27;s eligibility to INELIGIBLE removes exactly that trial from the pool, keeps it on the outcome as a
+        refusal, and the restored ledger gives the control pool back. Paired shape; no number asserted.&quot;&quot;&quot;
+        from harness import fetch
+        config = json.load(open(os.path.join(pipeline.ROOT, &quot;topics&quot;, SLUG + &quot;.json&quot;), encoding=&quot;utf-8&quot;))
+        records = fetch.ensure(config, &quot;&quot;)
+        inp = pipeline.outcome_inputs(SLUG, config, records)
+        spec = next(s for s, k in pipeline._outcome_specs(config) if s.get(&quot;name&quot;) == PRIMARY)
+        control = pipeline.build_outcome_from_inputs(inp, spec, &quot;efficacy&quot;, SLUG)
+&gt;       pooled = [t for t in control[&quot;trials&quot;] if t[&quot;admission_verdict&quot;][&quot;final&quot;] == &quot;ADMISSIBLE&quot;]
+                                                  ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: &#x27;admission_verdict&#x27;
+
+tests\test_admission_enforced.py:130: KeyError
+_ test_gate_refuses_a_page_that_pools_an_unstamped_row_whose_family_is_not_eligible _
+
+    def test_gate_refuses_a_page_that_pools_an_unstamped_row_whose_family_is_not_eligible():
+        &quot;&quot;&quot;RED on today&#x27;s pages: no stamp AND the page&#x27;s own families say UNKNOWN. The refusal names the trial,
+        the family, the state and the absence code, and prints the scope of what it checked.&quot;&quot;&quot;
+        with tempfile.TemporaryDirectory() as tmp:
+&gt;           d = _page(tmp, [_row(&quot;1&quot;)], [_family(&quot;fam-1&quot;, &quot;1&quot;, state=&quot;UNKNOWN&quot;, code=&quot;INTERVENTION_CONTRAST_NOT_PROVEN&quot;)], stamp=False)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_admission_enforced.py:180: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp = &#x27;F:\\mh-g-V\\.tmp\\tmphopt_3of&#x27;
+rows = [{&#x27;ci_high&#x27;: 0.9, &#x27;ci_low&#x27;: 0.7, &#x27;effect&#x27;: 0.8, &#x27;endpoint_admissibility&#x27;: &#x27;EXACT_TARGET&#x27;, ...}]
+fams = [{&#x27;aliases&#x27;: {&#x27;acronym&#x27;: []}, &#x27;arms&#x27;: [], &#x27;eligibility&#x27;: {&#x27;absence_code&#x27;: &#x27;INTERVENTION_CONTRAST_NOT_PROVEN&#x27;, &#x27;state&#x27;: &#x27;UNKNOWN&#x27;}, &#x27;family_id&#x27;: &#x27;fam-1&#x27;, ...}]
+stamp = False, screening_ids = None
+
+    def _page(tmp, rows, fams, stamp=True, screening_ids=None):
+        &quot;&quot;&quot;A synthetic served page: the review carries its own trial_families copy and (optionally) stamped rows.&quot;&quot;&quot;
+&gt;       from harness import admission
+E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)
+
+tests\test_admission_enforced.py:151: ImportError
+_ test_gate_refuses_a_stamped_row_whose_stamp_disagrees_with_the_page_families _
+
+    def test_gate_refuses_a_stamped_row_whose_stamp_disagrees_with_the_page_families():
+        &quot;&quot;&quot;A stamp is not trusted: ADMISSIBLE on the row while the page&#x27;s own families read UNKNOWN is refused.&quot;&quot;&quot;
+        with tempfile.TemporaryDirectory() as tmp:
+            fams = [_family(&quot;fam-1&quot;, &quot;1&quot;)]
+&gt;           d = _page(tmp, [_row(&quot;1&quot;)], fams)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_admission_enforced.py:192: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp = &#x27;F:\\mh-g-V\\.tmp\\tmp01imuwj9&#x27;
+rows = [{&#x27;ci_high&#x27;: 0.9, &#x27;ci_low&#x27;: 0.7, &#x27;effect&#x27;: 0.8, &#x27;endpoint_admissibility&#x27;: &#x27;EXACT_TARGET&#x27;, ...}]
+fams = [{&#x27;aliases&#x27;: {&#x27;acronym&#x27;: []}, &#x27;arms&#x27;: [], &#x27;eligibility&#x27;: {&#x27;span&#x27;: {&#x27;design&#x27;: {&#x27;allocation&#x27;: &#x27;RANDOMIZED&#x27;}, &#x27;population&#x27;: {&#x27;quote&#x27;: &#x27;adults with the condition&#x27;}}, &#x27;state&#x27;: &#x27;ELIGIBLE&#x27;}, &#x27;family_id&#x27;: &#x27;fam-1&#x27;, ...}]
+stamp = True, screening_ids = None
+
+    def _page(tmp, rows, fams, stamp=True, screening_ids=None):
+        &quot;&quot;&quot;A synthetic served page: the review carries its own trial_families copy and (optionally) stamped rows.&quot;&quot;&quot;
+&gt;       from harness import admission
+E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)
+
+tests\test_admission_enforced.py:151: ImportError
+_______ test_gate_refuses_a_page_from_which_a_screened_in_row_vanished ________
+
+    def test_gate_refuses_a_page_from_which_a_screened_in_row_vanished():
+        &quot;&quot;&quot;Not satisfiable by dropping rows: a record screened IN that is neither pooled nor set aside is a refusal.&quot;&quot;&quot;
+        with tempfile.TemporaryDirectory() as tmp:
+            fams = [_family(&quot;fam-1&quot;, &quot;1&quot;), _family(&quot;fam-2&quot;, &quot;2&quot;)]
+&gt;           d = _page(tmp, [_row(&quot;1&quot;), _row(&quot;2&quot;)], fams)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_admission_enforced.py:203: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp = &#x27;F:\\mh-g-V\\.tmp\\tmpdy16be41&#x27;
+rows = [{&#x27;ci_high&#x27;: 0.9, &#x27;ci_low&#x27;: 0.7, &#x27;effect&#x27;: 0.8, &#x27;endpoint_admissibility&#x27;: &#x27;EXACT_TARGET&#x27;, ...}, {&#x27;ci_high&#x27;: 0.9, &#x27;ci_low&#x27;: 0.7, &#x27;effect&#x27;: 0.8, &#x27;endpoint_admissibility&#x27;: &#x27;EXACT_TARGET&#x27;, ...}]
+fams = [{&#x27;aliases&#x27;: {&#x27;acronym&#x27;: []}, &#x27;arms&#x27;: [], &#x27;eligibility&#x27;: {&#x27;span&#x27;: {&#x27;design&#x27;: {&#x27;allocation&#x27;: &#x27;RANDOMIZED&#x27;}, &#x27;population...&#x27;RANDOMIZED&#x27;}, &#x27;population&#x27;: {&#x27;quote&#x27;: &#x27;adults with the condition&#x27;}}, &#x27;state&#x27;: &#x27;ELIGIBLE&#x27;}, &#x27;family_id&#x27;: &#x27;fam-2&#x27;, ...}]
+stamp = True, screening_ids = None
+
+    def _page(tmp, rows, fams, stamp=True, screening_ids=None):
+        &quot;&quot;&quot;A synthetic served page: the review carries its own trial_families copy and (optionally) stamped rows.&quot;&quot;&quot;
+&gt;       from harness import admission
+E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)
+
+tests\test_admission_enforced.py:151: ImportError
+_______ test_gate_accepts_a_consistent_stamped_page_and_names_its_scope _______
+
+    def test_gate_accepts_a_consistent_stamped_page_and_names_its_scope():
+        &quot;&quot;&quot;Control: stamped, consistent, nothing vanished -&gt; the admission check adds no refusal.&quot;&quot;&quot;
+        with tempfile.TemporaryDirectory() as tmp:
+&gt;           d = _page(tmp, [_row(&quot;1&quot;), _row(&quot;2&quot;, binding=&quot;unbound_legacy&quot;)], [_family(&quot;fam-1&quot;, &quot;1&quot;), _family(&quot;fam-2&quot;, &quot;2&quot;)])
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_admission_enforced.py:215: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp = &#x27;F:\\mh-g-V\\.tmp\\tmpp6t3z3cb&#x27;
+rows = [{&#x27;ci_high&#x27;: 0.9, &#x27;ci_low&#x27;: 0.7, &#x27;effect&#x27;: 0.8, &#x27;endpoint_admissibility&#x27;: &#x27;EXACT_TARGET&#x27;, ...}, {&#x27;ci_high&#x27;: 0.9, &#x27;ci_low&#x27;: 0.7, &#x27;effect&#x27;: 0.8, &#x27;endpoint_admissibility&#x27;: &#x27;EXACT_TARGET&#x27;, ...}]
+fams = [{&#x27;aliases&#x27;: {&#x27;acronym&#x27;: []}, &#x27;arms&#x27;: [], &#x27;eligibility&#x27;: {&#x27;span&#x27;: {&#x27;design&#x27;: {&#x27;allocation&#x27;: &#x27;RANDOMIZED&#x27;}, &#x27;population...&#x27;RANDOMIZED&#x27;}, &#x27;population&#x27;: {&#x27;quote&#x27;: &#x27;adults with the condition&#x27;}}, &#x27;state&#x27;: &#x27;ELIGIBLE&#x27;}, &#x27;family_id&#x27;: &#x27;fam-2&#x27;, ...}]
+stamp = True, screening_ids = None
+
+    def _page(tmp, rows, fams, stamp=True, screening_ids=None):
+        &quot;&quot;&quot;A synthetic served page: the review carries its own trial_families copy and (optionally) stamped rows.&quot;&quot;&quot;
+&gt;       from harness import admission
+E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)
+
+tests\test_admission_enforced.py:151: ImportError
+______ test_summary_over_nothing_evaluated_reads_not_evaluated_not_zero _______
+
+    def test_summary_over_nothing_evaluated_reads_not_evaluated_not_zero():
+&gt;       from harness import admission
+E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)
+
+tests\test_admission_enforced.py:223: ImportError
+___________ test_scope_names_what_is_and_is_not_evaluated_in_build ____________
+
+    def test_scope_names_what_is_and_is_not_evaluated_in_build():
+&gt;       from harness import admission
+E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)
+
+tests\test_admission_enforced.py:235: ImportError
+_______________________ test_vocabulary_is_the_bundles ________________________
+
+    def test_vocabulary_is_the_bundles():
+        &quot;&quot;&quot;One decision, one vocabulary: the verdict words and predicate ids the build stamps are the words the served
+        bundle defines (docs/reviews/&lt;slug&gt;/BUNDLE.json, predicate_definitions / final).&quot;&quot;&quot;
+&gt;       from harness import admission
+E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)
+
+tests\test_admission_enforced.py:248: ImportError
+=========================== short test summary info ===========================
+FAILED tests/test_admission_enforced.py::test_build_sets_aside_a_row_whose_family_eligibility_is_not_established
+FAILED tests/test_admission_enforced.py::test_build_refuses_on_evidence_a_row_whose_family_is_ineligible
+FAILED tests/test_admission_enforced.py::test_build_keeps_the_migration_state_pooled_and_named
+FAILED tests/test_admission_enforced.py::test_build_handed_no_family_ledger_admits_nothing
+FAILED tests/test_admission_enforced.py::test_the_producer_route_reads_the_decision_on_the_real_inputs
+FAILED tests/test_admission_enforced.py::test_gate_refuses_a_page_that_pools_an_unstamped_row_whose_family_is_not_eligible
+FAILED tests/test_admission_enforced.py::test_gate_refuses_a_stamped_row_whose_stamp_disagrees_with_the_page_families
+FAILED tests/test_admission_enforced.py::test_gate_refuses_a_page_from_which_a_screened_in_row_vanished
+FAILED tests/test_admission_enforced.py::test_gate_accepts_a_consistent_stamped_page_and_names_its_scope
+FAILED tests/test_admission_enforced.py::test_summary_over_nothing_evaluated_reads_not_evaluated_not_zero
+FAILED tests/test_admission_enforced.py::test_scope_names_what_is_and_is_not_evaluated_in_build
+FAILED tests/test_admission_enforced.py::test_vocabulary_is_the_bundles - Imp...
+12 failed in 11.42s
+```
+
+Native exit code: `1`.
+
+### Pre-fix served probiotics gate
+
+Command:
+
+```text
+python -c &quot;exec(open(&#x27;.tmp/lane_pre_gate.py&#x27;, encoding=&#x27;utf-8&#x27;).read())&quot;
+```
+
+Real output:
+
+```text
+gate: PASS []
+[(&#x27;PMID 35727573&#x27;, &#x27;UNKNOWN&#x27;), (&#x27;PMID 32035998&#x27;, &#x27;UNKNOWN&#x27;), (&#x27;PMID 24772726&#x27;, &#x27;UNKNOWN&#x27;), (&#x27;PMID 23932219&#x27;, &#x27;UNKNOWN&#x27;), (&#x27;PMID 18701826&#x27;, &#x27;UNKNOWN&#x27;), (&#x27;PMID 18410562&#x27;, &#x27;UNKNOWN&#x27;), (&#x27;PMID 15740542&#x27;, &#x27;UNKNOWN&#x27;), (&#x27;PMID 11560298&#x27;, &#x27;UNKNOWN&#x27;), (&#x27;PMID 7872284&#x27;, &#x27;UNKNOWN&#x27;), (&#x27;PMID 21165295&#x27;, &#x27;UNKNOWN&#x27;), (&#x27;PMID 18026577&#x27;, &#x27;UNKNOWN&#x27;)]
+```
+
+Native exit code: `0`.
+
+### Pre-fix interpretation
+
+The plants failed **12 of 12 collected tests**; **0 of 12 passed**. Of the failures, **11 of 12 are ImportError**, **1 of 12 is KeyError**, and **0 of 12 are AssertionError**. This demonstrates missing API/stamp support, not observed semantic gate rejection for those plants. The real served-page check is the independent witness: the unpatched gate returned `PASS []` with **11 of 11 primary pooled rows** in families whose eligibility is `UNKNOWN`. These are stored family states, not independently adjudicated clinical eligibility.
+
+| Failing test | First error line (verbatim) |
+| --- | --- |
+| `test_build_sets_aside_a_row_whose_family_eligibility_is_not_established` | `E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)` |
+| `test_build_refuses_on_evidence_a_row_whose_family_is_ineligible` | `E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)` |
+| `test_build_keeps_the_migration_state_pooled_and_named` | `E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)` |
+| `test_build_handed_no_family_ledger_admits_nothing` | `E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)` |
+| `test_the_producer_route_reads_the_decision_on_the_real_inputs` | `E       KeyError: &#x27;admission_verdict&#x27;` |
+| `test_gate_refuses_a_page_that_pools_an_unstamped_row_whose_family_is_not_eligible` | `E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)` |
+| `test_gate_refuses_a_stamped_row_whose_stamp_disagrees_with_the_page_families` | `E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)` |
+| `test_gate_refuses_a_page_from_which_a_screened_in_row_vanished` | `E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)` |
+| `test_gate_accepts_a_consistent_stamped_page_and_names_its_scope` | `E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)` |
+| `test_summary_over_nothing_evaluated_reads_not_evaluated_not_zero` | `E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)` |
+| `test_scope_names_what_is_and_is_not_evaluated_in_build` | `E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)` |
+| `test_vocabulary_is_the_bundles` | `E       ImportError: cannot import name &#x27;admission&#x27; from &#x27;harness&#x27; (F:\mh-g-V\harness\__init__.py)` |
+
+The inline Python body was saved unchanged to `.tmp/lane_pre_gate.py` because PowerShell does not support Bash heredoc syntax. Exact body:
+
+```python
+import json,os
+from harness.gate import gate_page
+d=os.path.join(&quot;docs&quot;,&quot;reviews&quot;,&quot;probiotics-aad-prevention&quot;)
+ok,reasons=gate_page(d)
+r=json.load(open(os.path.join(d,&quot;review.json&quot;),encoding=&quot;utf-8&quot;))
+fams={f[&quot;family_id&quot;]:f for f in r[&quot;trial_families&quot;]}
+prim=next(o for o in r[&quot;outcomes&quot;] if o.get(&quot;primary&quot;))
+print(&quot;gate:&quot;, &quot;PASS&quot; if ok else &quot;REFUSE&quot;, reasons)
+print([(t[&quot;id&quot;], fams[t[&quot;family_id&quot;]][&quot;eligibility&quot;].get(&quot;state&quot;)) for t in prim[&quot;trials&quot;]])
+```
+
+## Part 2 - full patch, post-fix plants, and untouched served pages
+
+### Remaining source patch application
+
+Command:
+
+```text
+git apply --exclude=tests/* source.patch
+```
+
+Real output:
+
+```text
+
+```
+
+Native exit code: `0`.
+
+### Admission module presence
+
+Command:
+
+```text
+python -c &quot;from pathlib import Path; p=Path(&#x27;harness/admission.py&#x27;); print(str(p), &#x27;exists:&#x27;, p.is_file())&quot;
+```
+
+Real output:
+
+```text
+harness\admission.py exists: True
+```
+
+Native exit code: `0`.
+
+### Post-fix admission plants
+
+Command:
+
+```text
+python -m pytest tests/test_admission_enforced.py -q -p no:cacheprovider --basetemp .tmp/pt
+```
+
+Real output:
+
+```text
+............                                                             [100%]
+12 passed in 13.32s
+```
+
+Native exit code: `0`.
+
+### Untouched served-page recomputation
+
+Command:
+
+```text
+python -c &quot;exec(open(&#x27;.tmp/lane_served_census.py&#x27;, encoding=&#x27;utf-8&#x27;).read())&quot;
+```
+
+Real output:
+
+```text
+pages 32 refused 32
+primary pooled rows 87 INADMISSIBLE primary 53 non-primary 28
+{(&#x27;UNKNOWN&#x27;, &#x27;ENTRY_POPULATION_NOT_ESTABLISHED&#x27;): 16, (&#x27;UNKNOWN&#x27;, &#x27;INTERVENTION_CONTRAST_NOT_PROVEN&#x27;): 16, (&#x27;UNKNOWN&#x27;, &#x27;REGISTRY_PARENT_UNRESOLVED&#x27;): 16, (&#x27;UNKNOWN&#x27;, &#x27;INSUFFICIENT_PICD_EVIDENCE&#x27;): 4, (&#x27;INELIGIBLE&#x27;, None): 1}
+```
+
+Native exit code: `0`.
+
+### Stamp-only census and PowerShell exit status
+
+Command:
+
+```text
+powershell -NoProfile -Command &quot;python scripts/admission_census.py; echo $?; echo $LASTEXITCODE; exit $LASTEXITCODE&quot;
+```
+
+Real output:
+
+```text
+rule: final = ADMISSIBLE if no evaluated predicate fails; MIGRATION_STATE_UNBOUND_LEGACY if P8 is the only failing predicate and the binding is unbound_legacy; INADMISSIBLE otherwise. A row with no family ledger fails P5.
+topics with a review: 32; review dirs without review.json (named, not dropped): none
+PRIMARY outcomes: candidate rows that reached admission N = 87 = pooled 87 + set aside 0; outcomes 32 {&#x27;NOT_EVALUATED&#x27;: 30, &#x27;NO_CANDIDATE_ROWS&#x27;: 2}
+   pooled by verdict: {None: 87}; unstamped pooled rows: 87
+   pooled bound by a route the bundle&#x27;s P8 does not name (OTHER_ROUTE): 0
+   set aside by (state, eligibility, absence_code): {}
+ALL outcomes: candidate rows that reached admission N = 127 = pooled 127 + set aside 0; outcomes 97 {&#x27;NOT_EVALUATED&#x27;: 59, &#x27;NO_CANDIDATE_ROWS&#x27;: 38}
+   pooled by verdict: {None: 127}; unstamped pooled rows: 127
+   pooled bound by a route the bundle&#x27;s P8 does not name (OTHER_ROUTE): 0
+   set aside by (state, eligibility, absence_code): {}
+LIMITS: counts read from the build&#x27;s stamps (harness/admission.py); in-build admission evaluates P5_family_eligible, P8_endpoint_bound only; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them); a verdict from the bundle itself exists for 1 of 32 topics. in-build P8 passes every producer binding route other than unbound_legacy; the bundle&#x27;s P8 passes only the definition-span route (rows bound by another route read INADMISSIBLE there: a rule limit raised with the bundle lane, recorded per row as bundle_rule_agreement).
+REFUSED: 127 pooled row(s) carry no admission verdict (this census does not compute one): balanced-crystalloids-vs-saline-mortality/PMID 35041780; balanced-crystalloids-vs-saline-mortality/PMID 34375394; balanced-crystalloids-vs-saline-mortality/PMID 35041780; colchicine-postop-af/PMID 42132185; colchicine-postop-af/PMID 32720823; colchicine-postop-af/PMID 25172965; colchicine-recurrent-pericarditis/PMID 24694983; colchicine-recurrent-pericarditis/PMID 21873705 ...
+False
+1
+```
+
+Native exit code: `1`.
+
+### Post-fix interpretation
+
+The patched plants pass **12 of 12 collected tests** (failures **0 of 12**). Admission enforcement refuses **32 of 32 served review pages** without rebuilding them. Recomputed verdicts mark **53 of 87 primary pooled rows** INADMISSIBLE; the primary inadmissible subset consists of **52 of 53 UNKNOWN** and **1 of 53 INELIGIBLE**. Within that subset, absence codes are ENTRY_POPULATION_NOT_ESTABLISHED **16 of 53**, INTERVENTION_CONTRAST_NOT_PROVEN **16 of 53**, REGISTRY_PARENT_UNRESOLVED **16 of 53**, and INSUFFICIENT_PICD_EVIDENCE **4 of 53**; the INELIGIBLE row has no absence code (**1 of 53**). Non-primary INADMISSIBLE is **28 of 40 non-primary pooled rows**, where the non-primary denominator is all pooled rows minus primary pooled rows (`127 - 87 = 40`).
+
+The stamp census does **not** recompute those verdicts: it reports **87 of 87 primary pooled rows** and **127 of 127 pooled rows across all outcomes** without stamps, and exits with native code `1`. PowerShell `echo $?` immediately after the census prints `False`; `echo $LASTEXITCODE` prints `1`. Candidate denominators and outcome denominators are quoted above, not inferred from a headline. Primary outcome states: NOT_EVALUATED **30 of 32**, NO_CANDIDATE_ROWS **2 of 32**. Across all outcomes: NOT_EVALUATED **59 of 97**, NO_CANDIDATE_ROWS **38 of 97**. A bundle verdict exists for **1 of 32 reviewed topics**, as printed by the census.
+
+Exact recomputation script (unchanged body from the lane prompt):
+
+```python
+import json,glob,os,collections
+from harness import admission, gate
+refused=0; pages=0; inad=[]; prim=0
+for d in sorted(glob.glob(&quot;docs/reviews/*&quot;)):
+    if not os.path.isfile(os.path.join(d,&quot;review.json&quot;)): continue
+    pages+=1
+    if gate.check_admission_enforced(d): refused+=1
+    r=json.load(open(os.path.join(d,&quot;review.json&quot;),encoding=&quot;utf-8&quot;))
+    fams={f[&quot;family_id&quot;]:f for f in r.get(&quot;trial_families&quot;) or []}
+    for o in r[&quot;outcomes&quot;]:
+        for t in o.get(&quot;trials&quot;) or []:
+            if o.get(&quot;primary&quot;): prim+=1
+            v=admission.verdict(t,fams.get(t.get(&quot;family_id&quot;)))
+            if v[&quot;final&quot;]==&quot;INADMISSIBLE&quot;: inad.append((r[&quot;slug&quot;],t[&quot;id&quot;],bool(o.get(&quot;primary&quot;)),v[&quot;predicates&quot;][&quot;P5_family_eligible&quot;][&quot;eligibility_state&quot;],v[&quot;predicates&quot;][&quot;P5_family_eligible&quot;][&quot;absence_code&quot;]))
+print(&quot;pages&quot;,pages,&quot;refused&quot;,refused)
+print(&quot;primary pooled rows&quot;,prim,&quot;INADMISSIBLE primary&quot;,sum(1 for x in inad if x[2]),&quot;non-primary&quot;,sum(1 for x in inad if not x[2]))
+print(dict(collections.Counter((x[3],x[4]) for x in inad if x[2])))
+```
+
+## Part 3 - copied-page red team and denominator analysis
+
+Each variant starts from a fresh whole-directory copy. Only its review.json is altered. The victim is selected deterministically as the first on-disk primary pooled row; this is an identifier read from the supplied source, not an invented trial. All original manifest, certificate, HTML, and bundle files remain in each copy. Exact fixture construction:
+
+```python
+import copy
+import json
+from pathlib import Path
+import shutil
+import sys
+
+from harness import admission
+
+source = Path(&#x27;docs/reviews/probiotics-aad-prevention&#x27;)
+original = json.loads((source / &#x27;review.json&#x27;).read_text(encoding=&#x27;utf-8&#x27;))
+primary = next(o for o in original[&#x27;outcomes&#x27;] if o.get(&#x27;primary&#x27;))
+victim = primary[&#x27;trials&#x27;][0]
+print(&#x27;Victim selected from the on-disk primary pool:&#x27;, victim[&#x27;id&#x27;], &#x27;family:&#x27;, victim[&#x27;family_id&#x27;])
+print(&#x27;Primary pooled row denominator:&#x27;, len(primary[&#x27;trials&#x27;]))
+for variant in (&#x27;V1&#x27;, &#x27;V2&#x27;, &#x27;V3&#x27;, &#x27;V4&#x27;, &#x27;V5&#x27;, &#x27;V6&#x27;):
+    target = Path(&#x27;.tmp/rt&#x27;) / variant
+    shutil.copytree(source, target)
+    review = copy.deepcopy(original)
+    outcome = next(o for o in review[&#x27;outcomes&#x27;] if o.get(&#x27;primary&#x27;))
+    if variant in (&#x27;V1&#x27;, &#x27;V2&#x27;, &#x27;V3&#x27;):
+        outcome[&#x27;trials&#x27;] = [t for t in outcome[&#x27;trials&#x27;] if t[&#x27;id&#x27;] != victim[&#x27;id&#x27;]]
+    if variant == &#x27;V2&#x27;:
+        review[&#x27;screening&#x27;][&#x27;records&#x27;] = [r for r in review[&#x27;screening&#x27;][&#x27;records&#x27;]
+                                           if admission.identity._norm(r[&#x27;id&#x27;]) != admission.identity._norm(victim[&#x27;id&#x27;])]
+    if variant == &#x27;V3&#x27;:
+        review[&#x27;trial_families&#x27;] = [f for f in review[&#x27;trial_families&#x27;] if f[&#x27;family_id&#x27;] != victim[&#x27;family_id&#x27;]]
+    families = {f[&#x27;family_id&#x27;]: f for f in review[&#x27;trial_families&#x27;]}
+    if variant in (&#x27;V4&#x27;, &#x27;V6&#x27;):
+        for row in outcome[&#x27;trials&#x27;]:
+            families[row[&#x27;family_id&#x27;]][&#x27;eligibility&#x27;] = {&#x27;state&#x27;: &#x27;ELIGIBLE&#x27;, &#x27;span&#x27;: {&#x27;forged&#x27;: True}}
+    if variant in (&#x27;V5&#x27;, &#x27;V6&#x27;):
+        for row in outcome[&#x27;trials&#x27;]:
+            stamp = admission.verdict(row, families[row[&#x27;family_id&#x27;]])
+            stamp[&#x27;final&#x27;] = &#x27;ADMISSIBLE&#x27;
+            stamp[&#x27;failing&#x27;] = []
+            stamp[&#x27;predicates&#x27;][&#x27;P5_family_eligible&#x27;].update(state=&#x27;PASS&#x27;, eligibility_state=&#x27;ELIGIBLE&#x27;, absence_code=None)
+            stamp[&#x27;predicates&#x27;][&#x27;P8_endpoint_bound&#x27;][&#x27;state&#x27;] = &#x27;PASS&#x27;
+            row[&#x27;admission_verdict&#x27;] = stamp
+    (target / &#x27;review.json&#x27;).write_text(json.dumps(review, ensure_ascii=False, indent=2)+&#x27;\n&#x27;, encoding=&#x27;utf-8&#x27;)
+    print(variant, &#x27;copied files&#x27;, len([p for p in target.rglob(&#x27;*&#x27;) if p.is_file()]),
+          &#x27;of source files&#x27;, len([p for p in source.rglob(&#x27;*&#x27;) if p.is_file()]),
+          &#x27;primary rows&#x27;, len(outcome[&#x27;trials&#x27;]), &#x27;of original&#x27;, len(primary[&#x27;trials&#x27;]),
+          &#x27;screening records&#x27;, len(review[&#x27;screening&#x27;][&#x27;records&#x27;]), &#x27;of original&#x27;, len(original[&#x27;screening&#x27;][&#x27;records&#x27;]),
+          &#x27;families&#x27;, len(families), &#x27;of original&#x27;, len(original[&#x27;trial_families&#x27;]))
+```
+
+### Create the six adversarial copies
+
+Command:
+
+```text
+python -c &quot;exec(open(&#x27;.tmp/lane_variants.py&#x27;, encoding=&#x27;utf-8&#x27;).read())&quot;
+```
+
+Real output:
+
+```text
+Victim selected from the on-disk primary pool: PMID 35727573 family: NCT03334604
+Primary pooled row denominator: 11
+V1 copied files 6 of source files 6 primary rows 10 of original 11 screening records 468 of original 468 families 404 of original 404
+V2 copied files 6 of source files 6 primary rows 10 of original 11 screening records 467 of original 468 families 404 of original 404
+V3 copied files 6 of source files 6 primary rows 10 of original 11 screening records 468 of original 468 families 403 of original 404
+V4 copied files 6 of source files 6 primary rows 11 of original 11 screening records 468 of original 468 families 404 of original 404
+V5 copied files 6 of source files 6 primary rows 11 of original 11 screening records 468 of original 468 families 404 of original 404
+V6 copied files 6 of source files 6 primary rows 11 of original 11 screening records 468 of original 468 families 404 of original 404
+```
+
+Native exit code: `0`.
+
+### Gate V1
+
+Command:
+
+```text
+python -m harness.gate .tmp/rt/V1
+```
+
+Real output:
+
+```text
+GATE REFUSE .tmp/rt/V1
+    - L1: live census reproduced 2 failure(s): review_sha256 reproduces from committed review.json; served index.html byte-matches re-render of review.json
+    - CERTIFICATE.json release_sha256 mismatch: recomputed 06722a0b11a026c3c62825822be38101b9280c8d4f1807f165de665bac8346fb vs saved 9f088de34eda85e0741c5dc36870defa9d7de70cc0340ceac9195444e34afbb8
+    - COMPARATOR_PANEL: registered source panel missing
+    - L1: admission not enforced -- no admission stamp on pooled row PMID 32035998 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0419eae8aeb8, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 24772726 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-94f93929fa67, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 23932219 in &#x27;Antibiotic-associated diarrhoea&#x27; (family ISRCTN70017204, eligibility UNKNOWN INSUFFICIENT_PICD_EVIDENCE, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 18701826 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-3bb36b8c9d29, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 18410562 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-a2a3bd246f45, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 15740542 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-962dc41d54af, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 11560298 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0b772df8adc9, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 7872284 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-e445a1f4ca49, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; +9 more; scope: evaluated in-build P5_family_eligible, P8_endpoint_bound; not evaluated in-build P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them); migration-state rows pooled under the named exception: none
+    - L1: offline replay does NOT regenerate the committed numbers (replay 8fe3a4b5c1768adf04c9b6a0d0221b67b19056d1de160c114c1176b33d7353ff vs committed 23d2942113573e22dc650892260da27134d24562bc586fc247583dbc23522b42)
+    - L1: claimgraph violations remain (stale dependent result-bearing object): [{&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/0 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/0&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/1 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/1&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/2 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/2&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/3 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/3&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/4 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/4&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/5 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/5&quot;}]
+```
+
+Native exit code: `1`.
+
+### Admission detail V1
+
+Command:
+
+```text
+python -c &quot;exec(open(&#x27;.tmp/lane_diagnose.py&#x27;, encoding=&#x27;utf-8&#x27;).read())&quot; V1
+```
+
+Real output:
+
+```text
+V1 check_admission_enforced: REFUSE
+Every internal admission diagnostic before the gate presentation cap:
+no admission stamp on pooled row PMID 32035998 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0419eae8aeb8, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 24772726 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-94f93929fa67, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 23932219 in &#x27;Antibiotic-associated diarrhoea&#x27; (family ISRCTN70017204, eligibility UNKNOWN INSUFFICIENT_PICD_EVIDENCE, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 18701826 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-3bb36b8c9d29, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 18410562 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-a2a3bd246f45, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 15740542 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-962dc41d54af, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 11560298 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0b772df8adc9, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 7872284 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-e445a1f4ca49, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 21165295 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-2163745e2514, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 18026577 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-750512ad72a7, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+vanished row(s) in &#x27;Antibiotic-associated diarrhoea&#x27;: screened IN but neither pooled nor set aside nor refused: PMID 35727573 -- a refused extraction is set aside with its reason, never dropped
+admission summary on &#x27;Antibiotic-associated diarrhoea&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 10 pooled row(s), 10 without a verdict (PMID 32035998, PMID 24772726, PMID 23932219, PMID 18701826, PMID 18410562, PMID 15740542, PMID 11560298, PMID 7872284, PMID 21165295, PMID 18026577); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+no admission stamp on pooled row PMID 41699149 in &#x27;Any adverse events&#x27; (family SYN-dd9903025721, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+no admission stamp on pooled row PMID 39529939 in &#x27;Any adverse events&#x27; (family NCT05607056, eligibility UNKNOWN ENTRY_POPULATION_NOT_ESTABLISHED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+admission summary on &#x27;Any adverse events&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 2 pooled row(s), 2 without a verdict (PMID 41699149, PMID 39529939); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+no admission stamp on pooled row PMID 34541475 in &#x27;Serious adverse events&#x27; (family SYN-23fe0dd26422, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+admission summary on &#x27;Serious adverse events&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 1 pooled row(s), 1 without a verdict (PMID 34541475); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+screened_in_not_pooled: [&#x27;PMID 35727573&#x27;]
+PMID 32035998 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 24772726 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 23932219 raw eligibility UNKNOWN effective eligibility UNKNOWN INSUFFICIENT_PICD_EVIDENCE expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18701826 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18410562 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 15740542 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 11560298 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 7872284 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 21165295 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18026577 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+```
+
+Native exit code: `0`.
+
+### Gate V2
+
+Command:
+
+```text
+python -m harness.gate .tmp/rt/V2
+```
+
+Real output:
+
+```text
+GATE REFUSE .tmp/rt/V2
+    - L1: live census reproduced 2 failure(s): review_sha256 reproduces from committed review.json; served index.html byte-matches re-render of review.json
+    - CERTIFICATE.json release_sha256 mismatch: recomputed c09389f9932024488b272030b3cc49b83c9b05e4bcf6c4a4a453f22485e9333a vs saved 9f088de34eda85e0741c5dc36870defa9d7de70cc0340ceac9195444e34afbb8
+    - COMPARATOR_PANEL: registered source panel missing
+    - L1: admission not enforced -- no admission stamp on pooled row PMID 32035998 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0419eae8aeb8, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 24772726 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-94f93929fa67, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 23932219 in &#x27;Antibiotic-associated diarrhoea&#x27; (family ISRCTN70017204, eligibility UNKNOWN INSUFFICIENT_PICD_EVIDENCE, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 18701826 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-3bb36b8c9d29, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 18410562 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-a2a3bd246f45, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 15740542 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-962dc41d54af, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 11560298 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0b772df8adc9, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 7872284 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-e445a1f4ca49, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; +8 more; scope: evaluated in-build P5_family_eligible, P8_endpoint_bound; not evaluated in-build P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them); migration-state rows pooled under the named exception: none
+    - L1: offline replay does NOT regenerate the committed numbers (replay 8fe3a4b5c1768adf04c9b6a0d0221b67b19056d1de160c114c1176b33d7353ff vs committed 23d2942113573e22dc650892260da27134d24562bc586fc247583dbc23522b42)
+    - L1: claimgraph violations remain (stale dependent result-bearing object): [{&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/0 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/0&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/1 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/1&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/2 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/2&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/3 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/3&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/4 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/4&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/5 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/5&quot;}]
+```
+
+Native exit code: `1`.
+
+### Admission detail V2
+
+Command:
+
+```text
+python -c &quot;exec(open(&#x27;.tmp/lane_diagnose.py&#x27;, encoding=&#x27;utf-8&#x27;).read())&quot; V2
+```
+
+Real output:
+
+```text
+V2 check_admission_enforced: REFUSE
+Every internal admission diagnostic before the gate presentation cap:
+no admission stamp on pooled row PMID 32035998 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0419eae8aeb8, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 24772726 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-94f93929fa67, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 23932219 in &#x27;Antibiotic-associated diarrhoea&#x27; (family ISRCTN70017204, eligibility UNKNOWN INSUFFICIENT_PICD_EVIDENCE, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 18701826 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-3bb36b8c9d29, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 18410562 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-a2a3bd246f45, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 15740542 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-962dc41d54af, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 11560298 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0b772df8adc9, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 7872284 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-e445a1f4ca49, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 21165295 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-2163745e2514, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 18026577 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-750512ad72a7, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+admission summary on &#x27;Antibiotic-associated diarrhoea&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 10 pooled row(s), 10 without a verdict (PMID 32035998, PMID 24772726, PMID 23932219, PMID 18701826, PMID 18410562, PMID 15740542, PMID 11560298, PMID 7872284, PMID 21165295, PMID 18026577); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+no admission stamp on pooled row PMID 41699149 in &#x27;Any adverse events&#x27; (family SYN-dd9903025721, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+no admission stamp on pooled row PMID 39529939 in &#x27;Any adverse events&#x27; (family NCT05607056, eligibility UNKNOWN ENTRY_POPULATION_NOT_ESTABLISHED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+admission summary on &#x27;Any adverse events&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 2 pooled row(s), 2 without a verdict (PMID 41699149, PMID 39529939); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+no admission stamp on pooled row PMID 34541475 in &#x27;Serious adverse events&#x27; (family SYN-23fe0dd26422, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+admission summary on &#x27;Serious adverse events&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 1 pooled row(s), 1 without a verdict (PMID 34541475); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+screened_in_not_pooled: []
+PMID 32035998 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 24772726 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 23932219 raw eligibility UNKNOWN effective eligibility UNKNOWN INSUFFICIENT_PICD_EVIDENCE expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18701826 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18410562 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 15740542 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 11560298 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 7872284 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 21165295 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18026577 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+```
+
+Native exit code: `0`.
+
+### Gate V3
+
+Command:
+
+```text
+python -m harness.gate .tmp/rt/V3
+```
+
+Real output:
+
+```text
+GATE REFUSE .tmp/rt/V3
+    - L1: live census reproduced 2 failure(s): review_sha256 reproduces from committed review.json; served index.html byte-matches re-render of review.json
+    - CERTIFICATE.json release_sha256 mismatch: recomputed a9505cc26b990ac9d69e1eee1dcbcbc62cbbfde9c7a1eb24d8e239d4425871f2 vs saved 9f088de34eda85e0741c5dc36870defa9d7de70cc0340ceac9195444e34afbb8
+    - COMPARATOR_PANEL: registered source panel missing
+    - L1: admission not enforced -- no admission stamp on pooled row PMID 32035998 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0419eae8aeb8, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 24772726 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-94f93929fa67, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 23932219 in &#x27;Antibiotic-associated diarrhoea&#x27; (family ISRCTN70017204, eligibility UNKNOWN INSUFFICIENT_PICD_EVIDENCE, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 18701826 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-3bb36b8c9d29, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 18410562 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-a2a3bd246f45, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 15740542 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-962dc41d54af, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 11560298 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0b772df8adc9, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 7872284 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-e445a1f4ca49, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; +9 more; scope: evaluated in-build P5_family_eligible, P8_endpoint_bound; not evaluated in-build P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them); migration-state rows pooled under the named exception: none
+    - L1: offline replay does NOT regenerate the committed numbers (replay 8fe3a4b5c1768adf04c9b6a0d0221b67b19056d1de160c114c1176b33d7353ff vs committed 23d2942113573e22dc650892260da27134d24562bc586fc247583dbc23522b42)
+    - L1: claimgraph violations remain (stale dependent result-bearing object): [{&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/0 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/0&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/1 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/1&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/2 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/2&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/3 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/3&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/4 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/4&quot;}, {&quot;code&quot;: &quot;STALE_DEPENDENT&quot;, &quot;kind&quot;: &quot;membership_state&quot;, &quot;claim_id&quot;: &quot;260697fdb1f718e0&quot;, &quot;detail&quot;: &quot;/outcomes/0/declared_absent_trials/5 depends on 7e1c703f6a0a23af35b1fc1c53b8a7fc72e5a98d1ae9048bf9852be9eda6da9d, current input_set_version is 694f84d0e1bf30327b1d85c0fc5907a1f35e2784c8bf16f73bb5fccb398af0d7&quot;, &quot;object_path&quot;: &quot;/outcomes/0/declared_absent_trials/5&quot;}]
+```
+
+Native exit code: `1`.
+
+### Admission detail V3
+
+Command:
+
+```text
+python -c &quot;exec(open(&#x27;.tmp/lane_diagnose.py&#x27;, encoding=&#x27;utf-8&#x27;).read())&quot; V3
+```
+
+Real output:
+
+```text
+V3 check_admission_enforced: REFUSE
+Every internal admission diagnostic before the gate presentation cap:
+no admission stamp on pooled row PMID 32035998 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0419eae8aeb8, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 24772726 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-94f93929fa67, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 23932219 in &#x27;Antibiotic-associated diarrhoea&#x27; (family ISRCTN70017204, eligibility UNKNOWN INSUFFICIENT_PICD_EVIDENCE, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 18701826 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-3bb36b8c9d29, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 18410562 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-a2a3bd246f45, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 15740542 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-962dc41d54af, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 11560298 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0b772df8adc9, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 7872284 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-e445a1f4ca49, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 21165295 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-2163745e2514, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 18026577 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-750512ad72a7, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+vanished row(s) in &#x27;Antibiotic-associated diarrhoea&#x27;: screened IN but neither pooled nor set aside nor refused: PMID 35727573 -- a refused extraction is set aside with its reason, never dropped
+admission summary on &#x27;Antibiotic-associated diarrhoea&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 10 pooled row(s), 10 without a verdict (PMID 32035998, PMID 24772726, PMID 23932219, PMID 18701826, PMID 18410562, PMID 15740542, PMID 11560298, PMID 7872284, PMID 21165295, PMID 18026577); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+no admission stamp on pooled row PMID 41699149 in &#x27;Any adverse events&#x27; (family SYN-dd9903025721, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+no admission stamp on pooled row PMID 39529939 in &#x27;Any adverse events&#x27; (family NCT05607056, eligibility UNKNOWN ENTRY_POPULATION_NOT_ESTABLISHED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+admission summary on &#x27;Any adverse events&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 2 pooled row(s), 2 without a verdict (PMID 41699149, PMID 39529939); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+no admission stamp on pooled row PMID 34541475 in &#x27;Serious adverse events&#x27; (family SYN-23fe0dd26422, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+admission summary on &#x27;Serious adverse events&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 1 pooled row(s), 1 without a verdict (PMID 34541475); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+screened_in_not_pooled: [&#x27;PMID 35727573&#x27;]
+PMID 32035998 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 24772726 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 23932219 raw eligibility UNKNOWN effective eligibility UNKNOWN INSUFFICIENT_PICD_EVIDENCE expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18701826 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18410562 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 15740542 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 11560298 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 7872284 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 21165295 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18026577 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+```
+
+Native exit code: `0`.
+
+### Gate V4
+
+Command:
+
+```text
+python -m harness.gate .tmp/rt/V4
+```
+
+Real output:
+
+```text
+GATE REFUSE .tmp/rt/V4
+    - L1: live census reproduced 2 failure(s): review_sha256 reproduces from committed review.json; served index.html byte-matches re-render of review.json
+    - CERTIFICATE.json release_sha256 mismatch: recomputed 64297c8c136f92a373257441efb68dcea81c835aafd571b57ec2a7ccc74e8a0c vs saved 9f088de34eda85e0741c5dc36870defa9d7de70cc0340ceac9195444e34afbb8
+    - COMPARATOR_PANEL: registered source panel missing
+    - L1: admission not enforced -- no admission stamp on pooled row PMID 35727573 in &#x27;Antibiotic-associated diarrhoea&#x27; (family NCT03334604, eligibility ELIGIBLE, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield MIGRATION_STATE_UNBOUND_LEGACY failing [&#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 32035998 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0419eae8aeb8, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 24772726 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-94f93929fa67, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 23932219 in &#x27;Antibiotic-associated diarrhoea&#x27; (family ISRCTN70017204, eligibility ELIGIBLE, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield MIGRATION_STATE_UNBOUND_LEGACY failing [&#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 18701826 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-3bb36b8c9d29, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 18410562 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-a2a3bd246f45, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 15740542 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-962dc41d54af, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; no admission stamp on pooled row PMID 11560298 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0b772df8adc9, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; +9 more; scope: evaluated in-build P5_family_eligible, P8_endpoint_bound; not evaluated in-build P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them); migration-state rows pooled under the named exception: none
+    - L1: offline replay does NOT regenerate the committed numbers (replay 8fe3a4b5c1768adf04c9b6a0d0221b67b19056d1de160c114c1176b33d7353ff vs committed 23d2942113573e22dc650892260da27134d24562bc586fc247583dbc23522b42)
+```
+
+Native exit code: `1`.
+
+### Admission detail V4
+
+Command:
+
+```text
+python -c &quot;exec(open(&#x27;.tmp/lane_diagnose.py&#x27;, encoding=&#x27;utf-8&#x27;).read())&quot; V4
+```
+
+Real output:
+
+```text
+V4 check_admission_enforced: REFUSE
+Every internal admission diagnostic before the gate presentation cap:
+no admission stamp on pooled row PMID 35727573 in &#x27;Antibiotic-associated diarrhoea&#x27; (family NCT03334604, eligibility ELIGIBLE, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield MIGRATION_STATE_UNBOUND_LEGACY failing [&#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 32035998 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0419eae8aeb8, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 24772726 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-94f93929fa67, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 23932219 in &#x27;Antibiotic-associated diarrhoea&#x27; (family ISRCTN70017204, eligibility ELIGIBLE, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield MIGRATION_STATE_UNBOUND_LEGACY failing [&#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 18701826 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-3bb36b8c9d29, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 18410562 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-a2a3bd246f45, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 15740542 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-962dc41d54af, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 11560298 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0b772df8adc9, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 7872284 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-e445a1f4ca49, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 21165295 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-2163745e2514, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+no admission stamp on pooled row PMID 18026577 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-750512ad72a7, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+admission summary on &#x27;Antibiotic-associated diarrhoea&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 11 pooled row(s), 11 without a verdict (PMID 35727573, PMID 32035998, PMID 24772726, PMID 23932219, PMID 18701826, PMID 18410562, PMID 15740542, PMID 11560298, PMID 7872284, PMID 21165295, PMID 18026577); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+no admission stamp on pooled row PMID 41699149 in &#x27;Any adverse events&#x27; (family SYN-dd9903025721, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+no admission stamp on pooled row PMID 39529939 in &#x27;Any adverse events&#x27; (family NCT05607056, eligibility UNKNOWN ENTRY_POPULATION_NOT_ESTABLISHED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+admission summary on &#x27;Any adverse events&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 2 pooled row(s), 2 without a verdict (PMID 41699149, PMID 39529939); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+no admission stamp on pooled row PMID 34541475 in &#x27;Serious adverse events&#x27; (family SYN-23fe0dd26422, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+admission summary on &#x27;Serious adverse events&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 1 pooled row(s), 1 without a verdict (PMID 34541475); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+screened_in_not_pooled: []
+PMID 35727573 raw eligibility ELIGIBLE effective eligibility ELIGIBLE None expected MIGRATION_STATE_UNBOUND_LEGACY failing [&#x27;P8_endpoint_bound&#x27;]
+PMID 32035998 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 24772726 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 23932219 raw eligibility ELIGIBLE effective eligibility ELIGIBLE None expected MIGRATION_STATE_UNBOUND_LEGACY failing [&#x27;P8_endpoint_bound&#x27;]
+PMID 18701826 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18410562 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 15740542 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 11560298 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 7872284 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 21165295 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18026577 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+```
+
+Native exit code: `0`.
+
+### Gate V5
+
+Command:
+
+```text
+python -m harness.gate .tmp/rt/V5
+```
+
+Real output:
+
+```text
+GATE REFUSE .tmp/rt/V5
+    - L1: live census reproduced 1 failure(s): review_sha256 reproduces from committed review.json
+    - CERTIFICATE.json release_sha256 mismatch: recomputed 046d8923d59082b20db79946e05669aec0d9d92b7a93e0fd742d1300874dbe5f vs saved 9f088de34eda85e0741c5dc36870defa9d7de70cc0340ceac9195444e34afbb8
+    - COMPARATOR_PANEL: registered source panel missing
+    - L1: admission not enforced -- stamp disagrees with the page&#x27;s own families on pooled row PMID 35727573 in &#x27;Antibiotic-associated diarrhoea&#x27; (family NCT03334604, eligibility UNKNOWN ENTRY_POPULATION_NOT_ESTABLISHED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; stamp disagrees with the page&#x27;s own families on pooled row PMID 32035998 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0419eae8aeb8, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; stamp disagrees with the page&#x27;s own families on pooled row PMID 24772726 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-94f93929fa67, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; stamp disagrees with the page&#x27;s own families on pooled row PMID 23932219 in &#x27;Antibiotic-associated diarrhoea&#x27; (family ISRCTN70017204, eligibility UNKNOWN INSUFFICIENT_PICD_EVIDENCE, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; stamp disagrees with the page&#x27;s own families on pooled row PMID 18701826 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-3bb36b8c9d29, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; stamp disagrees with the page&#x27;s own families on pooled row PMID 18410562 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-a2a3bd246f45, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; stamp disagrees with the page&#x27;s own families on pooled row PMID 15740542 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-962dc41d54af, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; stamp disagrees with the page&#x27;s own families on pooled row PMID 11560298 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0b772df8adc9, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; +9 more; scope: evaluated in-build P5_family_eligible, P8_endpoint_bound; not evaluated in-build P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them); migration-state rows pooled under the named exception: none
+    - L1: offline replay does NOT regenerate the committed numbers (replay 8fe3a4b5c1768adf04c9b6a0d0221b67b19056d1de160c114c1176b33d7353ff vs committed 23d2942113573e22dc650892260da27134d24562bc586fc247583dbc23522b42)
+```
+
+Native exit code: `1`.
+
+### Admission detail V5
+
+Command:
+
+```text
+python -c &quot;exec(open(&#x27;.tmp/lane_diagnose.py&#x27;, encoding=&#x27;utf-8&#x27;).read())&quot; V5
+```
+
+Real output:
+
+```text
+V5 check_admission_enforced: REFUSE
+Every internal admission diagnostic before the gate presentation cap:
+stamp disagrees with the page&#x27;s own families on pooled row PMID 35727573 in &#x27;Antibiotic-associated diarrhoea&#x27; (family NCT03334604, eligibility UNKNOWN ENTRY_POPULATION_NOT_ESTABLISHED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 32035998 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0419eae8aeb8, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 24772726 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-94f93929fa67, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 23932219 in &#x27;Antibiotic-associated diarrhoea&#x27; (family ISRCTN70017204, eligibility UNKNOWN INSUFFICIENT_PICD_EVIDENCE, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 18701826 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-3bb36b8c9d29, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 18410562 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-a2a3bd246f45, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 15740542 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-962dc41d54af, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 11560298 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0b772df8adc9, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 7872284 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-e445a1f4ca49, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 21165295 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-2163745e2514, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 18026577 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-750512ad72a7, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+admission summary on &#x27;Antibiotic-associated diarrhoea&#x27; is absent, not EVALUATED: Admission evaluated in-build on P5_family_eligible, P8_endpoint_bound only (P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are not evaluated here: scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them). Pooled 11: admissible 11; migration state (unbound_legacy, pooled and counted separately) 0; bound by a producer route the bundle&#x27;s P8 does not name 0. Set aside on P5 (family eligibility) 0. in-build P8 passes every producer binding route other than unbound_legacy; the bundle&#x27;s P8 passes only the definition-span route (rows bound by another route read INADMISSIBLE there: a rule limit raised with the bundle lane, recorded per row as bundle_rule_agreement).
+no admission stamp on pooled row PMID 41699149 in &#x27;Any adverse events&#x27; (family SYN-dd9903025721, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+no admission stamp on pooled row PMID 39529939 in &#x27;Any adverse events&#x27; (family NCT05607056, eligibility UNKNOWN ENTRY_POPULATION_NOT_ESTABLISHED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+admission summary on &#x27;Any adverse events&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 2 pooled row(s), 2 without a verdict (PMID 41699149, PMID 39529939); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+no admission stamp on pooled row PMID 34541475 in &#x27;Serious adverse events&#x27; (family SYN-23fe0dd26422, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+admission summary on &#x27;Serious adverse events&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 1 pooled row(s), 1 without a verdict (PMID 34541475); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+screened_in_not_pooled: []
+PMID 35727573 raw eligibility UNKNOWN effective eligibility UNKNOWN ENTRY_POPULATION_NOT_ESTABLISHED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 32035998 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 24772726 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 23932219 raw eligibility UNKNOWN effective eligibility UNKNOWN INSUFFICIENT_PICD_EVIDENCE expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18701826 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18410562 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 15740542 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 11560298 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 7872284 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 21165295 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18026577 raw eligibility UNKNOWN effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+```
+
+Native exit code: `0`.
+
+### Gate V6
+
+Command:
+
+```text
+python -m harness.gate .tmp/rt/V6
+```
+
+Real output:
+
+```text
+GATE REFUSE .tmp/rt/V6
+    - L1: live census reproduced 2 failure(s): review_sha256 reproduces from committed review.json; served index.html byte-matches re-render of review.json
+    - CERTIFICATE.json release_sha256 mismatch: recomputed 91c1e81f72a9192e54369818df5e7d04fce350aadc67239783c72f01041a668e vs saved 9f088de34eda85e0741c5dc36870defa9d7de70cc0340ceac9195444e34afbb8
+    - COMPARATOR_PANEL: registered source panel missing
+    - L1: admission not enforced -- stamp disagrees with the page&#x27;s own families on pooled row PMID 35727573 in &#x27;Antibiotic-associated diarrhoea&#x27; (family NCT03334604, eligibility ELIGIBLE, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated MIGRATION_STATE_UNBOUND_LEGACY [&#x27;P8_endpoint_bound&#x27;]; stamp disagrees with the page&#x27;s own families on pooled row PMID 32035998 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0419eae8aeb8, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; stamp disagrees with the page&#x27;s own families on pooled row PMID 24772726 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-94f93929fa67, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; stamp disagrees with the page&#x27;s own families on pooled row PMID 23932219 in &#x27;Antibiotic-associated diarrhoea&#x27; (family ISRCTN70017204, eligibility ELIGIBLE, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated MIGRATION_STATE_UNBOUND_LEGACY [&#x27;P8_endpoint_bound&#x27;]; stamp disagrees with the page&#x27;s own families on pooled row PMID 18701826 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-3bb36b8c9d29, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; stamp disagrees with the page&#x27;s own families on pooled row PMID 18410562 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-a2a3bd246f45, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; stamp disagrees with the page&#x27;s own families on pooled row PMID 15740542 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-962dc41d54af, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; stamp disagrees with the page&#x27;s own families on pooled row PMID 11560298 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0b772df8adc9, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]; +9 more; scope: evaluated in-build P5_family_eligible, P8_endpoint_bound; not evaluated in-build P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them); migration-state rows pooled under the named exception: none
+    - L1: offline replay does NOT regenerate the committed numbers (replay 8fe3a4b5c1768adf04c9b6a0d0221b67b19056d1de160c114c1176b33d7353ff vs committed 23d2942113573e22dc650892260da27134d24562bc586fc247583dbc23522b42)
+```
+
+Native exit code: `1`.
+
+### Admission detail V6
+
+Command:
+
+```text
+python -c &quot;exec(open(&#x27;.tmp/lane_diagnose.py&#x27;, encoding=&#x27;utf-8&#x27;).read())&quot; V6
+```
+
+Real output:
+
+```text
+V6 check_admission_enforced: REFUSE
+Every internal admission diagnostic before the gate presentation cap:
+stamp disagrees with the page&#x27;s own families on pooled row PMID 35727573 in &#x27;Antibiotic-associated diarrhoea&#x27; (family NCT03334604, eligibility ELIGIBLE, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated MIGRATION_STATE_UNBOUND_LEGACY [&#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 32035998 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0419eae8aeb8, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 24772726 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-94f93929fa67, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 23932219 in &#x27;Antibiotic-associated diarrhoea&#x27; (family ISRCTN70017204, eligibility ELIGIBLE, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated MIGRATION_STATE_UNBOUND_LEGACY [&#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 18701826 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-3bb36b8c9d29, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 18410562 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-a2a3bd246f45, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 15740542 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-962dc41d54af, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 11560298 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-0b772df8adc9, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 7872284 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-e445a1f4ca49, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 21165295 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-2163745e2514, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+stamp disagrees with the page&#x27;s own families on pooled row PMID 18026577 in &#x27;Antibiotic-associated diarrhoea&#x27; (family SYN-750512ad72a7, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding unbound_legacy): stamped ADMISSIBLE [], re-evaluated INADMISSIBLE [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+admission summary on &#x27;Antibiotic-associated diarrhoea&#x27; is absent, not EVALUATED: Admission evaluated in-build on P5_family_eligible, P8_endpoint_bound only (P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are not evaluated here: scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them). Pooled 11: admissible 11; migration state (unbound_legacy, pooled and counted separately) 0; bound by a producer route the bundle&#x27;s P8 does not name 0. Set aside on P5 (family eligibility) 0. in-build P8 passes every producer binding route other than unbound_legacy; the bundle&#x27;s P8 passes only the definition-span route (rows bound by another route read INADMISSIBLE there: a rule limit raised with the bundle lane, recorded per row as bundle_rule_agreement).
+no admission stamp on pooled row PMID 41699149 in &#x27;Any adverse events&#x27; (family SYN-dd9903025721, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+no admission stamp on pooled row PMID 39529939 in &#x27;Any adverse events&#x27; (family NCT05607056, eligibility UNKNOWN ENTRY_POPULATION_NOT_ESTABLISHED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+admission summary on &#x27;Any adverse events&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 2 pooled row(s), 2 without a verdict (PMID 41699149, PMID 39529939); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+no admission stamp on pooled row PMID 34541475 in &#x27;Serious adverse events&#x27; (family SYN-23fe0dd26422, eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED, binding result_span_enumerates_components): the page was built before the build read the admission decision; the page&#x27;s own families yield INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;]
+admission summary on &#x27;Serious adverse events&#x27; is absent, not EVALUATED: Admission NOT EVALUATED on this outcome: 1 pooled row(s), 1 without a verdict (PMID 34541475); a page built before the build read the admission decision. In-build scope would be P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).
+screened_in_not_pooled: []
+PMID 35727573 raw eligibility ELIGIBLE effective eligibility ELIGIBLE None expected MIGRATION_STATE_UNBOUND_LEGACY failing [&#x27;P8_endpoint_bound&#x27;]
+PMID 32035998 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 24772726 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 23932219 raw eligibility ELIGIBLE effective eligibility ELIGIBLE None expected MIGRATION_STATE_UNBOUND_LEGACY failing [&#x27;P8_endpoint_bound&#x27;]
+PMID 18701826 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18410562 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 15740542 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 11560298 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 7872284 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 21165295 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+PMID 18026577 raw eligibility ELIGIBLE effective eligibility UNKNOWN REGISTRY_PARENT_UNRESOLVED expected INADMISSIBLE failing [&#x27;P5_family_eligible&#x27;, &#x27;P8_endpoint_bound&#x27;]
+```
+
+Native exit code: `0`.
+
+### Red-team denominators and emitted names
+
+Command:
+
+```text
+python -c &quot;exec(open(&#x27;.tmp/lane_metrics.py&#x27;, encoding=&#x27;utf-8&#x27;).read())&quot;
+```
+
+Real output:
+
+```text
+V1 gate refused 1 of 1 variant affected trials named in emitted refusal 0 of 1 affected trials named in emitted admission reason 0 of 1
+  included denominator 57 of 57 original included records; vanished [&#x27;PMID 35727573&#x27;]
+V2 gate refused 1 of 1 variant affected trials named in emitted refusal 0 of 1 affected trials named in emitted admission reason 0 of 1
+  included denominator 56 of 57 original included records; vanished []
+V3 gate refused 1 of 1 variant affected trials named in emitted refusal 0 of 1 affected trials named in emitted admission reason 0 of 1
+  included denominator 57 of 57 original included records; vanished [&#x27;PMID 35727573&#x27;]
+V4 gate refused 1 of 1 variant affected trials named in emitted refusal 8 of 11 affected trials named in emitted admission reason 8 of 11
+  included denominator 57 of 57 original included records; vanished []
+  recomputed primary finals {&#x27;MIGRATION_STATE_UNBOUND_LEGACY&#x27;: 2, &#x27;INADMISSIBLE&#x27;: 9} denominator 11 primary rows
+V5 gate refused 1 of 1 variant affected trials named in emitted refusal 8 of 11 affected trials named in emitted admission reason 8 of 11
+  included denominator 57 of 57 original included records; vanished []
+V6 gate refused 1 of 1 variant affected trials named in emitted refusal 8 of 11 affected trials named in emitted admission reason 8 of 11
+  included denominator 57 of 57 original included records; vanished []
+  recomputed primary finals {&#x27;MIGRATION_STATE_UNBOUND_LEGACY&#x27;: 2, &#x27;INADMISSIBLE&#x27;: 9} denominator 11 primary rows
+gate refused variants 6 of 6 requested variants
+victim source record lookup: [(&#x27;35727573&#x27;, &#x27;NCT03334604&#x27;)]
+verifier mirror byte-identical True
+```
+
+Native exit code: `0`.
+
+Supplementary diagnostic command body:
+
+```python
+import json
+from pathlib import Path
+import sys
+from harness import gate, membership, admission
+
+variant = sys.argv[1]
+directory = Path(&#x27;.tmp/rt&#x27;) / variant
+review = json.loads((directory / &#x27;review.json&#x27;).read_text(encoding=&#x27;utf-8&#x27;))
+outcome = next(o for o in review[&#x27;outcomes&#x27;] if o.get(&#x27;primary&#x27;))
+capture = {}
+def observe(frame, event, arg):
+    if frame.f_code is gate.check_admission_enforced.__code__ and event == &#x27;return&#x27;:
+        capture[&#x27;bad&#x27;] = list(frame.f_locals.get(&#x27;bad&#x27;, []))
+    return observe
+sys.settrace(observe)
+try:
+    reasons = gate.check_admission_enforced(str(directory))
+finally:
+    sys.settrace(None)
+print(variant, &#x27;check_admission_enforced:&#x27;, &#x27;REFUSE&#x27; if reasons else &#x27;PASS&#x27;)
+print(&#x27;Every internal admission diagnostic before the gate presentation cap:&#x27;)
+for reason in capture.get(&#x27;bad&#x27;, []):
+    print(reason)
+print(&#x27;screened_in_not_pooled:&#x27;, membership.build_outcome_membership(outcome, review[&#x27;screening&#x27;][&#x27;records&#x27;])[&#x27;screened_in_not_pooled&#x27;])
+fams = {f[&#x27;family_id&#x27;]: f for f in review[&#x27;trial_families&#x27;]}
+for row in outcome[&#x27;trials&#x27;]:
+    v = admission.verdict(row, fams.get(row.get(&#x27;family_id&#x27;)))
+    print(row[&#x27;id&#x27;], &#x27;raw eligibility&#x27;, (fams.get(row.get(&#x27;family_id&#x27;), {}).get(&#x27;eligibility&#x27;) or {}).get(&#x27;state&#x27;),
+          &#x27;effective eligibility&#x27;, v[&#x27;predicates&#x27;][&#x27;P5_family_eligible&#x27;][&#x27;eligibility_state&#x27;],
+          v[&#x27;predicates&#x27;][&#x27;P5_family_eligible&#x27;][&#x27;absence_code&#x27;], &#x27;expected&#x27;, v[&#x27;final&#x27;], &#x27;failing&#x27;, v[&#x27;failing&#x27;])
+```
+
+Denominator and emitted-name measurement body:
+
+```python
+import collections
+import json
+from pathlib import Path
+from harness import admission, membership
+
+source = json.loads(Path(&#x27;docs/reviews/probiotics-aad-prevention/review.json&#x27;).read_text(encoding=&#x27;utf-8&#x27;))
+primary = next(o for o in source[&#x27;outcomes&#x27;] if o.get(&#x27;primary&#x27;))
+victim = primary[&#x27;trials&#x27;][0]
+base_in = {membership.canonical_trial_key(r[&#x27;id&#x27;]) for r in source[&#x27;screening&#x27;][&#x27;records&#x27;] if r.get(&#x27;decision&#x27;) == &#x27;include&#x27;}
+refused = 0
+for name in (&#x27;V1&#x27;,&#x27;V2&#x27;,&#x27;V3&#x27;,&#x27;V4&#x27;,&#x27;V5&#x27;,&#x27;V6&#x27;):
+    text = Path(&#x27;.tmp&#x27;, f&#x27;Gate_{name}.log&#x27;).read_text(encoding=&#x27;utf-8&#x27;)
+    detail = Path(&#x27;.tmp&#x27;, f&#x27;Admission_detail_{name}.log&#x27;).read_text(encoding=&#x27;utf-8&#x27;)
+    r = json.loads(Path(&#x27;.tmp/rt&#x27;, name, &#x27;review.json&#x27;).read_text(encoding=&#x27;utf-8&#x27;))
+    o = next(o for o in r[&#x27;outcomes&#x27;] if o.get(&#x27;primary&#x27;))
+    affected = [victim[&#x27;id&#x27;]] if name in (&#x27;V1&#x27;,&#x27;V2&#x27;,&#x27;V3&#x27;) else [t[&#x27;id&#x27;] for t in primary[&#x27;trials&#x27;]]
+    admission_reason = &#x27;\n&#x27;.join(line for line in text.splitlines() if &#x27;L1: admission not enforced&#x27; in line)
+    is_refused = text.startswith(&#x27;GATE REFUSE&#x27;)
+    refused += is_refused
+    screened = {membership.canonical_trial_key(x[&#x27;id&#x27;]) for x in r[&#x27;screening&#x27;][&#x27;records&#x27;] if x.get(&#x27;decision&#x27;) == &#x27;include&#x27;}
+    print(name, &#x27;gate refused&#x27;, int(is_refused), &#x27;of 1 variant&#x27;,
+          &#x27;affected trials named in emitted refusal&#x27;, sum(t in text for t in affected), &#x27;of&#x27;,len(affected),
+          &#x27;affected trials named in emitted admission reason&#x27;,sum(t in admission_reason for t in affected),&#x27;of&#x27;,len(affected))
+    print(&#x27;  included denominator&#x27;,len(screened),&#x27;of&#x27;,len(base_in),&#x27;original included records;&#x27;,
+          &#x27;vanished&#x27;,membership.build_outcome_membership(o,r[&#x27;screening&#x27;][&#x27;records&#x27;])[&#x27;screened_in_not_pooled&#x27;])
+    if name in (&#x27;V4&#x27;,&#x27;V6&#x27;):
+        fs={f[&#x27;family_id&#x27;]:f for f in r[&#x27;trial_families&#x27;]}
+        counts=collections.Counter(admission.verdict(t,fs[t[&#x27;family_id&#x27;]])[&#x27;final&#x27;] for t in o[&#x27;trials&#x27;])
+        print(&#x27;  recomputed primary finals&#x27;,dict(counts),&#x27;denominator&#x27;,len(o[&#x27;trials&#x27;]),&#x27;primary rows&#x27;)
+print(&#x27;gate refused variants&#x27;,refused,&#x27;of 6 requested variants&#x27;)
+records=json.loads(Path(&#x27;cache/probiotics-aad-prevention/records.json&#x27;).read_text(encoding=&#x27;utf-8&#x27;))
+matches=[(x[&#x27;id&#x27;],x.get(&#x27;nct&#x27;)) for x in records[&#x27;records&#x27;] if str(x[&#x27;id&#x27;]) == victim[&#x27;id&#x27;].replace(&#x27;PMID &#x27;,&#x27;&#x27;)]
+print(&#x27;victim source record lookup:&#x27;,matches)
+print(&#x27;verifier mirror byte-identical&#x27;,Path(&#x27;scripts/verify_bundle.py&#x27;).read_bytes()==Path(&#x27;docs/scripts/verify_bundle.py&#x27;).read_bytes())
+```
+
+### Red-team interpretation
+
+The requested variants are refused **6 of 6**. This is not evidence that every attempted deletion receives a visible, trial-specific admission refusal.
+
+| Variant | Full gate | Does an emitted refusal name the affected trial? | What actually catches it |
+| --- | --- | --- | --- |
+| V1: remove the primary row | REFUSE | No: **0 of 1 dropped trials** named | The vanished-row check internally identifies `PMID 35727573`, but the output cap hides it. Visible refusals include stale review/render hashes, certificate mismatch, replay mismatch, dependent claimgraph state, and missing stamps on other rows. |
+| V2: also remove its screening record | REFUSE | No: **0 of 1 dropped trials** named | The independent-in-shape denominator shrinks to **56 of 57 originally included records** and the vanished list becomes empty. The deletion is covered here by integrity/dependency/replay failures, not by a trial-specific admission catch. |
+| V3: also remove its family, retaining screening | REFUSE | No: **0 of 1 dropped trials** named | The screening denominator stays **57 of 57 originally included records**. The vanished-row check still internally identifies the dropped trial, hidden by the same cap. Family deletion does not shrink the membership denominator. |
+| V4: forge primary family eligibility | REFUSE | Yes: **8 of 11 altered trials** named | Unstamped-row refusals name altered trials. Raw ELIGIBLE does not override missing registry parents. This experiment does not demonstrate rejection of the forged span itself. |
+| V5: forge primary ADMISSIBLE stamps only | REFUSE | Yes: **8 of 11 altered trials** named | The gate recomputes from unchanged UNKNOWN families and reports stamp disagreement. |
+| V6: forge both family cells and stamps | REFUSE | Yes: **8 of 11 altered trials** named | `check_admission_enforced` itself refuses: **2 of 11 primary rows** recompute as MIGRATION_STATE_UNBOUND_LEGACY, and **9 of 11** as INADMISSIBLE with REGISTRY_PARENT_UNRESOLVED. Every supplied ADMISSIBLE stamp disagrees. |
+
+The dropped row is verified against the held `cache/probiotics-aad-prevention/records.json`: record `35727573` carries `NCT03334604`, matching the on-disk pooled row. Its source identity is read, not fabricated. The fixture copies each preserve **6 of 6 source directory files**. V1–V3 retain **10 of 11 original primary pooled rows**; V4–V6 retain **11 of 11**.
+
+The cap is `bad[:8]` in `harness/gate.py:1381`, with a `+... more` suffix. The report preserves every CLI refusal verbatim above. The supplementary diagnostic uses `sys.settrace` only to read the local `bad` list when the unmodified check returns; it exposes hidden reasons without changing the gate or implementing a second decision function. Those supplemental reasons must not be misreported as reasons printed by the CLI. The raw CLI and diagnostic outputs distinguish them.
+
+All copies also emit `COMPARATOR_PANEL: registered source panel missing`. This is a copy-path confound, not an attack catch: `harness/gate.py:1235` derives the comparator cache slug from the directory basename (`V1`, etc.), rather than the review&#x27;s stored slug. The replay and certificate failures likewise include the already-applied source change; a refusal in those categories alone cannot establish that a specific attack is caught. The untouched-page results were measured independently in Part 2.
+
+V6 also retains absent summaries and unstamped non-primary rows. The branch in the prompt conditional on V6 *not* being refused is not reached. In this run the cache/page eligibility-state comparison is bypassed for primary rows by the earlier stamp-disagreement `continue`; it is incorrect to attribute the V6 refusal to that comparison. `effective_eligibility` preserves a forged ELIGIBLE cell when the family already has registry identity and held report IDs; it does not validate `span={&quot;forged&quot;: true}`.
+
+### Which denominator is independent, and what shrinks it?
+
+`harness/gate.py:1325` reads `review.json.screening.records`, and `:1364` passes that list directly to `membership.build_outcome_membership`. The latter (`harness/membership.py:134`) selects `decision == &quot;include&quot;`, converts record IDs, and deduplicates them; `:139` canonicalizes the IDs accounted for by `trials`, `declared_absent_trials`, and `design_refusals`. `screened_in_not_pooled` is the difference. It recomputes this membership rather than trusting an outcome&#x27;s saved membership object.
+
+This denominator is independent of the outcome&#x27;s pooled rows and its `trial_families`, but **not independent of the editable review object**. Deleting a screening record, changing its decision away from include, blanking its ID, or making IDs collapse under canonicalization can shrink it. Deleting the screening block altogether supplies an empty list. Removing an outcome avoids that outcome&#x27;s check. Deleting only a trial family does not shrink it. Adding the trial ID to an absent/refusal list can discharge the accounting obligation without demonstrating that the associated reason or evidence is sound.
+
+| Other protection | What it covers | Boundary |
+| --- | --- | --- |
+| Live census / manifest / served HTML | Byte or canonical-object edits without consistent regeneration | Integrity and consistency, not semantic truth. V1–V6 show stale-review/render failures. |
+| Certificate (`harness/certificate.py:177`, `:243`) | Recomputes review, manuscript, code, corpus, extraction, family-map and other hashes; rejects stale saved certificates | The screening digest is `_hash(review[&#x27;screening&#x27;])` at `:208`; it is not a separately acquired denominator. `trial_family_map_sha256` at `:210` hashes current family-cache content. A newly consistent certificate authenticates consistency with those inputs, not truth of their eligibility assertions. |
+| Screening ledger SHA | Detects a screening edit against the saved certificate | A consistent regenerated certificate can carry the new screening digest. Hash equality does not re-adjudicate exclusions. |
+| Offline replay (`harness/gate.py:640`) | Regenerates the review from committed records/config and registration identity, and compares the regenerated review hash to the manifest | A forged review/denominator that the actual producer cannot generate is caught, even after merely updating its hashes. It is not an independently acquired source-of-truth check for coordinated edits to producer inputs. |
+| Certified-family comparison (`harness/gate.py:1354`) | On rows that reach it, requires a matching family and matching *effective state* in the nonempty cache | Compares state only, not eligibility spans or absence-code details; does not run for an absent/empty certified map and does not validate semantic evidence. Missing stamp or stamp mismatch returns to the row loop before this comparison. |
+| Honest ratchet (`harness/honest_ratchet.py:170`, `:207`, `:242`, `:306`) | Cross-version rendered marker decreases, lost tracked absent/banner blocks, parity changes, and changed pooled result tuples require applicable acknowledgements/notices, including entered/left IDs for changed results | A separate whole-tree check, called by `scripts/verify_all.py:233`, not by `gate_page`. `compare_results` skips an unchanged result tuple and skips an outcome missing from the new review. It is not a general immutable inclusion ledger. Byte-edited variants retaining original result fields do not by themselves demonstrate this ratchet catch. |
+
+**What these checks do not establish:** semantic validity of an eligibility span, correctness of a fresh screening exclusion, completeness of a jointly revised source corpus, or authorization/independent truth of internally consistent producer assertions. The admission check also compares only stamp `final`/`failing`, not all stamped predicate detail, and accepts summary state labels without comparing the full summary to recomputation. No claim is made that those gaps alone yield a passing full-page exploit; other checks may reject a particular inconsistent construction.
+
+**Forged-cache rebuild distinction:** changing only `cache/&lt;slug&gt;/families.json` is not a demonstrated full-gate bypass. The ordinary producer calls `trial_family.prepare` (`harness/pipeline.py:1825`) using records and `family_registry.json`/discovery/protocol ingredients (`harness/trial_family.py:380`), rather than loading the stored `families.json` as its admission input. Its regenerated UNKNOWN states can disagree with a forged cache; a forged review that cannot be reproduced is also rejected. `scripts/build_families.py:20` offers `--offline --check` to regenerate and compare family-cache bytes. Conversely, if an attacker controls the actual eligibility-producing ingredients and regenerates all dependent review/cache/certificate objects consistently, shared state equality, current-input hashes, and replay alone do not establish the truth of that evidence. The honest ratchet may still require notices for changed results or removed disclosures. This is a source-level trust-boundary finding, not an executed successful consistent-rebuild attack. No served page was rebuilt to test it.
+
+## Part 4 — reader inventory and second implementations
+
+
+### Patched-tree executable reader grep
+
+Command:
+
+```text
+rg -n verification_rows|admission_verdict|admission_summary|effective_eligibility --glob *.py --glob *.js --glob *.ts --glob *.html --glob !.tmp/** --glob !docs/evidence/** --glob !docs/reviews/** .
+```
+
+Real output:
+
+```text
+.\docs\scripts\verify_bundle.py:750:    for br in bundle[&quot;verification_rows&quot;]:
+.\docs\scripts\verify_bundle.py:788:    bundle_rows = {r[&quot;trial&quot;][&quot;id&quot;].replace(&quot;PMID &quot;, &quot;&quot;): r for r in bundle[&quot;verification_rows&quot;]}
+.\docs\scripts\verify_bundle.py:1158:                                   for r in bundle[&quot;verification_rows&quot;] if &quot;statistical_input&quot; in r}
+.\harness\trial_family.py:462:def effective_eligibility(f):
+.\harness\trial_family.py:499:        f[&#x27;eligibility&#x27;] = effective_eligibility(f)
+.\harness\pipeline.py:1464:    out[&quot;admission_summary&quot;] = admission_mod.summary(out)
+.\harness\page.py:1646:    rendered from the outcome&#x27;s admission_summary object, never typed. A page with no summary renders no block --
+.\harness\page.py:1649:    s = o.get(&quot;admission_summary&quot;)
+.\harness\gate.py:1300:    from .trial_family import effective_eligibility as _eff
+.\harness\gate.py:1336:            stamp = t.get(&quot;admission_verdict&quot;) if isinstance(t.get(&quot;admission_verdict&quot;), dict) else None
+.\harness\gate.py:1372:        s = o.get(&quot;admission_summary&quot;)
+.\harness\admission.py:14:    P5_family_eligible   the trial family&#x27;s EFFECTIVE eligibility state == ELIGIBLE (trial_family.effective_eligibility:
+.\harness\admission.py:38:from .trial_family import effective_eligibility
+.\harness\admission.py:54:    &quot;where_the_rest_is_evaluated&quot;: &quot;scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, &quot;
+.\harness\admission.py:84:    el = effective_eligibility(family) if family else None
+.\harness\admission.py:88:          &quot;basis&quot;: &quot;trial_family.effective_eligibility on the family ledger the build was handed&quot; if family else
+.\harness\admission.py:112:    el = effective_eligibility(family) if family else {}
+.\harness\admission.py:124:        &quot;admission_verdict&quot;: v,
+.\harness\admission.py:140:    &quot;&quot;&quot;Stamp every candidate row with its verdict (row key admission_verdict -- `admission` is the eligibility chain&#x27;s
+.\harness\admission.py:149:        t[&quot;admission_verdict&quot;] = v
+.\harness\admission.py:164:    stamped = [t for t in pooled if isinstance(t.get(&quot;admission_verdict&quot;), dict)]
+.\harness\admission.py:165:    unstamped = [str(t.get(&quot;id&quot;)) for t in pooled if not isinstance(t.get(&quot;admission_verdict&quot;), dict)]
+.\harness\admission.py:166:    finals = {str(t.get(&quot;id&quot;)): t[&quot;admission_verdict&quot;].get(&quot;final&quot;) for t in stamped}
+.\harness\admission.py:182:                                   if t[&quot;admission_verdict&quot;][&quot;predicates&quot;][&quot;P8_endpoint_bound&quot;].get(&quot;bundle_rule_agreement&quot;) == &quot;OTHER_ROUTE&quot;),
+.\harness\absence.py:281:    if row.get(&quot;state&quot;) in ADMISSION_SET_ASIDE_STATES and isinstance(row.get(&quot;admission_verdict&quot;), dict):
+.\tests\test_bundle_verifier.py:260:    for r in b[&quot;verification_rows&quot;]:
+.\tests\test_bundle_verifier.py:335:    for r in b[&quot;verification_rows&quot;]:
+.\tests\test_bundle_verifier.py:450:    row = next(r for r in b[&quot;verification_rows&quot;] if r[&quot;trial&quot;][&quot;id&quot;] == &quot;PMID 27633186&quot;)
+.\tests\test_bundle_verifier.py:624:    row = next(r for r in b[&quot;verification_rows&quot;] if r[&quot;trial&quot;][&quot;id&quot;] == &quot;PMID 27633186&quot;)
+.\tests\test_bundle.py:192:    row = next(r for r in bundle[&quot;verification_rows&quot;] if r[&quot;trial&quot;][&quot;id&quot;] == &quot;PMID 40162642&quot;)
+.\tests\test_bundle.py:253:def test_verification_rows_cover_the_pool_and_carry_all_six_objects(bundle):
+.\tests\test_bundle.py:256:    assert [r[&quot;trial&quot;][&quot;id&quot;] for r in bundle[&quot;verification_rows&quot;]] == [t[&quot;id&quot;] for t in primary[&quot;trials&quot;]]
+.\tests\test_bundle.py:257:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_bundle.py:267:    row = next(r for r in bundle[&quot;verification_rows&quot;] if r[&quot;trial&quot;][&quot;id&quot;] == &quot;PMID 30291013&quot;)
+.\tests\test_bundle.py:274:    rows = {r[&quot;trial&quot;][&quot;id&quot;]: r for r in bundle[&quot;verification_rows&quot;]}
+.\tests\test_bundle.py:306:    shared = {r[&quot;source&quot;][&quot;source_sha256&quot;] for r in bundle[&quot;verification_rows&quot;]}
+.\tests\test_bundle.py:308:    assert all(&quot;container digest + deterministic selector&quot; in r[&quot;source&quot;][&quot;identity&quot;] for r in bundle[&quot;verification_rows&quot;])
+.\tests\test_bundle.py:313:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_bundle.py:325:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_bundle.py:348:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_bundle.py:353:    soul = next(r for r in bundle[&quot;verification_rows&quot;] if r[&quot;trial&quot;][&quot;id&quot;] == &quot;PMID 40162642&quot;)[&quot;statistical_input&quot;]
+.\tests\test_bundle.py:382:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_bundle.py:431:    assert all(r[&quot;admission&quot;][&quot;predicates&quot;][&quot;P8_endpoint_bound&quot;][&quot;state&quot;] == &quot;PASS&quot; for r in bundle[&quot;verification_rows&quot;])
+.\tests\test_bundle.py:449:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_bundle.py:464:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_bundle.py:476:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_bundle.py:492:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_bundle.py:502:    assert all(&quot;point estimate&quot; in r[&quot;producer_label_scope&quot;] for r in bundle[&quot;verification_rows&quot;])
+.\tests\test_bundle.py:594:    return _load(BUNDLE)[&quot;verification_rows&quot;]
+.\tests\test_bundle.py:601:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_bundle.py:631:    assert any(l[&quot;id&quot;] == &quot;L13_location_by_full_text_and_offsets&quot; for l in bundle[&quot;limits&quot;]) and any(l[&quot;id&quot;] == &quot;L14_verification_rows_source_pubmed_only&quot; for l in bundle[&quot;limits&quot;])
+.\tests\test_bundle.py:641:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_bundle.py:660:    bases = [r[&quot;analysis_identity&quot;][&quot;analysis_set&quot;][&quot;basis&quot;] for r in bundle[&quot;verification_rows&quot;]]
+.\tests\test_bundle.py:668:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_bundle.py:676:    assert sum(1 for r in bundle[&quot;verification_rows&quot;] if r[&quot;statistical_input&quot;][&quot;ci_level&quot;][&quot;level_agreement&quot;] == &quot;MATCH&quot;) == 8   # all eight clauses state &#x27;95%&#x27;
+.\tests\test_bundle.py:695:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_bundle.py:707:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_bundle.py:715:    assert all(r[&quot;admission&quot;][&quot;predicates&quot;][&quot;P2_span_located&quot;][&quot;typed_state&quot;] == &quot;LOCATED&quot; for r in bundle[&quot;verification_rows&quot;])
+.\tests\test_bundle.py:823:    for r in bundle[&quot;verification_rows&quot;]:
+.\tests\test_admission_enforced.py:88:    assert a[&quot;admission_verdict&quot;][&quot;final&quot;] == &quot;INADMISSIBLE&quot; and a[&quot;admission_verdict&quot;][&quot;failing&quot;] == [&quot;P5_family_eligible&quot;]
+.\tests\test_admission_enforced.py:90:    assert kept[0][&quot;admission_verdict&quot;][&quot;final&quot;] == &quot;ADMISSIBLE&quot;
+.\tests\test_admission_enforced.py:106:    assert aside == [] and kept[0][&quot;admission_verdict&quot;][&quot;final&quot;] == &quot;MIGRATION_STATE_UNBOUND_LEGACY&quot;
+.\tests\test_admission_enforced.py:107:    assert kept[0][&quot;admission_verdict&quot;][&quot;failing&quot;] == [&quot;P8_endpoint_bound&quot;]
+.\tests\test_admission_enforced.py:117:    assert aside[0][&quot;admission_verdict&quot;][&quot;predicates&quot;][&quot;P5_family_eligible&quot;][&quot;eligibility_state&quot;] is None
+.\tests\test_admission_enforced.py:130:    pooled = [t for t in control[&quot;trials&quot;] if t[&quot;admission_verdict&quot;][&quot;final&quot;] == &quot;ADMISSIBLE&quot;]
+.\tests\test_admission_enforced.py:157:        out[&quot;admission_summary&quot;] = admission.summary(out)
+.\tests\test_admission_enforced.py:166:        rev[&quot;outcomes&quot;][1][&quot;admission_summary&quot;] = admission.summary(rev[&quot;outcomes&quot;][1])
+.\tests\test_admission_enforced.py:253:    finals = {r[&quot;admission&quot;][&quot;final&quot;] for r in b[&quot;verification_rows&quot;]}
+.\tests\test_admission_enforced.py:255:    bundle_predicates = {k for r in b[&quot;verification_rows&quot;] for k in r[&quot;admission&quot;][&quot;predicates&quot;]}
+.\scripts\verify_bundle.py:750:    for br in bundle[&quot;verification_rows&quot;]:
+.\scripts\verify_bundle.py:788:    bundle_rows = {r[&quot;trial&quot;][&quot;id&quot;].replace(&quot;PMID &quot;, &quot;&quot;): r for r in bundle[&quot;verification_rows&quot;]}
+.\scripts\verify_bundle.py:1158:                                   for r in bundle[&quot;verification_rows&quot;] if &quot;statistical_input&quot; in r}
+.\scripts\admission_census.py:12:  unstamped pooled rows  a pooled row without admission_verdict (a page built before the build read the decision)
+.\scripts\admission_census.py:53:                v = t.get(&quot;admission_verdict&quot;) if isinstance(t.get(&quot;admission_verdict&quot;), dict) else None
+.\scripts\admission_census.py:60:                                 &quot;final&quot;: &quot;INADMISSIBLE&quot;, &quot;stamped&quot;: isinstance(a.get(&quot;admission_verdict&quot;), dict),
+.\scripts\build_bundle.py:161:    {&quot;id&quot;: &quot;L14_verification_rows_source_pubmed_only&quot;, &quot;limit&quot;: &quot;verification_rows[] bind rows whose evidence is a PubMed record in records.json; a row &quot;
+.\scripts\build_bundle.py:262:        &quot;ASSESSED&quot;: &quot;the row was run through the admission predicates (verification_rows) or the absence rule (absence_claims); its result stands beside it&quot;,
+.\scripts\build_bundle.py:660:            &quot;outcome_understood&quot;: {&quot;state&quot;: &quot;PRODUCER_ASSERTION&quot;, &quot;basis&quot;: &quot;the page&#x27;s endpoint_binding / adjudication fields are the producer&#x27;s; carried in verification_rows, not independently adjudicated&quot;}}
+.\scripts\build_bundle.py:1220:                            &quot;(certified as review_sha256), which verification_rows[*].source binds to the container + selector + span. &quot;
+.\scripts\build_bundle.py:1276:def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dict, records: dict) -&gt; tuple[list[dict], dict]:
+.\scripts\build_bundle.py:1561:                   &quot;in_verification_rows&quot;: bool(o.get(&quot;primary&quot;)) and t.get(&quot;id&quot;) in primary_ids,
+.\scripts\build_bundle.py:1903:                st = assessment_state(t, f&quot;verification_rows: {fin}&quot;, unresolved=(p9 == &quot;AMBIGUOUS_ENDPOINT_BINDING&quot;),
+.\scripts\build_bundle.py:1906:                st = assessment_state(t, &quot;rendered harms row; not a verification row (verification_rows cover the primary pool)&quot;,
+.\scripts\build_bundle.py:2234:    vrows, vmeta = verification_rows(slug, review, docs_by_id, art_by_ref, records)
+.\scripts\build_bundle.py:2275:            {&quot;subject&quot;: &quot;raw served bytes&quot;, &quot;procedure&quot;: &quot;sha256(bytes)&quot;, &quot;value&quot;: _sha256(rec_raw), &quot;appears_as&quot;: &quot;artefacts[].sha256; verification_rows[].source.source_sha256; verified_*.json document_sha256&quot;},
+.\scripts\build_bundle.py:2366:        &quot;verification_rows&quot;: vrows,
+```
+
+Native exit code: `0`.
+
+### Verdict computing and call sites
+
+Command:
+
+```text
+rg -n &quot;P5_family_eligible.*(PASS|ELIGIBLE)|P8_endpoint_bound.*(PASS|endpoint_binding)|final =|_adm.verdict|admission_mod.admit|v = verdict&quot; harness/admission.py harness/gate.py harness/pipeline.py scripts/build_bundle.py scripts/verify_bundle.py docs/scripts/verify_bundle.py
+```
+
+Real output:
+
+```text
+harness/pipeline.py:1320:    trials, _not_admitted = admission_mod.admit(trials, family_nodes, spec)
+harness/gate.py:1335:            expect = _adm.verdict(t, fam)
+harness/admission.py:14:    P5_family_eligible   the trial family&#x27;s EFFECTIVE eligibility state == ELIGIBLE (trial_family.effective_eligibility:
+harness/admission.py:18:    P8_endpoint_bound    endpoint_binding is a producer binding route other than unbound_legacy. NOTE the divergence
+harness/admission.py:56:    &quot;rule&quot;: &quot;final = ADMISSIBLE if no evaluated predicate fails; MIGRATION_STATE_UNBOUND_LEGACY if P8 is the only failing &quot;
+harness/admission.py:98:    final = (&quot;ADMISSIBLE&quot; if not failing else
+harness/admission.py:148:        v = verdict(t, fam)
+docs/scripts/verify_bundle.py:899:            &quot;P5_family_eligible&quot;: elig == &quot;ELIGIBLE&quot;,
+docs/scripts/verify_bundle.py:902:            &quot;P8_endpoint_bound&quot;: t.get(&quot;endpoint_binding&quot;) == &quot;named_endpoint_resolved_to_definition_span&quot;,
+docs/scripts/verify_bundle.py:960:        final = (&quot;ADMISSIBLE&quot; if not failing else
+docs/scripts/verify_bundle.py:961:                 &quot;MIGRATION_STATE_UNBOUND_LEGACY&quot; if failing == [&quot;P8_endpoint_bound&quot;] and t.get(&quot;endpoint_binding&quot;) == &quot;unbound_legacy&quot; else
+docs/scripts/verify_bundle.py:978:                               &quot;agrees_with_bundle&quot;: (final == recorded) if not corrupt else None,
+scripts/verify_bundle.py:899:            &quot;P5_family_eligible&quot;: elig == &quot;ELIGIBLE&quot;,
+scripts/verify_bundle.py:902:            &quot;P8_endpoint_bound&quot;: t.get(&quot;endpoint_binding&quot;) == &quot;named_endpoint_resolved_to_definition_span&quot;,
+scripts/verify_bundle.py:960:        final = (&quot;ADMISSIBLE&quot; if not failing else
+scripts/verify_bundle.py:961:                 &quot;MIGRATION_STATE_UNBOUND_LEGACY&quot; if failing == [&quot;P8_endpoint_bound&quot;] and t.get(&quot;endpoint_binding&quot;) == &quot;unbound_legacy&quot; else
+scripts/verify_bundle.py:978:                               &quot;agrees_with_bundle&quot;: (final == recorded) if not corrupt else None,
+scripts/build_bundle.py:356:        &quot;P5_family_eligible&quot;: &quot;the trial family&#x27;s eligibility state == ELIGIBLE&quot;,
+scripts/build_bundle.py:359:        &quot;P8_endpoint_bound&quot;: &quot;endpoint_binding == named_endpoint_resolved_to_definition_span (an unbound_legacy row is a migration state, see binding_classes)&quot;,
+scripts/build_bundle.py:1332:            &quot;P5_family_eligible&quot;: {&quot;state&quot;: &quot;PASS&quot; if elig == &quot;ELIGIBLE&quot; else &quot;FAIL&quot;, &quot;family_id&quot;: t.get(&quot;family_id&quot;), &quot;eligibility_state&quot;: elig,
+scripts/build_bundle.py:1339:            &quot;P8_endpoint_bound&quot;: {&quot;state&quot;: &quot;PASS&quot; if t.get(&quot;endpoint_binding&quot;) == &quot;named_endpoint_resolved_to_definition_span&quot; else &quot;FAIL&quot;,
+scripts/build_bundle.py:1367:        final = (&quot;ADMISSIBLE&quot; if not failing else
+scripts/build_bundle.py:1368:                 &quot;MIGRATION_STATE_UNBOUND_LEGACY&quot; if failing == [&quot;P8_endpoint_bound&quot;] and t.get(&quot;endpoint_binding&quot;) == &quot;unbound_legacy&quot; else
+```
+
+Native exit code: `0`.
+
+### Every matched executable-source location
+
+READ includes checking, aggregating, asserting, or rendering an existing object. Delegated calls to the canonical function do not create a new algorithm. Metadata and writes are explicitly distinguished.
+
+| File:line | Classification |
+| --- | --- |
+| `docs/scripts/verify_bundle.py:750` | READS bundle verification_rows here; the enclosing run() separately RECOMPUTES verdicts at :899/:902/:960. |
+| `docs/scripts/verify_bundle.py:788` | READS bundle verification_rows here; the enclosing run() separately RECOMPUTES verdicts at :899/:902/:960. |
+| `docs/scripts/verify_bundle.py:1158` | READS bundle verification_rows here; the enclosing run() separately RECOMPUTES verdicts at :899/:902/:960. |
+| `harness/absence.py:281` | READS the stored verdict/summary (or its presence); no independent verdict computation. |
+| `harness/admission.py:14` | DOCUMENTATION; no read or computation. |
+| `harness/admission.py:38` | IMPORTS the shared eligibility helper; no verdict computation here. |
+| `harness/admission.py:54` | SCOPE metadata naming the bundle; not a reader. |
+| `harness/admission.py:84` | COMPUTES the canonical in-build verdict in verdict(), using effective eligibility; final logic at :98. |
+| `harness/admission.py:88` | Provenance text inside verdict(); same implementation, not another one. |
+| `harness/admission.py:112` | READS effective eligibility to retain refusal evidence; no new verdict. |
+| `harness/admission.py:124` | WRITES the verdict already supplied to set_aside_record. |
+| `harness/admission.py:140` | DOCUMENTATION for admit(). |
+| `harness/admission.py:149` | WRITES the result of verdict() called at :148; delegates, not another algorithm. |
+| `harness/admission.py:164` | READS the stored verdict/summary (or its presence); no independent verdict computation. |
+| `harness/admission.py:165` | READS the stored verdict/summary (or its presence); no independent verdict computation. |
+| `harness/admission.py:166` | READS the stored verdict/summary (or its presence); no independent verdict computation. |
+| `harness/admission.py:182` | READS the stored verdict/summary (or its presence); no independent verdict computation. |
+| `harness/gate.py:1300` | IMPORTS shared effective eligibility for cache/page comparison; not a verdict algorithm. |
+| `harness/gate.py:1336` | READS the stored verdict/summary (or its presence); no independent verdict computation. |
+| `harness/gate.py:1372` | READS the stored verdict/summary (or its presence); no independent verdict computation. |
+| `harness/page.py:1646` | DOCUMENTATION; rendering reads at :1649. |
+| `harness/page.py:1649` | READS the stored verdict/summary (or its presence); no independent verdict computation. |
+| `harness/pipeline.py:1464` | WRITES a summary derived by admission.summary; calls admission.admit at :1320 to enforce the shared verdict. |
+| `harness/trial_family.py:462` | COMPUTES effective eligibility (registry-parent/source-presence overrides), not the final P5/P8 admission verdict. |
+| `harness/trial_family.py:499` | CALLS that eligibility helper and writes its cell; no separate admission algorithm. |
+| `scripts/admission_census.py:12` | DOCUMENTATION of unstamped rows. |
+| `scripts/admission_census.py:53` | READS the stored verdict/summary (or its presence); no independent verdict computation. |
+| `scripts/admission_census.py:60` | READS stamp presence, but DERIVES the set-aside final label INADMISSIBLE from a state marker (:58), not from the stamp final. No P5/P8 evaluation. |
+| `scripts/build_bundle.py:161` | DOCUMENTATION / emitted schema metadata; not a verdict reader or computing site. |
+| `scripts/build_bundle.py:262` | DOCUMENTATION / emitted schema metadata; not a verdict reader or computing site. |
+| `scripts/build_bundle.py:660` | DOCUMENTATION / emitted schema metadata; not a verdict reader or computing site. |
+| `scripts/build_bundle.py:1220` | DOCUMENTATION / emitted schema metadata; not a verdict reader or computing site. |
+| `scripts/build_bundle.py:1276` | COMPUTES a separate bundle verdict; own P5/P8 at :1332/:1339 and final at :1367. |
+| `scripts/build_bundle.py:1561` | DERIVES row coverage membership; no admission verdict computation. |
+| `scripts/build_bundle.py:1903` | READS the bundle final fin to describe assessment state. |
+| `scripts/build_bundle.py:1906` | Metadata for non-verification harms assessment; no admission computation. |
+| `scripts/build_bundle.py:2234` | CALLS its own verification_rows computing implementation; does not read the build stamp. |
+| `scripts/build_bundle.py:2275` | DOCUMENTATION / emitted schema metadata; not a verdict reader or computing site. |
+| `scripts/build_bundle.py:2366` | WRITES the computed bundle verification rows. |
+| `scripts/verify_bundle.py:750` | READS bundle verification_rows here; the enclosing run() separately RECOMPUTES verdicts at :899/:902/:960. |
+| `scripts/verify_bundle.py:788` | READS bundle verification_rows here; the enclosing run() separately RECOMPUTES verdicts at :899/:902/:960. |
+| `scripts/verify_bundle.py:1158` | READS bundle verification_rows here; the enclosing run() separately RECOMPUTES verdicts at :899/:902/:960. |
+| `tests/test_admission_enforced.py:88` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_admission_enforced.py:90` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_admission_enforced.py:106` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_admission_enforced.py:107` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_admission_enforced.py:117` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_admission_enforced.py:130` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_admission_enforced.py:157` | FIXTURE WRITE using admission.summary; no separate verdict algorithm. |
+| `tests/test_admission_enforced.py:166` | FIXTURE WRITE using admission.summary; no separate verdict algorithm. |
+| `tests/test_admission_enforced.py:253` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_admission_enforced.py:255` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:192` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:253` | TEST function name; its body reads/asserts bundle rows. |
+| `tests/test_bundle.py:256` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:257` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:267` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:274` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:306` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:308` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:313` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:325` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:348` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:353` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:382` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:431` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:449` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:464` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:476` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:492` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:502` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:594` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:601` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:631` | READS metadata-limit identifiers, not verdicts. |
+| `tests/test_bundle.py:641` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:660` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:668` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:676` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:695` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:707` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:715` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle.py:823` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle_verifier.py:260` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle_verifier.py:335` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle_verifier.py:450` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+| `tests/test_bundle_verifier.py:624` | READS/asserts or mutates a test fixture; does not implement the production admission policy. |
+
+### Classified readers and physical verdict sites
+
+Command:
+
+```text
+python .tmp/lane_part4.py
+```
+
+Real output:
+
+```text
+classified matches 86 of 86 matched executable-source lines
+verdict computation: harness/admission.py:98 verdict
+verdict computation: scripts/build_bundle.py:1367 verification_rows
+verdict computation: scripts/verify_bundle.py:960 run
+verdict computation: docs/scripts/verify_bundle.py:960 run
+canonical in-build computing site 1 of 4 physical computing sites
+noncanonical physical sites 3 of 4 physical computing sites
+mirrored verifier byte equality: True
+distinct verdict algorithms after collapsing identical mirror: 3 of 4 physical sites
+```
+
+Native exit code: `0`.
+
+### Generated HTML token search
+
+Command:
+
+```text
+rg -n -o verification_rows|admission_verdict|admission_summary|effective_eligibility docs/reviews docs/evidence --glob *.html
+```
+
+Real output:
+
+```text
+
+```
+
+Native exit code: `1`.
+
+### Verify supplied patch is fully applied
+
+Command:
+
+```text
+git apply --reverse --check source.patch
+```
+
+Real output:
+
+```text
+
+```
+
+Native exit code: `0`.
+
+### Whitespace validation
+
+Command:
+
+```text
+git diff --check
+```
+
+Real output:
+
+```text
+
+```
+
+Native exit code: `0`.
+
+### Second-implementation finding
+
+The claim of exactly one computing site is **false across the inspected production tree**. The AST/source check identifies **4 of 4 physical combined-verdict sites**, representing **3 distinct algorithms across those 4 sites** after collapsing the byte-identical verifier mirror:
+
+| Computing location | Actual policy source |
+| --- | --- |
+| `harness/admission.py:82` / final at `:98` | The shared in-build algorithm. `admit()` and `gate.check_admission_enforced()` call it rather than duplicating its policy. This is **1 of 4 physical sites**. |
+| `scripts/build_bundle.py:1276` / final at `:1367` | A separate bundle algorithm computing P5, P8, other predicates, and its own final. It does not consume the build&#x27;s admission_verdict. |
+| `scripts/verify_bundle.py:688` / final at `:960` | A separate verifier recomputing predicates and final from bundled inputs. Its independent-verifier purpose does not turn it into a read-only consumer. |
+| `docs/scripts/verify_bundle.py:688` / final at `:960` | A byte-identical shipped copy of the preceding algorithm. |
+
+The noncanonical implementations occupy **3 of 4 physical sites**. The narrower claim that the pipeline and page gate share their in-build P5/P8 decision is supported. The wider claim that every consumer only reads that decision is not.
+
+There is an explicit policy divergence: the in-build verdict reads `effective_eligibility` and lets any nonempty binding other than `unbound_legacy` pass P8 (`harness/admission.py:84`, `:91`). The bundle builder and independent verifier read the cached raw eligibility state and require exactly `named_endpoint_resolved_to_definition_span` (`scripts/build_bundle.py:1332`, `:1339`; `scripts/verify_bundle.py:899`, `:902`). They also evaluate additional predicates. Their verdicts cannot be assumed interchangeable. The patch&#x27;s SCOPE text acknowledges this P8 difference, but acknowledgement does not eliminate the separate implementations.
+
+`scripts/admission_census.py:60` is also not a pure verdict reader for set-aside rows: it derives an INADMISSIBLE label from the set-aside state and checks stamp presence, rather than reading the stamp&#x27;s final. This is a state-to-label classification, not another P5/P8 policy algorithm; it is called out separately rather than hidden in the computing-site count. `trial_family.effective_eligibility` computes the shared eligibility input, not a combined final verdict. Test fixtures and the deliberately forged audit fixtures do not constitute production policy implementations.
+
+The generated review/evidence HTML token search returns no matches (native `rg` exit code `1` means no matches). The executable-source inventory includes the shipped verifier mirror and tests; archived data objects containing these fields are payloads, not executable readers. The classification was cross-checked against the saved whole-tree executable grep; every matched file:line is classified.
+
+### Completion boundaries
+
+This is a completed reproduction/red-team audit, not a release certification or a repair of its findings. The requested admission plants passed **12 of 12 tests** after patch application; **6 of 6 requested adversarial copies** were refused, with the trial-naming and denominator limits documented above. The requested census correctly remained nonzero on untouched legacy pages. No full repository test suite, deployment, or successful forged-input rebuild is claimed. The supplied patch remains applied and uncommitted. No served page was regenerated. No source changes beyond the supplied patch were made.
+
+Audit helper scripts and raw per-command logs remain under `.tmp`; the evidence, interpretation, commands, and full gate outputs needed for review are consolidated in `LANE_REPORT.md`. `PROGRESS.md` is an ignored checkpoint, not a committed artefact. The final preservation check below compares held files to the lane&#x27;s hash snapshot and checks tracked served/cache changes against the initial HEAD.
+
+
+### Served pages and cache preservation
+
+Command:
+
+```text
+python .tmp/lane_preservation.py
+```
+
+Real output:
+
+```text
+docs/reviews/ unchanged 194 of 194 baseline files
+changed or missing: []
+added: []
+cache/ unchanged 937 of 937 baseline files
+changed or missing: []
+added: []
+tracked served/cache diff against initial HEAD:
+(empty)
+HEAD: 38c04411484dbea035a8e4c8e22c57c2794f9495
+report UTF-8: True BOM: False
+```
+
+Native exit code: `0`.
+
+Final preservation result: **194 of 194 baseline served review files** and **937 of 937 baseline cache files** are unchanged; no added, missing, or modified files in those sets. The tracked served/cache diff against initial HEAD is empty. The supplied patch reverse-check and `git diff --check` both exited with code `0`. The report is UTF-8 without BOM. No commit was made.
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

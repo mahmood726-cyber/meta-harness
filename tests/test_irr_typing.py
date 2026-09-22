@@ -5,6 +5,8 @@ mortality (one per person, no person-time) is a first-event relative ratio (FIRS
 person-time IRR. Typing RECOVERY's "age-adjusted rate ratio" and ASCEND's "log-rank rate ratio" as IRR was
 the mislabel that manufactured omega3's estimand-incompatibility. iv-iron's FAIR-HF2 ("total ... occurred 264
 times") is a genuine recurrent rate ratio and must stay IRR."""
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))  # tests/ on the path for _contracts
 from harness import extract
 
 
@@ -42,16 +44,13 @@ def test_explicit_incidence_rate_label_stays_irr():
 
 
 def test_omega3_pools_and_iv_iron_stays_suppressed():
-    """The corpus consequence: omega3's primary must now POOL (all first-event once ASCEND is corrected),
-    while iv-iron stays suppressed (a genuine first-event HR + recurrent IRR mix)."""
-    import glob
+    """Suppression follows the effect classes of admitted members; source IRR typing remains covered above."""
     import json
-    import os
-    docs = os.path.join(os.path.dirname(__file__), "..", "docs", "reviews")
-    o = json.load(open(os.path.join(docs, "omega3-cardiovascular-events", "review.json"), encoding="utf-8"))
-    op = next(x for x in o["outcomes"] if x.get("primary"))["result"]
-    assert not op.get("suppressed_incompatible"), "omega3 must no longer be suppressed"
-    assert op.get("estimate") is not None, "omega3 must pool an estimate"
-    iv = json.load(open(os.path.join(docs, "iv-iron-hfref-hosp", "review.json"), encoding="utf-8"))
-    ip = next(x for x in iv["outcomes"] if x.get("primary"))["result"]
-    assert ip.get("suppressed_incompatible"), "iv-iron must stay suppressed (genuine first-event+recurrent mix)"
+    from pathlib import Path
+    from _contracts import partition, scale_contract
+    root = Path(__file__).resolve().parents[1]
+    for slug in ('omega3-cardiovascular-events', 'iv-iron-hfref-hosp'):
+        review = json.loads((root/'docs/reviews'/slug/'review.json').read_text(encoding='utf-8'))
+        outcome = next(o for o in review['outcomes'] if o.get('primary'))
+        partition(root, slug, outcome)
+        scale_contract(outcome)

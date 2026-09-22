@@ -5,6 +5,7 @@ import pytest
 from harness import compat_check, manuscript, membership, scope_identity
 from harness.page import _scope_identity_block
 from harness.pipeline import _build_outcome
+from _families import eligible_by_construction  # noqa: E402  (families ELIGIBLE by construction: the admission gate is on by default)
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -14,7 +15,8 @@ def test_verified_abstract_effect_retains_its_source_provenance():
         'harm',[{'id':'fixture','id_type':'pmid'}],{'fixture':{'abstract':span}},['drug'],['placebo'],
         verified_effects={'fixture':{'outcome':'Major bleeding','override':True,
             'effect':0.7,'ci_low':0.5,'ci_high':0.9,'scale':'HR',
-            'provenance':'abstract_verified','source':span}})
+            'provenance':'abstract_verified','source':span}},
+        family_nodes=eligible_by_construction({'fixture': {}}))
     assert outcome['trials'][0]['provenance']=='abstract_verified'
 
 def test_offline_integrity_missing_pmid_is_not_checked():

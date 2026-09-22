@@ -210,8 +210,17 @@ def test_page_renders_stale_contrast_and_protocol_controls_unrenderable():
     html = (ROOT / "docs" / "reviews" / SLUG / "index.html").read_text(encoding="utf-8")
     assert "UNRENDERABLE stale contrast block" in html
     assert "UNRENDERABLE protocol control expectation" in html
-    assert "2 of 2</strong> pooled trials have a parser-confirmed contrast" in html
-    assert "2 of 5</strong> pooled trials have a parser-confirmed contrast" not in html
+    # the contrast sentence's denominator is the CURRENT pool, never the cached membership (the served defect was
+    # "2 of 5" over a 2-trial pool); an empty pool makes no per-pooled-trial contrast claim at all. Until 2026-09-21
+    # this line pinned "2 of 2" -- a served number that the enforcement gate legitimately moved to 0 pooled.
+    import re as _re
+    review = json.loads((ROOT / "docs" / "reviews" / SLUG / "review.json").read_text(encoding="utf-8"))
+    pooled = len(next(o for o in review["outcomes"] if o.get("primary"))["trials"])
+    claims = _re.findall(r"(\d+) of (\d+)</strong> pooled trials have a parser-confirmed contrast", html)
+    if pooled:
+        assert claims and all(int(den) == pooled and int(num) <= pooled for num, den in claims), (claims, pooled)
+    else:
+        assert not claims, claims
     assert "Eligible with outcome retrieved but refused" in html
 
 

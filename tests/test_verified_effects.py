@@ -6,6 +6,8 @@ import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _families import eligible_by_construction  # noqa: E402  (families ELIGIBLE by construction: the admission gate is on by default)
 from harness.pipeline import _build_outcome  # noqa: E402
 
 # the served iv-iron spec's family vocabulary (CONFIRM-HF's abstract says 'hospitalizations for worsening HF')
@@ -25,7 +27,7 @@ HELD = "cache/iv-iron-hfref-hosp/records.json#PMID-25176939"   # CONFIRM-HF's he
 
 def test_verified_effect_pooled_when_it_binds_to_a_held_document():
     ve = {"25176939": dict(VE["25176939"], document_ref=HELD)}
-    o = _build_outcome(SPEC, "efficacy", INCLUDED, REC, ["ferric", "FCM"], ["placebo"], verified_effects=ve)
+    o = _build_outcome(SPEC, "efficacy", INCLUDED, REC, ["ferric", "FCM"], ["placebo"], verified_effects=ve, family_nodes=eligible_by_construction(REC))
     assert len(o["trials"]) == 1, o
     t = o["trials"][0]
     assert t["effect"] == 0.39 and t["scale"] == "HR" and t["provenance"] == "fulltext_verified"
@@ -37,7 +39,7 @@ def test_verified_effect_with_no_held_document_is_set_aside_not_pooled():
     """Before M2 (2026-09-20) this test asserted the opposite -- 'verifies against its own committed span, not the
     abstract' -- i.e. the haystack was the self-authored source string. A number no held document carries is
     set aside with its candidate tuple visible; it is never pooled on the strength of its own description."""
-    o = _build_outcome(SPEC, "efficacy", INCLUDED, REC, ["ferric", "FCM"], ["placebo"], verified_effects=VE)
+    o = _build_outcome(SPEC, "efficacy", INCLUDED, REC, ["ferric", "FCM"], ["placebo"], verified_effects=VE, family_nodes=eligible_by_construction(REC))
     assert o["trials"] == []
     absent = [a for a in o["declared_absent_trials"] if a["id"] == "PMID 25176939"]
     assert absent and absent[0]["reason_code"] == "ENDPOINT_UNBOUND", o["declared_absent_trials"]
@@ -46,12 +48,12 @@ def test_verified_effect_with_no_held_document_is_set_aside_not_pooled():
 
 def test_verified_effect_ignored_for_wrong_outcome():
     ve = {"25176939": dict(VE["25176939"], outcome="Some other outcome")}
-    o = _build_outcome(SPEC, "efficacy", INCLUDED, REC, ["ferric"], ["placebo"], verified_effects=ve)
+    o = _build_outcome(SPEC, "efficacy", INCLUDED, REC, ["ferric"], ["placebo"], verified_effects=ve, family_nodes=eligible_by_construction(REC))
     assert o["trials"] == [] and len(o["declared_absent_trials"]) == 1, o
 
 
 def test_no_verified_effects_leaves_trial_absent():
-    o = _build_outcome(SPEC, "efficacy", INCLUDED, REC, ["ferric"], ["placebo"], verified_effects=None)
+    o = _build_outcome(SPEC, "efficacy", INCLUDED, REC, ["ferric"], ["placebo"], verified_effects=None, family_nodes=eligible_by_construction(REC))
     assert o["trials"] == [] and len(o["declared_absent_trials"]) == 1, o
 
 
@@ -68,7 +70,7 @@ DREC = {"19717844": {"id": "19717844",
 
 
 def test_dose_selection_overrides_abstract_dose_and_verifies():
-    o = _build_outcome(DSPEC, "efficacy", DINC, DREC, ["dabigatran"], ["warfarin"], dose_selection=DSEL)
+    o = _build_outcome(DSPEC, "efficacy", DINC, DREC, ["dabigatran"], ["warfarin"], dose_selection=DSEL, family_nodes=eligible_by_construction(DREC))
     assert len(o["trials"]) == 1
     t = o["trials"][0]
     # the approved 150 mg effect (0.66), NOT the abstract's 110 mg 0.91
@@ -79,6 +81,6 @@ def test_dose_selection_overrides_abstract_dose_and_verifies():
 
 def test_dose_selection_only_for_matching_outcome():
     other = {"name": "Major bleeding", "keywords": ["major bleeding"], "estimand": "HR", "primary": True}
-    o = _build_outcome(other, "harm", DINC, DREC, ["dabigatran"], ["warfarin"], dose_selection=DSEL)
+    o = _build_outcome(other, "harm", DINC, DREC, ["dabigatran"], ["warfarin"], dose_selection=DSEL, family_nodes=eligible_by_construction(DREC))
     # dose_selection is for "Stroke or systemic embolism"; must NOT fire on a different outcome
     assert all(t.get("provenance") != "pre_specified_dose" for t in o["trials"])

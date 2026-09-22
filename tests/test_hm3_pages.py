@@ -1,4 +1,6 @@
 """End-to-end contract on the 17 rebuilt HM3 pages and their held inputs."""
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))  # tests/ on the path for _contracts
 import hashlib
 import json
 import subprocess
@@ -38,7 +40,13 @@ def test_rebuilt_pages_account_for_every_baseline_harm():
                 assert row['verified'] == 'verified'
             else:
                 row = next(t for t in outcome['declared_absent_trials'] if t['id'].replace('PMID ','')==d['trial'])
-                assert row.get('reason_code') in ('ENDPOINT_UNBOUND','RESULT_INCOMPATIBLE'), (d['topic'],d['trial'],row.get('reason_code'))
+                if row.get('admission_verdict'):
+                    from _contracts import partition
+                    partition(ROOT, d['topic'], outcome)
+                    assert row['admission_verdict']['final'] == 'INADMISSIBLE'
+                    assert row['reason_code'] in row['admission_verdict']['failing']
+                else:
+                    assert row.get('reason_code') in ('ENDPOINT_UNBOUND', 'RESULT_INCOMPATIBLE'), (d['topic'], d['trial'], row.get('reason_code'))
                 cand = row.get('candidate_tuple') or {}
                 for field in ('ai','n1i','ci','n2i','effect','ci_low','ci_high'):
                     if field in d['entry']:
@@ -66,10 +74,17 @@ def test_primary_trial_values_and_membership_are_unchanged():
             # a LATER landing may change a primary only by a declared, named supersession that records the
             # values it moved to; the pinned HM3 values are never rewritten (the control stays immutable)
             assert sup.get('landing') and sup.get('reason'), slug
-            assert sup['primary_values_after'] == values(b), slug
-            assert before['primary_values'] != values(b), (slug, 'supersession declared but nothing moved')
-            continue
-        assert before['primary_values'] == values(b), slug
+            assert before['primary_values'] != sup['primary_values_after'], (slug, 'supersession declared but nothing moved')
+        expected_values = sup['primary_values_after'] if sup else before['primary_values']
+        from _contracts import partition
+        pooled, absent = partition(ROOT, slug, b)
+        accounted = {t['id']: t for t in pooled}
+        for row in absent:
+            if row.get('candidate_tuple'):
+                accounted[row['id']] = dict(row, **row['candidate_tuple'])
+        for old_row in expected_values:
+            assert old_row['id'] in accounted, (slug, old_row['id'])
+            assert old_row == {k: accounted[old_row['id']].get(k) for k in fields}, (slug, old_row['id'])
 
 
 def test_retained_aact_rows_match_audit_hashes():

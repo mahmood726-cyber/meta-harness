@@ -29,6 +29,7 @@ Conditions (each NAMED on the page so a reader sees WHY, and evidenced from comm
 """
 import re
 from . import design_key
+from . import admission as admission_mod
 from . import identity as identity_mod
 from . import missing_effect
 
@@ -326,7 +327,7 @@ def _search_not_executed_from_core(core):
     return None
 
 
-def assess(core, signals=None):
+def assess(core, signals=None, family_nodes=None):
     """signals (optional): externally-computed, committed, per-topic signals the core does not carry
     on its own -- {'search_not_executed': {'class':..., 'detail':...} | None,
     'known_eligible_missing': [ {trial, mechanism, ...}, ... ]}. Passed in (not read here) so assess
@@ -348,6 +349,41 @@ def assess(core, signals=None):
     held = core.get("held_regulatory_facts") or []
     held_keys = {str(f.get(k)) for f in held for k in ("trial", "trial_key", "nct") if f.get(k)}
     kem = [x for x in kem if not any(_norm_id(x.get(k)) in held_keys for k in ("trial", "id", "pmid", "nct"))]
+    # a trial the build set aside on ADMISSION on this page is not 'eligible missing': its tuple must not be re-pooled
+    # as a what-if (lane R finding R3: the refused HARMONY tuple re-entered the invalidation re-pool); the conflict
+    # between the audit's eligibility claim and the structural screen is recorded as its own reason instead
+    _aside = {}
+    for _o in core.get("outcomes") or []:
+        if _o.get("primary"):
+            for _a in _o.get("declared_absent_trials") or []:
+                if admission_mod.is_set_aside(_a):
+                    _aside[_norm_id(_a.get("id"))] = _a
+    # ... and every remaining audit-named trial is ADMITTED against the family ledger before its tuple is re-pooled: a
+    # trial that never reached the convergence point but whose family fails P5 is refused here the same way
+    _by_report = admission_mod._families_by_report(family_nodes)
+    _by_id = {f.get("family_id"): f for f in family_nodes or [] if isinstance(f, dict)}
+    _kem_refused = []
+    for x in kem:
+        _hit = next((_aside[_norm_id(x.get(k))] for k in ("trial", "id", "pmid", "nct") if x.get(k) and _norm_id(x.get(k)) in _aside), None)
+        if _hit is not None:
+            _kem_refused.append((x, _hit.get("state"), _hit.get("absence_code") or _hit.get("eligibility_state")))
+            continue
+        _fam = None
+        for k in ("id", "pmid", "nct", "trial"):
+            _fam = _fam or (_by_report.get(_norm_id(x.get(k))) if x.get(k) else None)
+        # no ledger handed in = nothing admitted (on by default; the same rule as the pool itself)
+        _v = admission_mod.verdict({"id": x.get("id") or x.get("pmid") or x.get("trial"), "endpoint_binding": "audit_named"}, _fam)
+        if _v["final"] == "INADMISSIBLE":
+            _p5 = _v["predicates"]["P5_family_eligible"]
+            _kem_refused.append((x, "INADMISSIBLE_ON_ADMISSION", _p5.get("absence_code") or _p5.get("eligibility_state") or "no family"))
+    # a refused trial is STILL a named missing trial (the completeness signal stands: the review is stale); only its
+    # tuple is kept out of the what-if re-pool
+    _kem_refused_ids = {id(r[0]) for r in _kem_refused}
+    for x, _state, _code in _kem_refused:
+        reasons.append({"code": "audit_eligibility_vs_screen_conflict", "trial": str(x.get("trial") or x.get("id")),
+                        "detail": (f"{x.get('trial') or x.get('id')}: named eligible by an audit, but not admitted on this page "
+                                   f"({_state}, {_code}); not re-pooled; the audit's eligibility claim and the structural screen "
+                                   "disagree -- adjudication owed")})
     for fact in held:
         state = missing_state(fact)
         if state != POOLABLE:
@@ -357,7 +393,8 @@ def assess(core, signals=None):
     if kem:
         kem_with_effect = [
             x for x in kem
-            if x.get("effect") is not None and x.get("ci_low") is not None and x.get("ci_high") is not None
+            if id(x) not in _kem_refused_ids
+            and x.get("effect") is not None and x.get("ci_low") is not None and x.get("ci_high") is not None
         ]
         kem_effects = missing_effect.annotate(core, kem_with_effect) if kem_with_effect else []
         names = ", ".join(str(x.get("trial")) for x in kem[:6])

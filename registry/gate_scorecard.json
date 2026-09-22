@@ -3567,6 +3567,59 @@
    "gate_id": "gate.check_harms_synthesis_gated",
    "what_it_refuses": "An incomplete reporting-trial harm extraction serves a quantitative synthesis, omits the complete debt ledger, or inserts an extra result alongside the ledger.",
    "where": "harness/gate.py:check_harms_synthesis_gated"
+  },
+  {
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "tests/test_admission_enforced.py (plant harness: 12 plants observed FAILING on 38c04411 before the fix, passing after)",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": null,
+      "evidence": [
+       "tests/test_admission_enforced.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-admission-enforced-plant-1",
+     "evidence": [
+      "tests/test_admission_enforced.py"
+     ],
+     "kind": "PLANT",
+     "what_refused": "synthetic pages: an unstamped pooled row whose family is UNKNOWN; a stamp that disagrees with the page's own families; a screened-in row that vanished (neither pooled nor set aside)",
+     "when_utc": null,
+     "where": "harness/gate.py:check_admission_enforced"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": "38c04411",
+     "event_id": "gate-check-admission-enforced-production-38c04411",
+     "evidence": [
+      "docs/evidence/enforcement-gate-2026-09-21/02-red-today-38c04411.txt",
+      "docs/evidence/enforcement-gate-2026-09-21/01-prefix-gate-passes-unknown-families.txt",
+      "docs/evidence/enforcement-gate-2026-09-21/03-red-today-rows-38c04411.json"
+     ],
+     "kind": "PRODUCTION",
+     "what_refused": "every served page of main 38c04411 (32 of 32): no pooled row carries an admission verdict, and the same function reads 53 of 87 pooled primary rows INADMISSIBLE on P5 (52 UNKNOWN, 1 INELIGIBLE) plus 28 non-primary; the served gate had PASSED probiotics-aad-prevention with 11 of 11 primary rows in family state UNKNOWN. Whether each of the 53 rows is truly inadmissible (the structural screen proves eligibility from registry evidence only) is the reviewer's adjudication, not this gate's -- UNRESOLVED until Mahmood rules per row",
+     "when_utc": "2026-09-21T19:41:28Z",
+     "where": "harness/gate.py:check_admission_enforced"
+    }
+   ],
+   "gate_id": "gate.check_admission_enforced",
+   "what_it_refuses": "A page that pools a row without the build's admission verdict, a row whose verdict disagrees with the page's own family ledger under the same function, a page whose certified families.json disagrees with its copy, or a page from which a screened-in row vanished (neither pooled nor set aside); the refusal prints the in-build scope (P5, P8) and the predicates only the bundle evaluates.",
+   "where": "harness/gate.py:check_admission_enforced"
   }
  ],
  "generated_utc": null,

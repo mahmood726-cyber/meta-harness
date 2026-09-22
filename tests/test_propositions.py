@@ -1,3 +1,5 @@
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))  # tests/ on the path for _contracts
 import copy
 import json
 import pathlib
@@ -93,7 +95,14 @@ def test_PLANT_refused_and_pooled_fires_prefix_and_current_dispute_passes():
     current_violations = P.check_propositions(P.attach(current), {"refusals": current_refusals})
     assert "REFUSED_AND_POOLED" not in _codes(current_violations)
     disputes = claimgraph.disputes(current, {"refusals": current_refusals})
-    assert len([d for d in disputes if d["code"] == "POOL_SCOPE_DISPUTE"]) == 1
+    from _contracts import partition
+    primary = next(o for o in current["outcomes"] if o.get("primary"))
+    partition(ROOT, "metformin-pcos-ovulation", primary)
+    scope_disputes = [d for d in disputes if d["code"] == "POOL_SCOPE_DISPUTE"]
+    if not primary["trials"]:
+        assert not scope_disputes, "no pool exists to dispute"
+    for dispute in scope_disputes:
+        assert dispute["trial_keys"], "a pool-scope dispute must identify intersecting live membership"
     html = (ROOT / "docs/reviews/metformin-pcos-ovulation/index.html").read_text(encoding="utf-8")
     assert "the build refuses a trial both pooled and declared-absent" not in html
 

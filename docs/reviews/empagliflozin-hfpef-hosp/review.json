@@ -1840,6 +1840,37 @@
           "claim_kind": "membership_state"
         }
       ],
+      "admission_summary": {
+        "state": "NO_CANDIDATE_ROWS",
+        "rule": "final = ADMISSIBLE if no evaluated predicate fails; MIGRATION_STATE_UNBOUND_LEGACY if P8 is the only failing predicate and the binding is unbound_legacy; INADMISSIBLE otherwise. A row with no family ledger fails P5.",
+        "evaluated_in_build": [
+          "P5_family_eligible",
+          "P8_endpoint_bound"
+        ],
+        "not_evaluated_in_build": [
+          "P1_source_bytes",
+          "P2_span_located",
+          "P3_effect_tokens_in_span",
+          "P4_endpoint_components",
+          "P6_no_unresolved_conflict",
+          "P7_coverage_adequate_for_claim",
+          "P9_span_target_mention",
+          "P10_estimand_evidence",
+          "P11_registered_estimand",
+          "P12_ci_level",
+          "P13_no_extra_components",
+          "P14_missing_components_consistent"
+        ],
+        "where_the_rest_is_evaluated": "scripts/build_bundle.py (verification_rows) against the bundle's own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them",
+        "p8_divergence": "in-build P8 passes every producer binding route other than unbound_legacy; the bundle's P8 passes only the definition-span route (rows bound by another route read INADMISSIBLE there: a rule limit raised with the bundle lane, recorded per row as bundle_rule_agreement)",
+        "pooled_rows": 0,
+        "admissible_rows": [],
+        "migration_state_rows": [],
+        "other_route_rows": [],
+        "set_aside_rows": [],
+        "unstamped_rows": [],
+        "pooled_with_a_verdict_other_than_admissible_or_migration": []
+      },
       "membership": {
         "analysis_input_family_ids": [],
         "pooled_family_ids": [],
@@ -1887,6 +1918,7 @@
             "path": "/invalidation/reasons",
             "codes": [
               "search_not_executed",
+              "audit_eligibility_vs_screen_conflict",
               "known_eligible_missing",
               "primary_reported_not_extracted",
               "eligible_declared_absent",
@@ -1912,7 +1944,47 @@
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
             "why_eligible": "known_eligible_missing via concept-query",
             "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": null,
+                  "eligibility_state": null,
+                  "absence_code": null,
+                  "basis": "no family ledger / no family for this row: eligibility not evaluated, therefore not established"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "known_missing_candidate",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "conclusion_effect": "NOT_COMPUTABLE",
+            "not_repooled": "INADMISSIBLE on P5_family_eligible: family None eligibility None -- not re-pooled; the candidate value stays visible"
           },
           {
             "trial_key": "NCT06249945",
@@ -1924,7 +1996,47 @@
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
             "why_eligible": "no percentage-corroborated arm counts or effect+CI for this outcome found in the abstract",
             "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": "NCT06249945",
+                  "eligibility_state": "UNKNOWN",
+                  "absence_code": "BLINDING_NOT_PROVEN",
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "known_missing_candidate",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "conclusion_effect": "NOT_COMPUTABLE",
+            "not_repooled": "INADMISSIBLE on P5_family_eligible: family NCT06249945 eligibility UNKNOWN (BLINDING_NOT_PROVEN) -- not re-pooled; the candidate value stays visible"
           },
           {
             "trial_key": "NCT03448406",
@@ -1936,7 +2048,47 @@
             "missing_class": "NOT_IN_COMMITTED_SOURCE",
             "why_eligible": "eligible double-blind/placebo-controlled RCT: intervention empagliflozin, comparator placebo, population preserved ejection fraction — P/I/C/design met.",
             "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": "NCT03448406",
+                  "eligibility_state": "UNKNOWN",
+                  "absence_code": "ENTRY_POPULATION_NOT_ESTABLISHED",
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "known_missing_candidate",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "conclusion_effect": "NOT_COMPUTABLE",
+            "not_repooled": "INADMISSIBLE on P5_family_eligible: family NCT03448406 eligibility UNKNOWN (ENTRY_POPULATION_NOT_ESTABLISHED) -- not re-pooled; the candidate value stays visible"
           },
           {
             "trial_key": "34449189",
@@ -1948,7 +2100,47 @@
             "missing_class": "EXTRACTION_DEBT",
             "why_eligible": "eligible double-blind/placebo-controlled RCT: intervention empagliflozin, comparator placebo, population preserved ejection fraction — P/I/C/design met.",
             "sensitivity_label": "SENSITIVITY",
-            "conclusion_effect": "NOT_COMPUTABLE"
+            "admission_verdict": {
+              "final": "INADMISSIBLE",
+              "failing": [
+                "P5_family_eligible"
+              ],
+              "predicates": {
+                "P5_family_eligible": {
+                  "state": "FAIL",
+                  "family_id": "NCT03057951",
+                  "eligibility_state": "UNKNOWN",
+                  "absence_code": "ENTRY_POPULATION_NOT_ESTABLISHED",
+                  "basis": "trial_family.effective_eligibility on the family ledger the build was handed"
+                },
+                "P8_endpoint_bound": {
+                  "state": "PASS",
+                  "endpoint_binding": "known_missing_candidate",
+                  "endpoint_admissibility": null,
+                  "bundle_rule_agreement": "OTHER_ROUTE"
+                }
+              },
+              "evaluated": [
+                "P5_family_eligible",
+                "P8_endpoint_bound"
+              ],
+              "not_evaluated": [
+                "P1_source_bytes",
+                "P2_span_located",
+                "P3_effect_tokens_in_span",
+                "P4_endpoint_components",
+                "P6_no_unresolved_conflict",
+                "P7_coverage_adequate_for_claim",
+                "P9_span_target_mention",
+                "P10_estimand_evidence",
+                "P11_registered_estimand",
+                "P12_ci_level",
+                "P13_no_extra_components",
+                "P14_missing_components_consistent"
+              ]
+            },
+            "conclusion_effect": "NOT_COMPUTABLE",
+            "not_repooled": "INADMISSIBLE on P5_family_eligible: family NCT03057951 eligibility UNKNOWN (ENTRY_POPULATION_NOT_ESTABLISHED) -- not re-pooled; the candidate value stays visible"
           }
         ],
         "headline_conclusion_effect": "NOT_COMPUTABLE"
@@ -2288,7 +2480,8 @@
     "source": "AACT 2026-08-30 design_groups+interventions",
     "metric_label": "parser-confirmed contrast",
     "metric_scope": "AACT arm-label parser output; this measures the parser, not trial validity",
-    "trials": {
+    "trials": {},
+    "trials_all": {
       "34449189": {
         "nct": "NCT03057951",
         "status": "verified",
@@ -2298,6 +2491,15 @@
           "empagliflozin"
         ]
       }
+    },
+    "current_pooled_trial_ids": [],
+    "stale_block_unrenderable": {
+      "state": "UNRENDERABLE",
+      "reason": "cached arm-contrast membership named trials not in the current consumed pool",
+      "dropped_trial_ids": [
+        "34449189"
+      ],
+      "current_pooled_trial_ids": []
     }
   },
   "integrity": {
@@ -2353,6 +2555,10 @@
     "source": "harness.identity.build_publication_units",
     "n_records_annotated": 105
   },
+  "strands_admission": {
+    "strands": 0,
+    "refused": 0
+  },
   "protocol_config": {
     "divergences": [
       {
@@ -2395,6 +2601,11 @@
       {
         "code": "search_not_executed",
         "detail": "no genuine executed concept search (PMID_ENUMERATION_explicit): protocol Search section explicitly says UID-anchored queries for the named trials — known-item retrieval, cannot discover an unknown eligible trial."
+      },
+      {
+        "code": "audit_eligibility_vs_screen_conflict",
+        "trial": "EMPA-VISION",
+        "detail": "EMPA-VISION: named eligible by an audit, but not admitted on this page (INADMISSIBLE_ON_ADMISSION, no family); not re-pooled; the audit's eligibility claim and the structural screen disagree -- adjudication owed"
       },
       {
         "code": "known_eligible_missing",
@@ -57863,8 +58074,8 @@
         "/invalidation/stale",
         "/invalidation/reasons"
       ],
-      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate.  See the <a href='#known-missing-sensitivity'>known-missing sensitivity panel</a>.<ul><li>no genuine executed concept search (PMID_ENUMERATION_explicit): protocol Search section explicitly says UID-anchored queries for the named trials — known-item retrieval, cannot discover an unknown eligible trial.</li><li>a trial identified as eligible under the registered PICO is not pooled (EMPA-VISION) — the pooled result and completeness claim cannot be current</li><li>the primary outcome is reported by trials that could not be pooled (34449189) — the pooled k is known-incomplete</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT03057951, NCT06249945, NCT03448406; the completeness claim cannot be current</li><li>no outcome or declared strand produced a pooled claim — the canonical-claim gate cannot fire here, so a page with the weakest evidence would otherwise show the cleanest gate output; treated as a limitation, not a pass</li></ul></div>",
-      "text_sha256": "a7dcf51562411485fb9ec3ee19968ebfed5125ace6487e0c1be2ae51e6ef0d64",
+      "rendered_text": "<div class='absent'><strong>STALE — this topic's result is not current.</strong> One or more dependent outputs on this page are known to be incomplete, superseded, or unproven, so the result must not be read as a settled current estimate.  See the <a href='#known-missing-sensitivity'>known-missing sensitivity panel</a>.<ul><li>no genuine executed concept search (PMID_ENUMERATION_explicit): protocol Search section explicitly says UID-anchored queries for the named trials — known-item retrieval, cannot discover an unknown eligible trial.</li><li>EMPA-VISION: named eligible by an audit, but not admitted on this page (INADMISSIBLE_ON_ADMISSION, no family); not re-pooled; the audit&#x27;s eligibility claim and the structural screen disagree -- adjudication owed</li><li>a trial identified as eligible under the registered PICO is not pooled (EMPA-VISION) — the pooled result and completeness claim cannot be current</li><li>the primary outcome is reported by trials that could not be pooled (34449189) — the pooled k is known-incomplete</li><li>screened-in (decision=include) but not pooled in any outcome — eligible trials the pool does not contain: NCT03057951, NCT06249945, NCT03448406; the completeness claim cannot be current</li><li>no outcome or declared strand produced a pooled claim — the canonical-claim gate cannot fire here, so a page with the weakest evidence would otherwise show the cleanest gate output; treated as a limitation, not a pass</li></ul></div>",
+      "text_sha256": "fa86344fb187436cf7798aa0c9ce25599d2fc17ac72b10dd8951fa474532c9a7",
       "linked_decision": {
         "action": "REFUSE",
         "gate_id": "limitation:stale_topic",
@@ -57873,7 +58084,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/invalidation/stale",
-        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent, no_checkable_claim"
+        "gate_verdict_at_build": "STALE: search_not_executed, audit_eligibility_vs_screen_conflict, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent, no_checkable_claim"
       }
     },
     {
@@ -57897,7 +58108,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/retrieval_auditable",
-        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent, no_checkable_claim"
+        "gate_verdict_at_build": "STALE: search_not_executed, audit_eligibility_vs_screen_conflict, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent, no_checkable_claim"
       }
     },
     {
@@ -57977,7 +58188,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval/enumeration_only",
-        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent, no_checkable_claim"
+        "gate_verdict_at_build": "STALE: search_not_executed, audit_eligibility_vs_screen_conflict, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent, no_checkable_claim"
       }
     },
     {
@@ -58001,7 +58212,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/retrieval_auditable",
-        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent, no_checkable_claim"
+        "gate_verdict_at_build": "STALE: search_not_executed, audit_eligibility_vs_screen_conflict, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent, no_checkable_claim"
       }
     },
     {
@@ -58024,7 +58235,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/search/retrieval_class/search_provenance",
-        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent, no_checkable_claim"
+        "gate_verdict_at_build": "STALE: search_not_executed, audit_eligibility_vs_screen_conflict, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent, no_checkable_claim"
       }
     },
     {
@@ -58053,6 +58264,29 @@
         "reason": "Definition heterogeneity is disclosed in the audit table, but this tranche found no executable analytic gate that changes on the partial audit state. Integrator note: this one is OWED a consumer -- a cross-family definition-audit finding that outcome definitions differ across pooled trials belongs in the compatibility key's endpoint dimension; until wired it is acknowledged as UNWIRED, not as informational (GATE_GAPS).",
         "tranche": "TRANCHE-hazard-consumers",
         "ack_id": "HC-DEFINITION_AUDIT-PARTIAL"
+      }
+    },
+    {
+      "limitation_id": "topic:empagliflozin-hfpef-hosp:outcomes:0:admission",
+      "kind": "ADMISSION",
+      "limitation_class": "INFORMATIONAL",
+      "severity": "NOTE",
+      "claim_affected": "admission of candidate extractions into the pool of 'Composite cardiovascular death or worsening heart failure'",
+      "evidence_state": "RECORDED",
+      "source_fields": [
+        "/outcomes/0/admission_summary"
+      ],
+      "rendered_text": "<div class='absent'><strong>Admission at pooling (P5_family_eligible, P8_endpoint_bound).</strong> Admission: no candidate row reached this outcome&#x27;s pool (nothing pooled, nothing set aside on P5); in-build scope is P5_family_eligible, P8_endpoint_bound; P1_source_bytes, P2_span_located, P3_effect_tokens_in_span, P4_endpoint_components, P6_no_unresolved_conflict, P7_coverage_adequate_for_claim, P9_span_target_mention, P10_estimand_evidence, P11_registered_estimand, P12_ci_level, P13_no_extra_components, P14_missing_components_consistent are evaluated only by the bundle (scripts/build_bundle.py (verification_rows) against the bundle&#x27;s own acquisition, after the build, for the topics that carry a bundle; scripts/verify_bundle.py re-checks them).</div>",
+      "text_sha256": "7338c8eb5d49d6695fe0e99b82fb9e05aa2b6d9dca4dc808a9ae7b1959594e49",
+      "linked_decision": {
+        "action": "ALLOW_WITH_LABEL",
+        "gate_id": "limitation:labelled-validity-threat",
+        "decision_state": "validity threat is explicitly labelled on the affected claim"
+      },
+      "consumer": {
+        "gate_id": "gate.check_admission_enforced",
+        "gate_input_path": "/outcomes/*/admission_summary",
+        "gate_verdict_at_build": "PASS: every pooled row admitted; 0 candidate row(s) set aside on admission"
       }
     },
     {
@@ -58143,17 +58377,18 @@
       }
     },
     {
-      "limitation_id": "topic:empagliflozin-hfpef-hosp:riskofbias:randomised-contrast",
+      "limitation_id": "topic:empagliflozin-hfpef-hosp:riskofbias:stale-randomised-contrast",
       "kind": "RANDOMISED_CONTRAST",
       "limitation_class": "INFORMATIONAL",
       "severity": "QUALIFIES_CLAIM",
-      "claim_affected": "randomised intervention contrast",
-      "evidence_state": "RECORDED",
+      "claim_affected": "randomised-contrast membership for current pooled trials",
+      "evidence_state": "PARTIAL",
       "source_fields": [
+        "/arm_contrast/stale_block_unrenderable",
         "/arm_contrast/trials"
       ],
-      "rendered_text": "<div class='absent'><strong>Parser-confirmed contrast disclosure (per pooled trial, from the AACT arm-label parser - disclosed, not an adjustment).</strong> This measures the parser, not the trial. Eligibility should test what actually DIFFERS between the randomised arms, not the mere presence of the drug word: a trial giving the drug of interest as BACKGROUND in every arm (e.g. all arms on the same agent, randomising a different drug) is not a randomised comparison of it. For each pooled trial the randomised contrast is reconstructed from AACT <code>design_groups</code> + <code>interventions</code>: <strong>1 of 1</strong> pooled trials have a parser-confirmed contrast (the intervention of interest matched a differing coded arm). A trial with no registry arm data, or coded under a class label / development code we cannot machine-match, is shown as <em>contrast unverified</em> &mdash; a VISIBLE fail-open state, never silently treated as verified. <table class='arms'><tr><th>Trial</th><th>Contrast status</th><th>Randomised difference</th></tr><tr><td>34449189</td><td>parser-confirmed contrast</td><td title='parser-confirmed contrast: keyword &#x27;empagliflozin&#x27; matched AACT arm intervention &#x27;empagliflozin&#x27;; the intervention of interest DIFFERS across the randomised arms'>empagliflozin</td></tr></table></div>",
-      "text_sha256": "3368a5aabe74a3b9042527d2ff87c9be15fa1e84c3120fc327822ee42eeab49e",
+      "rendered_text": "<div class='absent'><strong>UNRENDERABLE stale contrast block.</strong> cached arm-contrast membership named trials not in the current consumed pool; current pooled trial ids: none; suppressed stale ids: 34449189.</div>",
+      "text_sha256": "0d01a0aaff6754c673f9d1d899b30d344657b5005e88259c7384977308405d39",
       "linked_decision": {
         "action": "ALLOW_WITH_LABEL",
         "gate_id": "limitation:labelled-validity-threat",
@@ -58272,7 +58507,7 @@
       "consumer": {
         "gate_id": "invalidation.assess",
         "gate_input_path": "/outcomes/*/result/claim",
-        "gate_verdict_at_build": "STALE: search_not_executed, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent, no_checkable_claim"
+        "gate_verdict_at_build": "STALE: search_not_executed, audit_eligibility_vs_screen_conflict, known_eligible_missing, primary_reported_not_extracted, eligible_declared_absent, no_checkable_claim"
       }
     },
     {
@@ -58373,7 +58608,7 @@
   "reproduction": {
     "failures": 0,
     "protocol_sha": "c5dc828d141fe01e81ce46b9a9e29863c2a01918",
-    "review_sha256": "56710eb50513eee111b65c177ec43c2c57620bb631df0f1cb64a24f38b87cd80",
+    "review_sha256": "ae276906219f9d8d75de4ac75f1be1132248e36e284d567b8281eca90dd0f178",
     "from_cache": true,
     "preregistration": {
       "prospective": true,
@@ -58465,7 +58700,7 @@
       "retrieval_ledger_sha256": "eb4b9351cf402c55d99f008a32e26c490cdb087ed9640c79b588dd511f81df0a",
       "screening_ledger_sha256": "3a843295e3489b370ec46142df630c953856f23aad7b0674fc43fad3b6c9a5f4",
       "extraction_objects_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-      "trial_family_map_sha256": "7cea8632edc62bea7c535cdf766c3b7d62a57dbe5ea387423d65613a19cecff4",
+      "trial_family_map_sha256": "4f841e190db53f0c864c59b539147b7c5cf24cbdc56e6bc86c8b9e80f36f0c8c",
       "rob_object_sha256": "69ddfd227082b6a4ba0880f4892a88efc5e8d0a4d6a9c71ebad90a2aed10cbfd",
       "held_documents": [
         {
@@ -58478,14 +58713,15 @@
         }
       ],
       "config_sha256": "c71fc0b0cc1f664c32f1f98957285293704cec685bfcdbc25787e8c2e8964a73",
-      "analysis_code_sha256": "fd5ccc59cf078077fa5c788ed90b4fddce9767cdf4cfd00998fa1ce03ee1c40b",
+      "analysis_code_sha256": "693c59fc08290e2a1616e5b6ba4ccd5e24182d34980e96d015c859bba5ced8cb",
       "analysis_code_blobs": {
         "harness/__init__.py": "a86e37b9b6aeaec87308e145ac2fb3b3762880cc",
         "harness/aact.py": "92616dea4c1b0ed2094629aff634c7699189ba9b",
         "harness/aact_cache.py": "15ff269ac058e0f5a70ab5fd706adb1bf8eaa603",
-        "harness/absence.py": "519dfb063750842bb5f548fe60526f0b986014ec",
+        "harness/absence.py": "66b5562b6a58c0aae9768b18edf2d8a07f96e069",
         "harness/acquisition.py": "b8c47f64bbc74a0685d5ab5a7b72b2663379e34c",
         "harness/adjustment.py": "3880529d3c717c0b58e2e863af47b2c4da42917e",
+        "harness/admission.py": "dbe5ffb09c87b954e440dba4bf1fca38e2718d7c",
         "harness/architecture_identity.py": "5217f8d655d4d792db268ba5920e21392d0be375",
         "harness/arm_object.py": "c6e2a9d0ea0263eba72c3453d52bc5a05b06e0b2",
         "harness/armcontrast.py": "1430e6b1e9e1cde37b5175b24f308d99110070e4",
@@ -58501,42 +58737,42 @@
         "harness/compat.py": "2dc84748ed03e0e8f1f902225dddb21b993f734e",
         "harness/compat_check.py": "cffd42ff12742bc3cbe2bd4a617c645a090decfc",
         "harness/compat_direction.py": "72083e4555fd9e300e2dacab79e1dc30ff42d805",
-        "harness/consumer_consistency.py": "191dab38f85d1a06b3557ce1c51263f0b8909a47",
+        "harness/consumer_consistency.py": "9652457cb932121c169506da22667f9d6a0cb173",
         "harness/ctgov_results.py": "3b0c226ac0eabb54aaa5d8ab47f2971d2b80c0dd",
         "harness/design_key.py": "a19b9a01c1f9070c390101a5970c6911de6aec62",
-        "harness/design_variance.py": "f8a239ff0309129bafb1941096059ad74d73fecb",
+        "harness/design_variance.py": "b2ef45023d0f0030b1bb8d751301dfcb401a317f",
         "harness/effect_type.py": "NOT_PRESENT",
         "harness/eligibility_chain.py": "497b923f46ea530cfc60f8724aeea0e12859147c",
         "harness/embed.py": "df4ea711858bcd7edd320f9af1c6364ac1f04914",
-        "harness/endpoint_canonical.py": "09ed16090e2e90433b6497fa0adbc04c977701b9",
+        "harness/endpoint_canonical.py": "c85337faf26f090f650f4817d446f38b8eac8a14",
         "harness/estmeasure.py": "216844a8d7c87494e16abc1e26ef3b792fcef5ec",
         "harness/extract.py": "bbd47c664627986e71d078ad9b979d1a32e2e7e5",
         "harness/family_compact.py": "2d8af6c01f558b77f5ea221574980bd6018e6121",
         "harness/fetch.py": "e4c11f8157d1bd5ef2438cc63b4b0f6de5865c24",
         "harness/fulltext.py": "423a3c7e2674205d4ee6affd8e8aad60cd7d862e",
         "harness/funding.py": "80078ae332f9b43c434e5dbb50e4c7c7dbdc44e1",
-        "harness/gate.py": "20a5ce33e2c111d23993e208d00c88e04afda5ca",
+        "harness/gate.py": "209770f4e8c54203bf68aefb88875d9347b32c0f",
         "harness/gate_scorecard.py": "a3460389229e07251c7289f2909fbcf7f3e066f0",
         "harness/gitblob.py": "30b7f0b0c4de5d08fada8d357d17187320f340ec",
         "harness/grade.py": "b3c9c4ead1014f7c75699e82b9bb6c56d78aeee8",
         "harness/hand_binding.py": "d48224edf7e0e22dd0111e3c1a72565c25b93dd8",
-        "harness/harms.py": "64f79ea3db77361f8076c8017af851f388183ef7",
-        "harness/hazard_consumers.py": "5f68f75d63c42184e5c6decc522b0dd1cc8584d4",
+        "harness/harms.py": "16bcc3c7d9ad5d550387cfb41bcef67243788d64",
+        "harness/hazard_consumers.py": "09a2b973ee9d8ba1afa2145679cf6380191de9ed",
         "harness/http.py": "28a752b06b1d899069c6e9a3b4fcb425c8b0b392",
         "harness/identity.py": "aeb80a3bf0f19369bf3ea07c523770f4202ef45d",
-        "harness/index.py": "2ea249513fbe6f92747821c2f77ca4f47bbcf47e",
-        "harness/invalidation.py": "0fc003b15552b45fcb5e1f4d2cebbf3fe344951c",
+        "harness/index.py": "dc23318ed2b877bdee7cd33a23069d4498a83acd",
+        "harness/invalidation.py": "1a358de66917e6eda49b1a6a350e01e060aa003b",
         "harness/k2.py": "f7caac4f0883d5efd0d09ca121b674fd180c330f",
-        "harness/known_missing.py": "75c5274682348496ccdf42430c73261f09fbdfba",
+        "harness/known_missing.py": "a12e8a9215186c0a892075dcbb6791b4b9ac25b4",
         "harness/lexicon.py": "7476c269906812e87115cff381dba24422258070",
-        "harness/limitations.py": "f874b319e0e9967e19c573db48920a8dc8e402ba",
+        "harness/limitations.py": "5616f4ae8851299d3e76e4424e973be6aa096ecc",
         "harness/locate.py": "1ffd11acf28fa249d9e561c10c9bdb2223a5f72b",
         "harness/manuscript.py": "f553e149dda8fd820baf8f124b285652c45f42d7",
         "harness/membership.py": "e34840895492d95594b133ac2b8010edb7cdbc6b",
         "harness/missing_effect.py": "4ca766b075867ee1192e33674309856c9bb52622",
-        "harness/page.py": "4dad90b0facdea7c0f89fd0bc5dd1dd1ce04d31f",
-        "harness/parity_relation.py": "057f4312a7a5d29425ca6017125ee9d1e1c45ede",
-        "harness/pipeline.py": "142c8dc3b67dde5ab7e246412b992fa508ca62bb",
+        "harness/page.py": "ba9cc07c0cfef7df16cd2392938e5e4170c70eae",
+        "harness/parity_relation.py": "835063791f551cd327e5cc46ca50d06702bb85e4",
+        "harness/pipeline.py": "5b865ec7c997b04614890d487ad662c1fa1b1903",
         "harness/proposition.py": "be131fe30ac924965f2f6b8ec22dbc4e3e5e3b8d",
         "harness/propositions.py": "baa61ed3b538a445349004be987df925b75baa26",
         "harness/protocol_compiler.py": "3d9e515153047434646bebcd436b319caef50af3",
@@ -58556,7 +58792,7 @@
         "harness/synth.py": "29246ea5b0917c639b1dd9e5d61d5c57d37aa6a5",
         "harness/target.py": "50a82c5a8e444c1c1c4f9555107503dcdf84d250",
         "harness/target_endpoint.py": "f605e0f513e3524baac0a9e5f36ced5b926ed6e3",
-        "harness/trial_family.py": "57882f159bbfd8d91b60deaf5956e409de6c484f",
+        "harness/trial_family.py": "e80228988ebb6d4a1f382f52225c3be2e9dc4740",
         "harness/unextracted.py": "dfb93cbebead3ecb2783cfaae26ebf9d17fcf3ea",
         "harness/unit_of_analysis.py": "0f8eb11591da5e70b6bb2ffffd2824331e2aa47a",
         "harness/verified_inputs.py": "3a928ed737d1ae65b0a024fa442d60864f6a00ff",
@@ -58575,7 +58811,7 @@
           "harness/certificate.py",
           "scripts/reproduce_review.py"
         ],
-        "covers": "82 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
+        "covers": "83 in-tree modules: the topic build (scripts/build_topic.py), the pipeline that computes every effect and its endpoint binding, the page and manuscript renderers, the two-limb publication gate, the canonical JSON and SHA-256 routines every digest in this certificate is computed with, this certificate builder, and the replay driver CI runs against it. A change of one byte in any of them moves analysis_code_sha256 and release_sha256.",
         "declared_but_absent": [
           "harness/effect_type.py"
         ],
@@ -58605,7 +58841,7 @@
         "how_to_use": "bind a verdict to this certificate by release_sha256; check that analysis_code_blobs[path] equals `git hash-object -- path` at the commit you audited for every path you exercised, and that the path is in the map. A path missing from the map is a finding against the map, not a pass."
       },
       "manuscript_sha256": "2247ee1aa9fbdb30494c0daa178cc36dba84595bf76ed7bfcde0928c3b01e899",
-      "review_sha256": "56710eb50513eee111b65c177ec43c2c57620bb631df0f1cb64a24f38b87cd80",
+      "review_sha256": "ae276906219f9d8d75de4ac75f1be1132248e36e284d567b8281eca90dd0f178",
       "hash_inputs": {
         "protocol_sha": "registration/build anchor Git commit (SHA-1, not a SHA-256 or prospective-registration claim)",
         "protocol_text_sha256": "protocols/empagliflozin-hfpef-hosp.md UTF-8 text, universal newlines",
@@ -58625,7 +58861,7 @@
         "review_sha256": "canonical review core (excludes reproduction)",
         "release_sha256": "canonical entire certificate excluding only release_sha256"
       },
-      "release_sha256": "8e93a4c82441ba31417ade8ebc9edde990f7a7a55f53ae0554d9e2b3b4c360a2"
+      "release_sha256": "ad555d92ee47c9bc309228cb13231feb28ff760eecc703c7dc5b3eaa9a3c86a0"
     }
   }
 }

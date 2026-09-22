@@ -454,6 +454,26 @@ def load_registry(root, slug):
     return read_registry(path).get('records',{}) if path.exists() else {}
 
 
+def _missing_source_ids(f):
+    held_ids = {identity._norm(r['id']) for r in f.get('source_records') or []}
+    return {r['report_id'] for r in f.get('reports') or []} - held_ids
+
+
+def effective_eligibility(f):
+    """The eligibility cell a family EFFECTIVELY carries: the structural screen's cell after the attach-time
+    overrides (a family with no registry parent is REGISTRY_PARENT_UNRESOLVED; one whose report is no longer held
+    is SOURCE_RECORD_DELETED). attach_review writes this onto the node; harness/admission.py reads it BEFORE pooling
+    on the un-attached node, and the gate re-reads it from the page's own copy -- one function, three readers."""
+    if not (f.get('identity_basis') or {}).get('registry_ids'):
+        return cell(code='REGISTRY_PARENT_UNRESOLVED')
+    missing = _missing_source_ids(f)
+    if missing:
+        el = cell(code='SOURCE_RECORD_DELETED')
+        el['missing_source_ids'] = sorted(missing)
+        return el
+    return f.get('eligibility') or cell()
+
+
 def attach_review(review, nodes):
     """One evidence ledger; derived counts never promote report-only candidates."""
     from . import membership
@@ -473,13 +493,10 @@ def attach_review(review, nodes):
     _attach_legacy(review, nodes)
     for f in nodes:
         f['is_trial_family'] = bool(f['identity_basis']['registry_ids'])
-        held_ids = {identity._norm(r['id']) for r in f['source_records']}
-        missing = {r['report_id'] for r in f['reports']} - held_ids
-        if missing:
-            f['eligibility'] = cell(code='SOURCE_RECORD_DELETED')
-            f['eligibility']['missing_source_ids'] = sorted(missing)
-        if not f['is_trial_family']:
-            f['eligibility'] = cell(code='REGISTRY_PARENT_UNRESOLVED')
+        missing = _missing_source_ids(f)
+        # ONE function decides the eligibility state the page, the certified families.json and the build's
+        # admission decision (harness/admission.py, read at pooling time) all carry.
+        f['eligibility'] = effective_eligibility(f)
         f['sources'] = [dict(source_id=r['id'], role=report_role(r)[0], sha256=row_hash(r),
                              retrieval_origin=next(x['retrieved_via'] for x in f['reports'] if x['report_id']==r['id']),
                              span={'source':'held record', 'record':r}) for r in f['source_records']]

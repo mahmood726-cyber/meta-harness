@@ -105,7 +105,10 @@ def compute(row: dict, review: Optional[dict] = None) -> dict:
     live_k = None
     for _o in (review or {}).get("outcomes", []) or []:
         if _o.get("primary"):
-            live_k = _as_int((_o.get("result") or {}).get("k"))
+            # the live k is the POOL's size -- 0 when every candidate was set aside on admission (2026-09-21: an emptied
+            # pool has no result.k, and falling back to the hand count kept noac at IDENTICAL_SET / "4 of 4" with 0 rows)
+            _pool = _o.get("trials")
+            live_k = len(_pool) if isinstance(_pool, list) else _as_int((_o.get("result") or {}).get("k"))
             break
     hand_our_k = _as_int(row.get("our_k"))
     our_k = live_k if live_k is not None else hand_our_k
@@ -156,6 +159,11 @@ def compute(row: dict, review: Optional[dict] = None) -> dict:
 
     shared_raw = overlap.get("shared_k")
     shared_k = _as_int(shared_raw)
+    shared_clamped = False
+    if shared_k is not None and our_k is not None and shared_k > our_k:
+        # a pool cannot share more trials than it holds: the comparator second pass measures shared_k from a hand
+        # profile of the comparator's OWN trial list, which stays at N after our pool empties (lane ACK, 2026-09-21)
+        shared_k, shared_clamped = our_k, True
     only_ours = [str(x) for x in (overlap.get("only_ours") or [])]
     only_theirs = [str(x) for x in (overlap.get("only_theirs") or [])]
     inferred = bool(isinstance(shared_raw, str) and _NOT_VERIFIABLE in shared_raw.lower())
@@ -217,6 +225,7 @@ def compute(row: dict, review: Optional[dict] = None) -> dict:
         "their_k": their_k,
         "their_k_source": their_k_source if their_k is not None else None,
         "shared_k": shared_k,
+        "shared_k_clamped_to_pool": shared_clamped,
         "only_ours_n": len(only_ours),
         "only_theirs_n": len(only_theirs),
         "dominance": dominance,

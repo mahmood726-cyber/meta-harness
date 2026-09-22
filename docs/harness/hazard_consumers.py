@@ -51,6 +51,21 @@ WIRED_CONSUMERS: dict[tuple[str, str], dict[str, str]] = {
     # PRE-RELEASE (2026-09-20): the executable consumer is gate limb 1, which reads /release_status and refuses a page that
     # declares the label but does not render it, renders it without every reason, boundary or currency, or renders it without
     # declaring it (both directions).
+    # ADMISSION (2026-09-21): the executable consumer is gate.check_admission_enforced, which reads every pooled row's
+    # admission_verdict and the outcome's admission_summary and refuses an unstamped, disagreeing or INADMISSIBLE pooled
+    # row, a vanished screened-in row, or a summary that is not EVALUATED / NO_CANDIDATE_ROWS.
+    ("ADMISSION", "RECORDED"): _spec(
+        "gate.check_admission_enforced",
+        "harness.gate.check_admission_enforced",
+        "/outcomes/*/admission_summary",
+        "admission_summary",
+    ),
+    ("ADMISSION", "UNKNOWN"): _spec(
+        "gate.check_admission_enforced",
+        "harness.gate.check_admission_enforced",
+        "/outcomes/*/admission_summary",
+        "admission_summary",
+    ),
     ("PRE_RELEASE", "PROVISIONAL"): _spec(
         "gate.check_limb1",
         "harness.gate.check_limb1",
@@ -364,7 +379,27 @@ def _gate_verdict(review: dict[str, Any], obj: dict[str, Any], spec: dict[str, s
         return _withdrawn_verdict(review)
     if runner == "release_status":
         return _release_status_verdict(review)
+    if runner == "admission_summary":
+        return _admission_verdict(review)
     return "UNKNOWN_RUNNER"
+
+
+def _admission_verdict(review: dict[str, Any]) -> str:
+    """What gate.check_admission_enforced requires, computed from the review object alone (the certified family map and
+    the served page are checked at gate time): every pooled row stamped with a verdict that admits it, every outcome's
+    summary EVALUATED or NO_CANDIDATE_ROWS; the count of set-aside rows is reported beside the verdict."""
+    from . import admission as _adm
+    bad, aside = [], 0
+    for o in review.get("outcomes") or []:
+        if not isinstance(o, dict):
+            continue
+        s = _adm.summary(o)
+        aside += len(s.get("set_aside_rows") or [])
+        if s.get("state") not in ("EVALUATED", "NO_CANDIDATE_ROWS"):
+            bad.append(f"{o.get('name')}: {s.get('state')}")
+        for tid in s.get("pooled_with_a_verdict_other_than_admissible_or_migration") or []:
+            bad.append(f"{o.get('name')}: {tid} pooled with a verdict that does not admit it")
+    return (f"REFUSE: {'; '.join(bad[:4])}" if bad else f"PASS: every pooled row admitted; {aside} candidate row(s) set aside on admission")
 
 
 def _release_status_verdict(review: dict[str, Any]) -> str:
@@ -698,7 +733,33 @@ def _plant_verdict(pair: tuple[str, str], spec: dict[str, str], planted: bool) -
         return _withdrawn_verdict(_plant_core(pair) if planted else _clean_core())
     if runner == "release_status":
         return _release_status_verdict(_plant_core(pair) if planted else _clean_core())
+    if runner == "admission_summary":
+        return _plant_admission(pair, planted)
     return "UNKNOWN_RUNNER"
+
+
+def _plant_admission(pair: tuple[str, str], planted: bool) -> str:
+    """The plant for the ADMISSION consumer: a pooled row stamped by harness/admission.py against an ELIGIBLE family
+    (baseline) versus, planted, either a pooled row whose verdict does not admit it (RECORDED) or a pooled row with no
+    verdict at all (UNKNOWN -- a page built before the build read the decision). The consumer is
+    gate.check_admission_enforced; _admission_verdict computes its verdict from the review object alone."""
+    from . import admission as _adm
+    core = _clean_core()
+    row = {"id": "PMID 111", "label": "111", "effect": 0.8, "ci_low": 0.7, "ci_high": 0.9, "scale": "RR",
+           "endpoint_binding": "named_endpoint_resolved_to_definition_span", "endpoint_admissibility": "EXACT_TARGET"}
+    fam = {"family_id": "fam-111", "identity_basis": {"registry_ids": ["NCT00000111"], "primary_report_ids": [], "fallback_report_ids": []},
+           "reports": [{"report_id": "111", "role": "PRIMARY", "retrieved_via": ["plant"]}], "source_records": [{"id": "111", "id_type": "pmid"}],
+           "eligibility": {"state": "ELIGIBLE", "span": {"source": "plant"}}}
+    if planted and pair[1] == "UNKNOWN":
+        core["outcomes"][0]["trials"] = [dict(row)]                       # no stamp: not evaluated
+    elif planted:
+        bad = dict(row); bad["admission_verdict"] = _adm.verdict(bad, None)   # INADMISSIBLE, yet pooled
+        core["outcomes"][0]["trials"] = [bad]
+    else:
+        kept, _ = _adm.admit([dict(row)], [fam], {"name": core["outcomes"][0].get("name")})
+        core["outcomes"][0]["trials"] = kept
+    core["outcomes"][0]["admission_summary"] = _adm.summary(core["outcomes"][0])
+    return _admission_verdict(core)
 
 
 def plant_results(phase: str = PHASE_FINAL) -> list[dict[str, Any]]:

@@ -2,6 +2,7 @@ import json
 import pytest
 
 from harness import absence, gate, harms, pipeline
+from _families import eligible_by_construction  # noqa: E402  (families ELIGIBLE by construction: the admission gate is on by default)
 
 
 def test_spelled_count_verification_is_lexical_not_percentage_imputation():
@@ -58,7 +59,7 @@ def test_multiple_verified_outcomes_are_selected_independently():
     out = pipeline._build_outcome({"name": "Harm", "keywords": ["harm"], "estimand": "RR"},
                                   "harm", [{"id": "1", "id_type": "pmid"}],
                                   {"1": {"abstract": harm["source"]}}, ["drug"], ["placebo"],
-                                  verified_arms=entries)
+                                  verified_arms=entries, family_nodes=eligible_by_construction({"1": {}}))
     assert out["trials"][0]["ai"] == 3
     with pytest.raises(ValueError, match="Duplicate"):
         pipeline._verified_for_outcome({"1": [harm, harm]}, "Harm")
@@ -71,7 +72,7 @@ def test_effect_list_and_refusal_do_not_shadow_another_outcome():
     out = pipeline._build_outcome({"name": "Harm", "keywords": ["harm"], "estimand": "RR"},
                                   "harm", [{"id": "1", "id_type": "pmid"}],
                                   {"1": {"abstract": effect["source"]}}, ["drug"], ["placebo"],
-                                  verified_effects={"1": [other, effect]})
+                                  verified_effects={"1": [other, effect]}, family_nodes=eligible_by_construction({"1": {}}))
     assert out["trials"][0]["effect"] == 0.8
 
 

@@ -9,6 +9,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from harness import source_hierarchy  # noqa: E402
 from harness.page import render_page  # noqa: E402
 from harness.pipeline import _build_outcome  # noqa: E402
+from _families import eligible_by_construction  # noqa: E402  (families ELIGIBLE by construction: the admission gate is on by default)
 
 
 def _load(path):
@@ -71,7 +72,7 @@ def test_colchicine_or_is_non_target_alternative_under_rr_outcome():
     rec = _record(_load("cache/colchicine-postop-af/records.json"), "32720823")
     extracted = _build_outcome(cfg["primary_outcome"], "efficacy",
         [{"id": "32720823", "id_type": "pmid"}], {"32720823": rec},
-        cfg["intervention_terms"], cfg["comparator_terms"])
+        cfg["intervention_terms"], cfg["comparator_terms"], family_nodes=eligible_by_construction({"32720823": rec}))
     row = extracted["trials"][0]
     assert row["ai"] == 13 and row["n1i"] == 81
     assert row["ci"] == 13 and row["n2i"] == 71
@@ -88,18 +89,28 @@ def test_tocilizumab_estimand_decision_controls_served_scale_and_renders():
     assert outcome["estimand"] == "OR"
     assert outcome["served_estimand"] == "RR"
     assert decision["decision"] == "cumulative_risk_at_trial_end"
-    assert decision["target_scale"] == outcome["result"]["scale"] == "RR"
+    from _contracts import partition
+    pooled, _ = partition(ROOT, "tocilizumab-covid19-mortality", outcome)
+    assert decision["target_scale"] == outcome["served_estimand"]
+    if pooled:
+        assert outcome["result"]["scale"] == decision["target_scale"]
+    else:
+        assert outcome["result"].get("estimate") is None
     html = render_page(review)
-    assert "Estimand decision" in html
-    assert "declared OR" in html
-    assert "Target scale RR" in html
+    if pooled:
+        assert "Estimand decision" in html
+        assert "declared OR" in html
+        assert "Target scale RR" in html
+    else:
+        assert "set aside on admission" in html
+        assert outcome["estimand_decision"]["target_scale"] == outcome["served_estimand"]
 
 
 def _one_trial(abstract, estimand="RR"):
     spec = {"name": "Death", "keywords": ["death"], "estimand": estimand, "primary": True}
     included = [{"id": "1", "id_type": "pmid", "label": "SYNTH"}]
     recs = {"1": {"id": "1", "abstract": abstract}}
-    return _build_outcome(spec, "efficacy", included, recs, ["drug"], ["placebo"])
+    return _build_outcome(spec, "efficacy", included, recs, ["drug"], ["placebo"], family_nodes=eligible_by_construction(recs))
 
 
 def test_synthetic_rate_effect_for_first_event_outcome_never_selected():

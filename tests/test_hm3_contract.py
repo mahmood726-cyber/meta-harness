@@ -6,6 +6,7 @@ import pytest
 
 from harness import absence, gate, harms, missing_effect, pipeline
 from harness.verified_inputs import entries, for_outcome
+from _families import eligible_by_construction  # noqa: E402  (families ELIGIBLE by construction: the admission gate is on by default)
 
 
 def test_hm3_gate_plant(tmp_path):
@@ -62,7 +63,7 @@ def test_multiple_verified_outcomes_preserve_primary_and_harm(tmp_path, monkeypa
         result = pipeline._build_outcome({'name':name,'keywords':[name],'estimand':'RR'},
             'harm' if name=='Harm' else 'efficacy', [{'id':'fixture','id_type':'pmid'}],
             {'fixture':{'abstract':'Randomized placebo comparison.'}}, ['drug'], ['placebo'],
-            verified_arms=loaded)
+            verified_arms=loaded, family_nodes=eligible_by_construction({'fixture': {}}))
         assert result['trials'][0]['ai'] == expected
     from harness.verified_inputs import normalise
     assert for_outcome({'fixture': primary}, 'Primary') == {'fixture': normalise(primary)}

@@ -233,10 +233,22 @@ def _iv_iron_strands_section(docs_dir: str) -> str:
         return ""
     try:
         d = json.load(open(p, encoding="utf-8"))
+        # the page's review core carries the strands WITH the build's admission verdicts (a strand whose member the
+        # build did not admit is marked admission_refused and its saved result withheld); render that copy so the
+        # index cannot show a pool the page refuses (lane R finding R4, 2026-09-21)
+        rp = os.path.join(docs_dir, "reviews", str(d.get("slug") or ""), "review.json")
+        suppressed = True
+        if os.path.isfile(rp):
+            review = json.load(open(rp, encoding="utf-8"))
+            core = review.get("strands")
+            if isinstance(core, dict) and core.get("strands"):
+                d = core
+            prim = next((o for o in review.get("outcomes") or [] if isinstance(o, dict) and o.get("primary")), {})
+            suppressed = bool(((prim.get("result") or {}).get("suppressed_incompatible")))
     except (OSError, ValueError):
         return ""
     from .page import render_strands_section
-    inner = render_strands_section(d)
+    inner = render_strands_section(d, suppressed=suppressed)
     if not inner:
         return ""
     return (f"<div class='banner'><h2>iv-iron HF-hospitalisation: declared strands (topic-page and index "

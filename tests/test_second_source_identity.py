@@ -86,8 +86,10 @@ def test_ad5e7c66_odyssey_percentage_ratio_was_still_labelled_corroboration():
 
 def test_postfix_pcsk9_second_source_rows_are_different_measure_not_corroboration():
     core = _core("pcsk9-mace")
-    fourier = _row(core, "28304224")["cross_source"]
-    odyssey = _row(core, "30403574")["cross_source"]
+    from _contracts import candidate_cross_source
+    outcome = next(o for o in core["outcomes"] if o.get("primary"))
+    fourier = candidate_cross_source(ROOT, "pcsk9-mace", outcome, "28304224")
+    odyssey = candidate_cross_source(ROOT, "pcsk9-mace", outcome, "30403574")
 
     assert fourier["ctgov_rr"] == 0.887
     assert fourier["registry_title"] == "Time to Cardiovascular Death, Myocardial Infarction, or Stroke"
@@ -107,7 +109,10 @@ def test_postfix_pcsk9_second_source_rows_are_different_measure_not_corroboratio
 
 def test_served_fourier_0666_is_value_not_reproducible_from_current_cache():
     old = _row(_git_json("aa8ed28a", "docs/reviews/pcsk9-mace/review.json"), "28304224")["cross_source"]
-    rebuilt = _row(_core("pcsk9-mace"), "28304224")["cross_source"]
+    from _contracts import candidate_cross_source
+    core = _core("pcsk9-mace")
+    outcome = next(o for o in core["outcomes"] if o.get("primary"))
+    rebuilt = candidate_cross_source(ROOT, "pcsk9-mace", outcome, "28304224")
 
     assert old["ctgov_rr"] == 0.666
     assert "2/13784" in old["ctgov_source"]

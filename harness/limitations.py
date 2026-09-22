@@ -36,6 +36,7 @@ class LimitationKind(str, Enum):
     DECLARED_STRANDS = "DECLARED_STRANDS"
     STALE_TOPIC = "STALE_TOPIC"
     RESULT_WITHDRAWN = "RESULT_WITHDRAWN"
+    ADMISSION = "ADMISSION"
     PRE_RELEASE = "PRE_RELEASE"
     AUDITABILITY_SCOPE = "AUDITABILITY_SCOPE"
     SUPPRESSED_POOL = "SUPPRESSED_POOL"
@@ -641,7 +642,7 @@ def _stale_contrast_block(stale: dict[str, Any]) -> str:
     return (
         "<div class='absent'><strong>UNRENDERABLE stale contrast block.</strong> "
         f"{_e(stale.get('reason'))}; current pooled trial ids: "
-        f"{_e(', '.join(stale.get('current_pooled_trial_ids') or []))}; suppressed stale ids: "
+        f"{_e(', '.join(stale.get('current_pooled_trial_ids') or []) or 'none')}; suppressed stale ids: "
         f"{_e(', '.join(stale.get('dropped_trial_ids') or []))}.</div>"
     )
 
@@ -906,16 +907,19 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
                 ["/outcomes/*/result/suppressed_incompatible", "/outcomes/*/result/suppressed_reason"],
                 _suppressed_overview_block(pres),
             )
-            if review.get("strands"):
-                add(
-                    "overview:declared-strands",
-                    LimitationKind.DECLARED_STRANDS,
-                    Severity.QUALIFIES_CLAIM,
-                    "endpoint-clean decomposition after refused cross-endpoint pool",
-                    EvidenceState.REFUSED_ON_EVIDENCE,
-                    ["/strands/why_topic_is_suppressed", "/strands/strands", "/strands/refused_cross_endpoint_pool"],
-                    _page.render_strands_section(review["strands"]),
-                )
+        if review.get("strands"):
+            # declared strands are a limitation object whatever the single pool's state (2026-09-21: the object and the
+            # topic-page block were both conditional on a suppressed pool and vanished together when iv-iron's primary
+            # became an admitted k=1; the index kept rendering the strands) -- one object, the same rendered text
+            add(
+                "overview:declared-strands",
+                LimitationKind.DECLARED_STRANDS,
+                Severity.QUALIFIES_CLAIM,
+                "endpoint-clean decomposition beside the single pool",
+                EvidenceState.REFUSED_ON_EVIDENCE,
+                ["/strands/why_topic_is_suppressed", "/strands/strands", "/strands/refused_cross_endpoint_pool", "/strands_admission"],
+                _page.render_strands_section(review["strands"], suppressed=bool(pres.get("suppressed_incompatible"))),
+            )
 
     for idx, ctrl in enumerate(((review.get("protocol") or {}).get("control_expectations") or [])):
         if ctrl.get("state") == "UNRENDERABLE":
@@ -1012,6 +1016,26 @@ def build_limitations(review: dict[str, Any]) -> list[dict[str, Any]]:
             EvidenceState.PARTIAL,
             ["/definition_audit"],
             _page._definition_audit_block(review),
+        )
+
+    # ADMISSION AT POOLING (2026-09-21): the block every outcome renders from its admission_summary is a limitation OBJECT
+    # (the same rendered text), never bare page prose -- a page block with no object behind it is visible state that
+    # controls nothing (test_limitations_legacy_compare caught the first version, exactly as it caught the withdrawn
+    # notice and the omitted re-pool). The consumer is gate.check_admission_enforced, which reads /outcomes/*/admission_summary.
+    for _i, _o in enumerate(review.get("outcomes") or []):
+        _html = _page._admission_block(_o) if isinstance(_o, dict) else ""
+        if not _html:
+            continue
+        _s = _o.get("admission_summary") or {}
+        _aside = _s.get("set_aside_rows") or []
+        add(
+            f"outcomes:{_i}:admission",
+            LimitationKind.ADMISSION,
+            Severity.BLOCKS_CLAIM if (_aside and not (_o.get("trials") or [])) else Severity.QUALIFIES_CLAIM if _aside else Severity.NOTE,
+            f"admission of candidate extractions into the pool of {_o.get('name')!r}",
+            EvidenceState.RECORDED if _s.get("state") in ("EVALUATED", "NO_CANDIDATE_ROWS") else EvidenceState.UNKNOWN,
+            [f"/outcomes/{_i}/admission_summary"],
+            _html,
         )
 
     non_harm = [outcome for outcome in (review.get("outcomes") or []) if outcome.get("kind") != "harm"]
@@ -1265,18 +1289,19 @@ def _add_risk_of_bias_limitations(add: Any, review: dict[str, Any]) -> None:
         )
 
     ac = (review.get("arm_contrast") or {}).get("trials") or {}
+    stale = (review.get("arm_contrast") or {}).get("stale_block_unrenderable") or {}
+    if stale:
+        # the object exists whether or not a contrast table remains (an emptied pool has the stale statement and no table)
+        add(
+            "riskofbias:stale-randomised-contrast",
+            LimitationKind.RANDOMISED_CONTRAST,
+            Severity.QUALIFIES_CLAIM,
+            "randomised-contrast membership for current pooled trials",
+            EvidenceState.PARTIAL,
+            ["/arm_contrast/stale_block_unrenderable", "/arm_contrast/trials"],
+            _stale_contrast_block(stale),
+        )
     if ac:
-        stale = (review.get("arm_contrast") or {}).get("stale_block_unrenderable") or {}
-        if stale:
-            add(
-                "riskofbias:stale-randomised-contrast",
-                LimitationKind.RANDOMISED_CONTRAST,
-                Severity.QUALIFIES_CLAIM,
-                "randomised-contrast membership for current pooled trials",
-                EvidenceState.PARTIAL,
-                ["/arm_contrast/stale_block_unrenderable", "/arm_contrast/trials"],
-                _stale_contrast_block(stale),
-            )
         statuses = {entry.get("status") for entry in ac.values()}
         state = EvidenceState.RECORDED if statuses == {"verified"} else EvidenceState.PARTIAL
         add(

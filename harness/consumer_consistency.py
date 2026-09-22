@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from . import absence, funding
+from .admission import ADMISSION_SET_ASIDE_STATES
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -568,6 +569,11 @@ def annotate_review(review: dict[str, Any], slug: str, config: dict[str, Any],
         if not spec:
             continue
         for row in outcome.get("declared_absent_trials") or []:
+            if row.get("state") in ADMISSION_SET_ASIDE_STATES and isinstance(row.get("admission_verdict"), dict):
+                # A row the build set aside on ADMISSION (harness/admission.py, P5, 2026-09-21) keeps its state: its
+                # source-visible value was extracted and refused on admission, not left unextracted -- relabelling it
+                # KNOWN_REPORTED_NOT_YET_EXTRACTED here stated a wrong reason on esketamine's two rows at the first rebuild.
+                continue
             tid = _norm_id(row.get("id") or row.get("label"))
             cand = outcome_source_candidate(slug, records_blob, spec, tid)
             if not cand.get("source_has_value"):

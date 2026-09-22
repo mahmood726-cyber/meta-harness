@@ -1286,6 +1286,128 @@ def check_adjustment_span_backed(review_dir):
     return reasons
 
 
+def check_admission_enforced(review_dir):
+    """ENFORCEMENT GATE (2026-09-21): the build's admission decision is enforced on the served page. Every pooled
+    row of every outcome carries the build's verdict (ADMISSIBLE, or the named MIGRATION state for unbound_legacy);
+    a stamp is not trusted -- the verdict must equal what the page's OWN family ledger yields under the same
+    function (harness/admission.py); the certified cache/<slug>/families.json must agree with the page's copy where
+    it exists; and no screened-in record may have VANISHED (neither pooled nor set aside nor refused) -- the check
+    is not satisfiable by dropping rows. The refusal prints its scope: which predicates the build evaluates and
+    which only the bundle evaluates, so a pass here is a scoped pass, never 'safe'. Before this check the gate
+    PASSED probiotics-aad-prevention with 11 of 11 pooled primary rows in family state UNKNOWN (observed on
+    38c04411)."""
+    from . import admission as _adm, membership as _membership
+    from .trial_family import effective_eligibility as _eff
+    p = os.path.join(review_dir, "review.json")
+    if not os.path.exists(p):
+        return ["L1: no review.json to check admission enforcement"]
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+    except (OSError, ValueError) as exc:
+        return [f"L1: cannot read review.json for admission: {exc}"]
+    slug = rev.get("slug") or os.path.basename(os.path.normpath(review_dir))
+    fams = [f for f in (rev.get("trial_families") or []) if isinstance(f, dict)]
+    by_id = {f.get("family_id"): f for f in fams}
+    by_report = {}
+    for f in fams:
+        for r in f.get("reports") or []:
+            by_report[_adm.identity._norm(r.get("report_id"))] = f
+    certified = {}
+    cp = os.path.join(ROOT, "cache", slug, "families.json")
+    if os.path.isfile(cp):
+        try:
+            with open(cp, encoding="utf-8") as f:
+                certified = {x.get("family_id"): x for x in (json.load(f).get("families") or []) if isinstance(x, dict)}
+        except (OSError, ValueError) as exc:
+            return [f"L1: admission: certified cache/{slug}/families.json unreadable: {exc}"]
+    bad, scoped = [], []
+    screening = (rev.get("screening") or {}).get("records") or []
+    for o in rev.get("outcomes") or []:
+        if not isinstance(o, dict):
+            continue
+        name = o.get("name")
+        for t in o.get("trials") or []:
+            if not isinstance(t, dict):
+                continue
+            tid = str(t.get("id"))
+            fam = by_report.get(_adm.identity._norm(t.get("id"))) or by_id.get(t.get("family_id"))
+            expect = _adm.verdict(t, fam)
+            stamp = t.get("admission_verdict") if isinstance(t.get("admission_verdict"), dict) else None
+            p5 = expect["predicates"]["P5_family_eligible"]
+            where = (f"{tid} in {name!r} (family {p5['family_id']}, eligibility {p5['eligibility_state']}"
+                     + (f" {p5['absence_code']}" if p5.get("absence_code") else "") + f", binding {t.get('endpoint_binding')})")
+            if stamp is None:
+                bad.append(f"no admission stamp on pooled row {where}: the page was built before the build read the "
+                           f"admission decision; the page's own families yield {expect['final']}"
+                           + (f" failing {expect['failing']}" if expect["failing"] else ""))
+                continue
+            if stamp.get("final") != expect["final"] or list(stamp.get("failing") or []) != expect["failing"]:
+                bad.append(f"stamp disagrees with the page's own families on pooled row {where}: stamped "
+                           f"{stamp.get('final')} {stamp.get('failing')}, re-evaluated {expect['final']} {expect['failing']}")
+                continue
+            if expect["final"] == "INADMISSIBLE":
+                bad.append(f"pooled row is INADMISSIBLE {where}: failing {expect['failing']} -- the build must set it aside, "
+                           "never pool it")
+            elif expect["final"] == "MIGRATION_STATE_UNBOUND_LEGACY":
+                scoped.append(f"{tid} in {name!r}")
+            if fam is not None and certified:
+                c = certified.get(fam.get("family_id"))
+                # the certified copy is the COMPACT form (family_compact.write_families: identity basis and sources live
+                # in families.evidence.json.gz) whose eligibility.state is already the post-override state attach_review
+                # wrote -- read it as stored, as the bundle's P5 does; effective_eligibility on a compact node would read
+                # "no registry ids" and report UNKNOWN (384 false disagreements at the first sweep)
+                cert_state = ((c or {}).get("eligibility") or {}).get("state")
+                if c is None:
+                    bad.append(f"family {fam.get('family_id')} of pooled row {tid} in {name!r} is absent from the certified "
+                               f"cache/{slug}/families.json")
+                elif cert_state != _eff(fam).get("state"):
+                    bad.append(f"certified cache/{slug}/families.json and the page disagree on family {fam.get('family_id')} "
+                               f"({tid} in {name!r}): certified {cert_state}, page {_eff(fam).get('state')}")
+        # not satisfiable by dropping rows: every screened-in record is pooled, set aside or refused ON THIS OUTCOME
+        try:
+            m = _membership.build_outcome_membership(o, screening)
+        except ValueError as exc:
+            bad.append(f"membership of {name!r} cannot be derived: {exc}")
+            m = {}
+        vanished = [k for k in (m.get("screened_in_not_pooled") or []) if k]
+        if vanished:
+            bad.append(f"vanished row(s) in {name!r}: screened IN but neither pooled nor set aside nor refused: "
+                       f"{', '.join(vanished)} -- a refused extraction is set aside with its reason, never dropped")
+        s = o.get("admission_summary")
+        if not isinstance(s, dict) or s.get("state") not in ("EVALUATED", "NO_CANDIDATE_ROWS"):
+            bad.append(f"admission summary on {name!r} is {(s or {}).get('state') if isinstance(s, dict) else 'absent'}, "
+                       f"not EVALUATED: {_adm.describe(_adm.summary(o))}")
+    if not bad:
+        return []
+    scope = (f"scope: evaluated in-build {', '.join(_adm.SCOPE['evaluated_in_build'])}; not evaluated in-build "
+             f"{', '.join(_adm.SCOPE['not_evaluated_in_build'])} ({_adm.SCOPE['where_the_rest_is_evaluated']}); "
+             f"migration-state rows pooled under the named exception: {', '.join(scoped) or 'none'}")
+    return ["L1: admission not enforced -- " + "; ".join(bad[:8]) + (f"; +{len(bad) - 8} more" if len(bad) > 8 else "")
+            + "; " + scope]
+
+
+def admission_scope(review_dir):
+    """The scope a PASS is a pass under (printed beside every GATE PASS, lane R finding R7: a pass that says nothing
+    about what it did not check reads as 'safe'): the predicates the build evaluates in-build, the ones only the
+    bundle evaluates, and the migration-state rows this page pools under the named exception."""
+    from . import admission as _adm
+    p = os.path.join(review_dir, "review.json")
+    mig = []
+    try:
+        with open(p, encoding="utf-8") as f:
+            rev = json.load(f)
+        for o in rev.get("outcomes") or []:
+            s = o.get("admission_summary") if isinstance(o, dict) else None
+            if isinstance(s, dict):
+                mig += [f"{i} in {o.get('name')!r}" for i in s.get("migration_state_rows") or []]
+    except (OSError, ValueError):
+        pass
+    return (f"scope: admission evaluated in-build on {', '.join(_adm.SCOPE['evaluated_in_build'])}; NOT evaluated in-build "
+            f"{', '.join(_adm.SCOPE['not_evaluated_in_build'])} ({_adm.SCOPE['where_the_rest_is_evaluated']}); "
+            f"migration-state rows pooled under the named exception: {', '.join(mig) or 'none'}; {_adm.SCOPE['p8_divergence']}")
+
+
 def gate_page(review_dir):
     """Return (ok: bool, reasons: list[str]). ok == True only if both limbs pass."""
     try:
@@ -1301,6 +1423,7 @@ def gate_page(review_dir):
                + check_no_independent_corroboration_claim(review_dir, html)
                + check_harms_synthesis_gated(review_dir, html)
                + check_adjustment_span_backed(review_dir)
+               + check_admission_enforced(review_dir)
                + check_cache_tracked(manifest)
                + check_reproduction(review_dir, manifest)
                + check_primary_result(review_dir)
@@ -1342,6 +1465,7 @@ def main(argv):
         ok, reasons = gate_page(d)
         if ok:
             print(f"GATE PASS  {d}")
+            print(f"    {admission_scope(d)}")
         else:
             any_refused = True
             print(f"GATE REFUSE {d}")

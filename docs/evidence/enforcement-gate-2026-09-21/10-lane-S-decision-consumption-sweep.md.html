@@ -1,0 +1,571 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>10-lane-S-decision-consumption-sweep.md (rendered capture)</title><style>body{font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;max-width:64rem;margin:2rem auto;padding:0 1rem;color:#12232e}code{background:#f1f3f5;padding:0 .2em;word-break:break-all}table{border-collapse:collapse;width:100%}td,th{border-top:1px solid #ddd;padding:.4em .5em;vertical-align:top;text-align:left}.note{border-left:4px solid #b45309;padding:.5em 1em;background:#fffbeb}.sha{font-size:.85em}pre{white-space:pre-wrap;word-break:break-word;background:#f8f9fa;padding:1em;border:1px solid #ddd}</style></head><body><h1>10-lane-S-decision-consumption-sweep.md</h1><p class="note"><strong>This is an HTML rendering of a raw evidence capture.</strong> The text below is the capture verbatim. The raw file is served at <code>https://mahmood726-cyber.github.io/meta-harness/evidence/enforcement-gate-2026-09-21/10-lane-S-decision-consumption-sweep.md</code>; its SHA-256 is <code>b803a427b56dfe03b7bff6549d13390577bbfc898684e00b17500f052104a8db</code> (100,796 bytes). <strong>That digest is of the raw file, not of this HTML page.</strong> The attestation in <code>/_production/manifest.json</code> covers the raw bytes; this page exists only because some fetchers refuse text/plain and text/markdown.</p><p><em>What it proves:</em> Codex lane S (xhigh): the sweep for OTHER places the build computes a decision and does not act on it -- F1 protocol-compiler divergences (35 on 18 of 32 pages) with no consumer, and the opt-in eligibility chain OVERWRITING that list with a narrower contract (two implementations of one decision: the same defect as the `admission` key collision, wearing another costume); F2 compatibility cleared by relabelling; F5 screener disagreement pauses nothing; F3/F4/F6-F9 measured; negatives and untested residuals named. NOT fixed in this landing: its own decision, plants and landing.</p><pre># Lane S — decisions that do not constrain the build
+
+Completed against `38c04411484dbea035a8e4c8e22c57c2794f9495` plus the supplied `source2.patch`. **No commits. No proposed fixes implemented. No process stopped, killed or signalled.** Experimental inputs and outputs were restored byte-for-byte; the supplied patch remains applied.
+
+The strongest results are three real-build counterexamples on `finerenone-ckd-t2d-renal`: a protocol requesting OR still publishes the unchanged HR pool; a configured 24-hour follow-up becomes a disclosed compatibility mismatch while the years-long pool remains; and an unresolved independent-screening exclusion leaves membership unchanged. Each rebuilt page passed the full `gate.gate_page`, not merely a selected check. These are failures to enforce the planted contract, **not assertions that the original clinical estimate is numerically incorrect**.
+
+## Scope, denominators and reproducibility
+
+The baseline is the actual served JSON present before any experimental build: **32 pages, 97 outcomes, 127 pooled outcome/trial rows** (87 primary, 37 harm, 3 secondary efficacy), and 670 declared-absent outcome/trial rows. It is saved in `.tmp/lane_s/served_baseline.json`. Pooled rows are not unique people, studies or trial families. The baseline predates regeneration with this patch; where the patch would remove existing rows, the report says so. Only the two experimental topics were rebuilt, not the entire corpus.
+
+All 94 `harness/` Python modules and all 153 `scripts/` Python/shell scripts were searched: **247 files, 207 with hits, 4,236 matching lines**. The supplied patch deletes `scripts/admission_shadow_census.py`; it is not counted as a present module. Repeated rendering, comments and references to the same decision are grouped by producer/consumer in the final inventory. Exact hits and their grouped dispositions are retained in `.tmp/lane_s/decision_hits.txt`, `source_inventory.json`, and `decision_hit_dispositions.tsv`. This is source/call-site tracing and targeted execution, not a claim that every possible branch was executed.
+
+The prompt&#x27;s listed vocabulary was searched verbatim, including `config.get(`, opt-in/slug branches and additive/preserved language. There were no additional script extensions omitted from the on-disk file list. Preflight read the required project index/workbook, checked imports, working tree, build target and test targets. Python 3.13.13, NumPy 2.4.4, SciPy 1.17.1 and pytest 9.0.3 imported successfully. `git apply --check source2.patch` and `git apply source2.patch` succeeded; Git warned only about an added blank line at EOF.
+
+| Static versus dynamic | Disclosure |
+|---|---|
+| Static audit parameters | Decision vocabulary and build date `2026-09-11` come from the lane prompt. |
+| Dynamic measurements | Counts, identifiers, stored statuses and source spans are read from this clone; no generated clinical data. |
+| Deliberate experimental inputs | OR, 24 hours, per-protocol and the marked screener exclusion are plants, not new evidence; every change was restored. |
+| Existing hardcoded policy | Comparator topic profiles, compatibility fact tables and special-case opt-ins are identified below; this audit did not add policy exceptions. |
+| Evidence limits | A checker flag is not independent clinical adjudication. A held numeric value is not automatically a poolable effect. Historical sweep JSON is labelled historical. |
+
+**Consumer convention:** “NO CONSUMER” below means no semantic consumer of that failure that excludes/recomputes/refuses the analytical claim. Review annotations are covered as bytes by `review_sha256`; changing one can change a custody digest. That passive hashing is real and is not omitted from this audit. `harness/certificate.py:160–169` explicitly disclaims verifying the meaning/currentness/enforcement of such statuses. The findings do not allege a forged digest or that an unchanged hash was observed.
+
+## Ranked findings
+
+### F1 — CONFIRMED: general protocol divergence permits a numerical pool; the alternative check is opt-in and overwrites it
+
+**Consequence:** a number for an estimand different from the planted protocol is admitted; optional contract enforcement also permits wrong membership relative to its own machine criteria.
+
+**Producer:** `harness/protocol_compiler.py:188` (`ESTIMAND_DIVERGENCE` at :195); `harness/pipeline.py:2123` attaches the comparison. **NO CONSUMER refusing the general divergence list.** `harness/propositions.py:306` labels it `DISCLOSED_DIVERGENCE`; :485 rejects a false equality assertion, allowing an explicitly disclosed divergence. `harness/gate.py:552` instead reads the optional eligibility-chain object.
+
+**Current measurement:** 35 stored divergences on **18/32 pages**. Eligibility-chain enforcement is enabled/attached on **1/32 pages**. Running `harness/eligibility_chain.py:589` over every baseline topic finds hard violations on **24/32 pages**, including **23/31 disabled topics**. There are **20/127 distinct failing pooled outcome/trial rows**, all on disabled topics (**20/124 pooled rows on those topics**); 21 trial-level violations affect those 20 rows. These are the checker&#x27;s verdicts, not 20 independently established clinical exclusions. Disabled-topic failing row counts: colchicine secondary prevention 1, dapagliflozin HFpEF 1, DPP4 5, esketamine 1, GLP1 3, omega3 2, sacubitril 1, SGLT2 HFrEF 1, SGLT2 primary prevention 4, spironolactone 1. The remaining hard findings are page/config/prose contracts.
+
+**Plant:** change only the finerenone protocol estimand clause from HR to OR, retaining held trial data and executable config. Rebuild with the required command. JSON remains `k=2`, `scale=HR`, `estimate=0.8407`; both trial IDs remain; `ESTIMAND_DIVERGENCE` is recorded; full gate remains `true` with zero reasons. The build&#x27;s literal stdout says `RR=` for this HR result; it is a generic caption, not the JSON scale. Its k=2 confidence interval is separately refused, so this is evidence about the numerical point estimate, not a claim that an interval escaped that policy.
+
+Then enable `eligibility_chain_enforced` while retaining the OR protocol. Full gate becomes false for its design-mask mismatch, proving that this consumer exists when enabled. The number/membership stay unchanged, and **the estimand divergence disappears**: `harness/eligibility_chain.py:521` replaces `protocol_config.divergences` with the narrower contract comparison. `compile_contract` at :150 has no estimand criterion. The two decision implementations are not equivalent; enabling one erases the other&#x27;s failure. Build gating/annotations are opt-in at `harness/pipeline.py:1879` and :2235; an absent chain yields no error at `harness/eligibility_chain.py:585`.
+
+**Smallest proposed fix:** run one complete typed protocol contract unconditionally before pooling and at the gate, preserving all divergences and refusing unresolved hard failures.
+
+### F2 — CONFIRMED: compatibility failure is cleared by changing the assertion, while the pool survives
+
+**Consequence:** wrong follow-up/analysis contract can retain the same numerical pool; less severe cases are misleading compatibility labels.
+
+**Producer:** `harness/compat_check.py:377` compares asserted dimensions with source-derived rows. **Consumer:** `_fix_compat_key` at :470 changes the label to mixed/trial-defined; `enrich` at :634 records before/after violations. `check` at :396 skips unasserted dimensions; `page_gate_violations` at :660 and `harness/gate.py:1017` use the resulting assertions. **NO CONSUMER requiring the pool to satisfy the original failed non-measure dimension.** `harness/compat.py:186` still hard-refuses incompatible effect-measure classes; this finding is narrower than “compatibility is never enforced.” Enrichment runs at `harness/pipeline.py:2223`, after pooling.
+
+**Current measurement:** **27/32 pages** record 66 pre-fix violations, **0/32** post-fix violations. **47/97 outcomes** retain at least one false `dimension_matches` axis; 54 keys exist. An independently computed direction audit (`harness/compat_direction.py:242`, :288) yields **25/135** dimension observations labelled asserted-homogeneous/underlying-heterogeneous, **8/135** in the reverse direction, **3/135** not derivable, and 99 consistent. That code treats some unasserted keys as homogeneous for this diagnostic; these are not 33 independent clinical incompatibilities. Its only review consumer is display at `harness/page.py:1354`.
+
+**Plant:** set `topics/finerenone-ckd-t2d-renal.json` → `primary_outcome.timepoint = &quot;24 hours&quot;`. The saved pre-fix object records the assertion and source follow-ups **2.6 years** and **3.4 years**, from the held abstracts for PMIDs **33264825** and **34449181**. Post-fix violations are empty, key `matched` remains true, follow-up becomes `trial-defined (per trial listed)`, and full gate still passes with the unchanged HR pool. Inputs restored.
+
+A separate `primary_outcome.population = &quot;per-protocol&quot;` plant also preserves pool/full gate and records `POPULATION_DIVERGENCE`. It **does not** produce a fresh analysis-set compatibility failure: `harness/compat_check.py:119` falls back to `study_effect.analysis_population`, supplied from the configured population by `harness/pipeline.py:1523`. The supposedly underlying key can inherit the assertion it checks when direct source evidence is missing. This is corroborating provenance/label evidence, not a claim that the plant changed the source population.
+
+**Smallest proposed fix:** preserve the declared compatibility contract separately from derived evidence and require adjudication, exclusion or a distinct qualified analysis for failed hard dimensions before allowing the primary pool.
+
+### F3 — MEASURED-ONLY: endpoint/conflict predicates outside P5/P8 do not share an admission consumer
+
+**Consequence:** potential wrong endpoint/member contributing to a pooled number; no new corrected clinical pool was computed.
+
+**Endpoint producer:** `scripts/pooled_class_sweep.py:69` and `scripts/strict_subset_sweep.py:92`; bundle predicates P13/P14 at `scripts/build_bundle.py:1358–1365`. **NO CONSUMER of those aggregate sweep failures in the topic build.** Runtime admission explicitly limits itself to P5/P8 (`harness/admission.py:50`, :83). `harness/target_endpoint.py:477` expressly permits a declared near match, whereas bundle P13 says a named extra component must not enter the pool. This is a policy disagreement between implementations, not an accidental bypass of a runtime rule that already forbids all near matches.
+
+**Current measurement:** fresh pooled-class sweep sees **1/127** row with extra components, **1/127** with inconsistent missing-components metadata and **1/127** with inconsistent extra-components metadata; these counters are not necessarily distinct rows. The explicit extra-component case is PCSK9 PMID **30403574**, `NEAR_MATCH_DECLARED`: its held definition includes unstable-angina hospitalization, and its named components lack the target&#x27;s cardiovascular-death wording while `missing_components=[]`. Its P5 passes under the patch, so P5 alone does not remove this policy discrepancy. The 127-row classification is 61 exact, 1 near-match and 65 unbound legacy; the last group is a migration state, not proof of 65 erroneous effects.
+
+Fresh strict-subset diagnostics flag **4/127 rows**; only **64/127** have a title or definition usable by that check and 63 are unswept. Two NOAC rows classify `stroke` under “Stroke or systemic embolism”; two ticagrelor flags need manual interpretation. These lexical flags are **not four established wrong endpoints** and must not drive automatic exclusion without validated binding.
+
+**Conflict producer:** `harness/trial_family.py:511` and :550 attach disagreements after analytical consumers (`harness/pipeline.py:2294`). **NO per-effect admission consumer** of these conflict objects. Current corpus: **624 conflicts / 2,858 family nodes**, on **174 nodes / 22 pages**: 55 identity-link and 569 unadjudicated source-value disagreements. They intersect **19/100 distinct pooled family occurrences**, **28/127 pooled outcome/trial rows**, on **10/32 pages**. Rechecking P5/P8 on row copies still admits **13 of those 28 conflict-associated rows**. A family conflict may concern a different field/outcome; this intersection establishes an unconsumed conflict state, not 13 wrong effect values.
+
+There is also a vocabulary mismatch: all 624 family conflict objects lack a `state` field; bundle P6 checks only conflict dictionaries whose `state` starts `UNRESOLVED` (`scripts/build_bundle.py:1300–1301`). All eight rows in the one held GLP1 bundle have P6 PASS even though the broad family ledger carries conflicts. Its eight rows have seven ADMISSIBLE and one P5 failure; no non-P5 failure is observed there. Do not equate ledger conflicts automatically with an outcome-specific P6 failure.
+
+**Plant:** none; source tracing and baseline/row-copy measurements only.
+
+**Smallest proposed fix:** use one outcome-scoped predicate/schema implementation for runtime admission, bundle verification and auxiliary pools, requiring an explicit resolution for applicable endpoint or source conflicts.
+
+### F4 — MEASURED-ONLY: unknown design is a permitted numerical path
+
+**Consequence:** potentially unsupported variance/precision when design cannot be established; no incorrectly calculated standard error was proved.
+
+**Producer:** `harness/design_key.py:526` returns `DESIGN_UNPROVEN`. **Consumer:** `split_design_refusals` at :735 blocks only REFUSE/MANUAL_REVIEW; `harness/synth.py:108` likewise rejects known blocking actions. Thus **NO refusal consumer for DESIGN_UNPROVEN**; it is labelled and remains poolable.
+
+**Current measurement:** **24/127 pooled rows** across **8/32 pages** have DESIGN_UNPROVEN; 95 are ALLOW and 8 ALLOW_WITH_LABEL. There are **0/127 pooled REFUSE/MANUAL_REVIEW rows**. Five ENGINE_CANNOT_CONSUME/design-refused absent rows are separately excluded. No design-variance check violation on any of 32 reviews. Leave-one-out uses already filtered studies (`harness/pipeline.py:1657`); spec curve and RoB sensitivity preserve design/study-effect metadata (`harness/spec_curve.py:40`, `harness/rob_sensitivity.py:73`). Known refusals do not re-enter those routes in the inspected code/tests.
+
+**Plant:** none.
+
+**Smallest proposed fix:** make unknown design require evidence or explicit scoped adjudication before variance-dependent synthesis, rather than treating only known unsupported designs as blockers.
+
+### F6 — MEASURED-ONLY: source-limited HR/RR mixing is disclosed rather than treated as a different estimand
+
+**Consequence:** a pooled point estimate can combine different ratio quantities; this is an explicit approximation policy, not a newly proven arithmetic defect.
+
+**Producer:** `harness/source_hierarchy.py:189` emits MIXED_BY_SOURCE_LIMIT; `harness/recovery_recheck.py:27` emits `label_mix_small_k`. **Consumer:** actual estimator selection occurs at `harness/pipeline.py:1212`, but residual source-limit failures only attach at :1414 and display via `harness/recovery_recheck.py:63` / `harness/page.py:1523`. `harness/estmeasure.py:71` and `harness/compat.py:173` share the HR/RR compatibility class. **NO refusal for that residual label mix.** OR/IRR hard incompatibility remains enforced.
+
+**Current measurement:** **7/127 pooled rows**, each on a different page, carry MIXED_BY_SOURCE_LIMIT; **4/97 outcomes** carry the recovery small-k label-mix concern; **0/97** recovery objects have a new hard-incompatible state. The source-limit rows occur in balanced crystalloids, denosumab, DOAC VTE, IV iron, NOAC AF, spironolactone and ticagrelor harms. Exact rows and held explanations are in `detail_summary.json`.
+
+**Plant:** none.
+
+**Smallest proposed fix:** require one declared estimand per primary synthesis or a separately named sensitivity analysis for source-limited cross-estimand approximations.
+
+### F5 — CONFIRMED: independent screener disagreement does not pause membership or the gate
+
+**Consequence:** unresolved eligibility disagreement can remain in pooled membership; the planted exclusion is not real clinical evidence.
+
+**Producer:** `harness/pipeline.py:973` records `ADJUDICATOR_DISAGREES` and pending entries at :991/:994. **NO membership/gate consumer** of that pending state; page display is at `harness/page.py:1081` and :1198. The independent judgments are loaded at `harness/pipeline.py:940`; they are not substitutes for adjudication.
+
+**Current measurement:** **5/3,146 screening rows** on **4/32 pages** carry disagreement. The pending pages are colchicine postoperative AF (2), recurrent pericarditis (1), omega3 (1), and probiotics (1); both include-vs-exclude directions occur.
+
+**Plant:** set the existing finerenone cache adjudicator judgment for PMID 33264825 to `is_eligible=false` with a rationale explicitly prefixed `LANE_S_PLANT`. Rebuild records `{served: include, adjudicator: exclude}` in `screening.adjudicator_pending`; both original members and the HR point estimate remain, and full gate passes without reasons. All files restored.
+
+**Smallest proposed fix:** require a source-backed resolution of pending eligibility disagreements before the affected row enters a pool or the page passes publication.
+
+### F7 — MEASURED-ONLY: known audit contradictions do not force recovery or adjudication
+
+**Consequence:** potentially missing eligible evidence and, at minimum, contradictory absence/coverage labels. A regex-located value alone does not establish eligibility, endpoint identity or estimability.
+
+**Producers:** `harness/reason_audit.py:285`, :342; `harness/unextracted.py:85`, :127; fresh consumer-consistency classification at `harness/consumer_consistency.py:334`, :640. **NO required recovery/adjudication/gate consumer** for those audit failure states. `harness/pipeline.py:2228–2234` explicitly says these annotations never change the extractor output, reason code, membership or pool; `harness/page.py:1975` renders them. The earlier `consumer_consistency.annotate_review` at :562 does repair reason/funding metadata, so it is not literally unused; it does not extract/repool every newly observed outcome.
+
+**Current measurement:** all 32 pages carry both audit objects.
+
+| Current baseline decision | Nonpassing count / named denominator | Pages |
+|---|---:|---:|
+| REASON_FALSE_VALUE_HELD | 64/670 declared-absent outcome/trial rows | 17/32 |
+| REASON_WRONG_KIND | 136/670 declared-absent rows | 24/32 |
+| NOT_VERIFIABLE | 136/670 declared-absent rows | 16/32 |
+| HELD_NOT_EXTRACTED | 64/797 included-trial × registered-outcome cells | 17/32 |
+| Fresh source value not accounted for | 21/1,066 outcome/funding cells | 7/32 |
+| Fresh false consumer-consistency reason | 37/1,066 outcome/funding cells | 12/32 |
+
+The 64 held-not-extracted cells include 35 primary and 29 harm cells. Of the fresh consumer-consistency failures, the 21 unaccounted cells also have a false reason; another 16 have only the false-reason flag. Do not sum these overlapping audits as independent omitted studies.
+
+The **different** refusal-reason checker (`scripts/refusal_reason_sweep.py:78`, calling `harness/absence.py:260`) gives **659 TRUE, 9 FALSE, 2 AUDIT_REFUSED / 670 rows** on a fresh per-row run. Its normal whole-run route aborts on the first missing held-span exception; the audit helper catches and records each exception, not as a pass. The two are on omega3; the nine FALSE cases include differing typed labels for genuinely refused endpoints/populations and extraction-debt overmatches. This demonstrates duplicated decision semantics and stale labels, not nine rows that should simply be pooled.
+
+**Plant:** none.
+
+**Smallest proposed fix:** give held-value contradictions and uncheckable refusal evidence a required, typed resolution queue and gate unresolved applicable cases, sharing the reason ontology instead of auto-pooling audit candidates.
+
+### F8 — MEASURED-ONLY: a declared consumer link or acknowledgment passes the hazard wiring check
+
+**Consequence:** an enforcement claim can be mistaken for tested enforcement; the digest itself is not false.
+
+**Producer:** `harness/hazard_consumers.py:486` annotates limitations; `harness/limitations.py:1462` checks decision-link shape. **Consumer:** `harness/hazard_consumers.py:529` accepts a nonempty consumer designation or explicit unwired acknowledgment at :537; `harness/gate.py:280` calls this structural check. **NO execution of the named consumer occurs in that check.** Real independent gates do exist for many other limitation kinds.
+
+**Current measurement:** **306/592 limitation objects** are unwired, including **46** classified validity-threatening/blocking; acknowledgment handling permits the hazard check on **32/32 pages**. Unwired kinds include protocol compliance (13), definition audit (15), declared-absent section (13), declared strands (1), and auditability/retrieval/funding/RoB/GRADE disclosures. These counts do not mean all 306 should exclude a study; many are appropriately scoped limitations.
+
+**Plant:** none.
+
+**Smallest proposed fix:** require executable, outcome-scoped consumer evidence for blocking scientific hazards and reserve acknowledgment-only handling for explicitly nonblocking disclosures.
+
+### F9 — MEASURED-ONLY: stored sweep results have no freshness or aggregate scientific gate
+
+**Consequence:** wrong or stale audit labels/certification interpretation; the measurements do not themselves repair membership.
+
+**Producer:** the 31 `docs/*_sweep.json` artefacts and their scripts listed below. **NO consumer of their aggregate nonpassing counts in `scripts/build_topic.py:49` or `scripts/verify_all.py:294`.** Literal-reference inspection found no reads in `harness/` or `verify_all.py`; the two scope references at `harness/scope_identity.py:580` and :585 are writers. Tests may read an artefact or test its algorithm without requiring its defect count to be zero. Independent runtime consumers of the same underlying algorithms are explicitly distinguished below.
+
+**Current measurement:** **31/31 stored sweep artefacts** lack such an aggregate runtime gate. Concrete stale comparisons: eligibility&#x27;s stored denominator is 122 pooled rows versus 127 now; unextracted stores 53/724 held-not-extracted versus 64/797 now; consumer consistency stores 2/995 unaccounted and 3/995 false reasons versus 21/1,066 and 37/1,066 fresh; refusal reason stores 0/674 FALSE versus 9/670 fresh plus 2 uncheckable rows. These establish staleness without assuming every differing counter is a regression or that all 31 files are stale.
+
+**Plant:** none; artefact/source comparison and fresh check execution.
+
+**Smallest proposed fix:** regenerate applicable sweeps against the exact release input digest and consume their explicitly selected hard failures in the release gate, keeping historical reports visibly version-bound.
+
+## Measured disclosures and negative controls
+
+These are measured candidates, not additional confirmed defects. They prevent interpreting every UNKNOWN or limitation as an ignored hard refusal.
+
+| Candidate / producer | Current n/N | Actual consumer and conclusion |
+|---|---|---|
+| `verified` / `verify_basis`, `harness/verify.py:65` | 0/127 unverified: primary 83 verified + 4 handchecked, harms 37 verified, secondary efficacy 3 verified | `harness/gate.py:329–352` loops over every outcome; fresh verification check PASS on 32/32. No non-primary loophole observed. |
+| Known design refusal, `harness/design_variance.py:142` | 5 absent design refusals; 0/127 blocking design actions pooled; 0/32 design check failures | Pre-pool split, validated synth and sensitivity metadata enforce it. Tests below passed. |
+| GRADE ordering, `harness/pipeline.py:2281` | 0/30 semantic discrepancies against current recomputation | Later family/panel stamping at :2294/:2295 did not alter substantive GRADE in this corpus. Raw dictionary diffs on all 30 were only claim/dependency stamps and were rejected as a false positive. No ordering defect established. |
+| `harm_absence_state`, `harness/harms.py:31`, :57 | 483 harm absence rows: 83 NOT_RETRIEVED, 215 outcome not reported, 18 incompatible, 167 refused; 49/61 harm syntheses incomplete | State feeds reporting ledger and incomplete calculation; `harness/gate.py:1247` and page :1697 enforce suppression. It is consumed. |
+| Unknown harm retrieval | 23/61 harm outcomes contain NOT_RETRIEVED; 2 of those are not incomplete; only 1 has a number | The one is the explicitly single-trial SGLT2-CKD DKA datum, with six not-retrieved registry IDs. This is coverage uncertainty, not evidence that a known report was omitted. No class-wide conclusion inferred by this audit. |
+| Retraction / concern, `harness/integrity.py:25` | 0 saved retracted and 0 concern entries across 32 integrity objects; fresh retraction gate PASS 32/32 | Retraction gate `harness/gate.py:760` blocks present retracted members; concern is disclosure. Missing-response branch separately U2. |
+| Prospective registration flags | 9 false, 25 unknown, 63 true / 97 recorded prospective entries | Display/limitations, not automatic exclusion for retrospective registration; no malformed date independently proved. |
+| Second-source identity, `harness/second_source.py:132` | 9 cross-source rows: 1 identical endpoint, 6 different measure, 2 different endpoint; 0 direction-flip `agree=false` | `counted_as_corroboration` at :187 excludes nonidentical rows; gate :704 refuses direction flips. No nonpassing flip today, so not a current ignored-failure finding. |
+| Duplicate publication / identity | No pooled duplicate leakage established | `harness/trial_family.py:490` raises for duplicate family pooling; `harness/gate.py:592` and :729 examine all outcomes. Conflict ledger F3 is a separate issue, not proof of double counting. |
+| Arm-object opt-in, `harness/screen.py:258` | Only 3/32 configs enable the screen path, but fresh 0/127 pooled arm refusals and gate PASS 32/32 | `harness/gate.py:900` reruns arm refusal independently for pooled rows. The opt-in is not presently a demonstrated pool escape. |
+| Endpoint canonical diagnostics, `harness/endpoint_canonical.py:318` | 0/54 nonsuppressed numerical outcome checks | No present canonical-diagnostic violation; do not confuse with the distinct P13/P14 policy mismatch in F3. |
+| Funding, `harness/funding.py:375` | 269 disclosure rows: 137 not stated, 52 source not retrieved, 58 industry, 6 mixed, 16 nonindustry | Consumer consistency recovers funding; propositions reject false funding assertions. Unknown/industry funding is not by itself an eligibility refusal. |
+| Adjustment, `harness/adjustment.py:5` | 127/127 pooled design adjustment statuses UNRESOLVED | `harness/gate.py:1268` checks truthful span-backed labelling; it does not promise adjusted estimators. No claimed-ADJUSTED source mismatch measured. |
+| Scope identity, `harness/scope_identity.py:248` | 28/32 SCOPE_MISMATCH; other 4 HAND_WRITTEN_KEYWORD_SCOPE | Gate :362 permits the explicit qualification at :371; gate.py:1047 consumes it. This qualifies the retrieval universe instead of automatically invalidating every scoped pool. |
+| Invalidation, `harness/invalidation.py:330` | 32/32 stale; search-not-executed reason 32/32, eligible-absent 28/32 | GRADE and page suppress/qualify complete-evidence claims; not an unconditional refusal to show a scoped estimate. F7 covers unresolved reasons separately. |
+| Comparator scope, `harness/scope.py:30` | 9/32 `scope_valid=false` | Comparator display is qualified; not our trial eligibility predicate. |
+| Comparator allowlists, pipeline :1973/:1975 | Second-pass fields on 9/32, truth fields on 4/32; outcome mismatch/near-match on 3/9 assessed second-pass pages | They correct comparator counts/overlap (`comparator_second_pass.py:337`, `comparator_truth.py:414`) and display qualifications. Not evidence of wrong pooled trial membership. |
+| Fresh comparator-truth limited-text sweep | Participant reconciliation refuted on 1/1 assessable page (31 unassessed); incomplete known list on 1/2 assessed; recency flag 1/32 | Topic-specific known-trial profiles restrict coverage. Its raw span locator finds 13/143 values absent from its selected cached body text; it omits the build&#x27;s abstract fallback and is not proof those values lack all held evidence. No plant or numeric-wrongness claim. |
+
+For the bounded comparator coverage, the minimal improvement is to replace topic allowlists with source/schema-driven applicability and report “not assessed” for every unsupported dimension; do not silently extrapolate four profiles to 32 topics. All recorded identifiers and follow-up quotations in the plants were joined to held local source records; no remote clinical validation or portfolio release claim is made.
+
+## Explicitly untested residual risks
+
+**U1 — UNTESTED beyond measured scope: non-P5 predicates on auxiliary pools.** The patch routes known-missing candidates through `harness/known_missing.py:273`, missing-effect candidates through `harness/invalidation.py:361`, and strands through `harness/admission.py:179`. Tests of these routes pass. Admission declares only P5/P8; artificial route-binding labels (`known_missing_candidate`, `audit_named`, `strand_member_declared`) do not prove every bundle predicate. The saved baseline has 9 strands with 11 members and one numerical strand pool; those are pre-regeneration objects, so absence of new stamps there is not a patch regression. The one held bundle has **0/8 non-P5 predicate failures**, so there is no measured live bundle failure to claim on these auxiliary routes. No non-P5 source/CI/conflict mutation was run through all three auxiliary routes. `missing_effect._study_from_trial` at :55 lacks the primary route&#x27;s full design payload, but no live refused-design candidate was shown to reach it. Proposed fix: reuse the complete typed admission/study constructor for every numerical route, preserving predicate evidence and refusal reasons.
+
+**U2 — UNTESTED injection: integrity missing-response fallthrough.** `harness/integrity.py:56` fills in retracted=false/concern=false when a requested PMID is absent from the parsed response. Missing integrity blocks also return no retraction objection at `harness/gate.py:760`. All 32 current reviews have integrity blocks and no saved “PMID not returned” cases were found; **0 current observed cases**, so this is a branch risk, not a measured corpus defect. No network failure was planted. Proposed fix: persist an explicit UNKNOWN retrieval status and refuse claims that retraction status was checked when the response is incomplete.
+
+**U3 — UNTESTED injection: unreadable optional protocol files.** `harness/pipeline.py:2239` and :2253 catch OSError and continue. All 32 topics&#x27; protocol/config inputs were readable for this audit; **0/32 current missing-input cases**. No file permission/deletion plant was performed. Proposed fix: fail with a typed missing-contract error whenever a required protocol comparison cannot run.
+
+Historical lane launchers, acquisition helpers, report renderers and audit experiments in `scripts/` were inspected as code but not all executed. Their local progress/error states are not counted as unconsumed served scientific verdicts. The inventory records this boundary rather than reporting invented zero defect counts.
+
+## Execution evidence
+
+Measurements were made with the following audit helpers; their full JSON retains per-topic and per-row evidence, not just headline counts:
+
+```text
+python .tmp/lane_measure.py
+python .tmp/lane_extended.py
+python .tmp/lane_more.py
+python .tmp/lane_final_metrics.py
+python .tmp/lane_detail_summary.py
+python .tmp/lane_sweeps.py
+python .tmp/lane_compact.py
+python .tmp/lane_controls.py
+```
+
+Artefacts: `.tmp/lane_s/measurements.json`, `extended.json`, `more.json`, `final_metrics.json`, `detail_summary.json`, `sweep_inventory.json`, `remaining_metrics.json`, `control_metrics.json`. The original raw GRADE-diff counter in `measurements.json` compares graph stamps as well as scientific content; `extended.json` contains the corrected semantic comparison used here.
+
+The real-build plant commands were:
+
+```text
+python -u .tmp/lane_plants.py finerenone-ckd-t2d-renal
+python -u .tmp/lane_plants.py finerenone-ckd-t2d-renal --extra
+python -u .tmp/lane_plants.py finerenone-ckd-t2d-renal --timepoint
+```
+
+Each helper invokes exactly `python scripts/build_topic.py finerenone-ckd-t2d-renal --now 2026-09-11`, saves raw stdout/stderr, calls the full `harness.gate.gate_page`, then restores all backed-up input/output bytes in `finally`. Verbatim common build output excerpt:
+
+```text
+protocol_sha=43f5f12e367109bebd37936a8177ef00c6dcf1f6
+PRIMARY: Kidney composite outcome  k=2  RR=0.8407 (None-None)  tau2=0.0
+included trials: [&#x27;33264825&#x27;, &#x27;34449181&#x27;]
+```
+
+Verbatim harness output excerpt for the numerical/membership checks:
+
+```text
+BUILD_EXIT 0
+FULL_GATE_REASON_PREFIXES []
+PRIMARY_UNCHANGED True
+MEMBERSHIP_UNCHANGED True
+```
+
+To retain compact exact outputs without reproducing multi-megabyte review objects, this command reads the saved actual build/gate summaries and rechecks restoration:
+
+```text
+python .tmp/lane_proof_summary.py
+```
+
+Its stdout, verbatim:
+
+```text
+baseline {&quot;compat_post&quot;: 0, &quot;compat_pre&quot;: 2, &quot;divergence_codes&quot;: [&quot;DESIGN_MASKING_ANDOR&quot;], &quot;full_gate&quot;: true, &quot;gate_reasons_n&quot;: 0, &quot;membership_unchanged&quot;: true, &quot;primary&quot;: {&quot;ci_high&quot;: null, &quot;ci_low&quot;: null, &quot;estimate&quot;: 0.8407, &quot;k&quot;: 2, &quot;scale&quot;: &quot;HR&quot;}, &quot;primary_unchanged&quot;: true, &quot;trial_ids&quot;: [&quot;PMID 33264825&quot;, &quot;PMID 34449181&quot;]}
+protocol_or {&quot;compat_post&quot;: 0, &quot;compat_pre&quot;: 2, &quot;divergence_codes&quot;: [&quot;ESTIMAND_DIVERGENCE&quot;, &quot;DESIGN_MASKING_ANDOR&quot;], &quot;full_gate&quot;: true, &quot;gate_reasons_n&quot;: 0, &quot;membership_unchanged&quot;: true, &quot;primary&quot;: {&quot;ci_high&quot;: null, &quot;ci_low&quot;: null, &quot;estimate&quot;: 0.8407, &quot;k&quot;: 2, &quot;scale&quot;: &quot;HR&quot;}, &quot;primary_unchanged&quot;: true, &quot;trial_ids&quot;: [&quot;PMID 33264825&quot;, &quot;PMID 34449181&quot;]}
+protocol_or_chain_enabled {&quot;compat_post&quot;: 0, &quot;compat_pre&quot;: 2, &quot;divergence_codes&quot;: [&quot;PROTOCOL_CONFIG_DIVERGENCE&quot;], &quot;full_gate&quot;: false, &quot;gate_reasons_n&quot;: 1, &quot;membership_unchanged&quot;: true, &quot;primary&quot;: {&quot;ci_high&quot;: null, &quot;ci_low&quot;: null, &quot;estimate&quot;: 0.8407, &quot;k&quot;: 2, &quot;scale&quot;: &quot;HR&quot;}, &quot;primary_unchanged&quot;: true, &quot;trial_ids&quot;: [&quot;PMID 33264825&quot;, &quot;PMID 34449181&quot;]}
+timepoint_24_hours {&quot;compat_post&quot;: 0, &quot;compat_pre&quot;: 2, &quot;divergence_codes&quot;: [&quot;DESIGN_MASKING_ANDOR&quot;], &quot;full_gate&quot;: true, &quot;gate_reasons_n&quot;: 0, &quot;membership_unchanged&quot;: true, &quot;primary&quot;: {&quot;ci_high&quot;: null, &quot;ci_low&quot;: null, &quot;estimate&quot;: 0.8407, &quot;k&quot;: 2, &quot;scale&quot;: &quot;HR&quot;}, &quot;primary_unchanged&quot;: true, &quot;trial_ids&quot;: [&quot;PMID 33264825&quot;, &quot;PMID 34449181&quot;]}
+timepoint_failure [{&quot;code&quot;: &quot;COMPAT_ASSERTED_NOT_UNDERLYING&quot;, &quot;dimension&quot;: &quot;follow_up_window&quot;, &quot;asserted&quot;: &quot;24 hours&quot;, &quot;source_values&quot;: [&quot;2.6 years&quot;, &quot;3.4 years&quot;]}]
+population_per_protocol {&quot;compat_post&quot;: 0, &quot;compat_pre&quot;: 2, &quot;divergence_codes&quot;: [&quot;POPULATION_DIVERGENCE&quot;, &quot;DESIGN_MASKING_ANDOR&quot;], &quot;full_gate&quot;: true, &quot;gate_reasons_n&quot;: 0, &quot;membership_unchanged&quot;: true, &quot;primary&quot;: {&quot;ci_high&quot;: null, &quot;ci_low&quot;: null, &quot;estimate&quot;: 0.8407, &quot;k&quot;: 2, &quot;scale&quot;: &quot;HR&quot;}, &quot;primary_unchanged&quot;: true, &quot;trial_ids&quot;: [&quot;PMID 33264825&quot;, &quot;PMID 34449181&quot;]}
+adjudicator_disagrees {&quot;compat_post&quot;: 0, &quot;compat_pre&quot;: 2, &quot;divergence_codes&quot;: [&quot;DESIGN_MASKING_ANDOR&quot;], &quot;full_gate&quot;: true, &quot;gate_reasons_n&quot;: 0, &quot;membership_unchanged&quot;: true, &quot;primary&quot;: {&quot;ci_high&quot;: null, &quot;ci_low&quot;: null, &quot;estimate&quot;: 0.8407, &quot;k&quot;: 2, &quot;scale&quot;: &quot;HR&quot;}, &quot;primary_unchanged&quot;: true, &quot;trial_ids&quot;: [&quot;PMID 33264825&quot;, &quot;PMID 34449181&quot;]}
+pending [{&quot;id&quot;: &quot;33264825&quot;, &quot;served&quot;: &quot;include&quot;, &quot;adjudicator&quot;: &quot;exclude&quot;, &quot;rationale&quot;: &quot;LANE_S_PLANT: independent screener recommends exclusion; a pending conflict, not real clinical evidence.&quot;}]
+RESTORATION {&quot;backed_up_files&quot;: 30, &quot;changed&quot;: [], &quot;experiment&quot;: &quot;plant_protocol_finerenone-ckd-t2d-renal&quot;}
+RESTORATION {&quot;backed_up_files&quot;: 30, &quot;changed&quot;: [], &quot;experiment&quot;: &quot;plant_protocol&quot;}
+```
+
+Full raw builds, per-build review objects, and full gate reason arrays are in `.tmp/lane_s/plant_protocol_finerenone-ckd-t2d-renal/`, named `baseline`, `protocol_or`, `protocol_or_chain_enabled`, `timepoint_24_hours`, `population_per_protocol` and `adjudicator_disagrees`. An earlier semaglutide protocol plant is saved under `.tmp/lane_s/plant_protocol/`: the patched baseline has no primary pooled row, so its unchanged empty result was deliberately **not** used as numerical proof. It was restored too.
+
+The fresh refusal-reason helper initially stopped on the genuine validation exception, then was changed only to log that exception per row and continue measuring; no harness source was weakened. Verbatim exception:
+
+```text
+ValueError: Typed refusal requires a held verbatim span in an identified held document
+```
+
+## Tests and final state
+
+```text
+python -m pytest tests/test_admission_enforced.py tests/test_admission_routes.py tests/test_design_variance.py tests/test_eligibility_chain.py tests/test_protocol_compiler.py tests/test_known_missing_panel.py -q -p no:cacheprovider --basetemp .tmp/pt
+54 passed in 19.94s
+
+python -m pytest tests/test_compat_underlying.py tests/test_compat_key.py tests/test_incompatible_fail_closed.py tests/test_consumer_consistency.py tests/test_reason_audit.py tests/test_unextracted.py tests/test_hazard_consumers.py tests/test_grade_integration_floor.py tests/test_grade_global_fixes.py -q -p no:cacheprovider --basetemp .tmp/pt
+48 passed in 19.50s
+```
+
+**102 targeted tests passed.** This is not a full `verify_all`, UI release certification or Overmind PASS. The audit changes no implementation beyond the required supplied patch. The input/output restoration check is exact-byte comparison against pre-experiment backups; final working-tree review verifies that experimental topic/config/cache/page changes are absent. The index/workbook were not changed because this audit does not change project or submission status. Audit helpers/evidence are local under ignored `.tmp/`; `PROGRESS.md` is already ignored. No commit or push was performed.
+
+Final artefact check (`python .tmp/lane_report_qa.py`): all **34 patch paths** match the result of applying the supplied patch to the unchanged base (line endings normalized); the **29 tracked diffs** are all supplied-patch paths. All 247 inventory entries occur exactly once, cited file/line locations exist, the report is UTF-8 without BOM, and `git diff --check` exits 0. Detailed check output is `.tmp/lane_s/final_qa.json`.
+
+## Every stored sweep JSON and its consumer
+
+The following are the **stored files present today**, not claims their underlying measurements were recomputed today. A value such as 0/674 is a historical recorded counter, superseded where a fresh figure is supplied. None of these JSON aggregate defect counts is a build/publication precondition; algorithms can still have independent real consumers.
+
+| Stored artefact (all under `docs/`) | Stored, historical result | Independent live consumer / current measurement |
+|---|---|---|
+| `adjustment_label_sweep.json` | 95/95 UNRESOLVED; 0 span-backed | Fresh 127/127 UNRESOLVED; gate.py:1268 checks truthful adjustment labels, not mandatory adjustment. |
+| `arm_object_sweep.json` | 32 topics measured | Fresh 0/127 pooled arm refusals; gate.py:900 reruns regardless of screening opt-in. |
+| `comparator_panel_sweep.json` | 2/32 pages forbidden-after; 1/36 enumerated comparators | comparator_panel.py:177 / gate.py:59 check live forbidden claims; stored report is not the gate. |
+| `comparator_truth_sweep.json` | Nested participant/span/recency report | Fresh limited-text counters in disclosure table; pipeline.py:1975 enables metadata updates for 4/32 topics; no blanket failure refusal. |
+| `compat_direction_sweep.json` | Nested dimension-direction report | Fresh 33/135 opposed, 3/135 underivable; page.py:1354 display only (F2). |
+| `compat_underlying_sweep.json` | 28/32 violating pages; 53 dimension violations | Current stored pre-fix 27/32, post-fix 0/32; gate.py:1017 consumes relabelled assertion (F2). |
+| `consumer_consistency_sweep.json` | 2/995 unaccounted; 3/995 false reasons | Fresh 21/1066 and 37/1066; metadata repair only, no required outcome recovery (F7). |
+| `cross_source_endpoint_sweep.json` | 2/10 endpoint mismatches | Current 2/9 different endpoint, 6/9 different measure; corroboration filtering and gate.py:704, not JSON aggregate. |
+| `d5_rule_sweep.json` | 35/97 D5 ratings changed; 19/29 low-only strata affected | Historical before/after effect of a fix; live RoB rederivation gate.py:354 and GRADE/sensitivity consume ratings. |
+| `design_refusal_sweep.json` | 3/102 design refusals; 10/32 estimand-mix pages | Current 5 refused absent rows, 0/127 blocking actions pooled; separate unknown design F4 and ratio mix F6. |
+| `eligibility_chain_sweep.json` | 107/122 failing pooled rows; 17/32 divergence pages | Fresh 20/127 distinct failing rows; 23/31 disabled pages have hard findings; opt-in gate only (F1). |
+| `endpoint_canonical_sweep.json` | 0/42 violations | Fresh 0/54; live endpoint/compatibility consumers; not a current finding. |
+| `entry_condition_sweep.json` | 2/3914 screening flips; 6 named misses; 38 topics | Historical broader cohort, not current 32-page denominator; screen_entry.py:49 consumed by screen.py:388. |
+| `funding_sweep.json` | 83/104 unknown labels recovered; 19/32 sentence changes | Current 269 disclosure rows measured; consumer_consistency.py:562 repairs funding, propositions gate false assertions. |
+| `harms_recovery_sweep.json` | 46/61 suppressed harm outcomes | Current 49/61 incomplete; harms states consumed, gate.py:1247 enforces suppression. |
+| `membership_consistency_sweep.json` | 0/32 topic disagreements | Live membership/claimgraph and gate.py:522 consume the underlying contract; historical zero is not a fresh audit result. |
+| `missing_effect_sweep.json` | 15 known-missing entries / 7 pages; 0 verifiable; 15 not estimable | Current patch P5 filters candidate route, invalidation.py:361; full non-P5 auxiliary enforcement U1 untested. |
+| `near_match_sweep.json` | 0/122 near-while-exact; 2/32 no preference; 1/98 multiple primaries | Target selector is live at target_endpoint.py:1023; distinct current near-match policy disagreement F3, not proof of this historical same-trial defect. |
+| `or_class_sweep.json` | 1/32 mixed-OR topic; 5/27 external comparisons cross-scale, all suppressed | Runtime effect-class incompatibility consumed by compat.py:186 / synth; no unsuppressed OR escape demonstrated. |
+| `parity_relation_sweep.json` | 1/32 hand/computed disagreement; 21/32 parity rows | Live computed relation and gate.py:469 check membership; stored handwritten status disagreement is not proof of wrong pooled estimate. |
+| `posthoc_amendment_sweep.json` | 3 amendments | scope_identity.py:585 writes, does not read, this JSON; preregistration/prespecification checks are gate.py:824/:947. |
+| `proposition_sweep.json` | 32/32 pre-fix; 0/32 post-fix | Live propositions.py:561 / gate.py:537 reject false assertions; disclosed divergence exception F1. |
+| `reason_audit_sweep.json` | 53/602 false-value-held; 27/602 wrong kind | Current 64/670 false, 136/670 wrong kind, 136/670 unverifiable; advisory (F7). |
+| `refusal_reason_sweep.json` | 0/674 FALSE; all TRUE | Fresh 9 FALSE + 2 AUDIT_REFUSED / 670; ontology disagreement/stale labels (F7). |
+| `rob_rederivation_sweep.json` | 0/388 domain ratings unreproducible | Live gate.py:354 rederives RoB; no aggregate JSON dependency; targeted tests passed. |
+| `scope_identity_sweep.json` | 28/32 scope mismatch | Same current 28/32; gate requires qualification, scope_identity.py:371; :580 is only the JSON writer. |
+| `second_source_sweep.json` | 0/10 bad corroboration; 8/10 nonidentical | Current 9 rows, 8 nonidentical excluded from corroboration; second_source.py:187 is a real consumer. |
+| `source_hierarchy_sweep.json` | 9/122 rows switched; 10 limitation rows | Live selection changes inputs at pipeline.py:1212; current 7/127 residual source limitations remain labels (F6). |
+| `strict_subset_sweep.json` | 5/147 lexical hits; 119 unswept | Fresh 4/127 candidate hits, 63 unswept; no live admission consumer; source adjudication needed (F3). |
+| `trial_family_sweep.json` | 0 failures; 32/32 coverage | Live P5 admission enforces eligibility; separate late conflicts F3; historical coverage is not proof of complete predicate enforcement. |
+| `unextracted_sweep.json` | 53/724 held-not-extracted | Current 64/797; rendered audit, no required recovery consumer (F7). |
+
+## Complete module/script inventory
+
+One line per present module/script, 247 total. Producer references identify the decision-bearing function (or the first keyword hit for utility/launcher code); repeated display/comment hits are grouped. `harness/` prefixes omitted inside some consumer descriptions refer to that package; explicit `scripts/` names refer to scripts. A script&#x27;s measurement output with NO CONSUMER is not automatically a defect: the ranked findings and disclosure tables specify which nonpassing scientific states actually occur, and U1–U3 state untested limits.
+
+| Module / script | Matching lines | Producer and downstream disposition |
+|---|---:|---|
+| `harness/__init__.py` | 0 | `harness/__init__.py:1` — No decision computed; package description. |
+| `harness/aact.py` | 1 | `harness/aact.py:167` — Registry parsing/arm selection feeds extraction, not an independent admission verdict; ctgov_results.py:169 and pipeline.py:1039 consume candidates. |
+| `harness/aact_cache.py` | 0 | `harness/aact_cache.py:19` — Cache-only context selects deterministic inputs; pipeline.py:1829 consumes them; no independent failure flag. |
+| `harness/absence.py` | 51 | `harness/absence.py:260` — Reason/state annotations feed harms.py:31 and reason_audit.py:285; harms debt is consumed, general false reasons remain advisory (F7). |
+| `harness/acquisition.py` | 30 | `harness/acquisition.py:507` — Invalid ledger raises; fetch.py:722 and search_completeness.py:47 consume acquisition status. |
+| `harness/adjustment.py` | 0 | `harness/adjustment.py:5` — Typed adjustment status consumed by gate.py:1268; UNRESOLVED is permitted and disclosed (D table). |
+| `harness/admission.py` | 66 | `harness/admission.py:83` — P5/P8 verdict filters pipeline.py:1446; gate.py:1289 rechecks; auxiliary consumers known_missing.py:273, invalidation.py:361, admission.py:179. Other predicates explicitly outside scope (U1). |
+| `harness/architecture_identity.py` | 2 | `harness/architecture_identity.py:370` — Code/config/dependency identity consumed by gate_scorecard.py and prospective.py; custody identity, not research admission. No independent scientific failure state. |
+| `harness/arm_object.py` | 10 | `harness/arm_object.py:342` — Screen consumer opt-in at screen.py:258; gate.py:900 independently checks every pooled row. Fresh 0/127 refusals; not a live finding. |
+| `harness/armcontrast.py` | 1 | `harness/armcontrast.py:90` — Contrast parsing consumed by screen.py:342 and pipeline.py:1039; membership can change, plus disclosure. |
+| `harness/canonical.py` | 2 | `harness/canonical.py:36` — No scientific decision; canonical review bytes feed certificate.py:177 and census.py:166. |
+| `harness/census.py` | 36 | `harness/census.py:166` — Claim/compatibility/custody failures raise before artefacts; census.py:264 consumes compat.check; gate.py:640 consumes reproduction. |
+| `harness/certificate.py` | 17 | `harness/certificate.py:177` — Required bytes and digests checked; gate.py:1225 calls verify. Pins flags as bytes, explicitly does not enforce their meaning at certificate.py:160. |
+| `harness/cites.py` | 1 | `harness/cites.py:288` — Acquisition source status consumed by fetch.py:403 and acquisition.validate; no pooled admission decision here. |
+| `harness/claim.py` | 17 | `harness/claim.py:60` — Canonical number/significance consumers census.py:57 and gate.py:59; contradictions gate-refused. |
+| `harness/claimgraph.py` | 66 | `harness/claimgraph.py:670` — Dependency/membership/refused-row contradictions consumed by pipeline.py:2297 and gate.py:522; strands P5 enforced after attach at pipeline.py:2116 (U1). |
+| `harness/code_closure.py` | 5 | `harness/code_closure.py:71` — No scientific verdict; discovered code bytes consumed by certificate.py:100. |
+| `harness/comparator_panel.py` | 7 | `harness/comparator_panel.py:177` — Panel validation and forbidden comparator claims consumed by gate.py:59; overlap changes metadata, not our pool. |
+| `harness/comparator_second_pass.py` | 1 | `harness/comparator_second_pass.py:310` — Allowlisted pipeline.py:1973; apply:322 changes comparator counts, overlap and labels, not admission. Measured 9/32 coverage (D table). |
+| `harness/comparator_truth.py` | 7 | `harness/comparator_truth.py:363` — Allowlisted pipeline.py:1975; annotate_comparator:393 corrects counts/metadata; NO CONSUMER refusing all truth flags. Measured 4/32 coverage (D table). |
+| `harness/compat.py` | 16 | `harness/compat.py:186` — Only hard effect-class mismatch raises; census.py:264 consumes it. Other dimensions become limitations (F2/F6). |
+| `harness/compat_check.py` | 34 | `harness/compat_check.py:377` — enrich:634 relabels failed keys at :470; gate.py:1017 checks post-fix assertions. Numerical membership unchanged (F2). |
+| `harness/compat_direction.py` | 17 | `harness/compat_direction.py:242` — NO admission consumer; page.py:1354 renders. Fresh 33/135 opposed directions, 3/135 underivable (F2). |
+| `harness/consumer_consistency.py` | 63 | `harness/consumer_consistency.py:562` — pipeline.py:2227 repairs reason/funding metadata; NO mandatory extraction/adjudication consumer for sweep_review failures (F7). |
+| `harness/ctgov_results.py` | 6 | `harness/ctgov_results.py:169` — Unsupported measure/arm/estimand returns no extraction; pipeline.py:1039 consumes candidates before pooling. |
+| `harness/design_key.py` | 49 | `harness/design_key.py:456` — Known blockers removed by split_design_refusals:735 and pipeline.py:1433; unknown design is admitted (F4). |
+| `harness/design_variance.py` | 27 | `harness/design_variance.py:86` — Adjusted variance consumed by synth.py:108; invalid rows refused; gate.py:973 checks design consumption. Zero design-refused re-entry. |
+| `harness/eligibility_chain.py` | 61 | `harness/eligibility_chain.py:463` — Opt-in pipeline.py:1879 and :2235; gate.py:552 reads optional chain. Overwrites general divergence list at :521 (F1). |
+| `harness/embed.py` | 2 | `harness/embed.py:86` — Similarity scores rank candidate sentences for extract.py; no independent admission/failure decision. |
+| `harness/endpoint_canonical.py` | 20 | `harness/endpoint_canonical.py:318` — Labels/diagnostics consumed by compat.py:86 and gate.py:1017; fresh 0/54 diagnostic violations. |
+| `harness/error_library.py` | 13 | `harness/error_library.py:172` — Coverage and not_checked inventory consumed by page.py and index.py:452; no per-row refusal implied; reporting inventory. |
+| `harness/estmeasure.py` | 6 | `harness/estmeasure.py:75` — Effect-class mismatch consumed by pipeline.py:1039 and compat.py:186; OR/IRR incompatibility suppresses pool, HR/RR sharing is policy (F6). |
+| `harness/extract.py` | 20 | `harness/extract.py:739` — Mismatch/refusal returns control pipeline.py:1039 membership; no general admit-on-exception identified. |
+| `harness/family_compact.py` | 6 | `harness/family_compact.py:112` — Missing/hash-mismatched source rows raise; trial_family.load_registry and build_families.py:12 consume. No advisory-only research verdict. |
+| `harness/fda.py` | 1 | `harness/fda.py:257` — Acquisition adapter; fetch.py:403 consumes source result, search_completeness.py:47 checks failures. |
+| `harness/fetch.py` | 70 | `harness/fetch.py:698` — Source/ledger status consumed by acquisition.validate:507 and gate.py:390; failed retrieval not represented as exhaustive discovery. |
+| `harness/fixstate.py` | 41 | `harness/fixstate.py:815` — Invalid/stale claim evidence changes CLI exit and verify_all.py:201; administrative ship gate, not pooling. |
+| `harness/fulltext.py` | 9 | `harness/fulltext.py:71` — No eligibility verdict; source-text availability feeds extract and held-byte binders. |
+| `harness/funding.py` | 13 | `harness/funding.py:375` — pipeline consumer and propositions.py:468 gate false funding assertions; no rule excludes industry/unknown funding (D table). |
+| `harness/gate.py` | 100 | `harness/gate.py:1411` — Aggregates checks into publication verdict; missing optional chain and semantic audit gaps detailed F1-F8; not all review flags are gates. |
+| `harness/gate_scorecard.py` | 77 | `harness/gate_scorecard.py:947` — Check evidence/freshness failures consumed by verify_all.py:251; administrative gate, not pooled membership. |
+| `harness/gitblob.py` | 4 | `harness/gitblob.py:6` — Git byte-identity utility; certificate/code-closure consumers; no research decision computed. |
+| `harness/grade.py` | 38 | `harness/grade.py:452` — pipeline.py:2281 consumes final analytical fields; page.py:2591/manuscript and gate.py:1118 enforce surfaces. 0/30 semantic recomputation differences. |
+| `harness/hand_binding.py` | 13 | `harness/hand_binding.py:65` — Held-byte binding failures feed target_endpoint.py:543 and pipeline.py:1039 row refusal; source text is not trusted from self-authored row. |
+| `harness/harms.py` | 61 | `harness/harms.py:57` — harm_absence_state feeds reporting_ledger:31; pipeline.py:2241, page.py:1697 and gate.py:1247 suppress incomplete synthesis (49/61). |
+| `harness/hazard_consumers.py` | 86 | `harness/hazard_consumers.py:529` — gate.py:280 consumes structural wiring/acknowledgment check; nonempty declared links are not executed here, explicit ACK permits unwired hazards (F8). |
+| `harness/heldout.py` | 3 | `harness/heldout.py:27` — Heldout split/access violations consumed by verify_all.py:171; search-validation gate, not evidence pool. |
+| `harness/honest_ratchet.py` | 27 | `harness/honest_ratchet.py:502` — Lost disclosures/results/membership changes consumed by verify_all.py:234; acknowledgment policy is explicit. |
+| `harness/http.py` | 4 | `harness/http.py:29` — HTTP retry/exception utility consumed by acquisition adapters; no scientific admission verdict. |
+| `harness/identity.py` | 10 | `harness/identity.py:164` — Publication units change unique membership/counts via trial_family.py:477; gate.py:592 and :729 check duplicates. |
+| `harness/index.py` | 69 | `harness/index.py:1161` — Mostly rendering/counting; numeric consistency checked by _validate_prose_numbers:1093 and verify_all.py:128. Does not enforce counted scientific diagnostics. |
+| `harness/integrity.py` | 1 | `harness/integrity.py:25` — gate.py:760 refuses retracted membership; concern/prospective states disclosed. Missing efetch item returns negative at :56 (U2); zero such saved cases. |
+| `harness/invalidation.py` | 52 | `harness/invalidation.py:330` — Stale status controls scoped claims, GRADE and render suppression; missing-effect candidates now P5 filtered :361. Not blanket pool refusal (D table/U1). |
+| `harness/k2.py` | 24 | `harness/k2.py:176` — pipeline.py:1039, sensitivity consumers and gate.py:164 enforce pool/CI refusal; real finerenone CI is refused while point estimate remains. |
+| `harness/known_missing.py` | 16 | `harness/known_missing.py:232` — P5 pre-pool verdict at :273; gate.py:232 requires panel/correct route, admission scope only P5/P8 (U1). |
+| `harness/leakscan.py` | 29 | `harness/leakscan.py:126` — Suppressed result leaks consumed by verify_all.py:156, command failure; scripts/dashboards included. |
+| `harness/lexicon.py` | 1 | `harness/lexicon.py:61` — No independent decision; shared normalized terms feed screening, extraction and endpoint binding. |
+| `harness/limitations.py` | 178 | `harness/limitations.py:1462` — gate.py:280 validates linked state and hazards; concrete analytical consumers differ by kind; acknowledgments do not make every hazard enforcing (F8). |
+| `harness/locate.py` | 2 | `harness/locate.py:33` — Cached locate/parse/roundtrip rejection consumed by pipeline.py:1039 before pooling. |
+| `harness/manuscript.py` | 26 | `harness/manuscript.py:258` — Presentation uses canonical claims; gate.py:296 checks manuscript numbers. No separate admission algorithm. |
+| `harness/membership.py` | 31 | `harness/membership.py:289` — Canonical membership used by claimgraph.py:471, integrity, parity; gate.py:522 and :592 refuse inconsistent consumption. |
+| `harness/missing_effect.py` | 4 | `harness/missing_effect.py:94` — invalidation.py:399 calls after P5 filter; computed sensitivity class labels stale claims; exceptions -&gt; NOT_ESTIMABLE, not admitted effect (U1). |
+| `harness/page.py` | 333 | `harness/page.py:2981` — Render-only decisions except suppression protects published numbers; gate.py:1118/:1247 and leakscan.py:126 verify surfaces. Merely displaying F1-F8 flags is no admission consumer. |
+| `harness/parity_relation.py` | 13 | `harness/parity_relation.py:85` — pipeline.py:1957/claimgraph.py:541 and gate.py:469 consume typed parity/membership; disclosure counts are not our effect pool. |
+| `harness/pipeline.py` | 174 | `harness/pipeline.py:1903` — Core wiring: screen/extract/bind/design/P5 before pool; protocol/compat/audits/adjudicator advisory exceptions documented F1-F8; gate invoked separately. |
+| `harness/proposition.py` | 5 | `harness/proposition.py:26` — Categorical contradiction check consumed by census.py:57 and gate.py:59; hard false sentence gates. |
+| `harness/propositions.py` | 73 | `harness/propositions.py:561` — gate.py:537 refuses false assertions; disclosed protocol divergence allowed at :485 (F1). |
+| `harness/prospective.py` | 2 | `harness/prospective.py:483` — Declaration/freeze/run integrity feeds run_prospective_topic.py:195 and explicit check CLI; no pooled admission decision. |
+| `harness/protocol_compiler.py` | 14 | `harness/protocol_compiler.py:188` — NO hard general divergence consumer; pipeline.py:2123 attaches, propositions.py:306 labels; separate opt-in chain differs (F1). |
+| `harness/reason_audit.py` | 26 | `harness/reason_audit.py:285` — pipeline.py:2233 stores; page.py:1975 renders; NO hard failure/adjudication consumer (F7). |
+| `harness/recovery_recheck.py` | 16 | `harness/recovery_recheck.py:27` — Hard effect-class incompatibility also enforced by compat.py:186; HR/RR label_mix_small_k only disclosure at :63 (F6). |
+| `harness/registration.py` | 1 | `harness/registration.py:79` — SHA choice consumed by scripts/build_topic.py:36 and gate.py:947; registration/build identity gates. |
+| `harness/registry_first.py` | 1 | `harness/registry_first.py:291` — Candidate/source enumeration consumed by fetch.py; source coverage gate via search_completeness.py:47. |
+| `harness/registry_multi.py` | 1 | `harness/registry_multi.py:211` — Source reach/status consumed by fetch.py:403 and search completeness, not independent pool eligibility. |
+| `harness/result_changes.py` | 21 | `harness/result_changes.py:115` — gate.py:1150 consumes countersignature; census.py:108 emits notices. Result replacement gated. |
+| `harness/rob2.py` | 37 | `harness/rob2.py:425` — gate.py:354 rederives signals; grade.py:98 and rob_sensitivity.py:240 consume ratings. No present ordering defect proved. |
+| `harness/rob_sensitivity.py` | 13 | `harness/rob_sensitivity.py:240` — pipeline.py:2263 consumes omission/refusal; trials carry design variance at :73; gate.py:1181 checks rendered omissions. |
+| `harness/scope.py` | 6 | `harness/scope.py:30` — pipeline.py:1956 writes scope; page.py:2104 qualifies comparison. 9/32 invalid scopes, no our-pool exclusion implied. |
+| `harness/scope_identity.py` | 36 | `harness/scope_identity.py:248` — gate.py:1047 invokes :384; :371 permits qualification for mismatch (28/32), not proof of comprehensive search (D table). |
+| `harness/screen.py` | 30 | `harness/screen.py:388` — pipeline.py:1829 consumes inclusion; independent cached model adjudicator remains advisory at pipeline.py:973 (F5). |
+| `harness/screen_entry.py` | 15 | `harness/screen_entry.py:49` — screen.py:388 consumes entry-condition exclusions/contrast eviction before inclusion. |
+| `harness/search_completeness.py` | 23 | `harness/search_completeness.py:47` — verify_all.py:186 consumes incomplete acquisition failures; does not merely count them. |
+| `harness/search_v2.py` | 34 | `harness/search_v2.py:254` — Guards throw QueryRefusal and source errors retain failure states; refresh_topic:1187 and search_completeness.py:47 consume. |
+| `harness/second_source.py` | 18 | `harness/second_source.py:132` — counted_as_corroboration:187 filters nonidentical endpoints; gate.py:704 refuses numerical direction flip. 0/9 flip states (D table). |
+| `harness/source_hierarchy.py` | 2 | `harness/source_hierarchy.py:189` — Estimator selection consumed at pipeline.py:1212; MIXED_BY_SOURCE_LIMIT remains diagnostic :1414 (7/127 rows; F6). |
+| `harness/spec_curve.py` | 10 | `harness/spec_curve.py:40` — Refuses incompatible input at :40; synth.py:108 consumes carried design metadata; variants use admitted rows. |
+| `harness/synth.py` | 11 | `harness/synth.py:78` — yi_vi rejects blocking design/invalid variance; pool:267 computes only validated inputs; no advisory-only design refusal. |
+| `harness/target.py` | 4 | `harness/target.py:66` — Unresolvable target throws; verifier administrative scopes consume target record; no trial admission decision. |
+| `harness/target_endpoint.py` | 66 | `harness/target_endpoint.py:508` — pipeline.py:1039 and admission.py:83 consume row verdict; explicit NEAR_MATCH_DECLARED policy disagrees with bundle P13 (F3). |
+| `harness/trial_family.py` | 52 | `harness/trial_family.py:477` — Duplicates/eligibility consumed before pooling via prepare and admission.py; late source/identity conflicts at :511/:550 have NO per-effect conflict consumer (F3). |
+| `harness/unextracted.py` | 8 | `harness/unextracted.py:85` — pipeline.py:2234 stores; page.py:1975 renders; NO mandatory recovery/adjudication consumer (F7). |
+| `harness/unit_of_analysis.py` | 2 | `harness/unit_of_analysis.py:67` — Legacy labels feed design_key.py:563/design_variance.py:86 and GRADE; true known unsupported designs block, unknown path F4. |
+| `harness/verified_inputs.py` | 2 | `harness/verified_inputs.py:89` — Invalid held spans/digests raise; pipeline.py:845 loads into hand_binding and endpoint admission. |
+| `harness/verify.py` | 3 | `harness/verify.py:65` — pipeline.py:1039 stamps; gate.py:329 checks every outcome including harms/secondary. 0/127 nonverified. |
+| `scripts/aact_measure.py` | 2 | `scripts/aact_measure.py:49` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/acquire_bundle_evidence.py` | 6 | `scripts/acquire_bundle_evidence.py:302` — Acquires byte-backed bundle evidence consumed by build_bundle.py:489; missing/hash evidence verifier-refused. |
+| `scripts/adjustment_label_sweep.py` | 0 | `scripts/adjustment_label_sweep.py:14` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/admission_census.py` | 16 | `scripts/admission_census.py:66` — Reads BUILD stamps only at :39; NO second admission implementation; diagnostic CLI, shared gate at harness/gate.py:1289. |
+| `scripts/archive_raw_bodies.py` | 4 | `scripts/archive_raw_bodies.py:84` — Byte-integrity check controls archive command; record digests remain inputs to replay/custody. |
+| `scripts/arm_candidates.py` | 0 | `scripts/arm_candidates.py:1` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/arm_contrast_build.py` | 4 | `scripts/arm_contrast_build.py:52` — Writes cache arm-contrast fields loaded by harness/pipeline.py:800; arm gate harness/gate.py:900. |
+| `scripts/arm_object_sweep.py` | 12 | `scripts/arm_object_sweep.py:106` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/audit_certificate_stdlib.py` | 3 | `scripts/audit_certificate_stdlib.py:38` — Standalone integrity verifier exits on digest mismatches; scientific flags remain certificate data. |
+| `scripts/audit_model_calls.py` | 2 | `scripts/audit_model_calls.py:53` — Static call inventory/report; NO pool/gate consumer needed for this measurement. |
+| `scripts/build_aact_arms.py` | 0 | `scripts/build_aact_arms.py:30` — Writes verified arm inputs consumed by harness/verified_inputs.py:89 and pipeline.py:850; row binding/design/P5 then enforced. |
+| `scripts/build_bundle.py` | 340 | `scripts/build_bundle.py:2156` — verification_rows:1276 computes P1-P14; NO runtime admission consumer for all predicates; F3/U1. Output read by verify_bundle, not build_topic. |
+| `scripts/build_evidence_index.py` | 19 | `scripts/build_evidence_index.py:140` — Renders evidence pages; generated-view/target checks in fixstate and verify_all.py, not admission. |
+| `scripts/build_families.py` | 0 | `scripts/build_families.py:12` — Verified offline row hashes feed harness/trial_family.py:452; errors raise, not advisory. |
+| `scripts/build_iv_iron_strands.py` | 8 | `scripts/build_iv_iron_strands.py:28` — Writes strand inputs; harness/claimgraph.py:162 loads, pipeline.py:2116 applies new P5/P8 admission. U1. |
+| `scripts/build_search_benchmark.py` | 22 | `scripts/build_search_benchmark.py:838` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/build_topic.py` | 4 | `scripts/build_topic.py:49` — Build/census/render pipeline at :49/:69; full publication gate is separate (verify_all.py:108). Plants exercised gate separately. |
+| `scripts/build_topic_recorded.py` | 2 | `scripts/build_topic_recorded.py:26` — Invokes build_topic then execution record; errors returned, no extra scientific verdict. |
+| `scripts/codex_lane.sh` | 1 | `scripts/codex_lane.sh:28` — Shell lane launcher, no scientific decision computed; not executed. |
+| `scripts/codex_lane_queue.py` | 12 | `scripts/codex_lane_queue.py:141` — Process/lane orchestration states only; no admission flags. Inspected, never executed in this audit. |
+| `scripts/comparator_correctness_sweep.py` | 32 | `scripts/comparator_correctness_sweep.py:2019` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/comparator_effect_rows_reach.py` | 7 | `scripts/comparator_effect_rows_reach.py:40` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/comparator_panel_sweep.py` | 1 | `scripts/comparator_panel_sweep.py:14` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/comparator_second_pass_sweep.py` | 8 | `scripts/comparator_second_pass_sweep.py:43` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/comparator_truth_sweep.py` | 9 | `scripts/comparator_truth_sweep.py:30` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/compat_direction_sweep.py` | 7 | `scripts/compat_direction_sweep.py:13` — NO runtime consumer of aggregate JSON; fresh review directions rendered at harness/page.py:1354 (F2). |
+| `scripts/compat_underlying_sweep.py` | 18 | `scripts/compat_underlying_sweep.py:77` — NO runtime consumer of aggregate JSON; runtime gate consumes softened post-fix key (F2). |
+| `scripts/consumer_consistency_sweep.py` | 1 | `scripts/consumer_consistency_sweep.py:40` — NO runtime consumer of aggregate failures; build repairs labels/funding but does not force missing outcome recovery (F7). |
+| `scripts/countersign_result_change.py` | 25 | `scripts/countersign_result_change.py:91` — Writes explicit reviewed notice signature consumed by harness/gate.py:1150; not auto-adjudication. |
+| `scripts/cross_source_endpoint_sweep.py` | 6 | `scripts/cross_source_endpoint_sweep.py:79` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/crossfamily_compare.py` | 6 | `scripts/crossfamily_compare.py:60` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/d5_rule_sweep.py` | 2 | `scripts/d5_rule_sweep.py:55` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/decoupling_universal.py` | 10 | `scripts/decoupling_universal.py:41` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/deficit.py` | 1 | `scripts/deficit.py:83` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/design_refusal_sweep.py` | 9 | `scripts/design_refusal_sweep.py:83` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/design_sweep.py` | 29 | `scripts/design_sweep.py:62` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/dual_assemble.py` | 0 | `scripts/dual_assemble.py:18` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/dual_collect.py` | 0 | `scripts/dual_collect.py:1` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/dual_compare.py` | 0 | `scripts/dual_compare.py:38` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/dual_screen.py` | 0 | `scripts/dual_screen.py:23` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/eligibility_chain_sweep.py` | 8 | `scripts/eligibility_chain_sweep.py:32` — NO runtime consumer of aggregate JSON; separate build check is opt-in (F1). |
+| `scripts/embed_eval.py` | 0 | `scripts/embed_eval.py:20` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/endpoint_canonical_sweep.py` | 1 | `scripts/endpoint_canonical_sweep.py:14` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/endpoint_reference_sweep.py` | 1 | `scripts/endpoint_reference_sweep.py:56` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/entry_condition_sweep.py` | 9 | `scripts/entry_condition_sweep.py:58` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/error_coverage.py` | 1 | `scripts/error_coverage.py:20` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/error_rate_compare.py` | 8 | `scripts/error_rate_compare.py:66` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/error_rate_pass2.py` | 19 | `scripts/error_rate_pass2.py:19` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/evidence_base.py` | 0 | `scripts/evidence_base.py:12` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/execution_record.py` | 7 | `scripts/execution_record.py:5` — Writes environment/tree/digests; reproduce_review.py reads record, not scientific status enforcement. |
+| `scripts/external_agreement.py` | 2 | `scripts/external_agreement.py:37` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/fill_matrix.py` | 1 | `scripts/fill_matrix.py:23` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/funding_sweep.py` | 5 | `scripts/funding_sweep.py:71` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/ghost_census.py` | 3 | `scripts/ghost_census.py:42` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/harms_recovery_sweep.py` | 2 | `scripts/harms_recovery_sweep.py:18` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/harvest_lane.sh` | 0 | `scripts/harvest_lane.sh:1` — Shell artefact harvester, no scientific decision computed; not executed. |
+| `scripts/hazard_consumer_sweep.py` | 27 | `scripts/hazard_consumer_sweep.py:362` — Evidence writer; underlying acknowledgment check consumed by harness/gate.py:280, not each declared consumer executed (F8). |
+| `scripts/hm3_aact_scan.py` | 0 | `scripts/hm3_aact_scan.py:1` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/hm3_adjudicate.py` | 3 | `scripts/hm3_adjudicate.py:208` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/hm3_inspect_aact.py` | 0 | `scripts/hm3_inspect_aact.py:1` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/hm3_inventory.py` | 0 | `scripts/hm3_inventory.py:15` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/hm3_report.py` | 6 | `scripts/hm3_report.py:21` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/hm3_second_pass.py` | 0 | `scripts/hm3_second_pass.py:1` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/hm3_verify.py` | 2 | `scripts/hm3_verify.py:22` — Historical lane build + full gate runner; returns failures; no separate served scientific decision. |
+| `scripts/hrm2_audit.py` | 8 | `scripts/hrm2_audit.py:19` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/in3_aact_inventory.py` | 0 | `scripts/in3_aact_inventory.py:15` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/in3_finish.py` | 3 | `scripts/in3_finish.py:10` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/in3_harms.py` | 3 | `scripts/in3_harms.py:60` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/in3_inspect_harms.py` | 0 | `scripts/in3_inspect_harms.py:1` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/in3_offline/sitecustomize.py` | 0 | `scripts/in3_offline/sitecustomize.py:1` — Network guard, no research decision computed. |
+| `scripts/in3_report.py` | 5 | `scripts/in3_report.py:10` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/in3_run.py` | 0 | `scripts/in3_run.py:1` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/in3_second_pass.py` | 0 | `scripts/in3_second_pass.py:12` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/integrity_check.py` | 0 | `scripts/integrity_check.py:57` — Writes integrity snapshot loaded by harness/pipeline.py:749; retractions gate at harness/gate.py:760; prospective/concern display only. |
+| `scripts/itt_sweep.py` | 3 | `scripts/itt_sweep.py:5` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/kgap.py` | 0 | `scripts/kgap.py:50` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/landing_hash_check.py` | 15 | `scripts/landing_hash_check.py:39` — CLI gate for review object/claim hash change; no independent scientific decision. |
+| `scripts/lane_fulltext.py` | 0 | `scripts/lane_fulltext.py:1` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/lane_itt.py` | 3 | `scripts/lane_itt.py:59` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/lane_notextracted.py` | 0 | `scripts/lane_notextracted.py:1` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/lane_notextracted_scoped.py` | 0 | `scripts/lane_notextracted_scoped.py:1` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/lane_overrides.py` | 1 | `scripts/lane_overrides.py:1` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/lane_search_screen.py` | 0 | `scripts/lane_search_screen.py:1` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/limitations_sweep.py` | 9 | `scripts/limitations_sweep.py:32` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/m2_battery.py` | 45 | `scripts/m2_battery.py:185` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/m2_battery_table.py` | 11 | `scripts/m2_battery_table.py:1` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/m2_row_census.py` | 13 | `scripts/m2_row_census.py:119` — Historical lane measurement/adjudication helper; no independently loaded live admission verdict. Decision-word hits are local audit/report or input-preparation logic; NO automatic runtime consumer of report verdict. |
+| `scripts/measure_regression_corpus_recall.py` | 5 | `scripts/measure_regression_corpus_recall.py:97` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/measure_regression_corpus_recall_search_v2.py` | 18 | `scripts/measure_regression_corpus_recall_search_v2.py:53` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/measure_search_recall.py` | 6 | `scripts/measure_search_recall.py:255` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/measure_search_v2_measurement.py` | 46 | `scripts/measure_search_v2_measurement.py:1205` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/membership_consistency_sweep.py` | 17 | `scripts/membership_consistency_sweep.py:65` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/migrate_verified_inputs.py` | 0 | `scripts/migrate_verified_inputs.py:1` — Migration only; resulting cache consumed by verified_inputs/hand_binding; no independent scientific verdict. |
+| `scripts/missing_effect_sweep.py` | 5 | `scripts/missing_effect_sweep.py:28` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/near_match_sweep.py` | 6 | `scripts/near_match_sweep.py:51` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/or_class_sweep.py` | 1 | `scripts/or_class_sweep.py:90` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/outcome_judgments.py` | 2 | `scripts/outcome_judgments.py:139` — Validated judgment cache loaded by harness/pipeline.py:776 and endpoint selection; binding still required. |
+| `scripts/parity_relation_sweep.py` | 1 | `scripts/parity_relation_sweep.py:21` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/pooled_class_sweep.py` | 17 | `scripts/pooled_class_sweep.py:69` — check_row:69 exposes P13/P14-like disagreement; NO runtime admission consumer (F3). |
+| `scripts/prisma_compare.py` | 2 | `scripts/prisma_compare.py:50` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/prisma_fair_compare.py` | 2 | `scripts/prisma_fair_compare.py:575` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/probiotics_search_diagnostic.py` | 78 | `scripts/probiotics_search_diagnostic.py:1222` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/production_record.py` | 7 | `scripts/production_record.py:330` — Manifest/build/deploy-attestation checks change exit status; production byte custody, not pooled admission. |
+| `scripts/proposition_sweep.py` | 11 | `scripts/proposition_sweep.py:52` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/provenance.py` | 0 | `scripts/provenance.py:12` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/publication_unit_sweep.py` | 6 | `scripts/publication_unit_sweep.py:110` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/read_lane.sh` | 3 | `scripts/read_lane.sh:2` — Shell log reader, no scientific decision computed; not executed. |
+| `scripts/reason_audit_sweep.py` | 8 | `scripts/reason_audit_sweep.py:61` — NO runtime consumer of aggregate JSON; underlying per-review audit also advisory (F7; sweep table). |
+| `scripts/rebuild_invariance.py` | 25 | `scripts/rebuild_invariance.py:139` — CLI gate for disappearance of refusal/disclosure/results; review comparison does affect check verdict. |
+| `scripts/recall.py` | 1 | `scripts/recall.py:67` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/recall_aact.py` | 1 | `scripts/recall_aact.py:38` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/refresh_error_rate_census.py` | 4 | `scripts/refresh_error_rate_census.py:12` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/refresh_result_change_notices.py` | 11 | `scripts/refresh_result_change_notices.py:137` — Writes result-change notice objects consumed by harness/result_changes.py:87 and gate.py:1150. |
+| `scripts/refusal_reason_sweep.py` | 8 | `scripts/refusal_reason_sweep.py:118` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/reject_sample.py` | 0 | `scripts/reject_sample.py:1` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/render_fix_ledger.py` | 24 | `scripts/render_fix_ledger.py:178` — Generated fix state checked by harness/fixstate.py:785 and verify_all.py:201. |
+| `scripts/render_gate_gaps.py` | 16 | `scripts/render_gate_gaps.py:127` — Registry validation/check mode consumed by verify_all.py:273; administrative defects, not trial data. |
+| `scripts/render_gate_scorecard.py` | 1 | `scripts/render_gate_scorecard.py:13` — Generated scorecard checked by harness/gate_scorecard.py and verify_all.py:251. |
+| `scripts/reproduce_review.py` | 14 | `scripts/reproduce_review.py:175` — Replay comparison raises/refuses changed core; consumed by verify_all.py:98 and harness/gate.py:640. |
+| `scripts/research_diff.py` | 1 | `scripts/research_diff.py:30` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/retraction_survival.py` | 1 | `scripts/retraction_survival.py:14` — CLI gate for lost retraction/scope markers; publication metadata guard. |
+| `scripts/rewrite_fixstate_lines.py` | 20 | `scripts/rewrite_fixstate_lines.py:108` — Generated captions consumed by harness/fixstate.py:785; no trial admission decision. |
+| `scripts/rob2_build.py` | 2 | `scripts/rob2_build.py:71` — Writes registry signal cache consumed by harness/pipeline.py:788, GRADE and sensitivity; rederivation gate :354. |
+| `scripts/rob_rederivation_sweep.py` | 5 | `scripts/rob_rederivation_sweep.py:31` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/rob_sensitivity.py` | 0 | `scripts/rob_sensitivity.py:15` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/run_prospective_topic.py` | 3 | `scripts/run_prospective_topic.py:293` — Frozen declaration/refusal controls and final invariant failures affect run status; separate prospective workflow, not opted-in corpus checks. |
+| `scripts/scope_audit.py` | 3 | `scripts/scope_audit.py:25` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/screen_adjudicate.py` | 1 | `scripts/screen_adjudicate.py:41` — Writes independent screen judgments loaded by harness/pipeline.py:940; disagreements only recorded at :973 (F5). |
+| `scripts/screen_reproducibility.py` | 1 | `scripts/screen_reproducibility.py:36` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/seal_search_vocabulary.py` | 5 | `scripts/seal_search_vocabulary.py:178` — Vocabulary seal verified by harness/search_v2.py:225 before discovery query acceptance. |
+| `scripts/search_rebuild.py` | 0 | `scripts/search_rebuild.py:1` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/search_scale.py` | 0 | `scripts/search_scale.py:1` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/search_v2_run.py` | 20 | `scripts/search_v2_run.py:356` — Source-run/archival states consumed by harness/search_completeness.py:47 and explicit status CLI. |
+| `scripts/search_v2_run_evidence.py` | 41 | `scripts/search_v2_run_evidence.py:406` — Run-state evidence rendering; no new scientific gate beyond source/completeness checks. |
+| `scripts/second_source_sweep.py` | 10 | `scripts/second_source_sweep.py:123` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/seed_comparator_panels.py` | 1 | `scripts/seed_comparator_panels.py:16` — Writes held panels consumed by harness/comparator_panel.py:138; claims gate at :177. |
+| `scripts/source_hierarchy_sweep.py` | 1 | `scripts/source_hierarchy_sweep.py:120` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/spec_curve.py` | 0 | `scripts/spec_curve.py:14` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/strict_subset_sweep.py` | 1 | `scripts/strict_subset_sweep.py:92` — sweep:92 lexical candidates; NO runtime consumer; fresh 4/127 flagged, not 4 clinically adjudicated errors (F3). |
+| `scripts/transparency_score.py` | 0 | `scripts/transparency_score.py:98` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/trial_family_audit.py` | 1 | `scripts/trial_family_audit.py:18` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/trial_family_registry.py` | 4 | `scripts/trial_family_registry.py:32` — Writes held registry/family inputs consumed by harness/trial_family.py:380; source identity integrity, not shadow pool admission. |
+| `scripts/trial_family_sweep.py` | 10 | `scripts/trial_family_sweep.py:47` — Standalone audit/evidence generator; NO build/gate consumer of its aggregate output. Per-review enforcement (if any) is identified in the sweep table or matching harness module; historical/fresh coverage distinguished there. |
+| `scripts/unextracted_sweep.py` | 2 | `scripts/unextracted_sweep.py:59` — NO runtime consumer of aggregate JSON; underlying per-review audit also advisory (F7). |
+| `scripts/validate_synth.py` | 0 | `scripts/validate_synth.py:65` — Numerical validation exits on mismatch; validation command, not a computed served defect ignored at runtime. |
+| `scripts/verification_adjudicate.py` | 18 | `scripts/verification_adjudicate.py:168` — Verification-lane completeness/identifier checks affect lane acceptance; no automatic scientific pool change. |
+| `scripts/verify_all.py` | 36 | `scripts/verify_all.py:294` — Publication standard aggregates tests/reproduction/pages/search/ratchet/scorecard; no aggregate *_sweep.json scientific-status gate. |
+| `scripts/verify_bundle.py` | 137 | `scripts/verify_bundle.py:688` — run:688 independently rederives/pools; final predicate state checked for truthful reporting, not require ADMISSIBLE; :1136 computes admissible-only counterfactual (F3/U1). |
+| `scripts/verify_comparator_lane.py` | 0 | `scripts/verify_comparator_lane.py:20` — Bounded offline build/replay runner; fails if subprocess checks fail. |
+| `scripts/verify_label_census.py` | 1 | `scripts/verify_label_census.py:85` — Classifies byte basis of verified label; report only; actual verification gate harness/gate.py:329. |
+| `scripts/verify_verified_arms.py` | 0 | `scripts/verify_verified_arms.py:69` — Standalone source audit exits/checks arm discrepancies; build independently validates held inputs. |
+| `scripts/weakness_survey.py` | 4 | `scripts/weakness_survey.py:88` — Standalone measurement/report/search helper; NO automatic pool/publication-gate consumer of report verdict. Outputs may be displayed by index/evidence views; not a newly claimed admission policy. |
+| `scripts/write_legacy_ledgers.py` | 7 | `scripts/write_legacy_ledgers.py:129` — LEGACY_UNRECORDED inputs consumed by harness/acquisition.py:507 and search completeness; cannot assert exhaustive retrieval. |
+</pre><p><a href="./">This directory's index</a> · <a href="../">All evidence</a></p></body></html>

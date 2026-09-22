@@ -85,8 +85,10 @@ def test_every_member_has_source_span():
 
 
 def test_leakscan_clean_on_real_artifact():
-    # iv-iron is the suppressed topic; the real artefact must pass the leak scan.
-    assert _SLUG in LS.suppressed_states(_DOCS)
+    # The real artefact must pass the leak scan whatever the topic's pool state. (Until 2026-09-21 this test also
+    # asserted that iv-iron IS the suppressed topic -- a corpus state, not a requirement: when the enforcement gate set
+    # one of its two primary rows aside on P5 the pool became k=1 and the incompatible-estimand suppression no longer
+    # applied; the scanner's obligation is unchanged.)
     leaks = [lk for lk in LS.scan(_DOCS) if lk["artefact"] == "iv_iron_strands.json"]
     assert leaks == [], leaks
 

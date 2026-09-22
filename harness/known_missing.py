@@ -8,6 +8,7 @@ primary pool is never modified here.
 from __future__ import annotations
 
 from . import claimgraph as _claimgraph
+from . import admission as admission_mod
 import re
 from typing import Any
 
@@ -214,6 +215,11 @@ def _missing_candidates(review: dict[str, Any], signals: dict[str, Any]) -> list
         key = _clean_id(x.get("id")) or str(x.get("label") or "")
         if not key or key in seen:
             continue
+        if admission_mod.is_set_aside(x):
+            # set aside on ADMISSION: not eligible evidence outside the pool but a candidate the build refused; it must
+            # not re-enter a rendered sensitivity pool (lane R finding R2, 2026-09-21)
+            seen.add(key)
+            continue
         seen.add(key)
         scr = screen.get(key) or {}
         out.append({
@@ -224,7 +230,8 @@ def _missing_candidates(review: dict[str, Any], signals: dict[str, Any]) -> list
 
 
 def build(review: dict[str, Any], signals: dict[str, Any],
-          rec_by_id: dict[str, dict[str, Any]], records: dict[str, Any]) -> None:
+          rec_by_id: dict[str, dict[str, Any]], records: dict[str, Any],
+          family_nodes: list[dict[str, Any]] | None = None) -> None:
     primary = _primary(review)
     if not primary:
         return
@@ -256,6 +263,25 @@ def build(review: dict[str, Any], signals: dict[str, Any],
                        held_fact=fact, name=fact["trial"],
                        verify_basis="held document digest verified; proposed adjudication is not admission",
                        why_eligible="eligible trial with a held regulatory source; not pooled pending adjudication")
+        # ADMISSION of the candidate before it touches a pool (harness/admission.py, one implementation): a sensitivity
+        # re-pool is a pool; a trial whose family eligibility is not established is not "eligible evidence outside the
+        # pool" and its number must not enter any rendered statistic (lane R finding R2, 2026-09-21: COCS, absent for
+        # uncorroborated counts and P5-UNKNOWN, was re-pooled into colchicine-postop-af's combined sensitivity)
+        _fam = admission_mod._family_for({"id": row.get("id") or row.get("trial_key") or row.get("trial"), "family_id": row.get("family_id")},
+                                         admission_mod._families_by_report(family_nodes),
+                                         {f.get("family_id"): f for f in family_nodes or [] if isinstance(f, dict)})
+        _v = admission_mod.verdict(dict(row, endpoint_binding=row.get("endpoint_binding") or "known_missing_candidate"), _fam)
+        row["admission_verdict"] = _v
+        if _v["final"] == "INADMISSIBLE":
+            row["conclusion_effect"] = "NOT_COMPUTABLE"
+            row["not_repooled"] = ("INADMISSIBLE on " + ", ".join(_v["failing"]) + ": family "
+                                   + str(_v["predicates"]["P5_family_eligible"].get("family_id")) + " eligibility "
+                                   + str(_v["predicates"]["P5_family_eligible"].get("eligibility_state"))
+                                   + (" (" + str(_v["predicates"]["P5_family_eligible"].get("absence_code")) + ")"
+                                      if _v["predicates"]["P5_family_eligible"].get("absence_code") else "")
+                                   + " -- not re-pooled; the candidate value stays visible")
+            rows.append(row)
+            continue
         if row["value_status"] == IN_COMMITTED_SOURCE and base_studies:
             study = _study_from_trial(row, scale)
             sens = _pool_result(base_studies + [study], scale)

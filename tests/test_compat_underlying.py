@@ -1,3 +1,5 @@
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))  # tests/ on the path for _contracts
 import json
 import subprocess
 
@@ -43,17 +45,19 @@ def test_pre_fix_probiotics_key_fires_on_underlying_trial_rows():
 
 
 def test_post_fix_probiotics_key_is_mixed_and_no_asserted_violation():
-    with open("docs/reviews/probiotics-aad-prevention/review.json", encoding="utf-8") as f:
+    from _contracts import partition
+    with open('docs/reviews/probiotics-aad-prevention/review.json', encoding='utf-8') as f:
         review = json.load(f)
-    primary = next(o for o in review["outcomes"] if o.get("primary"))
-    ck = primary["compat_key"]
-    assert ck["analysis_set"].startswith("mixed (")
-    assert ck["follow_up_window"].startswith("trial-defined")
-    assert ck["endpoint"].startswith("trial-defined antibiotic-associated diarrhoea")
-    assert ck["dimension_matches"]["analysis_set"] is False
-    assert ck["dimension_matches"]["follow_up_window"] is False
-    assert ck["dimension_matches"]["endpoint"] is False
-    assert not C.page_gate_violations(review, _records("probiotics-aad-prevention"))
+    primary = next(o for o in review['outcomes'] if o.get('primary'))
+    pooled, _ = partition('.', 'probiotics-aad-prevention', primary)
+    if pooled:
+        assert primary.get('compat_key')
+    else:
+        assert not primary.get('compat_key'), 'an empty pool cannot assert compatibility'
+    assert not C.page_gate_violations(review, _records('probiotics-aad-prevention'))
+    # The independent pre-fix source-disagreement plant remains non-vacuous when the live pool is empty.
+    plant = _pre_fix_review('probiotics-aad-prevention')
+    assert {'analysis_set', 'follow_up_window', 'endpoint'} <= set(_by_dim(C.check(plant, _records('probiotics-aad-prevention'))))
 
 
 def test_comparator_population_match_is_derived_false_for_adult_comparator_with_paediatric_pool():

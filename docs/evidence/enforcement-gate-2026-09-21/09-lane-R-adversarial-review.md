@@ -1,0 +1,397 @@
+# Lane R — adversarial admission review
+
+Baseline: `38c04411484dbea035a8e4c8e22c57c2794f9495`. Applied `source.patch`. No commits, staging, pushes, process stops or signals. This lane reviews the supplied implementation; it does not repair it. Builds use `--now 2026-09-11`.
+
+**The universal enforcement claim is false.** A consistent configuration rebuild removes a P5-refused trial from outcome accounting and passes the full gate. Independent sensitivity and strand consumers also bypass the new admission boundary.
+
+Findings are **CONFIRMED** by execution unless explicitly marked UNTESTED. Commands below run from this repository with Windows `python`. `.tmp/lane/run.py <label> <command...>` saves the command, stdout/stderr and inner exit code to `.tmp/lane/<label>.txt`. The wrapper returns normally even for an expected inner failure; use the log's `EXIT` value. All reproduction scripts and raw evidence remain in `.tmp/lane/`.
+
+| Input/output | Static versus dynamic disclosure |
+|---|---|
+| Baseline SHA and build date | Static, supplied by the task |
+| Trial IDs, candidate tuples, family states | Read from held cache and generated review objects in this checkout |
+| Synthetic admission/census plants | Deliberately synthetic test inputs, never research findings |
+| COCS add-back plant | Actual cached arm counts plus a synthetic admitted control; also checked in an entirely real production build |
+| Counts and calculated effects below | Computed by the cited executions |
+| Saved strand document | An existing independent input; its independence from admission is being tested, not endorsed |
+
+Most severe first: **R1 deletion bypass; R2 known-missing re-pool; R3 missing-effect re-pool; R4 strand/comparator bypass; R5 compact-ledger false refusals; R6 census success on inadmissible rows; R7 silent gate pass; R8 wrong P8-only refusal label; R9 misleading zero-pool explanation.**
+
+## Part 1 — pooling routes and numerical consumers
+
+### R2 — HIGH — known-missing sensitivity consumes P5-failing evidence
+
+**CONFIRMED.** `harness/known_missing.py:195` combines externally named missing trials and `declared_absent_trials`. At `harness/known_missing.py:259`, source extractability plus a nonempty base pool is sufficient: there is no P5 admission of the addition. Lines 261 and 288 pool individual and combined additions; `harness/page.py:406` renders them. The pipeline calls this after ordinary admission at `harness/pipeline.py:2212` and again at line 2281.
+
+```text
+python .tmp/lane/probes.py
+KNOWN_MISSING_AFTER_P5: combined k=2, estimate=0.7643,
+  ci_low=0.2059, ci_high=2.8367
+KNOWN_MISSING_RENDERED: Combined SENSITIVITY: k=2, 0.76 (RR),
+  95% CI 0.21-2.84 ... 21/113 vs 39/127 ...
+EXIT=0
+```
+
+The script derives COCS counts from `cache/colchicine-postop-af/records.json`, submits the row to `admission.admit` without a family ledger, and obtains a genuine P5 refusal. Passing that set-aside record to the real sensitivity builder still adds its counts to the pool and renders the result. The one admitted control row in this plant is explicitly synthetic.
+
+There is also an entirely real production example:
+
+```text
+python .tmp/lane/extra_cores.py
+python .tmp/lane/surfaces.py
+REAL_COCS_P5: family_id=NCT04224545, state=FAIL,
+  eligibility_state=UNKNOWN, absence_code=ENTRY_POPULATION_NOT_ESTABLISHED
+RENDERED_PANEL: Combined SENSITIVITY: k=3, 0.77 (RR),
+  95% CI 0.47-1.24 ... Colchicine in Cardiac Surgery ... 21/113 vs 39/127
+EXIT=0
+```
+
+COCS (`PMID 36286314`) was absent for `COUNTS_PRESENT_NOT_CORROBORATED`, so it did not reach convergence-point admission; the later consumer nevertheless uses it despite its actual family's P5 failure. The exact combined result is `0.7671 (0.4731–1.2437)`. Evidence: `.tmp/lane/probes.txt`, `.tmp/lane/extra-cores.txt`, `.tmp/lane/surfaces.txt`, and `.tmp/lane/colchicine-postop-af/{review.json,index.html}`.
+
+### R3 — HIGH — missing-effect re-pool adds back the actual refused HARMONY tuple
+
+**CONFIRMED.** `harness/missing_effect.py:99` starts with the admitted primary trial list, but line 117 appends the independent `missing` input and line 119 pools it without admission. Its upstream production path is `harness/pipeline.py:724` → `harness/invalidation.py:362` → `missing_effect.annotate/classify`; the calculated classification contributes to invalidation prose.
+
+```text
+python .tmp/lane/probes.py
+MISSING_EFFECT_P5_ADD_BACK: PMID 30291013 before_k=7
+  re-pooled k=8 with PMID 30291013 under synth.pool
+  missing_evidence_effect=away_from_null
+  estimate=0.856, ci_low=0.8086, ci_high=0.9061, scale=HR
+EXIT=0
+```
+
+The inputs are HARMONY's actual `candidate_tuple` from the rebuilt GLP1 declared-absent record and its seven actual admitted trials. This confirms a reachable re-pooling function, not that the unchanged GLP1 input signals already name HARMONY. The later `final_probes.py` check also routes that tuple through `invalidation.assess`.
+
+### R4 — HIGH — independently saved strands escape admission
+
+**CONFIRMED.** `harness/claimgraph.py:173` reads saved strand documents and line 180 attaches them without admitting their members. Line 192 annotates an absent row as pooled in a strand. `harness/page.py:542` renders the saved result. `harness/index.py:231` independently reloads the same document. `harness/comparator_panel.py:87` consumes its members for overlap computations, without P5 checks.
+
+```text
+python .tmp/lane/extra_cores.py
+python .tmp/lane/surfaces.py
+iv-iron-hfref-hosp primary_k=1
+P5_aside: PMID 40159390, effect=0.8, ci_low=0.6, ci_high=1.06, scale=IRR
+STRAND_P5_FAIL: B, FAIR-HF2, PMID 40159390,
+  pool k=2, effect=0.765, ci_low=0.232, ci_high=2.522
+STANDALONE_STRAND_RENDER_INCLUDES_FAIRHF2=True INCLUDES_POOL=True
+CURRENT_IVIRON_TOPIC_RENDERS_STRAND_POOL=False
+EXIT=0
+```
+
+The rebuilt core sets FAIR-HF2 aside on P5 while retaining its strand-B membership and saved pool. AFFIRM-AHF also fails P5 under the held ledger. The current rebuilt iv-iron topic has only one admitted primary trial, so its conditional overview **does not** show the strand block; this is not misreported as a visible topic-page number. The shared renderer still produces the number, and the root index independently displays it. `python .tmp/lane/final_probes.py` checks the actual built index:
+
+```text
+ACTUAL_BUILT_INDEX_STRAND_ROWS: Strand B ... pooled 0.765 (0.232–2.522), k=2 ...
+STRAND_B_COMPARATOR_INPUT: ('strand:B', ['33197395', '40159390'], 0.765)
+EMPTY_COMPARATOR_STRUCTURAL_PROBE: pool=strand:B, harness_k=2,
+  harness_only=['33197395','40159390'], comparator_k=0
+```
+
+The comparator probe deliberately supplies an empty comparator trial set to the real overlap function to isolate its input membership. It is not claimed to be an attached real-comparator overlap number; the actual iv-iron comparator panel has no such overlap entry. The consumer's ability to count the P5-refused strand member is confirmed.
+
+The separate generator, `scripts/build_iv_iron_strands.py:35`, pools its source-member dictionaries rather than admitted outcome rows. It was inspected, not rerun. The saved document and its consumers suffice for the reproduced bypass.
+
+### Every pooling call in `harness/`
+
+Executed AST enumeration: `python .tmp/lane/surfaces.py`; exact expressions are in `.tmp/lane/pool-inventory.txt`. There are no literal qualified `synth.pool(...)` calls in this directory: imported aliases matter.
+
+| Call site | Row source / admission status |
+|---|---|
+| `pipeline.py:658` | `_pool_result` wrapper; receives caller studies |
+| `pipeline.py:1524` | Primary, secondary and harm `trials` **after** `admission.admit` at line 1320 |
+| `pipeline.py:1545` | Alternative co-primary endpoint; clones the same admitted trials and changes an admitted trial's endpoint estimate |
+| `pipeline.py:1658` | Leave-one-out subsets of those admitted studies |
+| `known_missing.py:88` | `_pool_result` wrapper; no admission inside |
+| `known_missing.py:261` | Admitted base + absent/named source candidate; **R2** |
+| `known_missing.py:288` | Admitted base + all computable missing candidates; **R2** |
+| `missing_effect.py:81` | Admitted base + independent missing-effect input; **R3** |
+| `rob_sensitivity.py:108` | Full/drop-high/low-only subsets of post-admission `primary['trials']` |
+| `spec_curve.py:64` | Studies from post-admission `primary['trials']` at line 62 |
+| `page.py:2555` | Unit-of-analysis variance illustration from post-admission primary trials |
+| `synth.py:68` | Membership demonstration: base and base+proposed. Caller `known_missing.py:301` adds a held regulatory proposal; no admission. This specific regulatory-conflict branch is **UNTESTED** and is not a separate confirmed finding. |
+| `synth.py:313` | Public binary-pool wrapper; arbitrary caller studies, not itself an admission boundary |
+
+The `_pool_result` definitions are `pipeline.py:657` and `known_missing.py:87`. Outside `harness/`, `scripts/build_bundle.py:1977` and line 1998 use `primary['trials']` (the former perturbs those same inputs for seeded rounding sensitivity); the strand generator is the independent route described above.
+
+### Consumer accounting
+
+`.tmp/lane/consumer-inventory.txt` is an executed, line-by-line inventory of every requested field/consumer name in `harness/`, including declarations/docstrings. The table classifies all consumer groups; incidental textual mentions are not treated as extra estimators.
+
+| Consumer group, representative locations | Earlier list, admitted list, absences, or direct records? |
+|---|---|
+| `pipeline.py:1310`, `admission.py:146`, `target_endpoint.py` | Earlier candidates converge through endpoint admission then P5. Only survivors feed ordinary synthesis. |
+| `pipeline.py:1443`, `design_key.py:735`, `design_variance.py:186` | `design_refusals` are split **after P5**. Consumers describe/count/check them, not re-pool them. |
+| `pipeline.py:1530`, `design_key.py` alternatives | Same admitted trial identities; effect selection does not add an absent trial. |
+| `known_missing.py:195`, `missing_effect.py:96`, `invalidation.py:362` | Absent/direct-cache/external-signal additions; **R2/R3**. |
+| `claimgraph.py:162`, `index.py:227`, `page.py:534`, `limitations.py:909`, `comparator_panel.py:87` | Independent saved strand members/results; **R4**. |
+| `rob_sensitivity.py:240`, `spec_curve.py:40`, `page.py:2540` | Re-pools of admitted primary trials only. |
+| `grade.py:98`, `grade.py:326`, `pipeline.py:2262` | Numerical domains read admitted trials/results; zero-pool GRADE omitted. `grade.py:40` also counts absent/known-missing families as completeness qualifiers, not effect weights. |
+| `harms.py:237`, `harms.py:265`, `pipeline.py:1901` | Same admitted outcome pool; absent rows supply reporting/debt states and accountability denominators. No recovery into a harm pool here. |
+| `pipeline.py:2302` comparator core | Published comparator aggregates are extracted directly from comparator source records. They are external source results, not a fresh re-pool of our refused trials. |
+| `pipeline.py:1948`, `comparator_panel.py:78` | Ordinary our-k/overlap uses admitted rows; `only_ours` metadata also examines earlier included records. Strand overlap uses the independent strand members. |
+| `manuscript.py:78`, `manuscript.py:164`, `manuscript.py:258` | Results/forest use outcome results and admitted trials; absences contribute counts. No manuscript estimator. |
+| `absence.py:281`, `page.py:1608`, `page.py:1687`, `limitations.py` | Refusal state/tuple/prose rendering, without ordinary readmission; sensitivity/strand exceptions above. |
+| `trial_family.py:475`, `identity.py:244`, `identity.py:281`, `membership.py:121` | Family/status/count accounting across admitted/absent/design-refused lists, not an effect re-pool. |
+| `eligibility_chain.py:428`, line 476, line 545 | Checks/annotates both lists; can remove later rows, not recover P5-refused rows into synthesis. |
+| `consumer_consistency.py:347`, line 527, line 570 | Source-versus-rendered extraction/reason checks; no pooling. |
+| `compat_check.py:553`, `hazard_consumers.py:302`, `reason_audit.py:351`, `unextracted.py:53` | Compatibility, hazard, source-reason and extraction audits over admitted/absent/refused objects; no pooling. |
+| `claimgraph.py:302`, line 308, line 321; `proposition.py:37`; `propositions.py:205` | Stamps/dependency and contradiction accounting. A strand dependency stamp is not an eligibility check. |
+| `gate.py`, `census.py`, `certificate.py`, `leakscan.py` | Validate, hash or re-render result objects; reproduction re-enters the core builder. |
+| `funding.py`, `hand_binding.py`, `screen_entry.py`, `protocol_compiler.py`, `claim.py` | Inventory hits concern source/estimator selection, disclosure or derived claims; no additional pool call. |
+
+### Required builds and candidate-number search
+
+```text
+python scripts/build_topic.py glp1-ra-mace-t2d --now 2026-09-11
+PRIMARY ... k=7 RR=0.8664 (0.8142-0.9218)
+declared-absent trials: ['26630143', '30291013']
+EXIT=0
+
+python scripts/build_topic.py probiotics-aad-prevention --now 2026-09-11
+PRIMARY ... k=None RR=None (None-None); included trials: []
+EXIT=0
+
+python .tmp/lane/surfaces.py
+glp1: trials=7 aside_P5=1 spec_k=7 rob_n=7 grade_present=True
+probiotics: trials=0 aside_P5=11 spec_k=None rob_n=None grade_present=False
+Full candidate-tuple matches outside declared_absent_trials: none, for all 12 candidates
+```
+
+The script searches all JSON objects outside declared-absent records for full tuple matches, then records candidate-number hits in `index.html` and the generated manuscript with context. Evidence: `.tmp/lane/glp1-ra-mace-t2d-tuple-grep.json`, `.tmp/lane/probiotics-aad-prevention-tuple-grep.json`, and the corresponding `*-manuscript.html` files. Bare equality is not provenance: `final_probes.py` reports `MANUSCRIPT_0.78_CONTEXT: 0.87 [0.78, 0.97]`, the admitted LEADER row (`PMID 27295427`), not HARMONY's effect. No refused primary candidate was demonstrated in these two stock builds' ordinary pools, spec curves, RoB re-pools or manuscript estimates.
+
+## Part 2 — six laws
+
+### Law 2 / R1 — HIGH — consistent include-list deletion passes: FAIL
+
+**CONFIRMED; the most important finding.** `harness/gate.py:1362` derives vanished rows solely from the page's current screening list. It does not preserve the prior candidate cohort or require a P5 set-aside record for a trial that the rebuilt screening list now excludes. `harness/screen.py:443` permits that change through the current executable intervention list.
+
+The successful plant removes only `albiglutide` from `topics/glp1-ra-mace-t2d.json`'s `include.intervention_any`, retaining the source records, extraction entries and their hashes. It also losslessly expands the same certified family data to avoid independent R5; no eligibility values or gate code are changed.
+
+```text
+python .tmp/lane/drop_config.py
+BUILD_EXIT=0
+PRIMARY ... k=7 RR=0.8664 (0.8142-0.9218)
+ASIDE=['PMID 26630143']
+VICTIM_SCREEN: id=30291013, decision=exclude, rule_id=X3
+ADMISSION=[]
+FULL_GATE=True REASONS=[] STDOUT='' NAMES_VICTIM=False
+GATE_CLI_EXIT=0 STDOUT='GATE PASS  docs\\reviews\\glp1-ra-mace-t2d\n'
+INPUTS_RESTORED_BYTE_FOR_BYTE
+restoration BUILD_EXIT=0; aside=['26630143','30291013']
+EXIT=0
+```
+
+HARMONY remains visible as an X3 screening exclusion, but disappears from the outcome's trials **and** declared-absent ledger. The full gate makes no refusal naming it, or any refusal at all. This satisfies the prompt's executable-include-list deletion scenario; it is not a claim that every reference to the study disappears from every source artifact. Evidence: `.tmp/lane/drop-config.txt` and the preserved rebuilt page in `.tmp/lane/drop-config/`.
+
+Two earlier bounded attempts distinguish other defenses from this bypass:
+
+| Executed command | Result |
+|---|---|
+| `python .tmp/lane/drop_rebuild.py` | Delete records+ledger row and recompute corpus hash: build refuses at `verified_inputs.py:79`, `glp1-ra-mace-t2d/30291013: source_span absent from held document ... records.json`. **Names the trial.** |
+| `python .tmp/lane/drop_rebuild.py --consistent` | Also remove dangling verified-effect entry; expanded-family unchanged-membership control passes full gate. Deletion build refuses at `comparator_panel.py:72`, `COMPARATOR_PANEL: alias source hash mismatch`. **Does not name the trial.** |
+
+Neither failed attempt produced a deleted-row page to gate. Each script restores its inputs and successfully rebuilds. The third attempt above is the successful full gate bypass. No fourth attempt or source-code workaround was used.
+
+### Law 3 / R7 — MEDIUM — successful gate omits scope: FAIL
+
+**CONFIRMED.** `harness/gate.py:1376` returns `[]` before constructing scope text. The CLI success branch prints just `GATE PASS <directory>`.
+
+```text
+python .tmp/lane/probes.py
+PASSING_ADMISSION_CHECK: [] stdout=''
+
+python .tmp/lane/drop_config.py
+FULL_GATE=True REASONS=[] STDOUT=''
+GATE_CLI_EXIT=0 STDOUT='GATE PASS  docs\\reviews\\glp1-ra-mace-t2d\n'
+```
+
+These are actual pass paths, not a mocked gate. Neither names the unevaluated predicates. In contrast, `admission.describe` for `EVALUATED` and `NO_CANDIDATE_ROWS`, and successful `admission_census.main`, print the scope names; their executable checks are in `probes.py`, `census_genuine.py`, and `final_probes.py`. The census nevertheless has R6 below.
+
+`tests/test_admission_enforced.py:212` names its test “accepts ... and names its scope”, but asserts only empty refusals at lines 216 and 218. Successful scope output is not tested.
+
+### Law 6 — pre-fix plants: all RED, but FAIL as behavioral regression evidence
+
+**CONFIRMED.** The twelve tests all fail on the baseline, but **none fails an actual behavioral assertion**. Eleven cannot import the newly introduced module; one indexes the new verdict field before reaching its assertions. The historical “every plant ... FAIL” claim at `tests/test_admission_enforced.py:21` is literally true but does not demonstrate a pre-fix behavioral plant.
+
+Materialized `git archive 38c04411` into `.tmp/base`, then applied only `tests/*` from `source.patch`. Because this archive is nested inside a Git worktree, the first `git apply` silently ignored outside-relative paths. The verified application sets `GIT_CEILING_DIRECTORIES` to the archive's parent, confirms no Git repository is discovered, then runs `git apply --include=tests/* <absolute source.patch>`. `python .tmp/lane/apply_base_tests.py` reports `TESTS_ONLY_APPLY_EXIT=0`, `PLANTS_EXIST=True BASE_ADMISSION_MODULE=False`. Baseline pipeline bytes match `git show 38c04411:harness/pipeline.py`; test text matches the patched tests (checkout line endings differ).
+
+Executed with cwd `.tmp/base` by `python .tmp/lane/base_plants.py`:
+
+```text
+python -m pytest tests/test_admission_enforced.py -q -p no:cacheprovider
+  --basetemp .tmp/pt --junitxml <root>/.tmp/lane/base-plants.xml
+12 failed in 13.91s
+pytest exit=1
+CLASSIFICATION={'ImportError-only': 11, 'other failure': 1}
+actual assertion failures=0
+```
+
+| Test (all in `tests/test_admission_enforced.py`) | Baseline failure |
+|---|---|
+| `test_build_sets_aside_a_row_whose_family_eligibility_is_not_established` | ImportError-only |
+| `test_build_refuses_on_evidence_a_row_whose_family_is_ineligible` | ImportError-only |
+| `test_build_keeps_the_migration_state_pooled_and_named` | ImportError-only |
+| `test_build_handed_no_family_ledger_admits_nothing` | ImportError-only |
+| `test_the_producer_route_reads_the_decision_on_the_real_inputs` | `KeyError: 'admission_verdict'` at line 130; not an assertion failure |
+| `test_gate_refuses_a_page_that_pools_an_unstamped_row_whose_family_is_not_eligible` | ImportError-only via fixture helper |
+| `test_gate_refuses_a_stamped_row_whose_stamp_disagrees_with_the_page_families` | ImportError-only via fixture helper |
+| `test_gate_refuses_a_page_from_which_a_screened_in_row_vanished` | ImportError-only via fixture helper |
+| `test_gate_accepts_a_consistent_stamped_page_and_names_its_scope` | ImportError-only via fixture helper |
+| `test_summary_over_nothing_evaluated_reads_not_evaluated_not_zero` | ImportError-only |
+| `test_scope_names_what_is_and_is_not_evaluated_in_build` | ImportError-only |
+| `test_vocabulary_is_the_bundles` | ImportError-only |
+
+Evidence: `.tmp/lane/base-plants.txt`, `.tmp/lane/base-plants-full.txt`, `.tmp/lane/base-plants.xml`. No baseline implementation was patched. Import failures originate from the new-module imports (e.g. test lines 78 and 151); they do not execute a refusing/accepting assertion against the old implementation.
+
+Patched control:
+
+```text
+python -m pytest tests/test_admission_enforced.py -q -p no:cacheprovider --basetemp .tmp/pt
+............ [100%]
+12 passed in 22.64s
+```
+
+### Law 1 — RED on the 53: PASS
+
+Executed **before any served-page build**, using the patched check against untouched baseline pages:
+
+```text
+python .tmp/lane/baseline.py
+pages=32 refused=32 primary_rows=87 P5_failed_primary=53
+all_rows=127 P5_failed_all=81
+P5-failing pages=24
+PASS: every baseline page containing a P5-failing row is refused
+EXIT=0
+```
+
+The 53 are rows, not pages. The other eight pages also fail because stamps/summaries are missing. Per-page and per-row evidence is retained in `.tmp/lane/baseline.json`. This establishes redness, not the absence of false positives: R5 independently causes false refusals after rebuilding.
+
+### Law 4 — ON by default: PASS for ordinary outcome entry points, qualified by R2–R4
+
+`harness/pipeline.py:1320` calls admission unconditionally. `build_outcome_from_inputs` at line 1878 and `build_review_core` at line 1892 both reach it. `_build_outcome`'s `family_nodes=None` default does not disable enforcement.
+
+```text
+python .tmp/lane/default_route.py
+_build_outcome family_nodes default=None
+normal admitted=0 admit calls=1
+no ledger admitted=0 P5 aside=1 admit calls=1
+build_review_core outcomes=3 admit calls=3
+PASS: production entry points call admission; missing ledger fails closed
+EXIT=0
+
+python scripts/reproduce_review.py glp1-ra-mace-t2d
+OK glp1-ra-mace-t2d
+1/1 reproduce (all reproducible)
+EXIT=0
+```
+
+Instrumentation uses `semaglutide-obesity-mace`; its held control is itself P5-refused, so it is not presented as an eligible positive control. The patched real-input GLP1 plant separately exercises removing/restoring an eligible family. The replay command verifies both core hash and regenerated HTML against the fresh GLP1 build.
+
+All discovered ordinary script entry points call `build_review_core`: `scripts/build_topic.py:54`, `run_prospective_topic.py:143`, the cross-source/second-source/source-hierarchy sweeps, and `trial_family_sweep.py`. The M2 battery invokes `build_topic.py` at `scripts/m2_battery.py:195`; `reproduce_review.py:47` calls the same core builder. No default-argument bypass was demonstrated. R2–R4 happen outside or after that convergence point.
+
+Observed CLI caveat: `reproduce_review.py --help` has no help branch; it ignores the flag and starts all-topic replay. That run was allowed to complete without signals. Its mixed-state 2/32 result (only two pages rebuilt) is not used as a defect or the required one-topic evidence.
+
+### Law 5 — no corpus-number assertions: PASS
+
+Executed AST assertion inventory in `python .tmp/lane/surfaces.py`, then read the emitted assertions:
+
+```text
+tests/test_admission_enforced.py assertions=43 test_functions=12
+tests/_families.py assertions=0 test_functions=0
+```
+
+No assertion fixes 53, 87 or another corpus count. The tuple at `tests/test_admission_enforced.py:87` is a preserved synthetic input, not a published expected result. `14` at line 239 is the specified predicate vocabulary size. `k - 1` at line 140 is the paired-removal property. String assertions concern required verdicts, reasons, IDs and disclosure, not incidental HTML. Historical numbers in docstrings are not assertions. Evidence: `.tmp/lane/test_admission_enforced-assertions.txt` and `.tmp/lane/_families-assertions.txt`. The scope-coverage weakness is described under Law 3.
+
+## Part 3 — additional defects and boundary checks
+
+### R5 — HIGH — compact family cache misread as full evidence
+
+**CONFIRMED.** `harness/gate.py:1321` loads the compact inline `families` nodes through plain JSON; line 1359 calls `effective_eligibility` on them. `harness/trial_family.py:467` expects `identity_basis.registry_ids`, which is held in expanded evidence rather than those inline summaries. The existing expansion API is `harness/family_compact.py:236`.
+
+```text
+python .tmp/lane/final_probes.py
+CERTIFIED_FORMAT=family-evidence-interned-v1
+INLINE_STATE=ELIGIBLE RAW_EFFECTIVE=UNKNOWN EXPANDED_EFFECTIVE=ELIGIBLE
+```
+
+Example: `NCT02692716` / `PMID 31185157`. `python .tmp/lane/drop_rebuild.py` evaluates the normal rebuilt GLP1 page: the full gate refuses its admitted families with `certified UNKNOWN, page ELIGIBLE`. `python .tmp/lane/drop_rebuild.py --consistent` losslessly expands exactly the same held ledger and rebuilds its control: `BEFORE gate_page=True refusals=0`. No eligibility value was changed. This isolates a representation bug, not scientific-state divergence.
+
+### R6 — HIGH — census exits zero for a genuinely INADMISSIBLE pooled stamp
+
+**CONFIRMED.** `scripts/admission_census.py:94` refuses only unstamped rows; line 98 otherwise returns zero. `harness/admission.py:172` labels fully stamped pools `EVALUATED`; line 186 records invalid finals in a list that `describe` never prints.
+
+```text
+python .tmp/lane/census_genuine.py
+PRIMARY outcomes: N=1 = pooled 1 + set aside 0; outcomes 1 {'EVALUATED': 1}
+pooled by verdict: {'INADMISSIBLE': 1}; unstamped pooled rows: 0
+GENUINE_P5_FAIL_STAMP_PUT_BACK_IN_POOL: census_exit=0
+EXIT=0
+```
+
+The synthetic refused stamp is produced by the actual `admission.admit` with no ledger, then deliberately returned to the pooled list. `python .tmp/lane/probes.py` also observes census exit zero for `final='BOGUS'`; the description says `Pooled 1: admissible 0; migration ... 0; ... Set aside ... 0`, without naming the invalid row. Scope text is printed but does not make this a valid success. This is specifically a census failure; the full admission gate would reject that pooled stamp.
+
+### R8 — MEDIUM — P8-only refusal falsely says P5 failed
+
+**CONFIRMED.** `harness/admission.py:150` sends every INADMISSIBLE row to `set_aside_record`, whose line 106 logic only selects P5-labelled states/reasons. Eligible family plus missing endpoint binding gives:
+
+```text
+python .tmp/lane/probes.py
+eligibility_state=ELIGIBLE; P5_family_eligible.state=PASS
+verdict.failing=['P8_endpoint_bound']
+state=FAMILY_ELIGIBILITY_NOT_ESTABLISHED; reason_code=P5_family_eligible
+reason='family eligibility ELIGIBLE ... (P5_family_eligible FAIL) ...'
+```
+
+State, reason and recovery advice contradict the verdict. This is a direct admission-API plant; the ordinary endpoint gate generally catches such bindings earlier. No claim is made that this exact case occurs on the two required topic builds.
+
+### R9 — MEDIUM — all-P5-refused primary is explained as failure to extract
+
+**CONFIRMED.** The empty-trial fallback at `harness/pipeline.py:1693` describes absent extractable counts/effect+CI even when admission just removed successfully extracted candidates.
+
+```text
+python scripts/build_topic.py probiotics-aad-prevention --now 2026-09-11
+python .tmp/lane/surfaces.py
+trials=0 aside_P5=11
+ZERO_POOL_REASON: REPORTED but not extractable as a pooled value ...
+  without arm counts or an effect+CI in an extractable form ...
+  full-text acquisition would recover the countable form.
+```
+
+The retained 11 candidate tuples contradict that blanket causal explanation: their obstacle is eligibility, not simply recovering an already-extracted number. The individual P5 labels are correct; the aggregate result explanation is wrong. The page is still properly refused for lacking a primary result.
+
+### Requested checks that pass
+
+```text
+python scripts/build_families.py glp1-ra-mace-t2d --offline --check
+glp1-ra-mace-t2d DIFFERENT; Byte-identical family caches: 0 of 1; EXIT=1
+python scripts/build_families.py probiotics-aad-prevention --offline --check
+probiotics-aad-prevention DIFFERENT; Byte-identical family caches: 0 of 1; EXIT=1
+
+python .tmp/lane/check_families.py
+glp1: families=238 old_override_semantics_equal=True eligibility_state_changes=[]
+  changed_fields={'outcome_status': 3, 'poolability': 3}
+probiotics: families=404 old_override_semantics_equal=True eligibility_state_changes=[]
+  changed_fields={'outcome_status': 404, 'poolability': 404}
+EXIT=0
+```
+
+The corrected semantic comparison expands saved ledgers with `read_families`. Its predecessor mistakenly compared inline compact nodes to full nodes and reported spurious differences; use `.tmp/lane/family-diffs-expanded.txt`, not the exploratory `.tmp/lane/family-diffs.txt`. Both `DIFFERENT` messages are accounted for by outcome-status/poolability changes; **no eligibility STATE changes** occur. For every node the script executes the previous attach-time override logic and compares its entire effective cell to `effective_eligibility`; they agree. Changed-family fields are retained in `.tmp/lane/families-<slug>.json`.
+
+Other executed boundaries (`probes.py`, `surfaces.py`):
+
+```text
+FAMILY_ELIGIBILITY_NOT_ESTABLISHED and FAMILY_INELIGIBLE both have page labels.
+P5_HARM: harm_absence_state=RETRIEVED_REFUSED_WITH_REASON,
+  harm_source_reported=True
+probiotics: grade_present=False; spec_k=None; rob_n=None
+PRIMARY_GATE: primary outcome ... has no pooled result (k=None) ... must not publish
+```
+
+The harm plant supplies numeric held harm prose and exercises `harms._hm_state_for_absent`; the mapping at `harness/harms.py:100` preserves reported-but-refused status. No refused harm row entered the ordinary harm pool in these checks. `harness/pipeline.py:2262` omits GRADE for the real zero-pool page. State labels at `harness/page.py:112` and line 114 exist and are exercised.
+
+## Completion record
+
+All requested parts were executed and recorded. The only explicitly untested pooling branch is the regulatory-conflict membership-demonstration subcase in the route table; it is not counted as a finding. The report's real IDs, tuples and numeric claims were checked against the held records/generated outputs on a second pass. Raw logs retain exploratory failures and the corrected probes; the results quoted above distinguish them.
+
+`python .tmp/lane/final_probes.py` checks all five experimentally edited topic/cache inputs against baseline bytes and reports each `RESTORED ... True`. The ordinary GLP1 restoration build succeeds and again lists HARMONY as set aside. Source/test patch whitespace check: `git diff --check -- harness tests scripts registry/gate_scorecard.json` exits 0. The applied patch and authorized generated build artifacts remain uncommitted. No release, push, portfolio status update or commit was performed.

@@ -71,26 +71,17 @@ def test_factorial_trial_is_refused():
 
 
 def test_mixed_scale_pool_labelled_honestly():
-    # A pool mixing reported labels must never be silently labelled as one clean scale (the "calling it
-    # an HR" defect). The effect-measure type system now decides by COMPATIBILITY CLASS: RALES's "RR" +
-    # EMPHASIS's "HR" are the SAME class (first-event relative ratios), so the pool is COMPATIBLE (the
-    # label mix disclosed via scale_mixed), not a false "mixed" alarm and not a hidden single scale.
-    p = os.path.join(ROOT, "docs", "reviews", "spironolactone-hfref-mortality", "review.json")
-    if os.path.exists(p):
-        rev = json.load(open(p, encoding="utf-8"))
-        res = next((o for o in rev["outcomes"] if o.get("primary")), {}).get("result") or {}
-        em = res.get("estmeasure") or {}
-        assert em.get("status") == "compatible_labels", em
-        assert set(res.get("scale_mixed") or []) == {"HR", "RR"}, res.get("scale_mixed")
-        assert em.get("classes") == ["FIRST_EVENT_RATIO"]
-    # A pool mixing ACROSS classes (a recurrent-event rate ratio + a first-event hazard ratio) is a
-    # genuine incompatibility and MUST be flagged, not smoothed (iv-iron, audit 12).
-    p2 = os.path.join(ROOT, "docs", "reviews", "iv-iron-hfref-hosp", "review.json")
-    if os.path.exists(p2):
-        rev = json.load(open(p2, encoding="utf-8"))
-        res = next((o for o in rev["outcomes"] if o.get("primary")), {}).get("result") or {}
-        assert (res.get("estmeasure") or {}).get("status") == "incompatible", res.get("estmeasure")
-        assert str(res.get("scale", "")).startswith("INCOMPATIBLE"), res.get("scale")
+    from _contracts import partition, scale_contract
+    for slug in ('spironolactone-hfref-mortality', 'iv-iron-hfref-hosp'):
+        with open(os.path.join(ROOT, 'docs', 'reviews', slug, 'review.json'), encoding='utf-8') as f:
+            review = json.load(f)
+        outcome = next(o for o in review['outcomes'] if o.get('primary'))
+        partition(ROOT, slug, outcome)
+        scale_contract(outcome)
+    # Non-vacuous controls independent of current corpus membership.
+    from harness.estmeasure import classify, pool_compatibility
+    assert pool_compatibility([classify('HR'), classify('RR')])['status'] == 'compatible_labels'
+    assert pool_compatibility([classify('HR'), classify('IRR')])['status'] == 'incompatible'
 
 
 def test_locate_gate_rejects_on_identity_or_population():

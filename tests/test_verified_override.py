@@ -8,6 +8,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _families import eligible_by_construction  # noqa: E402  (families ELIGIBLE by construction: the admission gate is on by default)
 from harness import pipeline  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -22,7 +24,7 @@ _COMP = _CFG.get("comparator_terms", ["placebo", "control"])
 
 def _origin_outcome(verified_effects):
     return pipeline._build_outcome(_SPEC, "efficacy", _INC, _RECS, _INTERV, _COMP,
-                                   verified_effects=verified_effects)
+                                   verified_effects=verified_effects, family_nodes=eligible_by_construction(_RECS))
 
 
 def _origin_effect(verified_effects):
@@ -88,12 +90,12 @@ def test_verified_arms_override_beats_abstract():
     va = {"15740542": {"outcome": spec["name"], "override": True, "ai": 4, "n1i": 119, "ci": 22, "n2i": 127,
                        "provenance": "aact_verified", "source": "Can 2006: AAD 4/119 vs 22/127 (RR 0.2)"}}
     o = pipeline._build_outcome(spec, "efficacy", inc, recs, ["probiotic", "boulardii", "saccharomyces"],
-                                ["placebo", "control"], verified_arms=va)
+                                ["placebo", "control"], verified_arms=va, family_nodes=eligible_by_construction(recs))
     t = [x for x in o["trials"] if x["id"] == "PMID 15740542"][0]
     assert t.get("ai") == 4 and t.get("n1i") == 119 and t.get("ci") == 22, f"arms override failed: {t}"
     # unflagged verified_arms must NOT override (stays a fallback)
     va2 = {"15740542": {k: v for k, v in va["15740542"].items() if k != "override"}}
     o2 = pipeline._build_outcome(spec, "efficacy", inc, recs, ["probiotic", "boulardii", "saccharomyces"],
-                                 ["placebo", "control"], verified_arms=va2)
+                                 ["placebo", "control"], verified_arms=va2, family_nodes=eligible_by_construction(recs))
     t2 = [x for x in o2["trials"] if x["id"] == "PMID 15740542"][0]
     assert t2.get("ai") != 4, "an UNFLAGGED verified_arms entry must not override the abstract"

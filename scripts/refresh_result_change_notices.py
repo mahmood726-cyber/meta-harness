@@ -6,7 +6,14 @@ numbers or rows changed is rebuilt and its countersignature reset to OPEN (a sig
 moved). A notice with `reason_locked: true` keeps its hand-written reason. Notices for outcomes that no longer
 differ are dropped. Run after every regeneration, before the census is read.
 
-Usage: python scripts/refresh_result_change_notices.py <base_commit> [--by NAME] [--when UTC]
+A SIGNED notice is a record of a change the reviewer saw and signed: it is never dropped or rebuilt here, whatever the
+base (the first refresh after the M2 landing would otherwise have deleted its 13 countersigned notices because the
+base had moved to the landed state). Only an OPEN draft for an outcome that no longer differs is dropped. A second
+change to an outcome the reviewer already signed gets a second notice (keyed by before/after), never an overwrite.
+
+Usage: python scripts/refresh_result_change_notices.py <base_commit> --mechanism "<one sentence>" [--by NAME] [--when UTC]
+The mechanism sentence names THIS landing's cause; there is no default (a notice the reviewer signs must not carry a
+previous landing's sentence by omission -- the M2 sentence was hard-coded here until 2026-09-21).
 """
 from __future__ import annotations
 
@@ -23,9 +30,19 @@ sys.path.insert(0, str(ROOT))
 from harness import result_changes  # noqa: E402
 
 PATH = ROOT / "docs" / "result_changes.json"
-MECH = ("Mechanism: the hand-row binder landing (m2/bind-hand-rows) binds every hand-extracted row to held bytes or sets it "
-        "aside; a set-aside trial stays eligible evidence awaiting adjudication; the numbers are not asserted wrong.")
-CODE_WORD = {"ENDPOINT_UNBOUND": "set aside", "RESULT_INCOMPATIBLE": "refused", "KNOWN_REPORTED_NOT_YET_EXTRACTED": "set aside"}
+M2_MECH = ("Mechanism: the hand-row binder landing (m2/bind-hand-rows) binds every hand-extracted row to held bytes or sets it "
+           "aside; a set-aside trial stays eligible evidence awaiting adjudication; the numbers are not asserted wrong.")
+CODE_WORD = {"ENDPOINT_UNBOUND": "set aside", "RESULT_INCOMPATIBLE": "refused", "KNOWN_REPORTED_NOT_YET_EXTRACTED": "set aside",
+             "P5_family_eligible": "set aside on admission"}
+
+
+def _signed(n):
+    return str(((n or {}).get("reviewer_countersignature") or {}).get("state") or "OPEN") != "OPEN"
+
+
+def _key(slug, outcome, before, after):
+    return (slug, outcome, json.dumps(result_changes.result_tuple(before), sort_keys=True),
+            json.dumps(result_changes.result_tuple(after), sort_keys=True))
 
 
 def _before(commit, slug):
@@ -49,20 +66,22 @@ def _note(res):
     return f"refused at k = {r.get('k')}, {c}" if c else None
 
 
-def _reason(left, absent):
+def _reason(left, absent, mechanism):
     parts = []
     for tid in left:
         x = absent.get(tid) or {}
         code = x.get("reason_code") or x.get("state") or "ABSENT"
         why = (x.get("endpoint_binding_reason") or x.get("reason") or "").strip().rstrip(".")
         parts.append(f"{tid} {CODE_WORD.get(code, 'set aside')} ({code}): {why}.")
-    return " ".join(parts) + (" " if parts else "") + MECH
+    return " ".join(parts) + (" " if parts else "") + mechanism
 
 
-def refresh(commit, by, when):
+def refresh(commit, by, when, mechanism):
     data = json.load(open(PATH, encoding="utf-8")) if PATH.exists() else {"_doc": "", "notices": []}
-    old = {(n["slug"], n["outcome"]): n for n in data.get("notices", [])}
-    new, kept, rebuilt, added, dropped = [], [], [], [], []
+    signed = [n for n in data.get("notices", []) if _signed(n)]           # records: kept verbatim, whatever the base
+    old = {(n["slug"], n["outcome"]): n for n in data.get("notices", []) if not _signed(n)}
+    signed_keys = {_key(n["slug"], n["outcome"], n.get("before"), n.get("after")) for n in signed}
+    new, kept, rebuilt, added, dropped = list(signed), [], [], [], []
     for slug in sorted(os.listdir(ROOT / "docs" / "reviews")):
         b, a = _before(commit, slug), _after(slug)
         if not b or not a:
@@ -79,6 +98,9 @@ def refresh(commit, by, when):
             ap = [t["id"] for t in n.get("trials") or []]
             left, entered = sorted(set(bp) - set(ap)), sorted(set(ap) - set(bp))
             absent = {x["id"]: x for x in n.get("declared_absent_trials") or []}
+            if _key(slug, o["name"], tb, ta) in signed_keys:
+                kept.append((slug, o["name"]))          # this exact change is already signed
+                continue
             key = (slug, o["name"])
             prev = old.get(key)
             same = (prev is not None and result_changes._same(prev.get("before"), tb) and result_changes._same(prev.get("after"), ta)
@@ -92,7 +114,7 @@ def refresh(commit, by, when):
                     notice.pop(k, None)
             if not same or not prev.get("reason"):
                 if not notice.get("reason_locked"):
-                    notice["reason"] = _reason(left, absent)
+                    notice["reason"] = _reason(left, absent, mechanism)
                 notice["by"] = by
                 notice["when_utc"] = when
                 notice["reviewer_countersignature"] = {"state": "OPEN", "note": "the reviewer has not yet seen the rendered notice; "
@@ -105,7 +127,7 @@ def refresh(commit, by, when):
             new.append(notice)
     for key in old:
         if key not in {(n["slug"], n["outcome"]) for n in new}:
-            dropped.append(key)
+            dropped.append(key)                       # an OPEN draft for an outcome that no longer differs
     data["notices"] = new
     json.dump(data, open(PATH, "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     open(PATH, "a", encoding="utf-8").write("\n")
@@ -117,8 +139,9 @@ def main(argv=None):
     ap.add_argument("base_commit")
     ap.add_argument("--by", default="Claude Opus 5 (lane m2/bind-hand-rows); reviewer countersignature owed: Mahmood")
     ap.add_argument("--when", default=datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
+    ap.add_argument("--mechanism", required=True, help="one sentence naming THIS landing's mechanism (no default)")
     args = ap.parse_args(argv)
-    kept, rebuilt, added, dropped = refresh(args.base_commit, args.by, args.when)
+    kept, rebuilt, added, dropped = refresh(args.base_commit, args.by, args.when, args.mechanism)
     print(f"notices kept {len(kept)}, rebuilt {len(rebuilt)}, added {len(added)}, dropped {len(dropped)}")
     for tag, items in (("REBUILT", rebuilt), ("ADDED", added), ("DROPPED", dropped)):
         for k in items:

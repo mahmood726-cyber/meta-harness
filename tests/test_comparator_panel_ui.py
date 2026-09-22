@@ -44,7 +44,13 @@ def test_all_served_comparator_panels():
                     if path.parent.name == "glp1-ra-mace-t2d":
                         assert tab.locator("article[data-comparator]").count() == 5
                         assert tab.inner_text().count("NOT HELD — identity only") == 4
-                        assert "0.7777777777777778" in tab.inner_text()
+                        from harness.comparator_panel import overlaps
+                        for comparator in review["comparator_panel"]:
+                            for overlap in overlaps(comparator, review):
+                                shared = set(overlap["shared"])
+                                union = shared | set(overlap["harness_only"]) | set(overlap["comparator_only"])
+                                assert overlap["jaccard"] == (len(shared) / len(union) if union else None)
+                                assert str(overlap["jaccard"]) in tab.inner_text()
                         assert "not independent replication" in tab.inner_text()
                     assert not errors
             finally:

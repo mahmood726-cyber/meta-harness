@@ -738,6 +738,80 @@
    "computed": {
     "adjudicated_precision": null,
     "adjudicated_production_refusals": 0,
+    "adjudication_coverage": 0.0,
+    "adjudications": 1,
+    "adjudicator_independence": 0.0,
+    "external_auditor_adjudications": 0,
+    "false_positive_production_refusals": 0,
+    "miss_events": 0,
+    "plant_events": 1,
+    "plant_validations": 1,
+    "production_refusals": 1,
+    "production_status": "EXERCISED",
+    "status_gap_events": 0,
+    "true_misses": 0,
+    "true_positive_production_refusals": 0,
+    "unresolved": 1,
+    "unvalidated": true,
+    "validation": "UNVALIDATED"
+   },
+   "events": [
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": "tests/test_admission_enforced.py (plant harness: 12 plants observed FAILING on 38c04411 before the fix, passing after)",
+       "kind": "internal_agent"
+      },
+      "architecture_identity": null,
+      "evidence": [
+       "tests/test_admission_enforced.py"
+      ],
+      "verdict": "TRUE_POSITIVE",
+      "when_utc": null
+     },
+     "commit": null,
+     "event_id": "gate-check-admission-enforced-plant-1",
+     "evidence": [
+      "tests/test_admission_enforced.py"
+     ],
+     "kind": "PLANT",
+     "what_refused": "synthetic pages: an unstamped pooled row whose family is UNKNOWN; a stamp that disagrees with the page's own families; a screened-in row that vanished (neither pooled nor set aside)",
+     "when_utc": null,
+     "where": "harness/gate.py:check_admission_enforced"
+    },
+    {
+     "adjudication": {
+      "adjudicated_by": {
+       "identity": null,
+       "kind": null
+      },
+      "architecture_identity": null,
+      "evidence": [],
+      "verdict": "UNRESOLVED",
+      "when_utc": null
+     },
+     "commit": "38c04411",
+     "event_id": "gate-check-admission-enforced-production-38c04411",
+     "evidence": [
+      "docs/evidence/enforcement-gate-2026-09-21/02-red-today-38c04411.txt",
+      "docs/evidence/enforcement-gate-2026-09-21/01-prefix-gate-passes-unknown-families.txt",
+      "docs/evidence/enforcement-gate-2026-09-21/03-red-today-rows-38c04411.json"
+     ],
+     "kind": "PRODUCTION",
+     "what_refused": "every served page of main 38c04411 (32 of 32): no pooled row carries an admission verdict, and the same function reads 53 of 87 pooled primary rows INADMISSIBLE on P5 (52 UNKNOWN, 1 INELIGIBLE) plus 28 non-primary; the served gate had PASSED probiotics-aad-prevention with 11 of 11 primary rows in family state UNKNOWN. Whether each of the 53 rows is truly inadmissible (the structural screen proves eligibility from registry evidence only) is the reviewer's adjudication, not this gate's -- UNRESOLVED until Mahmood rules per row",
+     "when_utc": "2026-09-21T19:41:28Z",
+     "where": "harness/gate.py:check_admission_enforced"
+    }
+   ],
+   "gate_id": "gate.check_admission_enforced",
+   "scorecard_line": "adjudicated precision TP/(TP+FP) = no adjudicated production refusal - UNVALIDATED, not green (0 adjudicated of 1 production refusals = coverage 0.000); plants: 1; UNRESOLVED: 1",
+   "what_it_refuses": "A page that pools a row without the build's admission verdict, a row whose verdict disagrees with the page's own family ledger under the same function, a page whose certified families.json disagrees with its copy, or a page from which a screened-in row vanished (neither pooled nor set aside); the refusal prints the in-build scope (P5, P8) and the predicates only the bundle evaluates.",
+   "where": "harness/gate.py:check_admission_enforced"
+  },
+  {
+   "computed": {
+    "adjudicated_precision": null,
+    "adjudicated_production_refusals": 0,
     "adjudication_coverage": null,
     "adjudications": 1,
     "adjudicator_independence": 0.0,
@@ -4876,17 +4950,17 @@
  "schema_version": 2,
  "source": "registry/gate_scorecard.json",
  "summary": {
-  "adjudications": 59,
+  "adjudications": 60,
   "adjudicator_independence": 0.0,
   "adjudicator_independence_sentence": "adjudicator_independence is the share of adjudications made by an external_auditor; today it is expected to be 0 because no external-auditor adjudication is recorded",
   "auditor_sentence": "If the same environment labels its own gate outputs true or false, that is: system produces output -> system labels its own output correct -> agreement read as validation (the 6/6 recall shape). So every refusal is an EVENT with an ADJUDICATION OBJECT, and a gate's numbers are computed only from those objects.",
-  "event_count": 131,
+  "event_count": 133,
   "external_auditor_adjudications": 0,
   "false_refusal_gate_count": 1,
   "false_refusal_gates": [
    "verify_all.limb_fixstate"
   ],
-  "gate_count": 62,
+  "gate_count": 63,
   "gate_lines": [
    {
     "computed": {
@@ -5103,6 +5177,30 @@
     },
     "gate_id": "gate.check_adjustment_span_backed",
     "line": "adjudicated precision TP/(TP+FP) = no adjudicated production refusal - UNVALIDATED, not green (0 adjudicated of 0 production refusals = coverage no production refusals); plants: 0; UNRESOLVED: 0"
+   },
+   {
+    "computed": {
+     "adjudicated_precision": null,
+     "adjudicated_production_refusals": 0,
+     "adjudication_coverage": 0.0,
+     "adjudications": 1,
+     "adjudicator_independence": 0.0,
+     "external_auditor_adjudications": 0,
+     "false_positive_production_refusals": 0,
+     "miss_events": 0,
+     "plant_events": 1,
+     "plant_validations": 1,
+     "production_refusals": 1,
+     "production_status": "EXERCISED",
+     "status_gap_events": 0,
+     "true_misses": 0,
+     "true_positive_production_refusals": 0,
+     "unresolved": 1,
+     "unvalidated": true,
+     "validation": "UNVALIDATED"
+    },
+    "gate_id": "gate.check_admission_enforced",
+    "line": "adjudicated precision TP/(TP+FP) = no adjudicated production refusal - UNVALIDATED, not green (0 adjudicated of 1 production refusals = coverage 0.000); plants: 1; UNRESOLVED: 1"
    },
    {
     "computed": {
@@ -6378,14 +6476,14 @@
    }
   ],
   "overall_adjudication": {
-   "adjudicated": 59,
-   "adjudication_coverage": 0.45038167938931295,
-   "events": 131,
+   "adjudicated": 60,
+   "adjudication_coverage": 0.45112781954887216,
+   "events": 133,
    "independent_adjudication_coverage": 0.0,
    "independently_adjudicated": 0,
    "production_adjudicated": 1,
-   "production_adjudication_coverage": 0.0625,
-   "production_events": 16,
+   "production_adjudication_coverage": 0.058823529411764705,
+   "production_events": 17,
    "production_independent_adjudication_coverage": 0.0,
    "production_independently_adjudicated": 0
   },
@@ -6439,17 +6537,18 @@
    "verify_all.limb_unit_tests"
   ],
   "plant_only_count": 47,
-  "plant_validation_count": 58,
+  "plant_validation_count": 59,
   "precision_coverage_sentence": "precision is reported only beside its adjudication coverage; an UNRESOLVED refusal is neither",
-  "production_refusal_gate_count": 3,
+  "production_refusal_gate_count": 4,
   "production_refusal_gates": [
+   "gate.check_admission_enforced",
    "ruleset.required_verify",
    "verify_all.limb_fixstate",
    "verify_all.limb_index_currency"
   ],
   "production_true_refusal_gate_count": 0,
   "production_true_refusal_gates": [],
-  "unresolved_event_count": 72,
+  "unresolved_event_count": 73,
   "unvalidated": [
    "census.claim_check",
    "census.compatibility_check",
@@ -6460,6 +6559,7 @@
    "evidence_index.check",
    "gate.check_access_claim_supported",
    "gate.check_adjustment_span_backed",
+   "gate.check_admission_enforced",
    "gate.check_arm_object_contract",
    "gate.check_cache_tracked",
    "gate.check_certainty_surfaces_agree",
@@ -6514,7 +6614,7 @@
    "verify_all.limb_search_completeness",
    "verify_all.limb_unit_tests"
   ],
-  "unvalidated_count": 62,
+  "unvalidated_count": 63,
   "unvalidated_sentence": "a gate with no adjudicated true refusal in production is UNVALIDATED, not green"
  },
  "unvalidated_sentence": "a gate with no adjudicated true refusal in production is UNVALIDATED, not green"

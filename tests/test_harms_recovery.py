@@ -6,6 +6,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from harness import harms, pipeline  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _families import eligible_by_construction  # noqa: E402  (families ELIGIBLE by construction: the admission gate is on by default)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -63,6 +65,7 @@ def test_postfix_noac_major_bleeding_recovers_four_trials():
         cfg["intervention_terms"],
         cfg["comparator_terms"],
         verified_effects=ve,
+        family_nodes=eligible_by_construction(rec_by_id),
         dose_selection=json.load(open(os.path.join(ROOT, "cache", "noac-vs-warfarin-af-stroke", "dose_selection.json"), encoding="utf-8")),
     )
     harms.annotate_outcome(out, spec, included, rec_by_id)

@@ -4,6 +4,8 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _families import eligible_by_construction  # noqa: E402  (families ELIGIBLE by construction: the admission gate is on by default)
 
 from harness import extract  # noqa: E402
 from harness.pipeline import _build_outcome  # noqa: E402
@@ -37,7 +39,7 @@ def _one_trial(abstract, estimand="RR"):
     spec = {"name": "Death", "keywords": ["death"], "estimand": estimand, "primary": True}
     included = [{"id": "1", "id_type": "pmid", "label": "SYNTH"}]
     recs = {"1": {"id": "1", "abstract": abstract}}
-    return _build_outcome(spec, "efficacy", included, recs, ["drug"], ["placebo"])
+    return _build_outcome(spec, "efficacy", included, recs, ["drug"], ["placebo"], family_nodes=eligible_by_construction(recs))
 
 
 def test_published_target_effect_beats_reconstructed_counts():

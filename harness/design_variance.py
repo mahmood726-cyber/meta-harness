@@ -217,8 +217,10 @@ def current_arm_contrast(arm_contrast: dict[str, Any] | None, outcome: dict[str,
         return arm_contrast
     all_trials = copy.deepcopy(arm_contrast.get("trials") or {})
     pooled = {_trial_key(t.get("id") or t.get("label")) for t in outcome.get("trials") or []}
-    if not all_trials or not pooled:
+    if not all_trials:
         return copy.deepcopy(arm_contrast)
+    # an EMPTY pooled set filters like any other (2026-09-21, lane T regression on balanced-crystalloids: with every
+    # candidate set aside on admission the unfiltered cache was returned and the page said "2 of 3 pooled trials")
     filtered = {
         key: value for key, value in all_trials.items()
         if _trial_key(key) in pooled
@@ -297,7 +299,9 @@ def check_review(review: dict[str, Any]) -> list[str]:
         if len(rows) != len(refusals) or any(not is_engine_refusal_row(r) for r in rows):
             out.append("DESIGN_REFUSAL_NOT_ENGINE_CODE")
         grade = review.get("grade") or {}
-        if "want of a variance model" not in str(grade.get("basis") or ""):
+        # GRADE is deliberately absent when nothing is pooled (a withdrawn result, or every candidate set aside on
+        # admission): only a GRADE that EXISTS must carry the variance-model rationale
+        if grade and "want of a variance model" not in str(grade.get("basis") or ""):
             out.append("GRADE_MISSING_DESIGN_VARIANCE_RATIONALE")
         ac = ((review.get("arm_contrast") or {}).get("trials") or {})
         if ac and len(ac) != len(primary.get("trials") or []):

@@ -1,4 +1,6 @@
 """Synthetic decision boundaries are test controls, not clinical evidence."""
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))  # tests/ on the path for _contracts
 import pytest
 from harness import grade
 from harness.limitations import _grade_block
@@ -114,9 +116,29 @@ def test_no_served_page_loses_a_downgrade():
         # Missing is not favourable: a page may carry no rating ONLY because its result is explicitly withdrawn
         # (a withdrawn result has no certainty to rate). A rating that vanishes without a withdrawal, or a
         # withdrawn page that still carries one, is a loss of every downgrade at once.
-        if 'grade' not in before or 'grade' not in after:
-            if not after.get('withdrawn') or 'grade' in after:
-                losses.append((slug, 'GRADE object absent without a declared withdrawal'))
+        primary = next(o for o in after['outcomes'] if o.get('primary'))
+        from _contracts import partition
+        partition(Path('.'), slug, primary)
+        if after.get('withdrawn') or not primary['trials']:
+            if 'grade' in after:
+                losses.append((slug, 'GRADE present without a pooled primary'))
+            continue
+        if 'grade' not in after:
+            losses.append((slug, 'GRADE absent for a pooled primary'))
+            continue
+        old_primary = next(o for o in before['outcomes'] if o.get('primary'))
+        # A changed evidence set can change its assessed downgrade; absence still cannot mean favourable.
+        for name, domain in after['grade']['domains'].items():
+            if not domain.get('assessed'):
+                assert after['grade']['certainty'].lower() != 'high', (slug, name)
+        fields = ('id', 'effect', 'ci_low', 'ci_high', 'scale', 'ai', 'n1i', 'ci', 'n2i', 'mean1', 'mean2', 'sd1', 'sd2', 'nc1', 'nc2')
+        values = lambda o: [{k: t.get(k) for k in fields} for t in o['trials']]
+        if values(old_primary) != values(primary) or 'grade' not in before:
+            from harness import grade
+            from harness.pipeline import _load_ghost
+            expected = grade.grade(after, _load_ghost(slug))
+            for name, domain in after['grade']['domains'].items():
+                assert domain['downgrade'] == expected['domains'][name]['downgrade'], (slug, name)
             continue
         for name, domain in before['grade']['domains'].items():
             if after['grade']['domains'][name]['downgrade'] < domain['downgrade']:

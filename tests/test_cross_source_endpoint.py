@@ -89,8 +89,9 @@ def test_prefix_fourier_corroboration_plant_refuses_endpoint_mismatch():
 
 def test_rebuilt_fourier_row_is_different_measure_not_corroboration():
     core = _rebuilt_core("pcsk9-mace")
-    row = _fourier_row(core)
-    cs = row["cross_source"]
+    from _contracts import candidate_cross_source
+    outcome = next(o for o in core["outcomes"] if o.get("primary"))
+    cs = candidate_cross_source(ROOT, "pcsk9-mace", outcome, "28304224")
 
     assert cs["endpoint_match"] == "SECOND_SOURCE_DIFFERENT_MEASURE"
     assert cs["corroborates_endpoint"] is False
@@ -98,10 +99,13 @@ def test_rebuilt_fourier_row_is_different_measure_not_corroboration():
     assert cs["identity"]["measure_type"] == "KM estimate ratio"
 
     html = render_page(dict(core, reproduction={"failures": 0}))
-    anchor = html.index("SECOND_SOURCE_DIFFERENT_MEASURE")
-    snippet = html[anchor:anchor + 700]
-    assert "✓ corroborated" not in snippet
-    assert "KM_ESTIMATE" in snippet
+    if any(t.get("label") == "28304224" for t in outcome["trials"]):
+        anchor = html.index("SECOND_SOURCE_DIFFERENT_MEASURE")
+        snippet = html[anchor:anchor + 700]
+        assert "✓ corroborated" not in snippet
+        assert "KM_ESTIMATE" in snippet
+    else:
+        assert "28304224" in html and "set aside on admission" in html
 
 
 def test_synthetic_same_endpoint_control_is_counted():
