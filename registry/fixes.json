@@ -7254,6 +7254,61 @@
     }
    },
    "note": "Decisions this landing does NOT make: whether each of the 53 rows is truly inadmissible (the structural screen proves eligibility from registry evidence only; a trial without a resolved registry parent is UNKNOWN by construction) is the reviewer's, per family; the 4 rows bound by a producer route the bundle's P8 does not name are pooled in-build and recorded per row as bundle_rule_agreement OTHER_ROUTE (a rule limit raised with the bundle lane, not a refusal); the certified cache/<slug>/families.json copies (compact form) were regenerated here from the same derivation the page uses (build_families.py --offline; 29 of 32 moved on membership fields stale since the M2 landing; eligibility states identical, 06). Two Codex lanes at xhigh (08, 09) reproduced the arrival numbers and found nine defects by execution, each fixed at cause with a plant (tests/test_admission_routes.py); the most important, R1, a consistent rebuild that dropped a trial by editing the topic's include list and passed the whole gate, is closed by the screening ratchet."
+  },
+  {
+   "finding_id": "certified-families-empty-map-2026-09-22",
+   "fix_id": "certified-families-empty-map-2026-09-22",
+   "title": "An EMPTY certified cache/<slug>/families.json disabled the page-vs-certified comparison in gate.check_admission_enforced; empty and malformed certified maps now REFUSE and an absent one is declared NOT_EVALUATED in the printed scope",
+   "kind": "fix",
+   "implementation": "REPORTED",
+   "verification": "NONE",
+   "scope": "CORPUS",
+   "author": "Claude Opus 5 (branch enforcement-gate)",
+   "opened_utc": "2026-09-22T13:00:00Z",
+   "evidence_dir": "docs/evidence/enforcement-gate-2026-09-21",
+   "events": [
+    {
+     "implementation": "REPORTED",
+     "verification": "NONE",
+     "scope": "CORPUS",
+     "when_utc": "2026-09-22T13:00:00Z",
+     "by": "Claude Opus 5 (branch enforcement-gate)",
+     "commit": "b25027e35c06d01fce61179d071158cda59ff50b",
+     "evidence": [
+      "docs/evidence/enforcement-gate-2026-09-21/README.md"
+     ],
+     "reason": "Observed on b25027e3 before the fix, through the real route: lane E2b ran the real offline families writer (scripts/build_families.py <slug> --offline) on colchicine-recurrent-pericarditis with empty records and a held registry, restored the original inputs leaving the writer's {\"families\": []}, rebuilt, and the FULL served-page gate returned PASS -- while the control (a non-empty certified map omitting the pooled families) returned GATE REFUSE on the same build. The guard `if fam is not None and certified:` cannot distinguish an empty map from an absent file, so emptying the certified file switched the page-vs-certified comparison off. An 11-state probe of the same file then showed a top-level JSON list raised AttributeError out of the check rather than refusing. Found by Codex lanes E and E2b on 2026-09-22, ONE DAY after the enforcement gate landed: `scripts/build_families.py <slug> --offline` emits a schema-valid {\"families\": []} for a real topic (empty records, held registry); build_topic regenerates the page's families from ingredients but never refreshes the certified file; and the guard `if fam is not None and certified:` read the empty map as 'no certified data' and SKIPPED the comparison. E2b reproduced it end to end on colchicine-recurrent-pericarditis: empty map -> full gate PASS; non-empty-but-incomplete control -> GATE REFUSE. Four plants added to tests/test_admission_enforced.py, all observed FAILING on b25027e3 before the fix. An 11-state probe of the same file then found a second hole: a top-level JSON list raised AttributeError out of the check (a crash, not a refusal); it now refuses. The two states that still PASS (wrong schema_version, duplicate family_ids) carry the correct ids and states, so agreement is the right answer; schema_version is deliberately NOT pinned because every incompatible format fails closed already (missing eligibility -> state None -> disagree; renamed key -> empty map -> refuse)."
+    }
+   ],
+   "authored_against": [
+    "b25027e35c06d01fce61179d071158cda59ff50b"
+   ],
+   "executable_evidence": {
+    "command": "python -m pytest tests/test_admission_enforced.py -q",
+    "expected_substring": "passed",
+    "scope_basis": "Four plants for the certified map's states, each observed FAILING on b25027e3 before the fix: an EMPTY certified families.json (the gate PASSED a page whose non-empty-but-incomplete control it REFUSES); a MALFORMED one (top-level JSON list: the check raised AttributeError instead of refusing); the incomplete-map CONTROL, which refused before and after and differs from the plant only by the map being empty; and the ABSENT-file case, which may pass but must declare NOT_EVALUATED in the printed scope. Checks the property (an empty container is a refusal, never a skip), not a corpus number.",
+    "topic_list": "Demonstrated on the named topic colchicine-recurrent-pericarditis (lane E2b's end-to-end construction: real offline families writer -> empty certified map -> fresh build -> full gate PASS before the fix; non-empty-but-incomplete control -> GATE REFUSE) and on the synthetic fixture topic in tests/test_admission_enforced.py. The check itself is corpus-wide: it runs on 32 of 32 served pages, every page whose certified cache/<slug>/families.json is read."
+   },
+   "generalized_on": [],
+   "verifications": [],
+   "verified_by": {
+    "identity": null,
+    "kind": null
+   },
+   "seal": {
+    "sealed_utc": "2026-09-22T13:00:00Z",
+    "commit": "",
+    "dependencies": {
+     "harness/gate.py": "d6e775b06d80d03358f4c916d6bd20dbe61cb4e0",
+     "tests/test_admission_enforced.py": "3389adcdf5ad0db4370d545a7ee534ec18e6cf34"
+    },
+    "configuration": {
+     "schema": "fixes-v3",
+     "lane": "enforcement-gate",
+     "base": "b25027e3",
+     "note": "sealed against the lane tree's bytes; the fix commit cannot name itself"
+    }
+   }
   }
  ]
 }

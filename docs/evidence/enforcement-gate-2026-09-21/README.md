@@ -1,6 +1,6 @@
 # The enforcement gate: the build reads the admission decision (2026-09-21)
 
-**Fix state (orthogonal fields rule): REPORTED / NONE / CORPUS / CURRENT** - generated from enforcement-gate-2026-09-21
+**Fix state (orthogonal fields rule): REPORTED / NONE / CORPUS / STALE** - generated from enforcement-gate-2026-09-21; stale dependencies: harness/gate.py, tests/test_admission_enforced.py
 
 Branch `enforcement-gate` on main `38c04411` (clone `F:\mh-gate`).
 

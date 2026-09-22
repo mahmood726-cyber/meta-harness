@@ -255,3 +255,84 @@ def test_vocabulary_is_the_bundles():
     bundle_predicates = {k for r in b["verification_rows"] for k in r["admission"]["predicates"]}
     assert set(admission.SCOPE["evaluated_in_build"]) <= bundle_predicates
     assert set(admission.SCOPE["not_evaluated_in_build"]) <= bundle_predicates | {"P10_estimand_evidence"}
+
+
+# ----------------------------------------------------------------------------- the certified map's EMPTY state
+# Found 2026-09-22 by lanes E and E2b, ONE DAY AFTER this gate landed: `scripts/build_families.py <slug> --offline`
+# emits a schema-valid {"families": []} for a real topic (empty records, held registry), `build_topic` regenerates the
+# page's families from ingredients but never refreshes the certified file, and the guard below read the empty map as
+# "no certified data" and SKIPPED the comparison -- so the full gate PASSED a page whose non-empty-but-incomplete
+# control it REFUSES. An empty container is not an absence of evidence about the container; a check that an empty
+# input switches off is a check that can be switched off.
+def _certified_root(tmp, slug, families, write=True):
+    """A ROOT whose cache/<slug>/families.json holds exactly `families` (compact form). write=False: no file."""
+    root = os.path.join(tmp, "certroot")
+    os.makedirs(os.path.join(root, "cache", slug), exist_ok=True)
+    if write:
+        with open(os.path.join(root, "cache", slug, "families.json"), "w", encoding="utf-8", newline="\n") as f:
+            json.dump({"schema_version": 1, "format": "compact", "families": families}, f)
+    return root
+
+
+def _compact(fid, state="ELIGIBLE"):
+    return {"family_id": fid, "eligibility": {"state": state}}
+
+
+def _admission_with_root(monkeypatch, d, root):
+    from harness import gate
+    monkeypatch.setattr(gate, "ROOT", root)
+    return gate.check_admission_enforced(d)
+
+
+def test_gate_refuses_when_the_certified_family_map_is_EMPTY_while_the_page_pools_families(monkeypatch):
+    """PLANT (observed PASSING on b25027e3 before this fix): a certified families.json holding zero families is a
+    CERTIFICATION THAT NOTHING IS CERTIFIED. It must never silently disable the page-vs-certified comparison."""
+    with tempfile.TemporaryDirectory() as tmp:
+        d = _page(tmp, [_row("1")], [_family("fam-1", "1")])
+        rev = json.load(open(os.path.join(d, "review.json"), encoding="utf-8"))
+        root = _certified_root(tmp, rev["slug"], [])
+        reasons = _admission_with_root(monkeypatch, d, root)
+        assert reasons, "an empty certified family map must not pass a page that pools families"
+        text = " ".join(reasons).lower()
+        assert "certified" in text and ("0 famil" in text or "zero famil" in text or "empty" in text), text
+
+
+def test_gate_refuses_an_incomplete_certified_map_the_same_way_it_always_did(monkeypatch):
+    """CONTROL (refuses before and after the fix): a NON-empty certified map that omits the pooled row's family.
+    If this ever passes, the plant above proves nothing -- the two differ only by the map being empty."""
+    with tempfile.TemporaryDirectory() as tmp:
+        d = _page(tmp, [_row("1")], [_family("fam-1", "1")])
+        rev = json.load(open(os.path.join(d, "review.json"), encoding="utf-8"))
+        root = _certified_root(tmp, rev["slug"], [_compact("some-other-family")])
+        reasons = _admission_with_root(monkeypatch, d, root)
+        assert any("absent from the certified" in r for r in reasons), reasons
+
+
+def test_gate_states_that_the_certified_comparison_was_not_evaluated_when_no_file_exists(monkeypatch):
+    """A missing certified file is NOT the same state as an empty one and must not read as agreement: the check
+    says so in its scope rather than passing silently."""
+    with tempfile.TemporaryDirectory() as tmp:
+        d = _page(tmp, [_row("1")], [_family("fam-1", "1")])
+        rev = json.load(open(os.path.join(d, "review.json"), encoding="utf-8"))
+        root = _certified_root(tmp, rev["slug"], [], write=False)
+        reasons = _admission_with_root(monkeypatch, d, root)
+        from harness import gate
+        monkeypatch.setattr(gate, "ROOT", root)
+        scope = gate.admission_scope(d)
+        assert reasons == [], reasons
+        assert "not evaluated" in scope.lower() and "certified" in scope.lower(), scope
+
+
+def test_gate_refuses_a_malformed_certified_map_instead_of_crashing(monkeypatch):
+    """PLANT (observed CRASHING on b25027e3 with AttributeError): the file parses as JSON but is a top-level list.
+    A check that raises is a check that cannot report; the states of this file are absent / malformed / empty /
+    incomplete / complete, and only 'absent' may pass -- as NOT_EVALUATED, said out loud in the scope."""
+    with tempfile.TemporaryDirectory() as tmp:
+        d = _page(tmp, [_row("1")], [_family("fam-1", "1")])
+        rev = json.load(open(os.path.join(d, "review.json"), encoding="utf-8"))
+        root = os.path.join(tmp, "certroot-list")
+        os.makedirs(os.path.join(root, "cache", rev["slug"]), exist_ok=True)
+        with open(os.path.join(root, "cache", rev["slug"], "families.json"), "w", encoding="utf-8", newline="\n") as f:
+            json.dump([{"family_id": "fam-1"}], f)          # a LIST, not an object
+        reasons = _admission_with_root(monkeypatch, d, root)
+        assert any("not an object" in r and "refusal" in r for r in reasons), reasons

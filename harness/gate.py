@@ -1314,13 +1314,27 @@ def check_admission_enforced(review_dir):
         for r in f.get("reports") or []:
             by_report[_adm.identity._norm(r.get("report_id"))] = f
     certified = {}
+    # The FILE having been read is not the same fact as the map being non-empty, and `if certified:` cannot tell them
+    # apart. `scripts/build_families.py <slug> --offline` emits a schema-valid {"families": []} for a real topic
+    # (empty records, held registry) and `build_topic` never refreshes the certified file, so an empty map reached this
+    # guard and switched the page-vs-certified comparison OFF -- the full gate PASSED a page whose non-empty-but-
+    # incomplete control it refuses (lanes E and E2b, 2026-09-22, one day after this gate landed). A certified file
+    # holding zero families certifies that nothing is certified; it is a refusal, never a skip.
+    certified_loaded = False
     cp = os.path.join(ROOT, "cache", slug, "families.json")
     if os.path.isfile(cp):
         try:
             with open(cp, encoding="utf-8") as f:
-                certified = {x.get("family_id"): x for x in (json.load(f).get("families") or []) if isinstance(x, dict)}
+                doc = json.load(f)
         except (OSError, ValueError) as exc:
             return [f"L1: admission: certified cache/{slug}/families.json unreadable: {exc}"]
+        # a file that PARSES is not a file of the right SHAPE: a top-level list (or any non-object) used to raise
+        # AttributeError out of this function, so a malformed certified map crashed the check instead of refusing it
+        if not isinstance(doc, dict):
+            return [f"L1: admission: certified cache/{slug}/families.json is not an object (top-level "
+                    f"{type(doc).__name__}): a malformed certified map is a refusal, never a skip"]
+        certified = {x.get("family_id"): x for x in (doc.get("families") or []) if isinstance(x, dict)}
+        certified_loaded = True
     bad, scoped = [], []
     screening = (rev.get("screening") or {}).get("records") or []
     for o in rev.get("outcomes") or []:
@@ -1351,7 +1365,12 @@ def check_admission_enforced(review_dir):
                            "never pool it")
             elif expect["final"] == "MIGRATION_STATE_UNBOUND_LEGACY":
                 scoped.append(f"{tid} in {name!r}")
-            if fam is not None and certified:
+            if fam is not None and certified_loaded and not certified:
+                bad.append(f"certified cache/{slug}/families.json certifies 0 families while the page pools "
+                           f"{tid} in {name!r} (family {fam.get('family_id')}): an EMPTY certified map is a "
+                           "certification that nothing is certified, not an absence of certified data -- the "
+                           "page-vs-certified comparison must not be satisfiable by emptying the file")
+            elif fam is not None and certified:
                 c = certified.get(fam.get("family_id"))
                 # the certified copy is the COMPACT form (family_compact.write_families: identity basis and sources live
                 # in families.evidence.json.gz) whose eligibility.state is already the post-override state attach_review
@@ -1394,18 +1413,25 @@ def admission_scope(review_dir):
     from . import admission as _adm
     p = os.path.join(review_dir, "review.json")
     mig = []
+    slug = os.path.basename(os.path.normpath(review_dir))
     try:
         with open(p, encoding="utf-8") as f:
             rev = json.load(f)
+        slug = rev.get("slug") or slug
         for o in rev.get("outcomes") or []:
             s = o.get("admission_summary") if isinstance(o, dict) else None
             if isinstance(s, dict):
                 mig += [f"{i} in {o.get('name')!r}" for i in s.get("migration_state_rows") or []]
     except (OSError, ValueError):
         pass
+    # a pass that does not say whether the certified comparison ran reads as though it ran and agreed
+    cert = ("certified page-vs-cache family comparison: NOT EVALUATED -- no cache/%s/families.json on this tree"
+            % slug) if not os.path.isfile(os.path.join(ROOT, "cache", slug, "families.json")) \
+        else "certified page-vs-cache family comparison: evaluated against cache/%s/families.json" % slug
     return (f"scope: admission evaluated in-build on {', '.join(_adm.SCOPE['evaluated_in_build'])}; NOT evaluated in-build "
             f"{', '.join(_adm.SCOPE['not_evaluated_in_build'])} ({_adm.SCOPE['where_the_rest_is_evaluated']}); "
-            f"migration-state rows pooled under the named exception: {', '.join(mig) or 'none'}; {_adm.SCOPE['p8_divergence']}")
+            f"{cert}; migration-state rows pooled under the named exception: {', '.join(mig) or 'none'}; "
+            f"{_adm.SCOPE['p8_divergence']}")
 
 
 def gate_page(review_dir):
