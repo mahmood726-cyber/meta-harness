@@ -158,3 +158,11 @@ def test_registry_render_is_append_only_a_pinned_prefix_never_moves(tmp_path):
     out = textrep.render(str(f))
     assert out.startswith(v1), out
     assert "DISPERSION TYPE: Standard Deviation" in out[len(v1):]
+
+
+def test_a_non_95_percent_interval_is_never_compared_as_the_served_95_percent_interval(tmp_path):
+    rec, pk, _ = _setup(tmp_path)
+    pk["served_row"] = {"effect": 0.82, "ci_low": 0.72, "ci_high": 0.94, "scale": "HR"}
+    assert V.verify(rec, pk)["served_compare"]["state"] == "DIFFERS"      # 95% vs 95%: a real difference
+    rec["bound_values"]["ci_level"] = "97.5%"
+    assert V.verify(rec, pk)["served_compare"]["state"] == "MATCH_POINT_CI_LEVEL_DIFFERS"

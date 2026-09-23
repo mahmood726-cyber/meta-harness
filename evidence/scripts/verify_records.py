@@ -69,6 +69,11 @@ def served_compare(served, bv):
         tol = 0.5 * 10 ** -dp + 1e-9
         ok = abs(est - se) <= tol
         lo, hi = canon(bv.get("ci_low")), canon(bv.get("ci_high"))
+        lvl = canon(bv.get("ci_level"))
+        if lvl is not None and abs(lvl - 95) > 1e-9:
+            return {"state": "MATCH_POINT_CI_LEVEL_DIFFERS" if ok else "DIFFERS", "served": [se, served.get("ci_low"), served.get("ci_high")],
+                    "bound": [est, lo, hi], "bound_ci_level": lvl,
+                    "why": "the bound interval is not a 95% interval; only the point is compared, the interval needs a derivation"}
         ci_ok = (lo is None or served.get("ci_low") is None or abs(lo - served["ci_low"]) <= tol) and \
                 (hi is None or served.get("ci_high") is None or abs(hi - served["ci_high"]) <= tol)
         return {"state": "MATCH" if ok and ci_ok else "DIFFERS", "served": [se, served.get("ci_low"), served.get("ci_high")],
