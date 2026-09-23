@@ -51,10 +51,35 @@ def bundle():
 
 # ------------------------------------------------------------------ v1: served, byte-identical, never omitted
 
+def _stale_against(committed, fresh):
+    """The comparison `build_bundle.py --check` makes: the committed bundle must equal a fresh build, content_commit
+    aside (that names the commit and cannot be known before it exists)."""
+    have, new = json.loads(json.dumps(committed)), json.loads(json.dumps(fresh))
+    for obj in (have, new):
+        (obj.get("source") or {}).pop("content_commit", None)
+    return build_bundle.canonical_json(have) != build_bundle.canonical_json(new)
+
+
 def test_bundle_is_current():
-    """A stale bundle is the same defect as no bundle: a digest table that does not describe the served bytes."""
-    _, problems = build_bundle.build(SLUG, check_only=True)
+    """A stale bundle is the same defect as no bundle: a digest table that does not describe the served bytes.
+    Until 2026-09-23 this test only asked whether a build COULD be made (build(check_only=True) problems) and never
+    compared it with the committed file, so it passed on main 38c04411 while `build_bundle.py --check` REFUSED: the
+    served bundle named harness/target_endpoint.py blob 554df973 after the code had moved to f605e0f5."""
+    fresh, problems = build_bundle.build(SLUG, check_only=True)
     assert not problems, "\n".join(problems)
+    assert not _stale_against(_load(BUNDLE), json.loads(json.dumps(fresh, ensure_ascii=False))), (
+        "BUNDLE.json is stale (differs from a fresh build); regenerate: python scripts/build_bundle.py " + SLUG)
+
+
+def test_the_staleness_comparison_can_fire():
+    """Plant: a one-string change to a copy of the committed bundle is reported stale; content_commit alone is not."""
+    committed = _load(BUNDLE)
+    planted = json.loads(json.dumps(committed))
+    planted["verification_rows"][0]["trial"]["label"] += " (planted)"
+    assert _stale_against(committed, planted)
+    only_commit = json.loads(json.dumps(committed))
+    only_commit.setdefault("source", {})["content_commit"] = "0" * 40
+    assert not _stale_against(committed, only_commit)
 
 
 def test_certificate_unmodified(bundle):
