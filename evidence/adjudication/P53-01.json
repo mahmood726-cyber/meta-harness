@@ -1,0 +1,243 @@
+{
+ "key": "P53-01",
+ "ruling": "SERVED_CONFIRMED",
+ "reason": "PLUS: critically ill ICU patients (abstract) and adults only (registry exclusion age <18) = the question's population. Served counts 530/2433 vs 530/2413 are printed in the abstract. The abstract reports a risk difference, not an HR; the served row is counts, so no scale conflict. The analysis set is NOT STATED in held sources, so the served 'intention-to-treat' label is unsupported (not shown wrong).",
+ "reviewed_note": "PLUS: critically ill ICU patients (abstract) and adults only (registry exclusion age <18) = the question's population. Served counts 530/2433 vs 530/2413 are printed in the abstract. The abstract reports a risk difference, not an HR; the served row is counts, so no scale conflict. The analysis set is NOT STATED in held sources, so the served 'intention-to-treat' label is unsupported (not shown wrong).",
+ "served_compare": {
+  "state": "MATCH",
+  "from": "arm counts",
+  "served": [
+   530,
+   2433,
+   530,
+   2413
+  ],
+  "bound": [
+   530.0,
+   2433.0,
+   530.0,
+   2413.0
+  ]
+ },
+ "evidence": {
+  "population": {
+   "ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json#/records/0",
+   "span": "In a double-blind, randomized, controlled trial, we assigned critically ill patients to receive BMES (Plasma-Lyte 148) or saline as fluid therapy in the intensive care unit (ICU) for 90 days."
+  },
+  "endpoint": {
+   "ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json#/records/0",
+   "span": "The primary outcome was death from any cause within 90 days after randomization."
+  },
+  "estimate": {
+   "ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json#/records/0",
+   "span": "Death within 90 days after randomization occurred in 530 of 2433 patients (21.8%) in the BMES group and in 530 of 2413 patients (22.0%) in the saline group, for a difference of -0.15 percentage points (95% confidence interval [CI], -3.60 to 3.30; P = 0.90)."
+  },
+  "ci": {
+   "ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json#/records/0",
+   "span": "Death within 90 days after randomization occurred in 530 of 2433 patients (21.8%) in the BMES group and in 530 of 2413 patients (22.0%) in the saline group, for a difference of -0.15 percentage points (95% confidence interval [CI], -3.60 to 3.30; P = 0.90)."
+  },
+  "treatment_strategy": {
+   "ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json#/records/0",
+   "span": "In a double-blind, randomized, controlled trial, we assigned critically ill patients to receive BMES (Plasma-Lyte 148) or saline as fluid therapy in the intensive care unit (ICU) for 90 days."
+  },
+  "follow_up": {
+   "ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json#/records/0",
+   "span": "The primary outcome was death from any cause within 90 days after randomization."
+  },
+  "entry_population_reading": {
+   "ref": "evidence/held/registry/NCT02721654.json",
+   "span": "Exclusion Criteria: * Age less than 18 years"
+  }
+ },
+ "typed_estimand": {
+  "analysis_set": {
+   "served_label": "intention-to-treat",
+   "source_reading": "NOT_STATED",
+   "absent_reason": "No held source explicitly identifies the analysis population for the mortality estimate as ITT, mITT, per-protocol, or all randomised."
+  },
+  "treatment_strategy": "bound",
+  "follow_up": "bound"
+ },
+ "entry_population": {
+  "extractor_reading": "YES",
+  "extractor_why": "The trial enrolled critically ill ICU patients, with patients younger than 18 excluded; the requested ITT analysis set remains unverified.",
+  "lane_ruling": "ESTABLISHED"
+ },
+ "extractor_mismatch_note": "The served arm-level mortality counts match the abstract. However, served_outcome.served_estimand is HR, whereas the reported estimate and confidence interval are a risk difference in percentage points; neither an HR nor an RR is reported. The served_row intention-to-treat label is not stated in the held sources.",
+ "set_aside_reason": null,
+ "served_row_at_adjudication": {
+  "label": "35041780",
+  "id": "PMID 35041780",
+  "ai": 530,
+  "n1i": 2433,
+  "ci": 530,
+  "n2i": 2413,
+  "source": "abstract arm-level counts (percentage-corroborated): Death within 90 days after randomization occurred in 530 of 2433 patients (21.8%) in the BMES group and in 530 of 2413 patients (22.0%) in the saline group, for a difference of -0.15 percentage points",
+  "provenance": "abstract",
+  "derivation": "reconstructed",
+  "selection_rule": "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT",
+  "selected_estimator": "reconstructed",
+  "alternatives": [],
+  "endpoint_admissibility": "UNBOUND_LEGACY",
+  "endpoint_binding": "unbound_legacy",
+  "source_hierarchy_limitations": [
+   {
+    "code": "MIXED_BY_SOURCE_LIMIT",
+    "reason": "PLUS has no committed published HR in the cached abstract; the row has counts only. The outcome decision prefers HR where committed, so PLUS remains a reconstructed RR until the full-text HR is retrieved.",
+    "citation": "SOURCE_NOT_RETRIEVED_FULL_TEXT_NEEDED"
+   }
+  ],
+  "verified": "verified",
+  "verify_basis": "arm counts present in committed source",
+  "design": {
+   "unit_of_randomisation": "INDIVIDUAL",
+   "design": "PARALLEL",
+   "estimator_source": "RECONSTRUCTED",
+   "adjustment_status": "UNRESOLVED",
+   "adjustment_axis": {
+    "status": "UNRESOLVED"
+   },
+   "correlation_handling": {
+    "method": "none",
+    "evidence": []
+   },
+   "se_provenance": "synth.Study.yi_vi:2x2:RR",
+   "basis": [
+    {
+     "source": "AACT designs.intervention_model",
+     "span": "PARALLEL"
+    }
+   ],
+   "design_action": {
+    "action": "ALLOW",
+    "gate_id": "design-key:parallel",
+    "decision_state": "no detected validity-critical design hazard",
+    "reason": "individually randomised parallel design established from committed evidence",
+    "validity_critical": false
+   }
+  },
+  "follow_up_window": "28-90 day or in-hospital",
+  "study_effect": {
+   "effect_estimate": 0.9917796958487464,
+   "standard_error": 0.05429684904874643,
+   "estimand": "HR",
+   "analysis_population": "intention-to-treat",
+   "randomisation_unit": "INDIVIDUAL",
+   "study_design": "PARALLEL",
+   "estimator_method": "RECONSTRUCTED",
+   "correlation_handling": {
+    "method": "none",
+    "evidence": []
+   },
+   "source_provenance": {
+    "source": "abstract",
+    "span": "abstract arm-level counts (percentage-corroborated): Death within 90 days after randomization occurred in 530 of 2433 patients (21.8%) in the BMES group and in 530 of 2413 patients (22.0%) in the saline group, for a difference of -0.15 percentage points"
+   },
+   "design_action": {
+    "action": "ALLOW",
+    "gate_id": "design-key:parallel",
+    "decision_state": "no detected validity-critical design hazard",
+    "reason": "individually randomised parallel design established from committed evidence",
+    "validity_critical": false
+   }
+  },
+  "effect_object": {
+   "reported_label": "RR",
+   "statistical_model": null,
+   "canonical_estimand": "RISK_RATIO"
+  },
+  "trial_family_id": "NCT02721654",
+  "publication_role": "primary",
+  "analysis_set": "intention-to-treat",
+  "endpoint_definition": "primary outcome was death from any cause within 90 days after randomization",
+  "population_age": "adult",
+  "intervention_ontology": {
+   "intervention_class": null
+  },
+  "compat_dimensions": {
+   "trial_id": "35041780",
+   "trial_label": "35041780",
+   "analysis_set": {
+    "value": "intention-to-treat",
+    "source": "study_effect.analysis_population",
+    "span": "intention-to-treat"
+   },
+   "follow_up_window": {
+    "value": "28-90 day or in-hospital",
+    "source": "outcome.timepoint",
+    "span": "28-90 day or in-hospital"
+   },
+   "endpoint_definition": {
+    "value": "primary outcome was death from any cause within 90 days after randomization",
+    "source": "committed source text",
+    "span": "o receive BMES (Plasma-Lyte 148) or saline as fluid therapy in the intensive care unit (ICU) for 90 days. The primary outcome was death from any cause within 90 days after randomization. Secondary outcomes were receipt of new renal-replacement therapy and the maximum increase in the creatinine"
+   },
+   "population_age": {
+    "value": "adult",
+    "source": "committed source text",
+    "span": "or a difference of -0.15 percentage points Balanced Multielectrolyte Solution versus Saline in Critically Ill Adults. BACKGROUND: Whether the use of balanced multielectrolyte solution (BMES) in preference to 0.9% sodium chlori"
+   },
+   "intervention_ontology": {
+    "intervention_class": null
+   }
+  },
+  "trial_id": "PMID 35041780",
+  "report_id": "PMID 35041780",
+  "outcome_effect_id": "balanced-crystalloids-vs-saline-mortality::Mortality::PMID 35041780::PMID 35041780",
+  "family_identity_state": "REGISTRY_ANCHORED",
+  "family_id": "NCT02721654"
+ },
+ "pinned_spans": {
+  "evidence/population": {
+   "ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json#/records/0",
+   "sha256": "79cfa5f4702bbc615f1c5038a3c1c2ac4e598a97847f167f4428a7205a8eb335",
+   "offsets": [
+    303
+   ]
+  },
+  "evidence/endpoint": {
+   "ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json#/records/0",
+   "sha256": "79cfa5f4702bbc615f1c5038a3c1c2ac4e598a97847f167f4428a7205a8eb335",
+   "offsets": [
+    495
+   ]
+  },
+  "evidence/estimate": {
+   "ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json#/records/0",
+   "sha256": "79cfa5f4702bbc615f1c5038a3c1c2ac4e598a97847f167f4428a7205a8eb335",
+   "offsets": [
+    876
+   ]
+  },
+  "evidence/ci": {
+   "ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json#/records/0",
+   "sha256": "79cfa5f4702bbc615f1c5038a3c1c2ac4e598a97847f167f4428a7205a8eb335",
+   "offsets": [
+    876
+   ]
+  },
+  "evidence/treatment_strategy": {
+   "ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json#/records/0",
+   "sha256": "79cfa5f4702bbc615f1c5038a3c1c2ac4e598a97847f167f4428a7205a8eb335",
+   "offsets": [
+    303
+   ]
+  },
+  "evidence/follow_up": {
+   "ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json#/records/0",
+   "sha256": "79cfa5f4702bbc615f1c5038a3c1c2ac4e598a97847f167f4428a7205a8eb335",
+   "offsets": [
+    495
+   ]
+  },
+  "evidence/entry_population_reading": {
+   "ref": "evidence/held/registry/NCT02721654.json",
+   "sha256": "4013032e034c9b7f7a1759e2e7ba189747cb4a08fe4c337f6803d0b04b62d8c3",
+   "offsets": [
+    1181
+   ]
+  }
+ },
+ "by": "Claude Opus 5.5 (evidence lane evid/evidence-records)",
+ "when_utc": "2026-09-23T21:15:58Z"
+}

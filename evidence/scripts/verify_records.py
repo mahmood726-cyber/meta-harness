@@ -133,12 +133,13 @@ def verify(rec, packet, pinned=None):
                 spans["entry_population"] = {"ref": ref, "sha256": file_sha(ref), "offsets": offs, "len": len(ep["span"])}
     bv = rec.get("bound_values") or {}
     numtext = " ".join((rec["fields"].get(f) or {}).get("span", "") for f in ("estimate", "ci") if rec.get("fields"))
-    toks = num_tokens(numtext)
+    toks = num_tokens(re.sub(r"(?<=\d)[,\u2009 ](?=\d{3}\b)", "", numtext))   # thousands separators only
     for k, val in bv.items():
         if k not in NUMERIC or val in (None, ""):
             continue
-        t = str(val).replace("·", ".").replace("−", "-").replace("%", "").replace(",", "")
-        if t not in toks and t.lstrip("-") not in toks:
+        f = canon(val)
+        ftoks = {abs(float(x)) for x in toks}
+        if f is None or abs(f) not in ftoks:
             errs.append(f"bound_values.{k}={val!r} not a number printed in the estimate/ci spans")
     core_missing = [f for f in CORE if f not in spans]
     if rec.get("verdict") == "BOUND" and core_missing:

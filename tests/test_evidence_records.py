@@ -117,3 +117,19 @@ def test_confirmation_by_derivation_must_equal_the_served_numbers():
     served = {"effect": 0.44, "ci_low": 0.27, "ci_high": 0.73}
     assert A.confirm_check({"derivation": {"result": [0.44, 0.27, 0.73]}}, served) is None
     assert "!=" in A.confirm_check({"derivation": {"result": [0.44, 0.27, 0.74]}}, served)
+
+
+def test_trailing_zero_is_the_same_number_but_a_different_number_is_not(tmp_path):
+    rec, pk, _ = _setup(tmp_path)
+    rec["bound_values"]["ci_low"] = "0.7"          # span prints 0.70
+    assert V.verify(rec, pk)["errors"] == []
+    rec["bound_values"]["ci_low"] = "0.71"
+    assert any("ci_low" in e for e in V.verify(rec, pk)["errors"])
+
+
+def test_a_comma_between_two_limits_is_not_a_thousands_separator(tmp_path):
+    rec, pk, _ = _setup(tmp_path)
+    rec["fields"]["estimate"]["span"] = rec["fields"]["ci"]["span"] = "the hazard ratio was 0.82 (95% CI, 0.70 to 0.96)"
+    assert V.num_tokens("(0.44,0.73)") == {"0.44", "0.73"}
+    import re as _re
+    assert V.num_tokens(_re.sub(r"(?<=\d)[,\u2009 ](?=\d{3}\b)", "", "11,052 patients (0.44,0.73)")) == {"11052", "0.44", "0.73"}

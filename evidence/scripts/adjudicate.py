@@ -63,6 +63,10 @@ def confirm_check(d, served):
 def main(p):
     d = json.load(open(p, encoding="utf-8"))
     assert d["ruling"] in RULINGS, d["ruling"]
+    if "reviewed_note" in d and not d["reviewed_note"]:
+        print("REFUSED: a draft generated from an extraction needs the lane's reviewed_note"); return 1
+    if d.get("entry_population", {}).get("lane_ruling", "x") is None:
+        print("REFUSED: entry_population.lane_ruling is unset"); return 1
     packet = json.load(open(os.path.join(ROOT, f"evidence/packets/{d['key']}.json"), encoding="utf-8"))
     pinned, errs = check_spans(d, packet)
     if errs:
