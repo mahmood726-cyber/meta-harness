@@ -6,6 +6,7 @@ who holds (or re-fetches and hash-checks) the same bytes.
   registry/NCT*.json      -> the ClinicalTrials.gov v2 record flattened to labelled lines (see _ctgov)
   records.json#/<list>/<i> -> that record's `title` + `abstract`, whitespace collapsed
   europepmc_core.json     -> title + abstractText, tags stripped, whitespace collapsed
+  *.html (held_local)     -> script/style removed, tags stripped to spaces, entities unescaped, whitespace collapsed
   *.txt                   -> text, whitespace collapsed
 """
 import html, json, os, re
@@ -39,7 +40,7 @@ def _ctgov(d):
         L.append(f"RESULT OUTCOME {i} [{om.get('type')}]: {_ws(om.get('title'))} | DESCRIPTION: {_ws(om.get('description'))}"
                  f" | TIME FRAME: {_ws(om.get('timeFrame'))} | POPULATION: {_ws(om.get('populationDescription'))}"
                  f" | PARAM: {om.get('paramType')} | UNIT: {om.get('unitOfMeasure')}")
-        gt ={g.get('id'): g.get('title') for g in om.get("groups", []) or []}
+        gt = {g.get('id'): g.get('title') for g in om.get("groups", []) or []}
         for g in om.get("groups", []) or []:
             L.append(f"RESULT OUTCOME {i} GROUP {g.get('id')}: {g.get('title')} | {_ws(g.get('description'))}")
         for dn in om.get("denoms", []) or []:
@@ -82,6 +83,10 @@ def render(ref):
         return _strip((r.get("title") or "") + " " + (r.get("abstractText") or ""))
     if path.endswith(".json") and "/registry/" in path.replace("\\", "/"):
         return _ctgov(json.loads(raw.decode("utf-8")))
+    if path.endswith(".html"):
+        t = raw.decode("utf-8", errors="replace")
+        t = re.sub(r"<(script|style)\b.*?</\1>", " ", t, flags=re.S)
+        return _ws(html.unescape(re.sub(r"<[^>]+>", " ", t)))
     if path.endswith(".xml"):
         t = raw.decode("utf-8")
         t = re.sub(r"<(ref-list|back)\b.*?</\1>", " ", t, flags=re.S)

@@ -20,13 +20,20 @@ def file_sha(ref):
     return hashlib.sha256(open(os.path.join(ROOT, ref.partition("#")[0]), "rb").read()).hexdigest()
 
 
+WORDS = {w: str(i) for i, w in enumerate("zero one two three four five six seven eight nine ten eleven twelve thirteen "
+                                         "fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
+
+
 def num_tokens(s):
-    return set(re.findall(r"(?<![\d.])-?\d+(?:[.·]\d+)?", (s or "").replace("·", ".").replace("−", "-")))
+    words = {WORDS[w.lower()] for w in re.findall(r"[A-Za-z]+", s or "") if w.lower() in WORDS}
+    return words | set(re.findall(r"(?<![\d.])-?\d+(?:[.·]\d+)?", (s or "").replace("·", ".").replace("−", "-")))
 
 
 def canon(v):
     if v is None:
         return None
+    if str(v).strip().lower() in WORDS:
+        return float(WORDS[str(v).strip().lower()])
     try:
         return float(str(v).replace("·", ".").replace("−", "-").replace("%", "").replace(",", ""))
     except ValueError:

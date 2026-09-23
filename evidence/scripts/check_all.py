@@ -15,6 +15,16 @@ def main():
         p = os.path.join(ROOT, "evidence/held", rel)
         if not os.path.exists(p) or hashlib.sha256(open(p, "rb").read()).hexdigest() != m["sha256"]:
             bad.append(f"held file changed or missing: {rel}")
+    local = json.load(open(os.path.join(ROOT, "evidence/LOCAL_ACQUISITIONS.json"), encoding="utf-8"))
+    absent_local = []
+    for rel, m in local.items():
+        if rel.startswith("_"):
+            continue
+        p = os.path.join(ROOT, "evidence/held_local", rel)
+        if not os.path.exists(p):
+            absent_local.append(rel)
+        elif hashlib.sha256(open(p, "rb").read()).hexdigest() != m["sha256"]:
+            bad.append(f"local-only file changed: {rel}")
     adj = sorted(glob.glob(os.path.join(ROOT, "evidence/adjudication/*.json")))
     for p in adj:
         a = json.load(open(p, encoding="utf-8"))
@@ -22,13 +32,15 @@ def main():
             node = a
             for part in path.split("/"):
                 node = node[part]
+            if pin["ref"].startswith("evidence/held_local/") and pin["ref"][len("evidence/held_local/"):] in absent_local:
+                continue   # not redistributable; named below, verifiable by re-fetch against the ledger sha256
             if V.file_sha(pin["ref"]) != pin["sha256"]:
                 bad.append(f"{a['key']} {path}: source sha256 changed")
             elif node["span"] not in textrep.render(pin["ref"]):
                 bad.append(f"{a['key']} {path}: span no longer verbatim in render")
         if a["ruling"] == "CANDIDATE_REJECTED" and a["notice"].get("state") != "QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED":
             bad.append(f"{a['key']}: rejected candidate not marked unlanded")
-    print(f"held files {len(led)}; adjudications {len(adj)}; refusals {len(bad)}")
+    print(f"held files {len(led)}; adjudications {len(adj)}; refusals {len(bad)}; local-only files absent here: {len(absent_local)} {absent_local}")
     for b in bad:
         print("  REFUSED", b)
     return 1 if bad else 0

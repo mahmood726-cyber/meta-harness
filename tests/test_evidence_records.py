@@ -166,3 +166,8 @@ def test_a_non_95_percent_interval_is_never_compared_as_the_served_95_percent_in
     assert V.verify(rec, pk)["served_compare"]["state"] == "DIFFERS"      # 95% vs 95%: a real difference
     rec["bound_values"]["ci_level"] = "97.5%"
     assert V.verify(rec, pk)["served_compare"]["state"] == "MATCH_POINT_CI_LEVEL_DIFFERS"
+
+
+def test_a_count_written_as_a_word_is_that_number_and_no_other(tmp_path):
+    assert "4" in V.num_tokens("four of 119 (3.4%)") and V.canon("four") == 4.0
+    assert "5" not in V.num_tokens("four of 119 (3.4%)")
