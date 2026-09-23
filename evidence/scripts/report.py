@@ -46,6 +46,15 @@ def main(out, since=None):
          ["", "Blocks with sha256: `evidence/SIGNATURE_QUEUE.md`.", ""]
     fails = [k for k, v in ver.items() if v["errors"]]
     L += ["## Extraction pipeline", "", f"- codex extractions verified against held bytes: {len(ver) - len(fails)} of {len(ver)}; failing (candidates, not claims): {', '.join(fails) or 'none'}", ""]
+    L += ["## Limits (stated so a clean count cannot imply more than it measured)", "",
+          "- Every ruling is ONE adjudicator's (this lane, Anthropic family); the extractor was codex (OpenAI family). "
+          "Spans are machine-verified against held bytes, but the SEMANTIC rulings (entry ESTABLISHED/PARTLY, which "
+          "candidate a served endpoint means) have had no second, independent adjudicator.",
+          "- 'Entry ESTABLISHED' means the trial's own text states an entry population inside the question. It is "
+          "evidence for Mahmood's D04, not an admission; no route that admits a row exists or was created.",
+          "- Most held sources are abstracts or registry records; open-access full text was held or acquired for a "
+          "minority. 'Analysis set NOT STATED' usually means 'not in an abstract', not 'not in the paper'.",
+          "- One source is held LOCAL-ONLY (not redistributable): URL and sha256 in evidence/LOCAL_ACQUISITIONS.json.", ""]
     open(out, "w", encoding="utf-8", newline="\n").write("\n".join(L))
     print("\n".join(L))
 

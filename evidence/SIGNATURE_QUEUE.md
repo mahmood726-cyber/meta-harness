@@ -1,6 +1,6 @@
 # Signature queue: served numbers the evidence lane proposes to change (NONE LANDED)
 
-3 of 67 adjudicated rows reject the served candidate. Each block is DERIVED and UNSIGNED. A served number moves only after Mahmood signs the block's sha256 and a rebuild runs.
+3 of 76 adjudicated rows reject the served candidate. Each block is DERIVED and UNSIGNED. A served number moves only after Mahmood signs the block's sha256 and a rebuild runs.
 
 ### UA-032: semaglutide-obesity-weight / Percent change in body weight / PMID 33625476 (STEP 3)
 - state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED

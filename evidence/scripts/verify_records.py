@@ -40,6 +40,7 @@ def canon(v):
     if str(v).strip().lower() in WORDS:
         return float(WORDS[str(v).strip().lower()])
     try:
+        v = re.sub(r"(?<=\d)[  ](?=\d{3}\b)", "", str(v))   # '10 036' is ten thousand thirty-six
         return float(str(v).replace("·", ".").replace("−", "-").replace("%", "").replace(",", ""))
     except ValueError:
         return None
@@ -193,7 +194,10 @@ def main(argv):
         bad += bool(r["errors"])
         sc = (r["served_compare"] or {}).get("state")
         print(f"{k:8} {rec.get('verdict'):9} errors={len(r['errors'])} served={sc} {'; '.join(r['errors'])[:160]}")
-    json.dump(out, open(os.path.join(ROOT, "evidence", "extractions", "verification.json"), "w", encoding="utf-8"), indent=1)
+    vp = os.path.join(ROOT, "evidence", "extractions", "verification.json")
+    if argv and os.path.exists(vp):   # a subset run MERGES; it once overwrote the file and a retry lost its error text
+        merged = json.load(open(vp, encoding="utf-8")); merged.update(out); out = merged
+    json.dump(out, open(vp, "w", encoding="utf-8", newline="\n"), indent=1, sort_keys=True)
     print(f"verified {len(keys) - bad} of {len(keys)}; failing {bad}")
     return 1 if bad else 0
 

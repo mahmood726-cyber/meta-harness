@@ -188,3 +188,8 @@ def test_no_control_characters_in_the_lane_scripts():
     here = os.path.join(os.path.dirname(__file__), "..", "evidence", "scripts", "*.py")
     bad = [p for p in glob.glob(here) if _re.search(rb"[\x00-\x08\x0b\x0c\x0e-\x1f]", open(p, "rb").read())]
     assert bad == []
+
+
+def test_a_space_thousands_separator_is_one_number():
+    assert V.canon("10 036") == 10036.0 and V.canon("10\u2009036") == 10036.0
+    assert V.canon("0.44 0.73") is None      # two numbers are not one
