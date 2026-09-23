@@ -1,0 +1,38 @@
+{
+ "_status": "PROPOSED -- NOT APPLIED. This is a draft result-change notice for Mahmood's decision, prepared 2026-09-22. It is not in docs/result_changes.json and no served page has been edited. Applying it changes a served primary result in the UNFLATTERING direction and therefore needs his countersignature, not a quiet repair.",
+ "slug": "spironolactone-hfref-mortality",
+ "outcome": "All-cause mortality",
+ "before": {
+  "k": 1,
+  "estimate": 0.85,
+  "ci_low": 0.53,
+  "ci_high": 1.36,
+  "scale": "HR"
+ },
+ "after": {
+  "k": 1,
+  "estimate": 1.6847,
+  "ci_low": 0.808,
+  "ci_high": 3.514,
+  "scale": "RR"
+ },
+ "left_pool": [],
+ "entered_pool": [],
+ "reason": "ENDPOINT TRANSFER on the only pooled row. J-EMPHASIS-HF (PMID 28824029, NCT01115855) reports HR 0.85 (0.53-1.36) for its PRIMARY COMPOSITE -- 'The primary endpoint was a composite of death from cardiovascular causes or hospitalization for HF' -- and that tuple is served as this page's All-cause mortality effect. The same abstract reports mortality separately: 'A total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died.' Re-binding to the trial's own mortality counts gives RR 1.6847 (95% CI 0.808-3.514) by 17/111 vs 10/110, log-scale SE 0.3725, which the orchestrator recomputed independently of the lane and matched to 4 decimal places. The page's held protocol permits a count-derived RR when no published target-outcome effect is available, so RE-BIND is admissible; WITHDRAW would be correct only under an HR-only contract, and 'no mortality result exists' is NOT supported by the held bytes. The change requires an explicit ACTIVE SCALE change HR -> RR: counts cannot recover a hazard ratio or its time-to-event analysis. Mechanism: found by lane WS's wrong-span sweep (2026-09-22) and confirmed by lane WSX's adversarial re-read (12 of 12 CONFIRMED_CONSUMED; this is the 1 of 12 that is a wrong served NUMBER rather than a wrong label); the row already carried endpoint_binding 'unbound_legacy' and admission verdict MIGRATION_STATE_UNBOUND_LEGACY, so the enforcement gate had already marked it unbound on P8 while it remained pooled under the migration exception.",
+ "direction_note": "The served value reads as a mortality BENEFIT (0.85). The re-bound value favours placebo (1.685). The error is in the flattering direction; the correction is not.",
+ "derivation": {
+  "a": 17, "n1": 111, "c": 10, "n2": 110,
+  "formula": "RR = (a/n1)/(c/n2); log-scale SE = sqrt(1/a - 1/n1 + 1/c - 1/n2); CI = exp(log RR +/- 1.96 SE)",
+  "rr": 1.6847, "se_log": 0.3725, "ci": [0.808, 3.514],
+  "source_span": "A total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died.",
+  "source_document": "cache/spironolactone-hfref-mortality/records.json#/records/220/abstract",
+  "composite_span": "The primary endpoint was a composite of death from cardiovascular causes or hospitalization for HF.",
+  "recomputed_by": "orchestrator, independently of lane WSX, 2026-09-22: RR 1.6847, CI 0.808-3.514 (exact agreement)"
+ },
+ "by": "PROPOSED by Claude Opus 5 (lanes WS + WSX, 2026-09-22); requires Mahmood's decision between RE-BIND (with scale change) and WITHDRAW, then his countersignature",
+ "when_utc": null,
+ "reviewer_countersignature": {
+  "state": "NOT_YET_RAISED",
+  "note": "This notice has not been written into docs/result_changes.json. Raising it is Mahmood's call because it changes a served primary result and its scale."
+ }
+}

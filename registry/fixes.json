@@ -7309,6 +7309,63 @@
      "note": "sealed against the lane tree's bytes; the fix commit cannot name itself"
     }
    }
+  },
+  {
+   "finding_id": "signing-surface-2026-09-23",
+   "fix_id": "signing-surface-2026-09-23",
+   "title": "The signing surface for the 41 OPEN result-change notices: a presenter that never signs, a digest the reviewer's signature is bound to, an unambiguous notice selector, and a ledger chain check",
+   "kind": "fix",
+   "implementation": "REPORTED",
+   "verification": "NONE",
+   "scope": "CORPUS",
+   "author": "Claude Opus 5 (branch enforcement-gate)",
+   "opened_utc": "2026-09-23T20:45:00Z",
+   "evidence_dir": "docs/evidence/enforcement-gate-2026-09-21",
+   "authored_against": [
+    "9ff4c6b07275b737aafb198cdab85ad3fae8058c"
+   ],
+   "executable_evidence": {
+    "command": "python -m pytest tests/test_sign_walk.py tests/test_result_change_chain.py tests/test_countersign_result_change_cli.py -q",
+    "expected_substring": "passed",
+    "scope_basis": "Named behaviours, not corpus numbers: sign --expect-digest REFUSES and writes nothing when the rendered block changed between reading and signing (tested by mutating the notice between the two commands); the legacy substring selector still refuses an ambiguous match while the new exact selector reaches the intended notice, tested on all six real duplicate (slug, outcome) pairs; chain_integrity holds for all 48 outcome groups on 32 of 32 served pages and a planted break refuses; the walker presents ONE notice per invocation, keeps no cursor, emits no signing command for an already-signed notice, and shows D01 as NOT SIGNABLE with no empty slot. Demonstrated across the named topic set of all 32 served pages.",
+    "topic_list": "All 32 served pages carry the ledger the walker reads; the six duplicate-pair topics (esketamine-trd-madrs, omega3-cardiovascular-events, pcsk9-mace, probiotics-aad-prevention x3) are the named selector cases."
+   },
+   "generalized_on": [],
+   "verifications": [],
+   "verified_by": {
+    "identity": null,
+    "kind": null
+   },
+   "seal": {
+    "sealed_utc": "2026-09-23T20:45:00Z",
+    "commit": "",
+    "dependencies": {
+     "harness/result_changes.py": "c5128c2948a2d02582a8fd1ba6c6ccf837fe6449",
+     "scripts/countersign_result_change.py": "c80781aadd069822bff192588d247cdf6defb322",
+     "scripts/sign_walk.py": "8ca5e4adf2ef60b759692a727d00611ad4b021d0",
+     "registry/notice_adjudication.json": "fe6f6a663334ed8054bd519b3cf54f6732c1d7ff"
+    },
+    "configuration": {
+     "schema": "fixes-v3",
+     "lane": "enforcement-gate",
+     "base": "9ff4c6b0",
+     "note": "sealed against the lane tree's bytes; the fix commit cannot name itself"
+    }
+   },
+   "events": [
+    {
+     "implementation": "REPORTED",
+     "verification": "NONE",
+     "scope": "CORPUS",
+     "when_utc": "2026-09-23T20:45:00Z",
+     "by": "Claude Opus 5 (branch enforcement-gate)",
+     "commit": "9ff4c6b07275b737aafb198cdab85ad3fae8058c",
+     "evidence": [
+      "docs/evidence/enforcement-gate-2026-09-21/16-lane-WALK-signing-surface.md"
+     ],
+     "reason": "41 of 54 notices are OPEN and the publication gate refuses a page while any of its notices is OPEN. The reviewer must sign them, and nothing the harness does may stand in for that: a signature the system applies to its own result change is a password, not a check. What the harness CAN do is put each notice in front of him honestly. Before this commit the surface had three gaps, all observed: `sign` recomputed the digest at write time rather than checking the one the reviewer had read, so nothing bound the signature to the bytes seen; the six (slug, outcome) pairs that carry two successive notices each could not be named at all by the substring selector, which refuses an ambiguous match (verified in the code: countersign_result_change.py exits when len(hits) != 1) -- so those six were unsignable rather than mis-signable; and the ledger's successive-notice chain was implicit, recoverable only by matching each notice's before to the previous after (it holds 6 of 6 today). The walker presents one notice per invocation with its chain position, direction, departing trials, mechanism and the harness team's adjudication labelled as a RECOMMENDATION, then stops; the basis argument prompts the reviewer for his own account of what he read rather than pre-writing it."
+    }
+   ]
   }
  ]
 }

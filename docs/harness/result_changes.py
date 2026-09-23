@@ -10,6 +10,7 @@ withdrawal of a conclusion and the notice says so in its own words (`conclusion_
 from __future__ import annotations
 
 import hashlib
+import datetime
 import json
 import os
 from typing import Any
@@ -27,6 +28,44 @@ def load(root: str | None = None) -> list[dict[str, Any]]:
     data = json.load(open(p, encoding="utf-8"))
     rows = data.get("notices") if isinstance(data, dict) else data
     return [r for r in (rows or []) if isinstance(r, dict)]
+
+
+def chain_integrity(notices: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Read-only report for every outcome chain; not a publication gate limb.
+
+    Indices refer to the zero-based input array. Order by timezone-aware when_utc;
+    ties are ambiguous, and adjacent before/after dictionaries must match exactly.
+    No numeric tolerance or ledger-array ordering substitutes for that history.
+    """
+    groups: dict[tuple[str, str], list[int]] = {}
+    for index, notice in enumerate(notices):
+        groups.setdefault((notice["slug"], notice["outcome"]), []).append(index)
+    report = []
+    for (slug, outcome), indices in sorted(groups.items()):
+        problems, dated = [], []
+        for index in indices:
+            notice = notices[index]
+            for field in ("before", "after"):
+                if not isinstance(notice.get(field), dict):
+                    problems.append(f"ledger index {index}: missing or invalid {field} dictionary")
+            try:
+                timestamp = datetime.datetime.fromisoformat(notice["when_utc"])
+                if timestamp.utcoffset() is None:
+                    raise ValueError("timezone required")
+                dated.append((timestamp, index))
+            except (KeyError, TypeError, ValueError):
+                problems.append(f"ledger index {index}: missing, invalid or timezone-naive when_utc")
+        dated.sort()
+        if len(dated) == len(indices):
+            indices = [index for _, index in dated]
+            for (previous_time, previous), (current_time, current) in zip(dated, dated[1:]):
+                if previous_time == current_time:
+                    problems.append(f"ledger indices {previous}, {current}: ambiguous equal when_utc")
+                if notices[current].get("before") != notices[previous].get("after"):
+                    problems.append(f"ledger index {current}.before != ledger index {previous}.after")
+        report.append({"slug": slug, "outcome": outcome, "indices": indices,
+                       "ok": not problems, "problems": problems})
+    return report
 
 
 def result_tuple(result: dict[str, Any] | None) -> dict[str, Any]:

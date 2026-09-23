@@ -4,6 +4,7 @@ exact bytes rendered.
   render  <slug> <outcome-substring> <out.html>        -> one page: the notice block exactly as the review page
                                                           renders it, and its sha256 (what a signature will name)
   sign    <slug> <outcome-substring> --by NAME --basis TEXT [--batch BATCH_ID] [--when UTC]
+          [--expect-digest SHA256]                     -> refuses without writing if the rendered digest changed
                                                        -> writes reviewer_countersignature {state, by, when_utc,
                                                           rendered_sha256, how_it_reached_the_reviewer[, batch_id]}
                                                           for that notice (--basis: the rendered block itself, or a
@@ -14,6 +15,8 @@ exact bytes rendered.
 The signature names sha256 of the rendered block (harness.result_changes.rendered_sha256); the gate recomputes it
 from the served review object, so a signature covers the words and numbers the reviewer saw and nothing else.
 There is no state for 'agreed in advance'.
+Both commands accept --notice-index N (zero-based ledger array index), with the slug and outcome selector
+checked against that exact notice. Without it, the substring selector must match exactly one notice.
 """
 from __future__ import annotations
 
@@ -31,11 +34,18 @@ from harness import page, result_changes  # noqa: E402
 PATH = ROOT / "docs" / "result_changes.json"
 
 
-def _notice(slug: str, outcome_sub: str):
+def _notice(slug: str, outcome_sub: str, notice_index: int | None = None):
     data = json.load(open(PATH, encoding="utf-8"))
+    if notice_index is not None:
+        if not 0 <= notice_index < len(data["notices"]):
+            sys.exit(f"refused: --notice-index {notice_index} is outside the zero-based ledger array")
+        n = data["notices"][notice_index]
+        if n["slug"] != slug or outcome_sub.lower() not in n["outcome"].lower():
+            sys.exit(f"refused: --notice-index {notice_index} does not match {slug} / {outcome_sub!r}")
+        return data, n
     hits = [n for n in data["notices"] if n["slug"] == slug and outcome_sub.lower() in n["outcome"].lower()]
     if len(hits) != 1:
-        sys.exit(f"{len(hits)} notices match {slug} / {outcome_sub!r}; name one")
+        sys.exit(f"{len(hits)} notices match {slug} / {outcome_sub!r}; name one with --notice-index (zero-based)")
     return data, hits[0]
 
 
@@ -58,7 +68,7 @@ def _block_and_sha(n):
 
 
 def render(args):
-    _, n = _notice(args.slug, args.outcome)
+    _, n = _notice(args.slug, args.outcome, getattr(args, "notice_index", None))
     html, block, sha = _block_and_sha(n)
     doc = ("<!doctype html><meta charset='utf-8'><title>Result-change notice</title>"
            "<style>body{font:15px/1.5 system-ui;max-width:60em;margin:2em auto;padding:0 1em}"
@@ -70,8 +80,11 @@ def render(args):
 
 
 def sign(args):
-    data, n = _notice(args.slug, args.outcome)
+    data, n = _notice(args.slug, args.outcome, getattr(args, "notice_index", None))
     _, block, sha = _block_and_sha(n)
+    expected = getattr(args, "expect_digest", None)
+    if expected is not None and expected != sha:
+        sys.exit(f"refused: rendered digest mismatch; expected {expected}; actual {sha}; nothing written")
     ann = _annotated(n)
     if args.batch and ann.get("conclusion_changed"):
         sys.exit(f"refused: this notice withdraws a conclusion ({ann['conclusion_changed']}); a batch signature does not cover it")
@@ -93,11 +106,14 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("render")
     r.add_argument("slug"); r.add_argument("outcome"); r.add_argument("out")
+    r.add_argument("--notice-index", type=int, help="exact zero-based index in the ledger; slug/outcome must also match")
     r.set_defaults(fn=render)
     g = sub.add_parser("sign")
     g.add_argument("slug"); g.add_argument("outcome"); g.add_argument("--by", required=True)
     g.add_argument("--basis", required=True, help="how the notice reached the reviewer: the rendered block, or a relay and what it conveyed")
     g.add_argument("--batch"); g.add_argument("--when")
+    g.add_argument("--notice-index", type=int, help="exact zero-based index in the ledger; slug/outcome must also match")
+    g.add_argument("--expect-digest", help="sha256 of the rendered block the reviewer saw; mismatch refuses without writing")
     g.set_defaults(fn=sign)
     args = ap.parse_args(argv)
     args.fn(args)

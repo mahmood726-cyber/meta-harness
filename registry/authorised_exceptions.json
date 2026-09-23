@@ -62,6 +62,20 @@
    "removal_condition": "Identical to the landing entry's: CLOSED when verify_all passes on the enforcement-gate branch tip, which requires every OPEN notice countersigned or its result restored, every primary pool emptied by P5 re-populated or given a typed state Mahmood rules on, and any screening acknowledgement signed. The closing commit's sha goes in `closed_by`.",
    "closed_by": null,
    "note": "The hole was found by Codex lanes E and E2b on 2026-09-22, ONE DAY after the gate landed, and is recorded against that landing rather than presented as a clean record: registry/fixes.json entry certified-families-empty-map-2026-09-22, and the landing's own fix-state line now reads STALE because this commit edits two files its seal depends on (harness/gate.py, tests/test_admission_enforced.py)."
+  },
+  {
+   "commit_role": "Signing surface for the 41 OPEN result-change notices on branch enforcement-gate (2026-09-23): a presenter that never signs, sign --expect-digest, an exact notice selector, and the ledger chain check",
+   "sha": "SEE COMMIT",
+   "created": "2026-09-23",
+   "mechanism": "git commit --no-verify, on branch enforcement-gate ONLY -- nothing lands on main under this entry",
+   "authorised_by": "Mahmood, 2026-09-21 (\"yes do that\"), extended by his relayed instruction of 2026-09-23 to commit the uncommitted signing-surface work so it is not lost; same four conditions: observe the refusal first, branch only, scope and removal condition named, prove the push by ls-remote",
+   "refusal_skipped": "OBSERVED on the exact working tree, CI-shaped (AACT_DIR = an empty existing dir): VERIFY-ALL REFUSED -- 3 of 11 limbs not PASS; limbs not PASS: unit tests (pytest tests/), publication gate on every live review page, index currency (generated == committed docs/index.html). Log: docs/evidence/enforcement-gate-2026-09-21/17-verify-all-observed-walk.log",
+   "observed_before_bypass": true,
+   "scope": "Suspends only the pre-commit hook's verify_all on THIS commit. The three limbs not PASS are the designed-RED state plus one consequence of this commit's own regeneration: (1) unit tests -- the two whole-gate tests red by design; (2) the publication gate on the pages the landing already refuses (41 OPEN notices, 11 emptied pools); (3) index currency, rebuilt in this same tree afterwards. Three sign_walk tests also failed in the observation run and passed in isolation: that was the walker's source-digest guard firing on the regenerated pages, not flakiness; all 41 adjudication rows were revalidated against the current ledger and pages, and the 27 commit-pinned digests confirmed unchanged, before any digest was refreshed. It does not suspend any check on main.",
+   "why": "The gate this commit repairs is RED on the 53 rows by design; its hook therefore cannot go green, and the alternative -- leaving a demonstrated hole in the landed gate open because the hook that guards it is red for an unrelated reason -- is the defect the gate exists to prevent.",
+   "removal_condition": "Identical to the landing entry's: CLOSED when verify_all passes on the enforcement-gate branch tip, which requires every OPEN notice countersigned or its result restored, every primary pool emptied by P5 re-populated or given a typed state Mahmood rules on, and any screening acknowledgement signed. The closing commit's sha goes in `closed_by`.",
+   "closed_by": null,
+   "note": "This commit signs nothing, drafts no signature and creates no notice: docs/result_changes.json is byte-identical. 33 of the 41 OPEN notices require an individual signature because a conclusion changed."
   }
  ],
  "open_defects_named_by_tests": [
