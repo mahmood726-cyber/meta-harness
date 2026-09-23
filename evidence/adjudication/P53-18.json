@@ -1,0 +1,278 @@
+{
+ "key": "P53-18",
+ "ruling": "SERVED_CONFIRMED",
+ "reason": "FAIR-HF2: LVEF <=45% with iron deficiency. The question says HFrEF, and a 45% ceiling includes mildly reduced EF (41-45%), so entry is PARTLY. Served IRR 0.80 (0.60-1.06) for total HF hospitalisations is printed as a rate ratio (recurrent events) in the full text. The analysis set is not stated.",
+ "reviewed_note": "FAIR-HF2: LVEF <=45% with iron deficiency. The question says HFrEF, and a 45% ceiling includes mildly reduced EF (41-45%), so entry is PARTLY. Served IRR 0.80 (0.60-1.06) for total HF hospitalisations is printed as a rate ratio (recurrent events) in the full text. The analysis set is not stated.",
+ "served_compare": {
+  "state": "MATCH",
+  "served": [
+   0.8,
+   0.6,
+   1.06
+  ],
+  "bound": [
+   0.8,
+   0.6,
+   1.06
+  ],
+  "bound_scale": "IRR",
+  "served_scale": "IRR",
+  "tolerance": 0.0050000010000000004
+ },
+ "evidence": {
+  "population": {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "span": "This multicenter, randomized clinical trial enrolled 1105 patients with heart failure (defined as having a left ventricular ejection fraction of ≤45%) and iron deficiency (serum ferritin level &lt;100 ng/mL; or if transferrin saturation was &lt;20%, a serum ferritin level between 100 ng/mL and 299 ng/mL)"
+  },
+  "endpoint": {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "span": "The second primary outcome (total heart failure hospitalizations)"
+  },
+  "estimate": {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "span": "The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]"
+  },
+  "ci": {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "span": "The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]"
+  },
+  "treatment_strategy": {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "span": "Administration of ferric carboxymaltose (n = 558) initially given at an intravenous dose of up to 2000 mg that was followed by 500 mg every 4 months (unless stopping criteria were met) vs a saline placebo (n = 547)."
+  },
+  "follow_up": {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "span": "The median follow-up was 16.6 months (IQR, 7.9-29.9 months)."
+  },
+  "entry_population_reading": {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "span": "This multicenter, randomized clinical trial enrolled 1105 patients with heart failure (defined as having a left ventricular ejection fraction of ≤45%) and iron deficiency"
+  }
+ },
+ "typed_estimand": {
+  "analysis_set": {
+   "served_label": "intention-to-treat",
+   "source_reading": "NOT_STATED",
+   "absent_reason": "No supplied source explicitly identifies the analysis set for the total heart failure hospitalization rate ratio as ITT, mITT, per-protocol, or all randomized."
+  },
+  "treatment_strategy": "bound",
+  "follow_up": "bound"
+ },
+ "entry_population": {
+  "extractor_reading": "YES",
+  "extractor_why": "The entry population has heart failure with reduced ejection fraction and iron deficiency; the requested ITT analysis set is separately unverified.",
+  "lane_ruling": "PARTLY"
+ },
+ "extractor_mismatch_note": "The served_row numbers and IRR scale match the reported rate ratio for total heart failure hospitalizations. However, served_outcome specifies RR and served_estimand HR; neither describes this recurrent-event rate ratio. The served_row intention-to-treat analysis-set label is not established by the supplied sources.",
+ "set_aside_reason": null,
+ "served_row_at_adjudication": {
+  "label": "40159390",
+  "id": "PMID 40159390",
+  "effect": 0.8,
+  "ci_low": 0.6,
+  "ci_high": 1.06,
+  "scale": "IRR",
+  "source": "abstract effect+CI (IRR): The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12",
+  "provenance": "abstract",
+  "derivation": "reported",
+  "selection_rule": "KEEP_REPORTED_EFFECT",
+  "selected_estimator": "published_effect_ci",
+  "alternatives": [
+   {
+    "derivation": "reported",
+    "provenance": "abstract",
+    "source_span": "abstract effect+CI (HR): RESULTS: Of the 1105 participants (mean age, 70 years [SD, 12 years]; 33% were women), cardiovascular death or first heart failure hospitalization (first primary outcome) o...",
+    "effect": 0.79,
+    "ci_low": 0.63,
+    "ci_high": 0.99,
+    "scale": "HR",
+    "estimand_class": "FIRST_EVENT_RATIO",
+    "not_selected_reason": "source_hierarchy_lower_precedence"
+   },
+   {
+    "derivation": "reported",
+    "provenance": "abstract",
+    "source_span": "abstract effect+CI (HR): The third primary outcome (cardiovascular death or first heart failure hospitalization in patients with a transferrin saturation <20%) occurred in 103 patients in the ferri...",
+    "effect": 0.79,
+    "ci_low": 0.61,
+    "ci_high": 1.02,
+    "scale": "HR",
+    "estimand_class": "FIRST_EVENT_RATIO",
+    "not_selected_reason": "source_hierarchy_lower_precedence"
+   }
+  ],
+  "endpoint_admissibility": "UNBOUND_LEGACY",
+  "endpoint_binding": "unbound_legacy",
+  "source_hierarchy_limitations": [
+   {
+    "code": "MIXED_BY_SOURCE_LIMIT",
+    "reason": "Outcome decision prefers published HR, but this row has no committed HR effect+CI; the row remains on the reconstructed/available scale and the pool is mixed by source limit.",
+    "citation": "SOURCE_NOT_RETRIEVED_FULL_TEXT_NEEDED"
+   }
+  ],
+  "verified": "verified",
+  "verify_basis": "effect present in committed source",
+  "design": {
+   "unit_of_randomisation": "INDIVIDUAL",
+   "design": "PARALLEL",
+   "estimator_source": "PUBLISHED_IRR",
+   "adjustment_status": "UNRESOLVED",
+   "adjustment_axis": {
+    "status": "UNRESOLVED"
+   },
+   "correlation_handling": {
+    "method": "none",
+    "evidence": []
+   },
+   "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
+   "basis": [
+    {
+     "source": "AACT designs.intervention_model",
+     "span": "PARALLEL"
+    },
+    {
+     "source": "trial reported estimate label",
+     "span": "rate ratio, 0.80 [95% CI, 0.60-1.06"
+    }
+   ],
+   "published_alternative": {
+    "effect": 0.8,
+    "ci_low": 0.6,
+    "ci_high": 1.06,
+    "scale": "IRR",
+    "adjusted": false,
+    "span": "rate ratio, 0.80 [95% CI, 0.60-1.06"
+   },
+   "design_action": {
+    "action": "ALLOW",
+    "gate_id": "design-key:parallel",
+    "decision_state": "no detected validity-critical design hazard",
+    "reason": "individually randomised parallel design established from committed evidence",
+    "validity_critical": false
+   }
+  },
+  "study_effect": {
+   "effect_estimate": 0.8,
+   "standard_error": 0.14517984421624877,
+   "estimand": "HR",
+   "analysis_population": "intention-to-treat",
+   "randomisation_unit": "INDIVIDUAL",
+   "study_design": "PARALLEL",
+   "estimator_method": "PUBLISHED_IRR",
+   "correlation_handling": {
+    "method": "none",
+    "evidence": []
+   },
+   "source_provenance": {
+    "source": "abstract",
+    "span": "abstract effect+CI (IRR): The second primary outcome (total heart failure hospitalizations) occurred 264 times in the ferric carboxymaltose group vs 320 times in the placebo group (rate ratio, 0.80 [95% CI, 0.60-1.06]; P = .12"
+   },
+   "design_action": {
+    "action": "ALLOW",
+    "gate_id": "design-key:parallel",
+    "decision_state": "no detected validity-critical design hazard",
+    "reason": "individually randomised parallel design established from committed evidence",
+    "validity_critical": false
+   }
+  },
+  "effect_object": {
+   "reported_label": "IRR",
+   "statistical_model": "rate / person-time",
+   "canonical_estimand": "INCIDENCE_RATE_RATIO"
+  },
+  "trial_family_id": "NCT03036462",
+  "publication_role": "primary",
+  "analysis_set": "intention-to-treat",
+  "follow_up_window": "trial end / longest reported follow-up",
+  "endpoint_definition": "Total (recurrent) HF hospitalizations = rate ratio.; ALREADY DISCLOSED (labelled IRR / mixed scale)",
+  "population_age": "not_stated",
+  "intervention_ontology": {
+   "intervention_class": null
+  },
+  "compat_dimensions": {
+   "trial_id": "40159390",
+   "trial_label": "40159390",
+   "analysis_set": {
+    "value": "intention-to-treat",
+    "source": "study_effect.analysis_population",
+    "span": "intention-to-treat"
+   },
+   "follow_up_window": {
+    "value": "trial end / longest reported follow-up",
+    "source": "outcome.timepoint",
+    "span": "trial end / longest reported follow-up"
+   },
+   "endpoint_definition": {
+    "value": "Total (recurrent) HF hospitalizations = rate ratio.; ALREADY DISCLOSED (labelled IRR / mixed scale)",
+    "source": "docs/definition_audit.json",
+    "span": "Total (recurrent) HF hospitalizations = rate ratio.; ALREADY DISCLOSED (labelled IRR / mixed scale)"
+   },
+   "population_age": {
+    "value": "not_stated",
+    "source": "committed source text",
+    "span": ""
+   },
+   "intervention_ontology": {
+    "intervention_class": null
+   }
+  },
+  "trial_id": "PMID 40159390",
+  "report_id": "PMID 40159390",
+  "outcome_effect_id": "iv-iron-hfref-hosp::Heart-failure hospitalization::PMID 40159390::PMID 40159390",
+  "family_identity_state": "REGISTRY_ANCHORED",
+  "family_id": "NCT03036462"
+ },
+ "pinned_spans": {
+  "evidence/population": {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "sha256": "fea1a1ae8445fbf68ff41fcb4e6428d6528b171f5efcb5a0ba258bf8032e2661",
+   "offsets": [
+    40499
+   ]
+  },
+  "evidence/endpoint": {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "sha256": "fea1a1ae8445fbf68ff41fcb4e6428d6528b171f5efcb5a0ba258bf8032e2661",
+   "offsets": [
+    42406
+   ]
+  },
+  "evidence/estimate": {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "sha256": "fea1a1ae8445fbf68ff41fcb4e6428d6528b171f5efcb5a0ba258bf8032e2661",
+   "offsets": [
+    42406
+   ]
+  },
+  "evidence/ci": {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "sha256": "fea1a1ae8445fbf68ff41fcb4e6428d6528b171f5efcb5a0ba258bf8032e2661",
+   "offsets": [
+    42406
+   ]
+  },
+  "evidence/treatment_strategy": {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "sha256": "fea1a1ae8445fbf68ff41fcb4e6428d6528b171f5efcb5a0ba258bf8032e2661",
+   "offsets": [
+    41007
+   ]
+  },
+  "evidence/follow_up": {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "sha256": "fea1a1ae8445fbf68ff41fcb4e6428d6528b171f5efcb5a0ba258bf8032e2661",
+   "offsets": [
+    40882
+   ]
+  },
+  "evidence/entry_population_reading": {
+   "ref": "cache/iv-iron-hfref-hosp/ft_40159390.txt",
+   "sha256": "fea1a1ae8445fbf68ff41fcb4e6428d6528b171f5efcb5a0ba258bf8032e2661",
+   "offsets": [
+    40499
+   ]
+  }
+ },
+ "by": "Claude Opus 5.5 (evidence lane evid/evidence-records)",
+ "when_utc": "2026-09-23T21:25:11Z"
+}

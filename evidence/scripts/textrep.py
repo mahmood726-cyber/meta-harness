@@ -63,6 +63,8 @@ def _ctgov(d):
     for i, om in enumerate(rs.get("outcomeMeasuresModule", {}).get("outcomeMeasures", []) or []):
         if om.get("dispersionType"):
             L.append(f"RESULT OUTCOME {i} DISPERSION TYPE: {om.get('dispersionType')}")
+    if el.get("minimumAge") or el.get("maximumAge") or el.get("sex"):
+        L.append(f"ELIGIBILITY AGE/SEX: minimum age {el.get('minimumAge')} | maximum age {el.get('maximumAge')} | sex {el.get('sex')}")
     return "\n".join(L)
 
 
