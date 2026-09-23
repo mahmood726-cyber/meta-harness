@@ -133,3 +133,28 @@ def test_a_comma_between_two_limits_is_not_a_thousands_separator(tmp_path):
     assert V.num_tokens("(0.44,0.73)") == {"0.44", "0.73"}
     import re as _re
     assert V.num_tokens(_re.sub(r"(?<=\d)[,\u2009 ](?=\d{3}\b)", "", "11,052 patients (0.44,0.73)")) == {"11052", "0.44", "0.73"}
+
+
+def test_registry_render_is_append_only_a_pinned_prefix_never_moves(tmp_path):
+    """A span bound against an earlier render must stay a substring: the v1 text of a synthetic record is pinned
+    and must remain a PREFIX of the current render (additions go after it)."""
+    import textrep
+    rec = {"protocolSection": {"identificationModule": {"nctId": "NCT00000000", "briefTitle": "T"},
+                               "eligibilityModule": {"eligibilityCriteria": "Adults"}},
+           "resultsSection": {"outcomeMeasuresModule": {"outcomeMeasures": [{
+               "type": "PRIMARY", "title": "Weight", "dispersionType": "Standard Deviation", "paramType": "MEAN",
+               "groups": [{"id": "OG000", "title": "A"}, {"id": "OG001", "title": "B"}],
+               "denoms": [{"units": "Participants", "counts": [{"groupId": "OG000", "value": "10"}, {"groupId": "OG001", "value": "9"}]}],
+               "classes": [{"title": "In-trial", "denoms": [{"units": "Participants", "counts": [{"groupId": "OG000", "value": "8"}, {"groupId": "OG001", "value": "7"}]}],
+                            "categories": [{"measurements": [{"groupId": "OG000", "value": "-5", "spread": "2"}, {"groupId": "OG001", "value": "-1", "spread": "3"}]}]}]}]}}}
+    d = tmp_path / "registry"; d.mkdir()
+    f = d / "NCT00000000.json"; f.write_text(json.dumps(rec), encoding="utf-8")
+    v1 = ("NCT: NCT00000000 | TITLE: T\nELIGIBILITY: Adults\n"
+          "RESULT OUTCOME 0 [PRIMARY]: Weight | DESCRIPTION:  | TIME FRAME:  | POPULATION:  | PARAM: MEAN | UNIT: None\n"
+          "RESULT OUTCOME 0 GROUP OG000: A | \nRESULT OUTCOME 0 GROUP OG001: B | \n"
+          "RESULT OUTCOME 0 DENOM Participants: A=10; B=9\n"
+          "RESULT OUTCOME 0 CLASS DENOM In-trial Participants: A=8; B=7\n"
+          "RESULT OUTCOME 0 MEASUREMENT In-trial: A=-5 (spread 2); B=-1 (spread 3)")
+    out = textrep.render(str(f))
+    assert out.startswith(v1), out
+    assert "DISPERSION TYPE: Standard Deviation" in out[len(v1):]

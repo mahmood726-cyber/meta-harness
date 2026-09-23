@@ -39,7 +39,7 @@ def _ctgov(d):
         L.append(f"RESULT OUTCOME {i} [{om.get('type')}]: {_ws(om.get('title'))} | DESCRIPTION: {_ws(om.get('description'))}"
                  f" | TIME FRAME: {_ws(om.get('timeFrame'))} | POPULATION: {_ws(om.get('populationDescription'))}"
                  f" | PARAM: {om.get('paramType')} | UNIT: {om.get('unitOfMeasure')}")
-        gt = {g.get('id'): g.get('title') for g in om.get("groups", []) or []}
+        gt ={g.get('id'): g.get('title') for g in om.get("groups", []) or []}
         for g in om.get("groups", []) or []:
             L.append(f"RESULT OUTCOME {i} GROUP {g.get('id')}: {g.get('title')} | {_ws(g.get('description'))}")
         for dn in om.get("denoms", []) or []:
@@ -58,6 +58,11 @@ def _ctgov(d):
             L.append(f"RESULT OUTCOME {i} ANALYSIS {j}: groups {', '.join(str(gt.get(g)) for g in an.get('groupIds', []) or [])}"
                      f" | {an.get('paramType')} {an.get('paramValue')} ({an.get('ciPctValue')}% CI {an.get('ciLowerLimit')} to {an.get('ciUpperLimit')})"
                      f" | p {an.get('pValue')} | METHOD {an.get('statisticalMethod')} | {_ws(an.get('statisticalComment'))} {_ws(an.get('estimateComment'))}")
+    # APPEND-ONLY below this line: spans already bound are substrings of the text above, so anything a later
+    # version surfaces goes after it (a line inserted mid-text once broke a verified multi-line span).
+    for i, om in enumerate(rs.get("outcomeMeasuresModule", {}).get("outcomeMeasures", []) or []):
+        if om.get("dispersionType"):
+            L.append(f"RESULT OUTCOME {i} DISPERSION TYPE: {om.get('dispersionType')}")
     return "\n".join(L)
 
 
