@@ -1,0 +1,61 @@
+{
+ "key": "P53-49",
+ "verdict": "SET_ASIDE",
+ "set_aside_reason": "OTHER",
+ "fields": {
+  "population": {
+   "ref": "cache/spironolactone-hfref-mortality/records.json#/records/1",
+   "span": "we randomly assigned 2737 patients with New York Heart Association class II heart failure and an ejection fraction of no more than 35%"
+  },
+  "endpoint": {
+   "ref": "evidence/held/registry/NCT00232180.json",
+   "span": "RESULT OUTCOME 3 [SECONDARY]: Number of Participants With First Occurrence of All-Cause Mortality (Adjudicated) | DESCRIPTION: Death due to any cause."
+  },
+  "estimate": {
+   "ref": "evidence/held/registry/NCT00232180.json",
+   "span": "RESULT OUTCOME 3 MEASUREMENT Up to 59.5 months (complete DB) (n= 1367, 1376): Eplerenone: Double-blind Phase=205; Placebo: Double-blind Phase=253"
+  },
+  "ci": null,
+  "analysis_set": {
+   "ref": "evidence/held/registry/NCT00232180.json",
+   "span": "FAS using ITT principle: All randomized participants, followed for mortality and other major endpoints for the duration of the double blind treatment period, regardless of compliance with the study drug and the protocol."
+  },
+  "treatment_strategy": {
+   "ref": "cache/spironolactone-hfref-mortality/records.json#/records/1",
+   "span": "to receive eplerenone (up to 50 mg daily) or placebo, in addition to recommended therapy."
+  },
+  "follow_up": {
+   "ref": "evidence/held/registry/NCT00232180.json",
+   "span": "RESULT OUTCOME 3 MEASUREMENT Up to 59.5 months (complete DB) (n= 1367, 1376): Eplerenone: Double-blind Phase=205; Placebo: Double-blind Phase=253"
+  }
+ },
+ "absent_reason": {
+  "ci": "No confidence interval is explicitly tied to the complete double-blind follow-up counts at 59.5 months. The registry lists two timepoints and one HR analysis without identifying its timepoint."
+ },
+ "bound_values": {
+  "events_t": 205,
+  "n_t": 1367,
+  "events_c": 253,
+  "n_c": 1376
+ },
+ "served_mismatch": "The served HR 0.76 (95% CI 0.62 to 0.93) matches the abstract's all-cause mortality result at premature stopping after median follow-up of 21 months. It does not establish the requested longest randomized follow-up: the registry reports later complete double-blind results through 59.5 months.",
+ "candidate_rejections": [
+  {
+   "ref": "cache/spironolactone-hfref-mortality/records.json#/records/1",
+   "span": "A total of 12.5% of patients receiving eplerenone and 15.5% of those receiving placebo died (hazard ratio, 0.76; 95% CI, 0.62 to 0.93; P=0.008)",
+   "why": "Correct endpoint, but the abstract's premature-stopping result does not represent the later complete double-blind follow-up held in the registry."
+  },
+  {
+   "ref": "evidence/held/registry/NCT00232180.json",
+   "span": "RESULT OUTCOME 3 ANALYSIS 0: groups Eplerenone: Double-blind Phase, Placebo: Double-blind Phase | Hazard Ratio (HR) 0.761 (95% CI 0.622 to 0.932)",
+   "why": "The outcome includes both cutoff and complete double-blind measurements; this analysis does not explicitly identify which timepoint it represents, so its CI cannot be assigned to the later counts."
+  }
+ ],
+ "entry_population_matches_question": {
+  "value": "YES",
+  "why": "The randomized population had NYHA class II heart failure and ejection fraction no greater than 35%; registry eligibility specifies minimum age 55 years.",
+  "ref": "cache/spironolactone-hfref-mortality/records.json#/records/1",
+  "span": "we randomly assigned 2737 patients with New York Heart Association class II heart failure and an ejection fraction of no more than 35%"
+ },
+ "notes": "Registry spans support the longest-follow-up counts, endpoint and ITT analysis population. OTHER denotes absence of a CI explicitly attributable to that timepoint; no interval was calculated or inferred. The analysis-set wording is repeated across registry outcomes, including outcome 3."
+}
