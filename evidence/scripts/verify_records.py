@@ -46,8 +46,10 @@ def served_compare(served, bv):
         same = all(got[b] == float(served[s_]) for b, s_ in pairs)
         return {"state": "MATCH" if same else "DIFFERS", "from": "arm counts",
                 "served": [served[s_] for _, s_ in pairs], "bound": [got[b] for b, _ in pairs]}
-    if bv and se is None and served.get("m1i") is not None:
-        pairs = [("mean_t", "m1i"), ("sd_t", "sd1i"), ("n_t", "n1i"), ("mean_c", "m2i"), ("sd_c", "sd2i"), ("n_c", "n2i")]
+    if bv and se is None and (served.get("m1i") is not None or served.get("mean1") is not None):
+        pairs = ([("mean_t", "m1i"), ("sd_t", "sd1i"), ("n_t", "n1i"), ("mean_c", "m2i"), ("sd_c", "sd2i"), ("n_c", "n2i")]
+                 if served.get("m1i") is not None else
+                 [("mean_t", "mean1"), ("sd_t", "sd1"), ("n_t", "nc1"), ("mean_c", "mean2"), ("sd_c", "sd2"), ("n_c", "nc2")])
         got = {b: canon(bv.get(b)) for b, _ in pairs}
         if None in got.values():
             return {"state": "NOT_COMPARABLE", "why": "served row is arm means; bound values lack a full mean/SD/n set"}

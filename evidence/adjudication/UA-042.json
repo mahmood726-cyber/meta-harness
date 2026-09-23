@@ -1,0 +1,228 @@
+{
+ "key": "UA-042",
+ "ruling": "CANDIDATE_REJECTED",
+ "reason": "The served 'All-cause mortality' row carries HR 0.85 (0.53-1.36). The abstract gives that HR for the PRIMARY COMPOSITE (cardiovascular death or HF hospitalisation), not for all-cause death. The registry record of the same trial (NCT01115855) reports a separate all-cause mortality analysis: HR 1.77 (95% CI 0.81 to 3.87), and the abstract gives 17 of 111 vs 10 of 110 deaths. The candidate is rejected; the trial is not.",
+ "evidence": {
+  "served_candidate_is_composite": {
+   "ref": "cache/spironolactone-hfref-mortality/records.json#/records/220",
+   "span": "The primary endpoint was a composite of death from cardiovascular causes or hospitalization for HF. The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)]."
+  },
+  "population": {
+   "ref": "cache/spironolactone-hfref-mortality/records.json#/records/220",
+   "span": "HFrEF patients with NYHA functional class II-IV and an EF ≤35% received eplerenone (n=111) or placebo (n=110) on top of standard therapy for at least 12 months."
+  },
+  "endpoint": {
+   "ref": "evidence/held/registry/NCT01115855.json",
+   "span": "RESULT OUTCOME 2 [SECONDARY]: Number of Participants With With First Occurrence of All-Cause Mortality"
+  },
+  "estimate_ci": {
+   "ref": "evidence/held/registry/NCT01115855.json",
+   "span": "RESULT OUTCOME 2 ANALYSIS 0: groups Eplerenone, Placebo | Hazard Ratio (HR) 1.77 (95% CI 0.81 to 3.87)"
+  },
+  "analysis_set": {
+   "ref": "evidence/held/registry/NCT01115855.json",
+   "span": "RESULT OUTCOME 2 DENOM Participants: Eplerenone=111; Placebo=110"
+  },
+  "counts": {
+   "ref": "cache/spironolactone-hfref-mortality/records.json#/records/220",
+   "span": "A total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died."
+  }
+ },
+ "typed_estimand": {
+  "analysis_set": "all randomised (registry denominators 111/110 equal the randomised counts); the registry does not name ITT",
+  "treatment_strategy": "eplerenone titrated by eGFR (25 mg to max 50 mg daily) vs matching placebo on top of standard therapy",
+  "follow_up": "at least 12 months (abstract); registry dosing to Month 48"
+ },
+ "proposed_row": {
+  "effect": 1.77,
+  "ci_low": 0.81,
+  "ci_high": 3.87,
+  "scale": "HR",
+  "provenance": "ctgov_results",
+  "endpoint": "all-cause mortality (first occurrence)"
+ },
+ "notice": {
+  "slug": "spironolactone-hfref-mortality",
+  "outcome": "All-cause mortality",
+  "trial": "PMID 28824029 (J-EMPHASIS-HF)",
+  "before_row": "HR 0.85 (0.53-1.36) -- the primary composite, mis-attributed",
+  "after_row": "HR 1.77 (0.81-3.87) -- registry all-cause mortality analysis",
+  "pooled_effect": "NOT COMPUTED here: the pooled estimate moves only on a rebuild after signature",
+  "mechanism": "a candidate extraction took the first HR in the abstract, which belongs to a different endpoint",
+  "state": "QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED"
+ },
+ "served_row_at_adjudication": {
+  "effect": 0.85,
+  "ci_low": 0.53,
+  "ci_high": 1.36,
+  "scale": "HR",
+  "provenance": "abstract",
+  "source": "abstract effect+CI (HR): The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)].",
+  "derivation": "reported",
+  "label": "J-EMPHASIS-HF",
+  "id": "PMID 28824029",
+  "selection_rule": "PUBLISHED_EFFECT_TARGET_CLASS",
+  "selected_estimator": "published_effect_ci",
+  "alternatives": [
+   {
+    "derivation": "reconstructed",
+    "provenance": "abstract_verified",
+    "source_span": "J-EMPHASIS-HF (PMID 28824029, NCT01115855) abstract: HFrEF patients received eplerenone (n=111) or placebo (n=110) on top of standard therapy; a total of 17 patients (15.3%) in the eplerenone group...",
+    "ai": 17,
+    "n1i": 111,
+    "ci": 10,
+    "n2i": 110,
+    "implied_rr": 1.6846846846846846,
+    "not_selected_reason": "source_hierarchy_lower_precedence"
+   }
+  ],
+  "endpoint_admissibility": "UNBOUND_LEGACY",
+  "endpoint_binding": "unbound_legacy",
+  "verified": "verified",
+  "verify_basis": "effect present in committed source",
+  "design": {
+   "unit_of_randomisation": "INDIVIDUAL",
+   "design": "PARALLEL",
+   "estimator_source": "PUBLISHED_HR",
+   "adjustment_status": "UNRESOLVED",
+   "adjustment_axis": {
+    "status": "UNRESOLVED"
+   },
+   "correlation_handling": {
+    "method": "none",
+    "evidence": []
+   },
+   "se_provenance": "synth.Study.yi_vi:reported-effect-ci",
+   "basis": [
+    {
+     "source": "AACT designs.intervention_model",
+     "span": "PARALLEL"
+    }
+   ],
+   "design_action": {
+    "action": "ALLOW",
+    "gate_id": "design-key:parallel",
+    "decision_state": "no detected validity-critical design hazard",
+    "reason": "individually randomised parallel design established from committed evidence",
+    "validity_critical": false
+   }
+  },
+  "source_label": "risk ratio reconstructed from arm counts",
+  "study_effect": {
+   "effect_estimate": 0.85,
+   "standard_error": 0.24040313485787726,
+   "estimand": "HR",
+   "analysis_population": "intention-to-treat",
+   "randomisation_unit": "INDIVIDUAL",
+   "study_design": "PARALLEL",
+   "estimator_method": "PUBLISHED_HR",
+   "correlation_handling": {
+    "method": "none",
+    "evidence": []
+   },
+   "source_provenance": {
+    "source": "abstract",
+    "span": "abstract effect+CI (HR): The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [hazard ratio=0.85 (95% CI: 0.53-1.36)]."
+   },
+   "design_action": {
+    "action": "ALLOW",
+    "gate_id": "design-key:parallel",
+    "decision_state": "no detected validity-critical design hazard",
+    "reason": "individually randomised parallel design established from committed evidence",
+    "validity_critical": false
+   }
+  },
+  "effect_object": {
+   "reported_label": "HR",
+   "statistical_model": null,
+   "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+  },
+  "trial_family_id": "J-EMPHASIS-HF",
+  "publication_role": "primary",
+  "analysis_set": "intention-to-treat",
+  "follow_up_window": "trial end / longest randomised follow-up",
+  "endpoint_definition": "primary endpoint was a composite of death from cardiovascular causes or hospitalization for HF",
+  "population_age": "not_stated",
+  "intervention_ontology": {
+   "intervention_class": null
+  },
+  "compat_dimensions": {
+   "trial_id": "28824029",
+   "trial_label": "J-EMPHASIS-HF",
+   "analysis_set": {
+    "value": "intention-to-treat",
+    "source": "study_effect.analysis_population",
+    "span": "intention-to-treat"
+   },
+   "follow_up_window": {
+    "value": "trial end / longest randomised follow-up",
+    "source": "outcome.timepoint",
+    "span": "trial end / longest randomised follow-up"
+   },
+   "endpoint_definition": {
+    "value": "primary endpoint was a composite of death from cardiovascular causes or hospitalization for HF",
+    "source": "committed source text",
+    "span": "EF ≤35% received eplerenone (n=111) or placebo (n=110) on top of standard therapy for at least 12 months. The primary endpoint was a composite of death from cardiovascular causes or hospitalization for HF. The primary endpoint occurred in 29.7% of patients in the eplerenone group vs. 32.7% in the placebo group [h"
+   },
+   "population_age": {
+    "value": "not_stated",
+    "source": "committed source text",
+    "span": ""
+   },
+   "intervention_ontology": {
+    "intervention_class": null
+   }
+  },
+  "trial_id": "PMID 28824029",
+  "report_id": "PMID 28824029",
+  "outcome_effect_id": "spironolactone-hfref-mortality::All-cause mortality::PMID 28824029::PMID 28824029",
+  "family_identity_state": "REGISTRY_ANCHORED",
+  "family_id": "NCT01115855"
+ },
+ "pinned_spans": {
+  "evidence/served_candidate_is_composite": {
+   "ref": "cache/spironolactone-hfref-mortality/records.json#/records/220",
+   "sha256": "e901036c243cd53f5c1b4644dc0e5d003caf8e540c1d13514856f1096a0cf461",
+   "offsets": [
+    1069
+   ]
+  },
+  "evidence/population": {
+   "ref": "cache/spironolactone-hfref-mortality/records.json#/records/220",
+   "sha256": "e901036c243cd53f5c1b4644dc0e5d003caf8e540c1d13514856f1096a0cf461",
+   "offsets": [
+    908
+   ]
+  },
+  "evidence/endpoint": {
+   "ref": "evidence/held/registry/NCT01115855.json",
+   "sha256": "adeecf86d9f32e64129a1cde58af39c1fd3dae0950cf62daf577c10b5e6e2e35",
+   "offsets": [
+    6086
+   ]
+  },
+  "evidence/estimate_ci": {
+   "ref": "evidence/held/registry/NCT01115855.json",
+   "sha256": "adeecf86d9f32e64129a1cde58af39c1fd3dae0950cf62daf577c10b5e6e2e35",
+   "offsets": [
+    8225
+   ]
+  },
+  "evidence/analysis_set": {
+   "ref": "evidence/held/registry/NCT01115855.json",
+   "sha256": "adeecf86d9f32e64129a1cde58af39c1fd3dae0950cf62daf577c10b5e6e2e35",
+   "offsets": [
+    7893
+   ]
+  },
+  "evidence/counts": {
+   "ref": "cache/spironolactone-hfref-mortality/records.json#/records/220",
+   "sha256": "e901036c243cd53f5c1b4644dc0e5d003caf8e540c1d13514856f1096a0cf461",
+   "offsets": [
+    1413
+   ]
+  }
+ },
+ "by": "Claude Opus 5.5 (evidence lane evid/evidence-records)",
+ "when_utc": "2026-09-23T21:11:00Z"
+}

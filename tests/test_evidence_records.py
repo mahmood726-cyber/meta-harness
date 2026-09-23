@@ -90,3 +90,12 @@ def test_served_arm_counts_are_compared_count_for_count(tmp_path):
     assert V.verify(rec, pk)["served_compare"]["state"] == "MATCH"
     pk["served_row"]["ci"] = 0.95
     assert V.verify(rec, pk)["served_compare"]["state"] == "DIFFERS"
+
+
+def test_served_arm_means_in_either_field_shape_are_compared(tmp_path):
+    rec, pk, _ = _setup(tmp_path)
+    rec["bound_values"] = {"mean_t": "0.82", "sd_t": "0.70", "n_t": "0.96", "mean_c": "0.70", "sd_c": "0.96", "n_c": "0.82"}
+    pk["served_row"] = {"mean1": 0.82, "sd1": 0.70, "nc1": 0.96, "mean2": 0.70, "sd2": 0.96, "nc2": 0.82}
+    assert V.verify(rec, pk)["served_compare"]["state"] == "MATCH"
+    pk["served_row"]["nc2"] = 0.96          # a denominator that is not the one the span prints
+    assert V.verify(rec, pk)["served_compare"]["state"] == "DIFFERS"

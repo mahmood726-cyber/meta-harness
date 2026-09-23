@@ -1,0 +1,234 @@
+{
+ "key": "UA-032",
+ "ruling": "CANDIDATE_REJECTED",
+ "reason": "The served row pools CT.gov observed in-trial arm means (-16.5 vs -5.8) with n = 407/204, the full-analysis-set totals. The registry states that the number analysed is those with available data, and the class-level denominators for the in-trial period are 373/189. So the served SE is computed on n inflated by 44 participants, and observed-case means are labelled as the treatment-policy (all-randomised) estimand the outcome declares. The source's treatment-policy estimate for this endpoint is the ANCOVA difference -10.27 (95% CI -11.97 to -8.57), which matches the abstract's -10.3 (-12.0 to -8.6). Candidate rejected; trial kept.",
+ "evidence": {
+  "population": {
+   "ref": "cache/semaglutide-obesity-weight/records.json#/records/117",
+   "span": "Participants were randomized (2:1) to semaglutide, 2.4 mg (n = 407) or placebo (n = 204), both combined with a low-calorie diet for the first 8 weeks and intensive behavioral therapy (ie, 30 counseling visits) during 68 weeks."
+  },
+  "number_analysed_is_available_data": {
+   "ref": "evidence/held/registry/NCT03611582.json",
+   "span": "Overall number of participants analyzed = full analysis set (FAS) which comprised all randomized participants. Number Analyzed = number of participants with available data."
+  },
+  "class_denominators": {
+   "ref": "evidence/held/registry/NCT03611582.json",
+   "span": "RESULT OUTCOME 0 CLASS DENOM In-trial observation period Participants: Semaglutide 2.4 mg=373; Placebo=189"
+  },
+  "observed_means": {
+   "ref": "evidence/held/registry/NCT03611582.json",
+   "span": "RESULT OUTCOME 0 MEASUREMENT In-trial observation period: Semaglutide 2.4 mg=-16.5 (spread 10.1); Placebo=-5.8 (spread 7.7)"
+  },
+  "treatment_policy_estimate": {
+   "ref": "evidence/held/registry/NCT03611582.json",
+   "span": "RESULT OUTCOME 0 ANALYSIS 0: groups Semaglutide 2.4 mg, Placebo | Treatment difference -10.27 (95% CI -11.97 to -8.57) | p <.0001 | METHOD ANCOVA"
+  },
+  "abstract_estimate": {
+   "ref": "cache/semaglutide-obesity-weight/records.json#/records/117",
+   "span": "At week 68, the estimated mean body weight change from baseline was -16.0% for semaglutide vs -5.7% for placebo (difference, -10.3 percentage points [95% CI, -12.0 to -8.6]; P < .001)."
+  }
+ },
+ "typed_estimand": {
+  "analysis_set": "served: FAS n (407/204) attached to observed-case means (373/189 with data) -- two different sets joined",
+  "treatment_strategy": "semaglutide 2.4 mg weekly vs placebo, both with 8-week low-calorie diet + intensive behavioural therapy (30 visits)",
+  "follow_up": "week 68 (in-trial observation period to week 75 contact)"
+ },
+ "proposed_row": {
+  "option_A_matches_declared_estimand": {
+   "effect": -10.27,
+   "ci_low": -11.97,
+   "ci_high": -8.57,
+   "scale": "MD",
+   "estimand": "treatment policy, all randomised (ANCOVA, registry)"
+  },
+  "option_B_keep_observed_case": {
+   "mean1": -16.5,
+   "sd1": 10.1,
+   "nc1": 373,
+   "mean2": -5.8,
+   "sd2": 7.7,
+   "nc2": 189,
+   "estimand": "observed in-trial, participants with data -- must then NOT be labelled treatment-policy"
+  }
+ },
+ "notice": {
+  "slug": "semaglutide-obesity-weight",
+  "outcome": "Percent change in body weight",
+  "trial": "PMID 33625476 (STEP 3)",
+  "before_row": "MD from -16.5 (SD 10.1, n=407) vs -5.8 (SD 7.7, n=204), labelled treatment-policy",
+  "after_row": "A: MD -10.27 (-11.97 to -8.57) treatment-policy; or B: same means with n=373/189 relabelled observed-case",
+  "pooled_effect": "NOT COMPUTED here: moves only on a rebuild after signature; the choice A/B is Mahmood's",
+  "mechanism": "the outcome-level FAS denominator was attached to class-level observed means; the renderer the harness used did not surface class denominators",
+  "state": "QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED"
+ },
+ "served_row_at_adjudication": {
+  "label": "33625476",
+  "id": "PMID 33625476",
+  "mean1": -16.5,
+  "sd1": 10.1,
+  "nc1": 407,
+  "mean2": -5.8,
+  "sd2": 7.7,
+  "nc2": 204,
+  "scale": "MD",
+  "timeframe": "Baseline (week 0) to week 68",
+  "timeframe_weeks": 68.0,
+  "source": "ClinicalTrials.gov results (structured, continuous): outcome 'Change in Body Weight (%)' mean -16.5 (SD 10.1, n=407) [Semaglutide 2.4 mg] vs -5.8 (SD 7.7, n=204) [Placebo] Percentage — population: Overall number of participants analyzed = full analysis set (FAS) which comprise",
+  "provenance": "ctgov_results",
+  "derivation": "reconstructed",
+  "selection_rule": "KEEP_RECONSTRUCTION_NO_TARGET_PUBLISHED_EFFECT",
+  "selected_estimator": "reconstructed",
+  "alternatives": [],
+  "endpoint_admissibility": "UNBOUND_LEGACY",
+  "endpoint_binding": "unbound_legacy",
+  "verified": "verified",
+  "verify_basis": "continuous per-arm mean/SD present in committed source",
+  "design": {
+   "unit_of_randomisation": "INDIVIDUAL",
+   "design": "PARALLEL",
+   "estimator_source": "RECONSTRUCTED",
+   "adjustment_status": "UNRESOLVED",
+   "adjustment_axis": {
+    "status": "UNRESOLVED"
+   },
+   "correlation_handling": {
+    "method": "none",
+    "evidence": []
+   },
+   "se_provenance": "synth.Study.yi_vi:mean-difference",
+   "basis": [
+    {
+     "source": "AACT designs.intervention_model",
+     "span": "PARALLEL"
+    }
+   ],
+   "design_action": {
+    "action": "ALLOW",
+    "gate_id": "design-key:parallel",
+    "decision_state": "no detected validity-critical design hazard",
+    "reason": "individually randomised parallel design established from committed evidence",
+    "validity_critical": false
+   }
+  },
+  "background_lifestyle_intensity": "INTENSIVE_BEHAVIORAL_THERAPY_30_VISITS_LOW_CALORIE_DIET",
+  "study_effect": {
+   "effect_estimate": -10.7,
+   "standard_error": 0.735714669923593,
+   "estimand": "MD",
+   "analysis_population": "in-trial / treatment-policy estimand (all randomized), baseline to Week 68",
+   "randomisation_unit": "INDIVIDUAL",
+   "study_design": "PARALLEL",
+   "estimator_method": "RECONSTRUCTED",
+   "correlation_handling": {
+    "method": "none",
+    "evidence": []
+   },
+   "source_provenance": {
+    "source": "ctgov_results",
+    "span": "ClinicalTrials.gov results (structured, continuous): outcome 'Change in Body Weight (%)' mean -16.5 (SD 10.1, n=407) [Semaglutide 2.4 mg] vs -5.8 (SD 7.7, n=204) [Placebo] Percentage — population: Overall number of participants analyzed = full analysis set (FAS) which comprise"
+   },
+   "design_action": {
+    "action": "ALLOW",
+    "gate_id": "design-key:parallel",
+    "decision_state": "no detected validity-critical design hazard",
+    "reason": "individually randomised parallel design established from committed evidence",
+    "validity_critical": false
+   }
+  },
+  "effect_object": {
+   "reported_label": "MD",
+   "statistical_model": null,
+   "canonical_estimand": "MEAN_DIFFERENCE"
+  },
+  "trial_family_id": "NCT03611582",
+  "publication_role": "primary",
+  "analysis_set": "in-trial / treatment-policy estimand (all randomized), baseline to Week 68",
+  "follow_up_window": "Baseline (week 0) to week 68",
+  "endpoint_definition": "Same CT.gov-vs-abstract estimand question (STEP 3).; ALREADY DISCLOSED (estimand stated)",
+  "population_age": "adult",
+  "intervention_ontology": {
+   "intervention_class": null
+  },
+  "compat_dimensions": {
+   "trial_id": "33625476",
+   "trial_label": "33625476",
+   "analysis_set": {
+    "value": "in-trial / treatment-policy estimand (all randomized), baseline to Week 68",
+    "source": "study_effect.analysis_population",
+    "span": "in-trial / treatment-policy estimand (all randomized), baseline to Week 68"
+   },
+   "follow_up_window": {
+    "value": "Baseline (week 0) to week 68",
+    "source": "trial.timeframe",
+    "span": "Baseline (week 0) to week 68"
+   },
+   "endpoint_definition": {
+    "value": "Same CT.gov-vs-abstract estimand question (STEP 3).; ALREADY DISCLOSED (estimand stated)",
+    "source": "docs/definition_audit.json",
+    "span": "Same CT.gov-vs-abstract estimand question (STEP 3).; ALREADY DISCLOSED (estimand stated)"
+   },
+   "population_age": {
+    "value": "adult",
+    "source": "committed source text",
+    "span": "Effect of Subcutaneous Semaglutide vs Placebo as an Adjunct to Intensive Behavioral Therapy on Body Weight in Adults With Overweight or Obesity: The STEP 3 Randomized Clinical Trial. IMPORTANCE: Weight loss improves cardiometa"
+   },
+   "intervention_ontology": {
+    "intervention_class": null
+   }
+  },
+  "trial_id": "PMID 33625476",
+  "report_id": "PMID 33625476",
+  "outcome_effect_id": "semaglutide-obesity-weight::Percent change in body weight::PMID 33625476::PMID 33625476",
+  "family_identity_state": "REGISTRY_ANCHORED",
+  "family_id": "NCT03611582"
+ },
+ "pinned_spans": {
+  "evidence/population": {
+   "ref": "cache/semaglutide-obesity-weight/records.json#/records/117",
+   "sha256": "8779e517b6f07fcfec0e548dc817f4dfdd3b4537e7070e4b4de86c7e2c26a7d9",
+   "offsets": [
+    960
+   ]
+  },
+  "evidence/number_analysed_is_available_data": {
+   "ref": "evidence/held/registry/NCT03611582.json",
+   "sha256": "bdaf55236501d463907e8f73be80d324093d2602dba7f8ec565cc5fb69092e5c",
+   "offsets": [
+    3870,
+    7473,
+    23785,
+    30802
+   ]
+  },
+  "evidence/class_denominators": {
+   "ref": "evidence/held/registry/NCT03611582.json",
+   "sha256": "bdaf55236501d463907e8f73be80d324093d2602dba7f8ec565cc5fb69092e5c",
+   "offsets": [
+    5672
+   ]
+  },
+  "evidence/observed_means": {
+   "ref": "evidence/held/registry/NCT03611582.json",
+   "sha256": "bdaf55236501d463907e8f73be80d324093d2602dba7f8ec565cc5fb69092e5c",
+   "offsets": [
+    5779
+   ]
+  },
+  "evidence/treatment_policy_estimate": {
+   "ref": "evidence/held/registry/NCT03611582.json",
+   "sha256": "bdaf55236501d463907e8f73be80d324093d2602dba7f8ec565cc5fb69092e5c",
+   "offsets": [
+    6141
+   ]
+  },
+  "evidence/abstract_estimate": {
+   "ref": "cache/semaglutide-obesity-weight/records.json#/records/117",
+   "sha256": "8779e517b6f07fcfec0e548dc817f4dfdd3b4537e7070e4b4de86c7e2c26a7d9",
+   "offsets": [
+    1676
+   ]
+  }
+ },
+ "by": "Claude Opus 5.5 (evidence lane evid/evidence-records)",
+ "when_utc": "2026-09-23T21:11:01Z"
+}

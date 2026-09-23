@@ -45,6 +45,9 @@ def _ctgov(d):
         for dn in om.get("denoms", []) or []:
             L.append(f"RESULT OUTCOME {i} DENOM {dn.get('units')}: " + "; ".join(f"{gt.get(c.get('groupId'))}={c.get('value')}" for c in dn.get("counts", []) or []))
         for cl in om.get("classes", []) or []:
+            for dn in cl.get("denoms", []) or []:
+                L.append(f"RESULT OUTCOME {i} CLASS DENOM {cl.get('title')} {dn.get('units')}: " + "; ".join(
+                    f"{gt.get(c.get('groupId'))}={c.get('value')}" for c in dn.get("counts", []) or []))
             for cat in cl.get("categories", []) or []:
                 lab = " / ".join(x for x in (cl.get("title"), cat.get("title")) if x)
                 L.append(f"RESULT OUTCOME {i} MEASUREMENT {lab}: " + "; ".join(
