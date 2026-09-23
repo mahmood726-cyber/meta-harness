@@ -60,6 +60,32 @@ def _stale_against(committed, fresh):
     return build_bundle.canonical_json(have) != build_bundle.canonical_json(new)
 
 
+def _diff_paths(a, b, path="", out=None, limit=12):
+    """The JSON paths where two objects differ (first `limit`), so a stale-bundle refusal says WHAT is stale."""
+    out = [] if out is None else out
+    if len(out) >= limit:
+        return out
+    if isinstance(a, dict) and isinstance(b, dict):
+        for k in sorted(set(a) | set(b)):
+            if k not in a or k not in b:
+                out.append(f"{path}/{k}: {'missing in committed' if k not in a else 'missing in fresh'}")
+            else:
+                _diff_paths(a[k], b[k], f"{path}/{k}", out, limit)
+    elif isinstance(a, list) and isinstance(b, list):
+        if len(a) != len(b):
+            out.append(f"{path}: list length {len(a)} (committed) vs {len(b)} (fresh)")
+        for i, (x, y) in enumerate(zip(a, b)):
+            _diff_paths(x, y, f"{path}[{i}]", out, limit)
+    elif a != b:
+        out.append(f"{path}: committed {str(a)[:90]!r} vs fresh {str(b)[:90]!r}")
+    return out[:limit]
+
+
+def test_diff_paths_names_what_differs():
+    assert _diff_paths({"a": [1, {"b": 2}]}, {"a": [1, {"b": 3}], "c": 0}) == [
+        "/a[1]/b: committed '2' vs fresh '3'", "/c: missing in committed"]
+
+
 def test_bundle_is_current():
     """A stale bundle is the same defect as no bundle: a digest table that does not describe the served bytes.
     Until 2026-09-23 this test only asked whether a build COULD be made (build(check_only=True) problems) and never
@@ -67,8 +93,12 @@ def test_bundle_is_current():
     served bundle named harness/target_endpoint.py blob 554df973 after the code had moved to f605e0f5."""
     fresh, problems = build_bundle.build(SLUG, check_only=True)
     assert not problems, "\n".join(problems)
-    assert not _stale_against(_load(BUNDLE), json.loads(json.dumps(fresh, ensure_ascii=False))), (
-        "BUNDLE.json is stale (differs from a fresh build); regenerate: python scripts/build_bundle.py " + SLUG)
+    committed, fresh = _load(BUNDLE), json.loads(json.dumps(fresh, ensure_ascii=False))
+    if _stale_against(committed, fresh):
+        for obj in (committed, fresh):
+            (obj.get("source") or {}).pop("content_commit", None)
+        pytest.fail("BUNDLE.json is stale (differs from a fresh build); regenerate: python scripts/build_bundle.py "
+                    + SLUG + "\n  " + "\n  ".join(_diff_paths(committed, fresh)))
 
 
 def test_the_staleness_comparison_can_fire():
