@@ -99,3 +99,21 @@ def test_served_arm_means_in_either_field_shape_are_compared(tmp_path):
     assert V.verify(rec, pk)["served_compare"]["state"] == "MATCH"
     pk["served_row"]["nc2"] = 0.96          # a denominator that is not the one the span prints
     assert V.verify(rec, pk)["served_compare"]["state"] == "DIFFERS"
+
+
+# ---- adjudications: a confirmation must be checkable against the served numbers
+import adjudicate as A
+
+
+def test_confirmation_refused_when_served_numbers_are_not_in_the_cited_spans(tmp_path):
+    served = {"effect": 0.82, "ci_low": 0.70, "ci_high": 0.96}
+    ok = {"evidence": {"e": {"span": "hazard ratio was 0.82 (95% CI, 0.70 to 0.96)"}}}
+    assert A.confirm_check(ok, served) is None
+    bad = {"evidence": {"e": {"span": "hazard ratio was 0.82 (95% CI, 0.70 to 0.97)"}}}
+    assert "not printed" in A.confirm_check(bad, served)
+
+
+def test_confirmation_by_derivation_must_equal_the_served_numbers():
+    served = {"effect": 0.44, "ci_low": 0.27, "ci_high": 0.73}
+    assert A.confirm_check({"derivation": {"result": [0.44, 0.27, 0.73]}}, served) is None
+    assert "!=" in A.confirm_check({"derivation": {"result": [0.44, 0.27, 0.74]}}, served)

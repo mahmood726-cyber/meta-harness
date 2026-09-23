@@ -7,7 +7,7 @@
 - NOT_YET_EXTRACTED: 45 of 53
 - among the 6 verified BOUND: served MATCH 5, DIFFERS 1, NOT_COMPARABLE 0 (each of 6)
 - fields bound (of 6 verified BOUND): population 6, endpoint 6, estimate 6, ci 6, analysis_set 3, treatment_strategy 6, follow_up 5
-- extractor's entry-population reading (not a ruling): PARTLY 1, YES 7
+- extractor's entry-population reading (not a ruling): PARTLY 1, YES 9
 - adjudicated by the lane: 1 of 53: SERVED_CONFIRMED 1
 
 ## U23: N = 23 (served rows lane UA found with no locatable source)
@@ -18,4 +18,4 @@
 - among the 0 verified BOUND: served MATCH 0, DIFFERS 0, NOT_COMPARABLE 0 (each of 0)
 - fields bound (of 0 verified BOUND): population 0, endpoint 0, estimate 0, ci 0, analysis_set 0, treatment_strategy 0, follow_up 0
 - extractor's entry-population reading (not a ruling): 
-- adjudicated by the lane: 3 of 23: CANDIDATE_REJECTED 3
+- adjudicated by the lane: 6 of 23: CANDIDATE_REJECTED 3, SERVED_CONFIRMED 3

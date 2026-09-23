@@ -37,6 +37,29 @@ def check_spans(d, packet):
     return pinned, errs
 
 
+def confirm_check(d, served):
+    """A confirmation must be checkable: the served numbers either equal the recorded derivation, or every served
+    number is printed in the cited evidence spans. Returns None when it holds, else the reason."""
+    keys = [k for k in ("effect", "ci_low", "ci_high") if served.get(k) is not None] or            [k for k in ("ai", "n1i", "ci", "n2i", "mean1", "sd1", "nc1", "mean2", "sd2", "nc2") if served.get(k) is not None]
+    vals = [float(served[k]) for k in keys]
+    if not vals:
+        return "served row carries no number to confirm"
+    der = (d.get("derivation") or {}).get("result")
+    if der is not None:
+        if len(der) != len(vals) or any(abs(a - b) > 5e-3 for a, b in zip(der, vals)):
+            return f"derivation result {der} != served {vals}"
+        return None
+    toks = set()
+    def walk(n):
+        if isinstance(n, dict):
+            if "span" in n: toks.update(V.num_tokens(n["span"]))
+            else: [walk(v) for v in n.values()]
+    walk(d.get("evidence"))
+    fl = {float(t) for t in toks}
+    missing = [v for v in vals if not any(abs(v - f) < 1e-9 for f in fl)]
+    return f"served numbers {missing} are not printed in any cited span" if missing else None
+
+
 def main(p):
     d = json.load(open(p, encoding="utf-8"))
     assert d["ruling"] in RULINGS, d["ruling"]
@@ -44,6 +67,10 @@ def main(p):
     pinned, errs = check_spans(d, packet)
     if errs:
         print("REFUSED:", *errs, sep="\n  "); return 1
+    if d["ruling"] == "SERVED_CONFIRMED":
+        why = confirm_check(d, V.served_row(packet))
+        if why:
+            print("REFUSED:", why); return 1
     if d["ruling"] == "CANDIDATE_REJECTED":
         assert d.get("proposed_row") and d.get("notice"), "a rejected candidate needs a proposed row and a derived notice"
         d["notice"]["state"] = "QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED"
