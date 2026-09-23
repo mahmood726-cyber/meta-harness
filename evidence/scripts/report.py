@@ -46,10 +46,23 @@ def main(out, since=None):
          ["", "Blocks with sha256: `evidence/SIGNATURE_QUEUE.md`.", ""]
     fails = [k for k, v in ver.items() if v["errors"]]
     L += ["## Extraction pipeline", "", f"- codex extractions verified against held bytes: {len(ver) - len(fails)} of {len(ver)}; failing (candidates, not claims): {', '.join(fails) or 'none'}", ""]
+    sp = os.path.join(ROOT, "evidence/second_adjudication/SUMMARY.json")
+    if os.path.exists(sp):
+        s2 = json.load(open(sp, encoding="utf-8"))
+        ver2 = {k: v for k, v in s2.items() if not v["quote_errors"]}
+        L += ["## Second, cross-family adjudication (codex / OpenAI family)", "",
+              f"- rulings second-adjudicated: {len(s2)} of {len(adj)} (the highest-stakes: rejected candidates, entry rulings short of ESTABLISHED, confirmations that overrule a candidate or rest on a derivation)",
+              f"- quotes verbatim in held bytes: {len(ver2)} of {len(s2)}",
+              f"- number: " + ", ".join(f"{a} {b}" for a, b in sorted(collections.Counter(v['number'] for v in ver2.values()).items())) +
+              f"; entry: " + ", ".join(f"{a} {b}" for a, b in sorted(collections.Counter(v['entry'] for v in ver2.values()).items())),
+              "- each disagreement was tested against the source; resolutions: " + "; ".join(
+                  f"{k}: {x['second_adjudication']['resolution']}" for k, x in sorted(adj.items()) if x.get("second_adjudication")), ""]
+    oq = [x for x in adj.values() if x.get("open_question")]
+    L += [f"## Open questions for Mahmood: {len(oq)} (`evidence/OPEN_QUESTIONS.md`)", ""] + [f"- {x['key']}: {x['open_question'][:300]}" for x in oq] + [""]
     L += ["## Limits (stated so a clean count cannot imply more than it measured)", "",
-          "- Every ruling is ONE adjudicator's (this lane, Anthropic family); the extractor was codex (OpenAI family). "
-          "Spans are machine-verified against held bytes, but the SEMANTIC rulings (entry ESTABLISHED/PARTLY, which "
-          "candidate a served endpoint means) have had no second, independent adjudicator.",
+          f"- Rulings are this lane's (Anthropic family); the extractor was codex (OpenAI family). A second, cross-family "
+          f"adjudication covers only the highest-stakes subset (above); the remaining SERVED_CONFIRMED rulings rest on one "
+          f"adjudicator plus the mechanical span and number gates.",
           "- 'Entry ESTABLISHED' means the trial's own text states an entry population inside the question. It is "
           "evidence for Mahmood's D04, not an admission; no route that admits a row exists or was created.",
           "- Most held sources are abstracts or registry records; open-access full text was held or acquired for a "

@@ -66,6 +66,11 @@ def _ctgov(d):
             L.append(f"RESULT OUTCOME {i} DISPERSION TYPE: {om.get('dispersionType')}")
     if el.get("minimumAge") or el.get("maximumAge") or el.get("sex"):
         L.append(f"ELIGIBILITY AGE/SEX: minimum age {el.get('minimumAge')} | maximum age {el.get('maximumAge')} | sex {el.get('sex')}")
+    di = (ps.get("designModule", {}) or {}).get("designInfo", {}) or {}
+    mk = di.get("maskingInfo", {}) or {}
+    if di:
+        L.append(f"DESIGN: allocation {di.get('allocation')} | model {di.get('interventionModel')} | masking {mk.get('masking')}"
+                 f" | who masked {', '.join(mk.get('whoMasked', []) or []) or None}")
     return "\n".join(L)
 
 

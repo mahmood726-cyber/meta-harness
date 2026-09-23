@@ -32,7 +32,12 @@ def main():
         b = block(a)
         out.append(b + f"- block sha256: {hashlib.sha256(b.encode('utf-8')).hexdigest()}\n")
     open(os.path.join(ROOT, "evidence/SIGNATURE_QUEUE.md"), "w", encoding="utf-8", newline="\n").write("\n".join(out))
-    print(f"queued {len(rej)} of {len(rows)} adjudications")
+    oq = [a for a in rows if a.get("open_question")]
+    q = ["# Open questions for Mahmood (method decisions the evidence cannot settle; no number changed)\n",
+         f"{len(oq)} of {len(rows)} adjudicated rows carry one.\n"]
+    q += [f"- **{a['key']}**: {a['open_question']}\n" for a in oq]
+    open(os.path.join(ROOT, "evidence/OPEN_QUESTIONS.md"), "w", encoding="utf-8", newline="\n").write("\n".join(q))
+    print(f"queued {len(rej)} of {len(rows)} adjudications; open questions {len(oq)}")
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ ROOT = textrep.ROOT
 
 def main():
     rows = {}
-    for p in sorted(glob.glob(os.path.join(ROOT, "evidence/second_adjudication/*.json"))):
+    for p in sorted(q for q in glob.glob(os.path.join(ROOT, "evidence/second_adjudication/*.json")) if not q.endswith("SUMMARY.json")):
         d = json.load(open(p, encoding="utf-8")); k = d.get("key") or os.path.basename(p)[:-5]
         pk = json.load(open(os.path.join(ROOT, f"evidence/packets/{k}.json"), encoding="utf-8"))
         allowed = {s["ref"]: textrep.render(s["ref"]) for s in pk["sources"]}
