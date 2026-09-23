@@ -1,0 +1,593 @@
+# Plants observed failing BEFORE the fix (lane rai, 2026-09-23)
+# 1) tests/test_model_source.py run against a deliberately permissive stub of the module (records anything, replays
+#    without checks, dict-like proposal, passes every verifier): 33 of 46 then-existing tests failed. The 13 that passed
+#    are ones a dict subclass already satisfies (numeric conversion raising TypeError, the self-contained sweep) or that
+#    only construct a record. 2) the real-consumer plant with Proposal.__getattr__ removed. 3) the whole-text
+#    NOT_STATED comparison before verify_estimand computed rule_on_text.
+
+.FFFFFF..FFFFFFF.F..F.FFFFF...FF.FFFFFF.FF.FFF                           [100%]
+================================== FAILURES ===================================
+_ test_a_call_whose_inputs_are_not_recoverable_is_not_a_source[prompt_bytes] __
+
+missing = 'prompt_bytes'
+
+    @pytest.mark.parametrize("missing", ["prompt_bytes", "model", "caller", "input_digests"])
+    def test_a_call_whose_inputs_are_not_recoverable_is_not_a_source(missing):
+>       with pytest.raises(ms.RecordIncomplete):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'harness.model_source.RecordIncomplete'>
+
+tests\test_model_source.py:63: Failed
+_____ test_a_call_whose_inputs_are_not_recoverable_is_not_a_source[model] _____
+
+missing = 'model'
+
+    @pytest.mark.parametrize("missing", ["prompt_bytes", "model", "caller", "input_digests"])
+    def test_a_call_whose_inputs_are_not_recoverable_is_not_a_source(missing):
+>       with pytest.raises(ms.RecordIncomplete):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'harness.model_source.RecordIncomplete'>
+
+tests\test_model_source.py:63: Failed
+____ test_a_call_whose_inputs_are_not_recoverable_is_not_a_source[caller] _____
+
+missing = 'caller'
+
+    @pytest.mark.parametrize("missing", ["prompt_bytes", "model", "caller", "input_digests"])
+    def test_a_call_whose_inputs_are_not_recoverable_is_not_a_source(missing):
+>       with pytest.raises(ms.RecordIncomplete):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'harness.model_source.RecordIncomplete'>
+
+tests\test_model_source.py:63: Failed
+_ test_a_call_whose_inputs_are_not_recoverable_is_not_a_source[input_digests] _
+
+missing = 'input_digests'
+
+    @pytest.mark.parametrize("missing", ["prompt_bytes", "model", "caller", "input_digests"])
+    def test_a_call_whose_inputs_are_not_recoverable_is_not_a_source(missing):
+>       with pytest.raises(ms.RecordIncomplete):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'harness.model_source.RecordIncomplete'>
+
+tests\test_model_source.py:63: Failed
+______________________ test_an_unpinned_model_is_refused ______________________
+
+    def test_an_unpinned_model_is_refused():
+>       with pytest.raises(ms.RecordIncomplete):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'harness.model_source.RecordIncomplete'>
+
+tests\test_model_source.py:68: Failed
+_________ test_ran_error_is_recorded_and_never_replays_as_a_response __________
+
+    def test_ran_error_is_recorded_and_never_replays_as_a_response():
+        rec = _record(response=b"", state="RAN_ERROR", error="client exited 1")
+        assert rec["state"] == "RAN_ERROR"
+>       with pytest.raises(ms.ReplayRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'harness.model_source.ReplayRefused'>
+
+tests\test_model_source.py:75: Failed
+___________ test_a_tampered_record_is_refused_loudly[response_b64] ____________
+
+where = 'response_b64', offline = True
+
+    @pytest.mark.parametrize("where", ["response_b64", "response_sha", "prompt_b64", "model", "params", "input_digests"])
+    def test_a_tampered_record_is_refused_loudly(where, offline):
+        rec = _record()
+        bad = copy.deepcopy(rec)
+        if where == "response_b64":
+            bad["response"]["b64"] = base64.b64encode(b'{"answer": 2}').decode()
+        elif where == "response_sha":           # tamper consistently: new bytes AND their digest
+            bad["response"]["b64"] = base64.b64encode(b'{"answer": 2}').decode()
+            bad["response"]["sha256"] = ms.sha256_bytes(b'{"answer": 2}')
+            bad["response"]["bytes"] = len(b'{"answer": 2}')
+        elif where == "prompt_b64":
+            bad["prompt"]["b64"] = base64.b64encode(b"a different question").decode()
+        elif where == "model":
+            bad["model"]["id_reported"] = "some-other-model"
+        elif where == "params":
+            bad["params"]["reasoning_effort"] = "high"
+        else:
+            bad["input_digests"][0]["sha256"] = "0" * 64
+>       with pytest.raises(ms.ReplayRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'harness.model_source.ReplayRefused'>
+
+tests\test_model_source.py:129: Failed
+___________ test_a_tampered_record_is_refused_loudly[response_sha] ____________
+
+where = 'response_sha', offline = True
+
+    @pytest.mark.parametrize("where", ["response_b64", "response_sha", "prompt_b64", "model", "params", "input_digests"])
+    def test_a_tampered_record_is_refused_loudly(where, offline):
+        rec = _record()
+        bad = copy.deepcopy(rec)
+        if where == "response_b64":
+            bad["response"]["b64"] = base64.b64encode(b'{"answer": 2}').decode()
+        elif where == "response_sha":           # tamper consistently: new bytes AND their digest
+            bad["response"]["b64"] = base64.b64encode(b'{"answer": 2}').decode()
+            bad["response"]["sha256"] = ms.sha256_bytes(b'{"answer": 2}')
+            bad["response"]["bytes"] = len(b'{"answer": 2}')
+        elif where == "prompt_b64":
+            bad["prompt"]["b64"] = base64.b64encode(b"a different question").decode()
+        elif where == "model":
+            bad["model"]["id_reported"] = "some-other-model"
+        elif where == "params":
+            bad["params"]["reasoning_effort"] = "high"
+        else:
+            bad["input_digests"][0]["sha256"] = "0" * 64
+>       with pytest.raises(ms.ReplayRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'harness.model_source.ReplayRefused'>
+
+tests\test_model_source.py:129: Failed
+____________ test_a_tampered_record_is_refused_loudly[prompt_b64] _____________
+
+where = 'prompt_b64', offline = True
+
+    @pytest.mark.parametrize("where", ["response_b64", "response_sha", "prompt_b64", "model", "params", "input_digests"])
+    def test_a_tampered_record_is_refused_loudly(where, offline):
+        rec = _record()
+        bad = copy.deepcopy(rec)
+        if where == "response_b64":
+            bad["response"]["b64"] = base64.b64encode(b'{"answer": 2}').decode()
+        elif where == "response_sha":           # tamper consistently: new bytes AND their digest
+            bad["response"]["b64"] = base64.b64encode(b'{"answer": 2}').decode()
+            bad["response"]["sha256"] = ms.sha256_bytes(b'{"answer": 2}')
+            bad["response"]["bytes"] = len(b'{"answer": 2}')
+        elif where == "prompt_b64":
+            bad["prompt"]["b64"] = base64.b64encode(b"a different question").decode()
+        elif where == "model":
+            bad["model"]["id_reported"] = "some-other-model"
+        elif where == "params":
+            bad["params"]["reasoning_effort"] = "high"
+        else:
+            bad["input_digests"][0]["sha256"] = "0" * 64
+>       with pytest.raises(ms.ReplayRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'harness.model_source.ReplayRefused'>
+
+tests\test_model_source.py:129: Failed
+_______________ test_a_tampered_record_is_refused_loudly[model] _______________
+
+where = 'model', offline = True
+
+    @pytest.mark.parametrize("where", ["response_b64", "response_sha", "prompt_b64", "model", "params", "input_digests"])
+    def test_a_tampered_record_is_refused_loudly(where, offline):
+        rec = _record()
+        bad = copy.deepcopy(rec)
+        if where == "response_b64":
+            bad["response"]["b64"] = base64.b64encode(b'{"answer": 2}').decode()
+        elif where == "response_sha":           # tamper consistently: new bytes AND their digest
+            bad["response"]["b64"] = base64.b64encode(b'{"answer": 2}').decode()
+            bad["response"]["sha256"] = ms.sha256_bytes(b'{"answer": 2}')
+            bad["response"]["bytes"] = len(b'{"answer": 2}')
+        elif where == "prompt_b64":
+            bad["prompt"]["b64"] = base64.b64encode(b"a different question").decode()
+        elif where == "model":
+            bad["model"]["id_reported"] = "some-other-model"
+        elif where == "params":
+            bad["params"]["reasoning_effort"] = "high"
+        else:
+            bad["input_digests"][0]["sha256"] = "0" * 64
+>       with pytest.raises(ms.ReplayRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'harness.model_source.ReplayRefused'>
+
+tests\test_model_source.py:129: Failed
+______________ test_a_tampered_record_is_refused_loudly[params] _______________
+
+where = 'params', offline = True
+
+    @pytest.mark.parametrize("where", ["response_b64", "response_sha", "prompt_b64", "model", "params", "input_digests"])
+    def test_a_tampered_record_is_refused_loudly(where, offline):
+        rec = _record()
+        bad = copy.deepcopy(rec)
+        if where == "response_b64":
+            bad["response"]["b64"] = base64.b64encode(b'{"answer": 2}').decode()
+        elif where == "response_sha":           # tamper consistently: new bytes AND their digest
+            bad["response"]["b64"] = base64.b64encode(b'{"answer": 2}').decode()
+            bad["response"]["sha256"] = ms.sha256_bytes(b'{"answer": 2}')
+            bad["response"]["bytes"] = len(b'{"answer": 2}')
+        elif where == "prompt_b64":
+            bad["prompt"]["b64"] = base64.b64encode(b"a different question").decode()
+        elif where == "model":
+            bad["model"]["id_reported"] = "some-other-model"
+        elif where == "params":
+            bad["params"]["reasoning_effort"] = "high"
+        else:
+            bad["input_digests"][0]["sha256"] = "0" * 64
+>       with pytest.raises(ms.ReplayRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'harness.model_source.ReplayRefused'>
+
+tests\test_model_source.py:129: Failed
+___________ test_a_tampered_record_is_refused_loudly[input_digests] ___________
+
+where = 'input_digests', offline = True
+
+    @pytest.mark.parametrize("where", ["response_b64", "response_sha", "prompt_b64", "model", "params", "input_digests"])
+    def test_a_tampered_record_is_refused_loudly(where, offline):
+        rec = _record()
+        bad = copy.deepcopy(rec)
+        if where == "response_b64":
+            bad["response"]["b64"] = base64.b64encode(b'{"answer": 2}').decode()
+        elif where == "response_sha":           # tamper consistently: new bytes AND their digest
+            bad["response"]["b64"] = base64.b64encode(b'{"answer": 2}').decode()
+            bad["response"]["sha256"] = ms.sha256_bytes(b'{"answer": 2}')
+            bad["response"]["bytes"] = len(b'{"answer": 2}')
+        elif where == "prompt_b64":
+            bad["prompt"]["b64"] = base64.b64encode(b"a different question").decode()
+        elif where == "model":
+            bad["model"]["id_reported"] = "some-other-model"
+        elif where == "params":
+            bad["params"]["reasoning_effort"] = "high"
+        else:
+            bad["input_digests"][0]["sha256"] = "0" * 64
+>       with pytest.raises(ms.ReplayRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'harness.model_source.ReplayRefused'>
+
+tests\test_model_source.py:129: Failed
+__________ test_write_record_refuses_to_overwrite_a_stored_response ___________
+
+tmp_path = WindowsPath('C:/mh-lanes/pt/stub/test_write_record_refuses_to_o0')
+
+    def test_write_record_refuses_to_overwrite_a_stored_response(tmp_path):
+        rec = _record()
+        path = ms.write_record(rec, tmp_path)
+        forged = copy.deepcopy(rec)
+        forged["response"]["b64"] = base64.b64encode(b"forged").decode()
+        path.write_text(json.dumps(forged), encoding="utf-8")
+>       with pytest.raises(ms.ReplayRefused):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'harness.model_source.ReplayRefused'>
+
+tests\test_model_source.py:139: Failed
+______ test_a_proposal_is_proposed_and_cannot_be_promoted_by_assignment _______
+
+    def test_a_proposal_is_proposed_and_cannot_be_promoted_by_assignment():
+        p = _proposal()
+        assert p.status == "PROPOSED"
+>       with pytest.raises(AttributeError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'AttributeError'>
+
+tests\test_model_source.py:167: Failed
+___________ test_a_proposal_reaching_an_admission_path_raises[bool] ___________
+
+use = 'bool'
+
+    @pytest.mark.parametrize("use", ["float", "int", "bool", "index", "iter", "getitem", "len", "format", "json", "add",
+                                     "compare", "hash"])
+    def test_a_proposal_reaching_an_admission_path_raises(use):
+        """Every way a producer, a pool, a predicate or a renderer could consume a value: each must raise."""
+        p = _proposal()
+        ops = {
+            "float": lambda: float(p), "int": lambda: int(p), "bool": lambda: bool(p), "index": lambda: [0, 1][p],
+            "iter": lambda: list(p), "getitem": lambda: p["value"], "len": lambda: len(p),
+            "format": lambda: f"{p}", "json": lambda: json.dumps({"row": p}), "add": lambda: p + 1,
+            "compare": lambda: p < 1, "hash": lambda: {p: 1},
+        }
+>       with pytest.raises((ms.ProposalNotAdmissible, TypeError)) as ei:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (<class 'harness.model_source.ProposalNotAdmissible'>, <class 'TypeError'>)
+
+tests\test_model_source.py:184: Failed
+___________ test_a_proposal_reaching_an_admission_path_raises[iter] ___________
+
+use = 'iter'
+
+    @pytest.mark.parametrize("use", ["float", "int", "bool", "index", "iter", "getitem", "len", "format", "json", "add",
+                                     "compare", "hash"])
+    def test_a_proposal_reaching_an_admission_path_raises(use):
+        """Every way a producer, a pool, a predicate or a renderer could consume a value: each must raise."""
+        p = _proposal()
+        ops = {
+            "float": lambda: float(p), "int": lambda: int(p), "bool": lambda: bool(p), "index": lambda: [0, 1][p],
+            "iter": lambda: list(p), "getitem": lambda: p["value"], "len": lambda: len(p),
+            "format": lambda: f"{p}", "json": lambda: json.dumps({"row": p}), "add": lambda: p + 1,
+            "compare": lambda: p < 1, "hash": lambda: {p: 1},
+        }
+>       with pytest.raises((ms.ProposalNotAdmissible, TypeError)) as ei:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (<class 'harness.model_source.ProposalNotAdmissible'>, <class 'TypeError'>)
+
+tests\test_model_source.py:184: Failed
+_________ test_a_proposal_reaching_an_admission_path_raises[getitem] __________
+
+use = 'getitem'
+
+    @pytest.mark.parametrize("use", ["float", "int", "bool", "index", "iter", "getitem", "len", "format", "json", "add",
+                                     "compare", "hash"])
+    def test_a_proposal_reaching_an_admission_path_raises(use):
+        """Every way a producer, a pool, a predicate or a renderer could consume a value: each must raise."""
+        p = _proposal()
+        ops = {
+            "float": lambda: float(p), "int": lambda: int(p), "bool": lambda: bool(p), "index": lambda: [0, 1][p],
+            "iter": lambda: list(p), "getitem": lambda: p["value"], "len": lambda: len(p),
+            "format": lambda: f"{p}", "json": lambda: json.dumps({"row": p}), "add": lambda: p + 1,
+            "compare": lambda: p < 1, "hash": lambda: {p: 1},
+        }
+>       with pytest.raises((ms.ProposalNotAdmissible, TypeError)) as ei:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (<class 'harness.model_source.ProposalNotAdmissible'>, <class 'TypeError'>)
+
+tests\test_model_source.py:184: Failed
+___________ test_a_proposal_reaching_an_admission_path_raises[len] ____________
+
+use = 'len'
+
+    @pytest.mark.parametrize("use", ["float", "int", "bool", "index", "iter", "getitem", "len", "format", "json", "add",
+                                     "compare", "hash"])
+    def test_a_proposal_reaching_an_admission_path_raises(use):
+        """Every way a producer, a pool, a predicate or a renderer could consume a value: each must raise."""
+        p = _proposal()
+        ops = {
+            "float": lambda: float(p), "int": lambda: int(p), "bool": lambda: bool(p), "index": lambda: [0, 1][p],
+            "iter": lambda: list(p), "getitem": lambda: p["value"], "len": lambda: len(p),
+            "format": lambda: f"{p}", "json": lambda: json.dumps({"row": p}), "add": lambda: p + 1,
+            "compare": lambda: p < 1, "hash": lambda: {p: 1},
+        }
+>       with pytest.raises((ms.ProposalNotAdmissible, TypeError)) as ei:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (<class 'harness.model_source.ProposalNotAdmissible'>, <class 'TypeError'>)
+
+tests\test_model_source.py:184: Failed
+__________ test_a_proposal_reaching_an_admission_path_raises[format] __________
+
+use = 'format'
+
+    @pytest.mark.parametrize("use", ["float", "int", "bool", "index", "iter", "getitem", "len", "format", "json", "add",
+                                     "compare", "hash"])
+    def test_a_proposal_reaching_an_admission_path_raises(use):
+        """Every way a producer, a pool, a predicate or a renderer could consume a value: each must raise."""
+        p = _proposal()
+        ops = {
+            "float": lambda: float(p), "int": lambda: int(p), "bool": lambda: bool(p), "index": lambda: [0, 1][p],
+            "iter": lambda: list(p), "getitem": lambda: p["value"], "len": lambda: len(p),
+            "format": lambda: f"{p}", "json": lambda: json.dumps({"row": p}), "add": lambda: p + 1,
+            "compare": lambda: p < 1, "hash": lambda: {p: 1},
+        }
+>       with pytest.raises((ms.ProposalNotAdmissible, TypeError)) as ei:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (<class 'harness.model_source.ProposalNotAdmissible'>, <class 'TypeError'>)
+
+tests\test_model_source.py:184: Failed
+___________ test_a_proposal_reaching_an_admission_path_raises[json] ___________
+
+use = 'json'
+
+    @pytest.mark.parametrize("use", ["float", "int", "bool", "index", "iter", "getitem", "len", "format", "json", "add",
+                                     "compare", "hash"])
+    def test_a_proposal_reaching_an_admission_path_raises(use):
+        """Every way a producer, a pool, a predicate or a renderer could consume a value: each must raise."""
+        p = _proposal()
+        ops = {
+            "float": lambda: float(p), "int": lambda: int(p), "bool": lambda: bool(p), "index": lambda: [0, 1][p],
+            "iter": lambda: list(p), "getitem": lambda: p["value"], "len": lambda: len(p),
+            "format": lambda: f"{p}", "json": lambda: json.dumps({"row": p}), "add": lambda: p + 1,
+            "compare": lambda: p < 1, "hash": lambda: {p: 1},
+        }
+>       with pytest.raises((ms.ProposalNotAdmissible, TypeError)) as ei:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE any of (<class 'harness.model_source.ProposalNotAdmissible'>, <class 'TypeError'>)
+
+tests\test_model_source.py:184: Failed
+_____________________ test_admit_refuses_a_bare_proposal ______________________
+
+    def test_admit_refuses_a_bare_proposal():
+>       with pytest.raises(ms.ProposalNotAdmissible):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'harness.model_source.ProposalNotAdmissible'>
+
+tests\test_model_source.py:190: Failed
+_________________ test_no_pinned_producer_can_read_a_proposal _________________
+
+    def test_no_pinned_producer_can_read_a_proposal():
+        """Structural: nothing in the certificate's code closure imports model_source or names the proposal store."""
+        cert_paths = sorted({p for p in ms.pinned_closure(ROOT)})
+>       assert cert_paths, "the certificate closure could not be read -- this check would pass vacuously"
+E       AssertionError: the certificate closure could not be read -- this check would pass vacuously
+E       assert []
+
+tests\test_model_source.py:197: AssertionError
+_____________ test_estimand_span_must_be_located_in_the_held_text _____________
+
+    def test_estimand_span_must_be_located_in_the_held_text():
+        ok = ms.verify_estimand({"field": "analysis_set", "value": "intention-to-treat",
+                                 "quote": "The primary analysis was performed in the intention-to-treat population."}, HELD)
+        assert ok["state"] == "VERIFIER_PASS"
+>       assert HELD[ok["start"]:ok["end"]] == "The primary analysis was performed in the intention-to-treat population."
+E       AssertionError: assert '' == 'The primary ...t population.'
+E         
+E         - The primary analysis was performed in the intention-to-treat population.
+
+tests\test_model_source.py:222: AssertionError
+_________ test_estimand_value_outside_the_rule_vocabulary_is_refused __________
+
+    def test_estimand_value_outside_the_rule_vocabulary_is_refused():
+        r = ms.verify_estimand({"field": "analysis_set", "value": "modified ITT (as I understand it)",
+                                "quote": "The primary analysis was performed in the intention-to-treat population."}, HELD)
+>       assert r["state"] == "VERIFIER_REFUSED"
+E       AssertionError: assert 'VERIFIER_PASS' == 'VERIFIER_REFUSED'
+E         
+E         - VERIFIER_REFUSED
+E         + VERIFIER_PASS
+
+tests\test_model_source.py:231: AssertionError
+__________________ test_estimand_not_stated_carries_no_span ___________________
+
+    def test_estimand_not_stated_carries_no_span():
+        assert ms.verify_estimand({"field": "analysis_window", "value": "NOT_STATED", "quote": None}, HELD)["state"] == "VERIFIER_PASS"
+        r = ms.verify_estimand({"field": "analysis_window", "value": "NOT_STATED", "quote": "placebo-controlled"}, HELD)
+>       assert r["state"] == "VERIFIER_REFUSED"
+E       AssertionError: assert 'VERIFIER_PASS' == 'VERIFIER_REFUSED'
+E         
+E         - VERIFIER_REFUSED
+E         + VERIFIER_PASS
+
+tests\test_model_source.py:237: AssertionError
+___________ test_estimand_rule_on_the_span_is_recorded_not_resolved ___________
+
+    def test_estimand_rule_on_the_span_is_recorded_not_resolved():
+        r = ms.verify_estimand({"field": "analysis_set", "value": "per-protocol",
+                                "quote": "The primary analysis was performed in the intention-to-treat population."}, HELD)
+        # the rule reads intention-to-treat in the very span the model cites: a disagreement, recorded, never resolved
+        assert r["state"] == "VERIFIER_PASS"
+>       assert r["rule_on_span"]["values"] == ["intention-to-treat"]
+E       AssertionError: assert [] == ['intention-to-treat']
+E         
+E         Right contains one more item: 'intention-to-treat'
+E         Use -v to get more diff
+
+tests\test_model_source.py:245: AssertionError
+_____________ test_screening_quote_must_be_located_and_axes_typed _____________
+
+    def test_screening_quote_must_be_located_and_axes_typed():
+        axes = {"population": {"verdict": "MET", "quote": "3183 patients with type 2 diabetes"},
+                "intervention": {"verdict": "MET", "quote": "Oral Semaglutide"},
+                "comparator": {"verdict": "MET", "quote": "placebo-controlled"},
+                "design": {"verdict": "MET", "quote": "randomized, double-blind, placebo-controlled trial"}}
+        ok = ms.verify_screening({"axes": axes}, HELD, rule_decision="include")
+        assert ok["state"] == "VERIFIER_PASS" and ok["model_decision"] == "ELIGIBLE"
+        assert ok["agreement"] == "RULE_MODEL_AGREE"
+        planted = copy.deepcopy(axes)
+        planted["population"]["quote"] = "3183 adults with heart failure"
+>       assert ms.verify_screening({"axes": planted}, HELD, rule_decision="include")["state"] == "VERIFIER_REFUSED"
+E       AssertionError: assert 'VERIFIER_PASS' == 'VERIFIER_REFUSED'
+E         
+E         - VERIFIER_REFUSED
+E         + VERIFIER_PASS
+
+tests\test_model_source.py:259: AssertionError
+__ test_screening_disagreement_is_recorded_and_needs_an_individual_signature __
+
+    def test_screening_disagreement_is_recorded_and_needs_an_individual_signature():
+        axes = {"population": {"verdict": "NOT_MET", "quote": "3183 patients with type 2 diabetes"},
+                "intervention": {"verdict": "MET", "quote": "Oral Semaglutide"},
+                "comparator": {"verdict": "MET", "quote": "placebo-controlled"},
+                "design": {"verdict": "MET", "quote": "randomized, double-blind, placebo-controlled trial"}}
+        r = ms.verify_screening({"axes": axes}, HELD, rule_decision="include")
+>       assert r["model_decision"] == "INELIGIBLE"
+E       AssertionError: assert 'ELIGIBLE' == 'INELIGIBLE'
+E         
+E         - INELIGIBLE
+E         ? --
+E         + ELIGIBLE
+
+tests\test_model_source.py:274: AssertionError
+________ test_all_three_conditions_are_needed_and_none_suffices_alone _________
+
+    def test_all_three_conditions_are_needed_and_none_suffices_alone():
+        rec, entry = _entry()
+        signed = _sign(entry, rec)
+        assert ms.status_of(signed, rec, HELD) == "COUNTERSIGNED"
+        # (a) the verifier refuses -> stays PROPOSED even when signed
+        tampered_text = HELD.replace("intention-to-treat", "full analysis")
+>       assert ms.status_of(signed, rec, tampered_text) == "PROPOSED"
+E       AssertionError: assert 'COUNTERSIGNED' == 'PROPOSED'
+E         
+E         - PROPOSED
+E         + COUNTERSIGNED
+
+tests\test_model_source.py:313: AssertionError
+______ test_the_claim_in_the_queue_must_be_the_claim_the_record_replays _______
+
+    def test_the_claim_in_the_queue_must_be_the_claim_the_record_replays():
+        rec, entry = _entry()
+        signed = _sign(entry, rec)
+        forged = copy.deepcopy(signed)
+        forged["claim"]["value"] = "per-protocol"          # queue edited after the call; the record says otherwise
+>       assert ms.status_of(forged, rec, HELD) == "PROPOSED"
+E       AssertionError: assert 'COUNTERSIGNED' == 'PROPOSED'
+E         
+E         - PROPOSED
+E         + COUNTERSIGNED
+
+tests\test_model_source.py:330: AssertionError
+________________ test_a_disagreement_refuses_a_batch_signature ________________
+
+    def test_a_disagreement_refuses_a_batch_signature():
+        rec = _record(response=json.dumps({"field": "analysis_set", "value": "per-protocol",
+                                           "quote": "The primary analysis was performed in the intention-to-treat population."}).encode())
+        claim = json.loads(ms.replay(rec))
+        entry = ms.queue_entry(task="estimand", item_id="x", record=rec, claim=claim,
+                               verification=ms.verify_estimand(claim, HELD), held_ref="fixture:held", held_sha256=HELD_SHA)
+        batch = _sign(entry, rec, state="BATCH_SEEN_AND_SIGNED", batch_id="B1")
+>       assert ms.status_of(batch, rec, HELD) == "PROPOSED"
+E       AssertionError: assert 'COUNTERSIGNED' == 'PROPOSED'
+E         
+E         - PROPOSED
+E         + COUNTERSIGNED
+
+tests\test_model_source.py:348: AssertionError
+___________ test_countersigned_is_review_material_not_an_admission ____________
+
+    def test_countersigned_is_review_material_not_an_admission():
+        """Even a fully countersigned proposal returns an inert object: the build has no reader for it in this landing."""
+        rec, entry = _entry()
+        signed = _sign(entry, rec)
+        out = ms.admit(ms.Proposal.from_entry(signed), verification=signed["verification"], record=rec,
+                       countersignature=signed["reviewer_countersignature"], rendered_block=ms.render_proposal_block(signed, rec),
+                       held_text=HELD)
+>       assert out["status"] == "COUNTERSIGNED"
+E       AssertionError: assert 'ACCEPTED' == 'COUNTERSIGNED'
+E         
+E         - COUNTERSIGNED
+E         + ACCEPTED
+
+tests\test_model_source.py:359: AssertionError
+___________ test_render_block_is_deterministic_and_names_the_record ___________
+
+    def test_render_block_is_deterministic_and_names_the_record():
+        rec, entry = _entry()
+        a, b = ms.render_proposal_block(entry, rec), ms.render_proposal_block(copy.deepcopy(entry), rec)
+        assert a == b
+>       assert rec["record_id"] in a and rec["response"]["sha256"] in a and "PROPOSED" in a
+E       assert ('mc-2f4cfefac94ea096bfb50876ca80ff5a' in '{"claim": {"field": "analysis_set", "quote": "The primary analysis was performed in the intention-to-treat population...n": {"agreement": "", "end": 0, "problems": [], "rule_on_span": {"values": []}, "start": 0, "state": "VERIFIER_PASS"}}' and '38f39cabf152215996bb15e5cb9dad76c13a3eab43edcbb97f5ce49bebed43c6' in '{"claim": {"field": "analysis_set", "quote": "The primary analysis was performed in the intention-to-treat population...n": {"agreement": "", "end": 0, "problems": [], "rule_on_span": {"values": []}, "start": 0, "state": "VERIFIER_PASS"}}')
+
+tests\test_model_source.py:367: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_model_source.py::test_a_call_whose_inputs_are_not_recoverable_is_not_a_source[prompt_bytes]
+FAILED tests/test_model_source.py::test_a_call_whose_inputs_are_not_recoverable_is_not_a_source[model]
+FAILED tests/test_model_source.py::test_a_call_whose_inputs_are_not_recoverable_is_not_a_source[caller]
+FAILED tests/test_model_source.py::test_a_call_whose_inputs_are_not_recoverable_is_not_a_source[input_digests]
+FAILED tests/test_model_source.py::test_an_unpinned_model_is_refused - Failed...
+FAILED tests/test_model_source.py::test_ran_error_is_recorded_and_never_replays_as_a_response
+FAILED tests/test_model_source.py::test_a_tampered_record_is_refused_loudly[response_b64]
+FAILED tests/test_model_source.py::test_a_tampered_record_is_refused_loudly[response_sha]
+FAILED tests/test_model_source.py::test_a_tampered_record_is_refused_loudly[prompt_b64]
+FAILED tests/test_model_source.py::test_a_tampered_record_is_refused_loudly[model]
+FAILED tests/test_model_source.py::test_a_tampered_record_is_refused_loudly[params]
+FAILED tests/test_model_source.py::test_a_tampered_record_is_refused_loudly[input_digests]
+FAILED tests/test_model_source.py::test_write_record_refuses_to_overwrite_a_stored_response
+FAILED tests/test_model_source.py::test_a_proposal_is_proposed_and_cannot_be_promoted_by_assignment
+FAILED tests/test_model_source.py::test_a_proposal_reaching_an_admission_path_raises[bool]
+FAILED tests/test_model_source.py::test_a_proposal_reaching_an_admission_path_raises[iter]
+FAILED tests/test_model_source.py::test_a_proposal_reaching_an_admission_path_raises[getitem]
+FAILED tests/test_model_source.py::test_a_proposal_reaching_an_admission_path_raises[len]
+FAILED tests/test_model_source.py::test_a_proposal_reaching_an_admission_path_raises[format]
+FAILED tests/test_model_source.py::test_a_proposal_reaching_an_admission_path_raises[json]
+FAILED tests/test_model_source.py::test_admit_refuses_a_bare_proposal - Faile...
+FAILED tests/test_model_source.py::test_no_pinned_producer_can_read_a_proposal
+FAILED tests/test_model_source.py::test_estimand_span_must_be_located_in_the_held_text
+FAILED tests/test_model_source.py::test_estimand_value_outside_the_rule_vocabulary_is_refused
+FAILED tests/test_model_source.py::test_estimand_not_stated_carries_no_span
+FAILED tests/test_model_source.py::test_estimand_rule_on_the_span_is_recorded_not_resolved
+FAILED tests/test_model_source.py::test_screening_quote_must_be_located_and_axes_typed
+FAILED tests/test_model_source.py::test_screening_disagreement_is_recorded_and_needs_an_individual_signature
+FAILED tests/test_model_source.py::test_all_three_conditions_are_needed_and_none_suffices_alone
+FAILED tests/test_model_source.py::test_the_claim_in_the_queue_must_be_the_claim_the_record_replays
+FAILED tests/test_model_source.py::test_a_disagreement_refuses_a_batch_signature
+FAILED tests/test_model_source.py::test_countersigned_is_review_material_not_an_admission
+FAILED tests/test_model_source.py::test_render_block_is_deterministic_and_names_the_record
+33 failed, 13 passed in 1.65s
+    import tests.test_model_source as t
+ModuleNotFoundError: No module named 'tests.test_model_source'
+PLANT FIRED without the fix: AttributeError 'Proposal' object has no attribute 'yi_vi'
+E       AssertionError: assert (False)
+tests\test_model_source.py:332: AssertionError
+1 failed, 59 deselected in 3.45s
