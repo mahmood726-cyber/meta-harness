@@ -29,6 +29,11 @@ def num_tokens(s):
     return words | set(re.findall(r"(?<![\d.])-?\d+(?:[.·]\d+)?", (s or "").replace("·", ".").replace("−", "-")))
 
 
+def _num_tokens_text(text):
+    """Number tokens of a span, removing thousands separators only (a comma between two limits is not one)."""
+    return num_tokens(re.sub(r"(?<=\d)[,\u2009 ](?=\d{3}\b)", "", text or ""))
+
+
 def canon(v):
     if v is None:
         return None
@@ -145,12 +150,15 @@ def verify(rec, packet, pinned=None):
                 spans["entry_population"] = {"ref": ref, "sha256": file_sha(ref), "offsets": offs, "len": len(ep["span"])}
     bv = rec.get("bound_values") or {}
     numtext = " ".join((rec["fields"].get(f) or {}).get("span", "") for f in ("estimate", "ci") if rec.get("fields"))
-    toks = num_tokens(re.sub(r"(?<=\d)[,\u2009 ](?=\d{3}\b)", "", numtext))   # thousands separators only
+    toks = _num_tokens_text(numtext)
+    alltext = " ".join((v or {}).get("span", "") for v in (rec.get("fields") or {}).values())
+    alltoks = _num_tokens_text(alltext)
     for k, val in bv.items():
         if k not in NUMERIC or val in (None, ""):
             continue
         f = canon(val)
-        ftoks = {abs(float(x)) for x in toks}
+        # arm sizes may be printed in the population/treatment span; every other number must be in estimate/ci
+        ftoks = {abs(float(x)) for x in (alltoks if k in ("n_t", "n_c") else toks)}
         if f is None or abs(f) not in ftoks:
             errs.append(f"bound_values.{k}={val!r} not a number printed in the estimate/ci spans")
     core_missing = [f for f in CORE if f not in spans]

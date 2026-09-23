@@ -171,3 +171,20 @@ def test_a_non_95_percent_interval_is_never_compared_as_the_served_95_percent_in
 def test_a_count_written_as_a_word_is_that_number_and_no_other(tmp_path):
     assert "4" in V.num_tokens("four of 119 (3.4%)") and V.canon("four") == 4.0
     assert "5" not in V.num_tokens("four of 119 (3.4%)")
+
+
+def test_arm_size_may_come_from_the_population_span_but_an_event_count_may_not(tmp_path):
+    rec, pk, _ = _setup(tmp_path)
+    rec["bound_values"] = {"n_t": "1000"}              # printed as '1,000' in the population span only
+    assert V.verify(rec, pk)["errors"] == []
+    rec["bound_values"] = {"events_t": "1000"}         # an event count must be in the estimate/ci spans
+    assert any("events_t" in e for e in V.verify(rec, pk)["errors"])
+
+
+def test_no_control_characters_in_the_lane_scripts():
+    """Three times a shell heredoc turned a regex's \b or \1 into a raw control byte, silently changing what the
+    regex matched. A control byte in source is never intended here."""
+    import glob, re as _re
+    here = os.path.join(os.path.dirname(__file__), "..", "evidence", "scripts", "*.py")
+    bad = [p for p in glob.glob(here) if _re.search(rb"[\x00-\x08\x0b\x0c\x0e-\x1f]", open(p, "rb").read())]
+    assert bad == []
