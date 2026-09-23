@@ -20,6 +20,8 @@ def sources(w):
         p = f"evidence/held/registry/{n}.json"
         if os.path.exists(os.path.join(ROOT, p)):
             refs.append(p)
+    comp = json.load(open(os.path.join(ROOT, "evidence", "companions.json"), encoding="utf-8")).get(w["key"], [])
+    refs += [c["ref"] for c in comp if c["ref"] not in refs]
     out = []
     for r in refs:
         try:
