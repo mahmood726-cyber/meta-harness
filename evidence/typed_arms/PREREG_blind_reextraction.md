@@ -40,3 +40,11 @@ schema (`extractions_held/`), whose packets likewise showed the extractor the he
 and `source` from `row.json`. Primary: per arm, same arm_id (after `source_label_id` normalisation) and same
 (events, total) as the first pass, `n of N` arms over the 18 entries' arms. A FIRST_PASS_ANCHORED entry loses its
 direction and observations in `F4B_DATA.json`.
+
+## Addendum B (2026-09-25, before any blind WITNESS output exists)
+The witness packets (`extractions_witness/`) also showed the extractor the held tuple. A blind witness pass drops
+`served` and `source` from `row.json` (same documents, same WITNESS_BRIEF with the served-number sentences removed).
+Primary: per arm FIELD (events, total), does the blind pass cite a token with the same VALUE, and is it the same
+occurrence (file, start, end)? Reported as n of N fields for value and, separately, for occurrence. A value
+disagreement on a WITNESSED entry is read by eye and classified as in the main design; an occurrence-only disagreement
+(same value, different printed place) is reported, not treated as an error.
