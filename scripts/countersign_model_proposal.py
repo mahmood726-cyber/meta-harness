@@ -44,6 +44,11 @@ def _rec(e):
     return ms.load_record(p) if p.exists() else {}
 
 
+def routes_individual(e: dict) -> bool:
+    """The GATE's predicate (verdict does not agree, OR the re-ask did not reproduce) -- never a second opinion."""
+    return ms.individual_required(e, e["verification"])
+
+
 def render(a):
     doc, rows = pilot.gated(a.task)
     parts, n_sig, n_not = [], 0, 0
@@ -52,7 +57,7 @@ def render(a):
             parts.append(f"<p class='muted'><code>{html.escape(e['item_id'])}</code>: {html.escape(str(e.get('state')))} (no proposal)</p>")
             n_not += 1
             continue
-        indiv = ms.needs_individual_signature(e["verification"])
+        indiv = routes_individual(e)
         if (a.only_individual and not indiv) or (a.only_batchable and indiv):
             continue
         rec = _rec(e)
@@ -85,8 +90,10 @@ def _sign_one(doc_items, e, a, batch):
     other = [p for p in ms.gate_problems(e, rec, held) if not p.startswith("COUNTERSIGNATURE")]
     if other:
         return "refused: " + "; ".join(other)
-    if batch and ms.needs_individual_signature(e["verification"]):
-        return f"refused: rule and model do not agree ({e['verification'].get('agreement')}); a batch signature does not cover it"
+    if batch and routes_individual(e):
+        return (f"refused: an individual signature is required ({e['verification'].get('agreement')}"
+                + ("; the model's answer did not reproduce on re-ask" if e.get("individual_signature_required") else "")
+                + "); a batch signature does not cover it")
     block = ms.render_proposal_block(e, rec)
     sig = {"state": "BATCH_SEEN_AND_SIGNED" if batch else "SEEN_AND_SIGNED", "by": a.by,
            "when_utc": a.when or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),

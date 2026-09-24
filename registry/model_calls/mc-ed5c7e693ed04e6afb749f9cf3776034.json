@@ -1,0 +1,142 @@
+{
+ "caller": {
+  "file": "scripts/model_source_pilot.py",
+  "line": "cmd_stability",
+  "purpose": "stability re-ask of mc-d4f6c3915c9214ea0e904dcf4b197e34 (outcome_identity batch balanced-crystalloids-vs-saline-mortality#2)"
+ },
+ "client": {
+  "argv": [
+   "codex",
+   "exec",
+   "--ephemeral",
+   "--skip-git-repo-check",
+   "--ignore-user-config",
+   "--sandbox",
+   "read-only",
+   "--cd",
+   "<workdir>",
+   "--output-schema",
+   "<workdir>\\schema.json",
+   "--output-last-message",
+   "<workdir>\\last.txt",
+   "-m",
+   "gpt-6-astra",
+   "-c",
+   "model_reasoning_effort=medium",
+   "-c",
+   "project_doc_max_bytes=0",
+   "-"
+  ],
+  "name": "codex exec",
+  "version": "codex-cli 0.153.4"
+ },
+ "client_evidence": {
+  "header": {
+   "approval": "never",
+   "client banner": "v0.153.4",
+   "model": "gpt-6-astra",
+   "provider": "openai",
+   "reasoning effort": "medium",
+   "reasoning summaries": "none",
+   "sandbox": "read-only",
+   "session id": "01a0d215-12d9-79a2-8941-3cac99589f53",
+   "tokens used": "16,364"
+  },
+  "note": "raw client streams are hashed, not stored: they carry a local path (workdir) and echo the prompt; the header's model/provider/effort/session are copied above",
+  "stderr_bytes": 1736,
+  "stderr_sha256": "0608afcf5c5c60b31f8cefe0a822447569ea2d663971c45532720ac5e47e909e",
+  "stdout_bytes": 303,
+  "stdout_sha256": "f25f7fbeea015138a8b2953e5bb881c97405c4aeacaf1aa0146d37459663d645"
+ },
+ "input_digests": [
+  {
+   "ref": "topics/balanced-crystalloids-vs-saline-mortality.json",
+   "sha256": "8839092dfa4374d22e0ded466fcd017aee44f54af0980bb91a27dc8ccf6f139b",
+   "what": "raw bytes of the committed file"
+  },
+  {
+   "ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json",
+   "sha256": "79cfa5f4702bbc615f1c5038a3c1c2ac4e598a97847f167f4428a7205a8eb335",
+   "what": "raw bytes of the committed file"
+  },
+  {
+   "ref": "cache/balanced-crystalloids-vs-saline-mortality/records.json#ctgov_results[title=In-hospital Mortality]",
+   "sha256": "a5b7d6f18367e7b97ade2aef7cf1db51f11bc98223a2d85cec40012234d22fb7",
+   "what": "held text quoted by the item"
+  },
+  {
+   "ref": "client-injected:~/.codex/AGENTS.md (content not copied)",
+   "sha256": "7d532874e6ce2e57b076a02bd8a7a52fe4bf0e029fed5582d6177035c719d912",
+   "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"
+  },
+  {
+   "ref": "output-schema (inline in params)",
+   "sha256": "04d4316fa576388dbedaee81ac7aeef9086915eea90776845eae6ce38ffd63be",
+   "what": "JSON schema the client constrains the final message to"
+  }
+ ],
+ "model": {
+  "id_reported": "gpt-6-astra",
+  "id_requested": "gpt-6-astra",
+  "provider": "openai",
+  "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (codex built-in, not exposed)",
+  "server-side model revision behind the model id"
+ ],
+ "params": {
+  "ephemeral": true,
+  "ignore_user_config": true,
+  "output_schema": {
+   "additionalProperties": false,
+   "properties": {
+    "candidate_definition": {
+     "type": "string"
+    },
+    "candidate_population": {
+     "type": "string"
+    },
+    "candidate_timepoint": {
+     "type": "string"
+    },
+    "is_match": {
+     "type": "boolean"
+    },
+    "rationale": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "candidate_population",
+    "candidate_timepoint",
+    "candidate_definition",
+    "is_match",
+    "rationale"
+   ],
+   "type": "object"
+  },
+  "project_doc_max_bytes": 0,
+  "reasoning_effort": "medium",
+  "sandbox": "read-only",
+  "timeout_s": 900
+ },
+ "prompt": {
+  "b64": "WW91IGFyZSBhbiBvdXRjb21lLWlkZW50aXR5IGFkanVkaWNhdG9yIGZvciBhIG1ldGEtYW5hbHlzaXMuIERlY2lkZSB3aGV0aGVyIGEgQ2xpbmljYWxUcmlhbHMuZ292IG91dGNvbWUgbWVhc3VyZSBJUyB0aGUgcmV2aWV3J3MgZGVjbGFyZWQgb3V0Y29tZSAtLSBpLmUuIHRoZSBTQU1FIHBvcHVsYXRpb24sIHRoZSBTQU1FIHRpbWVwb2ludCwgYW5kIHRoZSBTQU1FIGV2ZW50IGRlZmluaXRpb24uIEp1ZGdlIGlkZW50aXR5IG9ubHk7IGRvIE5PVCBlc3RpbWF0ZSBvciBpbmZlciBhbnkgZWZmZWN0IHNpemUgb3IgbnVtYmVyLgoKUkVWSUVXJ1MgREVDTEFSRUQgT1VUQ09NRToKbmFtZTogTW9ydGFsaXR5CnBvcHVsYXRpb246IGludGVudGlvbi10by10cmVhdAp0aW1lcG9pbnQ6IDI4LTkwIGRheSBvciBpbi1ob3NwaXRhbAplc3RpbWFuZC9kZWZpbml0aW9uOiBSUgoKQ0FORElEQVRFIE9VVENPTUUgTUVBU1VSRSAoZnJvbSBDVC5nb3YpOgogdGl0bGU6IEluLWhvc3BpdGFsIE1vcnRhbGl0eQogdHlwZTogU0VDT05EQVJZCiBwYXJhbVR5cGU6IENPVU5UX09GX1BBUlRJQ0lQQU5UUwoKUmVwbHkgd2l0aCBPTkxZIGEgSlNPTiBvYmplY3QsIG5vIHByb3NlLCB3aXRoIGV4YWN0bHkgdGhlc2Uga2V5czoKeyJjYW5kaWRhdGVfcG9wdWxhdGlvbiI6ICI8dGhlIG1lYXN1cmUncyBwb3B1bGF0aW9uLCBmcm9tIGl0cyB0aXRsZT4iLCAiY2FuZGlkYXRlX3RpbWVwb2ludCI6ICI8aXRzIHRpbWVwb2ludCwgb3IgJ3Vuc3BlY2lmaWVkJz4iLCAiY2FuZGlkYXRlX2RlZmluaXRpb24iOiAiPGl0cyBldmVudCBkZWZpbml0aW9uPiIsICJpc19tYXRjaCI6IHRydWV8ZmFsc2UsICJyYXRpb25hbGUiOiAiPG9uZSBzZW50ZW5jZTogd2h5IGl0IGlzIG9yIGlzIG5vdCB0aGUgZGVjbGFyZWQgb3V0Y29tZT4ifQpTZXQgaXNfbWF0Y2g9ZmFsc2UgaWYgdGhlIHBvcHVsYXRpb24gaXMgYSBzdWJncm91cCwgdGhlIHRpbWVwb2ludCBkaWZmZXJzLCBvciB0aGUgZXZlbnQgZGVmaW5pdGlvbiBpcyBhIGRpZmZlcmVudCBlbmRwb2ludCAoZS5nLiBhIGNvbXBvbmVudCwgYSBicm9hZGVyL25hcnJvd2VyIGNvbXBvc2l0ZSwgYW4gRUQtdmlzaXQgY291bnQsIGEgZGV2aWNlLXRoZXJhcHkgZW5kcG9pbnQpLiBXaGVuIHVuc3VyZSwgaXNfbWF0Y2g9ZmFsc2Uu",
+  "bytes": 1149,
+  "sha256": "bc10a32ee91b81b97a3f3e0e58ecc599b6aa0833e28bced9daf53c4bb0e92baa"
+ },
+ "record_id": "mc-ed5c7e693ed04e6afb749f9cf3776034",
+ "request_utc": "2026-09-24T06:23:10Z",
+ "response": {
+  "b64": "eyJjYW5kaWRhdGVfcG9wdWxhdGlvbiI6InVuc3BlY2lmaWVkIiwiY2FuZGlkYXRlX3RpbWVwb2ludCI6ImluLWhvc3BpdGFsIiwiY2FuZGlkYXRlX2RlZmluaXRpb24iOiJEZWF0aCBkdXJpbmcgaG9zcGl0YWxpemF0aW9uIiwiaXNfbWF0Y2giOmZhbHNlLCJyYXRpb25hbGUiOiJUaGUgaW4taG9zcGl0YWwgbW9ydGFsaXR5IGVuZHBvaW50IG1hdGNoZXMgdGhlIGFsbG93ZWQgdGltZXBvaW50IGFuZCBldmVudCwgYnV0IHRoZSB0aXRsZSBkb2VzIG5vdCBlc3RhYmxpc2ggYW4gaW50ZW50aW9uLXRvLXRyZWF0IHBvcHVsYXRpb24uIn0=",
+  "bytes": 302,
+  "sha256": "d89ec58114e808599d4f5ac94453a66809c4bb997abd9f106343e4ac4aed1d2c"
+ },
+ "response_utc": "2026-09-24T06:23:17Z",
+ "schema": "model_call_record/1",
+ "state": "RAN_OK"
+}
