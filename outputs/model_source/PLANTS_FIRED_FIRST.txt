@@ -633,3 +633,8 @@ tests\test_model_source.py:332: AssertionError
 # 12) Held-text identity (2026-09-24): test_the_gate_verifies_against_the_held_text_the_entry_names_and_no_other
 #     before the fix -> 1 failed: a different text still containing the quoted sentence passed the gate. After: the
 #     gate refuses HELD_TEXT_MISMATCH; every committed queue is exactly as signable as before (re-rendered).
+
+# 13) Re-ask model identity (2026-09-24): cmd_stability asked every re-ask of MODEL (gpt-6-astra) whatever the source
+#     call had asked -- the queued reader-2 re-asks would have gone to a different model on the identical prompt and been
+#     read as reader 2's stability. Caught before it ran; re-asks now ask the source's model, and reasks_of() refuses to
+#     count a different-model call (test plants one).

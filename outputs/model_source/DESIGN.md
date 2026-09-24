@@ -88,6 +88,8 @@ store, and a plant proves that scan fires. **The certificate's in-tree scan does
   become a source): estimand 9 of 9 claims identical; screening, every one of the 269 items re-asked:
   **123 of 269 claims byte-identical** (quote wording varies), 1061 of 1076 axis verdicts and **260 of 269 derived
   decisions** the same. `outputs/model_source/STABILITY_*.json`.
+- Excluded records (keyword rules), re-asked in full: **896 of 913 derived decisions reproduce**; 11 of the 17
+  that do not were agreements with the rule, batch-signable on their single call and now individual.
 - **So a single call is not enough to batch-sign.** One of the 9 flips (LEADER, PMID 27295427) was an agreement
   with the rule — batch-signable on its source call — that came back CANNOT_TELL on re-ask. Rule: when a recorded
   re-ask of the identical prompt reaches a different derived decision, the item needs an INDIVIDUAL signature. The

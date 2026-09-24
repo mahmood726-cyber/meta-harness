@@ -474,6 +474,19 @@ def test_the_source_of_a_proposal_is_the_earliest_ordinary_call_whatever_the_fil
     assert pilot.source_record([err])["state"] == "RAN_ERROR"
 
 
+def test_a_reask_counts_only_if_it_asked_the_same_model():
+    """Plant: a call on the identical prompt to a DIFFERENT model, labelled as a re-ask, must not be read as this
+    model's stability (a pilot bug that would have re-asked reader-2 prompts of reader 1's model, 2026-09-24)."""
+    pilot = _pilot()
+    src = _record(request_utc="2026-09-23T22:00:00Z", response_utc="2026-09-23T22:00:05Z")
+    same = _record(response=b'{"answer": 2}', request_utc="2026-09-24T09:00:00Z", response_utc="2026-09-24T09:00:05Z",
+                   caller={"file": "t", "line": 1, "purpose": pilot.STABILITY_PURPOSE + src["record_id"]})
+    other = _record(response=b'{"answer": 3}', request_utc="2026-09-24T10:00:00Z", response_utc="2026-09-24T10:00:05Z",
+                    model={"id_requested": "another", "id_reported": "another", "provider": "planted"},
+                    caller={"file": "t", "line": 1, "purpose": pilot.STABILITY_PURPOSE + src["record_id"]})
+    assert [r["record_id"] for r in pilot.reasks_of([src, same, other], src)] == [same["record_id"]]
+
+
 def test_a_frozen_population_never_shrinks_when_the_rule_moves(tmp_path, monkeypatch):
     """Plants on a synthetic population: A is now excluded by the rule, B's held text changed, C is newly selected.
     A stays (with the rule's NEW decision recorded), B becomes HELD_TEXT_DRIFT, C is reported as drift, not added."""

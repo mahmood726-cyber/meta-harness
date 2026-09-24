@@ -469,6 +469,14 @@ def _records_by_prompt() -> dict[str, list[dict]]:
     return out
 
 
+def reasks_of(recs: list[dict], src: dict) -> list[dict]:
+    """The re-asks OF `src`: RAN_OK records of the same prompt whose purpose names src, asked of the SAME model. A call
+    to a different model on the same prompt is a second reader, never a measure of this model's stability."""
+    return [r for r in recs if r["state"] == "RAN_OK"
+            and str(r["caller"].get("purpose", "")).startswith(STABILITY_PURPOSE + src["record_id"])
+            and r["model"]["id_reported"] == src["model"]["id_reported"]]
+
+
 def source_record(recs: list[dict]) -> dict | None:
     """The record a proposal comes from: the EARLIEST RAN_OK call that is not a stability re-ask. A re-ask measures the
     model; it never replaces the answer that was proposed (and possibly signed). With no RAN_OK call, the latest error
@@ -550,8 +558,7 @@ def cmd_queue(task):
             e = ms.queue_entry(task=task, item_id=i["item_id"], record=rec, claim=claim, verification=ver,
                                held_ref=i["held_ref"], held_sha256=i["held_sha256"], rule_decision=i["rule_decision"],
                                context=ctx, response_item=key)
-            reasks = [r for r in recs_of_prompt if r["state"] == "RAN_OK"
-                      and str(r["caller"].get("purpose", "")).startswith(STABILITY_PURPOSE + rec["record_id"])]
+            reasks = reasks_of(recs_of_prompt, rec)
             if reasks:
                 decs = [decision_of(task, claim, ver)]
                 for r in reasks:
@@ -639,7 +646,8 @@ def cmd_stability(task: str, k: int):
                for r in recs):
             print(f"{b['batch']}: already re-asked", flush=True)
             continue
-        rec = model_call_live.call(b["prompt"], schema=_schema(task), model=MODEL, effort=EFFORT,
+        # the re-ask must ask the SAME model the source call asked: the one recorded, not the pilot default
+        rec = model_call_live.call(b["prompt"], schema=_schema(task), model=src["model"]["id_requested"], effort=EFFORT,
                                    caller={"file": "scripts/model_source_pilot.py", "line": "cmd_stability",
                                            "purpose": f"{STABILITY_PURPOSE}{src['record_id']} ({task} batch {b['batch']})"},
                                    input_digests=b["digests"])
@@ -665,8 +673,7 @@ def stability_report(task: str) -> dict:
     for b in batches(task, pilot_items(task)):
         recs = have.get(_sha(b["prompt"]), [])
         src = source_record(recs)
-        again = [r for r in recs if r["state"] == "RAN_OK" and src
-                 and str(r["caller"].get("purpose", "")).startswith(STABILITY_PURPOSE + src["record_id"])]
+        again = reasks_of(recs, src) if src else []
         if not src or src["state"] != "RAN_OK" or not again:
             continue
         a, c = _claims(src, b["keyed"]), _claims(again[0], b["keyed"])
@@ -747,6 +754,48 @@ def cmd_readers(source: str = "screening"):
     print(json.dumps(rep["summary"], indent=1))
 
 
+# ------------------------------------------------------------------------------------------------------ adjudicator
+def adjudicator_report() -> dict:
+    """The served pages render an UNRECORDED adjudicator's flags (cache/<slug>/screen_adjudication.json, advisory).
+    Every record it judged also has a RECORDED reader-1 proposal (screening + excluded + X1 cover every screened
+    record on the committed pages). Compare them, from committed files only; nothing is called or changed."""
+    from collections import Counter
+    q = {}
+    for t in ("screening", "screening_excluded", "screening_excluded_x1"):
+        p = Q_DIR / f"{t}.json"
+        if p.exists():
+            for e in json.loads(p.read_text(encoding="utf-8"))["items"]:
+                q[e["item_id"]] = e
+    rows, missing = [], []
+    for p in sorted((ROOT / "cache").glob("*/screen_adjudication.json")):
+        slug = p.parent.name
+        rev = json.loads((ROOT / "docs" / "reviews" / slug / "review.json").read_text(encoding="utf-8"))
+        idtype = {str(r["id"]): r.get("id_type") for r in (rev.get("screening") or {}).get("records") or []}
+        for rid, j in (json.loads(p.read_text(encoding="utf-8")).get("judgments") or {}).items():
+            key = f"{slug}::{idtype.get(str(rid))}:{rid}"
+            e = q.get(key)
+            if e is None or "verification" not in e:
+                missing.append(key)
+                continue
+            rows.append({"item_id": key, "rule": e.get("rule_decision"),
+                         "adjudicator_unrecorded": "ELIGIBLE" if j.get("is_eligible") is True else "INELIGIBLE",
+                         "recorded_reader": e["verification"].get("model_decision"), "record_id": e.get("record_id")})
+    pairs = Counter(f"{r['adjudicator_unrecorded']} / {r['recorded_reader']}" for r in rows)
+    opposed = [r["item_id"] for r in rows if {r["adjudicator_unrecorded"], r["recorded_reader"]} == {"ELIGIBLE", "INELIGIBLE"}]
+    return {"summary": {"N": len(rows) + len(missing), "matched": len(rows), "not_matched": missing,
+                        "pairs_adjudicator_recorded": dict(sorted(pairs.items())), "opposed": len(opposed),
+                        "note": "the adjudicator's judgments carry no prompt, no response and no model id ('adjudicator'); "
+                                "the recorded reader's do. Advisory on the served pages; nothing here changes them."},
+            "opposed": opposed, "rows": rows}
+
+
+def cmd_adjudicator():
+    rep = adjudicator_report()
+    out = ROOT / "outputs" / "model_source" / "ADJUDICATOR_VS_RECORDED.json"
+    out.write_bytes((json.dumps(rep, indent=1, sort_keys=True, ensure_ascii=True) + "\n").encode("ascii"))
+    print(json.dumps(rep["summary"], indent=1))
+
+
 # ------------------------------------------------------------------------------------------------------ signing guide
 def signing_guide() -> str:
     """What waits for the reviewer, in priority order, computed from the committed queues (never hand-counted)."""
@@ -809,7 +858,7 @@ def cmd_signing_guide():
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("cmd", choices=["items", "freeze", "run", "queue", "status", "stability", "stability-report", "readers", "signing-guide"])
+    ap.add_argument("cmd", choices=["items", "freeze", "run", "queue", "status", "stability", "stability-report", "readers", "signing-guide", "adjudicator"])
     ap.add_argument("--base", help="freeze: the commit the population is selected from")
     ap.add_argument("task", choices=TASKS)
     ap.add_argument("--limit", type=int, default=10 ** 6)
@@ -820,7 +869,7 @@ def main(argv=None):
      "freeze": lambda: cmd_freeze(a.task, a.base or sys.exit("freeze needs --base <commit>")),
      "stability": lambda: cmd_stability(a.task, a.sample),
      "stability-report": lambda: cmd_stability_report(a.task),
-     "readers": lambda: cmd_readers(a.task), "signing-guide": cmd_signing_guide}[a.cmd]()
+     "readers": lambda: cmd_readers(a.task), "signing-guide": cmd_signing_guide, "adjudicator": cmd_adjudicator}[a.cmd]()
     return 0
 
 
