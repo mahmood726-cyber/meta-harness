@@ -423,6 +423,30 @@ def test_every_committed_record_replays_or_is_a_recorded_error(offline):
         assert "\\Users\\" not in blob and ":\\\\" not in blob, f"{p.name} carries a local path"
 
 
+def test_a_frozen_population_never_shrinks_when_the_rule_moves(tmp_path, monkeypatch):
+    """Plants on a synthetic population: A is now excluded by the rule, B's held text changed, C is newly selected.
+    A stays (with the rule's NEW decision recorded), B becomes HELD_TEXT_DRIFT, C is reported as drift, not added."""
+    pilot = _pilot()
+    sha = lambda t: ms.sha256_bytes(t.encode("utf-8"))  # noqa: E731
+    pop = {"task": "screening", "N": 2, "items": [
+        {"item_id": "A", "slug": "s", "held_ref": "r", "held_sha256": sha("a"), "rule_decision": "include"},
+        {"item_id": "B", "slug": "s", "held_ref": "r", "held_sha256": sha("b"), "rule_decision": "include"}]}
+    (tmp_path / "screening.population.json").write_text(json.dumps(pop), encoding="utf-8")
+    now = [{"item_id": "A", "slug": "s", "held_ref": "r", "held_text": "a", "held_sha256": sha("a"), "rule_decision": "exclude"},
+           {"item_id": "B", "slug": "s", "held_ref": "r", "held_text": "b2", "held_sha256": sha("b2"), "rule_decision": "include"},
+           {"item_id": "C", "slug": "s", "held_ref": "r", "held_text": "c", "held_sha256": sha("c"), "rule_decision": "include"}]
+    monkeypatch.setattr(pilot, "Q_DIR", tmp_path)
+    monkeypatch.setitem(pilot.CANDIDATES, "screening", lambda: now)
+    got = {i["item_id"]: i for i in pilot.pilot_items("screening")}
+    assert sorted(got) == ["A", "B"]
+    assert got["A"]["rule_decision"] == "exclude" and got["A"]["rule_decision_at_freeze"] == "include"
+    assert got["A"].get("held_text") == "a"
+    assert got["B"]["state"] == "HELD_TEXT_DRIFT" and "held_text" not in got["B"]
+    assert pilot.population_drift("screening") == {"frozen_not_selected_now": ["A"], "selected_now_not_frozen": ["C"]}
+    with pytest.raises(SystemExit):
+        pilot.cmd_freeze("screening", "0" * 40)          # a population is frozen once
+
+
 @pytest.mark.parametrize("task", ["screening", "estimand"])
 def test_a_committed_queue_covers_its_whole_denominator_and_claims_nothing_it_cannot_show(task):
     q = ROOT / ms.PROPOSAL_DIR / f"{task}.json"
@@ -430,10 +454,13 @@ def test_a_committed_queue_covers_its_whole_denominator_and_claims_nothing_it_ca
         pytest.skip(f"no committed {task} queue in this tree")
     pilot = _pilot()
     doc, rows = pilot.gated(task)
-    items = pilot.ITEMS[task]()
-    # the denominator is recomputed from the tree, never read from the file
-    assert doc["N"] == len(items) == len(doc["items"])
-    assert sorted(e["item_id"] for e in doc["items"]) == sorted(i["item_id"] for i in items)
+    items = pilot.pilot_items(task)
+    # the denominator is the FROZEN population (committed beside the queue), every member present with a state
+    pop = json.loads(pilot.population_path(task).read_text(encoding="utf-8"))
+    assert doc["N"] == pop["N"] == len(pop["items"]) == len(items) == len(doc["items"])
+    assert sorted(e["item_id"] for e in doc["items"]) == sorted(i["item_id"] for i in pop["items"])
+    # no stored record goes unused: every callable item's batch found its record (no silent re-call)
+    assert not [e["item_id"] for e in doc["items"] if e.get("state") == "NOT_YET_CALLED"]
     held = {i["item_id"]: i.get("held_text") for i in items}
     planted = 0
     for e, _, _ in rows:     # plant on REAL entries: a quote altered by one word must be refused by the same verifier

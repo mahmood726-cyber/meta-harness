@@ -9,6 +9,8 @@
              on every served BUNDLE.json. The model reads the row's PARSED_SOURCE and returns a value from the rule's
              own vocabulary, or NOT_STATED, with the sentence it read it from.
 
+  python scripts/model_source_pilot.py freeze <task> --base SHA   freeze the population ONCE (registry/model_proposals/
+                                                                 <task>.population.json); afterwards it never shrinks
   python scripts/model_source_pilot.py items  <task>              the item list, each with its held-text digest
   python scripts/model_source_pilot.py run    <task> [--limit K]  make the calls that have no RAN_OK record (live;
                                                                  one call at a time; each call -> registry/model_calls/)
@@ -78,7 +80,8 @@ def criteria(slug: str) -> tuple[str, list[dict]]:
     return "\n".join(lines), digests
 
 
-def items_screening() -> list[dict]:
+def candidates_screening() -> list[dict]:
+    """EVERY screened record on every committed page (any decision): the superset the population is selected from."""
     sweep = _load_script("arm_object_sweep")
     out = []
     for cfg in sorted((ROOT / "topics").glob("*.json")):
@@ -89,11 +92,9 @@ def items_screening() -> list[dict]:
         review = json.loads(rev_p.read_text(encoding="utf-8"))
         recs = sweep._records(slug)
         for row in sweep._screened_records(review):
-            if row.get("decision") != "include":
-                continue
             rec = recs.get(sweep._norm(row.get("id")))
             item = {"task": "screening", "slug": slug, "item_id": f"{slug}::{row.get('id_type')}:{row.get('id')}",
-                    "rule_decision": "include", "rule_id": row.get("rule_id"), "rule_reason": row.get("reason"),
+                    "rule_decision": row.get("decision"), "rule_id": row.get("rule_id"), "rule_reason": row.get("reason"),
                     "held_ref": f"cache/{slug}/records.json#{row.get('id_type')}:{row.get('id')}"}
             if rec is None:
                 item["state"] = "NO_HELD_TEXT"
@@ -104,7 +105,8 @@ def items_screening() -> list[dict]:
     return sorted(out, key=lambda i: i["item_id"])
 
 
-def items_estimand() -> list[dict]:
+def candidates_estimand() -> list[dict]:
+    """EVERY estimand field the bundle's rule reads, on every served bundle, whatever its state: the superset."""
     out = []
     for bpath in sorted((ROOT / "docs" / "reviews").glob("*/BUNDLE.json")):
         slug = bpath.parent.name
@@ -113,7 +115,7 @@ def items_estimand() -> list[dict]:
         for row in bundle.get("verification_rows") or []:
             src = row.get("source") or {}
             for field, ev in sorted((row.get("estimand_evidence") or {}).items()):
-                if ev.get("state") == "STATED_IN_OWNING_EVIDENCE" or not ms.estimand_vocabulary(field):
+                if not ms.estimand_vocabulary(field):
                     continue
                 sel = ((src.get("selector") or {}).get("selected_identifier") or {}).get("id")
                 item = {"task": "estimand", "slug": slug, "field": field, "rule_state": ev.get("state"),
@@ -133,7 +135,83 @@ def items_estimand() -> list[dict]:
     return sorted(out, key=lambda i: i["item_id"])
 
 
-ITEMS = {"screening": items_screening, "estimand": items_estimand}
+CANDIDATES = {"screening": candidates_screening, "estimand": candidates_estimand}
+# The selection rule that defines each pilot's population AT FREEZE TIME. After the freeze the population does not
+# move: a later rule change (a regex that now reads a field, a record the screen now excludes) is recorded on the
+# item as rule_decision_now, never by removing it -- a denominator that shrinks when the rule improves cannot show
+# that the rule caught up.
+SELECT = {"screening": lambda i: i["rule_decision"] == "include",
+          "estimand": lambda i: i["rule_state"] != "STATED_IN_OWNING_EVIDENCE"}
+SELECTION_RULE = {"screening": "screened records with decision == include on the committed review pages",
+                  "estimand": "estimand fields whose bundle state != STATED_IN_OWNING_EVIDENCE on the served bundles"}
+FROZEN_KEYS = ("item_id", "slug", "held_ref", "held_sha256", "state", "rule_decision", "rule_id", "field", "rule_state")
+
+
+def population_path(task: str) -> Path:
+    return Q_DIR / f"{task}.population.json"
+
+
+def _current_selection(task: str) -> list[dict]:
+    return sorted((i for i in CANDIDATES[task]() if SELECT[task](i)), key=lambda i: i["item_id"])
+
+
+def pilot_items(task: str) -> list[dict]:
+    """The pilot's items: the FROZEN population when one is committed (held text re-read and re-digested now; a
+    changed digest is HELD_TEXT_DRIFT, a vanished candidate is LEFT_THE_TREE), else the current selection."""
+    p = population_path(task)
+    if not p.exists():
+        return _current_selection(task)
+    frozen = json.loads(p.read_text(encoding="utf-8"))
+    now = {i["item_id"]: i for i in CANDIDATES[task]()}
+    out = []
+    for f in frozen["items"]:
+        cur = now.get(f["item_id"])
+        it = {k: v for k, v in f.items()}
+        it["task"] = task
+        it["rule_decision_at_freeze"] = f.get("rule_decision")
+        if cur is None:
+            it["state"] = "LEFT_THE_TREE"
+            out.append(it)
+            continue
+        it["rule_decision"] = cur.get("rule_decision")          # what the rule says NOW (rendered beside the freeze)
+        for k in ("rule_id", "rule_reason", "rule_state", "rule_value"):
+            if k in cur:
+                it[k] = cur[k]
+        if "held_text" in cur and "held_sha256" in f:
+            if cur["held_sha256"] == f["held_sha256"]:
+                it["held_text"] = cur["held_text"]
+                it.pop("state", None)
+            else:
+                it["state"] = "HELD_TEXT_DRIFT"
+        out.append(it)
+    return out
+
+
+TASKS = ("estimand", "screening")
+
+
+def cmd_freeze(task: str, base: str):
+    p = population_path(task)
+    if p.exists():
+        sys.exit(f"refused: {p.name} exists; a population is frozen once (a new pilot is a new task name)")
+    sel = _current_selection(task)
+    doc = {"task": task, "selection_rule": SELECTION_RULE[task], "frozen_from_commit": base, "N": len(sel),
+           "note": "Frozen pilot population. Held text is NOT copied (it is re-read from the tree and must match "
+                   "held_sha256); the rule's later decisions are recorded per item, never by dropping one.",
+           "items": [{k: i[k] for k in FROZEN_KEYS if k in i} for i in sel]}
+    Q_DIR.mkdir(parents=True, exist_ok=True)
+    p.write_bytes((json.dumps(doc, indent=1, sort_keys=True, ensure_ascii=True) + "\n").encode("ascii"))
+    print(f"froze {task}: N = {len(sel)} from {base}")
+
+
+def population_drift(task: str) -> dict:
+    """What the current selection rule would pick now vs the frozen population -- reported, never applied."""
+    p = population_path(task)
+    if not p.exists():
+        return {}
+    frozen = {i["item_id"] for i in json.loads(p.read_text(encoding="utf-8"))["items"]}
+    now = {i["item_id"] for i in _current_selection(task)}
+    return {"frozen_not_selected_now": sorted(frozen - now), "selected_now_not_frozen": sorted(now - frozen)}
 
 
 # ------------------------------------------------------------------------------------------------------ prompts
@@ -220,7 +298,7 @@ def _records_by_prompt() -> dict[str, list[dict]]:
 
 # ------------------------------------------------------------------------------------------------------ commands
 def cmd_items(task):
-    items = ITEMS[task]()
+    items = pilot_items(task)
     states = {}
     for i in items:
         states[i.get("state", "CALLABLE")] = states.get(i.get("state", "CALLABLE"), 0) + 1
@@ -230,7 +308,7 @@ def cmd_items(task):
 
 def cmd_run(task, limit):
     from reproducible_ai import model_call_live
-    items = ITEMS[task]()
+    items = pilot_items(task)
     have = _records_by_prompt()
     todo = [b for b in batches(task, items) if not any(r["state"] == "RAN_OK" for r in have.get(_sha(b["prompt"]), []))]
     print(f"{task}: {len(todo)} batches without a RAN_OK record; running {min(limit, len(todo))}", flush=True)
@@ -245,7 +323,7 @@ def cmd_run(task, limit):
 
 
 def cmd_queue(task):
-    items = ITEMS[task]()
+    items = pilot_items(task)
     have = _records_by_prompt()
     qpath = Q_DIR / f"{task}.json"
     old = {e["item_id"]: e for e in json.loads(qpath.read_text(encoding="utf-8"))["items"]} if qpath.exists() else {}
@@ -270,7 +348,7 @@ def cmd_queue(task):
                 continue
             ver = (ms.verify_screening(claim, i["held_text"], i["rule_decision"]) if task == "screening"
                    else ms.verify_estimand(claim, i["held_text"]))
-            ctx = {k: i[k] for k in ("rule_id", "rule_reason", "field", "rule_state", "rule_value") if k in i}
+            ctx = {k: i[k] for k in ("rule_id", "rule_reason", "field", "rule_state", "rule_value", "rule_decision_at_freeze") if k in i}
             e = ms.queue_entry(task=task, item_id=i["item_id"], record=rec, claim=claim, verification=ver,
                                held_ref=i["held_ref"], held_sha256=i["held_sha256"], rule_decision=i["rule_decision"],
                                context=ctx, response_item=key)
@@ -291,7 +369,7 @@ def cmd_queue(task):
 
 def gated(task):
     """Re-gate every queued entry NOW from the committed record and the held text (never trusting the queue's verdict)."""
-    items = {i["item_id"]: i for i in ITEMS[task]()}
+    items = {i["item_id"]: i for i in pilot_items(task)}
     doc = json.loads((Q_DIR / f"{task}.json").read_text(encoding="utf-8"))
     out = []
     for e in doc["items"]:
@@ -327,12 +405,14 @@ def cmd_status(task):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("cmd", choices=["items", "run", "queue", "status"])
-    ap.add_argument("task", choices=sorted(ITEMS))
+    ap.add_argument("cmd", choices=["items", "freeze", "run", "queue", "status"])
+    ap.add_argument("--base", help="freeze: the commit the population is selected from")
+    ap.add_argument("task", choices=TASKS)
     ap.add_argument("--limit", type=int, default=10 ** 6)
     a = ap.parse_args(argv)
     {"items": lambda: cmd_items(a.task), "run": lambda: cmd_run(a.task, a.limit),
-     "queue": lambda: cmd_queue(a.task), "status": lambda: cmd_status(a.task)}[a.cmd]()
+     "queue": lambda: cmd_queue(a.task), "status": lambda: cmd_status(a.task),
+     "freeze": lambda: cmd_freeze(a.task, a.base or sys.exit("freeze needs --base <commit>"))}[a.cmd]()
     return 0
 
 

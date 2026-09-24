@@ -79,7 +79,7 @@ def render(a):
 
 def _sign_one(doc_items, e, a, batch):
     rec = _rec(e)
-    held = {i["item_id"]: i for i in pilot.ITEMS[a.task]()}.get(e["item_id"], {}).get("held_text")
+    held = {i["item_id"]: i for i in pilot.pilot_items(a.task)}.get(e["item_id"], {}).get("held_text")
     if held is None:
         return f"refused: held text for {e['item_id']} is gone"
     other = [p for p in ms.gate_problems(e, rec, held) if not p.startswith("COUNTERSIGNATURE")]

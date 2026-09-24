@@ -591,3 +591,9 @@ PLANT FIRED without the fix: AttributeError 'Proposal' object has no attribute '
 E       AssertionError: assert (False)
 tests\test_model_source.py:332: AssertionError
 1 failed, 59 deselected in 3.45s
+
+# 4) Frozen population (2026-09-24 00:40): BEFORE registry/model_proposals/<task>.population.json existed, widening the
+#    bundle regex (held branch rai/estimand-followup-regex) made the estimand pilot recompute its population from the
+#    moved rule: N fell from 9 to 6, the batches re-chunked, and 3 of 6 items read NOT_YET_CALLED:
+#      status NOT_YET_CALLED: 3 of 6 / status PROPOSED: 3 of 6
+#    With the population frozen the same change leaves N = 9 and records the rule's new decision per item.
