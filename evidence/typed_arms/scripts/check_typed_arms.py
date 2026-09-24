@@ -171,6 +171,13 @@ def abbreviation(label, job, docs):
     return None
 
 
+def source_label_id(label):
+    """A row-local identity from the source's arm name: 'LcS group' and 'LcS' are the same arm. (The blind
+    re-extraction found the first version keeping 'group', so one arm got two ids.)"""
+    core = re.sub(r"\b(group|arm)s?\b", " ", (label or "").lower())
+    return re.sub(r"[^a-z0-9]+", "-", core).strip("-")
+
+
 def resolve_arm(arm, reg_arms, family_id, iline, fails, idx, expansion=None):
     """-> (arm_id, basis). The extractor's registry_arm_id is a PROPOSAL; the gate re-derives the link itself."""
     terms = i_terms(iline)
@@ -179,7 +186,7 @@ def resolve_arm(arm, reg_arms, family_id, iline, fails, idx, expansion=None):
     lon = label_side(label_txt, terms)
     rid = arm.get("registry_arm_id")
     if not reg_arms:
-        lab = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+        lab = source_label_id(label)
         if not lab:
             fails.append(f"G5 arm {idx}: no arm label to derive an id from")
             return None, None
@@ -223,7 +230,7 @@ def resolve_arm(arm, reg_arms, family_id, iline, fails, idx, expansion=None):
                                + ", ".join(ids) + ")") + why
     sig = {(re.sub(r"\d+", "", reg_words(a)).strip()) for a in reg_arms}
     if len(sig) == 1:
-        lab = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+        lab = source_label_id(label)
         return f"{family_id}#arm:{lab}", ("SOURCE_LABEL: registry arms are held but NON-DISCRIMINATING (every arm states "
                                           f"the same interventions: {sorted(sig)[0][:80]!r}); ownership rests on the source")
     fails.append(f"G5 arm {idx}: label {label!r} links to {len(oks)} registry arms of {family_id} (need exactly one)")
