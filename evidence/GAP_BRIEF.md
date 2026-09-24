@@ -1,6 +1,6 @@
 # Gap brief (one row): close a named evidence gap from newly held full text
 
-Read the packet `evidence/packets/<KEY>.json` and the lane's ruling `evidence/adjudication/<KEY>.json`. The packet now
+Read the packet (packet.json) and the lane's ruling (adjudication.json). The packet now
 includes the trial's FULL TEXT (a `held_local/...html` source). Use only the packet's texts as evidence.
 
 For THIS row's served outcome, find verbatim spans (character for character from one source's text, name its `ref`,
