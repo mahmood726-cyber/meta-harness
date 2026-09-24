@@ -607,3 +607,8 @@ tests\test_model_source.py:332: AssertionError
 #    .py files, reported  model_calls []  -- while scripts/outcome_judgments.py (cmd = ["codex", "exec", ...] passed as
 #    a variable) and reproducible_ai/model_call_live.py (argv[0] = shutil.which("codex")) both call codex. It also
 #    counts calls only: 13 committed cache files carrying model judgments (4 read on served paths) were invisible.
+
+# 7) outcome_judgments.py routed through the recorded caller (2026-09-24): tests/test_outcome_judgments_recorded.py run
+#    against main's version -> 3 failed. The two --codex plants failed because the OLD code reached for a live model
+#    from inside a test (bare "codex" argv; FileNotFoundError on Windows, where that path can never have run) instead of
+#    refusing an unpinned model / recording the call; the hand plant failed because --write needed no author.
