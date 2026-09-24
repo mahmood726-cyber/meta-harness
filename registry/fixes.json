@@ -7366,6 +7366,61 @@
      "reason": "41 of 54 notices are OPEN and the publication gate refuses a page while any of its notices is OPEN. The reviewer must sign them, and nothing the harness does may stand in for that: a signature the system applies to its own result change is a password, not a check. What the harness CAN do is put each notice in front of him honestly. Before this commit the surface had three gaps, all observed: `sign` recomputed the digest at write time rather than checking the one the reviewer had read, so nothing bound the signature to the bytes seen; the six (slug, outcome) pairs that carry two successive notices each could not be named at all by the substring selector, which refuses an ambiguous match (verified in the code: countersign_result_change.py exits when len(hits) != 1) -- so those six were unsignable rather than mis-signable; and the ledger's successive-notice chain was implicit, recoverable only by matching each notice's before to the previous after (it holds 6 of 6 today). The walker presents one notice per invocation with its chain position, direction, departing trials, mechanism and the harness team's adjudication labelled as a RECOMMENDATION, then stops; the basis argument prompts the reviewer for his own account of what he read rather than pre-writing it."
     }
    ]
+  },
+  {
+   "finding_id": "table-binding-ownership-2026-09-24",
+   "fix_id": "table-binding-ownership-2026-09-24",
+   "title": "A partial table binding is a typed refusal, and tuple ownership is established from co-location in the SOURCE rather than from the producer-authored linearised candidate",
+   "kind": "fix",
+   "implementation": "REPORTED",
+   "verification": "NONE",
+   "scope": "CORPUS",
+   "author": "Claude Opus 5 (branch enforcement-gate)",
+   "opened_utc": "2026-09-24T06:50:00Z",
+   "evidence_dir": "docs/evidence/enforcement-gate-2026-09-21",
+   "authored_against": [
+    "ceb6d8e92f186c4b6e7d10f01d59e9d4ba112dbe"
+   ],
+   "executable_evidence": {
+    "command": "python -m pytest tests/test_bundle_verifier.py -q",
+    "expected_substring": "passed",
+    "scope_basis": "Named behaviours, not corpus numbers: an ownership-swapped source that PRESERVES EVERY PIECE (asserted by multiset equality, Counter(attack) == Counter(pieces)) must stop binding -- it now refuses TABLE_SOURCE_NOT_COLOCATED where it previously returned PASS/BOUND; a partial table binding refuses PARTIAL_TABLE_BINDING instead of silently binding; and the positive control -- a legitimate table whose source carries no ' | ' linearisation -- must still PASS/BOUND, which is what stops the fix being a ban on pipes. Two further properties assert the fix changes nothing else: the primary rows' verdicts and the recomputed pool are equal before and after. 4 of 5 plants were observed FAILING before the source changed; the 5th (an explicitly changed source strategy) already refused and is kept as a pre-existing control.",
+    "topic_list": "Demonstrated on the one topic that carries a bundle, glp1-ra-mace-t2d, whose FREEDOM-CVO Table 19 record is the real partial case (11 of 12 candidate pieces locate; the missing footer is absent because the source interposes 'Analysis: R v. 4.2 (MACE.R); data: adef.xpt from SDN0000.'). 1 of 1 BUNDLE.json in the repository."
+   },
+   "generalized_on": [],
+   "verifications": [],
+   "verified_by": {
+    "identity": null,
+    "kind": null
+   },
+   "seal": {
+    "sealed_utc": "2026-09-24T06:50:00Z",
+    "commit": "",
+    "dependencies": {
+     "scripts/verify_bundle.py": "2f3a7622355c7637ae7fc343c5eff1a9e48489f8",
+     "tests/test_bundle_verifier.py": "4b809ef5b77cb2f875346ff08a19395a37e84862"
+    },
+    "configuration": {
+     "schema": "fixes-v3",
+     "lane": "enforcement-gate",
+     "base": "ceb6d8e9",
+     "note": "sealed against the lane tree's bytes; the fix commit cannot name itself"
+    }
+   },
+   "events": [
+    {
+     "implementation": "REPORTED",
+     "verification": "NONE",
+     "scope": "CORPUS",
+     "when_utc": "2026-09-24T06:50:00Z",
+     "by": "Claude Opus 5 (branch enforcement-gate)",
+     "commit": "ceb6d8e92f186c4b6e7d10f01d59e9d4ba112dbe",
+     "evidence": [
+      "docs/evidence/enforcement-gate-2026-09-21/16-lane-WALK-signing-surface.md"
+     ],
+     "reason": "Raised by an external safeguard audit (2026-09-24) which reproduced the fragment with the standard library only and did NOT run this verifier or the production gate; its pinned data identities were stale (its review, release and protocol digests and generating commit 8f14f411 are absent from the current bundle) but the verifier it describes is byte-identical to ours (d1ba9320..., 81,449 B). Reproduced here through the REAL verifier: with the original code an ownership-swapped source -- every piece preserved, only the adjacency of the 3-point and 4-point HR tuples exchanged -- returned PASS/BOUND, because when whole-span location fails the verifier locates the pieces independently (verify_bundle.py:1075-1080), never refuses a partial (:1118-1123), and decides the tuple holder and the treatment strategy from the producer-authored linearised candidate rather than from a row co-located in the source (:1100-1102, :1082-1084). One correction to the auditor: the production gate refused BOTH their control and their attack for the existing OPEN countersignature, so production admission of the swap is NOT demonstrated; this is a verifier defect, not a served-number defect. Blast radius measured before landing: 0 of 7 pooled admission rows change (all remain ADMISSIBLE), 1 of 3 regulatory records changes (FREEDOM-CVO BOUND -> PARTIAL_TABLE_BINDING), 0 of 3 served review result objects change, and the recomputed pooled result is identical."
+    }
+   ]
   }
  ]
 }

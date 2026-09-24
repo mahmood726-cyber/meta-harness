@@ -6540,10 +6540,12 @@
    "implementation": "REPORTED",
    "verification": "NONE",
    "scope": "CORPUS",
-   "freshness": "CURRENT",
-   "stale_dependencies": [],
-   "fix_state": "REPORTED / NONE / CORPUS / CURRENT",
-   "state": "REPORTED / NONE / CORPUS / CURRENT",
+   "freshness": "STALE",
+   "stale_dependencies": [
+    "registry/notice_adjudication.json"
+   ],
+   "fix_state": "REPORTED / NONE / CORPUS / STALE",
+   "state": "REPORTED / NONE / CORPUS / STALE",
    "where": "",
    "evidence_dir": "docs/evidence/enforcement-gate-2026-09-21",
    "evidence": [
@@ -6573,6 +6575,49 @@
      "schema": "fixes-v3",
      "lane": "enforcement-gate",
      "base": "9ff4c6b0",
+     "note": "sealed against the lane tree's bytes; the fix commit cannot name itself"
+    }
+   }
+  },
+  {
+   "finding_id": "table-binding-ownership-2026-09-24",
+   "fix_id": "table-binding-ownership-2026-09-24",
+   "kind": "fix",
+   "class": "A partial table binding is a typed refusal, and tuple ownership is established from co-location in the SOURCE rather than from the producer-authored linearised candidate",
+   "implementation": "REPORTED",
+   "verification": "NONE",
+   "scope": "CORPUS",
+   "freshness": "CURRENT",
+   "stale_dependencies": [],
+   "fix_state": "REPORTED / NONE / CORPUS / CURRENT",
+   "state": "REPORTED / NONE / CORPUS / CURRENT",
+   "where": "",
+   "evidence_dir": "docs/evidence/enforcement-gate-2026-09-21",
+   "evidence": [
+    "docs/evidence/enforcement-gate-2026-09-21/16-lane-WALK-signing-surface.md"
+   ],
+   "verified_by": {
+    "identity": null,
+    "kind": null
+   },
+   "verifications": [],
+   "executable_evidence": {
+    "command": "python -m pytest tests/test_bundle_verifier.py -q",
+    "expected_substring": "passed",
+    "scope_basis": "Named behaviours, not corpus numbers: an ownership-swapped source that PRESERVES EVERY PIECE (asserted by multiset equality, Counter(attack) == Counter(pieces)) must stop binding -- it now refuses TABLE_SOURCE_NOT_COLOCATED where it previously returned PASS/BOUND; a partial table binding refuses PARTIAL_TABLE_BINDING instead of silently binding; and the positive control -- a legitimate table whose source carries no ' | ' linearisation -- must still PASS/BOUND, which is what stops the fix being a ban on pipes. Two further properties assert the fix changes nothing else: the primary rows' verdicts and the recomputed pool are equal before and after. 4 of 5 plants were observed FAILING before the source changed; the 5th (an explicitly changed source strategy) already refused and is kept as a pre-existing control.",
+    "topic_list": "Demonstrated on the one topic that carries a bundle, glp1-ra-mace-t2d, whose FREEDOM-CVO Table 19 record is the real partial case (11 of 12 candidate pieces locate; the missing footer is absent because the source interposes 'Analysis: R v. 4.2 (MACE.R); data: adef.xpt from SDN0000.'). 1 of 1 BUNDLE.json in the repository."
+   },
+   "seal": {
+    "sealed_utc": "2026-09-24T06:50:00Z",
+    "commit": "",
+    "dependencies": {
+     "scripts/verify_bundle.py": "2f3a7622355c7637ae7fc343c5eff1a9e48489f8",
+     "tests/test_bundle_verifier.py": "4b809ef5b77cb2f875346ff08a19395a37e84862"
+    },
+    "configuration": {
+     "schema": "fixes-v3",
+     "lane": "enforcement-gate",
+     "base": "ceb6d8e9",
      "note": "sealed against the lane tree's bytes; the fix commit cannot name itself"
     }
    }
@@ -7550,29 +7595,29 @@
  "summary": {
   "by_implementation": {
    "SPECIFIED": 7,
-   "REPORTED": 16,
+   "REPORTED": 17,
    "LANDED": 76
   },
   "by_verification": {
-   "NONE": 60,
+   "NONE": 61,
    "INTERNAL": 38,
    "INDEPENDENT": 1
   },
   "by_scope": {
    "INSTANCE": 88,
    "REGRESSION_SET": 0,
-   "CORPUS": 11,
+   "CORPUS": 12,
    "HELD_OUT": 0
   },
   "by_freshness": {
    "CURRENT": 21,
-   "STALE": 78
+   "STALE": 79
   },
   "by_kind": {
    "control": 7,
    "external_finding": 21,
    "finding": 4,
-   "fix": 64,
+   "fix": 65,
    "result": 3
   }
  }

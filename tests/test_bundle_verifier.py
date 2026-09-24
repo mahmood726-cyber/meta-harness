@@ -47,8 +47,9 @@ def baseline():
     return _run()
 
 
-def test_baseline_passes_and_agrees_with_bundle(baseline):
-    assert baseline["verdict"] == "PASS", baseline["failures"]
+def test_baseline_refuses_partial_regulatory_table_and_agrees_on_pooled_rows(baseline):
+    assert baseline["verdict"] == "FAIL", baseline["failures"]
+    assert len(baseline["failures"]) == 1 and baseline["failures"][0].startswith("PARTIAL_TABLE_BINDING FREEDOM-CVO"), baseline["failures"]
     assert all(a.get("bytes_ok") and a.get("declared_digest_ok") for a in baseline["artefacts"] if "bytes_ok" in a)
     assert all(s["ok"] for s in baseline["supporting"])
     assert baseline["certificate"]["release_sha256_recomputed"] and baseline["certificate"]["review_sha256_recomputed"]
@@ -227,6 +228,113 @@ def _copy_served_tree(bundle, dst):
         out = os.path.join(dst, *p.split("/"))
         os.makedirs(os.path.dirname(out), exist_ok=True)
         shutil.copyfile(src, out)
+
+
+def _write_regulatory_source(root, source):
+    """BND2 fixture: re-pin the edited source throughout the copied package, never the served tree.
+
+    This is a producer-authored replacement representation, not a forged upstream acquisition.
+    All ordinary byte/certificate checks must stay green so refusal proves the semantic guard fires.
+    """
+    from pathlib import Path
+    import verify_bundle as verifier
+    root = Path(root)
+    rdir = root / "reviews" / SLUG
+    bundle = json.loads((rdir / "BUNDLE.json").read_text(encoding="utf-8"))
+    rf = next(r for r in bundle["regulatory_facts"] if r["trial"] == "FREEDOM-CVO")
+    ref = rf["document"]["parsed_ref"]
+    raw = source.encode("utf-8")
+    (root / ref).write_bytes(raw)
+    digest = verifier.sha256(raw)
+    rf["document"]["parsed_sha256"] = digest
+    for artefact in bundle["artefacts"]:
+        if artefact.get("served_path") == ref:
+            artefact.update(sha256=digest, bytes=len(raw), declared_digest=digest)
+    for doc in bundle["documents"]:
+        parsed = doc.get("representations", {}).get("PARSED_SOURCE", {})
+        if parsed.get("ref") == ref:
+            parsed.update(sha256_parsed=digest, chars=len(source))
+    cert = json.loads((rdir / "CERTIFICATE.json").read_text(encoding="utf-8"))
+    for held in cert["held_documents"]:
+        if held["ref"] == ref:
+            held["sha256"] = digest
+    cert["release_sha256"] = verifier.sha256_text(verifier.canonical({k: v for k, v in cert.items() if k != "release_sha256"}))
+    cert_raw = (json.dumps(cert, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    (rdir / "CERTIFICATE.json").write_bytes(cert_raw)
+    bundle["certificate"].update(sha256_of_file=verifier.sha256(cert_raw), bytes=len(cert_raw), release_sha256=cert["release_sha256"])
+    review = json.loads((rdir / "review.json").read_text(encoding="utf-8"))
+    review["reproduction"]["certificate"] = cert
+    (rdir / "review.json").write_text(json.dumps(review, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    erpath = rdir / "EXECUTION_RECORD.json"
+    if erpath.exists():
+        er = json.loads(erpath.read_text(encoding="utf-8"))
+        er["release"]["release_sha256"] = cert["release_sha256"]
+        erpath.write_text(json.dumps(er, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    for entry in bundle["review_files"]:
+        data = (rdir / entry["file"]).read_bytes()
+        entry.update(sha256=verifier.sha256(data), bytes=len(data))
+    (rdir / "BUNDLE.json").write_text(json.dumps(bundle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+@pytest.mark.parametrize("plant", ["ownership_swap", "missing_footer", "scattered", "candidate_follows_swap", "strategy_swap"])
+def test_bnd2_source_ownership_refuses_with_positive_and_restored_controls(tmp_path, plant):
+    """Run the real CLI on the auditor's pieces, with every byte pin refreshed.
+
+    A missing literal pipe must not prevent a legitimate adjacent table from binding.
+    Changing ownership, source strategy, or completeness must never remain BOUND.
+    """
+    from pathlib import Path
+    from collections import Counter
+    bundle = json.loads(Path(ROOT, "docs", "reviews", SLUG, "BUNDLE.json").read_text(encoding="utf-8"))
+    rf = next(r for r in bundle["regulatory_facts"] if r["trial"] == "FREEDOM-CVO")
+    pieces = [p.strip() for p in rf["candidate_analyses"][0]["text"].split("|") if p.strip()]
+    assert len(pieces) == 12  # auditor's fixture shape, not a research output
+    root = str(tmp_path / "site")
+    _copy_served_tree(bundle, root)
+    control = "\n".join(pieces)
+    assert " | " not in control
+
+    def run(source):
+        _write_regulatory_source(root, source)
+        report = _verify(root)
+        assert all(a.get("bytes_ok") and a.get("declared_digest_ok") for a in report["artefacts"] if "bytes_ok" in a)
+        assert all(x["ok"] for x in report["supporting"])
+        assert all(report["certificate"][k] for k in ("release_sha256_recomputed", "review_sha256_recomputed", "file_sha256_matches_bundle"))
+        return report, next(r for r in report["regulatory_facts"] if r["trial"] == "FREEDOM-CVO")
+
+    good, row = run(control)
+    assert row["binding"] == "BOUND" and good["verdict"] == "PASS", good["failures"]
+    attack = pieces.copy()
+    if plant in ("ownership_swap", "candidate_follows_swap"):
+        attack[7], attack[10] = attack[10], attack[7]
+        assert Counter(attack) == Counter(pieces)
+    elif plant == "missing_footer":
+        attack = pieces[:-1]
+    elif plant == "strategy_swap":
+        attack[0] = attack[0].replace("End of Study", "On-treatment")
+    source = "\nUNRELATED SOURCE ROW\n".join(attack) if plant == "scattered" else "\n".join(attack)
+    if plant in ("candidate_follows_swap", "strategy_swap"):
+        # Even when the candidate tracks source bytes, its endpoint/strategy claim is untrusted.
+        path = Path(root, "reviews", SLUG, "BUNDLE.json")
+        b = json.loads(path.read_text(encoding="utf-8"))
+        f = next(r for r in b["regulatory_facts"] if r["trial"] == "FREEDOM-CVO")
+        f["candidate_analyses"][0]["text"] = " | ".join(attack)
+        path.write_text(json.dumps(b, ensure_ascii=False), encoding="utf-8")
+    bad, row = run(source)
+    expected = {"ownership_swap": "TABLE_SOURCE_NOT_COLOCATED", "missing_footer": "PARTIAL_TABLE_BINDING",
+                "scattered": "TABLE_SOURCE_NOT_COLOCATED", "candidate_follows_swap": "ANALYSIS_IDENTITY_MISMATCH",
+                "strategy_swap": "ANALYSIS_IDENTITY_MISMATCH"}
+    assert row["binding"] == expected[plant], (plant, row)
+    assert bad["verdict"] == "FAIL"
+    assert [r["final"] for r in bad["rows"]] == [r["final"] for r in good["rows"]]
+    assert bad["pool"] == good["pool"]
+    # Restore the candidate as well as the source before the positive-control rerun.
+    path = Path(root, "reviews", SLUG, "BUNDLE.json")
+    b = json.loads(path.read_text(encoding="utf-8"))
+    next(r for r in b["regulatory_facts"] if r["trial"] == "FREEDOM-CVO")["candidate_analyses"][0]["text"] = " | ".join(pieces)
+    path.write_text(json.dumps(b, ensure_ascii=False), encoding="utf-8")
+    restored, row = run(control)
+    assert row["binding"] == "BOUND" and restored["verdict"] == "PASS", restored["failures"]
 
 
 def test_h1_delete_a_sentence_and_recompute_every_digest_is_caught_by_the_anchor(tmp_path):
@@ -533,7 +641,7 @@ def test_upper_limit_swapped_for_another_endpoints_genuine_limit_is_refused_by_p
 def test_verifier_binds_regulatory_tuples_and_refuses_the_on_treatment_swap(baseline):
     rf = {r["trial"]: r for r in baseline["regulatory_facts"]}
     assert rf["ELIXA"]["binding"] == "BOUND" and rf["ELIXA"]["distinguishable"] is True and rf["ELIXA"]["distinct_identity_keys"] >= 4
-    assert rf["FREEDOM-CVO"]["binding"] == "BOUND" and rf["FLOW"]["binding"] == "BOUND"
+    assert rf["FREEDOM-CVO"]["binding"] == "PARTIAL_TABLE_BINDING" and rf["FLOW"]["binding"] == "BOUND"
     assert any(p["trial"] == "FREEDOM-CVO" for p in baseline.get("partial_table_bindings", []))
     rep = _run("--corrupt", "26630143", "regulatory_strategy_swap")
     el = next(r for r in rep["regulatory_facts"] if r["trial"] == "ELIXA")

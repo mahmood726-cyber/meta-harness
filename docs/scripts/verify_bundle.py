@@ -631,6 +631,61 @@ def locate(span, hay):
     return {"match": "NOT_LOCATED"}
 
 
+def regulatory_source_span(candidate, source):
+    """A candidate is a locator, never evidence: bind only a contiguous SOURCE slice.
+    Pipe-linearised tables may omit pipes; pieces must stay ordered with only whitespace/pipes
+    between them. Offsets are code points in the named source representation."""
+    loc = locate_all(candidate, source)
+    if loc["match"] in ("VERBATIM", "NORMALISED"):
+        if loc["occurrences"] != 1:
+            return {"match": "REGULATORY_SPAN_AMBIGUOUS"}, ""
+        parent = source if loc["parent"] == "PARSED_SOURCE" else normalize(source)
+        return loc, parent[loc["start"]:loc["end"]]
+    pieces = [normalize(p) for p in candidate.split("|") if p.strip()]
+    if len(pieces) < 2:
+        return {"match": "REGULATORY_SPAN_NOT_LOCATED"}, ""
+    parent = normalize(source)
+    count = sum(p in parent for p in pieces)
+    detail = {"pieces_located": count, "pieces_total": len(pieces)}
+    if count < len(pieces):
+        return {"match": "PARTIAL_TABLE_BINDING", **detail}, ""
+    matches = list(re.finditer(r"[\s|]*".join(re.escape(p) for p in pieces), parent))
+    if len(matches) != 1:
+        code = "REGULATORY_SPAN_AMBIGUOUS" if matches else "TABLE_SOURCE_NOT_COLOCATED"
+        return {"match": code, **detail}, ""
+    match = matches[0]
+    return {"match": "SOURCE_TABLE", "parent": "NORMALIZED_SOURCE", "start": match.start(),
+            "end": match.end(), **detail}, parent[match.start():match.end()]
+
+
+def regulatory_strategy(source_span):
+    words = {("on-treatment" if "treatment" in m.lower() else "on-study (ITT)")
+             for m in re.findall(r"on-?\s?study|on-?\s?treatment|end of (?:the )?study|\bEOS\b", source_span, re.I)}
+    return next(iter(words)) if len(words) == 1 else "UNRESOLVED" if words else None
+
+
+def regulatory_owners(source_span, values, endpoint, linearised):
+    """Read numbered MACE rows with event/total counts from located source.
+    Unsupported linearised tables refuse; prose retains its existing endpoint identity.
+    """
+    row_starts = list(re.finditer(r"\b([34])[- ]point\s+MACE\*?\s+(?=\d+\s*/)", source_span, re.I))
+    if not row_starts:
+        numbers = clause_numbers(source_span)
+        holds = bool(source_span) and all(any(abs(float(v) - n) < 1e-12 for n in numbers) for v in values)
+        return ([{"endpoint": endpoint, "text": source_span, "strategy_text": source_span}]
+                if holds and not linearised else [])
+    owners = []
+    header = source_span[:row_starts[0].start()]
+    for i, row in enumerate(row_starts):
+        end = row_starts[i + 1].start() if i + 1 < len(row_starts) else len(source_span)
+        text = re.split(r"\bSource:", source_span[row.start():end], maxsplit=1, flags=re.I)[0]
+        tuples = re.finditer(r"(?<![\d.])(\d+(?:\.\d+)?)\s*\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*\)", text)
+        if any(all(abs(float(n) - float(v)) < 1e-12 for n, v in zip(t.groups(), values)) for t in tuples):
+            owners.append({"endpoint": "3-point MACE" if row[1] == "3" else "4-point MACE+",
+                           "text": text, "strategy_text": header + " " + text})
+    return owners
+
+
 def tokens_of(x):
     if x is None:
         return []
@@ -1070,40 +1125,53 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             text = store.get(rf["document"]["parsed_ref"]).decode("utf-8", "replace")
         except Refusal as r:
             failures.append(f"{r.code} {r.detail}"); continue
-        found = {}
+        found, source_spans, direct_strategies = {}, {}, {}
         for a in rf["candidate_analyses"]:
-            loc = locate(a["text"], text)
-            state = loc["match"]
-            if state == "NOT_LOCATED":   # a linearised table span: locate its pieces
-                pieces = [x.strip() for x in a["text"].split("|") if x.strip()]
-                if len(pieces) >= 2:
-                    n = sum(1 for pc in pieces if locate(pc, text)["match"] != "NOT_LOCATED")
-                    state = f"PARTIAL_TABLE_BINDING {n}/{len(pieces)} pieces" if n else "NOT_LOCATED"
-            flat = a["text"].replace("\n", " ")
-            words = {("on-treatment" if "treatment" in m.lower() else "on-study (ITT)") for m in re.findall(r"on-?\s?study|on-?\s?treatment|end of study|\bEOS\b", flat, re.I)}
-            recomputed = (next(iter(words)) if len(words) == 1 else "UNRESOLVED" if len(words) > 1 else None)
+            loc, source_span = regulatory_source_span(a["text"], text)
+            source_spans[a["kind"]] = source_span
+            recomputed = regulatory_strategy(source_span)
+            direct_strategies[a["kind"]] = recomputed
             served = a["analysis_identity"]["treatment_strategy"]
             ev_state = (a.get("strategy_evidence") or {}).get("state")
-            if recomputed is None and ev_state in ("BOUND_VIA_COUNTS", "BOUND_VIA_ROUNDING"):
-                # inherited from a labelled candidate: revalidate the inheritance -- the cited labelled span must exist and carry that strategy
-                cited = (a.get("strategy_evidence") or {}).get("labelled_span") or ""
-                recomputed = served if cited and ("treatment" in cited.lower()) == ("treatment" in served.lower()) else "UNRESOLVED"
-            strategy = recomputed if recomputed is not None else served if ev_state == "REGISTERED_DEFAULT" else "UNRESOLVED"
-            if recomputed is not None and recomputed != served and not corrupt:
-                failures.append(f"IDENTITY_REVALIDATION_DISAGREES {rf['trial']}/{a['kind']}: served strategy {served!r}, recomputed from the span {recomputed!r}")
-            found[a["kind"]] = {"located": state, "strategy": strategy, "served_strategy": served, "endpoint": a["analysis_identity"]["endpoint"]}
+            strategy = recomputed or ("UNSTATED" if source_span and ev_state == "REGISTERED_DEFAULT" else "UNRESOLVED")
+            found[a["kind"]] = {"located": loc["match"], "source_location": loc, "strategy": strategy,
+                                "served_strategy": served, "endpoint": a["analysis_identity"]["endpoint"]}
+        for a in rf["candidate_analyses"]:
+            kind = a["kind"]
+            # Inherit only from a SOURCE-located labelled row with matching SOURCE event counts.
+            # Producer-authored labelled_span text alone is no evidence of the strategy.
+            if direct_strategies[kind] is None and (a.get("strategy_evidence") or {}).get("state") == "BOUND_VIA_COUNTS":
+                numbers = clause_numbers(source_spans[kind])
+                strategies = set()
+                for peer, span in source_spans.items():
+                    counts = re.search(r"No\.\s*of patients with event\s*\(%\)\s*(\d+)\s*\([^)]*\)\s*(\d+)", span, re.I)
+                    if (counts and found[peer]["endpoint"] == found[kind]["endpoint"]
+                            and direct_strategies[peer] in ("on-study (ITT)", "on-treatment")
+                            and all(float(n) in numbers for n in counts.groups())):
+                        strategies.add(direct_strategies[peer])
+                found[kind]["strategy"] = next(iter(strategies)) if len(strategies) == 1 else "UNRESOLVED"
+            if source_spans[kind] and found[kind]["strategy"] != found[kind]["served_strategy"] and not corrupt:
+                failures.append(f"IDENTITY_REVALIDATION_DISAGREES {rf['trial']}/{kind}: served strategy {found[kind]['served_strategy']!r}, "
+                                f"recomputed from source {found[kind]['strategy']!r}")
         eff = rf["decision"]["effect"]
         etoks = [str(eff.get("estimate")), str(eff.get("ci_low")), str(eff.get("ci_high"))]
         claimed = rf["decision"]["claimed_treatment_strategy"]
         claimed_ep = rf["decision"].get("claimed_endpoint")
-
-        def _holds(a):
-            flat = normalize(a["text"])
-            return all(tok in flat for tok in etoks)
-        holders = [a["kind"] for a in rf["candidate_analyses"] if _holds(a)]
-        holder_ids = {(found[k]["strategy"], found[k]["endpoint"]) for k in holders}
+        holders, holder_ids, ownership = [], set(), []
+        for a in rf["candidate_analyses"]:
+            kind = a["kind"]
+            owners = regulatory_owners(source_spans[kind], etoks, found[kind]["endpoint"], "|" in a["text"])
+            if owners:
+                holders.append(kind)
+            for owner in owners:
+                strategy = regulatory_strategy(owner["strategy_text"]) or found[kind]["strategy"]
+                holder_ids.add((strategy, owner["endpoint"]))
+                ownership.append({"kind": kind, "endpoint": owner["endpoint"], "strategy": strategy, "source_row": owner["text"]})
         regd = bundle.get("registered_estimand") or {}
-        if len(holder_ids) > 1:
+        unlocated = [f["located"] for f in found.values() if f["located"] not in ("VERBATIM", "NORMALISED", "SOURCE_TABLE")]
+        if unlocated:
+            code = "PARTIAL_TABLE_BINDING" if "PARTIAL_TABLE_BINDING" in unlocated else unlocated[0]
+        elif len(holder_ids) > 1:
             code = "AMBIGUOUS"
         elif not holders:
             code = "TUPLE_NOT_IN_ANY_CANDIDATE_SPAN"
@@ -1113,14 +1181,13 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             code = "ANALYSIS_IDENTITY_MISMATCH"
         keys = {a["analysis_identity"]["analysis_identity_key"] for a in rf["candidate_analyses"]}
         report["regulatory_facts"].append({"trial": rf["trial"], "candidates": found, "decision_tuple_holders": holders, "claimed_strategy": claimed,
+                                           "source_ownership": ownership,
                                            "binding": code, "bundle_recorded": rf["tuple_to_identity_binding"], "distinct_identity_keys": len(keys),
-                                           "distinguishable": len(keys) >= 2 and all(f["located"] != "NOT_LOCATED" for f in found.values())})
-        if any(f["located"] == "NOT_LOCATED" for f in found.values()):
-            failures.append(f"REGULATORY_SPAN_NOT_LOCATED {rf['trial']}: " + ", ".join(k for k, f in found.items() if f["located"] == "NOT_LOCATED"))
+                                           "distinguishable": len(keys) >= 2 and not unlocated})
         partial = [k for k, f in found.items() if str(f["located"]).startswith("PARTIAL")]
         if partial:
             report.setdefault("partial_table_bindings", []).append({"trial": rf["trial"], "kinds": partial,
-                                                                    "note": "a linearised table span located piece-wise; recorded as a partial binding, not refused"})
+                                                                    "note": "REFUSED: independent piece locations do not establish a complete source table or row ownership"})
         if code != "BOUND":
             failures.append(f"{code} {rf['trial']}: decision tuple {etoks} claims ({claimed}, {claimed_ep}); found in {holders} ({sorted(holder_ids)})"
                             + ("; competing candidates carried" if code == "AMBIGUOUS" else ""))
