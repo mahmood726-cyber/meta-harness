@@ -602,3 +602,8 @@ tests\test_model_source.py:332: AssertionError
 #    original call and a later call of the same prompt -> the OLD logic picked the later one by hash order:
 #      OLD logic picks the original call: False
 #    so a stability re-ask (or any second call) could silently replace the answer that was proposed and signed.
+
+# 6) Repo-wide model inventory (2026-09-24): the existing scripts/audit_model_calls.py sweep, run over ALL 541 tracked
+#    .py files, reported  model_calls []  -- while scripts/outcome_judgments.py (cmd = ["codex", "exec", ...] passed as
+#    a variable) and reproducible_ai/model_call_live.py (argv[0] = shutil.which("codex")) both call codex. It also
+#    counts calls only: 13 committed cache files carrying model judgments (4 read on served paths) were invisible.
