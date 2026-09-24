@@ -15,6 +15,7 @@ def block(a):
              f"- proposed (derived, unsigned): {n['after_row']}",
              f"- pooled effect: {n['pooled_effect']}",
              f"- mechanism: {n['mechanism']}",
+             f"- coordination: {n.get('coordination', 'none recorded')}",
              f"- reason: {a['reason']}",
              "- evidence (verbatim, re-verified against held bytes when the adjudication was written):"]
     for k, v in a["evidence"].items():
