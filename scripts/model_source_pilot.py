@@ -288,12 +288,31 @@ def batches(task: str, items: list[dict]) -> list[dict]:
     return out
 
 
+STABILITY_PURPOSE = "stability re-ask of "
+
+
 def _records_by_prompt() -> dict[str, list[dict]]:
+    """Records grouped by prompt digest, each group in (request_utc, record_id) order -- never file-name order, which is
+    a hash and would make 'which record is the source' arbitrary once a prompt has been asked twice."""
     out: dict[str, list[dict]] = {}
     for p in sorted(REC_DIR.glob("mc-*.json")):
         r = ms.load_record(p)
         out.setdefault(r["prompt"]["sha256"], []).append(r)
+    for recs in out.values():
+        recs.sort(key=lambda r: (r["request_utc"], r["record_id"]))
     return out
+
+
+def source_record(recs: list[dict]) -> dict | None:
+    """The record a proposal comes from: the EARLIEST RAN_OK call that is not a stability re-ask. A re-ask measures the
+    model; it never replaces the answer that was proposed (and possibly signed). With no RAN_OK call, the latest error
+    is returned so the item is listed as RAN_ERROR."""
+    ordered = sorted(recs, key=lambda r: (r["request_utc"], r["record_id"]))
+    ok = [r for r in ordered if r["state"] == "RAN_OK" and not str(r["caller"].get("purpose", "")).startswith(STABILITY_PURPOSE)]
+    if ok:
+        return ok[0]
+    errs = [r for r in ordered if not str(r["caller"].get("purpose", "")).startswith(STABILITY_PURPOSE)]
+    return errs[-1] if errs else None
 
 
 # ------------------------------------------------------------------------------------------------------ commands
@@ -310,7 +329,8 @@ def cmd_run(task, limit):
     from reproducible_ai import model_call_live
     items = pilot_items(task)
     have = _records_by_prompt()
-    todo = [b for b in batches(task, items) if not any(r["state"] == "RAN_OK" for r in have.get(_sha(b["prompt"]), []))]
+    todo = [b for b in batches(task, items)
+            if (source_record(have.get(_sha(b["prompt"]), [])) or {}).get("state") != "RAN_OK"]
     print(f"{task}: {len(todo)} batches without a RAN_OK record; running {min(limit, len(todo))}", flush=True)
     for b in todo[:limit]:
         rec = model_call_live.call(b["prompt"], schema=_schema(task), model=MODEL, effort=EFFORT,
@@ -330,9 +350,7 @@ def cmd_queue(task):
     entries = {i["item_id"]: {"item_id": i["item_id"], "task": task, "state": i["state"], "held_ref": i["held_ref"]}
                for i in items if "held_text" not in i}
     for b in batches(task, items):
-        recs = have.get(_sha(b["prompt"]), [])
-        ok = [r for r in recs if r["state"] == "RAN_OK"]
-        rec = ok[-1] if ok else (recs[-1] if recs else None)   # a RAN_OK record wins; errors stay listed below
+        rec = source_record(have.get(_sha(b["prompt"]), []))
         for key, i in b["keyed"]:
             if rec is None:
                 entries[i["item_id"]] = {"item_id": i["item_id"], "task": task, "state": "NOT_YET_CALLED"}
@@ -403,16 +421,109 @@ def cmd_status(task):
         print(f"  rule/model {k}: {v} of {sum(agree.values())} proposals")
 
 
+# ------------------------------------------------------------------------------------------------------ stability
+def stability_sample(task: str, k: int) -> list[dict]:
+    """A deterministic sample of k batches: every (n // k)-th batch in batch order, starting at the first."""
+    bs = batches(task, pilot_items(task))
+    step = max(1, len(bs) // max(1, k))
+    return bs[::step][:k]
+
+
+def cmd_stability(task: str, k: int):
+    """Re-ask the model the IDENTICAL prompt bytes for a deterministic sample of batches. Each re-ask is its own
+    committed record (caller purpose 'stability re-ask of <source record id>'); none can become a proposal source."""
+    from reproducible_ai import model_call_live
+    have = _records_by_prompt()
+    for b in stability_sample(task, k):
+        recs = have.get(_sha(b["prompt"]), [])
+        src = source_record(recs)
+        if not src or src["state"] != "RAN_OK":
+            print(f"{b['batch']}: no RAN_OK source record; not re-asked", flush=True)
+            continue
+        if any(str(r["caller"].get("purpose", "")).startswith(STABILITY_PURPOSE + src["record_id"]) and r["state"] == "RAN_OK"
+               for r in recs):
+            print(f"{b['batch']}: already re-asked", flush=True)
+            continue
+        rec = model_call_live.call(b["prompt"], schema=_schema(task), model=MODEL, effort=EFFORT,
+                                   caller={"file": "scripts/model_source_pilot.py", "line": "cmd_stability",
+                                           "purpose": f"{STABILITY_PURPOSE}{src['record_id']} ({task} batch {b['batch']})"},
+                                   input_digests=b["digests"])
+        path = ms.write_record(rec, REC_DIR)
+        print(f"{b['batch']}: re-ask {rec['state']} -> {path.name}", flush=True)
+
+
+def _claims(rec: dict, keyed: list) -> dict:
+    out = {}
+    obj = ms.extract_claim(None, ms.replay(rec))
+    for key, i in keyed:
+        try:
+            out[i["item_id"]] = ms.claim_for_item(obj, key)
+        except ValueError:
+            out[i["item_id"]] = None
+    return out
+
+
+def stability_report(task: str) -> dict:
+    """Source call vs its re-ask(s), item by item, from committed records only (no model call)."""
+    have = _records_by_prompt()
+    rows = []
+    for b in batches(task, pilot_items(task)):
+        recs = have.get(_sha(b["prompt"]), [])
+        src = source_record(recs)
+        again = [r for r in recs if r["state"] == "RAN_OK" and src
+                 and str(r["caller"].get("purpose", "")).startswith(STABILITY_PURPOSE + src["record_id"])]
+        if not src or src["state"] != "RAN_OK" or not again:
+            continue
+        a, c = _claims(src, b["keyed"]), _claims(again[0], b["keyed"])
+        for key, i in b["keyed"]:
+            x, y = a.get(i["item_id"]), c.get(i["item_id"])
+            row = {"item_id": i["item_id"], "source_record": src["record_id"], "reask_record": again[0]["record_id"],
+                   "identical_claim": x == y}
+            if task == "screening" and x and y:
+                vx = ms.verify_screening(x, i["held_text"], i["rule_decision"])
+                vy = ms.verify_screening(y, i["held_text"], i["rule_decision"])
+                row["same_derived_decision"] = vx.get("model_decision") == vy.get("model_decision")
+                row["decisions"] = [vx.get("model_decision"), vy.get("model_decision")]
+                row["axes_same_verdict"] = sum(1 for ax in ms.SCREEN_AXES
+                                               if (x["axes"].get(ax) or {}).get("verdict") == (y["axes"].get(ax) or {}).get("verdict"))
+            elif task == "estimand" and x and y:
+                row["same_value"] = x.get("value") == y.get("value")
+                row["values"] = [x.get("value"), y.get("value")]
+            rows.append(row)
+    n = len(rows)
+    summary = {"task": task, "N": n, "N_name": "items whose batch has a source call AND a re-ask of the identical prompt bytes",
+               "identical_claim": sum(r["identical_claim"] for r in rows)}
+    if task == "screening":
+        summary["same_derived_decision"] = sum(bool(r.get("same_derived_decision")) for r in rows)
+        summary["axis_verdicts_same"] = sum(r.get("axes_same_verdict", 0) for r in rows)
+        summary["axis_verdicts_N"] = 4 * n
+    else:
+        summary["same_value"] = sum(bool(r.get("same_value")) for r in rows)
+    summary["what_this_measures"] = ("whether the MODEL reproduces its own answer to identical prompt bytes; the recorded "
+                                     "call replays byte-identically regardless -- that is the only reproducibility claimed")
+    return {"summary": summary, "rows": rows}
+
+
+def cmd_stability_report(task: str):
+    rep = stability_report(task)
+    out = ROOT / "outputs" / "model_source" / f"STABILITY_{task}.json"
+    out.write_bytes((json.dumps(rep, indent=1, sort_keys=True, ensure_ascii=True) + "\n").encode("ascii"))
+    print(json.dumps(rep["summary"], indent=1))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("cmd", choices=["items", "freeze", "run", "queue", "status"])
+    ap.add_argument("cmd", choices=["items", "freeze", "run", "queue", "status", "stability", "stability-report"])
     ap.add_argument("--base", help="freeze: the commit the population is selected from")
     ap.add_argument("task", choices=TASKS)
     ap.add_argument("--limit", type=int, default=10 ** 6)
+    ap.add_argument("--sample", type=int, default=10, help="stability: how many batches to re-ask")
     a = ap.parse_args(argv)
     {"items": lambda: cmd_items(a.task), "run": lambda: cmd_run(a.task, a.limit),
      "queue": lambda: cmd_queue(a.task), "status": lambda: cmd_status(a.task),
-     "freeze": lambda: cmd_freeze(a.task, a.base or sys.exit("freeze needs --base <commit>"))}[a.cmd]()
+     "freeze": lambda: cmd_freeze(a.task, a.base or sys.exit("freeze needs --base <commit>")),
+     "stability": lambda: cmd_stability(a.task, a.sample),
+     "stability-report": lambda: cmd_stability_report(a.task)}[a.cmd]()
     return 0
 
 

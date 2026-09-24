@@ -597,3 +597,8 @@ tests\test_model_source.py:332: AssertionError
 #    moved rule: N fell from 9 to 6, the batches re-chunked, and 3 of 6 items read NOT_YET_CALLED:
 #      status NOT_YET_CALLED: 3 of 6 / status PROPOSED: 3 of 6
 #    With the population frozen the same change leaves N = 9 and records the rule's new decision per item.
+
+# 5) Source choice (2026-09-24): the landed queue took ok[-1] in file-name order (= record_id, a hash). Plant: an
+#    original call and a later call of the same prompt -> the OLD logic picked the later one by hash order:
+#      OLD logic picks the original call: False
+#    so a stability re-ask (or any second call) could silently replace the answer that was proposed and signed.

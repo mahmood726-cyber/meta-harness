@@ -423,6 +423,24 @@ def test_every_committed_record_replays_or_is_a_recorded_error(offline):
         assert "\\Users\\" not in blob and ":\\\\" not in blob, f"{p.name} carries a local path"
 
 
+def test_the_source_of_a_proposal_is_the_earliest_ordinary_call_whatever_the_file_order():
+    """Plants: a stability re-ask, a later ordinary call, and an error -- presented in every order -- never displace
+    the earliest RAN_OK ordinary call as the proposal's source. (Before this, the queue took the LAST record in
+    file-name order: a hash, so a second call of the same prompt made the source arbitrary.)"""
+    import itertools
+    pilot = _pilot()
+    first = _record(request_utc="2026-09-23T22:00:00Z", response_utc="2026-09-23T22:00:05Z")
+    later = _record(response=b'{"answer": 9}', request_utc="2026-09-24T09:00:00Z", response_utc="2026-09-24T09:00:05Z")
+    reask = _record(response=b'{"answer": 7}', request_utc="2026-09-23T21:00:00Z", response_utc="2026-09-23T21:00:05Z",
+                    caller={"file": "t", "line": 1, "purpose": pilot.STABILITY_PURPOSE + first["record_id"]})
+    err = _record(response=b"", state="RAN_ERROR", error="x", request_utc="2026-09-23T20:00:00Z",
+                  response_utc="2026-09-23T20:00:05Z")
+    for perm in itertools.permutations([first, later, reask, err]):
+        assert pilot.source_record(list(perm))["record_id"] == first["record_id"]
+    assert pilot.source_record([reask]) is None           # a re-ask alone is never a source
+    assert pilot.source_record([err])["state"] == "RAN_ERROR"
+
+
 def test_a_frozen_population_never_shrinks_when_the_rule_moves(tmp_path, monkeypatch):
     """Plants on a synthetic population: A is now excluded by the rule, B's held text changed, C is newly selected.
     A stays (with the rule's NEW decision recorded), B becomes HELD_TEXT_DRIFT, C is reported as drift, not added."""

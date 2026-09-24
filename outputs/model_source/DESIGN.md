@@ -62,7 +62,11 @@ store, and a plant proves that scan fires. **The certificate's in-tree scan does
 ## Limits, plainly
 
 - **The model is not made reproducible.** Only THIS call's recorded output is. Re-asking tomorrow may answer
-  differently; the server-side revision behind `gpt-6-astra` is not reported to us.
+  differently; the server-side revision behind `gpt-6-astra` is not reported to us. **Measured** (2026-09-24,
+  `model_source_pilot.py stability`, identical prompt bytes re-asked, every re-ask a committed record that can never
+  become a source): estimand 9 of 9 claims identical; screening **22 of 50 claims byte-identical** (quote wording
+  varies), 199 of 200 axis verdicts and 49 of 50 derived decisions the same — the one flip (TRANSFORM-1,
+  CANNOT_TELL → INELIGIBLE) is an item that already requires an individual signature. `outputs/model_source/STABILITY_*.json`.
 - **The prompt bytes are not the whole context.** The client prepends its own instructions: a 5-word probe prompt
   cost 15,923 input tokens (codex-cli 0.153.4, measured 2026-09-23). The user's `~/.codex/AGENTS.md` is recorded by
   sha256; the client's built-in instructions are named in `not_controllable`.
