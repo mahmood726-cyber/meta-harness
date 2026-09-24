@@ -21,3 +21,24 @@ recomputed by the pipeline, not by hand. Nothing here is applied.
 ```
 
 sha256 of the block above: `04bf291dd1faae45c461e9c00927a1563e13bfc81a0b910e6ecb60a4543b981e`
+
+## Q2
+
+```
+REGISTRY-VS-PUBLICATION DIFFERENCE ON A SERVED ROW -- for Mahmood's individual decision (derived by evid2; NOT landed)
+Page: tocilizumab-covid19-mortality | Outcome: Serious adverse events (harm) | Trial: COVACTA, PMID 33631066, NCT04320615
+SERVED: tocilizumab 103/295 vs placebo 55/143 -- from the held abstract: "103 of 295 patients (34.9%) in the tocilizumab group" / "55 of 143 patients (38.5%) in the placebo group"
+REGISTRY (ClinicalTrials.gov NCT04320615 posted results, adverseEventsModule.eventGroups, timeFrame "60 days",
+  safety-evaluable population grouped by treatment first received; acquired record
+  evidence/typed_arms/registry/NCT04320615.json):
+  EG001 "Tocilizumab (TCZ) Arm (Safety-Evaluable Population)" seriousNumAffected 116 / seriousNumAtRisk 295
+  EG000 "Placebo Arm (Safety-Evaluable Population)"           seriousNumAffected  64 / seriousNumAtRisk 143
+Same denominators, different counts (116 vs 103; 64 vs 55). evid2 has NOT established why: the publication's
+assessment window is not stated in the held abstract; the registry's is 60 days. Under the new ownership rule
+(registry groupIds where posted results exist) the registry reading would be the witnessed one, which would change a
+served number. Options (Mahmood's decision): A. serve the registry counts 116/295 vs 64/143 with its window stated;
+B. keep the publication counts and record the registry difference beside them; C. set the row aside until the full
+text resolves the window. The pooled estimate must be recomputed by the pipeline under A. Nothing here is applied.
+```
+
+sha256 of the block above: `8a8e7d12fd2f8b28bbb5b4c9c923bdf808031ea8f5e111763efb578618d9955c`

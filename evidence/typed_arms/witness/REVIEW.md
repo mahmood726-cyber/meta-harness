@@ -1,7 +1,7 @@
 # Token-level witnesses for the 34 held count entries -- result and eye review (evid2, 2026-09-25)
 
 Source work for the per-arm witness schema `{group_id, arm_name, events, total, event_witness, total_witness}`.
-**Not bulk-written to the schema**: the main lane's final schema governs that; these are the witnesses it will be
+**Written to schema v2 (the main lane's final schema) in ../v2/ -- see the served section at the end; these are the witnesses it is
 written from. Every witness is a character span of ONE number token in sha256-pinned bytes, checked mechanically
 (`check_witness.py`: T1 offsets, T2 value, T3 whole token, T4 no occurrence witnesses two arm fields, T5 registry
 groupId ownership). Registry records: 22 acquired ClinicalTrials.gov v2 records (`../registry/`), 15 with posted results.
@@ -38,3 +38,17 @@ groupId ownership). Registry records: 22 acquired ClinicalTrials.gov v2 records 
   (which equals their sum) be witnessed, with the registry components as corroboration?
 - S3: "genuinely equal values need distinct witnesses" -- a distributive statement ("in each group") has one token;
   is such an arm field null (as done here) or a declared shared witness?
+
+## Served rows (schema v2's primary population, added 2026-09-25)
+35 served count rows, 13 with registry posted results (30 registry records acquired in all, 19 with results).
+Checked the same way: **WITNESSED 30, DIFFERS 2, INCOMPLETE 3** -> v2 observations written for **30 of 35**
+(`../v2/OBSERVATIONS_served.json`: 27 owned from prose/tables where the registry does not carry the outcome, 3 from
+registry groupIds). Not written: dapagliflozin AEs and two metformin rows (counts not printed), and the two rows
+queued for Mahmood: Q1 EMPA-KIDNEY (label/number) and **Q2 COVACTA** (registry 116/295 vs 64/143 serious-AE patients
+over 60 days; publication 103 vs 55; same denominators; reason not established) -- `SIGNATURE_QUEUE.md`.
+Two checker defects found on the served run and fixed with plants: registry counts carried on an eventGroups object,
+and group ids resolved file-wide instead of inside their own outcome measure (ASCEND's OG000 is 'Aspirin' in one
+measure and 'Omega-3' in the AF measure) -- now the innermost object defining groups around the witness.
+CARMELINA hypoglycaemia (served and held): the first witness took the registry's thresholded non-serious term; re-run
+with a logged addendum, now witnessed from the trial report (1036/3494 vs 1024/3485 -- the served numbers).
+Held population after the same re-run: WITNESSED 23 -> v2 written for 23 of 34.

@@ -96,13 +96,43 @@ def check_job(job):
         g = re.search(r'"id":\s*"(\w+)"', text[a:b])
         return g.group(1) if g and re.search(r'"title":', text[a:b]) else None
 
-    def group_title(f, gid):
+    def group_title(f, gid, at):
+        """The title of group `gid` as defined in the innermost JSON object that CONTAINS the witness and defines a
+        "groups" or "eventGroups" list -- group ids are per outcome measure (OG000 is 'Aspirin' in one measure and
+        'Omega-3' in the next), and in a sorted-keys record a measure's groups may come before or after its counts,
+        so neither the file's first definition nor the nearest one is safe."""
         _, text = load(f)
-        for m in re.finditer(r'\{[^{}]*?"id":\s*"%s"[^{}]*?\}' % re.escape(gid), text):
-            t = re.search(r'"title":\s*"([^"]*)"', m.group(0))
-            if t:
-                return t.group(1)
+        for a, b in sorted((sp for sp in object_spans(f) if sp[0] <= at < sp[1]), key=lambda sp: sp[1] - sp[0]):
+            body = text[a:b]
+            if '"groups":' in body or '"eventGroups":' in body:
+                m = re.search(r'\{[^{}]*?"id":\s*"%s"[^{}]*?\}' % re.escape(gid), body)
+                t = m and re.search(r'"title":\s*"([^"]*)"', m.group(0))
+                return t.group(1) if t else None
         return None
+
+    spans_cache = {}
+
+    def object_spans(f):
+        """[start, end) of every JSON object in the file, by a brace scanner that skips string contents."""
+        if f not in spans_cache:
+            _, text = load(f)
+            out, stack, i, n, in_str = [], [], 0, len(text), False
+            while i < n:
+                c = text[i]
+                if in_str:
+                    if c == "\\":
+                        i += 1
+                    elif c == '"':
+                        in_str = False
+                elif c == '"':
+                    in_str = True
+                elif c == "{":
+                    stack.append(i)
+                elif c == "}" and stack:
+                    out.append((stack.pop(), i + 1))
+                i += 1
+            spans_cache[f] = out
+        return spans_cache[f]
 
     arms = o.get("arms") or []
     for i, a in enumerate(arms):
@@ -129,7 +159,7 @@ def check_job(job):
                                           f"not the arm's {gid!r}")
             reg_file = (out["event_witness"] or out["total_witness"] or {}).get("file")
             if reg_file and gid:
-                title = group_title(reg_file, gid)
+                title = group_title(reg_file, gid, (out["event_witness"] or out["total_witness"])["start"])
                 out["registry_group_title"] = title
                 if title != a.get("arm_name"):
                     rec["reasons"].append(f"T5 arm {i}: registry group {gid} is titled {title!r}, not {a.get('arm_name')!r}")
