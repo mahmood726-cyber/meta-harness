@@ -3,23 +3,26 @@
 G2/G3 prove a number is printed in the quoted span. When one span carries BOTH arms' numbers (common: "2697 (77.2%)
 and 2723 (78.1%) patients in the linagliptin and placebo groups"), that proves nothing about WHOSE number it is -- the
 REWIND arm swap lives exactly there. This module decides ownership from the text alone, never from the served slots,
-by one of five relations, and names which one held:
+by one of seven relations, and names which one held:
 
   ADJACENT_LABEL  the number's nearest arm mention (no other arm's number in between) is its own arm; a mention that
                   follows the number through 'in (the)' / 'assigned to' / 'to receive' wins over a nearer preceding one
   PARALLEL_ORDER  the span lists the arms' numbers in the same order as it names the arms ('A and B ... respectively')
   VERSUS_ORDER    'X (p%) versus Y (q%)' where the span names exactly one arm, before the pair: X is that arm's
+  EACH_GROUP      'one patient in each group' -- a distributive count, valid only when every arm's value is that number
   TABLE_COLUMN    a table row: the cell holding the span's occurrence of the number sits under a header cell (nearest
                   of up to 3 header rows that names an arm at that index) naming its own arm and no other
   GROUP_ID        registry JSON: the number's groupId is defined, in the SAME outcome measure (the nearest definition
                   before the number), with a title naming its own arm and no other
+  AACT_GROUP      AACT reported_events: the number's flat JSON object carries result_group_id, whose result_groups
+                  object's title names its own arm and no other
 Anything else is OWNERSHIP_UNVERIFIED."""
 import re
 
 CONNECT = re.compile(r"^[\s\S]{0,45}?\b(in the|in|among|assigned to|to receive|receive|randomi[sz]ed to|receiving|with)\b\s*$", re.I)
 CONTROL_ALIASES = ["placebo", "controls", "control", "usual care", "standard care"]
 STOP = {"group", "groups", "arm", "plus", "with", "patients", "participants", "treated", "treatment", "daily", "once", "twice"}
-CTRL_RE = re.compile(r"\b(placebo|control|controls|usual care|standard care|standard of care)\b", re.I)
+CTRL_RE = re.compile(r"\b(placebo|control|controls|usual care|standard care|standard of care)\b|^\s*no[- ][a-z]", re.I)
 
 
 def aliases(arm, arms=None):
@@ -44,6 +47,8 @@ def aliases(arm, arms=None):
         out.update(CONTROL_ALIASES)
     elif len(others) == 1 and CTRL_RE.search(others[0].get("arm_label") or ""):
         out.update(["active group", "intervention group", "experimental group", "treatment group"])
+    # 'balanced-crystalloids group' and 'balanced crystalloids': a hyphen and a space name the same arm
+    out |= {a.replace("-", " ") for a in out if "-" in a and not a.lower().startswith("no-")}
     return sorted((a for a in out if a), key=len, reverse=True)
 
 
@@ -197,8 +202,32 @@ def owns(doc, span, value, partner, arm_i, arms, values):
         m = re.search(r"(?<![\d.])%s\s*(?:\([^)]*\))?\s*(?:versus|vs\.?|compared with)\s*%s(?![\d.])" % (v0, v1), text)
         if m and mentions(text[:m.start()], arms[j0], arms):
             return "VERSUS_ORDER"
+    # EACH_GROUP: 'one patient in each group' -- a distributive count belongs to every arm, and is only a valid owner
+    # when every arm's value IS that number
+    if len({v for v in values.values()}) == 1 and any(
+            re.match(r"[^.;]{0,60}?\b(in|of) (each|both) (group|arm)s?\b|[^.;]{0,30}?\bper (group|arm)\b", text[e:], re.I)
+            for _, e in positions):
+        return "EACH_GROUP"
     if doc is not None and "<t" in text and table_column(doc, span["start"], text, value, arms[arm_i], arms):
         return "TABLE_COLUMN"
     if doc is not None and '"groupId"' in text and group_id(doc, span, arms[arm_i], arms):
         return "GROUP_ID"
+    if doc is not None and re.search(r'"subjects_(affected|at_risk)"', text) and aact_group(doc, span, arms[arm_i], arms):
+        return "AACT_GROUP"
     return None
+
+
+def aact_group(doc, span, own_arm, arms):
+    """AACT reported_events: the flat JSON object enclosing the number carries result_group_id; the result_groups
+    object with that id carries the arm's title. Own arm named in that title and no other arm -> owned."""
+    start, end = doc.rfind("{", 0, span["start"]), doc.find("}", span["end"])
+    if start < 0 or end < 0 or "}" in doc[start:span["start"]]:
+        return False
+    rid = re.search(r'"result_group_id":\s*"(\w+)"', doc[start:end])
+    if not rid:
+        return False
+    g = re.search(r'\{\s*"id":\s*"%s"[^{}]*?"title":\s*"([^"]*)"' % re.escape(rid.group(1)), doc)
+    if not g:
+        return False
+    title = g.group(1)
+    return bool(mentions(title, own_arm, arms)) and not any(mentions(title, a, arms) for a in arms if a is not own_arm)
