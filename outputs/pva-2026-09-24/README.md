@@ -19,3 +19,13 @@ History of this item on the branch, all recorded rather than rewritten:
   limb (`docs/fix_ledger.json` stale: fix M2 depends on harness/page.py);
 - rebuild at ec139652 (this evidence): the block has its own class; the fix ledger is re-rendered (M2 -> STALE, a true
   statement: its dependency changed).
+
+## Item 2 -- frozen GLP-1 release archive (`docs/releases/glp1-ra-mace-t2d/1b3b0b8dcf3d/`)
+
+| file | what it shows |
+|---|---|
+| `04-archive-test-red-without-archive.txt` | `tests/test_release_archive.py` with `docs/releases/` moved aside: `test_there_is_a_frozen_glp1_archive` FAILS and the three per-archive tests skip -- the denominator check fires, so an absent archive cannot pass as an empty green |
+| `05-outsider-replay-fresh-dir-no-network.txt` | the README's commands, verbatim, in a fresh directory outside any repository, network blocked (proxies to a closed local port), PYTHONPATH empty: 131/131 files match SHA256SUMS; `verdict PASS`; `RESULT REPRODUCED` with release_sha256 6a04a3df... equal to the value printed on the archived page; `plant_control.py` -> `CONTROL FIRED` (damaged copy FAIL, untouched PASS); the two traps shown as measured (`--corrupt` stays PASS; `--anchor live` PASS with 0 of 11 fetched); `--url` REFUSED ARTEFACT_UNREACHABLE |
+
+The archive freezes release 1b3b0b8d (landed and attested: `production record 1b3b0b8dcf3d: ATTESTED (1188/1188 served
+files equal)`, copied into the archive as `production_record.json`). It is labelled PRE-RELEASE, never v1.
