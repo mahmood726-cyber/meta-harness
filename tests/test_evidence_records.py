@@ -237,6 +237,13 @@ EYE_LABELLED = [
     ("Outcomes were analyzed in all randomized patients treated with at least 1 dose of study drug (treated set) using the intention-to-treat principle.", "OTHER_SET_STATED"),
     ("All analyses were performed according to the intention-to-treat principle.", "ITT_STATED"),
     ("POPULATION: Randomized set - The randomized set includes all randomized subjects in the treatment groups to which they were randomized", "ITT_STATED"),
+    # second eye pass (the SUPPORTED spans), 2026-09-24
+    ("All randomized participants with a non-missing primary endpoint (n/N: 59/2609; 71/2635, in apixaban, enoxaparin/warfarin, respectively). Intent-to-treat population.", "OTHER_SET_STATED"),
+    ("Full Analysis Set (FAS) included all randomized patients but the following two exclusions: 6 patients who did not qualify for randomization", "OTHER_SET_STATED"),
+    ("All analyses were done on an intention-to-treat basis. For each binary outcome, we calculated risk ratios and 95% CIs", "ITT_STATED"),
+    ("The efficacy objectives were evaluated in all randomized patients using analysis of time from randomization to the first event.", "ITT_STATED"),
+    # 'mITT' matched inside 'comMITTee' (case-insensitive, no word boundary) and flipped PLATO to CONTRADICTED
+    ("Intention To Treat (ITT) analysis of whole population. Events were adjudicated by an endpoint committee. | POPULATION: The population was the full analysis set, which included all randomized patients", "ITT_STATED"),
 ]
 
 
