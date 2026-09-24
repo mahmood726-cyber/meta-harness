@@ -13,8 +13,10 @@ class (a broadened keyword matched an ED-visit OM / a subgroup HR that is not th
 Usage:
   python scripts/outcome_judgments.py <slug> --candidates      # list candidate OM titles (no model)
   python scripts/outcome_judgments.py <slug> --prompts         # emit the per-candidate model prompts
-  python scripts/outcome_judgments.py <slug> --codex [--model M]  # call Codex per candidate, write cache
-  python scripts/outcome_judgments.py <slug> --write judg.json # validate hand/model judgments, write cache
+  python scripts/outcome_judgments.py <slug> --codex --model M [--effort E]  # one RECORDED call per candidate
+        (reproducible_ai.model_call_live -> registry/model_calls/); a failed/invalid answer is listed under
+        not_judged, never dropped; no --model = refused (MODEL_PIN_MISSING)
+  python scripts/outcome_judgments.py <slug> --write judg.json --author NAME  # HAND judgments, named author
 
 The 5 checkable model-derived fields per judgment: candidate_population, candidate_timepoint,
 candidate_definition, is_match, rationale (declared_outcome is echoed for the reader). A judgment
@@ -22,7 +24,6 @@ missing any field is REJECTED -- the cache is never written half-formed.
 """
 import json
 import os
-import subprocess
 import sys
 from datetime import datetime, timezone
 
@@ -88,16 +89,6 @@ def build_prompt(spec, cand):
     )
 
 
-def _extract_json(text):
-    i, j = text.find("{"), text.rfind("}")
-    if i < 0 or j < 0 or j < i:
-        return None
-    try:
-        return json.loads(text[i:j + 1])
-    except json.JSONDecodeError:
-        return None
-
-
 def validate(j):
     if not isinstance(j, dict):
         return "not a JSON object"
@@ -109,25 +100,57 @@ def validate(j):
     return None
 
 
-def _ask_codex(prompt, model=None):
-    cmd = ["codex", "exec", "-s", "read-only", "--skip-git-repo-check"]
-    if model:
-        cmd += ["-m", model]
-    cmd += [prompt]
-    r = subprocess.run(cmd, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=180)
-    return r.stdout
+OUTCOME_SCHEMA = {"type": "object", "additionalProperties": False, "required": list(REQUIRED_FIELDS),
+                  "properties": {"candidate_population": {"type": "string"}, "candidate_timepoint": {"type": "string"},
+                                 "candidate_definition": {"type": "string"}, "is_match": {"type": "boolean"},
+                                 "rationale": {"type": "string"}}}
+RUNNER = None   # tests inject a fake client runner here; None = the real codex client
 
 
-def write_cache(slug, spec, judgments, model):
+def _file_digest(rel):
+    import hashlib
+    return {"ref": rel, "sha256": hashlib.sha256(open(os.path.join(ROOT, rel), "rb").read()).hexdigest(),
+            "what": "raw bytes of the committed file the prompt was built from"}
+
+
+def ask_recorded(slug, cand, prompt, model, effort):
+    """ONE recorded model call per candidate, through the contract's single caller (reproducible_ai.model_call_live):
+    exact prompt bytes, pinned model, response bytes and digests stored under registry/model_calls/. Returns
+    (record, judgment-or-None, why-not)."""
+    from reproducible_ai import model_call_live, model_source
+    rec = model_call_live.call(
+        prompt.encode("utf-8"), schema=OUTCOME_SCHEMA, model=model, effort=effort,
+        caller={"file": "scripts/outcome_judgments.py", "line": "ask_recorded",
+                "purpose": f"outcome identity, {slug}: {cand['title'][:100]}"},
+        input_digests=[_file_digest(f"topics/{slug}.json"), _file_digest(f"cache/{slug}/records.json")],
+        runner=RUNNER)
+    model_source.write_record(rec, os.path.join(ROOT, model_source.RECORD_DIR))
+    if rec["state"] != "RAN_OK":
+        return rec, None, f"RAN_ERROR: {rec.get('error', '')[:200]}"
+    try:
+        j = model_source.extract_claim("outcome", model_source.replay(rec))
+    except ValueError as exc:
+        return rec, None, f"RESPONSE_NOT_A_CLAIM: {exc}"
+    err = validate(j)
+    if err:
+        return rec, None, f"INVALID: {err}"
+    return rec, j, None
+
+
+def write_cache(slug, spec, judgments, model, not_judged=None, provenance=None):
+    """judgments: {title: judgment}. A recorded judgment carries record_id (and model); a hand judgment carries
+    author. not_judged lists every candidate the model was asked about and did not answer validly -- the denominator
+    is never shrunk by a failure. The file's own provenance key is `provenance`, never a bare 'model' string."""
     for title, j in judgments.items():
         err = validate(j)
         if err:
             print(f"REFUSE to write: judgment for '{title[:60]}' invalid: {err}", file=sys.stderr)
             return 2
         j.setdefault("declared_outcome", spec.get("name"))
-    out = {"slug": slug, "declared_outcome": spec.get("name"), "model": model,
+    out = {"slug": slug, "declared_outcome": spec.get("name"),
+           "provenance": provenance or {"kind": "UNSTATED", "model_named": model},
            "produced_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-           "judgments": judgments}
+           "judgments": judgments, "not_judged": not_judged or []}
     p = os.path.join(ROOT, "cache", slug, "outcome_judgments.json")
     with open(p, "w", encoding="utf-8", newline="") as f:
         json.dump(out, f, indent=2, ensure_ascii=False)
@@ -153,25 +176,45 @@ def main(argv):
             print(build_prompt(spec, c))
         return 0
     if "--write" in argv:
+        # HAND judgments: a named person authored them. They are not model output and must not be labelled as such.
+        if "--author" not in argv or not argv[argv.index("--author") + 1].strip():
+            print("REFUSE: --write needs --author NAME (who authored these judgments); a hand judgment with no author "
+                  "is an assertion with no source", file=sys.stderr)
+            return 2
+        author = argv[argv.index("--author") + 1].strip()
         src = argv[argv.index("--write") + 1]
         judgments = json.load(open(src, encoding="utf-8"))
         judgments = judgments.get("judgments", judgments)
-        return write_cache(slug, spec, judgments, model="hand/model via --write")
+        for j in judgments.values():
+            if isinstance(j, dict):
+                j["author"] = author
+        return write_cache(slug, spec, judgments, model=None,
+                           provenance={"kind": "HAND", "author": author})
     if "--codex" in argv:
-        model = argv[argv.index("--model") + 1] if "--model" in argv else None
-        judgments = {}
-        for c in cands:
-            raw = _ask_codex(build_prompt(spec, c), model)
-            j = _extract_json(raw)
-            if j is None or validate(j):
-                print(f"SKIP (unparseable/invalid) '{c['title'][:60]}'", file=sys.stderr)
-                continue
-            judgments[c["title"]] = j
-            print(f"  {c['title'][:60]} -> is_match={j.get('is_match')}")
-        if not judgments:
-            print("no valid judgments produced", file=sys.stderr)
+        # A model call is a SOURCE: pinned model, recorded prompt/response, replayable (reproducible_ai.model_source).
+        if "--model" not in argv:
+            print("REFUSE: --codex needs --model <id> (MODEL_PIN_MISSING: an unpinned model is an unpinned "
+                  "dependency)", file=sys.stderr)
             return 2
-        return write_cache(slug, spec, judgments, model=model or "codex-default")
+        model = argv[argv.index("--model") + 1]
+        effort = argv[argv.index("--effort") + 1] if "--effort" in argv else "medium"
+        judgments, not_judged = {}, []
+        for c in cands:
+            rec, j, why = ask_recorded(slug, c, build_prompt(spec, c), model, effort)
+            if j is None:
+                not_judged.append({"title": c["title"], "record_id": rec["record_id"], "state": why.split(":")[0],
+                                   "why": why})
+                print(f"  NOT JUDGED '{c['title'][:60]}': {why[:120]}", file=sys.stderr)
+                continue
+            j["record_id"], j["model"] = rec["record_id"], rec["model"]["id_reported"]
+            judgments[c["title"]] = j
+            print(f"  {c['title'][:60]} -> is_match={j.get('is_match')} ({rec['record_id']})")
+        print(f"{len(judgments)} of {len(cands)} candidates judged; {len(not_judged)} not judged (listed in the cache)")
+        return write_cache(slug, spec, judgments, model=model, not_judged=not_judged,
+                           provenance={"kind": "RECORDED_MODEL_CALLS", "model_requested": model, "effort": effort,
+                                       "record_dir": "registry/model_calls",
+                                       "note": "each judgment names its record_id; replay with "
+                                               "reproducible_ai.model_source.replay"})
     print("specify one of --candidates | --prompts | --codex | --write <file>")
     return 1
 
