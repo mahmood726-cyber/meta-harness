@@ -206,3 +206,12 @@ def test_analysis_set_reader_recognises_itt_spellings_and_restrictions():
               "The primary analysis was conducted using a modified intention\u2010to\u2010treat approach."):
         assert set_reading(s) == "OTHER_SET_STATED", s
     assert set_reading(None) == "NOT_STATED"
+
+
+def test_gap_source_scope_is_derived_not_remembered():
+    """A post-hoc tagging step was once wiped by the next run of the checker; the scope is now a pure function."""
+    from gap_check import source_scope
+    assert source_scope("evidence/held_local/12345/PMC1.html", "ITT was used.", "12345") == "OWN_REPORT"
+    assert source_scope("evidence/held/999/PMC2.xml", "ITT was used.", "12345") == "SAME_TRIAL_OTHER_REPORT"
+    assert source_scope("evidence/held/999/PMC2.xml", "Analyses will be conducted on an ITT basis.", "12345") == "SAME_TRIAL_OTHER_REPORT_PLANNED"
+    assert source_scope("evidence/held/registry/NCT1.json", "FAS", "12345") == "OWN_REPORT"
