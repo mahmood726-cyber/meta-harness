@@ -44,9 +44,9 @@ from reproducible_ai import model_source as ms  # noqa: E402
 
 MODEL = "gpt-6-astra"
 # a second reader must be a different model id; same vendor (OpenAI via codex) -- stated, not hidden
-MODEL_BY_TASK = {"screening_reader2": "gpt-5.5"}
+MODEL_BY_TASK = {"screening_reader2": "gpt-5.5", "screening_excluded_reader2": "gpt-5.5", "screening_excluded_x1_reader2": "gpt-5.5"}
 EFFORT = "medium"
-BATCH = {"screening": 6, "estimand": 3, "outcome_identity": 1, "locate": 1, "screening_reader2": 6, "screening_excluded": 6, "screening_excluded_x1": 6}
+BATCH = {"screening": 6, "estimand": 3, "outcome_identity": 1, "locate": 1, "screening_reader2": 6, "screening_excluded": 6, "screening_excluded_x1": 6, "screening_excluded_reader2": 6, "screening_excluded_x1_reader2": 6}
 REC_DIR = ROOT / ms.RECORD_DIR
 Q_DIR = ROOT / ms.PROPOSAL_DIR
 
@@ -231,25 +231,27 @@ def candidates_locate() -> list[dict]:
     return sorted(out, key=lambda i: i["item_id"])
 
 
-def candidates_screening_reader2() -> list[dict]:
-    """The screening items where reader 1's committed proposal does NOT agree with the rule (cannot tell, or disagree):
-    the items a human must sign individually. Same held text; a second model reads them independently."""
-    q = Q_DIR / "screening.json"
+def _reader2_of(source_task: str, task: str) -> list[dict]:
+    """The items where reader 1's committed proposal in `source_task` does NOT agree with the rule (cannot tell, or
+    disagree): the items a human must sign individually. Same held text; a second model reads them independently."""
+    q = Q_DIR / f"{source_task}.json"
     if not q.exists():
         return []
     non_agree = {e["item_id"] for e in json.loads(q.read_text(encoding="utf-8"))["items"]
                  if "verification" in e and ms.needs_individual_signature(e["verification"])}
-    out = []
-    for i in candidates_screening():
-        if i["item_id"] in non_agree:
-            out.append(dict(i, task="screening_reader2", item_id=i["item_id"]))
-    return out
+    return [dict(i, task=task) for i in candidates_screening() if i["item_id"] in non_agree]
+
+
+def candidates_screening_reader2() -> list[dict]:
+    return _reader2_of("screening", "screening_reader2")
 
 
 CANDIDATES = {"screening": candidates_screening, "estimand": candidates_estimand,
               "screening_reader2": candidates_screening_reader2,
               "screening_excluded": lambda: [dict(i, task="screening_excluded") for i in candidates_screening()],
               "screening_excluded_x1": lambda: [dict(i, task="screening_excluded_x1") for i in candidates_screening()],
+              "screening_excluded_reader2": lambda: _reader2_of("screening_excluded", "screening_excluded_reader2"),
+              "screening_excluded_x1_reader2": lambda: _reader2_of("screening_excluded_x1", "screening_excluded_x1_reader2"),
               "outcome_identity": candidates_outcome_identity, "locate": candidates_locate}
 # The selection rule that defines each pilot's population AT FREEZE TIME. After the freeze the population does not
 # move: a later rule change (a regex that now reads a field, a record the screen now excludes) is recorded on the
@@ -262,7 +264,8 @@ SELECT = {"screening": lambda i: i["rule_decision"] == "include",
           # dose, age, dedup); X1 (not an RCT, from publication type) is a separate, later phase
           "screening_excluded": lambda i: i["rule_decision"] == "exclude" and i.get("rule_id") != "X1",
           # phase B: X1 'not an RCT' (publication type / design words); a missing pubtype can wrongly exclude a trial
-          "screening_excluded_x1": lambda i: i["rule_decision"] == "exclude" and i.get("rule_id") == "X1"}
+          "screening_excluded_x1": lambda i: i["rule_decision"] == "exclude" and i.get("rule_id") == "X1",
+          "screening_excluded_reader2": lambda i: True, "screening_excluded_x1_reader2": lambda i: True}
 SELECTION_RULE = {"screening": "screened records with decision == include on the committed review pages",
                   "estimand": "estimand fields whose bundle state != STATED_IN_OWNING_EVIDENCE on the served bundles",
                   "outcome_identity": "every candidate CT.gov outcome measure of every topic with a committed "
@@ -274,7 +277,11 @@ SELECTION_RULE = {"screening": "screened records with decision == include on the
                   "screening_excluded": "screened records the rule EXCLUDED with a keyword rule (every rule_id except "
                                         "X1 not-an-RCT) on the committed review pages",
                   "screening_excluded_x1": "screened records the rule EXCLUDED as X1 (not an RCT) on the committed "
-                                           "review pages"}
+                                           "review pages",
+                  "screening_excluded_reader2": "keyword-excluded records whose reader-1 proposal needs an individual "
+                                                "signature (registry/model_proposals/screening_excluded.json)",
+                  "screening_excluded_x1_reader2": "X1-excluded records whose reader-1 proposal needs an individual "
+                                                   "signature (registry/model_proposals/screening_excluded_x1.json)"}
 FROZEN_KEYS = ("item_id", "slug", "held_ref", "held_sha256", "state", "rule_decision", "rule_id", "field", "rule_state", "prior")
 
 
@@ -319,15 +326,18 @@ def pilot_items(task: str) -> list[dict]:
 
 
 TASKS = ("estimand", "screening", "outcome_identity", "locate", "screening_reader2", "screening_excluded",
-         "screening_excluded_x1")
-SCREEN_TASKS = ("screening", "screening_reader2", "screening_excluded", "screening_excluded_x1")
+         "screening_excluded_x1", "screening_excluded_reader2", "screening_excluded_x1_reader2")
+SCREEN_TASKS = ("screening", "screening_reader2", "screening_excluded", "screening_excluded_x1",
+                "screening_excluded_reader2", "screening_excluded_x1_reader2")
 N_NAME = {"screening": "screened-in records across committed review pages",
           "estimand": "estimand fields without a stated value across served bundles",
           "outcome_identity": "candidate CT.gov outcome measures under a committed outcome-identity judgment file",
           "locate": "committed locate-gate judgments",
           "screening_reader2": "screening items whose reader-1 proposal needs an individual signature",
           "screening_excluded": "records excluded by a keyword rule (not X1) across committed review pages",
-          "screening_excluded_x1": "records excluded as X1 (not an RCT) across committed review pages"}
+          "screening_excluded_x1": "records excluded as X1 (not an RCT) across committed review pages",
+          "screening_excluded_reader2": "keyword-excluded records whose reader-1 proposal needs an individual signature",
+          "screening_excluded_x1_reader2": "X1-excluded records whose reader-1 proposal needs an individual signature"}
 
 
 def cmd_freeze(task: str, base: str):
@@ -425,7 +435,7 @@ def batches(task: str, items: list[dict]) -> list[dict]:
             digests = [{"ref": i["held_ref"], "sha256": i["held_sha256"], "what": "held text quoted by the item"} for _, i in keyed]
             if task in SCREEN_TASKS:
                 crit, cd = criteria(slug)
-                body = (READER2_HEADER if task == "screening_reader2" else "") + SCREEN_INSTR + \
+                body = (READER2_HEADER if task.endswith("_reader2") else "") + SCREEN_INSTR + \
                     "\n=== REGISTERED CRITERIA ===\n" + crit + "\n"
                 for key, i in keyed:
                     body += f"\n=== RECORD item={key} ===\n{i['held_text']}\n"
@@ -694,11 +704,18 @@ def cmd_stability_report(task: str):
 
 
 # ------------------------------------------------------------------------------------------------------ two readers
-def readers_report() -> dict:
-    """Reader 1 (screening queue) vs reader 2 (screening_reader2 queue), item by item, from committed queues only.
-    A TRIAGE for the human, not a decision: every one of these items still needs an individual signature."""
-    q1 = {e["item_id"]: e for e in json.loads((Q_DIR / "screening.json").read_text(encoding="utf-8"))["items"]}
-    q2p = Q_DIR / "screening_reader2.json"
+READER_PAIRS = {"screening": "screening_reader2", "screening_excluded": "screening_excluded_reader2",
+                "screening_excluded_x1": "screening_excluded_x1_reader2"}
+
+
+def readers_report(source: str = "screening") -> dict:
+    """Reader 1 (`source` queue) vs reader 2 (its _reader2 queue), item by item, from committed queues only.
+    A TRIAGE for the human, not a decision: every one of these items still needs an individual signature.
+    `both_against_rule` lists the items BOTH readers decide against the rule (INELIGIBLE against an include, or
+    ELIGIBLE against an exclusion)."""
+    q1p = Q_DIR / f"{source}.json"
+    q1 = {e["item_id"]: e for e in json.loads(q1p.read_text(encoding="utf-8"))["items"]} if q1p.exists() else {}
+    q2p = Q_DIR / f"{READER_PAIRS[source]}.json"
     q2 = {e["item_id"]: e for e in json.loads(q2p.read_text(encoding="utf-8"))["items"]} if q2p.exists() else {}
     rows = []
     for iid, e2 in sorted(q2.items()):
@@ -710,20 +727,22 @@ def readers_report() -> dict:
                      "reader1_record": e1.get("record_id"), "reader2_record": e2.get("record_id")})
     from collections import Counter
     pairs = Counter(f"{r['reader1']} / {r['reader2']}" for r in rows)
-    both_ineligible = [r["item_id"] for r in rows if r["reader1"] == r["reader2"] == "INELIGIBLE"]
-    return {"summary": {"N": len(rows), "N_name": "items whose reader-1 proposal needs an individual signature",
-                        "reader1_model": MODEL, "reader2_model": MODEL_BY_TASK["screening_reader2"],
+    against = {"include": "INELIGIBLE", "exclude": "ELIGIBLE"}
+    both = [r["item_id"] for r in rows if r["reader1"] == r["reader2"] == against.get(r["rule"])]
+    return {"summary": {"source": source, "N": len(rows),
+                        "N_name": "items whose reader-1 proposal needs an individual signature",
+                        "reader1_model": MODEL, "reader2_model": MODEL_BY_TASK[READER_PAIRS[source]],
                         "same_vendor": True,
                         "pairs_reader1_reader2": dict(sorted(pairs.items())),
-                        "both_readers_INELIGIBLE_against_an_include": len(both_ineligible),
+                        "both_readers_against_the_rule": len(both),
                         "note": "two models of ONE vendor (OpenAI via codex): partially independent at best. Agreement "
                                 "orders the human's reading; it signs nothing and admits nothing."},
-            "both_ineligible": both_ineligible, "rows": rows}
+            "both_against_rule": both, "both_ineligible": both if source == "screening" else [], "rows": rows}
 
 
-def cmd_readers():
-    rep = readers_report()
-    out = ROOT / "outputs" / "model_source" / "READERS_screening.json"
+def cmd_readers(source: str = "screening"):
+    rep = readers_report(source)
+    out = ROOT / "outputs" / "model_source" / f"READERS_{source}.json"
     out.write_bytes((json.dumps(rep, indent=1, sort_keys=True, ensure_ascii=True) + "\n").encode("ascii"))
     print(json.dumps(rep["summary"], indent=1))
 
@@ -761,11 +780,20 @@ def signing_guide() -> str:
               f"{sum(1 for e in load('estimand') if open_(e) and not ms.individual_required(e, e['verification']))} estimand)", "",
               "`python scripts/countersign_model_proposal.py sign-batch screening --by \"...\" --basis \"...\" --batch <id>` -- "
               "refuses, by construction, every item whose verdict disagrees or whose re-ask did not reproduce.", ""]
-    exc = [e for e in load("screening_excluded") if open_(e)]
-    if exc:
+    for task, what in (("screening_excluded", "a KEYWORD rule"), ("screening_excluded_x1", "X1 (not an RCT)")):
+        exc = [e for e in load(task) if open_(e)]
+        if not exc:
+            continue
         flip = [e for e in exc if e["verification"].get("model_decision") == "ELIGIBLE"]
-        lines += [f"## 5. Records the rule EXCLUDED that the model reads as ELIGIBLE ({len(flip)} of {len(exc)})", ""]
-        lines += [f"- `screening_excluded` `{e['item_id']}` (rule {e.get('context', {}).get('rule_id')})" for e in flip]
+        read2 = (Q_DIR / f"{READER_PAIRS[task]}.json").exists()
+        both = set(readers_report(task)["both_against_rule"]) if read2 else set()
+        flip.sort(key=lambda e: (e["item_id"] not in both, e["item_id"]))
+        second = (f"both readers ELIGIBLE: {len(both)} -- listed first" if read2
+                  else "reader 2 NOT YET RUN on these -- no second reading, which is not the same as zero")
+        lines += [f"## 5{'a' if task == 'screening_excluded' else 'b'}. Records excluded by {what} that the model reads "
+                  f"as ELIGIBLE ({len(flip)} of {len(exc)}; {second})", ""]
+        lines += [f"- {'**both readers** ' if e['item_id'] in both else ''}`{task}` `{e['item_id']}` "
+                  f"(rule {e.get('context', {}).get('rule_id')})" for e in flip]
         lines.append("")
     est = [e for e in load("estimand") if open_(e) and ms.individual_required(e, e["verification"])]
     lines += [f"## 6. Estimand fields needing an individual signature ({len(est)})", ""]
@@ -792,7 +820,7 @@ def main(argv=None):
      "freeze": lambda: cmd_freeze(a.task, a.base or sys.exit("freeze needs --base <commit>")),
      "stability": lambda: cmd_stability(a.task, a.sample),
      "stability-report": lambda: cmd_stability_report(a.task),
-     "readers": cmd_readers, "signing-guide": cmd_signing_guide}[a.cmd]()
+     "readers": lambda: cmd_readers(a.task), "signing-guide": cmd_signing_guide}[a.cmd]()
     return 0
 
 

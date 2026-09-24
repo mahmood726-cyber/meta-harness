@@ -48,6 +48,26 @@ def test_the_signing_guide_counts_what_the_gate_counts():
     assert re.search(rf"Batch-signable agreements \({len(open_) - ind} screening", guide)
 
 
+def test_both_readers_against_the_rule_means_the_direction_of_the_rule(tmp_path, monkeypatch):
+    """Planted queues: an include both readers call INELIGIBLE and an exclusion both call ELIGIBLE are 'against the
+    rule'; an exclusion both call INELIGIBLE agrees with the rule and must NOT be listed; a split is not listed."""
+    spec = importlib.util.spec_from_file_location("_pilot_r", ROOT / "scripts" / "model_source_pilot.py")
+    pilot = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pilot)
+    monkeypatch.setattr(pilot, "Q_DIR", tmp_path)
+
+    def q(task, rows):
+        items = [{"item_id": i, "rule_decision": r, "verification": {"model_decision": d}, "record_id": "mc-x"}
+                 for i, r, d in rows]
+        (tmp_path / f"{task}.json").write_text(json.dumps({"items": items}), encoding="utf-8")
+    q("screening_excluded", [("a", "exclude", "ELIGIBLE"), ("b", "exclude", "INELIGIBLE"), ("c", "exclude", "ELIGIBLE")])
+    q("screening_excluded_reader2", [("a", "exclude", "ELIGIBLE"), ("b", "exclude", "INELIGIBLE"), ("c", "exclude", "CANNOT_TELL")])
+    assert pilot.readers_report("screening_excluded")["both_against_rule"] == ["a"]
+    q("screening", [("d", "include", "INELIGIBLE"), ("e", "include", "ELIGIBLE")])
+    q("screening_reader2", [("d", "include", "INELIGIBLE"), ("e", "include", "ELIGIBLE")])
+    assert pilot.readers_report("screening")["both_against_rule"] == ["d"]
+
+
 def test_sign_batch_refuses_an_unstable_agreement(tmp_path, monkeypatch):
     tool = _tool()
     doc = json.loads((ROOT / ms.PROPOSAL_DIR / "estimand.json").read_text(encoding="utf-8"))
