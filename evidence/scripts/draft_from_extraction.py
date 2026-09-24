@@ -15,7 +15,7 @@ ITT = re.compile(r"intent(?:ion)?[-‐‑–\s]to[-‐‑–\s]treat|\bITT\b|all
 def set_reading(span):
     if not span:
         return "NOT_STATED"
-    if ITT.search(span) and not re.search(r"at least (one|1) dose|≥ ?1|available|who (had|have)|per[- ]protocol|modified", span, re.I):
+    if ITT.search(span) and not re.search(r"at least (one|1) (dose|tablet|capsule|injection|infusion)|who (took|received) (at least|any)|≥ ?1|available|who (had|have)|per[- ]protocol|modified", span, re.I):
         return "ITT_STATED"
     return "OTHER_SET_STATED"
 

@@ -59,14 +59,15 @@ def main():
             row["served_itt_label"] = {"ITT_STATED": "SUPPORTED", "OTHER_SET_STATED": "CONTRADICTED", "NOT_STATED": "UNSUPPORTED"}[r]
             src = (a.get("gap_scope") or {}).get("analysis_set_source") if ev_.get("gap_analysis_set") else None
             if src and src != "OWN_REPORT" and row["served_itt_label"] == "SUPPORTED":
-                row["served_itt_label"] = "SUPPORTED_BY_OTHER_REPORT" + ("_PLANNED" if src.endswith("PLANNED") else "")
+                row["served_itt_label"] = ("SUPPORTED_BY_OTHER_REPORT" if src.startswith("SAME_TRIAL") else "SUPPORTED") + ("_PLANNED" if src.endswith("PLANNED") else "")
             c["itt_" + row["served_itt_label"]] += 1
         out[k] = row
     n_adult = c["age_STATED"] + c["age_NOT_STATED"] + c["age_FLOOR_REMOVED"]
     n_itt = sum(v for k, v in c.items() if k.startswith("itt_"))
     summ = {"age": {"N": n_adult, "denominator": "adjudicated rows whose question says 'adults'", "STATED": c["age_STATED"], "NOT_STATED": c["age_NOT_STATED"], "FLOOR_REMOVED": c["age_FLOOR_REMOVED"]},
             "served_itt_label": {"N": n_itt, "denominator": "adjudicated rows whose served analysis_set says intention-to-treat (not modified)",
-                                 "SUPPORTED": c["itt_SUPPORTED"], "SUPPORTED_BY_OTHER_REPORT": c["itt_SUPPORTED_BY_OTHER_REPORT"],
+                                 "SUPPORTED": c["itt_SUPPORTED"], "SUPPORTED_PLANNED": c["itt_SUPPORTED_PLANNED"],
+                                 "SUPPORTED_BY_OTHER_REPORT": c["itt_SUPPORTED_BY_OTHER_REPORT"],
                                  "SUPPORTED_BY_OTHER_REPORT_PLANNED": c["itt_SUPPORTED_BY_OTHER_REPORT_PLANNED"],
                                  "CONTRADICTED": c["itt_CONTRADICTED"], "UNSUPPORTED": c["itt_UNSUPPORTED"]}}
     json.dump({"summary": summ, "rows": out}, open(os.path.join(ROOT, "evidence/sweeps/entry_age_and_analysis_set.json"), "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)

@@ -215,3 +215,9 @@ def test_gap_source_scope_is_derived_not_remembered():
     assert source_scope("evidence/held/999/PMC2.xml", "ITT was used.", "12345") == "SAME_TRIAL_OTHER_REPORT"
     assert source_scope("evidence/held/999/PMC2.xml", "Analyses will be conducted on an ITT basis.", "12345") == "SAME_TRIAL_OTHER_REPORT_PLANNED"
     assert source_scope("evidence/held/registry/NCT1.json", "FAS", "12345") == "OWN_REPORT"
+
+
+def test_a_took_at_least_one_tablet_restriction_is_not_plain_itt():
+    from draft_from_extraction import set_reading
+    s = "the primary analyses for efficacy will be based on time to first event ... in all randomized patients who took at least 1 tablet of their assigned trial medication"
+    assert set_reading(s) == "OTHER_SET_STATED"

@@ -25,8 +25,9 @@ def main():
     rows, c = {}, collections.Counter()
     files = [p for p in sorted(glob.glob(os.path.join(ROOT, "evidence", "gaps", "*.json")))
              if os.path.basename(p) not in ("SUMMARY.json", "MANUAL.json")]
-    for p in files:
-        d = json.load(open(p, encoding="utf-8")); k = d.get("key") or os.path.basename(p)[:-5]
+    extracted = {os.path.basename(p)[:-5]: p for p in files}
+    for k in sorted(set(extracted) | set(manual)):   # a hand-bound row needs no codex file to be counted
+        d = json.load(open(extracted[k], encoding="utf-8")) if k in extracted else {"key": k}
         for f, v in (manual.get(k) or {}).items():
             d[f] = v
         pk = json.load(open(os.path.join(ROOT, "evidence", "packets", f"{k}.json"), encoding="utf-8"))
