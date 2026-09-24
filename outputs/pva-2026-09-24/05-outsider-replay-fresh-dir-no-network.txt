@@ -1,0 +1,38 @@
+# fresh directory: F:/claude-temp/fresh_outsider (no .git anywhere above it: fatal: not a git repository (or any of the parent directories): .git)
+# network: proxies -> 127.0.0.1:9 (closed)
+$ sha256sum glp1-ra-mace-t2d-1b3b0b8dcf3d.zip
+  (exit 0)
+$ python -m zipfile -e glp1-ra-mace-t2d-1b3b0b8dcf3d.zip .
+  (exit 0)
+$ python check_sha256sums.py
+131 of 131 files match SHA256SUMS
+  (exit 0)
+$ python site/scripts/verify_bundle.py --root site --slug glp1-ra-mace-t2d
+bundle schema 3  verdict PASS
+  (exit 0)
+$ python site/scripts/audit_certificate_stdlib.py site/reviews/glp1-ra-mace-t2d/CERTIFICATE.json site
+release_sha256        stored 6a04a3dfed6661f3215ba55a694cae89da91c181a45a883e3d3320b6f059277f
+RESULT REPRODUCED
+  (exit 0)
+# control -- must print CONTROL FIRED:
+$ python plant_control.py
+CONTROL FIRED
+  (exit 0)
+damaged copy (primary estimate 0.856 -> 0.86456): bundle schema 3  verdict FAIL
+untouched site: bundle schema 3  verdict PASS
+# trap: --corrupt is NOT a must-fail control (verdict stays PASS):
+$ python site/scripts/verify_bundle.py --root site --slug glp1-ra-mace-t2d --corrupt 27633186 effect
+bundle schema 3  verdict PASS
+corruption {'pmid': '27633186', 'limb': 'effect'}: rows no longer ADMISSIBLE = [('27633186', 'INADMISSIBLE'), ('30291013', 'INADMISSIBLE')]
+  (exit 0)
+# what a no-network machine cannot do -- and whether each tool SAYS so:
+$ python site/scripts/verify_bundle.py --url https://mahmood726-cyber.github.io/meta-harness/ --slug glp1-ra-mace-t2d
+verdict REFUSED  ARTEFACT_UNREACHABLE: reviews/glp1-ra-mace-t2d/BUNDLE.json: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>
+  (exit 1)
+$ python site/scripts/verify_bundle.py --root site --slug glp1-ra-mace-t2d --anchor live
+bundle schema 3  verdict PASS
+  (exit 0)
+  anchors with live: fetched=True: 0  fetched=False: 11
+# page vs certificate: release_sha256 printed on the archived page
+6a04a3dfed6661f3215ba55a694cae89da91c181a45a883e3d3320b6f059277f
+# anything written besides .out? 

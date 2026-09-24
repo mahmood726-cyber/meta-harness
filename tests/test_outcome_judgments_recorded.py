@@ -46,6 +46,18 @@ def _runner(answers):
     return run
 
 
+def test_the_prompt_never_presents_an_analysis_set_as_a_population(oj):
+    """45 of 113 declared outcomes put the ANALYSIS SET in the `population` field (e.g. 'intention-to-treat'). Handed to
+    a model as 'population: intention-to-treat', it was read as a clinical population no title can establish, and a
+    recorded re-make refused both mortality measures the served page admits (2026-09-24). The prompt must label it."""
+    mod, _ = oj
+    spec, cands = mod.collect_candidates(SLUG)
+    assert "intention-to-treat" in str(spec.get("population"))           # the fixture really carries the convention
+    p = mod.build_prompt(spec, cands[0])
+    assert "\npopulation: " not in p
+    assert "analysis set" in p.lower() and "not a clinical population" in p.lower()
+
+
 def test_codex_without_a_pinned_model_is_refused(oj):
     mod, tmp = oj
     assert mod.main([SLUG, "--codex"]) == 2

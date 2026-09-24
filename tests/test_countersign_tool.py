@@ -1,0 +1,98 @@
+"""scripts/countersign_model_proposal.py routes and refuses exactly as the gate does.
+
+Plant (observed 2026-09-24): the tool asked only whether the VERDICT agrees, so an agreement flagged unstable on
+re-ask (LEADER, 27295427) was offered for a batch signature the gate would then refuse -- and the "individual" packet
+said 150 where the gate's count is 151. The tool must use the gate's own predicate. Runs on a temp copy of the queue;
+never signs anything in the repo.
+"""
+from __future__ import annotations
+
+import importlib.util
+import json
+import types
+from pathlib import Path
+
+from reproducible_ai import model_source as ms
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _tool():
+    spec = importlib.util.spec_from_file_location("_cs", ROOT / "scripts" / "countersign_model_proposal.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_the_tools_routing_is_the_gates_predicate():
+    doc = json.loads((ROOT / ms.PROPOSAL_DIR / "screening.json").read_text(encoding="utf-8"))
+    flagged = [e for e in doc["items"] if "verification" in e and e.get("individual_signature_required")
+               and not ms.needs_individual_signature(e["verification"])]
+    tool = _tool()
+    for e in flagged:                      # verdict agrees, re-ask did not reproduce: individual, per the gate
+        assert ms.individual_required(e, e["verification"])
+        assert tool.routes_individual(e)
+
+
+def test_the_signing_guide_counts_what_the_gate_counts():
+    """The guide is generated from the queues; its individual/batch split must be the gate's, item for item."""
+    import re
+    spec = importlib.util.spec_from_file_location("_pilot_g", ROOT / "scripts" / "model_source_pilot.py")
+    pilot = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pilot)
+    guide = pilot.signing_guide()
+    doc = json.loads((ROOT / ms.PROPOSAL_DIR / "screening.json").read_text(encoding="utf-8"))
+    open_ = [e for e in doc["items"] if "claim" in e and e["reviewer_countersignature"].get("state") == "OPEN"]
+    ind = sum(1 for e in open_ if ms.individual_required(e, e["verification"]))
+    assert f"{ind} of {len(open_)} open in all" in guide
+    assert re.search(rf"Batch-signable agreements \({len(open_) - ind} screening", guide)
+
+
+def test_both_readers_against_the_rule_means_the_direction_of_the_rule(tmp_path, monkeypatch):
+    """Planted queues: an include both readers call INELIGIBLE and an exclusion both call ELIGIBLE are 'against the
+    rule'; an exclusion both call INELIGIBLE agrees with the rule and must NOT be listed; a split is not listed."""
+    spec = importlib.util.spec_from_file_location("_pilot_r", ROOT / "scripts" / "model_source_pilot.py")
+    pilot = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pilot)
+    monkeypatch.setattr(pilot, "Q_DIR", tmp_path)
+
+    def q(task, rows):
+        items = [{"item_id": i, "rule_decision": r, "verification": {"model_decision": d}, "record_id": "mc-x"}
+                 for i, r, d in rows]
+        (tmp_path / f"{task}.json").write_text(json.dumps({"items": items}), encoding="utf-8")
+    q("screening_excluded", [("a", "exclude", "ELIGIBLE"), ("b", "exclude", "INELIGIBLE"), ("c", "exclude", "ELIGIBLE")])
+    q("screening_excluded_reader2", [("a", "exclude", "ELIGIBLE"), ("b", "exclude", "INELIGIBLE"), ("c", "exclude", "CANNOT_TELL")])
+    assert pilot.readers_report("screening_excluded")["both_against_rule"] == ["a"]
+    q("screening", [("d", "include", "INELIGIBLE"), ("e", "include", "ELIGIBLE")])
+    q("screening_reader2", [("d", "include", "INELIGIBLE"), ("e", "include", "ELIGIBLE")])
+    assert pilot.readers_report("screening")["both_against_rule"] == ["d"]
+    assert pilot.readers_report("screening")["robust_against_rule"] == []      # no re-asks recorded: not robust
+
+
+def test_robust_needs_every_recorded_call_against_the_rule(tmp_path, monkeypatch):
+    """Plant: both readers say ELIGIBLE against an exclusion on their source calls, but one re-ask flips -- that item
+    is 'both readers' and NOT robust; an item stable on all four calls is robust."""
+    spec = importlib.util.spec_from_file_location("_pilot_rb", ROOT / "scripts" / "model_source_pilot.py")
+    pilot = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pilot)
+    monkeypatch.setattr(pilot, "Q_DIR", tmp_path)
+
+    def q(task, rows):
+        items = [{"item_id": i, "rule_decision": "exclude", "verification": {"model_decision": d[0]},
+                  "reask": {"decisions": d}, "record_id": "mc-x"} for i, d in rows]
+        (tmp_path / f"{task}.json").write_text(json.dumps({"items": items}), encoding="utf-8")
+    q("screening_excluded", [("stable", ["ELIGIBLE", "ELIGIBLE"]), ("flips", ["ELIGIBLE", "ELIGIBLE"])])
+    q("screening_excluded_reader2", [("stable", ["ELIGIBLE", "ELIGIBLE"]), ("flips", ["ELIGIBLE", "CANNOT_TELL"])])
+    rep = pilot.readers_report("screening_excluded")
+    assert rep["both_against_rule"] == ["flips", "stable"] and rep["robust_against_rule"] == ["stable"]
+
+
+def test_sign_batch_refuses_an_unstable_agreement(tmp_path, monkeypatch):
+    tool = _tool()
+    doc = json.loads((ROOT / ms.PROPOSAL_DIR / "estimand.json").read_text(encoding="utf-8"))
+    e = next(x for x in doc["items"] if "verification" in x and not ms.individual_required(x, x["verification"]))
+    e["individual_signature_required"] = True                  # planted: the re-ask did not reproduce
+    a = types.SimpleNamespace(task="estimand", by="Reviewer Fixture", basis="fixture", when="2026-09-24T09:00:00Z")
+    why = tool._sign_one(doc["items"], e, a, "B1")
+    assert why and "batch" in why
+    assert e["reviewer_countersignature"] == {"state": "OPEN"}

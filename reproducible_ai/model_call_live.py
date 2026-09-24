@@ -60,6 +60,25 @@ def global_agents_digest() -> dict | None:
             "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"}
 
 
+LANE_CONTEXT = """# LANE_CONTEXT -- read this first
+
+This empty directory is the scratch working directory of ONE recorded model call (meta-harness, lane `rai`,
+reproducible_ai/model_call_live.py). It holds nothing you need except the output schema.
+
+Your task is ONLY the prompt you were given; everything you need is inside that prompt text. Nothing outside this
+prompt is context: do not read, list or search any other file or directory on this machine (no AGENTS.md, CLAUDE.md,
+INDEX.md, workbooks, registries, other repositories, home directories). Do not run commands. Do not write anything.
+"""
+LANE_CONTEXT_SHA256 = hashlib.sha256(LANE_CONTEXT.encode("utf-8")).hexdigest()
+
+
+def prepare_workdir(work: Path, schema: dict) -> None:
+    """What the model can see besides the prompt: the schema and this orientation file, nothing else (its digest is
+    recorded in the call's params)."""
+    (work / "schema.json").write_text(json.dumps(schema), encoding="utf-8")
+    (work / "LANE_CONTEXT.md").write_text(LANE_CONTEXT, encoding="utf-8", newline="\n")
+
+
 HEADER_KEYS = ("model", "provider", "approval", "sandbox", "reasoning effort", "reasoning summaries", "session id")
 
 
@@ -91,7 +110,7 @@ def codex_runner(prompt: bytes, schema: dict, model: str, effort: str, timeout_s
     """Run one `codex exec`. Returns {rc, stdout, stderr, last_message, argv}; bytes throughout."""
     work = Path(tempfile.mkdtemp(prefix="mcall-", dir=os.environ.get("MODEL_CALL_WORKDIR") or None))
     try:
-        (work / "schema.json").write_text(json.dumps(schema), encoding="utf-8")
+        prepare_workdir(work, schema)
         out = work / "last.txt"
         argv = [_codex_exe(), "exec", "--ephemeral", "--skip-git-repo-check", "--ignore-user-config",
                 "--sandbox", "read-only", "--cd", str(work), "--output-schema", str(work / "schema.json"),
@@ -144,7 +163,8 @@ def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, 
         model={"id_requested": model, "id_reported": rep or "UNREPORTED", "provider": header.get("provider") or "UNREPORTED",
                "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"},
         params={"reasoning_effort": effort, "sandbox": "read-only", "ephemeral": True, "ignore_user_config": True,
-                "project_doc_max_bytes": 0, "output_schema": schema, "timeout_s": timeout_s},
+                "project_doc_max_bytes": 0, "output_schema": schema, "timeout_s": timeout_s,
+                "workdir_files": {"LANE_CONTEXT.md": LANE_CONTEXT_SHA256, "schema.json": "the output_schema above"}},
         not_controllable=list(NOT_CONTROLLABLE),
         client={"name": "codex exec", "version": client_version or _codex_version(), "argv": r.get("argv")},
         request_utc=t0, response_utc=t1, caller=caller, input_digests=digests, state=state, error=err,

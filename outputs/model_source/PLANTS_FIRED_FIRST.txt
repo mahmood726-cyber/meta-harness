@@ -612,3 +612,56 @@ tests\test_model_source.py:332: AssertionError
 #    against main's version -> 3 failed. The two --codex plants failed because the OLD code reached for a live model
 #    from inside a test (bare "codex" argv; FileNotFoundError on Windows, where that path can never have run) instead of
 #    refusing an unpinned model / recording the call; the hand plant failed because --write needed no author.
+
+# 8) Served-path judgment re-makes (2026-09-24): the new verifiers replaced by permissive stubs (PASS everything):
+#    FIRED against permissive stub: test_locate_span_must_be_in_the_held_abstract_and_a_target_claim_must_quote
+#    FIRED against permissive stub: test_a_recorded_remake_is_compared_with_the_unrecorded_prior_and_disagreement_needs_an_individual_signature
+#    FIRED against permissive stub: test_outcome_identity_is_typed_and_compared_with_its_prior
+
+# 9) Unstable agreement (2026-09-24): test_an_unstable_agreement_refuses_a_batch_signature before the fix:
+#      assert 're-ask' in ... signature required ... individual or batch   -> 1 failed
+#    (LEADER 27295427: ELIGIBLE on its source call = batch-signable; CANNOT_TELL on the identical-prompt re-ask.)
+
+# 10) Reviewer tool vs gate (2026-09-24): tests/test_countersign_tool.py before the fix -> 2 failed: the tool routed on
+#     the verdict only, so _sign_one BATCH-signed an agreement flagged unstable on re-ask (returned no refusal), and
+#     the "individual" packet said 150 where the gate requires 151.
+
+# 11) "A model never supplies a number" (2026-09-24): test_a_model_never_supplies_a_number before the gate check ->
+#     1 failed: a signed, verified, replayable claim carrying hazard_ratio 0.74 had no NUMBER_FROM_MODEL problem.
+#     0 of the committed proposals carry a number (scanned), so the guard changes no existing state.
+
+# 12) Held-text identity (2026-09-24): test_the_gate_verifies_against_the_held_text_the_entry_names_and_no_other
+#     before the fix -> 1 failed: a different text still containing the quoted sentence passed the gate. After: the
+#     gate refuses HELD_TEXT_MISMATCH; every committed queue is exactly as signable as before (re-rendered).
+
+# 13) Re-ask model identity (2026-09-24): cmd_stability asked every re-ask of MODEL (gpt-6-astra) whatever the source
+#     call had asked -- the queued reader-2 re-asks would have gone to a different model on the identical prompt and been
+#     read as reader 2's stability. Caught before it ran; re-asks now ask the source's model, and reasks_of() refuses to
+#     count a different-model call (test plants one).
+
+#14 regex_layer.measure compared a label's '9%' with the regex group '9' as different values -> _ARM precision
+    0 of 27 (a 0% that measured the harness). Fired: tests/test_regex_measure.py::test_a_percent_quoted_with_its_sign...
+    and ::test_a_percent_sign_is_only_stripped_from_a_percent_field (2 failed) before norm_value stripped a trailing
+    '%' from PERCENT fields only. After: _ARM 26 of 27. The thin-space partial ('488' out of '48 488') stays a FP.
+#15 cmd_queue verified with context {"prior": ...} but stored a context naming the pattern -> 68 of 68 regex_label
+    proposals VERIFIER_REFUSED 'PATTERN_UNKNOWN: None' (fired in the live queue, 2026-09-24). Fix: one queue_context(i)
+    for the verifier, the re-asks, the stability report and the stored entry. Test:
+    tests/test_regex_measure.py::test_the_queue_verifies_with_the_same_context_it_stores.
+#16 regex_layer.partial found only thousands-group fragments; R2 then measured _RATE_EVPT precision 0 of 28 because it
+    reads '3' out of '7.3 events per 100 person-years'. tests/test_regex_partial.py::test_a_fragment_of_a_decimal_is_found
+    failed first; the detector now also flags decimal fragments and digit-run fragments. It then surfaced _NEQ reading
+    'P for interactio[n = 0].92' as n = 0 (no word boundary) -- a real R4 defect, recorded for the pinned batch.
+#17 _RATE_UNIT scored FP+FN when '%' sat on the rate in the label and on the unit in the regex output.
+    tests/test_regex_measure.py::test_a_percent_sign_on_either_side... failed first; regex_layer.measure.canon now
+    puts the pair in one form (a genuinely different unit still disagrees -- asserted in the same test).
+#18 _MEAN_SD scored '43 +/- 4%' as FP+FN (label sd '4%', regex '4'). ::test_a_percent_unit_on_a_mean_or_sd... failed
+    first; PERCENT_UNIT_FIELDS = percent, mean, sd (a count quoted with '%' still differs -- asserted).
+#19 verify_comparator_k refused 'Twenty-eight' and 'Forty-two' as COUNT_NOT_PARSEABLE although the model had quoted the
+    right counts -- caught by the CONTROLS (omega3 verified 28, probiotics verified 42), not by a test.
+    tests/test_comparator_k.py::test_a_compound_count_word_is_parsed failed first; parse_count now reads compound count
+    words under 100 and still refuses a token that is not a count. After: 4 of 4 controls agree.
+#20 harness.result_changes.signature_problem accepts a well-formed SEEN_AND_SIGNED whose how_it_reached_the_reviewer is
+    any recorded relay, so the blanket delegation written INTO reviewer_countersignature would have passed as a human
+    signature. tests/test_delegated_acceptance.py::test_the_delegation_written_as_a_signature_is_still_refused failed
+    first; model_source.gate_problems now refuses a blanket / delegated basis (DELEGATED_IS_NOT_A_SIGNATURE).
+    signature_problem itself (harness/result_changes.py) is the main lane's file and is unchanged -- noted for it.

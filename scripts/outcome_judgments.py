@@ -67,7 +67,12 @@ def collect_candidates(slug):
 
 
 def build_prompt(spec, cand):
-    declared = (f"name: {spec.get('name')}\npopulation: {spec.get('population')}\n"
+    # The topic specs' `population` field holds the ANALYSIS SET (45 of 113 declared outcomes: 'intention-to-treat',
+    # 'safety population', ...). Labelled 'population', a model read it as a clinical population no measure title can
+    # establish and refused every candidate (2026-09-24). Label it for what it is.
+    declared = (f"name: {spec.get('name')}\n"
+                f"analysis set the review pools (NOT a clinical population; a measure title will not state it, and its "
+                f"absence from the title is not a mismatch): {spec.get('population')}\n"
                 f"timepoint: {spec.get('timepoint')}\nestimand/definition: {spec.get('estimand')}")
     return (
         "You are an outcome-identity adjudicator for a meta-analysis. Decide whether a "

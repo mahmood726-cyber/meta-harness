@@ -1,0 +1,75 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_ test_every_served_review_page_names_a_verifier_that_matches_the_served_bytes _
+
+    def test_every_served_review_page_names_a_verifier_that_matches_the_served_bytes():
+        problems = []
+        for d in _served_pages():
+            slug, src = d.name, (d / "index.html").read_text(encoding="utf-8")
+            if src.count(MARK) != 1:
+                problems.append(f"{slug}: {src.count(MARK)} verifier blocks (want exactly 1)")
+                continue
+            keys = re.search(MARK + r"'([^']*)'", src).group(1).split(",")
+            want = ["certificate"] + (["bundle"] if (d / "BUNDLE.json").is_file() else [])
+            if keys != want:
+                problems.append(f"{slug}: names {keys}, expected {want}")
+            text = html.unescape(src)
+            for v in page._VERIFIERS:
+                if v["key"] not in keys:
+                    continue
+                served = DOCS / v["served"]
+                if not served.is_file():
+                    problems.append(f"{slug}: names docs/{v['served']}, which is not served")
+                    continue
+                digest = _sha(served)
+                if digest not in src:
+                    problems.append(f"{slug}: does not carry the sha256 of docs/{v['served']} ({digest}); the verifier changed "
+                                    f"after the page was built -- rebuild it: python scripts/build_topic.py {slug} --now <build date>")
+                for item in page._verifier_limits(served.read_text(encoding="utf-8")) or ["<verifier states no limits>"]:
+                    if item not in text:
+                        problems.append(f"{slug}: does not quote the NOT-checked item {item[:60]!r} of {v['served']}")
+                for cmd in v["served_cmds"] + v["clone_cmds"]:
+                    if cmd.format(site=page._SITE_ROOT, slug=slug) not in text:
+                        problems.append(f"{slug}: missing command {cmd!r}")
+>       assert problems == [], "\n".join(problems)
+E       AssertionError: balanced-crystalloids-vs-saline-mortality: 0 verifier blocks (want exactly 1)
+E         colchicine-postop-af: 0 verifier blocks (want exactly 1)
+E         colchicine-recurrent-pericarditis: 0 verifier blocks (want exactly 1)
+E         colchicine-secondary-cv-prevention: 0 verifier blocks (want exactly 1)
+E         corticosteroids-cap-mortality: 0 verifier blocks (want exactly 1)
+E         corticosteroids-covid19-mortality: 0 verifier blocks (want exactly 1)
+E         dapagliflozin-hfpef-hosp: 0 verifier blocks (want exactly 1)
+E         denosumab-vertebral-fracture: 0 verifier blocks (want exactly 1)
+E         doac-vte-recurrence: 0 verifier blocks (want exactly 1)
+E         dpp4-mace-t2d: 0 verifier blocks (want exactly 1)
+E         empagliflozin-hfpef-hosp: 0 verifier blocks (want exactly 1)
+E         esketamine-trd-madrs: 0 verifier blocks (want exactly 1)
+E         finerenone-ckd-t2d-renal: 0 verifier blocks (want exactly 1)
+E         glp1-ra-mace-t2d: 0 verifier blocks (want exactly 1)
+E         iv-iron-hfref-hosp: 0 verifier blocks (want exactly 1)
+E         melatonin-primary-insomnia-sol: 0 verifier blocks (want exactly 1)
+E         metformin-pcos-ovulation: 0 verifier blocks (want exactly 1)
+E         noac-vs-warfarin-af-stroke: 0 verifier blocks (want exactly 1)
+E         omega3-cardiovascular-events: 0 verifier blocks (want exactly 1)
+E         pcsk9-mace: 0 verifier blocks (want exactly 1)
+E         probiotics-aad-prevention: 0 verifier blocks (want exactly 1)
+E         sacubitril-valsartan-hfref: 0 verifier blocks (want exactly 1)
+E         semaglutide-obesity-mace: 0 verifier blocks (want exactly 1)
+E         semaglutide-obesity-weight: 0 verifier blocks (want exactly 1)
+E         sglt2-ckd-progression: 0 verifier blocks (want exactly 1)
+E         sglt2-hfref-hosp-cvdeath: 0 verifier blocks (want exactly 1)
+E         sglt2-primary-prevention-hf: 0 verifier blocks (want exactly 1)
+E         spironolactone-hfref-mortality: 0 verifier blocks (want exactly 1)
+E         statins-primary-prevention-elderly: 0 verifier blocks (want exactly 1)
+E         ticagrelor-vs-clopidogrel-acs: 0 verifier blocks (want exactly 1)
+E         tocilizumab-covid19-mortality: 0 verifier blocks (want exactly 1)
+E         tranexamic-acid-pph: 0 verifier blocks (want exactly 1)
+E       assert ['balanced-cr...ctly 1)', ...] == []
+E         
+E         Left contains 32 more items, first extra item: 'balanced-crystalloids-vs-saline-mortality: 0 verifier blocks (want exactly 1)'
+E         Use -v to get more diff
+
+tests\test_page_verifier.py:78: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_page_verifier.py::test_every_served_review_page_names_a_verifier_that_matches_the_served_bytes
+1 failed in 3.57s

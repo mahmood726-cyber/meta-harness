@@ -1,0 +1,386 @@
+diff --git a/harness/extract.py b/harness/extract.py
+index bbd47c66..e5ec320a 100644
+--- a/harness/extract.py
++++ b/harness/extract.py
+@@ -11,6 +11,10 @@ No hand-typed numbers: everything comes from the cached source text.
+ from __future__ import annotations
+ import re
+ 
++from harness.extract_values import (ArmCounts, ArmHit, ContinuousArms, Effect,  # noqa: E402  R1 typed values
++                                     MeanSDHit, RateArms, RateHit)
++from harness.whole_numbers import whole_numbers  # noqa: E402  R4 refuse number fragments
++
+ from . import lexicon
+ 
+ NEG = ("not ", "non-", "non ", "never ", "no ")
+@@ -140,19 +144,19 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
+     for m in _ARM.finditer(sentence):
+         ev, pct, n = int(m.group(1)), float(m.group(2)), int(m.group(3))
+         if n > 0 and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
+-            groups.append((m.start(), ev, n))
++            groups.append(ArmHit(m.start(), ev, n))
+     for m in _ARM2.finditer(sentence):
+         ev, n, pct = int(m.group(1)), int(m.group(2)), float(m.group(3))
+         if n > 0 and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
+-            groups.append((m.start(), ev, n))
++            groups.append(ArmHit(m.start(), ev, n))
+     for m in _ARM3.finditer(sentence):
+         ev, n, pct = int(m.group(1)), int(m.group(2)), float(m.group(3))
+         if n > 0 and ev <= n and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
+-            groups.append((m.start(), ev, n))
++            groups.append(ArmHit(m.start(), ev, n))
+     for m in _ARM4.finditer(sentence):  # "P% (N/M)" percentage-first
+         pct, ev, n = float(m.group(1)), int(m.group(2)), int(m.group(3))
+         if n > 0 and ev <= n and abs(ev / n * 100 - pct) <= 1.5 and not _negated(sentence, m.start()):
+-            groups.append((m.start(), ev, n))
++            groups.append(ArmHit(m.start(), ev, n))
+     if len(groups) < 2 and (denom_each or arm_ns):
+         # "N [patients] (P%)"/"[P%]" with the denominator inferred from the abstract; accept only if a
+         # candidate denominator corroborates the stated percentage for that arm. With per-arm arm_ns
+@@ -180,7 +184,7 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
+             for (pos, ev, pct), arm in zip(armp, order):
+                 d = int(arm_ns[arm])
+                 if d > 0 and ev <= d and abs(ev / d * 100 - pct) <= 1.0:
+-                    paired.append((pos, ev, d))
++                    paired.append(ArmHit(pos, ev, d))
+             if len(paired) == 2:
+                 groups.extend(paired)
+                 used_reading_order = True
+@@ -193,7 +197,7 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
+                         if best is None or abs(ev / den * 100 - pct) < abs(ev / best * 100 - pct):
+                             best = den
+                 if best:
+-                    groups.append((pos, ev, best))
++                    groups.append(ArmHit(pos, ev, best))
+     # de-duplicate overlapping matches at the same position
+     seen, uniq = set(), []
+     for g in sorted(groups):
+@@ -211,8 +215,8 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
+     # assign the two arm-groups to intervention/comparator by reading order
+     (p1, e1, n1), (p2, e2, n2) = groups[0], groups[1]
+     if i_pos <= c_pos:
+-        return (e1, n1, e2, n2)
+-    return (e2, n2, e1, n1)
++        return ArmCounts(e1, n1, e2, n2)
++    return ArmCounts(e2, n2, e1, n1)
+ 
+ 
+ # A genuine person-time / recurrent INCIDENCE-rate ratio leaves a footprint in the source: an event
+@@ -238,7 +242,7 @@ def _effect_from_match(m, context=""):
+     if "reduction" in kind:  # RRR -> RR
+         if not (0 < pt < 1 and 0 < lo < 1 and 0 < hi < 1):
+             return None
+-        return ("RR", round(1 - pt, 4), round(1 - hi, 4), round(1 - lo, 4))
++        return Effect("RR", round(1 - pt, 4), round(1 - hi, 4), round(1 - lo, 4))
+     if "incidence rate" in kind:
+         scale = "IRR"   # explicit person-time incidence-rate ratio
+     elif "rate ratio" in kind:
+@@ -252,7 +256,7 @@ def _effect_from_match(m, context=""):
+         scale = "RR"
+     if not (lo <= pt <= hi):
+         return None
+-    return (scale, pt, lo, hi)
++    return Effect(scale, pt, lo, hi)
+ 
+ 
+ def extract_effect(sentence):
+@@ -651,6 +655,14 @@ _MED_IQR = re.compile(  # "median X (IQR a-b)" / "median X (IQR a to b)"
+     r"median\s*(?:of\s*)?(\d+(?:\.\d+)?)\s*(?:days?|hours?|minutes?|min|points?)?\s*"
+     r"[\(\[]\s*(?:IQR|interquartile range)\s*[:=]?\s*(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)", re.I)
+ 
++# R4: a match whose number is a FRAGMENT of a longer one ('2' of 'n = 2,523', '3' of '7.3', '488' of '48 488') is refused
++# (harness/whole_numbers.py), so the extractor sees no match there and takes its existing refuse / declare-absent path.
++# Only patterns read solely inside this module are wrapped; _EFFECT is also read by absence.py and reason_audit.py and
++# is left as it is (0 fragment matches in every held sentence; regex_layer/partial.py).
++(_ARM, _ARM2, _ARM3, _ARMP, _ARM4, _DENOM_EACH, _NEQ, _K, _RATE_EVPT, _MEAN_SD, _MED_IQR) = (
++    whole_numbers(_rx) for _rx in (_ARM, _ARM2, _ARM3, _ARMP, _ARM4, _DENOM_EACH, _NEQ, _K, _RATE_EVPT, _MEAN_SD,
++                                   _MED_IQR))
++
+ 
+ def _arm_ns(abstract, interv_terms, comp_terms):
+     """Per-arm randomised n, {i: n_intervention, c: n_comparator}, only when unambiguously stated
+@@ -692,12 +704,12 @@ def extract_continuous(sentence, interv_terms, comp_terms, n_by_arm=None):
+     for m in _MEAN_SD.finditer(sentence):
+         mean = float(m.group(1))
+         sd = float(m.group(2) or m.group(3))
+-        vals.append((m.start(), mean, sd))
++        vals.append(MeanSDHit(m.start(), mean, sd))
+     for m in _MED_IQR.finditer(sentence):
+         mean = float(m.group(1))
+         sd = (float(m.group(3)) - float(m.group(2))) / 1.35  # Wan 2014 IQR->SD
+         if sd > 0:
+-            vals.append((m.start(), mean, sd))
++            vals.append(MeanSDHit(m.start(), mean, sd))
+     if len(vals) < 2 or not n_by_arm:
+         return None
+     n1, n2 = n_by_arm.get("i"), n_by_arm.get("c")
+@@ -710,7 +722,7 @@ def extract_continuous(sentence, interv_terms, comp_terms, n_by_arm=None):
+         return None
+     vals.sort()
+     (_, m1, s1), (_, m2, s2) = vals[0], vals[1]
+-    return (m1, s1, n1, m2, s2, n2) if i_pos <= c_pos else (m2, s2, n2, m1, s1, n1)
++    return ContinuousArms(m1, s1, n1, m2, s2, n2) if i_pos <= c_pos else ContinuousArms(m2, s2, n2, m1, s1, n1)
+ 
+ 
+ def extract_rate(sentence, interv_terms, comp_terms):
+@@ -723,7 +735,7 @@ def extract_rate(sentence, interv_terms, comp_terms):
+         ev = int(m.group(1).replace(",", ""))
+         pt = float(m.group(2).replace(",", ""))
+         if pt > 0 and ev >= 0:
+-            pairs.append((m.start(), ev, pt))
++            pairs.append(RateHit(m.start(), ev, pt))
+     if len(pairs) < 2:
+         return None
+     low = sentence.lower()
+@@ -733,7 +745,7 @@ def extract_rate(sentence, interv_terms, comp_terms):
+         return None
+     pairs.sort()
+     (_, e1, t1), (_, e2, t2) = pairs[0], pairs[1]
+-    return (e1, t1, e2, t2) if i_pos <= c_pos else (e2, t2, e1, t1)
++    return RateArms(e1, t1, e2, t2) if i_pos <= c_pos else RateArms(e2, t2, e1, t1)
+ 
+ 
+ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_composite=True, estimand=None):
+diff --git a/harness/extract_values.py b/harness/extract_values.py
+new file mode 100644
+index 00000000..7f6dd74a
+--- /dev/null
++++ b/harness/extract_values.py
+@@ -0,0 +1,62 @@
++"""Typed values returned by harness/extract.py (R1 of the regex layer).
++
++Each is a NamedTuple: it IS a tuple -- equal to the bare tuple it replaces, unpacks the same, serialises to the same
++JSON -- so no caller changes, while every field is named where the value is made. The field order is the order the
++bare tuple had; a test pins it (tests/test_extract_values.py).
++"""
++from __future__ import annotations
++
++from typing import NamedTuple
++
++
++class ArmHit(NamedTuple):
++    """One arm's event count read from a sentence: where it was read, the count, and its denominator."""
++    pos: int
++    events: int
++    n: int
++
++
++class ArmCounts(NamedTuple):
++    """Two arms' counts, INTERVENTION first: ai events of n1i, ci events of n2i."""
++    ai: int
++    n1i: int
++    ci: int
++    n2i: int
++
++
++class Effect(NamedTuple):
++    """A reported relative effect: its scale (RR / OR / HR / IRR), point estimate and confidence limits."""
++    scale: str
++    point: float
++    lo: float
++    hi: float
++
++
++class MeanSDHit(NamedTuple):
++    pos: int
++    mean: float
++    sd: float
++
++
++class ContinuousArms(NamedTuple):
++    """Mean, SD and N per arm, INTERVENTION first."""
++    m1: float
++    s1: float
++    n1: int
++    m2: float
++    s2: float
++    n2: int
++
++
++class RateHit(NamedTuple):
++    pos: int
++    events: int
++    person_time: float
++
++
++class RateArms(NamedTuple):
++    """Events and person-time per arm, INTERVENTION first."""
++    e1: int
++    t1: float
++    e2: int
++    t2: float
+diff --git a/harness/whole_numbers.py b/harness/whole_numbers.py
+new file mode 100644
+index 00000000..6c4f5fbb
+--- /dev/null
++++ b/harness/whole_numbers.py
+@@ -0,0 +1,69 @@
++"""R4 of the regex layer: a regex match that reads a FRAGMENT of a number is refused, never repaired.
++
++'48 488' (thin space), '1,139', '7.3' are each one number. A capture group that begins inside one ('488' out of
++'48 488', '3' out of '7.3') or ends inside one ('2' out of 'n = 2,523', '0' out of 'interaction = 0.92') returns a
++value the source does not state. Such a match is dropped, so the extractor sees no match there and falls back to its
++existing refuse / declare-absent path -- the same as any sentence it cannot read.
++
++The single definition: regex_layer (partial-number scan, radius) imports this, so what is measured is what runs.
++"""
++from __future__ import annotations
++
++import re
++
++SEP = "    ,"                 # thin space, narrow no-break space, no-break space, space, comma
++_GROUPED_BEFORE = re.compile(rf"\d[{SEP}]$")
++_GROUPED_AFTER = re.compile(rf"^[{SEP}]\d{{3}}(?!\d)")
++_DEC_BEFORE = re.compile(r"\d\.$")           # '3' read out of '7.3'
++_DEC_AFTER = re.compile(r"^\.\d")            # '7' read out of '7.3'
++_DIGIT_BEFORE = re.compile(r"\d$")           # '23' read out of '123'
++_DIGIT_AFTER = re.compile(r"^\d")
++_NUMBER = re.compile(r"\d+(?:\.\d+)?")
++
++
++def fragment_groups(m: re.Match) -> list[int]:
++    """Group numbers of match `m` whose numeric capture is a fragment of a longer number in m.string."""
++    text, out = m.string, []
++    for gi in range(1, (m.re.groups or 0) + 1):
++        g = m.group(gi)
++        if g is None or not _NUMBER.fullmatch(g):
++            continue
++        s, e = m.span(gi)
++        head, tail = text[max(0, s - 2):s], text[e:e + 5]
++        grouped = (_GROUPED_BEFORE.search(head) and re.fullmatch(r"\d{3}", g)) or _GROUPED_AFTER.search(tail)
++        decimal = _DEC_BEFORE.search(head) or (_DEC_AFTER.search(tail) and "." not in g)
++        run = _DIGIT_BEFORE.search(head) or _DIGIT_AFTER.search(tail)
++        if grouped or decimal or run:
++            out.append(gi)
++    return out
++
++
++class WholeNumbers:
++    """A compiled pattern whose fragment-reading matches are refused. Same interface as the pattern for the methods the
++    harness calls (search / finditer / findall / match / sub), and it exposes the compiled pattern as .rx."""
++
++    def __init__(self, rx: re.Pattern):
++        self.rx, self.pattern, self.flags, self.groups = rx, rx.pattern, rx.flags, rx.groups
++
++    def finditer(self, s, *a):
++        return (m for m in self.rx.finditer(s, *a) if not fragment_groups(m))
++
++    def search(self, s, *a):
++        return next(self.finditer(s, *a), None)
++
++    def findall(self, s, *a):
++        ms = list(self.finditer(s, *a))
++        if self.rx.groups == 0:
++            return [m.group(0) for m in ms]
++        return [m.group(1) if self.rx.groups == 1 else m.groups("") for m in ms]
++
++    def match(self, s, *a):
++        m = self.rx.match(s, *a)
++        return None if m is None or fragment_groups(m) else m
++
++    def sub(self, *a, **k):
++        return self.rx.sub(*a, **k)
++
++
++def whole_numbers(rx: re.Pattern) -> WholeNumbers:
++    return WholeNumbers(rx)
+diff --git a/tests/test_extract_values.py b/tests/test_extract_values.py
+new file mode 100644
+index 00000000..2c23ff7d
+--- /dev/null
++++ b/tests/test_extract_values.py
+@@ -0,0 +1,33 @@
++"""R1: harness/extract.py returns typed values (harness/extract_values.py) that are indistinguishable from the bare
++tuples they replaced wherever a caller could look -- equality, unpacking, JSON -- and named where they are made."""
++from __future__ import annotations
++
++import json
++
++from harness import extract
++from harness.extract_values import ArmCounts, ContinuousArms, Effect, RateArms
++
++
++def test_field_order_is_the_old_tuple_order():
++    assert ArmCounts._fields == ("ai", "n1i", "ci", "n2i")
++    assert Effect._fields == ("scale", "point", "lo", "hi")
++    assert ContinuousArms._fields == ("m1", "s1", "n1", "m2", "s2", "n2")
++    assert RateArms._fields == ("e1", "t1", "e2", "t2")
++
++
++def test_a_typed_value_is_the_bare_tuple_to_every_caller():
++    v = ArmCounts(12, 200, 20, 201)
++    assert v == (12, 200, 20, 201) and isinstance(v, tuple)
++    ai, n1i, ci, n2i = v
++    assert (ai, ci) == (12, 20)
++    assert json.dumps(v) == json.dumps((12, 200, 20, 201))
++    assert json.dumps({"e": Effect("HR", 0.8, 0.7, 0.9)}) == json.dumps({"e": ("HR", 0.8, 0.7, 0.9)})
++
++
++def test_the_extractors_return_typed_values():
++    s = "Death occurred in 12 (6.0%) of 200 patients in the colchicine group and 20 (10.0%) of 201 in the placebo group."
++    got = extract.extract_arm_counts(s, ["colchicine"], ["placebo"])
++    assert isinstance(got, ArmCounts) and got == (12, 200, 20, 201)
++    m = extract._EFFECT.search("hazard ratio 0.80 (95% CI 0.70 to 0.90)")
++    eff = extract._effect_from_match(m) if m else None
++    assert isinstance(eff, Effect) and eff.scale == "HR" and eff.point == 0.8
+diff --git a/tests/test_whole_numbers.py b/tests/test_whole_numbers.py
+new file mode 100644
+index 00000000..cf8fe590
+--- /dev/null
++++ b/tests/test_whole_numbers.py
+@@ -0,0 +1,55 @@
++"""R4: harness/whole_numbers.py refuses a match that reads a fragment of a number; extract.py's in-module extractors
++are wrapped with it. Plants for each fragment kind, and proof that clean text is untouched."""
++from __future__ import annotations
++
++import re
++
++import pytest
++
++from harness import extract
++from harness.whole_numbers import WholeNumbers, fragment_groups, whole_numbers
++
++FRAGMENTS = [
++    ("_NEQ", "trials (n = 2,523 patients)"),                       # grouped (thin space + comma)
++    ("_NEQ", "P for interaction = 0.92"),                                   # decimal: 'interactio[n = 0].92'
++    ("_ARMP", "compared to 1,211 patients (12.0%)"),                        # grouped (comma)
++    ("_RATE_EVPT", "7.3 events per 100 person-years"),                      # decimal
++    ("_ARM", "in 48 488 (98.1%) of 49 419 participants"),         # grouped (thin space)
++]
++CLEAN = [
++    ("_NEQ", "(n = 2523) and (n = 40)"),
++    ("_ARM", "Death occurred in 20 (9%) of 220 patients."),
++    ("_ARMP", "compared to 211 patients (12.0%)"),
++]
++
++
++@pytest.mark.parametrize("name,s", FRAGMENTS)
++def test_a_fragment_is_refused_by_the_served_pattern(name, s):
++    rx = getattr(extract, name)
++    assert isinstance(rx, WholeNumbers), f"{name} is not wrapped"
++    raw = [m for m in rx.rx.finditer(s) if fragment_groups(m)]
++    assert raw, f"plant does not contain a fragment for {name}: {s!r}"           # the plant can fire
++    assert not any(fragment_groups(m) for m in rx.finditer(s))                    # the served pattern refuses it
++
++
++@pytest.mark.parametrize("name,s", CLEAN)
++def test_clean_text_reads_exactly_as_before(name, s):
++    rx = getattr(extract, name)
++    assert [m.span() for m in rx.finditer(s)] == [m.span() for m in rx.rx.finditer(s)]
++    assert rx.findall(s) == rx.rx.findall(s)
++
++
++def test_effect_is_left_unwrapped_because_other_modules_read_it():
++    assert isinstance(extract._EFFECT, re.Pattern)
++
++
++def test_the_measurement_and_the_harness_share_one_definition():
++    from regex_layer import partial
++    assert partial.fragment_groups is fragment_groups or partial.fragment_groups.__module__ == "harness.whole_numbers"
++
++
++def test_wrapper_findall_shapes_match_re():
++    rx = re.compile(r"(\d+)-(\d+)")
++    assert whole_numbers(rx).findall("1-2 and 3-4") == rx.findall("1-2 and 3-4")
++    one = re.compile(r"n=(\d+)")
++    assert whole_numbers(one).findall("n=1 n=2") == ["1", "2"]

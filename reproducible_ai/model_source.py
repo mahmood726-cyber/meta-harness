@@ -393,17 +393,165 @@ def verify_screening(claim: Any, held_text: str, rule_decision: str) -> dict:
     return out
 
 
+def _prior_agreement(pairs: list[tuple[str, Any, Any]], prior_label: str) -> str:
+    """pairs: (field, prior value, model value). A prior is an earlier UNRECORDED judgment the served page reads."""
+    if not pairs:
+        return "MODEL_ONLY(no prior judgment; adjudication=OWED)"
+    diff = [f"{f}: prior={p!r} model={m!r}" for f, p, m in pairs if p != m]
+    return (f"PRIOR_MODEL_AGREE({prior_label})" if not diff
+            else f"PRIOR_MODEL_DISAGREE({prior_label}; {'; '.join(diff)}; adjudication=OWED)")
+
+
+OUTCOME_FIELDS = ("candidate_population", "candidate_timepoint", "candidate_definition", "is_match", "rationale")
+
+
+def verify_outcome_identity(claim: Any, held_text: str, prior: dict | None = None) -> dict:
+    """claim = the outcome-identity judgment of one CT.gov outcome measure. Typed check only: the held text is the
+    measure's title/type, so there is no span to locate; the human signs the identity reading. The prior (the
+    committed unrecorded judgment the served page reads) is compared on is_match and recorded, never resolved."""
+    problems = []
+    if not isinstance(claim, dict):
+        return {"task": "outcome_identity", "state": "VERIFIER_REFUSED", "problems": ["CLAIM_NOT_AN_OBJECT"]}
+    for f in OUTCOME_FIELDS:
+        if f not in claim:
+            problems.append(f"FIELD_MISSING: {f}")
+    if "is_match" in claim and not isinstance(claim.get("is_match"), bool):
+        problems.append("NOT_TYPED: is_match must be a bool")
+    for f in ("candidate_population", "candidate_timepoint", "candidate_definition", "rationale"):
+        if f in claim and not (isinstance(claim[f], str) and claim[f].strip()):
+            problems.append(f"EMPTY: {f}")
+    out: dict[str, Any] = {"task": "outcome_identity", "problems": problems,
+                           "state": "VERIFIER_REFUSED" if problems else "VERIFIER_PASS"}
+    if not problems:
+        pairs = [("is_match", prior.get("is_match"), claim["is_match"])] if isinstance(prior, dict) and "is_match" in prior else []
+        out["agreement"] = _prior_agreement(pairs, "prior = committed unrecorded judgment")
+    return out
+
+
+LOCATE_BOOLS = ("is_target_outcome", "population_matches", "both_arms")
+
+
+def verify_locate(claim: Any, held_text: str, prior: dict | None = None) -> dict:
+    """claim = {span, is_target_outcome, population_matches, both_arms, timepoint, why}. A span, when given, must be
+    located in the held abstract by the bundle's ladder (SPAN_NOT_IN_SOURCE refuses); a claim that the outcome IS the
+    target must cite one. Agreement with the prior is on is_target_outcome and population_matches."""
+    problems = []
+    if not isinstance(claim, dict):
+        return {"task": "locate", "state": "VERIFIER_REFUSED", "problems": ["CLAIM_NOT_AN_OBJECT"]}
+    for f in LOCATE_BOOLS:
+        if not isinstance(claim.get(f), bool):
+            problems.append(f"NOT_TYPED: {f} must be a bool")
+    for f in ("timepoint", "why"):
+        if not isinstance(claim.get(f), str):
+            problems.append(f"NOT_TYPED: {f} must be a string")
+    span = claim.get("span")
+    out: dict[str, Any] = {"task": "locate"}
+    if span not in (None, ""):
+        if not isinstance(span, str):
+            problems.append("NOT_TYPED: span")
+        else:
+            loc = _locate(span, held_text)
+            out["located"] = loc
+            if loc.get("match") not in ("VERBATIM", "NORMALISED"):
+                problems.append("SPAN_NOT_IN_SOURCE: the quoted span is not in the held abstract (bundle locate ladder)")
+    elif claim.get("is_target_outcome") is True:
+        problems.append("NO_SPAN: a claim that the abstract reports the target outcome must quote where")
+    out["problems"] = problems
+    out["state"] = "VERIFIER_REFUSED" if problems else "VERIFIER_PASS"
+    if not problems:
+        pairs = ([(f, prior.get(f), claim[f]) for f in ("is_target_outcome", "population_matches") if f in prior]
+                 if isinstance(prior, dict) else [])
+        out["agreement"] = _prior_agreement(pairs, "prior = committed unrecorded judgment")
+    return out
+
+
 def reverify(entry: dict, held_text: str) -> dict:
-    if entry.get("task") == "estimand":
+    task = entry.get("task")
+    prior = (entry.get("context") or {}).get("prior")
+    if task == "estimand":
         return verify_estimand(entry.get("claim"), held_text)
-    if entry.get("task") == "screening":
+    if task in ("screening", "screening_reader2", "screening_excluded", "screening_excluded_x1",
+                "screening_excluded_reader2", "screening_excluded_x1_reader2",
+                "screening_excluded_agree_reader2"):
         return verify_screening(entry.get("claim"), held_text, entry.get("rule_decision"))
-    return {"state": "VERIFIER_REFUSED", "problems": [f"TASK_UNKNOWN: {entry.get('task')!r}"]}
+    if task == "outcome_identity":
+        return verify_outcome_identity(entry.get("claim"), held_text, prior)
+    if task == "locate":
+        return verify_locate(entry.get("claim"), held_text, prior)
+    if task == "regex_label":
+        from regex_layer.measure import verify_label     # the regex layer owns its label verifier
+        return verify_label(entry.get("claim"), held_text, (entry.get("context") or {}).get("pattern"))
+    if task == "site_label":
+        from regex_layer.site_measure import verify_site_label     # the regex layer owns its label verifier
+        return verify_site_label(entry.get("claim"), held_text, (entry.get("context") or {}).get("pattern"))
+    if task in ("comparator_k", "comparator_k_reader2"):
+        return verify_comparator_k(entry.get("claim"), held_text, prior)
+    return {"state": "VERIFIER_REFUSED", "problems": [f"TASK_UNKNOWN: {task!r}"]}
+
+
+_COUNT_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
+                "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16,
+                "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20}
+
+
+_TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90}
+
+
+def parse_count(tok: Any) -> int | None:
+    """A count token exactly as the source wrote it: digits ('12', '1,204'), a count word ('eight'), or a compound under
+    one hundred ('Twenty-eight', 'forty two'). Anything else is None -- never a guess."""
+    if not isinstance(tok, str):
+        return None
+    t = tok.strip().lower()
+    if re.fullmatch(r"\d{1,3}(?:,\d{3})*|\d+", t):
+        return int(t.replace(",", ""))
+    if t in _COUNT_WORDS:
+        return _COUNT_WORDS[t]
+    if t in _TENS:
+        return _TENS[t]
+    m = re.fullmatch(r"([a-z]+)[\s-]([a-z]+)", t)
+    if m and m.group(1) in _TENS and _COUNT_WORDS.get(m.group(2), 0) in range(1, 10):
+        return _TENS[m.group(1)] + _COUNT_WORDS[m.group(2)]
+    return None
+
+
+def verify_comparator_k(claim: Any, held_text: str, prior: Any = None) -> dict:
+    """The number of trials a comparator review INCLUDED, as a proposal. The model supplies no number: it quotes the
+    sentence and the count token exactly as written; the verifier parses the token (digits or a count word) from a quote
+    that must be in the held text. AMBIGUOUS / NOT_STATED carry no count. `prior` is a source-verified comparator_k (a
+    CONTROL item): agreement with it is recorded, never used to change the proposal. With no prior there is no rule
+    value, so every proposal needs an individual signature (needs_individual_signature)."""
+    out = {"task": "comparator_k"}
+    if not isinstance(claim, dict) or claim.get("state") not in ("STATED", "NOT_STATED", "AMBIGUOUS"):
+        return {**out, "state": "VERIFIER_REFUSED", "problems": ["NOT_TYPED: state must be STATED / NOT_STATED / AMBIGUOUS"]}
+    quote, tok = claim.get("quote"), claim.get("count_text")
+    problems, k = [], None
+    if claim["state"] == "STATED":
+        if not isinstance(quote, str) or not quote or quote not in held_text:
+            problems.append("SPAN_NOT_IN_SOURCE: the quote is not in the held text")
+        if not isinstance(tok, str) or not tok or (isinstance(quote, str) and tok not in quote):
+            problems.append("COUNT_NOT_IN_QUOTE: count_text must be copied from the quote")
+        k = parse_count(tok)
+        if k is None:
+            problems.append(f"COUNT_NOT_PARSEABLE: {tok!r}")
+    elif tok not in (None, ""):
+        problems.append("COUNT_WITHOUT_STATED")
+    out["problems"] = problems
+    out["state"] = "VERIFIER_REFUSED" if problems else "VERIFIER_PASS"
+    if not problems:
+        out["k"] = k
+        if prior is not None:
+            out["agreement"] = "PRIOR_MODEL_AGREE" if k == prior else f"PRIOR_MODEL_DISAGREE(prior={prior}, model={k})"
+        else:
+            out["agreement"] = f"NO_RULE_VALUE(model={claim['state']}{'' if k is None else ' ' + str(k)})"
+    return out
 
 
 def needs_individual_signature(verification: dict) -> bool:
-    """A proposal that would change what the rule decided (or cannot tell) is never covered by a batch signature."""
-    return not str(verification.get("agreement") or "").startswith(("RULE_MODEL_AGREE", "RULE_AGREES_ON_SPAN"))
+    """A proposal that would change what the rule (or a prior judgment) decided, or cannot tell, is never covered by
+    a batch signature."""
+    return not str(verification.get("agreement") or "").startswith(
+        ("RULE_MODEL_AGREE", "RULE_AGREES_ON_SPAN", "PRIOR_MODEL_AGREE"))
 
 
 # ------------------------------------------------------------------------------------------------------ the gate
@@ -428,6 +576,13 @@ def _esc(x: Any) -> str:
     return html.escape(x if isinstance(x, str) else json.dumps(x, sort_keys=True, ensure_ascii=False), quote=True)
 
 
+def individual_required(entry: dict, verification: dict) -> bool:
+    """Individual signature when the verdict does not agree, OR when a recorded re-ask of the identical prompt reached
+    a different decision (the entry's flag; it can only tighten -- it is shown in the signed block, so editing it
+    after a signature breaks the signature, and the queue recomputes it from the re-ask records)."""
+    return needs_individual_signature(verification) or bool(entry.get("individual_signature_required"))
+
+
 def render_proposal_block(entry: dict, record: dict) -> str:
     """What the reviewer sees, and what a signature names (result_changes.rendered_sha256 of this string). Carries the
     claim, the verifier's verdict, the rule/model agreement and the identity of the call (record id, prompt and
@@ -447,16 +602,44 @@ def render_proposal_block(entry: dict, record: dict) -> str:
         ("model reported", f"{m.get('id_reported')} via {m.get('provider')}"),
         ("prompt sha256", (record.get("prompt") or {}).get("sha256")),
         ("response sha256", (record.get("response") or {}).get("sha256")),
-        ("signature required", "INDIVIDUAL (rule and model do not agree, or the rule cannot check the claim)" if needs_individual_signature(v) else "individual or batch"),
     ]
+    rq = entry.get("reask")
+    if isinstance(rq, dict):
+        rows.append(("re-ask of the identical prompt",
+                     ("same derived decision" if rq.get("same_derived_decision") else
+                      f"DIFFERENT decision {rq.get('decisions')} -- the model does not reproduce its own answer here")
+                     + f" ({', '.join(rq.get('records') or [])})"))
+    rows.append(("signature required",
+                 "INDIVIDUAL (rule and model do not agree, the rule cannot check the claim, or the model's answer did "
+                 "not reproduce on re-ask)" if individual_required(entry, v) else "individual or batch"))
     body = "".join(f"<tr><th>{_esc(k)}</th><td>{_esc(val)}</td></tr>" for k, val in rows)
     return f"<div class='model-proposal'><table>{body}</table></div>"
 
 
+def numbers_in(obj: Any, path: str = "") -> list[str]:
+    """Paths of every int/float in a claim (bools are verdicts, not numbers; digits inside a quoted string are the
+    source's words, located in the held text, not a value the model supplies)."""
+    if isinstance(obj, bool) or obj is None or isinstance(obj, str):
+        return []
+    if isinstance(obj, (int, float)):
+        return [path or "<claim>"]
+    if isinstance(obj, dict):
+        return [p for k, v in obj.items() for p in numbers_in(v, f"{path}.{k}" if path else str(k))]
+    if isinstance(obj, (list, tuple)):
+        return [p for i, v in enumerate(obj) for p in numbers_in(v, f"{path}[{i}]")]
+    return [path or "<claim>"]
+
+
 def gate_problems(entry: dict, record: dict, held_text: str) -> list[str]:
-    """Empty only when all three conditions hold. Anything else keeps the entry PROPOSED."""
+    """Empty only when all three conditions hold (and the claim carries no number). Anything else keeps it PROPOSED."""
     from harness import result_changes
     problems = []
+    if not isinstance(held_text, str) or sha256_bytes(held_text.encode("utf-8")) != entry.get("held_sha256"):
+        problems.append("HELD_TEXT_MISMATCH: the text handed to the gate is not the held text the entry names "
+                        "(sha256 differs) -- verification against any other text proves nothing about this claim")
+    nums = numbers_in(entry.get("claim"))
+    if nums:
+        problems.append(f"NUMBER_FROM_MODEL: {nums} -- a model never supplies a number (REPRODUCIBLE_MODEL_CONTRACT)")
     # (b) the call replays, and the queued claim is exactly what the stored response decodes to
     try:
         response = replay(record)
@@ -482,11 +665,22 @@ def gate_problems(entry: dict, record: dict, held_text: str) -> list[str]:
     # (c) a human countersignature over the rendered block, with result_changes' discipline unchanged
     block = render_proposal_block(entry, record)
     notice = {"reviewer_countersignature": entry.get("reviewer_countersignature"),
-              "conclusion_changed": v.get("agreement") if needs_individual_signature(v) else None}
+              "conclusion_changed": (v.get("agreement") or "UNSTABLE_ON_REASK") if individual_required(entry, v) else None}
     sp = result_changes.signature_problem(notice, block)
     if sp:
         problems.append(f"COUNTERSIGNATURE: {sp}")
+    # a blanket delegation is recorded as its own status (reproducible_ai/delegated.py) and is never a signature, even
+    # when written into the signature field in signature form -- signature_problem accepts any recorded relay basis
+    sig = entry.get("reviewer_countersignature") or {}
+    basis = f"{sig.get('state', '')} {sig.get('how_it_reached_the_reviewer', '')}".lower() if isinstance(sig, dict) else ""
+    if any(t in basis for t in DELEGATION_TELLS):
+        problems.append("DELEGATED_IS_NOT_A_SIGNATURE: the countersignature's basis is a blanket / delegated acceptance "
+                        "without item-by-item review; record it as DELEGATED_BULK_ACCEPTANCE, not as a signature")
     return problems
+
+
+# words that mark a signature basis as a blanket delegation rather than an act on this rendered block
+DELEGATION_TELLS = ("blanket", "no item-by-item", "without individual", "delegated", "bulk acceptance", "sign all")
 
 
 def status_of(entry: dict, record: dict, held_text: str) -> str:
