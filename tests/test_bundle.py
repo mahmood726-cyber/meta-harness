@@ -51,13 +51,26 @@ def bundle():
 
 # ------------------------------------------------------------------ v1: served, byte-identical, never omitted
 
+def _floats_at_12(obj):
+    """Every float rounded to 12 significant digits: a platform's libm may differ in the last bit of a derived value
+    (z for a stated CI level, and the SE it divides), and that is not a stale bundle. Integers and strings untouched."""
+    if isinstance(obj, float):
+        return float(f"{obj:.12g}")
+    if isinstance(obj, dict):
+        return {k: _floats_at_12(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_floats_at_12(v) for v in obj]
+    return obj
+
+
 def _stale_against(committed, fresh):
-    """The comparison `build_bundle.py --check` makes: the committed bundle must equal a fresh build, content_commit
-    aside (that names the commit and cannot be known before it exists)."""
+    """The comparison `build_bundle.py --check` makes -- the committed bundle must equal a fresh build, content_commit
+    aside (that names the commit and cannot be known before it exists) -- with floats compared at 12 significant
+    digits (see test_staleness_is_content_not_the_last_bit_of_a_platform_libm)."""
     have, new = json.loads(json.dumps(committed)), json.loads(json.dumps(fresh))
     for obj in (have, new):
         (obj.get("source") or {}).pop("content_commit", None)
-    return build_bundle.canonical_json(have) != build_bundle.canonical_json(new)
+    return build_bundle.canonical_json(_floats_at_12(have)) != build_bundle.canonical_json(_floats_at_12(new))
 
 
 def _diff_paths(a, b, path="", out=None, limit=12):
@@ -98,7 +111,25 @@ def test_bundle_is_current():
         for obj in (committed, fresh):
             (obj.get("source") or {}).pop("content_commit", None)
         pytest.fail("BUNDLE.json is stale (differs from a fresh build); regenerate: python scripts/build_bundle.py "
-                    + SLUG + "\n  " + "\n  ".join(_diff_paths(committed, fresh)))
+                    + SLUG + "\n  " + "\n  ".join(_diff_paths(_floats_at_12(committed), _floats_at_12(fresh))))
+
+
+def test_staleness_is_content_not_the_last_bit_of_a_platform_libm():
+    """Observed in CI 2026-09-24 (run 35939405134): Linux computes z for a stated 95% level as 1.9599639845400536,
+    Windows as 1.9599639845400545 (scripts/build_bundle.py::ci_level_record -> inverse_normal), and the last bit
+    propagates into se_log_at_stated_level on every row. Plants: that exact pair is NOT stale; a change at 1e-6
+    relative IS; a changed integer or string IS."""
+    committed = _load(BUNDLE)
+    ulp = json.loads(json.dumps(committed))
+    ulp["verification_rows"][0]["statistical_input"]["ci_level"]["z_for_stated_level"] = 1.9599639845400536
+    committed["verification_rows"][0]["statistical_input"]["ci_level"]["z_for_stated_level"] = 1.9599639845400545
+    assert not _stale_against(committed, ulp)
+    real = json.loads(json.dumps(committed))
+    real["verification_rows"][0]["statistical_input"]["ci_level"]["z_for_stated_level"] = 1.9599639845400545 * (1 + 1e-6)
+    assert _stale_against(committed, real)
+    real_int = json.loads(json.dumps(committed))
+    real_int["counts"] = {"planted": 1}
+    assert _stale_against(committed, real_int)
 
 
 def test_the_staleness_comparison_can_fire():
