@@ -22,7 +22,9 @@ def main():
                 if d["evidence"].get(f"gap_{f}") != ev:
                     d["evidence"][f"gap_{f}"] = ev; changed = True
                 if f == "analysis_set":
-                    d.setdefault("gap_scope", {})["analysis_set"] = v.get("scope")
+                    new_scope = {"analysis_set": v.get("scope"), "analysis_set_source": v.get("source_scope")}
+                    if d.get("gap_scope") != new_scope:   # the scope is data too: a changed scope is a change
+                        d["gap_scope"] = new_scope; changed = True
         if changed:
             json.dump(d, open(p, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
             rc = subprocess.call([sys.executable, "-W", "ignore", os.path.join(ROOT, "evidence", "scripts", "adjudicate.py"), p])

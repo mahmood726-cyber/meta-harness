@@ -193,3 +193,16 @@ def test_no_control_characters_in_the_lane_scripts():
 def test_a_space_thousands_separator_is_one_number():
     assert V.canon("10 036") == 10036.0 and V.canon("10\u2009036") == 10036.0
     assert V.canon("0.44 0.73") is None      # two numbers are not one
+
+
+def test_analysis_set_reader_recognises_itt_spellings_and_restrictions():
+    """The sweep miscounted two ITT statements as contradicting ITT: one used a Unicode hyphen, one said 'intent-to-treat'."""
+    from draft_from_extraction import set_reading
+    for s in ("Analyses were performed according to the intention\u2010to\u2010treat principle.",
+              "based on the intent-to-treat approach", "All analyses followed the ITT principle."):
+        assert set_reading(s) == "ITT_STATED", s
+    for s in ("ITT analysis was performed on the available participants.",
+              "all randomized patients treated with at least 1 dose of study drug using the intention-to-treat principle",
+              "The primary analysis was conducted using a modified intention\u2010to\u2010treat approach."):
+        assert set_reading(s) == "OTHER_SET_STATED", s
+    assert set_reading(None) == "NOT_STATED"

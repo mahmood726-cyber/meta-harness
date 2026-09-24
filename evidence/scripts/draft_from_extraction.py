@@ -9,7 +9,7 @@ import json, os, re, sys
 sys.path.insert(0, os.path.dirname(__file__))
 import verify_records as V
 ROOT = V.ROOT
-ITT = re.compile(r"intention[- ]to[- ]treat|all randomi[sz]ed (participants|patients|subjects)", re.I)
+ITT = re.compile(r"intent(?:ion)?[-‐‑–\s]to[-‐‑–\s]treat|\bITT\b|all randomi[sz]ed (participants|patients|subjects)", re.I)
 
 
 def set_reading(span):
