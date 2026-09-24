@@ -52,7 +52,8 @@ def main():
                 row["age"], row["age_override"] = EYE_OVERRIDES[k]
             c["age_" + row["age"]] += 1
         served = V.served_row(pk).get("analysis_set") or ""
-        span = ((a.get("evidence") or {}).get("analysis_set") or {}).get("span")
+        ev_ = a.get("evidence") or {}
+        span = (ev_.get("gap_analysis_set") or ev_.get("analysis_set") or {}).get("span")   # full-text gap span first
         if re.search(r"intention|ITT", served, re.I) and not re.search(r"modified|mITT", served, re.I):
             r = set_reading(span)
             row["served_itt_label"] = {"ITT_STATED": "SUPPORTED", "OTHER_SET_STATED": "CONTRADICTED", "NOT_STATED": "UNSUPPORTED"}[r]

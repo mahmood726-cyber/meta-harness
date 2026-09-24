@@ -33,7 +33,10 @@
   - observed_means: `evidence/held/registry/NCT03611582.json` (sha256 bdaf55236501): "RESULT OUTCOME 0 MEASUREMENT In-trial observation period: Semaglutide 2.4 mg=-16.5 (spread 10.1); Placebo=-5.8 (spread 7.7)"
   - treatment_policy_estimate: `evidence/held/registry/NCT03611582.json` (sha256 bdaf55236501): "RESULT OUTCOME 0 ANALYSIS 0: groups Semaglutide 2.4 mg, Placebo | Treatment difference -10.27 (95% CI -11.97 to -8.57) | p <.0001 | METHOD ANCOVA"
   - abstract_estimate: `cache/semaglutide-obesity-weight/records.json#/records/117` (sha256 8779e517b6f0): "At week 68, the estimated mean body weight change from baseline was -16.0% for semaglutide vs -5.7% for placebo (difference, -10.3 percentage points [95% CI, -12.0 to -8.6]; P < .001)."
-- block sha256: 7e58827c63f90ed1ff3b719b9c9a0374b727b1d614d10cacae45fcccbf39941d
+  - gap_analysis_set: `evidence/held/registry/NCT03611582.json` (sha256 bdaf55236501): "Overall number of participants analyzed = full analysis set (FAS) which comprised all randomized participants. Number Analyzed = number of participants with available data."
+  - gap_follow_up: `evidence/held_local/33625476/PMC7905697.html` (sha256 3b7ef04fa8a8): "The co–primary end points, in the order planned for sequential hierarchic testing, were the percentage change in body weight and the proportion of participants who lost at least 5% of baseline weight by week 68"
+  - gap_entry_age: `evidence/held_local/33625476/PMC7905697.html` (sha256 3b7ef04fa8a8): "Eligible participants were aged 18 years or older"
+- block sha256: eaff6799d1a0e67a5445a608fb9f27acfde3de45a419bcdda962a667fad6b2f6
 
 ### UA-033: semaglutide-obesity-weight / Percent change in body weight / PMID 33567185 (STEP 1)
 - state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED
