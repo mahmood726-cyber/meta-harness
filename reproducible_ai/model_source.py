@@ -548,10 +548,30 @@ def render_proposal_block(entry: dict, record: dict) -> str:
     return f"<div class='model-proposal'><table>{body}</table></div>"
 
 
+def numbers_in(obj: Any, path: str = "") -> list[str]:
+    """Paths of every int/float in a claim (bools are verdicts, not numbers; digits inside a quoted string are the
+    source's words, located in the held text, not a value the model supplies)."""
+    if isinstance(obj, bool) or obj is None or isinstance(obj, str):
+        return []
+    if isinstance(obj, (int, float)):
+        return [path or "<claim>"]
+    if isinstance(obj, dict):
+        return [p for k, v in obj.items() for p in numbers_in(v, f"{path}.{k}" if path else str(k))]
+    if isinstance(obj, (list, tuple)):
+        return [p for i, v in enumerate(obj) for p in numbers_in(v, f"{path}[{i}]")]
+    return [path or "<claim>"]
+
+
 def gate_problems(entry: dict, record: dict, held_text: str) -> list[str]:
-    """Empty only when all three conditions hold. Anything else keeps the entry PROPOSED."""
+    """Empty only when all three conditions hold (and the claim carries no number). Anything else keeps it PROPOSED."""
     from harness import result_changes
     problems = []
+    if not isinstance(held_text, str) or sha256_bytes(held_text.encode("utf-8")) != entry.get("held_sha256"):
+        problems.append("HELD_TEXT_MISMATCH: the text handed to the gate is not the held text the entry names "
+                        "(sha256 differs) -- verification against any other text proves nothing about this claim")
+    nums = numbers_in(entry.get("claim"))
+    if nums:
+        problems.append(f"NUMBER_FROM_MODEL: {nums} -- a model never supplies a number (REPRODUCIBLE_MODEL_CONTRACT)")
     # (b) the call replays, and the queued claim is exactly what the stored response decodes to
     try:
         response = replay(record)

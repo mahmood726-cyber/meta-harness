@@ -541,6 +541,7 @@ def test_a_committed_queue_covers_its_whole_denominator_and_claims_nothing_it_ca
             assert e["state"] in ("NO_HELD_TEXT", "HELD_TEXT_DRIFT", "RAN_ERROR", "RESPONSE_NOT_A_CLAIM", "NOT_YET_CALLED")
             continue
         assert e["status"] == "PROPOSED"                   # the stored word never says more than PROPOSED
+        assert ms.numbers_in(e["claim"]) == [], (e["item_id"], "a model never supplies a number")
         sig = e.get("reviewer_countersignature") or {}
         if sig.get("state") != "OPEN":
             # a signature present in the file must pass the gate today, or the file claims something it cannot show
@@ -631,6 +632,35 @@ def test_a_disagreement_refuses_a_batch_signature():
     batch = _sign(entry, rec, state="BATCH_SEEN_AND_SIGNED", batch_id="B1")
     assert ms.status_of(batch, rec, HELD) == "PROPOSED"
     assert ms.status_of(_sign(entry, rec), rec, HELD) == "COUNTERSIGNED"
+
+
+def test_the_gate_verifies_against_the_held_text_the_entry_names_and_no_other():
+    """Plant: a different text that still contains the quoted sentence would satisfy the span check. The gate must
+    refuse any held text whose sha256 is not the one the entry recorded."""
+    rec, entry = _entry()
+    signed = _sign(entry, rec)
+    other = HELD + " An appended sentence changes the document."
+    assert "The primary analysis was performed in the intention-to-treat population." in other
+    problems = ms.gate_problems(signed, rec, other)
+    assert any(p.startswith("HELD_TEXT_MISMATCH") for p in problems)
+    assert ms.status_of(signed, rec, other) == "PROPOSED"
+    assert ms.status_of(signed, rec, HELD) == "COUNTERSIGNED"
+
+
+def test_a_model_never_supplies_a_number():
+    """The contract (REPRODUCIBLE_MODEL_CONTRACT.md: 'a model never supplies a number'), enforced by the gate, not by
+    the schema happening to lack numeric fields. Plant: a claim carrying a number, at any depth, stays PROPOSED even
+    if verified, replayable and signed. Numbers inside a quoted STRING are the source's words, not the model's value."""
+    rec = _record(response=json.dumps({"field": "analysis_set", "value": "intention-to-treat",
+                                       "quote": "The primary analysis was performed in the intention-to-treat population.",
+                                       "hazard_ratio": 0.74}).encode())
+    claim = json.loads(ms.replay(rec))
+    entry = ms.queue_entry(task="estimand", item_id="x", record=rec, claim=claim,
+                           verification=ms.verify_estimand(claim, HELD), held_ref="fixture:held", held_sha256=HELD_SHA)
+    problems = ms.gate_problems(_sign(entry, rec), rec, HELD)
+    assert any(p.startswith("NUMBER_FROM_MODEL") for p in problems)
+    assert ms.status_of(_sign(entry, rec), rec, HELD) == "PROPOSED"
+    assert ms.numbers_in({"a": [{"b": 3}], "c": True, "d": "HR 0.74 (0.61-0.89)"}) == ["a[0].b"]
 
 
 def test_an_unstable_agreement_refuses_a_batch_signature():
