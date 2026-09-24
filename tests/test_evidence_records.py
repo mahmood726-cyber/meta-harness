@@ -251,3 +251,17 @@ def test_analysis_set_reader_matches_the_lanes_eye_labels():
     from draft_from_extraction import set_reading
     wrong = [(s[:60], want, set_reading(s)) for s, want in EYE_LABELLED if set_reading(s) != want]
     assert wrong == []
+
+
+def test_no_private_workspace_content_in_tracked_evidence_files():
+    """Codex transcripts once leaked the owner's private project index and submission workbook into this public
+    repo (its startup instructions read them). No tracked file under evidence/ may carry that content or a
+    local absolute path to it; transcripts (*.log) are never tracked."""
+    import subprocess, re as _re
+    root = os.path.join(os.path.dirname(__file__), "..")
+    files = subprocess.run(["git", "ls-files", "evidence"], cwd=root, capture_output=True, text=True).stdout.split()
+    assert not [f for f in files if f.endswith(".log")]
+    pat = _re.compile(r"rewrite-workbook|YOUR REWRITE|ProjectIndex[\/]INDEX\.md|C:\\Users\\mahmo|F:\\E156")
+    bad = [f for f in files if f.endswith((".json", ".md", ".txt", ".py")) and
+           pat.search(open(os.path.join(root, f), encoding="utf-8", errors="replace").read())]
+    assert bad == [], bad
