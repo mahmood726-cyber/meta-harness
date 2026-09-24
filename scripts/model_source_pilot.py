@@ -46,7 +46,7 @@ MODEL = "gpt-6-astra"
 # a second reader must be a different model id; same vendor (OpenAI via codex) -- stated, not hidden
 MODEL_BY_TASK = {"screening_reader2": "gpt-5.5"}
 EFFORT = "medium"
-BATCH = {"screening": 6, "estimand": 3, "outcome_identity": 1, "locate": 1, "screening_reader2": 6, "screening_excluded": 6}
+BATCH = {"screening": 6, "estimand": 3, "outcome_identity": 1, "locate": 1, "screening_reader2": 6, "screening_excluded": 6, "screening_excluded_x1": 6}
 REC_DIR = ROOT / ms.RECORD_DIR
 Q_DIR = ROOT / ms.PROPOSAL_DIR
 
@@ -249,6 +249,7 @@ def candidates_screening_reader2() -> list[dict]:
 CANDIDATES = {"screening": candidates_screening, "estimand": candidates_estimand,
               "screening_reader2": candidates_screening_reader2,
               "screening_excluded": lambda: [dict(i, task="screening_excluded") for i in candidates_screening()],
+              "screening_excluded_x1": lambda: [dict(i, task="screening_excluded_x1") for i in candidates_screening()],
               "outcome_identity": candidates_outcome_identity, "locate": candidates_locate}
 # The selection rule that defines each pilot's population AT FREEZE TIME. After the freeze the population does not
 # move: a later rule change (a regex that now reads a field, a record the screen now excludes) is recorded on the
@@ -259,7 +260,9 @@ SELECT = {"screening": lambda i: i["rule_decision"] == "include",
           "outcome_identity": lambda i: True, "locate": lambda i: True, "screening_reader2": lambda i: True,
           # phase A: records the KEYWORD rules excluded (X2 population, X3 intervention/comparator, design, contrast,
           # dose, age, dedup); X1 (not an RCT, from publication type) is a separate, later phase
-          "screening_excluded": lambda i: i["rule_decision"] == "exclude" and i.get("rule_id") != "X1"}
+          "screening_excluded": lambda i: i["rule_decision"] == "exclude" and i.get("rule_id") != "X1",
+          # phase B: X1 'not an RCT' (publication type / design words); a missing pubtype can wrongly exclude a trial
+          "screening_excluded_x1": lambda i: i["rule_decision"] == "exclude" and i.get("rule_id") == "X1"}
 SELECTION_RULE = {"screening": "screened records with decision == include on the committed review pages",
                   "estimand": "estimand fields whose bundle state != STATED_IN_OWNING_EVIDENCE on the served bundles",
                   "outcome_identity": "every candidate CT.gov outcome measure of every topic with a committed "
@@ -269,7 +272,9 @@ SELECTION_RULE = {"screening": "screened records with decision == include on the
                   "screening_reader2": "screening items whose reader-1 proposal needs an individual signature "
                                        "(registry/model_proposals/screening.json)",
                   "screening_excluded": "screened records the rule EXCLUDED with a keyword rule (every rule_id except "
-                                        "X1 not-an-RCT) on the committed review pages"}
+                                        "X1 not-an-RCT) on the committed review pages",
+                  "screening_excluded_x1": "screened records the rule EXCLUDED as X1 (not an RCT) on the committed "
+                                           "review pages"}
 FROZEN_KEYS = ("item_id", "slug", "held_ref", "held_sha256", "state", "rule_decision", "rule_id", "field", "rule_state", "prior")
 
 
@@ -313,14 +318,16 @@ def pilot_items(task: str) -> list[dict]:
     return out
 
 
-TASKS = ("estimand", "screening", "outcome_identity", "locate", "screening_reader2", "screening_excluded")
-SCREEN_TASKS = ("screening", "screening_reader2", "screening_excluded")
+TASKS = ("estimand", "screening", "outcome_identity", "locate", "screening_reader2", "screening_excluded",
+         "screening_excluded_x1")
+SCREEN_TASKS = ("screening", "screening_reader2", "screening_excluded", "screening_excluded_x1")
 N_NAME = {"screening": "screened-in records across committed review pages",
           "estimand": "estimand fields without a stated value across served bundles",
           "outcome_identity": "candidate CT.gov outcome measures under a committed outcome-identity judgment file",
           "locate": "committed locate-gate judgments",
           "screening_reader2": "screening items whose reader-1 proposal needs an individual signature",
-          "screening_excluded": "records excluded by a keyword rule (not X1) across committed review pages"}
+          "screening_excluded": "records excluded by a keyword rule (not X1) across committed review pages",
+          "screening_excluded_x1": "records excluded as X1 (not an RCT) across committed review pages"}
 
 
 def cmd_freeze(task: str, base: str):
@@ -657,26 +664,23 @@ def stability_report(task: str) -> dict:
             x, y = a.get(i["item_id"]), c.get(i["item_id"])
             row = {"item_id": i["item_id"], "source_record": src["record_id"], "reask_record": again[0]["record_id"],
                    "identical_claim": x == y}
-            if task == "screening" and x and y:
-                vx = ms.verify_screening(x, i["held_text"], i["rule_decision"])
-                vy = ms.verify_screening(y, i["held_text"], i["rule_decision"])
-                row["same_derived_decision"] = vx.get("model_decision") == vy.get("model_decision")
-                row["decisions"] = [vx.get("model_decision"), vy.get("model_decision")]
-                row["axes_same_verdict"] = sum(1 for ax in ms.SCREEN_AXES
-                                               if (x["axes"].get(ax) or {}).get("verdict") == (y["axes"].get(ax) or {}).get("verdict"))
-            elif task == "estimand" and x and y:
-                row["same_value"] = x.get("value") == y.get("value")
-                row["values"] = [x.get("value"), y.get("value")]
+            if x is not None and y is not None:
+                vs = [ms.reverify({"task": task, "claim": c_, "rule_decision": i["rule_decision"],
+                                   "context": {"prior": i.get("prior")}}, i["held_text"]) for c_ in (x, y)]
+                decs = [decision_of(task, c_, v_) for c_, v_ in zip((x, y), vs)]
+                row["same_derived_decision"] = decs[0] == decs[1]
+                row["decisions"] = decs
+                if task in SCREEN_TASKS:
+                    row["axes_same_verdict"] = sum(1 for ax in ms.SCREEN_AXES if ((x.get("axes") or {}).get(ax) or {}).get("verdict")
+                                                   == ((y.get("axes") or {}).get(ax) or {}).get("verdict"))
             rows.append(row)
     n = len(rows)
     summary = {"task": task, "N": n, "N_name": "items whose batch has a source call AND a re-ask of the identical prompt bytes",
-               "identical_claim": sum(r["identical_claim"] for r in rows)}
-    if task == "screening":
-        summary["same_derived_decision"] = sum(bool(r.get("same_derived_decision")) for r in rows)
+               "identical_claim": sum(r["identical_claim"] for r in rows),
+               "same_derived_decision": sum(bool(r.get("same_derived_decision")) for r in rows)}
+    if task in SCREEN_TASKS:
         summary["axis_verdicts_same"] = sum(r.get("axes_same_verdict", 0) for r in rows)
         summary["axis_verdicts_N"] = 4 * n
-    else:
-        summary["same_value"] = sum(bool(r.get("same_value")) for r in rows)
     summary["what_this_measures"] = ("whether the MODEL reproduces its own answer to identical prompt bytes; the recorded "
                                      "call replays byte-identically regardless -- that is the only reproducibility claimed")
     return {"summary": summary, "rows": rows}
@@ -724,9 +728,60 @@ def cmd_readers():
     print(json.dumps(rep["summary"], indent=1))
 
 
+# ------------------------------------------------------------------------------------------------------ signing guide
+def signing_guide() -> str:
+    """What waits for the reviewer, in priority order, computed from the committed queues (never hand-counted)."""
+    def load(task):
+        p = Q_DIR / f"{task}.json"
+        return json.loads(p.read_text(encoding="utf-8"))["items"] if p.exists() else []
+
+    def open_(e):
+        return "claim" in e and (e.get("reviewer_countersignature") or {}).get("state") == "OPEN"
+
+    lines = ["# What waits for your signature (generated by `model_source_pilot.py signing-guide`)", "",
+             "Nothing below changes a served number when signed: a countersigned proposal is review material "
+             "(`admits_into_build: false`). Sign with `python scripts/countersign_model_proposal.py sign <task> <item_id> "
+             "--by \"...\" --basis \"...\"`; `sign-batch` signs only what the gate allows in a batch.", ""]
+    served = [(t, e) for t in ("outcome_identity", "locate") for e in load(t) if open_(e)]
+    dis = [(t, e) for t, e in served if "DISAGREE" in e["verification"].get("agreement", "")]
+    lines += ["## 1. Served-path judgments re-made as recorded calls (disagreements with the unrecorded original first)", ""]
+    for t, e in dis + [x for x in served if x not in dis]:
+        lines.append(f"- `{t}` `{e['item_id']}` -- {e['verification'].get('agreement')} "
+                     f"({'INDIVIDUAL' if ms.individual_required(e, e['verification']) else 'batchable'})")
+    r = readers_report() if (Q_DIR / "screening_reader2.json").exists() else {"both_ineligible": []}
+    lines += ["", f"## 2. Screening: both readers INELIGIBLE against the rule's include ({len(r['both_ineligible'])})", ""]
+    lines += [f"- `screening` `{i}`" for i in r["both_ineligible"]]
+    scr = [e for e in load("screening") if open_(e)]
+    ind = [e for e in scr if ms.individual_required(e, e["verification"])]
+    lines += ["", f"## 3. Screening: the rest needing an individual signature ({len(ind) - len(r['both_ineligible'])} "
+              f"more; {len(ind)} of {len(scr)} open in all)", "",
+              "Packet: `outputs/model_source/screening_individual_signature_required.html`; reader 2's view of each: "
+              "`outputs/model_source/READERS_screening.json`.", "",
+              f"## 4. Batch-signable agreements ({len(scr) - len(ind)} screening; "
+              f"{sum(1 for e in load('estimand') if open_(e) and not ms.individual_required(e, e['verification']))} estimand)", "",
+              "`python scripts/countersign_model_proposal.py sign-batch screening --by \"...\" --basis \"...\" --batch <id>` -- "
+              "refuses, by construction, every item whose verdict disagrees or whose re-ask did not reproduce.", ""]
+    exc = [e for e in load("screening_excluded") if open_(e)]
+    if exc:
+        flip = [e for e in exc if e["verification"].get("model_decision") == "ELIGIBLE"]
+        lines += [f"## 5. Records the rule EXCLUDED that the model reads as ELIGIBLE ({len(flip)} of {len(exc)})", ""]
+        lines += [f"- `screening_excluded` `{e['item_id']}` (rule {e.get('context', {}).get('rule_id')})" for e in flip]
+        lines.append("")
+    est = [e for e in load("estimand") if open_(e) and ms.individual_required(e, e["verification"])]
+    lines += [f"## 6. Estimand fields needing an individual signature ({len(est)})", ""]
+    lines += [f"- `estimand` `{e['item_id']}` -- {e['verification'].get('agreement')}" for e in est]
+    return "\n".join(lines) + "\n"
+
+
+def cmd_signing_guide():
+    out = ROOT / "outputs" / "model_source" / "SIGNING_GUIDE.md"
+    out.write_bytes(signing_guide().encode("utf-8"))
+    print(f"wrote {out.relative_to(ROOT).as_posix()}")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("cmd", choices=["items", "freeze", "run", "queue", "status", "stability", "stability-report", "readers"])
+    ap.add_argument("cmd", choices=["items", "freeze", "run", "queue", "status", "stability", "stability-report", "readers", "signing-guide"])
     ap.add_argument("--base", help="freeze: the commit the population is selected from")
     ap.add_argument("task", choices=TASKS)
     ap.add_argument("--limit", type=int, default=10 ** 6)
@@ -737,7 +792,7 @@ def main(argv=None):
      "freeze": lambda: cmd_freeze(a.task, a.base or sys.exit("freeze needs --base <commit>")),
      "stability": lambda: cmd_stability(a.task, a.sample),
      "stability-report": lambda: cmd_stability_report(a.task),
-     "readers": cmd_readers}[a.cmd]()
+     "readers": cmd_readers, "signing-guide": cmd_signing_guide}[a.cmd]()
     return 0
 
 

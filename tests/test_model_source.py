@@ -498,7 +498,8 @@ def test_a_frozen_population_never_shrinks_when_the_rule_moves(tmp_path, monkeyp
         pilot.cmd_freeze("screening", "0" * 40)          # a population is frozen once
 
 
-@pytest.mark.parametrize("task", ["screening", "estimand", "outcome_identity", "locate", "screening_reader2", "screening_excluded"])
+@pytest.mark.parametrize("task", ["screening", "estimand", "outcome_identity", "locate", "screening_reader2", "screening_excluded",
+                                  "screening_excluded_x1"])
 def test_a_committed_queue_covers_its_whole_denominator_and_claims_nothing_it_cannot_show(task):
     q = ROOT / ms.PROPOSAL_DIR / f"{task}.json"
     if not q.exists():

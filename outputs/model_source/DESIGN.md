@@ -48,6 +48,27 @@ bundle's regex found no statement for. So the pilots satisfy either reading.
    default and no "assume accepted"; an `OPEN` signature with an aged queue entry stays `PROPOSED` (tested).
 5. **Limits** — below.
 
+## What the verifier has caught on live output (not fixtures)
+
+- A reader-2 screening quote, "adults 75 years and older when used for primary prevention", was the registered
+  CRITERIA from the prompt, not text of the record — refused (`SPAN_NOT_IN_SOURCE`). A model quoting the question
+  back as evidence is exactly what an unchecked span would admit.
+- An excluded-record quote, "to receive sacubirtil-valsartan", where the held abstract reads "sacubitril-valsartan":
+  the model transposed two letters inside a quote it was told to copy exactly — refused. "Verbatim" from a model is a
+  claim, not a property.
+
+## Pilot tasks (all frozen populations; every item listed with a state; nothing admitted)
+
+| Task | Population (N) | What the model proposes | Deterministic check |
+|---|---|---|---|
+| `screening` | screened-in records, 269 | per-axis MET / NOT_MET / NOT_STATED + quote | span ladder; decision derived |
+| `estimand` | glp1 bundle fields the regex leaves unstated, 9 | value from the rule's vocabulary + sentence | span ladder; rule re-run on span and text |
+| `outcome_identity` | CT.gov measures under the served outcome-identity gate, 3 | is_match + fields (producer's prompt) | typed; compared with the unrecorded prior |
+| `locate` | served locate-gate judgments, 4 | span + target / population / arms | span ladder; compared with the unrecorded prior |
+| `screening_reader2` | the 150 needing an individual signature | as screening, second model (same vendor) | as screening |
+| `screening_excluded` | keyword exclusions (not X1), 919 | as screening | as screening |
+| `screening_excluded_x1` | X1 "not an RCT" exclusions, 1958 | as screening | as screening |
+
 ## Where the code lives, and why not in `harness/`
 
 Every served `CERTIFICATE.json` carries `certificate_scope.not_covered.in_tree_modules_not_imported_by_any_root`,

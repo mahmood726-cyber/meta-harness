@@ -34,6 +34,20 @@ def test_the_tools_routing_is_the_gates_predicate():
         assert tool.routes_individual(e)
 
 
+def test_the_signing_guide_counts_what_the_gate_counts():
+    """The guide is generated from the queues; its individual/batch split must be the gate's, item for item."""
+    import re
+    spec = importlib.util.spec_from_file_location("_pilot_g", ROOT / "scripts" / "model_source_pilot.py")
+    pilot = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pilot)
+    guide = pilot.signing_guide()
+    doc = json.loads((ROOT / ms.PROPOSAL_DIR / "screening.json").read_text(encoding="utf-8"))
+    open_ = [e for e in doc["items"] if "claim" in e and e["reviewer_countersignature"].get("state") == "OPEN"]
+    ind = sum(1 for e in open_ if ms.individual_required(e, e["verification"]))
+    assert f"{ind} of {len(open_)} open in all" in guide
+    assert re.search(rf"Batch-signable agreements \({len(open_) - ind} screening", guide)
+
+
 def test_sign_batch_refuses_an_unstable_agreement(tmp_path, monkeypatch):
     tool = _tool()
     doc = json.loads((ROOT / ms.PROPOSAL_DIR / "estimand.json").read_text(encoding="utf-8"))

@@ -470,7 +470,7 @@ def reverify(entry: dict, held_text: str) -> dict:
     prior = (entry.get("context") or {}).get("prior")
     if task == "estimand":
         return verify_estimand(entry.get("claim"), held_text)
-    if task in ("screening", "screening_reader2", "screening_excluded"):
+    if task in ("screening", "screening_reader2", "screening_excluded", "screening_excluded_x1"):
         return verify_screening(entry.get("claim"), held_text, entry.get("rule_decision"))
     if task == "outcome_identity":
         return verify_outcome_identity(entry.get("claim"), held_text, prior)
