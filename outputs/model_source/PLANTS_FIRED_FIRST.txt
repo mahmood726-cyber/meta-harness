@@ -612,3 +612,16 @@ tests\test_model_source.py:332: AssertionError
 #    against main's version -> 3 failed. The two --codex plants failed because the OLD code reached for a live model
 #    from inside a test (bare "codex" argv; FileNotFoundError on Windows, where that path can never have run) instead of
 #    refusing an unpinned model / recording the call; the hand plant failed because --write needed no author.
+
+# 8) Served-path judgment re-makes (2026-09-24): the new verifiers replaced by permissive stubs (PASS everything):
+#    FIRED against permissive stub: test_locate_span_must_be_in_the_held_abstract_and_a_target_claim_must_quote
+#    FIRED against permissive stub: test_a_recorded_remake_is_compared_with_the_unrecorded_prior_and_disagreement_needs_an_individual_signature
+#    FIRED against permissive stub: test_outcome_identity_is_typed_and_compared_with_its_prior
+
+# 9) Unstable agreement (2026-09-24): test_an_unstable_agreement_refuses_a_batch_signature before the fix:
+#      assert 're-ask' in ... signature required ... individual or batch   -> 1 failed
+#    (LEADER 27295427: ELIGIBLE on its source call = batch-signable; CANNOT_TELL on the identical-prompt re-ask.)
+
+# 10) Reviewer tool vs gate (2026-09-24): tests/test_countersign_tool.py before the fix -> 2 failed: the tool routed on
+#     the verdict only, so _sign_one BATCH-signed an agreement flagged unstable on re-ask (returned no refusal), and
+#     the "individual" packet said 150 where the gate requires 151.

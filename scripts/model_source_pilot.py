@@ -8,6 +8,13 @@
   estimand   every estimand field the bundle's regex leaves without a statement (state != STATED_IN_OWNING_EVIDENCE)
              on every served BUNDLE.json. The model reads the row's PARSED_SOURCE and returns a value from the rule's
              own vocabulary, or NOT_STATED, with the sentence it read it from.
+  outcome_identity / locate   RECORDED re-makes of the model judgments the served gates read from cache
+             (outcome_judgments.json, locate_judgments.json), made WITHOUT a record originally; each is compared with
+             that unrecorded prior (PRIOR_MODEL_AGREE / PRIOR_MODEL_DISAGREE) and changes nothing served.
+  screening_reader2   a second model reads the screening items whose reader-1 proposal needs an individual signature;
+             `readers` compares the two (a triage for the human; same vendor, so partially independent at best).
+  Re-asks (`stability`) measure the MODEL; an item whose re-ask reaches a different decision needs an individual
+  signature.
 
   python scripts/model_source_pilot.py freeze <task> --base SHA   freeze the population ONCE (registry/model_proposals/
                                                                  <task>.population.json); afterwards it never shrinks
@@ -36,8 +43,10 @@ sys.path.insert(0, str(ROOT))
 from reproducible_ai import model_source as ms  # noqa: E402
 
 MODEL = "gpt-6-astra"
+# a second reader must be a different model id; same vendor (OpenAI via codex) -- stated, not hidden
+MODEL_BY_TASK = {"screening_reader2": "gpt-5.5"}
 EFFORT = "medium"
-BATCH = {"screening": 6, "estimand": 3}
+BATCH = {"screening": 6, "estimand": 3, "outcome_identity": 1, "locate": 1, "screening_reader2": 6, "screening_excluded": 6}
 REC_DIR = ROOT / ms.RECORD_DIR
 Q_DIR = ROOT / ms.PROPOSAL_DIR
 
@@ -135,16 +144,133 @@ def candidates_estimand() -> list[dict]:
     return sorted(out, key=lambda i: i["item_id"])
 
 
-CANDIDATES = {"screening": candidates_screening, "estimand": candidates_estimand}
+LOCATE_INSTR = """You are checking whether a trial's abstract reports a meta-analysis's TARGET OUTCOME. Do not run any
+commands or read any files. Use only the text given here. Do not estimate or infer any number.
+
+REVIEW: {review}
+TARGET OUTCOME: {outcome}
+{outcome_detail}
+REVIEW POPULATION: {population}
+
+Answer with:
+  "span": the ONE sentence of the abstract that reports this outcome, copied EXACTLY, character for character (no
+          ellipses, no paraphrase); null if the abstract reports no result for it,
+  "is_target_outcome": true only if that sentence reports THIS outcome (same event definition and timepoint), not a
+          component, a different endpoint, or a different timepoint,
+  "population_matches": whether the trial's population is the review population,
+  "both_arms": whether the sentence gives the result for both randomised arms,
+  "timepoint": the timepoint the sentence reports, or "unspecified",
+  "why": one sentence.
+When unsure, is_target_outcome = false. Return only the JSON object.
+
+=== ABSTRACT ===
+{abstract}
+"""
+
+
+def _outcome_spec(cfg: dict, name: str) -> dict:
+    for key in ("primary_outcome", "secondary_outcomes", "harm_outcomes"):
+        v = cfg.get(key)
+        for o in (v if isinstance(v, list) else [v] if v else []):
+            if isinstance(o, dict) and o.get("name") == name:
+                return o
+    return {"name": name}
+
+
+def candidates_outcome_identity() -> list[dict]:
+    """Every committed outcome-identity judgment (the served gate's input), re-asked as a RECORDED call with the
+    producer's own prompt (scripts/outcome_judgments.py::build_prompt). The prior judgment is kept for comparison."""
+    oj = _load_script("outcome_judgments")
+    out = []
+    for p in sorted((ROOT / "cache").glob("*/outcome_judgments.json")):
+        slug = p.parent.name
+        prior = json.loads(p.read_text(encoding="utf-8"))
+        spec, cands = oj.collect_candidates(slug)
+        for c in cands:
+            held = f"title: {c['title']}\ntype: {c.get('type')}\nparamType: {c.get('paramType')}"
+            pj = (prior.get("judgments") or {}).get(c["title"])
+            out.append({"task": "outcome_identity", "slug": slug, "item_id": f"{slug}::OM::{c['title']}",
+                        "held_ref": f"cache/{slug}/records.json#ctgov_results[title={c['title']}]",
+                        "held_text": held, "held_sha256": _sha(held.encode("utf-8")),
+                        "rule_decision": (f"PRIOR {prior.get('model')!r}: is_match={pj.get('is_match')}" if pj else "NO PRIOR"),
+                        "prior": {"is_match": pj.get("is_match")} if pj else None,
+                        "prompt_text": oj.build_prompt(spec, c),
+                        "prompt_digests": [_file_digest(f"topics/{slug}.json"), _file_digest(f"cache/{slug}/records.json")]})
+    return sorted(out, key=lambda i: i["item_id"])
+
+
+def candidates_locate() -> list[dict]:
+    """Every committed locate-gate judgment (made in-session on 2026-09-11; its prompt was never recorded), asked again
+    as a RECORDED call on a stated task. This is a NEW call, not a replay of the original."""
+    out = []
+    for p in sorted((ROOT / "cache").glob("*/locate_judgments.json")):
+        slug = p.parent.name
+        cfg = json.loads((ROOT / "topics" / f"{slug}.json").read_text(encoding="utf-8"))
+        pico = {t["id"]: t for t in json.loads((ROOT / "pico.json").read_text(encoding="utf-8"))["topics"]}.get(slug) or {}
+        recs = {str(r.get("id")): r for r in json.loads((ROOT / "cache" / slug / "records.json").read_text(encoding="utf-8"))["records"]}
+        for pmid, outs in json.loads(p.read_text(encoding="utf-8")).items():
+            for oname, j in outs.items():
+                abstract = (recs.get(str(pmid)) or {}).get("abstract")
+                item = {"task": "locate", "slug": slug, "item_id": f"{slug}::PMID {pmid}::{oname}",
+                        "held_ref": f"cache/{slug}/records.json#PMID-{pmid} abstract",
+                        "rule_decision": (f"PRIOR {j.get('model')!r} {j.get('date')}: is_target_outcome={j.get('is_target_outcome')}, "
+                                          f"population_matches={j.get('population_matches')}"),
+                        "prior": {k: j.get(k) for k in ("is_target_outcome", "population_matches") if k in j}}
+                if not abstract:
+                    item["state"] = "NO_HELD_TEXT"
+                else:
+                    spec = _outcome_spec(cfg, oname)
+                    detail = "; ".join(f"{k}: {spec[k]}" for k in ("definition", "timepoint", "population", "estimand") if spec.get(k))
+                    item.update(held_text=abstract, held_sha256=_sha(abstract.encode("utf-8")),
+                                prompt_text=LOCATE_INSTR.format(review=cfg.get("title"), outcome=oname,
+                                                                outcome_detail=detail or "(no further definition registered)",
+                                                                population=pico.get("P") or cfg.get("eligibility_summary"),
+                                                                abstract=abstract),
+                                prompt_digests=[_file_digest(f"topics/{slug}.json"), _file_digest("pico.json")])
+                out.append(item)
+    return sorted(out, key=lambda i: i["item_id"])
+
+
+def candidates_screening_reader2() -> list[dict]:
+    """The screening items where reader 1's committed proposal does NOT agree with the rule (cannot tell, or disagree):
+    the items a human must sign individually. Same held text; a second model reads them independently."""
+    q = Q_DIR / "screening.json"
+    if not q.exists():
+        return []
+    non_agree = {e["item_id"] for e in json.loads(q.read_text(encoding="utf-8"))["items"]
+                 if "verification" in e and ms.needs_individual_signature(e["verification"])}
+    out = []
+    for i in candidates_screening():
+        if i["item_id"] in non_agree:
+            out.append(dict(i, task="screening_reader2", item_id=i["item_id"]))
+    return out
+
+
+CANDIDATES = {"screening": candidates_screening, "estimand": candidates_estimand,
+              "screening_reader2": candidates_screening_reader2,
+              "screening_excluded": lambda: [dict(i, task="screening_excluded") for i in candidates_screening()],
+              "outcome_identity": candidates_outcome_identity, "locate": candidates_locate}
 # The selection rule that defines each pilot's population AT FREEZE TIME. After the freeze the population does not
 # move: a later rule change (a regex that now reads a field, a record the screen now excludes) is recorded on the
 # item as rule_decision_now, never by removing it -- a denominator that shrinks when the rule improves cannot show
 # that the rule caught up.
 SELECT = {"screening": lambda i: i["rule_decision"] == "include",
-          "estimand": lambda i: i["rule_state"] != "STATED_IN_OWNING_EVIDENCE"}
+          "estimand": lambda i: i["rule_state"] != "STATED_IN_OWNING_EVIDENCE",
+          "outcome_identity": lambda i: True, "locate": lambda i: True, "screening_reader2": lambda i: True,
+          # phase A: records the KEYWORD rules excluded (X2 population, X3 intervention/comparator, design, contrast,
+          # dose, age, dedup); X1 (not an RCT, from publication type) is a separate, later phase
+          "screening_excluded": lambda i: i["rule_decision"] == "exclude" and i.get("rule_id") != "X1"}
 SELECTION_RULE = {"screening": "screened records with decision == include on the committed review pages",
-                  "estimand": "estimand fields whose bundle state != STATED_IN_OWNING_EVIDENCE on the served bundles"}
-FROZEN_KEYS = ("item_id", "slug", "held_ref", "held_sha256", "state", "rule_decision", "rule_id", "field", "rule_state")
+                  "estimand": "estimand fields whose bundle state != STATED_IN_OWNING_EVIDENCE on the served bundles",
+                  "outcome_identity": "every candidate CT.gov outcome measure of every topic with a committed "
+                                      "cache/<slug>/outcome_judgments.json (read by the served outcome-identity gate)",
+                  "locate": "every judgment in every committed cache/<slug>/locate_judgments.json (read by the served "
+                            "locate gate)",
+                  "screening_reader2": "screening items whose reader-1 proposal needs an individual signature "
+                                       "(registry/model_proposals/screening.json)",
+                  "screening_excluded": "screened records the rule EXCLUDED with a keyword rule (every rule_id except "
+                                        "X1 not-an-RCT) on the committed review pages"}
+FROZEN_KEYS = ("item_id", "slug", "held_ref", "held_sha256", "state", "rule_decision", "rule_id", "field", "rule_state", "prior")
 
 
 def population_path(task: str) -> Path:
@@ -174,7 +300,7 @@ def pilot_items(task: str) -> list[dict]:
             out.append(it)
             continue
         it["rule_decision"] = cur.get("rule_decision")          # what the rule says NOW (rendered beside the freeze)
-        for k in ("rule_id", "rule_reason", "rule_state", "rule_value"):
+        for k in ("rule_id", "rule_reason", "rule_state", "rule_value", "prompt_text", "prompt_digests"):
             if k in cur:
                 it[k] = cur[k]
         if "held_text" in cur and "held_sha256" in f:
@@ -187,7 +313,14 @@ def pilot_items(task: str) -> list[dict]:
     return out
 
 
-TASKS = ("estimand", "screening")
+TASKS = ("estimand", "screening", "outcome_identity", "locate", "screening_reader2", "screening_excluded")
+SCREEN_TASKS = ("screening", "screening_reader2", "screening_excluded")
+N_NAME = {"screening": "screened-in records across committed review pages",
+          "estimand": "estimand fields without a stated value across served bundles",
+          "outcome_identity": "candidate CT.gov outcome measures under a committed outcome-identity judgment file",
+          "locate": "committed locate-gate judgments",
+          "screening_reader2": "screening items whose reader-1 proposal needs an individual signature",
+          "screening_excluded": "records excluded by a keyword rule (not X1) across committed review pages"}
 
 
 def cmd_freeze(task: str, base: str):
@@ -241,8 +374,19 @@ Answer every item, using its "item" key and its field exactly. Return only the J
 """
 
 
+READER2_HEADER = ("SECOND READER. Another reader has already assessed these records; you do not see that assessment. "
+                  "Assess them independently.\n\n")
+
+
 def _schema(task: str) -> dict:
-    if task == "screening":
+    if task == "outcome_identity":
+        return _load_script("outcome_judgments").OUTCOME_SCHEMA
+    if task == "locate":
+        props = {"span": {"type": ["string", "null"]}, "is_target_outcome": {"type": "boolean"},
+                 "population_matches": {"type": "boolean"}, "both_arms": {"type": "boolean"},
+                 "timepoint": {"type": "string"}, "why": {"type": "string"}}
+        return {"type": "object", "additionalProperties": False, "required": list(props), "properties": props}
+    if task in SCREEN_TASKS:
         axis = {"type": "object", "additionalProperties": False, "required": ["verdict", "quote"],
                 "properties": {"verdict": {"type": "string", "enum": list(ms.SCREEN_VERDICTS)},
                                "quote": {"type": ["string", "null"]}}}
@@ -272,17 +416,22 @@ def batches(task: str, items: list[dict]) -> list[dict]:
             chunk = group[k:k + BATCH[task]]
             keyed = [(f"R{n + 1}", i) for n, i in enumerate(chunk)]
             digests = [{"ref": i["held_ref"], "sha256": i["held_sha256"], "what": "held text quoted by the item"} for _, i in keyed]
-            if task == "screening":
+            if task in SCREEN_TASKS:
                 crit, cd = criteria(slug)
-                body = SCREEN_INSTR + "\n=== REGISTERED CRITERIA ===\n" + crit + "\n"
+                body = (READER2_HEADER if task == "screening_reader2" else "") + SCREEN_INSTR + \
+                    "\n=== REGISTERED CRITERIA ===\n" + crit + "\n"
                 for key, i in keyed:
                     body += f"\n=== RECORD item={key} ===\n{i['held_text']}\n"
                 digests = cd + digests
-            else:
+            elif task == "estimand":
                 vocab = "\n".join(f"  {f}: {', '.join(ms.estimand_vocabulary(f))}" for f in ("analysis_set", "analysis_window"))
                 body = ESTIMAND_INSTR.format(vocab=vocab)
                 for key, i in keyed:
                     body += f"\n=== ITEM item={key} field={i['field']} ===\n{i['held_text']}\n"
+            else:   # one-item tasks: the item carries its whole prompt
+                (key, i), = keyed
+                body = i["prompt_text"]
+                digests = i["prompt_digests"] + digests
             out.append({"slug": slug, "batch": f"{slug}#{k // BATCH[task] + 1}", "prompt": body.encode("utf-8"),
                         "keyed": keyed, "digests": digests})
     return out
@@ -333,13 +482,26 @@ def cmd_run(task, limit):
             if (source_record(have.get(_sha(b["prompt"]), [])) or {}).get("state") != "RAN_OK"]
     print(f"{task}: {len(todo)} batches without a RAN_OK record; running {min(limit, len(todo))}", flush=True)
     for b in todo[:limit]:
-        rec = model_call_live.call(b["prompt"], schema=_schema(task), model=MODEL, effort=EFFORT,
+        rec = model_call_live.call(b["prompt"], schema=_schema(task), model=MODEL_BY_TASK.get(task, MODEL), effort=EFFORT,
                                    caller={"file": "scripts/model_source_pilot.py", "line": "cmd_run",
                                            "purpose": f"{task} proposals, batch {b['batch']} ({len(b['keyed'])} items)"},
                                    input_digests=b["digests"])
         path = ms.write_record(rec, REC_DIR)
         print(f"{b['batch']}: {rec['state']} model={rec['model']['id_reported']} -> {path.name}"
               + (f" ERROR {rec.get('error','')[:200]}" if rec["state"] != "RAN_OK" else ""), flush=True)
+
+
+def decision_of(task: str, claim, verification: dict):
+    """What a re-ask must reproduce for the proposal to count as stable: the DERIVED decision, not the wording."""
+    if task in SCREEN_TASKS:
+        return verification.get("model_decision")
+    if task == "estimand":
+        return (claim or {}).get("value")
+    if task == "outcome_identity":
+        return (claim or {}).get("is_match")
+    if task == "locate":
+        return [(claim or {}).get("is_target_outcome"), (claim or {}).get("population_matches")]
+    return None
 
 
 def cmd_queue(task):
@@ -350,7 +512,8 @@ def cmd_queue(task):
     entries = {i["item_id"]: {"item_id": i["item_id"], "task": task, "state": i["state"], "held_ref": i["held_ref"]}
                for i in items if "held_text" not in i}
     for b in batches(task, items):
-        rec = source_record(have.get(_sha(b["prompt"]), []))
+        recs_of_prompt = have.get(_sha(b["prompt"]), [])
+        rec = source_record(recs_of_prompt)
         for key, i in b["keyed"]:
             if rec is None:
                 entries[i["item_id"]] = {"item_id": i["item_id"], "task": task, "state": "NOT_YET_CALLED"}
@@ -364,19 +527,34 @@ def cmd_queue(task):
                 entries[i["item_id"]] = {"item_id": i["item_id"], "task": task, "state": "RESPONSE_NOT_A_CLAIM",
                                          "record_id": rec["record_id"], "why": str(exc)}
                 continue
-            ver = (ms.verify_screening(claim, i["held_text"], i["rule_decision"]) if task == "screening"
-                   else ms.verify_estimand(claim, i["held_text"]))
-            ctx = {k: i[k] for k in ("rule_id", "rule_reason", "field", "rule_state", "rule_value", "rule_decision_at_freeze") if k in i}
+            ver = ms.reverify({"task": task, "claim": claim, "rule_decision": i["rule_decision"],
+                               "context": {"prior": i.get("prior")}}, i["held_text"])
+            ctx = {k: i[k] for k in ("rule_id", "rule_reason", "field", "rule_state", "rule_value", "rule_decision_at_freeze", "prior") if k in i}
             e = ms.queue_entry(task=task, item_id=i["item_id"], record=rec, claim=claim, verification=ver,
                                held_ref=i["held_ref"], held_sha256=i["held_sha256"], rule_decision=i["rule_decision"],
                                context=ctx, response_item=key)
+            reasks = [r for r in recs_of_prompt if r["state"] == "RAN_OK"
+                      and str(r["caller"].get("purpose", "")).startswith(STABILITY_PURPOSE + rec["record_id"])]
+            if reasks:
+                decs = [decision_of(task, claim, ver)]
+                for r in reasks:
+                    try:
+                        c2 = ms.claim_for_item(ms.extract_claim(task, ms.replay(r)), key)
+                        v2 = ms.reverify({"task": task, "claim": c2, "rule_decision": i["rule_decision"],
+                                          "context": {"prior": i.get("prior")}}, i["held_text"])
+                        decs.append(decision_of(task, c2, v2))
+                    except (ValueError, ms.ReplayRefused):
+                        decs.append("UNREADABLE")
+                same = len({json.dumps(d, sort_keys=True) for d in decs}) == 1
+                e["reask"] = {"records": [r["record_id"] for r in reasks], "decisions": decs, "same_derived_decision": same}
+                if not same:
+                    e["individual_signature_required"] = True
             prev = old.get(i["item_id"])
             if prev and prev.get("record_id") == rec["record_id"] and isinstance(prev.get("reviewer_countersignature"), dict):
                 e["reviewer_countersignature"] = prev["reviewer_countersignature"]   # carried, never created
             e["rendered_sha256"] = __import__("harness.result_changes", fromlist=["x"]).rendered_sha256(ms.render_proposal_block(e, rec))
             entries[i["item_id"]] = e
-    doc = {"task": task, "N": len(items), "N_name": ("screened-in records across committed review pages" if task == "screening"
-                                                     else "estimand fields without a stated value across served bundles"),
+    doc = {"task": task, "N": len(items), "N_name": N_NAME[task],
            "note": "Every entry is PROPOSED or a non-call state. Nothing here is read by any producer. A signature is "
                    "written only by scripts/countersign_model_proposal.py sign, run by the reviewer.",
            "items": [entries[k] for k in sorted(entries)]}
@@ -511,9 +689,44 @@ def cmd_stability_report(task: str):
     print(json.dumps(rep["summary"], indent=1))
 
 
+# ------------------------------------------------------------------------------------------------------ two readers
+def readers_report() -> dict:
+    """Reader 1 (screening queue) vs reader 2 (screening_reader2 queue), item by item, from committed queues only.
+    A TRIAGE for the human, not a decision: every one of these items still needs an individual signature."""
+    q1 = {e["item_id"]: e for e in json.loads((Q_DIR / "screening.json").read_text(encoding="utf-8"))["items"]}
+    q2p = Q_DIR / "screening_reader2.json"
+    q2 = {e["item_id"]: e for e in json.loads(q2p.read_text(encoding="utf-8"))["items"]} if q2p.exists() else {}
+    rows = []
+    for iid, e2 in sorted(q2.items()):
+        e1 = q1.get(iid) or {}
+        d1 = (e1.get("verification") or {}).get("model_decision")
+        d2 = (e2.get("verification") or {}).get("model_decision")
+        rows.append({"item_id": iid, "rule": e1.get("rule_decision"), "reader1": d1, "reader2": d2,
+                     "reader2_state": e2.get("state", "PROPOSED"),
+                     "reader1_record": e1.get("record_id"), "reader2_record": e2.get("record_id")})
+    from collections import Counter
+    pairs = Counter(f"{r['reader1']} / {r['reader2']}" for r in rows)
+    both_ineligible = [r["item_id"] for r in rows if r["reader1"] == r["reader2"] == "INELIGIBLE"]
+    return {"summary": {"N": len(rows), "N_name": "items whose reader-1 proposal needs an individual signature",
+                        "reader1_model": MODEL, "reader2_model": MODEL_BY_TASK["screening_reader2"],
+                        "same_vendor": True,
+                        "pairs_reader1_reader2": dict(sorted(pairs.items())),
+                        "both_readers_INELIGIBLE_against_an_include": len(both_ineligible),
+                        "note": "two models of ONE vendor (OpenAI via codex): partially independent at best. Agreement "
+                                "orders the human's reading; it signs nothing and admits nothing."},
+            "both_ineligible": both_ineligible, "rows": rows}
+
+
+def cmd_readers():
+    rep = readers_report()
+    out = ROOT / "outputs" / "model_source" / "READERS_screening.json"
+    out.write_bytes((json.dumps(rep, indent=1, sort_keys=True, ensure_ascii=True) + "\n").encode("ascii"))
+    print(json.dumps(rep["summary"], indent=1))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("cmd", choices=["items", "freeze", "run", "queue", "status", "stability", "stability-report"])
+    ap.add_argument("cmd", choices=["items", "freeze", "run", "queue", "status", "stability", "stability-report", "readers"])
     ap.add_argument("--base", help="freeze: the commit the population is selected from")
     ap.add_argument("task", choices=TASKS)
     ap.add_argument("--limit", type=int, default=10 ** 6)
@@ -523,7 +736,8 @@ def main(argv=None):
      "queue": lambda: cmd_queue(a.task), "status": lambda: cmd_status(a.task),
      "freeze": lambda: cmd_freeze(a.task, a.base or sys.exit("freeze needs --base <commit>")),
      "stability": lambda: cmd_stability(a.task, a.sample),
-     "stability-report": lambda: cmd_stability_report(a.task)}[a.cmd]()
+     "stability-report": lambda: cmd_stability_report(a.task),
+     "readers": cmd_readers}[a.cmd]()
     return 0
 
 

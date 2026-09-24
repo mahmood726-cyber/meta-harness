@@ -370,6 +370,39 @@ def test_estimand_rule_on_the_span_is_recorded_not_resolved():
     assert r["agreement"].startswith("RULE_MODEL_DISAGREE")
 
 
+LOCATE_OK = {"span": "The primary analysis was performed in the intention-to-treat population.",
+             "is_target_outcome": True, "population_matches": True, "both_arms": True, "timepoint": "unspecified",
+             "why": "fixture"}
+
+
+def test_locate_span_must_be_in_the_held_abstract_and_a_target_claim_must_quote():
+    assert ms.verify_locate(LOCATE_OK, HELD)["state"] == "VERIFIER_PASS"
+    planted = dict(LOCATE_OK, span="The primary analysis was per protocol.")
+    assert "SPAN_NOT_IN_SOURCE" in ms.verify_locate(planted, HELD)["problems"][0]
+    assert ms.verify_locate(dict(LOCATE_OK, span=None), HELD)["state"] == "VERIFIER_REFUSED"      # target without a span
+    assert ms.verify_locate(dict(LOCATE_OK, span=None, is_target_outcome=False), HELD)["state"] == "VERIFIER_PASS"
+    assert ms.verify_locate(dict(LOCATE_OK, both_arms="yes"), HELD)["state"] == "VERIFIER_REFUSED"
+
+
+def test_a_recorded_remake_is_compared_with_the_unrecorded_prior_and_disagreement_needs_an_individual_signature():
+    agree = ms.verify_locate(LOCATE_OK, HELD, prior={"is_target_outcome": True, "population_matches": True})
+    assert agree["agreement"].startswith("PRIOR_MODEL_AGREE") and not ms.needs_individual_signature(agree)
+    flip = ms.verify_locate(LOCATE_OK, HELD, prior={"is_target_outcome": False, "population_matches": True})
+    assert flip["agreement"].startswith("PRIOR_MODEL_DISAGREE") and "is_target_outcome: prior=False model=True" in flip["agreement"]
+    assert ms.needs_individual_signature(flip)
+    assert ms.needs_individual_signature(ms.verify_locate(LOCATE_OK, HELD))         # no prior: never batchable
+
+
+def test_outcome_identity_is_typed_and_compared_with_its_prior():
+    ok = {"candidate_population": "p", "candidate_timepoint": "t", "candidate_definition": "d", "is_match": True,
+          "rationale": "r"}
+    assert ms.verify_outcome_identity(ok, "title: x", {"is_match": True})["agreement"].startswith("PRIOR_MODEL_AGREE")
+    assert ms.needs_individual_signature(ms.verify_outcome_identity(ok, "title: x", {"is_match": False}))
+    assert ms.verify_outcome_identity(dict(ok, is_match="true"), "title: x")["state"] == "VERIFIER_REFUSED"
+    assert ms.verify_outcome_identity({k: v for k, v in ok.items() if k != "rationale"}, "t")["state"] == "VERIFIER_REFUSED"
+    assert ms.verify_outcome_identity(dict(ok, candidate_definition=" "), "t")["state"] == "VERIFIER_REFUSED"
+
+
 def test_screening_quote_must_be_located_and_axes_typed():
     axes = {"population": {"verdict": "MET", "quote": "3183 patients with type 2 diabetes"},
             "intervention": {"verdict": "MET", "quote": "Oral Semaglutide"},
@@ -465,7 +498,7 @@ def test_a_frozen_population_never_shrinks_when_the_rule_moves(tmp_path, monkeyp
         pilot.cmd_freeze("screening", "0" * 40)          # a population is frozen once
 
 
-@pytest.mark.parametrize("task", ["screening", "estimand"])
+@pytest.mark.parametrize("task", ["screening", "estimand", "outcome_identity", "locate", "screening_reader2", "screening_excluded"])
 def test_a_committed_queue_covers_its_whole_denominator_and_claims_nothing_it_cannot_show(task):
     q = ROOT / ms.PROPOSAL_DIR / f"{task}.json"
     if not q.exists():
@@ -481,15 +514,22 @@ def test_a_committed_queue_covers_its_whole_denominator_and_claims_nothing_it_ca
     assert not [e["item_id"] for e in doc["items"] if e.get("state") == "NOT_YET_CALLED"]
     held = {i["item_id"]: i.get("held_text") for i in items}
     planted = 0
-    for e, _, _ in rows:     # plant on REAL entries: a quote altered by one word must be refused by the same verifier
-        q = [(k, v) for k, v in ((e.get("claim") or {}).get("axes") or {"x": e.get("claim") or {}}).items()
-             if isinstance(v, dict) and v.get("quote")]
-        if not q or held.get(e["item_id"]) is None:
+    for e, _, _ in rows:     # plant on REAL entries: the task's own verifier must refuse a one-word corruption
+        if "claim" not in e or held.get(e["item_id"]) is None:
             continue
         bad = copy.deepcopy(e)
-        k, v = q[0]
-        tgt = bad["claim"]["axes"][k] if "axes" in bad["claim"] else bad["claim"]
-        tgt["quote"] = v["quote"] + " zz-planted-word"
+        c = bad["claim"]
+        if task == "outcome_identity":
+            c["is_match"] = "yes"                                           # typed check
+        elif task == "locate":
+            if not c.get("span"):
+                continue
+            c["span"] += " zz-planted-word"                                 # span ladder
+        else:
+            q = [v for v in ((c.get("axes") or {"x": c}).values()) if isinstance(v, dict) and v.get("quote")]
+            if not q:
+                continue
+            q[0]["quote"] += " zz-planted-word"                             # span ladder
         assert ms.reverify(bad, held[e["item_id"]])["state"] == "VERIFIER_REFUSED", e["item_id"]
         planted += 1
         if planted >= 5:
@@ -590,6 +630,21 @@ def test_a_disagreement_refuses_a_batch_signature():
     batch = _sign(entry, rec, state="BATCH_SEEN_AND_SIGNED", batch_id="B1")
     assert ms.status_of(batch, rec, HELD) == "PROPOSED"
     assert ms.status_of(_sign(entry, rec), rec, HELD) == "COUNTERSIGNED"
+
+
+def test_an_unstable_agreement_refuses_a_batch_signature():
+    """A proposal that agrees with the rule, but whose identical-prompt re-ask reached a different decision, is not
+    batch-signable (observed: LEADER, ELIGIBLE on the source call, CANNOT_TELL on the re-ask). The flag is shown in
+    the block the reviewer signs, and the gate treats it as binding."""
+    rec, entry = _entry()
+    assert not ms.needs_individual_signature(entry["verification"])
+    unstable = copy.deepcopy(entry)
+    unstable["individual_signature_required"] = True
+    unstable["reask"] = {"records": ["mc-x"], "same_derived_decision": False, "decisions": ["ELIGIBLE", "CANNOT_TELL"]}
+    assert "re-ask" in ms.render_proposal_block(unstable, rec)
+    assert ms.status_of(_sign(unstable, rec, state="BATCH_SEEN_AND_SIGNED", batch_id="B1"), rec, HELD) == "PROPOSED"
+    assert ms.status_of(_sign(unstable, rec), rec, HELD) == "COUNTERSIGNED"
+    assert ms.status_of(_sign(entry, rec, state="BATCH_SEEN_AND_SIGNED", batch_id="B1"), rec, HELD) == "COUNTERSIGNED"
 
 
 def test_countersigned_is_review_material_not_an_admission():
