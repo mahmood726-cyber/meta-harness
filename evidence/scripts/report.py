@@ -57,6 +57,15 @@ def main(out, since=None):
               f"; entry: " + ", ".join(f"{a} {b}" for a, b in sorted(collections.Counter(v['entry'] for v in ver2.values()).items())),
               "- each disagreement was tested against the source; resolutions: " + "; ".join(
                   f"{k}: {x['second_adjudication']['resolution']}" for k, x in sorted(adj.items()) if x.get("second_adjudication")), ""]
+    swp = os.path.join(ROOT, "evidence/sweeps/entry_age_and_analysis_set.json")
+    if os.path.exists(swp):
+        sw = json.load(open(swp, encoding="utf-8"))["summary"]
+        L += ["## Uniform sweeps (mechanical, all adjudicated rows; `evidence/sweeps/entry_age_and_analysis_set.json`)", "",
+              f"- adult age floor, of {sw['age']['N']} rows whose question says 'adults': stated {sw['age']['STATED']}, "
+              f"not stated {sw['age']['NOT_STATED']}, floor explicitly removed {sw['age'].get('FLOOR_REMOVED', 0)}",
+              f"- served 'intention-to-treat' label, of {sw['served_itt_label']['N']} rows carrying it: supported by a span "
+              f"{sw['served_itt_label']['SUPPORTED']}, contradicted by a span {sw['served_itt_label']['CONTRADICTED']}, "
+              f"unsupported (no span states a set) {sw['served_itt_label']['UNSUPPORTED']} -- labels only; no number moves", ""]
     oq = [x for x in adj.values() if x.get("open_question")]
     L += [f"## Open questions for Mahmood: {len(oq)} (`evidence/OPEN_QUESTIONS.md`)", ""] + [f"- {x['key']}: {x['open_question'][:300]}" for x in oq] + [""]
     L += ["## Limits (stated so a clean count cannot imply more than it measured)", "",

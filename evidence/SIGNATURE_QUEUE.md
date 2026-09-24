@@ -1,6 +1,22 @@
 # Signature queue: served numbers the evidence lane proposes to change (NONE LANDED)
 
-3 of 76 adjudicated rows reject the served candidate. Each block is DERIVED and UNSIGNED. A served number moves only after Mahmood signs the block's sha256 and a rebuild runs.
+4 of 76 adjudicated rows reject the served candidate. Each block is DERIVED and UNSIGNED. A served number moves only after Mahmood signs the block's sha256 and a rebuild runs.
+
+### P53-23: noac-vs-warfarin-af-stroke / Stroke or systemic embolism / PMID 19717844 (RE-LY, dabigatran 150 mg)
+- state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED
+- served now: RR 0.66 (0.53-0.82) -- abstract relative risk on an HR-declared outcome
+- proposed (derived, unsigned): HR 0.65 (0.52-0.81) -- registry Cox analysis, randomised set
+- pooled effect: NOT COMPUTED here: moves only on a rebuild after signature
+- mechanism: a relative risk was served on an outcome that declares HR while the same source family prints the HR
+- coordination: found by this lane's second, cross-family adjudication; not seen in the main lane's AUDIT_QUEUE (searched 2026-09-24)
+- reason: RE-LY, dabigatran 150 mg vs warfarin, stroke or systemic embolism. The outcome declares HR (estimand and served estimand both HR). The served row is the abstract's RELATIVE RISK 0.66 (0.53-0.82). The registry, for the same primary endpoint and contrast in the randomised set, prints a Cox proportional hazard 0.65 (0.52-0.81). The declared hierarchy prefers a published effect on the declared scale, so the RR candidate is rejected for this outcome and the trial is kept. Raised by the second, cross-family adjudication and tested here against the registry line. The difference is small (0.66 -> 0.65), but it IS a served-number change, so it is queued, not landed.
+- evidence (verbatim, re-verified against held bytes when the adjudication was written):
+  - population: `cache/noac-vs-warfarin-af-stroke/records.json#/records/1` (sha256 6e35e6e53790): "we randomly assigned 18,113 patients who had atrial fibrillation and a risk of stroke"
+  - endpoint: `evidence/held/registry/NCT00262600.json` (sha256 9fa0278eeed5): "RESULT OUTCOME 0 [PRIMARY]: Yearly Event Rate for Composite Endpoint of Stroke/SEE"
+  - declared_scale_estimate: `evidence/held/registry/NCT00262600.json` (sha256 9fa0278eeed5): "RESULT OUTCOME 0 ANALYSIS 1: groups Dabigatran 150 mg, Warfarin | Cox Proportional Hazard 0.65 (95% CI 0.52 to 0.81)"
+  - served_candidate_rr: `cache/noac-vs-warfarin-af-stroke/records.json#/records/1` (sha256 6e35e6e53790): "1.11% per year in the group that received 150 mg of dabigatran (relative risk, 0.66; 95% CI, 0.53 to 0.82; P<0.001 for superiority)"
+  - analysis_set: `evidence/held/registry/NCT00262600.json` (sha256 9fa0278eeed5): "POPULATION: Randomized set - The randomized set includes all randomized subjects in the treatment groups to which they were randomized, regardless of whether the subjects took randomized study medication or not."
+- block sha256: 847d0411304a75b0c2c13cee90f0767130c7c1cacbc38db2a89942c51a10bef0
 
 ### UA-032: semaglutide-obesity-weight / Percent change in body weight / PMID 33625476 (STEP 3)
 - state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED
