@@ -18,9 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MODEL_CALL_SITES = {
     ("reproducible_ai/model_call_live.py", "shutil.which('codex')"): "the contract's single caller: resolves the client",
     ("reproducible_ai/model_call_live.py", "argv head 'codex'"): "the redacted argv stored IN the record (not a call)",
-    ("scripts/outcome_judgments.py", "argv head 'codex'"):
-        "DEBT: a second, UNRECORDED codex caller (no prompt bytes, no response hash; writes model='codex-default' when "
-        "unpinned). Its output cache is read by harness/pipeline.py. Owed: route through model_call_live.",
+    # (scripts/outcome_judgments.py was a second, unrecorded codex caller until 2026-09-24; it now calls
+    #  reproducible_ai.model_call_live and is no longer a call site of its own.)
     ("tests/test_no_model_call_in_pinned_path.py", "argv head 'codex'"): "a planted argv in a test fixture",
 }
 
@@ -32,7 +31,6 @@ UNRESOLVED_SUBPROCESS = {
     ("reproducible_ai/model_call_live.py", "argv"): "codex exec -- THE recorded model call",
     ("scripts/build_search_benchmark.py", "cmd"): "python scripts/measure_search_recall.py (the `commands` list)",
     ("scripts/m2_battery.py", "cmd"): "python build_topic.py / python -m harness.gate (run([PY, ...]) callers)",
-    ("scripts/outcome_judgments.py", "cmd"): "codex exec -- the DEBT caller above",
     ("scripts/verify_all.py", "cmd"): "python -m pytest / python scripts/... (_run([sys.executable, ...]) callers)",
     ("tests/test_certificate_code_closure.py", "args"): "python scripts/audit_certificate_stdlib.py",
     ("tests/test_gate_scorecard.py", "cmd"): "git init / add / commit on a fixture repo",
@@ -42,7 +40,8 @@ UNRESOLVED_SUBPROCESS = {
 MODEL_OUTPUTS = {
     "cache/balanced-crystalloids-vs-saline-mortality/outcome_judgments.json":
         "DEBT, served path: harness/pipeline.py::_load_outcome_judgments (topic outcome_identity=true) admits/refuses "
-        "CT.gov outcome measures; recorded as model='hand/model via --write' -- no prompt bytes, no response hash",
+        "CT.gov outcome measures; recorded as model='hand/model via --write' -- no prompt bytes, no response hash. "
+        "(The script that writes it now records every call, and names a hand author; this FILE predates that.)",
     "cache/antibiotics-vs-appendectomy-appendicitis/locate_judgments.json":
         "DEBT, served path: harness/locate.py (topic locate_gate=true) can REMOVE a trial from a pool; model='fable-5.1', "
         "dated, span given; no prompt bytes, no response hash",
