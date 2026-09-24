@@ -239,7 +239,10 @@ def test_bundle_verifier_never_reads_the_page_and_recomputes_only_the_primary_po
     slug = "glp1-ra-mace-t2d"
     store = vb.Store(str(DOCS), None)
     rep = vb.run(store, slug, None)
-    assert rep["verdict"] == "PASS", rep.get("failures")
+    # The property is WHAT it reads and WHICH rows it recomputes, not the live verdict: a verifier fix that makes the served
+    # bundle FAIL for an unrelated, legitimate reason (enforcement-gate 1fa77f2c: FREEDOM-CVO PARTIAL_TABLE_BINDING) must
+    # not break this test. It only requires that the run completed with a verdict (a Refusal would raise).
+    assert rep["verdict"] in ("PASS", "FAIL"), rep
     fetched = set(store.cache)
     assert f"reviews/{slug}/review.json" in fetched          # control: the recorder sees what it reads
     assert not any(p.endswith("index.html") for p in fetched), sorted(p for p in fetched if "html" in p)
