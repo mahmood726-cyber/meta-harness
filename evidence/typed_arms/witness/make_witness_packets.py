@@ -22,7 +22,7 @@ for job in sorted(os.listdir(src)):
             assert hashlib.sha256(b).hexdigest() == doc["sha256"], (job, doc["file"])
             open(os.path.join(d, doc["file"]), "wb").write(b)
     reg = []
-    for nct in nct_map.get(row["held_key"], []):
+    for nct in nct_map.get(row.get("held_key") or row["row_id"], []):
         a = acq.get(nct)
         if not a or a.get("status") != 200:
             continue
