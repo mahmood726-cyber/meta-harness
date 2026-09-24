@@ -17,6 +17,7 @@ import collections
 import html
 import json
 import re
+from pathlib import Path as _Path
 from typing import Any
 
 from . import manuscript as _manuscript_mod
@@ -2952,6 +2953,141 @@ def rob_overall_text(overall, output_family):
         return overall
     return f"FORMAL RoB 2 NOT ASSESSED (machine signal on assessed domains: {overall})"
 
+# ---------------------------------------------------------------------------------------------------------------------
+# THE PAGE NAMES ITS VERIFIER (2026-09-24). Every served review page says which program a reader runs to check it, where
+# that program is served, the sha256 of the served bytes, the exact commands, and what the program does NOT check. The
+# digest and the NOT-checked list are read from the served verifier's own bytes at render time, never typed here, so the
+# page cannot describe a verifier other than the one it serves: change a byte of the verifier and every page naming it is
+# stale until rebuilt (the reproduction census refuses it; tests/test_page_verifier.py names the page and the digest).
+_SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"   # == scripts/build_bundle.py SITE_ROOT (tested)
+_REPO_ROOT = _Path(__file__).resolve().parents[1]
+_VERIFIERS = (
+    {"key": "certificate", "served": "scripts/audit_certificate_stdlib.py", "source": "scripts/audit_certificate_stdlib.py",
+     "name": "Certificate auditor",
+     "checks": ("recomputes the certificate's release_sha256 from the certificate's own fields and analysis_code_sha256 from its "
+                "code map; given the served tree, it also recomputes the Git blob id of every pinned module from the "
+                "served bytes under harness/ and scripts/ and checks each declared absence"),
+     "served_cmds": ("curl -fsSO {site}scripts/audit_certificate_stdlib.py",
+                     "curl -fsS -o CERTIFICATE.json {site}reviews/{slug}/CERTIFICATE.json",
+                     "python audit_certificate_stdlib.py CERTIFICATE.json"),
+     "clone_cmds": ("python docs/scripts/audit_certificate_stdlib.py docs/reviews/{slug}/CERTIFICATE.json docs",),
+     "extra_limits": ()},
+    {"key": "bundle", "served": "scripts/verify_bundle.py", "source": "scripts/verify_bundle.py",
+     "name": "Evidence-bundle verifier",
+     "checks": ("fetches this review's BUNDLE.json and, from served bytes alone, recomputes every artefact digest, the "
+                "certificate's release_sha256 and review.json's review_sha256, every admission predicate of every row in "
+                "the primary outcome's pool, the preservation record of every retained acquisition, and the pooled primary "
+                "estimate (Paule-Mandel, HKSJ) to 1e-9"),
+     "served_cmds": ("curl -fsSO {site}scripts/verify_bundle.py",
+                     "python verify_bundle.py --url {site} --slug {slug}"),
+     "clone_cmds": ("python docs/scripts/verify_bundle.py --root docs --slug {slug}",),
+     "extra_limits": ("it never reads this page (index.html): what the page displays is not compared with review.json "
+                      "or with the bundle",
+                      "only the primary outcome's rows and pool are recomputed; the other {n_other} outcome(s) on this page "
+                      "are covered as bytes by review_sha256, not recomputed from any source")},
+)
+
+
+def _verifier_limits(src: str):
+    """The verifier's own NOT-checked list, read from its source: a module-level NOT_CHECKED, or the literal it assigns to
+    report["not_checked"]. None when it states none -- a verifier that states no limits is not named as if it had."""
+    import ast
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            t = node.targets[0]
+            named = isinstance(t, ast.Name) and t.id == "NOT_CHECKED"
+            keyed = (isinstance(t, ast.Subscript) and isinstance(t.slice, ast.Constant) and t.slice.value == "not_checked")
+            if named or keyed:
+                try:
+                    value = ast.literal_eval(node.value)
+                except ValueError:
+                    return None
+                return [str(x) for x in value] if isinstance(value, (list, tuple)) and value else None
+    return None
+
+
+def page_verifiers(review: dict) -> list:
+    """The verifiers this page names, each with the served path, the sha256 of the served bytes, the commands and the
+    limits -- or a `problem` when it cannot be named honestly. Pure over the review and the committed tree."""
+    import hashlib
+    slug = str(review.get("slug") or "")
+    out = []
+    for v in _VERIFIERS:
+        if v["key"] == "certificate" and not (review.get("reproduction") or {}).get("certificate"):
+            continue
+        if v["key"] == "bundle" and not (slug and (_REPO_ROOT / "docs" / "reviews" / slug / "BUNDLE.json").is_file()):
+            continue
+        served = _REPO_ROOT / "docs" / v["served"]
+        entry = {"key": v["key"], "name": v["name"], "served_path": v["served"], "served_url": _SITE_ROOT + v["served"],
+                 "repo_path": "docs/" + v["served"], "source_path": v["source"], "checks": v["checks"]}
+        if not served.is_file():
+            entry["problem"] = f"VERIFIER_NOT_SERVED: docs/{v['served']} is absent"
+            out.append(entry)
+            continue
+        data = served.read_bytes()
+        limits = _verifier_limits(data.decode("utf-8", errors="replace"))
+        if not limits:
+            entry["problem"] = f"VERIFIER_STATES_NO_LIMITS: docs/{v['served']} declares no NOT-checked list"
+        n_other = max(0, len(review.get("outcomes") or []) - 1)
+        entry.update({"sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data), "not_checked": limits or [],
+                      "page_limits": [x.format(n_other=n_other) for x in v["extra_limits"]],
+                      "served_commands": [c.format(site=_SITE_ROOT, slug=slug) for c in v["served_cmds"]],
+                      "clone_commands": [c.format(site=_SITE_ROOT, slug=slug) for c in v["clone_cmds"]]})
+        out.append(entry)
+    return out
+
+
+def render_page_verifier(review: dict) -> str:
+    vs = page_verifiers(review)
+    if not vs:
+        return ("<div class='absent' data-page-verifier='NONE'><strong>NO_VERIFIER_NAMED.</strong> This page carries no "
+                "evidence certificate and no evidence bundle, so there is no program a reader can run to check it. "
+                "Treat every number on it as unverified.</div>")
+    keys = ",".join(v["key"] for v in vs)
+    lead = {1: "One program checks this page.", 2: "Two programs check this page."}.get(
+        len(vs), f"{len(vs)} programs check this page.")
+    parts = [f"<div class='banner' id='page-verifier' data-page-verifier='{_e(keys)}'>"
+             f"<strong>Check this page yourself.</strong> {lead} "
+             "Each is standard-library Python served from this site; run it on your own machine. "
+             "The digest of each is printed below this box: confirm the bytes you downloaded before you run them. "
+             "A PASS covers only what the program checks, and each one states what it does not."]
+    for v in vs:
+        parts.append(f"<h4>{_e(v['name'])}</h4>")
+        if v.get("problem"):
+            parts.append(f"<p><strong>{_e(v['problem'])}.</strong> This verifier cannot be named honestly on this page.</p>")
+            if "not_checked" not in v:
+                continue
+        parts.append(f"<p>Served at <a href='../../{_e(v['served_path'])}'><code>{_e(v['served_path'])}</code></a> "
+                     f"(<code>{_e(v['served_url'])}</code>); in the repository at <code>{_e(v['repo_path'])}</code>, "
+                     f"byte-identical to <code>{_e(v['source_path'])}</code>.</p>"
+                     f"<p><strong>What it checks:</strong> it {_e(v['checks'])}.</p>"
+                     "<p><strong>Run it from the served bytes only</strong> (network access to this site):</p>"
+                     f"<pre>{_e(chr(10).join(v['served_commands']))}</pre>"
+                     "<p><strong>Or from a clone of the repository</strong> (no network):</p>"
+                     f"<pre>{_e(chr(10).join(v['clone_commands']))}</pre>"
+                     "<p><strong>What it does NOT check</strong>, as the program itself prints it:</p><ul>"
+                     + "".join(f"<li>{_e(x)}</li>" for x in v["not_checked"]) + "</ul>")
+        if v.get("page_limits"):
+            parts.append("<p><strong>And, on this page:</strong></p><ul>"
+                         + "".join(f"<li>{_e(x)}</li>" for x in v["page_limits"]) + "</ul>")
+    parts.append("</div>")
+    # Digests sit OUTSIDE the tracked banner on purpose: a new verifier byte moves a digest (a stale page, refused by the
+    # reproduction census until rebuilt), while a change to what the page SAYS a verifier does not check moves the tracked
+    # block and needs the honest-ratchet acknowledgement a quieter page always needs.
+    digests = "".join(
+        f"<li><code>{_e(v['served_path'])}</code> sha256 <code style='overflow-wrap:anywhere'>{_e(v['sha256'])}</code> "
+        f"({v['bytes']:,} bytes)</li>" for v in vs if v.get("sha256"))
+    if digests:
+        parts.append("<div id='page-verifier-digests' style='font-size:12px;opacity:0.85'><p>sha256 of each served verifier, as served with this "
+                     "page. Check yours with <code>python -c \"import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],"
+                     "'rb').read()).hexdigest())\" FILE</code> before running it:</p><ul>" + digests + "</ul></div>")
+    return "".join(parts)
+
+
 def render_page(review: dict, neutral: bool = False) -> str:
     from .certificate import render as render_certificate
     tabs_spec = [(tid, lbl) for tid, lbl in TABS if not (neutral and tid in NEUTRAL_DROP)]
@@ -2963,7 +3099,8 @@ def render_page(review: dict, neutral: bool = False) -> str:
         body += (f'<section class="tab" id="tab-{tid}">'
                  f'<h3 class="tabname">{_e(lbl)}</h3>{_R[tid](review, neutral)}</section>')
     if not neutral:
-        body = render_certificate((review.get("reproduction") or {}).get("certificate")) + body
+        body = (render_page_verifier(review)
+                + render_certificate((review.get("reproduction") or {}).get("certificate")) + body)
     body = _trial_families(review, body)
     title = _e(review.get("title") or review.get("slug"))
     sub = ("Meta-analysis" if neutral else
