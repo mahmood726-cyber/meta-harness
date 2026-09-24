@@ -10,7 +10,7 @@ while [ ! -e evidence/codex_queue.STOP ]; do
   if [ -z "$line" ]; then sleep 60; continue; fi
   tail -n +2 "$Q" > "$Q.tmp" && mv "$Q.tmp" "$Q"
   set -- $line
-  kind=$1; key=$2; brief=$3; dest=$4; extra=$5
+  kind=$1; key=$2; brief=$3; dest=$4; shift 4; extra="$*"
   if [ -s "$dest" ]; then echo "SKIP(exists) $line" >> "$DONE"; continue; fi
   if PYTHONIOENCODING=utf-8 timeout 1200 python evidence/scripts/codex_job.py --kind "$kind" --key "$key" --brief "$brief" --dest "$dest" $extra; then
     echo "OK $(date -u +%FT%TZ) $line" >> "$DONE"

@@ -31,7 +31,10 @@ def obj(props):
 SPAN = obj({"ref": S, "span": S})
 GAP_FIELD = {"anyOf": [obj({"ref": S, "span": S, "scope": S}), S]}
 SCHEMAS = {
-    "gap": obj({"key": S, "analysis_set": GAP_FIELD, "follow_up": GAP_FIELD, "entry_age": GAP_FIELD,
+    "citation": obj({"key": S, "verdict": {"type": "string", "enum": ["RIGHT_ENDPOINT", "WRONG_ENDPOINT", "OUTCOME_NAME_ONLY",
+                                                                       "NOTE_NOT_A_SPAN", "CANNOT_TELL"]},
+                     "why": S, "quote": NS}),
+    "gap":obj({"key": S, "analysis_set": GAP_FIELD, "follow_up": GAP_FIELD, "entry_age": GAP_FIELD,
                 "entry_other": GAP_FIELD, "notes": S}),
     "retest": obj({
         "key": S, "verdict": {"type": "string", "enum": ["BOUND", "SET_ASIDE"]}, "set_aside_reason": NS,
@@ -56,6 +59,7 @@ def main():
     ap.add_argument("--kind", required=True, choices=sorted(SCHEMAS)); ap.add_argument("--key", required=True)
     ap.add_argument("--brief", required=True); ap.add_argument("--dest", required=True)
     ap.add_argument("--with-adjudication", action="store_true")
+    ap.add_argument("--extra", help="a JSON file appended to the prompt (digest recorded)")
     a = ap.parse_args()
     brief = open(os.path.join(ROOT, a.brief), "rb").read()
     full = os.path.join(FULL_PACKETS, f"{a.key}.json")   # includes local-only full texts; never committed
@@ -68,6 +72,11 @@ def main():
         adj = open(os.path.join(ROOT, "evidence", "adjudication", f"{a.key}.json"), "rb").read()
         parts += [b"\n\nTHE LANE'S RULING FOR THIS ROW (adjudication.json):\n", adj]
         digests.append({"ref": f"evidence/adjudication/{a.key}.json", "sha256": sha(adj), "what": "the lane's ruling"})
+    if a.extra:
+        ex = open(a.extra, "rb").read()
+        parts += [b"\n\nITEM TO JUDGE (served_row_citation.json):\n", ex]
+        digests.append({"ref": "served-row citation extract (evidence/sweeps/compat_endpoint_citation_u23.json row)",
+                        "sha256": sha(ex), "what": "the served citation and outcome to judge"})
     prompt = b"".join(parts)
     rec = model_call_live.call(prompt, schema=SCHEMAS[a.kind], model=MODEL, effort=EFFORT,
                                caller={"file": "evidence/scripts/codex_job.py", "line": sys._getframe().f_lineno,
