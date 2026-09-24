@@ -2965,10 +2965,13 @@ _VERIFIERS = (
     {"key": "certificate", "served": "scripts/audit_certificate_stdlib.py", "source": "scripts/audit_certificate_stdlib.py",
      "name": "Certificate auditor",
      "checks": ("recomputes the certificate's release_sha256 from the certificate's own fields and analysis_code_sha256 from its "
-                "code map; given the served tree, it also recomputes the Git blob id of every pinned module from the "
-                "served bytes under harness/ and scripts/ and checks each declared absence"),
+                "code map; recomputes review_sha256 from this page's review.json (the numbers the page serves) and checks "
+                "that review.json embeds this exact certificate, that manifest.json names the same review_sha256 and the "
+                "sha256 of this page's bytes, and that this page prints exactly this release_sha256; given the served "
+                "tree, it also recomputes the Git blob id of every pinned module under harness/ and scripts/ and checks "
+                "each declared absence"),
      "served_cmds": ("curl -fsSO {site}scripts/audit_certificate_stdlib.py",
-                     "curl -fsS -o CERTIFICATE.json {site}reviews/{slug}/CERTIFICATE.json",
+                     'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"',
                      "python audit_certificate_stdlib.py CERTIFICATE.json"),
      "clone_cmds": ("python docs/scripts/audit_certificate_stdlib.py docs/reviews/{slug}/CERTIFICATE.json docs",),
      "extra_limits": ()},

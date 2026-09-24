@@ -183,38 +183,102 @@ def _audit(auditor, capsys, *argv):
     return rc, capsys.readouterr().out
 
 
-def test_auditor_reads_only_the_certificate_and_the_pinned_code(auditor, capsys, monkeypatch):
-    """Claims 'review_sha256 never recomputed from review.json', 'no input digest compared with any file', 'index.html
-    never read': record every file the served auditor opens."""
+def test_auditor_reads_the_certificate_its_three_siblings_and_the_pinned_code_and_nothing_else(auditor, capsys, monkeypatch):
+    """'no input digest is compared with any file's bytes': record every file the served auditor opens -- the certificate,
+    review.json / manifest.json / index.html beside it, the pinned modules; never records.json, a ledger or a held file."""
     opened = []
     real_rt, real_rb = Path.read_text, Path.read_bytes
     monkeypatch.setattr(Path, "read_text", lambda self, *a, **k: (opened.append(self.as_posix()), real_rt(self, *a, **k))[1])
     monkeypatch.setattr(Path, "read_bytes", lambda self, *a, **k: (opened.append(self.as_posix()), real_rb(self, *a, **k))[1])
-    cert = DOCS / "reviews" / "pcsk9-mace" / "CERTIFICATE.json"
+    rdir = DOCS / "reviews" / "pcsk9-mace"
+    cert = rdir / "CERTIFICATE.json"
     rc, out = _audit(auditor, capsys, cert, DOCS)
-    assert rc == 0 and "RESULT REPRODUCED" in out
+    assert rc == 0 and "RESULT REPRODUCED [scope: certificate + review.json + manifest.json + index.html]" in out, out
     blobs = json.loads(cert.read_text(encoding="utf-8"))["analysis_code_blobs"]
-    allowed = {cert.as_posix()} | {(DOCS / p).as_posix() for p in blobs}
-    assert opened and set(opened) <= allowed, sorted(set(opened) - allowed)
-    assert not any(o.endswith(("review.json", "index.html", "records.json", "manifest.json")) for o in opened)
+    siblings = {(rdir / n).resolve().as_posix() for n in ("review.json", "manifest.json", "index.html")}
+    allowed = {cert.as_posix(), cert.resolve().as_posix()} | siblings | {(DOCS / p).as_posix() for p in blobs}
+    seen = {Path(o).resolve().as_posix() if Path(o).name in ("review.json", "manifest.json", "index.html") else o for o in opened}
+    assert siblings <= seen, "the links were not read"          # positive: the new checks really open their files
+    assert seen <= allowed, sorted(seen - allowed)
     assert "NOT checked: " + "; ".join(auditor.NOT_CHECKED) in out
 
 
-def test_auditor_passes_a_certificate_whose_review_digest_is_wrong_only_if_release_is_recomputed_too(auditor, capsys, tmp_path):
-    """The limit 'review_sha256 is never recomputed from review.json', demonstrated: rewrite review_sha256 AND recompute
-    release_sha256 the way the auditor does -- it still reports REPRODUCED. Control: change a field without recomputing
-    release_sha256 and it refuses."""
+def _review_copy(tmp_path, slug="pcsk9-mace"):
+    d = tmp_path / slug
+    d.mkdir()
+    for n in ("CERTIFICATE.json", "review.json", "manifest.json", "index.html"):
+        shutil.copyfile(DOCS / "reviews" / slug / n, d / n)
+    return d
+
+
+def test_auditor_without_the_siblings_says_the_links_were_not_checked(auditor, capsys, tmp_path):
+    """The limit 'without review.json, manifest.json and index.html ... none of the links is checked (the RESULT line
+    then says so)': a forged review_sha256 with a recomputed release_sha256 passes ALONE -- and the RESULT line says the
+    links were NOT CHECKED, so the pass cannot be read as a full one. Control: without the recompute it refuses."""
     cert = json.loads((DOCS / "reviews/pcsk9-mace/CERTIFICATE.json").read_text(encoding="utf-8"))
     forged = dict(cert, review_sha256="0" * 64)
-    body = {k: v for k, v in forged.items() if k != "release_sha256"}
-    forged["release_sha256"] = auditor.sha256(auditor.canonical(body))
+    forged["release_sha256"] = auditor.sha256(auditor.canonical({k: v for k, v in forged.items() if k != "release_sha256"}))
     (tmp_path / "forged.json").write_text(json.dumps(forged), encoding="utf-8")
     rc, out = _audit(auditor, capsys, tmp_path / "forged.json")
-    assert rc == 0 and "RESULT REPRODUCED" in out
-    naive = dict(cert, review_sha256="0" * 64)
-    (tmp_path / "naive.json").write_text(json.dumps(naive), encoding="utf-8")
+    assert rc == 0 and "RESULT REPRODUCED [scope: certificate only; links to the numbers and the page NOT CHECKED" in out
+    (tmp_path / "naive.json").write_text(json.dumps(dict(cert, review_sha256="0" * 64)), encoding="utf-8")
     rc, out = _audit(auditor, capsys, tmp_path / "naive.json")
     assert rc == 1 and "MISMATCH release_sha256" in out
+
+
+@pytest.mark.parametrize("plant", ["served_number", "forged_certificate", "embedded_certificate", "manifest_review",
+                                   "page_byte", "page_prints_other_release"])
+def test_auditor_refuses_each_broken_link_beside_the_certificate(auditor, capsys, tmp_path, plant):
+    d = _review_copy(tmp_path)
+    rc, out = _audit(auditor, capsys, d / "CERTIFICATE.json")
+    assert rc == 0 and "scope: certificate + review.json" in out, out          # the untouched copy passes
+    cert = json.loads((d / "CERTIFICATE.json").read_text(encoding="utf-8"))
+    rev = json.loads((d / "review.json").read_text(encoding="utf-8"))
+    man = json.loads((d / "manifest.json").read_text(encoding="utf-8"))
+    if plant == "served_number":         # a served number changes; nothing else does
+        o = next(o for o in rev["outcomes"] if (o.get("result") or {}).get("estimate") is not None)
+        o["result"]["estimate"] = o["result"]["estimate"] * 1.01
+        (d / "review.json").write_text(json.dumps(rev, ensure_ascii=False), encoding="utf-8")
+        want = "review_sha256: review.json does not hash"
+    elif plant == "forged_certificate":  # the certificate's review_sha256 AND release_sha256 re-forged consistently
+        cert["review_sha256"] = "0" * 64
+        cert["release_sha256"] = auditor.sha256(auditor.canonical({k: v for k, v in cert.items() if k != "release_sha256"}))
+        (d / "CERTIFICATE.json").write_text(json.dumps(cert), encoding="utf-8")
+        want = "review_sha256: review.json does not hash"
+    elif plant == "embedded_certificate":
+        rev["reproduction"]["certificate"]["protocol_sha"] = "0" * 40
+        (d / "review.json").write_text(json.dumps(rev, ensure_ascii=False), encoding="utf-8")
+        want = "embedded certificate differs"
+    elif plant == "manifest_review":
+        man["review_sha256"] = "0" * 64
+        (d / "manifest.json").write_text(json.dumps(man), encoding="utf-8")
+        want = "manifest.json review_sha256"
+    elif plant == "page_byte":
+        (d / "index.html").write_bytes((d / "index.html").read_bytes() + b" ")
+        want = "index.html does not hash"
+    else:                                 # the page prints another release, and its manifest digest is updated to match
+        html = (d / "index.html").read_text(encoding="utf-8").replace(cert["release_sha256"], "f" * 64)
+        (d / "index.html").write_bytes(html.encode("utf-8"))
+        man["html_sha256"] = hashlib.sha256(html.encode("utf-8")).hexdigest()
+        (d / "manifest.json").write_text(json.dumps(man), encoding="utf-8")
+        want = "index.html prints release_sha256"
+    rc, out = _audit(auditor, capsys, d / "CERTIFICATE.json")
+    assert rc == 1 and want in out, (plant, out[-1500:])
+
+
+def test_auditor_limit_a_page_and_manifest_changed_together_still_pass(auditor, capsys, tmp_path):
+    """NOT_CHECKED item 1, demonstrated: change what the page SAYS (a word in its body) and update manifest.json's
+    html_sha256 to match -- the auditor still reports REPRODUCED. Only re-rendering from review.json catches this."""
+    d = _review_copy(tmp_path)
+    html = (d / "index.html").read_text(encoding="utf-8")
+    assert "Reproducibility" in html
+    html = html.replace("Reproducibility", "Reprod-ucibility", 1)
+    (d / "index.html").write_bytes(html.encode("utf-8"))
+    man = json.loads((d / "manifest.json").read_text(encoding="utf-8"))
+    man["html_sha256"] = hashlib.sha256(html.encode("utf-8")).hexdigest()
+    (d / "manifest.json").write_text(json.dumps(man), encoding="utf-8")
+    rc, out = _audit(auditor, capsys, d / "CERTIFICATE.json")
+    assert rc == 0 and "RESULT REPRODUCED [scope: certificate + review.json" in out
 
 
 def test_auditor_refuses_a_changed_pinned_module_but_not_a_correct_looking_wrong_one(auditor, capsys, tmp_path):

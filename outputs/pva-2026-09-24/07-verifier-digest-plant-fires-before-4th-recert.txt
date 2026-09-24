@@ -1,0 +1,203 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_ test_every_served_review_page_names_a_verifier_that_matches_the_served_bytes _
+
+    def test_every_served_review_page_names_a_verifier_that_matches_the_served_bytes():
+        problems = []
+        for d in _served_pages():
+            slug, src = d.name, (d / "index.html").read_text(encoding="utf-8")
+            if src.count(MARK) != 1:
+                problems.append(f"{slug}: {src.count(MARK)} verifier blocks (want exactly 1)")
+                continue
+            keys = re.search(MARK + r"'([^']*)'", src).group(1).split(",")
+            want = ["certificate"] + (["bundle"] if (d / "BUNDLE.json").is_file() else [])
+            if keys != want:
+                problems.append(f"{slug}: names {keys}, expected {want}")
+            text = html.unescape(src)
+            for v in page._VERIFIERS:
+                if v["key"] not in keys:
+                    continue
+                served = DOCS / v["served"]
+                if not served.is_file():
+                    problems.append(f"{slug}: names docs/{v['served']}, which is not served")
+                    continue
+                digest = _sha(served)
+                if digest not in src:
+                    problems.append(f"{slug}: does not carry the sha256 of docs/{v['served']} ({digest}); the verifier changed "
+                                    f"after the page was built -- rebuild it: python scripts/build_topic.py {slug} --now <build date>")
+                for item in page._verifier_limits(served.read_text(encoding="utf-8")) or ["<verifier states no limits>"]:
+                    if item not in text:
+                        problems.append(f"{slug}: does not quote the NOT-checked item {item[:60]!r} of {v['served']}")
+                for cmd in v["served_cmds"] + v["clone_cmds"]:
+                    if cmd.format(site=page._SITE_ROOT, slug=slug) not in text:
+                        problems.append(f"{slug}: missing command {cmd!r}")
+>       assert problems == [], "\n".join(problems)
+E       AssertionError: balanced-crystalloids-vs-saline-mortality: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py balanced-crystalloids-vs-saline-mortality --now <build date>
+E         balanced-crystalloids-vs-saline-mortality: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         balanced-crystalloids-vs-saline-mortality: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         balanced-crystalloids-vs-saline-mortality: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         balanced-crystalloids-vs-saline-mortality: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         colchicine-postop-af: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py colchicine-postop-af --now <build date>
+E         colchicine-postop-af: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         colchicine-postop-af: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         colchicine-postop-af: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         colchicine-postop-af: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         colchicine-recurrent-pericarditis: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py colchicine-recurrent-pericarditis --now <build date>
+E         colchicine-recurrent-pericarditis: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         colchicine-recurrent-pericarditis: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         colchicine-recurrent-pericarditis: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         colchicine-recurrent-pericarditis: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         colchicine-secondary-cv-prevention: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py colchicine-secondary-cv-prevention --now <build date>
+E         colchicine-secondary-cv-prevention: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         colchicine-secondary-cv-prevention: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         colchicine-secondary-cv-prevention: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         colchicine-secondary-cv-prevention: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         corticosteroids-cap-mortality: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py corticosteroids-cap-mortality --now <build date>
+E         corticosteroids-cap-mortality: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         corticosteroids-cap-mortality: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         corticosteroids-cap-mortality: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         corticosteroids-cap-mortality: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         corticosteroids-covid19-mortality: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py corticosteroids-covid19-mortality --now <build date>
+E         corticosteroids-covid19-mortality: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         corticosteroids-covid19-mortality: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         corticosteroids-covid19-mortality: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         corticosteroids-covid19-mortality: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         dapagliflozin-hfpef-hosp: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py dapagliflozin-hfpef-hosp --now <build date>
+E         dapagliflozin-hfpef-hosp: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         dapagliflozin-hfpef-hosp: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         dapagliflozin-hfpef-hosp: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         dapagliflozin-hfpef-hosp: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         denosumab-vertebral-fracture: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py denosumab-vertebral-fracture --now <build date>
+E         denosumab-vertebral-fracture: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         denosumab-vertebral-fracture: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         denosumab-vertebral-fracture: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         denosumab-vertebral-fracture: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         doac-vte-recurrence: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py doac-vte-recurrence --now <build date>
+E         doac-vte-recurrence: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         doac-vte-recurrence: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         doac-vte-recurrence: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         doac-vte-recurrence: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         dpp4-mace-t2d: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py dpp4-mace-t2d --now <build date>
+E         dpp4-mace-t2d: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         dpp4-mace-t2d: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         dpp4-mace-t2d: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         dpp4-mace-t2d: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         empagliflozin-hfpef-hosp: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py empagliflozin-hfpef-hosp --now <build date>
+E         empagliflozin-hfpef-hosp: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         empagliflozin-hfpef-hosp: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         empagliflozin-hfpef-hosp: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         empagliflozin-hfpef-hosp: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         esketamine-trd-madrs: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py esketamine-trd-madrs --now <build date>
+E         esketamine-trd-madrs: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         esketamine-trd-madrs: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         esketamine-trd-madrs: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         esketamine-trd-madrs: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         finerenone-ckd-t2d-renal: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py finerenone-ckd-t2d-renal --now <build date>
+E         finerenone-ckd-t2d-renal: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         finerenone-ckd-t2d-renal: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         finerenone-ckd-t2d-renal: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         finerenone-ckd-t2d-renal: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         glp1-ra-mace-t2d: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py glp1-ra-mace-t2d --now <build date>
+E         glp1-ra-mace-t2d: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         glp1-ra-mace-t2d: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         glp1-ra-mace-t2d: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         glp1-ra-mace-t2d: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         iv-iron-hfref-hosp: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py iv-iron-hfref-hosp --now <build date>
+E         iv-iron-hfref-hosp: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         iv-iron-hfref-hosp: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         iv-iron-hfref-hosp: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         iv-iron-hfref-hosp: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         melatonin-primary-insomnia-sol: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py melatonin-primary-insomnia-sol --now <build date>
+E         melatonin-primary-insomnia-sol: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         melatonin-primary-insomnia-sol: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         melatonin-primary-insomnia-sol: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         melatonin-primary-insomnia-sol: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         metformin-pcos-ovulation: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py metformin-pcos-ovulation --now <build date>
+E         metformin-pcos-ovulation: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         metformin-pcos-ovulation: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         metformin-pcos-ovulation: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         metformin-pcos-ovulation: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         noac-vs-warfarin-af-stroke: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py noac-vs-warfarin-af-stroke --now <build date>
+E         noac-vs-warfarin-af-stroke: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         noac-vs-warfarin-af-stroke: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         noac-vs-warfarin-af-stroke: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         noac-vs-warfarin-af-stroke: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         omega3-cardiovascular-events: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py omega3-cardiovascular-events --now <build date>
+E         omega3-cardiovascular-events: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         omega3-cardiovascular-events: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         omega3-cardiovascular-events: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         omega3-cardiovascular-events: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         pcsk9-mace: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py pcsk9-mace --now <build date>
+E         pcsk9-mace: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         pcsk9-mace: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         pcsk9-mace: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         pcsk9-mace: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         probiotics-aad-prevention: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py probiotics-aad-prevention --now <build date>
+E         probiotics-aad-prevention: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         probiotics-aad-prevention: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         probiotics-aad-prevention: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         probiotics-aad-prevention: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         sacubitril-valsartan-hfref: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py sacubitril-valsartan-hfref --now <build date>
+E         sacubitril-valsartan-hfref: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         sacubitril-valsartan-hfref: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         sacubitril-valsartan-hfref: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         sacubitril-valsartan-hfref: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         semaglutide-obesity-mace: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py semaglutide-obesity-mace --now <build date>
+E         semaglutide-obesity-mace: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         semaglutide-obesity-mace: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         semaglutide-obesity-mace: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         semaglutide-obesity-mace: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         semaglutide-obesity-weight: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py semaglutide-obesity-weight --now <build date>
+E         semaglutide-obesity-weight: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         semaglutide-obesity-weight: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         semaglutide-obesity-weight: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         semaglutide-obesity-weight: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         sglt2-ckd-progression: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py sglt2-ckd-progression --now <build date>
+E         sglt2-ckd-progression: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         sglt2-ckd-progression: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         sglt2-ckd-progression: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         sglt2-ckd-progression: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         sglt2-hfref-hosp-cvdeath: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py sglt2-hfref-hosp-cvdeath --now <build date>
+E         sglt2-hfref-hosp-cvdeath: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         sglt2-hfref-hosp-cvdeath: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         sglt2-hfref-hosp-cvdeath: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         sglt2-hfref-hosp-cvdeath: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         sglt2-primary-prevention-hf: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py sglt2-primary-prevention-hf --now <build date>
+E         sglt2-primary-prevention-hf: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         sglt2-primary-prevention-hf: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         sglt2-primary-prevention-hf: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         sglt2-primary-prevention-hf: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         spironolactone-hfref-mortality: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py spironolactone-hfref-mortality --now <build date>
+E         spironolactone-hfref-mortality: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         spironolactone-hfref-mortality: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         spironolactone-hfref-mortality: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         spironolactone-hfref-mortality: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         statins-primary-prevention-elderly: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py statins-primary-prevention-elderly --now <build date>
+E         statins-primary-prevention-elderly: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         statins-primary-prevention-elderly: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         statins-primary-prevention-elderly: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         statins-primary-prevention-elderly: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         ticagrelor-vs-clopidogrel-acs: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py ticagrelor-vs-clopidogrel-acs --now <build date>
+E         ticagrelor-vs-clopidogrel-acs: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         ticagrelor-vs-clopidogrel-acs: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         ticagrelor-vs-clopidogrel-acs: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         ticagrelor-vs-clopidogrel-acs: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         tocilizumab-covid19-mortality: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py tocilizumab-covid19-mortality --now <build date>
+E         tocilizumab-covid19-mortality: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         tocilizumab-covid19-mortality: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         tocilizumab-covid19-mortality: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         tocilizumab-covid19-mortality: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E         tranexamic-acid-pph: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee); the verifier changed after the page was built -- rebuild it: python scripts/build_topic.py tranexamic-acid-pph --now <build date>
+E         tranexamic-acid-pph: does not quote the NOT-checked item "that the page's content is a rendering of review.json: the p" of scripts/audit_certificate_stdlib.py
+E         tranexamic-acid-pph: does not quote the NOT-checked item 'no effect estimate, interval or pooled result is recomputed,' of scripts/audit_certificate_stdlib.py
+E         tranexamic-acid-pph: does not quote the NOT-checked item 'without review.json, manifest.json and index.html beside the' of scripts/audit_certificate_stdlib.py
+E         tranexamic-acid-pph: missing command 'curl -fsS --remote-name-all "{site}reviews/{slug}/{{CERTIFICATE.json,review.json,manifest.json,index.html}}"'
+E       assert ['balanced-cr...d date>', ...] == []
+E         
+E         Left contains 160 more items, first extra item: 'balanced-crystalloids-vs-saline-mortality: does not carry the sha256 of docs/scripts/audit_certificate_stdlib.py (e4a...ge was built -- rebuild it: python scripts/build_topic.py balanced-crystalloids-vs-saline-mortality --now <build date>'
+E         Use -v to get more diff
+
+tests\test_page_verifier.py:94: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_page_verifier.py::test_every_served_review_page_names_a_verifier_that_matches_the_served_bytes
+1 failed in 4.77s
