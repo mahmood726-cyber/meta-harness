@@ -90,7 +90,11 @@ def check_job(job):
         if a < 0 or b < 0 or "}" in text[a:s]:
             return None
         g = re.search(r'"groupId":\s*"(\w+)"', text[a:b])
-        return g.group(1) if g else None
+        if g:
+            return g.group(1)
+        # an eventGroups / groups object IS the group: it carries "id" and "title" (e.g. seriousNumAffected lives there)
+        g = re.search(r'"id":\s*"(\w+)"', text[a:b])
+        return g.group(1) if g and re.search(r'"title":', text[a:b]) else None
 
     def group_title(f, gid):
         _, text = load(f)
