@@ -66,6 +66,25 @@ def test_both_readers_against_the_rule_means_the_direction_of_the_rule(tmp_path,
     q("screening", [("d", "include", "INELIGIBLE"), ("e", "include", "ELIGIBLE")])
     q("screening_reader2", [("d", "include", "INELIGIBLE"), ("e", "include", "ELIGIBLE")])
     assert pilot.readers_report("screening")["both_against_rule"] == ["d"]
+    assert pilot.readers_report("screening")["robust_against_rule"] == []      # no re-asks recorded: not robust
+
+
+def test_robust_needs_every_recorded_call_against_the_rule(tmp_path, monkeypatch):
+    """Plant: both readers say ELIGIBLE against an exclusion on their source calls, but one re-ask flips -- that item
+    is 'both readers' and NOT robust; an item stable on all four calls is robust."""
+    spec = importlib.util.spec_from_file_location("_pilot_rb", ROOT / "scripts" / "model_source_pilot.py")
+    pilot = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pilot)
+    monkeypatch.setattr(pilot, "Q_DIR", tmp_path)
+
+    def q(task, rows):
+        items = [{"item_id": i, "rule_decision": "exclude", "verification": {"model_decision": d[0]},
+                  "reask": {"decisions": d}, "record_id": "mc-x"} for i, d in rows]
+        (tmp_path / f"{task}.json").write_text(json.dumps({"items": items}), encoding="utf-8")
+    q("screening_excluded", [("stable", ["ELIGIBLE", "ELIGIBLE"]), ("flips", ["ELIGIBLE", "ELIGIBLE"])])
+    q("screening_excluded_reader2", [("stable", ["ELIGIBLE", "ELIGIBLE"]), ("flips", ["ELIGIBLE", "CANNOT_TELL"])])
+    rep = pilot.readers_report("screening_excluded")
+    assert rep["both_against_rule"] == ["flips", "stable"] and rep["robust_against_rule"] == ["stable"]
 
 
 def test_sign_batch_refuses_an_unstable_agreement(tmp_path, monkeypatch):

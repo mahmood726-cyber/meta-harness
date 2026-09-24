@@ -736,15 +736,26 @@ def readers_report(source: str = "screening") -> dict:
     pairs = Counter(f"{r['reader1']} / {r['reader2']}" for r in rows)
     against = {"include": "INELIGIBLE", "exclude": "ELIGIBLE"}
     both = [r["item_id"] for r in rows if r["reader1"] == r["reader2"] == against.get(r["rule"])]
+    # ROBUST: every recorded call -- both readers, each source call AND its re-ask -- decides against the rule.
+    # A single call per reader is not enough: on hard items reader 2 reproduces its own decision only ~80-86%.
+    robust = []
+    for iid in both:
+        d1 = (q1[iid].get("reask") or {}).get("decisions") or []
+        d2 = (q2[iid].get("reask") or {}).get("decisions") or []
+        want = against.get(q1[iid].get("rule_decision"))
+        if len(d1) >= 2 and len(d2) >= 2 and all(d == want for d in d1 + d2):
+            robust.append(iid)
     return {"summary": {"source": source, "N": len(rows),
                         "N_name": "items whose reader-1 proposal needs an individual signature",
                         "reader1_model": MODEL, "reader2_model": MODEL_BY_TASK[READER_PAIRS[source]],
                         "same_vendor": True,
                         "pairs_reader1_reader2": dict(sorted(pairs.items())),
                         "both_readers_against_the_rule": len(both),
+                        "robust_against_the_rule_all_recorded_calls": len(robust),
                         "note": "two models of ONE vendor (OpenAI via codex): partially independent at best. Agreement "
                                 "orders the human's reading; it signs nothing and admits nothing."},
-            "both_against_rule": both, "both_ineligible": both if source == "screening" else [], "rows": rows}
+            "both_against_rule": both, "robust_against_rule": robust,
+            "both_ineligible": both if source == "screening" else [], "rows": rows}
 
 
 def cmd_readers(source: str = "screening"):
@@ -835,14 +846,16 @@ def signing_guide() -> str:
             continue
         flip = [e for e in exc if e["verification"].get("model_decision") == "ELIGIBLE"]
         read2 = (Q_DIR / f"{READER_PAIRS[task]}.json").exists()
-        both = set(readers_report(task)["both_against_rule"]) if read2 else set()
-        flip.sort(key=lambda e: (e["item_id"] not in both, e["item_id"]))
-        second = (f"both readers ELIGIBLE: {len(both)} -- listed first" if read2
+        rr = readers_report(task) if read2 else {"both_against_rule": [], "robust_against_rule": []}
+        both, robust = set(rr["both_against_rule"]), set(rr["robust_against_rule"])
+        flip.sort(key=lambda e: (e["item_id"] not in robust, e["item_id"] not in both, e["item_id"]))
+        second = (f"both readers ELIGIBLE: {len(both)}; ROBUST (both readers, source and re-ask, all 4 calls): "
+                  f"{len(robust)} -- robust first" if read2
                   else "reader 2 NOT YET RUN on these -- no second reading, which is not the same as zero")
         lines += [f"## 5{'a' if task == 'screening_excluded' else 'b'}. Records excluded by {what} that the model reads "
                   f"as ELIGIBLE ({len(flip)} of {len(exc)}; {second})", ""]
-        lines += [f"- {'**both readers** ' if e['item_id'] in both else ''}`{task}` `{e['item_id']}` "
-                  f"(rule {e.get('context', {}).get('rule_id')})" for e in flip]
+        lines += [f"- {'**robust** ' if e['item_id'] in robust else ('both readers ' if e['item_id'] in both else '')}"
+                  f"`{task}` `{e['item_id']}` (rule {e.get('context', {}).get('rule_id')})" for e in flip]
         lines.append("")
     est = [e for e in load("estimand") if open_(e) and ms.individual_required(e, e["verification"])]
     lines += [f"## 6. Estimand fields needing an individual signature ({len(est)})", ""]
