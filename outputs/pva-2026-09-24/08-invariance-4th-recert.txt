@@ -1,0 +1,17 @@
+pages 32; PASS 32; outcomes moved on any page: 0; other-text changes: 0; lost blocks: 0
+--- box text diff on pcsk9-mace (base origin/main -> new) ---
+- it recomputes the certificate&#x27;s release_sha256 from the certificate&#x27;s own fields and analysis_code_sha256 from its code map; given the served tree, it also recomputes the Git blob id of every pinned module fr
++ it recomputes the certificate&#x27;s release_sha256 from the certificate&#x27;s own fields and analysis_code_sha256 from its code map; recomputes review_sha256 from this page&#x27;s review.json (the numbers the page se
+-curl -fsS -o CERTIFICATE.json https://mahmood726-cyber.github.io/meta-harness/reviews/pcsk9-mace/CERTIFICATE.json
++curl -fsS --remote-name-all &quot;https://mahmood726-cyber.github.io/meta-harness/reviews/pcsk9-mace/{CERTIFICATE.json,review.json,manifest.json,index.html}&quot;
+-review_sha256 is read from the certificate and never recomputed from review.json, so no number served on the page is checked
++that the page&#x27;s content is a rendering of review.json: the page is tied to it only through manifest.json&#x27;s html_sha256, which the certificate does not cover -- a page and manifest changed together pass; only r
+-the page itself (index.html) is never read, so nothing here ties what the page displays to this certificate
+-no effect estimate, interval or pooled result is recomputed, and no number is compared with its source
++no effect estimate, interval or pooled result is recomputed, and no number is compared with its source: review_sha256 ties the numbers to the certificate, not to the evidence
+-that this certificate is the one the page was built with: compare the release_sha256 printed here with the one printed on the page
++without review.json, manifest.json and index.html beside the certificate, none of the links to the numbers or the page is checked (the RESULT line then says so)
+-41a79e2d5e446fc3275b2c839db8c34139d967b88543ad089eba5c8b42092c9e
+- (4,746 bytes)
++e4a9aec43109176e5070abeb1d346fc735938d4d8b33239f6f3d27f243d8ddee
++ (8,191 bytes)
