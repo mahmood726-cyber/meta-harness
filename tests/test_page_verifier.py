@@ -30,10 +30,26 @@ def _served_pages():
 
 
 def _load(path: Path, name: str):
+    """Load a SERVED script without writing bytecode: exec_module would drop docs/scripts/__pycache__/*.pyc into the tree
+    CI publishes, and the deploy would serve a file no commit holds (seen on main from 1153beef: 1186 -> 1187 files)."""
+    import sys
     spec = importlib.util.spec_from_file_location(name, path)
     mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    was, sys.dont_write_bytecode = sys.dont_write_bytecode, True
+    try:
+        spec.loader.exec_module(mod)
+    finally:
+        sys.dont_write_bytecode = was
     return mod
+
+
+def test_loading_a_served_verifier_writes_nothing_under_docs(tmp_path):
+    served = DOCS / "scripts" / "audit_certificate_stdlib.py"
+    cache = DOCS / "scripts" / "__pycache__"
+    before = sorted(cache.glob("audit_certificate_stdlib*.pyc")) if cache.exists() else []
+    _load(served, "_bytecode_probe")
+    after = sorted(cache.glob("audit_certificate_stdlib*.pyc")) if cache.exists() else []
+    assert after == before, "loading a served script wrote bytecode into the served tree"
 
 
 def _sha(p: Path) -> str:
