@@ -44,9 +44,9 @@ from reproducible_ai import model_source as ms  # noqa: E402
 
 MODEL = "gpt-6-astra"
 # a second reader must be a different model id; same vendor (OpenAI via codex) -- stated, not hidden
-MODEL_BY_TASK = {"screening_reader2": "gpt-5.5", "screening_excluded_reader2": "gpt-5.5", "screening_excluded_x1_reader2": "gpt-5.5"}
+MODEL_BY_TASK = {"screening_reader2": "gpt-5.5", "screening_excluded_reader2": "gpt-5.5", "screening_excluded_x1_reader2": "gpt-5.5", "screening_excluded_agree_reader2": "gpt-5.5", "comparator_k_reader2": "gpt-5.5"}
 EFFORT = "medium"
-BATCH = {"screening": 6, "estimand": 3, "outcome_identity": 1, "locate": 1, "screening_reader2": 6, "screening_excluded": 6, "screening_excluded_x1": 6, "screening_excluded_reader2": 6, "screening_excluded_x1_reader2": 6}
+BATCH = {"screening": 6, "estimand": 3, "outcome_identity": 1, "locate": 1, "screening_reader2": 6, "screening_excluded": 6, "screening_excluded_x1": 6, "screening_excluded_reader2": 6, "screening_excluded_x1_reader2": 6, "screening_excluded_agree_reader2": 6, "regex_label": 8, "comparator_k": 1, "comparator_k_reader2": 1, "site_label": 8}
 REC_DIR = ROOT / ms.RECORD_DIR
 Q_DIR = ROOT / ms.PROPOSAL_DIR
 
@@ -242,16 +242,113 @@ def _reader2_of(source_task: str, task: str) -> list[dict]:
     return [dict(i, task=task) for i in candidates_screening() if i["item_id"] in non_agree]
 
 
+def _agreed_of(source_task: str, task: str) -> list[dict]:
+    """The items where reader 1 AGREED with the rule. A wrong rule that reader 1 also got wrong is invisible to every
+    other queue; a second reader on the agreements is the only place it can surface."""
+    q = Q_DIR / f"{source_task}.json"
+    if not q.exists():
+        return []
+    agreed = {e["item_id"] for e in json.loads(q.read_text(encoding="utf-8"))["items"]
+              if "verification" in e and str(e["verification"].get("agreement", "")).startswith("RULE_MODEL_AGREE")}
+    return [dict(i, task=task) for i in candidates_screening() if i["item_id"] in agreed]
+
+
+COMPARATOR_K_INSTR = """You are reading the abstract of a published systematic review / meta-analysis. Do not run any
+commands or read any files. Use only the text given here. Do not calculate, add up or infer anything.
+
+Question: how many trials (studies) did THIS review INCLUDE in total?
+
+Answer "state":
+  STATED     the abstract itself states the total number of included trials/studies. Give "quote": the words of the
+             abstract that state it, copied EXACTLY, and "count_text": the count exactly as written inside that quote
+             (e.g. "12" or "Eight").
+  AMBIGUOUS  the abstract gives more than one candidate count and does not make clear which is the total (for example
+             counts for subgroups or outcomes only). Give "quote" (the words that make it ambiguous) and "count_text": null.
+  NOT_STATED the abstract does not state the total. Give "quote": null and "count_text": null.
+A count of trials for ONE outcome, subgroup or comparison is not the total. Return only the JSON object.
+"""
+
+
+def candidates_comparator_k() -> list[dict]:
+    """Every topic's comparator abstract (the text harness/pipeline.py reads for theirs_k). A topic whose config carries
+    a source-verified comparator_k is a CONTROL (item_id 'control::<slug>', its known answer in `prior`) -- counted
+    apart from the data, never in its denominator."""
+    out = []
+    for cfgp in sorted((ROOT / "topics").glob("*.json")):
+        slug = cfgp.stem
+        cfg = json.loads(cfgp.read_text(encoding="utf-8"))
+        rp = ROOT / "cache" / slug / "records.json"
+        if not cfg.get("comparator_pmid") or not rp.exists():
+            continue
+        pmid = str(cfg["comparator_pmid"])
+        rec = {str(r.get("id")): r for r in json.loads(rp.read_text(encoding="utf-8")).get("records") or []}.get(pmid)
+        control = cfg.get("comparator_k") is not None
+        item = {"task": "comparator_k", "slug": slug, "item_id": f"{'control' if control else 'data'}::{slug}",
+                "held_ref": f"cache/{slug}/records.json#{pmid} abstract",
+                "rule_decision": "legacy auto-extraction (harness.extract._parse_k)",
+                "prior": cfg.get("comparator_k") if control else None}
+        abstract = (rec or {}).get("abstract") or ""
+        if not abstract.strip():
+            item["state"] = "NO_HELD_TEXT"
+        else:
+            item.update(held_text=abstract, held_sha256=_sha(abstract.encode("utf-8")),
+                        prompt_text=COMPARATOR_K_INSTR + "\n=== ABSTRACT item=R1 ===\n" + abstract + "\n",
+                        prompt_digests=[])
+        out.append(item)
+    return sorted(out, key=lambda i: i["item_id"])
+
+
+def candidates_comparator_k_reader2() -> list[dict]:
+    """The same comparator abstracts read by a second model; the reader-2 header makes the prompt bytes differ, so the
+    two readers' records never share a prompt digest."""
+    out = []
+    for i in candidates_comparator_k():
+        i = dict(i, task="comparator_k_reader2")
+        if "prompt_text" in i:
+            i["prompt_text"] = READER2_HEADER + i["prompt_text"]
+        out.append(i)
+    return out
+
+
+def candidates_site_label() -> list[dict]:
+    """R2 for the regex sites outside extract.py (regex_layer/site_measure.py): held abstract sentences or protocol
+    lines where the site fires, or only its broad trigger does. `slug` is the SITE so a batch asks about one site; the
+    regex and its output are never in the prompt."""
+    from regex_layer import site_measure
+    out = []
+    for c in site_measure.candidates(15):
+        out.append({"task": "site_label", "slug": c["site"], "pattern": c["site"], "sample": c["sample"],
+                    "item_id": f"{c['site']}::{c['held_sha256'][:16]}", "held_ref": c["held_ref"],
+                    "held_text": c["text"], "held_sha256": c["held_sha256"],
+                    "rule_decision": f"site sample {c['sample']}"})
+    return sorted(out, key=lambda i: i["item_id"])
+
+
+def candidates_regex_label() -> list[dict]:
+    """R2 of the regex layer: sampled held sentences per compiled pattern of harness/extract.py (regex_layer.measure).
+    `slug` is set to the PATTERN so each batch asks about one pattern; the regex's output is never in the prompt."""
+    from regex_layer import measure
+    out = []
+    for c in measure.candidates(15):
+        out.append({"task": "regex_label", "slug": c["pattern"], "pattern": c["pattern"], "sample": c["sample"],
+                    "item_id": f"{c['pattern']}::{c['held_sha256'][:16]}", "held_ref": c["held_ref"],
+                    "held_text": c["sentence"], "held_sha256": c["held_sha256"],
+                    "rule_decision": f"regex sample {c['sample']}"})
+    return sorted(out, key=lambda i: i["item_id"])
+
+
 def candidates_screening_reader2() -> list[dict]:
     return _reader2_of("screening", "screening_reader2")
 
 
 CANDIDATES = {"screening": candidates_screening, "estimand": candidates_estimand,
+              "regex_label": candidates_regex_label, "comparator_k": candidates_comparator_k, "comparator_k_reader2": candidates_comparator_k_reader2, "site_label": candidates_site_label,
               "screening_reader2": candidates_screening_reader2,
               "screening_excluded": lambda: [dict(i, task="screening_excluded") for i in candidates_screening()],
               "screening_excluded_x1": lambda: [dict(i, task="screening_excluded_x1") for i in candidates_screening()],
               "screening_excluded_reader2": lambda: _reader2_of("screening_excluded", "screening_excluded_reader2"),
               "screening_excluded_x1_reader2": lambda: _reader2_of("screening_excluded_x1", "screening_excluded_x1_reader2"),
+              "screening_excluded_agree_reader2": lambda: _agreed_of("screening_excluded", "screening_excluded_agree_reader2"),
               "outcome_identity": candidates_outcome_identity, "locate": candidates_locate}
 # The selection rule that defines each pilot's population AT FREEZE TIME. After the freeze the population does not
 # move: a later rule change (a regex that now reads a field, a record the screen now excludes) is recorded on the
@@ -265,7 +362,8 @@ SELECT = {"screening": lambda i: i["rule_decision"] == "include",
           "screening_excluded": lambda i: i["rule_decision"] == "exclude" and i.get("rule_id") != "X1",
           # phase B: X1 'not an RCT' (publication type / design words); a missing pubtype can wrongly exclude a trial
           "screening_excluded_x1": lambda i: i["rule_decision"] == "exclude" and i.get("rule_id") == "X1",
-          "screening_excluded_reader2": lambda i: True, "screening_excluded_x1_reader2": lambda i: True}
+          "screening_excluded_reader2": lambda i: True, "screening_excluded_x1_reader2": lambda i: True,
+          "screening_excluded_agree_reader2": lambda i: True, "regex_label": lambda i: True, "comparator_k": lambda i: True, "comparator_k_reader2": lambda i: True, "site_label": lambda i: True}
 SELECTION_RULE = {"screening": "screened records with decision == include on the committed review pages",
                   "estimand": "estimand fields whose bundle state != STATED_IN_OWNING_EVIDENCE on the served bundles",
                   "outcome_identity": "every candidate CT.gov outcome measure of every topic with a committed "
@@ -281,8 +379,18 @@ SELECTION_RULE = {"screening": "screened records with decision == include on the
                   "screening_excluded_reader2": "keyword-excluded records whose reader-1 proposal needs an individual "
                                                 "signature (registry/model_proposals/screening_excluded.json)",
                   "screening_excluded_x1_reader2": "X1-excluded records whose reader-1 proposal needs an individual "
-                                                   "signature (registry/model_proposals/screening_excluded_x1.json)"}
-FROZEN_KEYS = ("item_id", "slug", "held_ref", "held_sha256", "state", "rule_decision", "rule_id", "field", "rule_state", "prior")
+                                                   "signature (registry/model_proposals/screening_excluded_x1.json)",
+                  "screening_excluded_agree_reader2": "keyword-excluded records where reader 1 AGREED with the rule "
+                                                      "(registry/model_proposals/screening_excluded.json)",
+                  "regex_label": "per compiled pattern of harness/extract.py: up to 15 held sentences where it fires "
+                                 "and up to 15 where only its broad trigger fires (sha256 order)",
+                  "comparator_k": "every topic with a comparator_pmid; topics with a source-verified comparator_k are "
+                                  "CONTROLS (item_id control::), the rest data (item_id data::)",
+                  "comparator_k_reader2": "the comparator_k items, read by a second model (gpt-5.5)",
+                  "site_label": "per labellable regex site outside extract.py whose text source is held here: up to 15 "
+                                "texts where it fires and up to 15 where only its broad trigger fires (sha256 order)"}
+FROZEN_KEYS = ("item_id", "slug", "held_ref", "held_sha256", "state", "rule_decision", "rule_id", "field", "rule_state", "prior",
+               "pattern", "sample")
 
 
 def population_path(task: str) -> Path:
@@ -326,9 +434,10 @@ def pilot_items(task: str) -> list[dict]:
 
 
 TASKS = ("estimand", "screening", "outcome_identity", "locate", "screening_reader2", "screening_excluded",
-         "screening_excluded_x1", "screening_excluded_reader2", "screening_excluded_x1_reader2")
+         "screening_excluded_x1", "screening_excluded_reader2", "screening_excluded_x1_reader2",
+         "screening_excluded_agree_reader2", "regex_label", "comparator_k", "comparator_k_reader2", "site_label")
 SCREEN_TASKS = ("screening", "screening_reader2", "screening_excluded", "screening_excluded_x1",
-                "screening_excluded_reader2", "screening_excluded_x1_reader2")
+                "screening_excluded_reader2", "screening_excluded_x1_reader2", "screening_excluded_agree_reader2")
 N_NAME = {"screening": "screened-in records across committed review pages",
           "estimand": "estimand fields without a stated value across served bundles",
           "outcome_identity": "candidate CT.gov outcome measures under a committed outcome-identity judgment file",
@@ -337,7 +446,12 @@ N_NAME = {"screening": "screened-in records across committed review pages",
           "screening_excluded": "records excluded by a keyword rule (not X1) across committed review pages",
           "screening_excluded_x1": "records excluded as X1 (not an RCT) across committed review pages",
           "screening_excluded_reader2": "keyword-excluded records whose reader-1 proposal needs an individual signature",
-          "screening_excluded_x1_reader2": "X1-excluded records whose reader-1 proposal needs an individual signature"}
+          "screening_excluded_x1_reader2": "X1-excluded records whose reader-1 proposal needs an individual signature",
+          "screening_excluded_agree_reader2": "keyword-excluded records where reader 1 agreed with the rule",
+          "regex_label": "sampled held sentences per compiled pattern of harness/extract.py",
+          "comparator_k": "comparator review abstracts, one per topic (controls counted apart)",
+          "comparator_k_reader2": "comparator review abstracts, second reader (controls counted apart)",
+          "site_label": "sampled held texts per labellable regex site outside extract.py"}
 
 
 def cmd_freeze(task: str, base: str):
@@ -395,9 +509,71 @@ READER2_HEADER = ("SECOND READER. Another reader has already assessed these reco
                   "Assess them independently.\n\n")
 
 
+REGEX_LABEL_INSTR = """You are labelling sentences from trial abstracts for a test of a text parser. Do not run any
+commands or read any files. Use only the text given here. Do not calculate, round, convert or infer anything.
+
+WHAT TO LOOK FOR: {spec}
+
+For EACH sentence answer "states": true only if the sentence itself states this.
+{how}
+Answer every sentence, using its "item" key exactly. Return only the JSON object.
+"""
+
+
+def site_label_prompt(site: str, keyed: list) -> str:
+    from regex_layer.site_detects import DETECTS
+    how = ('If it does, give "quote": the words of the text that state it, copied EXACTLY, and "instances": []. '
+           'If it does not, give "quote": null and "instances": [].')
+    body = REGEX_LABEL_INSTR.format(spec=DETECTS[site]["detects"], how=how).replace("sentences from trial abstracts",
+                                                                                    "short texts from trial reports")
+    for key, i in keyed:
+        body += f"\n=== SENTENCE item={key} ===\n{i['held_text']}\n"
+    return body
+
+
+def regex_label_prompt(pattern: str, keyed: list) -> str:
+    from regex_layer.measure import label_fields
+    from regex_layer.specs import SPECS
+    spec = SPECS[pattern]
+    if spec["kind"] == "extractor":
+        how = ("If it does, list EVERY instance in \"instances\"; for each instance give \"fields\": one entry per field "
+               f"({', '.join(label_fields(pattern))}) with \"quote\" = the characters of that value copied EXACTLY from "
+               "the sentence (null if that field is not written for this instance). Give \"quote\": null. If it does "
+               "not, give \"instances\": [] and \"quote\": null.")
+    else:
+        how = ("If it does, give \"quote\": the words of the sentence that state it, copied EXACTLY, and "
+               "\"instances\": []. If it does not, give \"quote\": null and \"instances\": [].")
+    body = REGEX_LABEL_INSTR.format(spec=spec["spec"], how=how)
+    for key, i in keyed:
+        body += f"\n=== SENTENCE item={key} ===\n{i['held_text']}\n"
+    return body
+
+
 def _schema(task: str) -> dict:
     if task == "outcome_identity":
         return _load_script("outcome_judgments").OUTCOME_SCHEMA
+    if task in ("comparator_k", "comparator_k_reader2"):
+        it = {"type": "object", "additionalProperties": False, "required": ["item", "state", "quote", "count_text"],
+              "properties": {"item": {"type": "string"}, "state": {"type": "string", "enum": ["STATED", "NOT_STATED", "AMBIGUOUS"]},
+                             "quote": {"type": ["string", "null"]}, "count_text": {"type": ["string", "null"]}}}
+        return {"type": "object", "additionalProperties": False, "required": ["items"],
+                "properties": {"items": {"type": "array", "items": it}}}
+    if task == "site_label":
+        it = {"type": "object", "additionalProperties": False, "required": ["item", "states", "quote", "instances"],
+              "properties": {"item": {"type": "string"}, "states": {"type": "boolean"}, "quote": {"type": ["string", "null"]},
+                             "instances": {"type": "array", "maxItems": 0, "items": {"type": "object"}}}}
+        return {"type": "object", "additionalProperties": False, "required": ["items"],
+                "properties": {"items": {"type": "array", "items": it}}}
+    if task == "regex_label":
+        field = {"type": "object", "additionalProperties": False, "required": ["field", "quote"],
+                 "properties": {"field": {"type": "string"}, "quote": {"type": ["string", "null"]}}}
+        inst = {"type": "object", "additionalProperties": False, "required": ["fields"],
+                "properties": {"fields": {"type": "array", "items": field}}}
+        it = {"type": "object", "additionalProperties": False, "required": ["item", "states", "quote", "instances"],
+              "properties": {"item": {"type": "string"}, "states": {"type": "boolean"},
+                             "quote": {"type": ["string", "null"]}, "instances": {"type": "array", "items": inst}}}
+        return {"type": "object", "additionalProperties": False, "required": ["items"],
+                "properties": {"items": {"type": "array", "items": it}}}
     if task == "locate":
         props = {"span": {"type": ["string", "null"]}, "is_target_outcome": {"type": "boolean"},
                  "population_matches": {"type": "boolean"}, "both_arms": {"type": "boolean"},
@@ -440,6 +616,10 @@ def batches(task: str, items: list[dict]) -> list[dict]:
                 for key, i in keyed:
                     body += f"\n=== RECORD item={key} ===\n{i['held_text']}\n"
                 digests = cd + digests
+            elif task == "regex_label":
+                body = regex_label_prompt(slug, keyed)
+            elif task == "site_label":
+                body = site_label_prompt(slug, keyed)
             elif task == "estimand":
                 vocab = "\n".join(f"  {f}: {', '.join(ms.estimand_vocabulary(f))}" for f in ("analysis_set", "analysis_window"))
                 body = ESTIMAND_INSTR.format(vocab=vocab)
@@ -518,6 +698,10 @@ def cmd_run(task, limit):
 
 def decision_of(task: str, claim, verification: dict):
     """What a re-ask must reproduce for the proposal to count as stable: the DERIVED decision, not the wording."""
+    if task in ("regex_label", "site_label"):
+        return verification.get("label")
+    if task in ("comparator_k", "comparator_k_reader2"):
+        return [(claim or {}).get("state"), verification.get("k")]
     if task in SCREEN_TASKS:
         return verification.get("model_decision")
     if task == "estimand":
@@ -527,6 +711,14 @@ def decision_of(task: str, claim, verification: dict):
     if task == "locate":
         return [(claim or {}).get("is_target_outcome"), (claim or {}).get("population_matches")]
     return None
+
+
+CONTEXT_KEYS = ("rule_id", "rule_reason", "field", "rule_state", "rule_value", "rule_decision_at_freeze", "prior",
+                "pattern", "sample")
+
+
+def queue_context(i: dict) -> dict:
+    return {k: i[k] for k in CONTEXT_KEYS if k in i}
 
 
 def cmd_queue(task):
@@ -552,9 +744,9 @@ def cmd_queue(task):
                 entries[i["item_id"]] = {"item_id": i["item_id"], "task": task, "state": "RESPONSE_NOT_A_CLAIM",
                                          "record_id": rec["record_id"], "why": str(exc)}
                 continue
-            ver = ms.reverify({"task": task, "claim": claim, "rule_decision": i["rule_decision"],
-                               "context": {"prior": i.get("prior")}}, i["held_text"])
-            ctx = {k: i[k] for k in ("rule_id", "rule_reason", "field", "rule_state", "rule_value", "rule_decision_at_freeze", "prior") if k in i}
+            # ONE context object: what the verifier reads now is exactly what the queue stores for the gate to re-read
+            ctx = queue_context(i)
+            ver = ms.reverify({"task": task, "claim": claim, "rule_decision": i["rule_decision"], "context": ctx}, i["held_text"])
             e = ms.queue_entry(task=task, item_id=i["item_id"], record=rec, claim=claim, verification=ver,
                                held_ref=i["held_ref"], held_sha256=i["held_sha256"], rule_decision=i["rule_decision"],
                                context=ctx, response_item=key)
@@ -564,8 +756,8 @@ def cmd_queue(task):
                 for r in reasks:
                     try:
                         c2 = ms.claim_for_item(ms.extract_claim(task, ms.replay(r)), key)
-                        v2 = ms.reverify({"task": task, "claim": c2, "rule_decision": i["rule_decision"],
-                                          "context": {"prior": i.get("prior")}}, i["held_text"])
+                        v2 = ms.reverify({"task": task, "claim": c2, "rule_decision": i["rule_decision"], "context": ctx},
+                                         i["held_text"])
                         decs.append(decision_of(task, c2, v2))
                     except (ValueError, ms.ReplayRefused):
                         decs.append("UNREADABLE")
@@ -631,12 +823,20 @@ def stability_sample(task: str, k: int) -> list[dict]:
     return bs[::step][:k]
 
 
-def cmd_stability(task: str, k: int):
+def contested_batches(task: str) -> list[dict]:
+    """TRIAGE sample (outcome-dependent, so never quoted as a stability RATE): the batches holding at least one item
+    whose queued proposal is routed to an individual signature."""
+    q = json.loads((Q_DIR / f"{task}.json").read_text(encoding="utf-8"))
+    hot = {e["item_id"] for e in q["items"] if e.get("status") == "PROPOSED" and ms.individual_required(e, e.get("verification") or {})}
+    return [b for b in batches(task, pilot_items(task)) if any(i["item_id"] in hot for _, i in b["keyed"])]
+
+
+def cmd_stability(task: str, k: int, only_contested: bool = False):
     """Re-ask the model the IDENTICAL prompt bytes for a deterministic sample of batches. Each re-ask is its own
     committed record (caller purpose 'stability re-ask of <source record id>'); none can become a proposal source."""
     from reproducible_ai import model_call_live
     have = _records_by_prompt()
-    for b in stability_sample(task, k):
+    for b in (contested_batches(task) if only_contested else stability_sample(task, k)):
         recs = have.get(_sha(b["prompt"]), [])
         src = source_record(recs)
         if not src or src["state"] != "RAN_OK":
@@ -683,7 +883,7 @@ def stability_report(task: str) -> dict:
                    "identical_claim": x == y}
             if x is not None and y is not None:
                 vs = [ms.reverify({"task": task, "claim": c_, "rule_decision": i["rule_decision"],
-                                   "context": {"prior": i.get("prior")}}, i["held_text"]) for c_ in (x, y)]
+                                   "context": queue_context(i)}, i["held_text"]) for c_ in (x, y)]
                 decs = [decision_of(task, c_, v_) for c_, v_ in zip((x, y), vs)]
                 row["same_derived_decision"] = decs[0] == decs[1]
                 row["decisions"] = decs
@@ -758,7 +958,35 @@ def readers_report(source: str = "screening") -> dict:
             "both_ineligible": both if source == "screening" else [], "rows": rows}
 
 
+def contested_agreements() -> dict:
+    """Keyword exclusions where reader 1 AGREED with the rule but reader 2 (screening_excluded_agree_reader2) reads the
+    record ELIGIBLE: the misses no other queue can show. Triage only; each needs an individual signature."""
+    from collections import Counter
+    q1p, q2p = Q_DIR / "screening_excluded.json", Q_DIR / "screening_excluded_agree_reader2.json"
+    if not (q1p.exists() and q2p.exists()):
+        return {"summary": {"state": "NOT_YET_RUN"}, "contested": []}
+    q1 = {e["item_id"]: e for e in json.loads(q1p.read_text(encoding="utf-8"))["items"]}
+    q2 = json.loads(q2p.read_text(encoding="utf-8"))["items"]
+    pairs = Counter((e.get("verification") or {}).get("model_decision", e.get("state")) for e in q2)
+    contested = sorted(e["item_id"] for e in q2 if (e.get("verification") or {}).get("model_decision") == "ELIGIBLE")
+    robust = [i for i in contested
+              if all(d == "ELIGIBLE" for d in ((next(x for x in q2 if x["item_id"] == i).get("reask") or {}).get("decisions") or ["-"]))
+              and (next(x for x in q2 if x["item_id"] == i).get("reask") or {}).get("decisions")]
+    return {"summary": {"N": len(q2), "N_name": "keyword exclusions reader 1 agreed with", "reader2": dict(pairs),
+                        "contested_reader2_ELIGIBLE": len(contested),
+                        "contested_and_stable_on_reask": len(robust),
+                        "by_topic": dict(Counter(i.split("::")[0] for i in contested).most_common())},
+            "contested": contested, "contested_stable": robust,
+            "reader1_rule_ids": {i: (q1.get(i) or {}).get("context", {}).get("rule_id") for i in contested}}
+
+
 def cmd_readers(source: str = "screening"):
+    if source == "screening_excluded_agree_reader2":
+        rep = contested_agreements()
+        out = ROOT / "outputs" / "model_source" / "CONTESTED_AGREEMENTS.json"
+        out.write_bytes((json.dumps(rep, indent=1, sort_keys=True, ensure_ascii=True) + "\n").encode("ascii"))
+        print(json.dumps(rep["summary"], indent=1))
+        return
     rep = readers_report(source)
     out = ROOT / "outputs" / "model_source" / f"READERS_{source}.json"
     out.write_bytes((json.dumps(rep, indent=1, sort_keys=True, ensure_ascii=True) + "\n").encode("ascii"))
@@ -876,11 +1104,13 @@ def main(argv=None):
     ap.add_argument("task", choices=TASKS)
     ap.add_argument("--limit", type=int, default=10 ** 6)
     ap.add_argument("--sample", type=int, default=10, help="stability: how many batches to re-ask")
+    ap.add_argument("--only-contested", action="store_true",
+                    help="stability: re-ask only batches holding an item routed to an individual signature (triage)")
     a = ap.parse_args(argv)
     {"items": lambda: cmd_items(a.task), "run": lambda: cmd_run(a.task, a.limit),
      "queue": lambda: cmd_queue(a.task), "status": lambda: cmd_status(a.task),
      "freeze": lambda: cmd_freeze(a.task, a.base or sys.exit("freeze needs --base <commit>")),
-     "stability": lambda: cmd_stability(a.task, a.sample),
+     "stability": lambda: cmd_stability(a.task, a.sample, a.only_contested),
      "stability-report": lambda: cmd_stability_report(a.task),
      "readers": lambda: cmd_readers(a.task), "signing-guide": cmd_signing_guide, "adjudicator": cmd_adjudicator}[a.cmd]()
     return 0

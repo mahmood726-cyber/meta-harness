@@ -471,13 +471,80 @@ def reverify(entry: dict, held_text: str) -> dict:
     if task == "estimand":
         return verify_estimand(entry.get("claim"), held_text)
     if task in ("screening", "screening_reader2", "screening_excluded", "screening_excluded_x1",
-                "screening_excluded_reader2", "screening_excluded_x1_reader2"):
+                "screening_excluded_reader2", "screening_excluded_x1_reader2",
+                "screening_excluded_agree_reader2"):
         return verify_screening(entry.get("claim"), held_text, entry.get("rule_decision"))
     if task == "outcome_identity":
         return verify_outcome_identity(entry.get("claim"), held_text, prior)
     if task == "locate":
         return verify_locate(entry.get("claim"), held_text, prior)
+    if task == "regex_label":
+        from regex_layer.measure import verify_label     # the regex layer owns its label verifier
+        return verify_label(entry.get("claim"), held_text, (entry.get("context") or {}).get("pattern"))
+    if task == "site_label":
+        from regex_layer.site_measure import verify_site_label     # the regex layer owns its label verifier
+        return verify_site_label(entry.get("claim"), held_text, (entry.get("context") or {}).get("pattern"))
+    if task in ("comparator_k", "comparator_k_reader2"):
+        return verify_comparator_k(entry.get("claim"), held_text, prior)
     return {"state": "VERIFIER_REFUSED", "problems": [f"TASK_UNKNOWN: {task!r}"]}
+
+
+_COUNT_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
+                "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16,
+                "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20}
+
+
+_TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90}
+
+
+def parse_count(tok: Any) -> int | None:
+    """A count token exactly as the source wrote it: digits ('12', '1,204'), a count word ('eight'), or a compound under
+    one hundred ('Twenty-eight', 'forty two'). Anything else is None -- never a guess."""
+    if not isinstance(tok, str):
+        return None
+    t = tok.strip().lower()
+    if re.fullmatch(r"\d{1,3}(?:,\d{3})*|\d+", t):
+        return int(t.replace(",", ""))
+    if t in _COUNT_WORDS:
+        return _COUNT_WORDS[t]
+    if t in _TENS:
+        return _TENS[t]
+    m = re.fullmatch(r"([a-z]+)[\s-]([a-z]+)", t)
+    if m and m.group(1) in _TENS and _COUNT_WORDS.get(m.group(2), 0) in range(1, 10):
+        return _TENS[m.group(1)] + _COUNT_WORDS[m.group(2)]
+    return None
+
+
+def verify_comparator_k(claim: Any, held_text: str, prior: Any = None) -> dict:
+    """The number of trials a comparator review INCLUDED, as a proposal. The model supplies no number: it quotes the
+    sentence and the count token exactly as written; the verifier parses the token (digits or a count word) from a quote
+    that must be in the held text. AMBIGUOUS / NOT_STATED carry no count. `prior` is a source-verified comparator_k (a
+    CONTROL item): agreement with it is recorded, never used to change the proposal. With no prior there is no rule
+    value, so every proposal needs an individual signature (needs_individual_signature)."""
+    out = {"task": "comparator_k"}
+    if not isinstance(claim, dict) or claim.get("state") not in ("STATED", "NOT_STATED", "AMBIGUOUS"):
+        return {**out, "state": "VERIFIER_REFUSED", "problems": ["NOT_TYPED: state must be STATED / NOT_STATED / AMBIGUOUS"]}
+    quote, tok = claim.get("quote"), claim.get("count_text")
+    problems, k = [], None
+    if claim["state"] == "STATED":
+        if not isinstance(quote, str) or not quote or quote not in held_text:
+            problems.append("SPAN_NOT_IN_SOURCE: the quote is not in the held text")
+        if not isinstance(tok, str) or not tok or (isinstance(quote, str) and tok not in quote):
+            problems.append("COUNT_NOT_IN_QUOTE: count_text must be copied from the quote")
+        k = parse_count(tok)
+        if k is None:
+            problems.append(f"COUNT_NOT_PARSEABLE: {tok!r}")
+    elif tok not in (None, ""):
+        problems.append("COUNT_WITHOUT_STATED")
+    out["problems"] = problems
+    out["state"] = "VERIFIER_REFUSED" if problems else "VERIFIER_PASS"
+    if not problems:
+        out["k"] = k
+        if prior is not None:
+            out["agreement"] = "PRIOR_MODEL_AGREE" if k == prior else f"PRIOR_MODEL_DISAGREE(prior={prior}, model={k})"
+        else:
+            out["agreement"] = f"NO_RULE_VALUE(model={claim['state']}{'' if k is None else ' ' + str(k)})"
+    return out
 
 
 def needs_individual_signature(verification: dict) -> bool:
@@ -602,7 +669,18 @@ def gate_problems(entry: dict, record: dict, held_text: str) -> list[str]:
     sp = result_changes.signature_problem(notice, block)
     if sp:
         problems.append(f"COUNTERSIGNATURE: {sp}")
+    # a blanket delegation is recorded as its own status (reproducible_ai/delegated.py) and is never a signature, even
+    # when written into the signature field in signature form -- signature_problem accepts any recorded relay basis
+    sig = entry.get("reviewer_countersignature") or {}
+    basis = f"{sig.get('state', '')} {sig.get('how_it_reached_the_reviewer', '')}".lower() if isinstance(sig, dict) else ""
+    if any(t in basis for t in DELEGATION_TELLS):
+        problems.append("DELEGATED_IS_NOT_A_SIGNATURE: the countersignature's basis is a blanket / delegated acceptance "
+                        "without item-by-item review; record it as DELEGATED_BULK_ACCEPTANCE, not as a signature")
     return problems
+
+
+# words that mark a signature basis as a blanket delegation rather than an act on this rendered block
+DELEGATION_TELLS = ("blanket", "no item-by-item", "without individual", "delegated", "bulk acceptance", "sign all")
 
 
 def status_of(entry: dict, record: dict, held_text: str) -> str:
