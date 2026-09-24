@@ -66,6 +66,24 @@ def main(out, since=None):
               f"- served 'intention-to-treat' label, of {sw['served_itt_label']['N']} rows carrying it: supported by a span "
               f"{sw['served_itt_label']['SUPPORTED']}, contradicted by a span {sw['served_itt_label']['CONTRADICTED']}, "
               f"unsupported (no span states a set) {sw['served_itt_label']['UNSUPPORTED']} -- labels only; no number moves", ""]
+    rp = os.path.join(ROOT, "evidence/extractions/RETEST_RESULT.json")
+    if os.path.exists(rp):
+        rt = json.load(open(rp, encoding="utf-8"))
+        L += ["## Extractor test-retest (pre-registered, `evidence/PREREG_extractor_agreement.md`)", "",
+              f"- bound numbers, of {rt['N']}: " + ", ".join(f"{k} {v}" for k, v in rt["primary_bound_numbers"].items()),
+              f"- verdict agreement {rt['verdict']['AGREE']} of {rt['N']}; entry-reading agreement {rt['entry_reading']['AGREE']} of {rt['N']}; "
+              f"retest spans verifying {rt['retest_spans_verify']['yes']} of {rt['N']}",
+              f"- rows whose packet gained sources between passes (named, not pooled with noise): {', '.join(rt['packet_changed_rows'])}",
+              "- the one number disagreement (P53-08, RE-COVER) is a timepoint choice between two published windows (6-month treatment vs "
+              "day-224 incl. off-drug follow-up), the same one ruled for P53-07 -- not extractor noise", ""]
+    gp = os.path.join(ROOT, "evidence/gaps/SUMMARY.json")
+    if os.path.exists(gp):
+        g = json.load(open(gp, encoding="utf-8"))
+        vc = collections.Counter(v["analysis_set"]["state"] for v in g.values())
+        L += ["## Gap evidence from newly held full texts (`evidence/gaps/`)", "",
+              f"- rows gap-extracted or hand-bound: {len(g)}; analysis-set span verified {vc['VERIFIED']} of {len(g)}, not found {vc['NOT_FOUND']}",
+              "- hand bindings (the lane's, where the extractor returned NOT_FOUND with the text in its packet, or no extraction ran): "
+              + ", ".join(sorted(json.load(open(os.path.join(ROOT, 'evidence/gaps/MANUAL.json'), encoding='utf-8')))), ""]
     oq = [x for x in adj.values() if x.get("open_question")]
     L += [f"## Open questions for Mahmood: {len(oq)} (`evidence/OPEN_QUESTIONS.md`)", ""] + [f"- {x['key']}: {x['open_question'][:300]}" for x in oq] + [""]
     L += ["## Limits (stated so a clean count cannot imply more than it measured)", "",
