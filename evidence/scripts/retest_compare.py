@@ -14,7 +14,8 @@ def nums(rec):
 
 
 def main():
-    sample = open(os.path.join(ROOT, "evidence", "extractions", "retest_sample.txt")).read().split()
+    sample_file = sys.argv[1] if len(sys.argv) > 1 else "retest_sample.txt"
+    sample = open(os.path.join(ROOT, "evidence", "extractions", sample_file)).read().split()
     comp = json.load(open(os.path.join(ROOT, "evidence", "companions.json"), encoding="utf-8"))
     rows, c = {}, collections.Counter()
     for k in sample:
@@ -46,7 +47,7 @@ def main():
            "entry_reading": {"AGREE": c["entry_AGREE"], "DISAGREE": c["entry_DISAGREE"]},
            "retest_spans_verify": {"yes": c["spans_verify_True"], "no": c["spans_verify_False"]},
            "packet_changed_rows": sorted(k for k, r in rows.items() if r.get("packet_changed_between_passes")), "rows": rows}
-    json.dump(out, open(os.path.join(ROOT, "evidence", "extractions", "RETEST_RESULT.json"), "w", encoding="utf-8", newline="\n"), indent=1)
+    json.dump(out, open(os.path.join(ROOT, "evidence", "extractions", "RETEST_RESULT.json" if sample_file == "retest_sample.txt" else "RETEST_EXTENSION_U23.json"), "w", encoding="utf-8", newline="\n"), indent=1)
     print(json.dumps({k: v for k, v in out.items() if k != "rows"}, indent=1))
     for k, r in rows.items():
         if r["state"] == "DISAGREE":
