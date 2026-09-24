@@ -267,3 +267,98 @@ def test_no_control_characters_in_the_lanes_sources():
              + glob.glob(os.path.join(base, "tests", "test_typed_arms*.py")))
     bad = [(f, b) for f in files for b in set(open(f, "rb").read()) if b < 32 and b not in (9, 10, 13)]
     assert files and not bad, bad
+
+
+DOC_EQ = ("Participants were randomly assigned to drugx (n=100) or placebo (n=98). Treatment was stopped in one patient "
+          "in each group. Adults aged 50 years or older with condition y were enrolled.\n")
+
+
+def _eq_out():
+    def sp(t):
+        assert t in DOC_EQ, t
+        return {"file": "doc_x.txt", "text": t}
+    out = copy.deepcopy(GOOD)
+    ev = sp("Treatment was stopped in one patient in each group.")
+    out["arms"][0].update(events=1, events_span=ev, arm_label_span=sp("drugx (n=100)"), total_span=sp("drugx (n=100)"))
+    out["arms"][1].update(events=1, events_span=ev, arm_label_span=sp("placebo (n=98)"), total_span=sp("placebo (n=98)"))
+    out.update(outcome={"text": "stopped", "span": sp("Treatment was stopped")}, window=None,
+               population={"text": "Adults", "span": sp("Adults aged 50 years or older with condition y")})
+    return out
+
+
+def test_a_count_stated_in_each_group_is_owned_by_every_arm(tmp_path):
+    row = copy.deepcopy(ROW)
+    row["served"] = {"ai": 1, "n1i": 100, "ci": 1, "n2i": 98}
+    rec = run(tmp_path, out=_eq_out(), row=row, doc=DOC_EQ, packet_doc=DOC_EQ)
+    assert rec["state"] == "BOUND", rec["reasons"]
+    assert [a["events_ownership"] for a in rec["arm_observations"]] == ["EACH_GROUP", "EACH_GROUP"]
+
+
+def test_each_group_never_owns_unequal_counts(tmp_path):
+    out = _eq_out()
+    out["arms"][1]["events"] = 2
+    row = copy.deepcopy(ROW)
+    row["served"] = {"ai": 1, "n1i": 100, "ci": 2, "n2i": 98}
+    rec = run(tmp_path, out=out, row=row, doc=DOC_EQ, packet_doc=DOC_EQ)
+    assert rec["state"] != "BOUND"
+
+
+def test_identical_arms_are_mapped_by_direction_not_called_a_served_difference(tmp_path):
+    """9/120 vs 9/120: the numbers cannot say whose slot is whose; the first gate called this SOURCE_DIFFERS."""
+    doc = DOC.replace("(n=98)", "(n=100)").replace("10 (10.2%) participants assigned to placebo",
+                                                   "20 (20.0%) participants assigned to placebo")
+    out = copy.deepcopy(GOOD)
+    def sp(t):
+        assert t in doc, t
+        return {"file": "doc_x.txt", "text": t}
+    out["arms"][1].update(events=20, total=100, events_span=sp("20 (20.0%) participants assigned to placebo"),
+                          arm_label_span=sp("placebo (n=100)"), total_span=sp("placebo (n=100)"))
+    row = copy.deepcopy(ROW)
+    row["served"] = {"ai": 20, "n1i": 100, "ci": 20, "n2i": 100}
+    rec = run(tmp_path, out=out, row=row, doc=doc, packet_doc=doc)
+    assert rec["state"] == "BOUND", rec["reasons"]
+    assert rec["comparator_direction"]["experimental_label"] == "drugx"
+    assert "identical" in rec["comparator_direction"]["basis"]
+
+
+def test_a_named_absence_arm_is_the_comparator():
+    typed = [{"arm_label": "colchicine", "arm_id": None}, {"arm_label": "no-colchicine", "arm_id": None}]
+    j, _ = cta.direction(typed, "colchicine (peri-operative), added to usual care.", None)
+    assert j == 0
+
+
+DOC_AACT = ('{\n "reported_events": [\n  {\n   "id": "1",\n   "result_group_id": "G2",\n   "time_frame": "long text",\n'
+            '   "subjects_affected": "20",\n   "subjects_at_risk": "100"\n  },\n  {\n   "id": "2",\n   "result_group_id": "G1",\n'
+            '   "subjects_affected": "10",\n   "subjects_at_risk": "98"\n  }\n ],\n "result_groups": [\n'
+            '  {\n   "id": "G1",\n   "title": "Placebo"\n  },\n  {\n   "id": "G2",\n   "title": "Drugx 10 mg"\n  }\n ]\n}\n')
+
+
+def _aact_out(swap=False):
+    def sp(t):
+        assert t in DOC_AACT, t
+        return {"file": "doc_x.txt", "text": t}
+    out = copy.deepcopy(GOOD)
+    a, b = ('"subjects_affected": "20",\n   "subjects_at_risk": "100"', '"subjects_affected": "10",\n   "subjects_at_risk": "98"')
+    if swap:
+        a, b = b, a
+    out["arms"][0].update(arm_label="Drugx 10 mg", arm_label_span=sp('"title": "Drugx 10 mg"'), events_span=sp(a), total_span=sp(a))
+    out["arms"][1].update(arm_label="Placebo", arm_label_span=sp('"title": "Placebo"'), events_span=sp(b), total_span=sp(b))
+    if swap:
+        out["arms"][0].update(events=10, total=98)
+        out["arms"][1].update(events=20, total=100)
+    out.update(outcome={"text": "events", "span": sp('"reported_events"')}, window=None,
+               population={"text": "x", "span": sp('"time_frame": "long text"')})
+    return out
+
+
+def test_aact_row_is_owned_through_its_result_group(tmp_path):
+    rec = run(tmp_path, out=_aact_out(), doc=DOC_AACT, packet_doc=DOC_AACT)
+    assert rec["state"] == "BOUND", rec["reasons"]
+    assert [a["events_ownership"] for a in rec["arm_observations"]] == ["AACT_GROUP", "AACT_GROUP"]
+
+
+def test_aact_rows_attributed_to_the_wrong_group_are_refused(tmp_path):
+    row = copy.deepcopy(ROW)
+    row["served"] = {"ai": 10, "n1i": 98, "ci": 20, "n2i": 100}
+    rec = run(tmp_path, out=_aact_out(swap=True), row=row, doc=DOC_AACT, packet_doc=DOC_AACT)
+    assert rec["state"] != "BOUND" and "G7 arm 0" in codes(rec)

@@ -33,3 +33,10 @@ queued for Mahmood's signature -- never landed.
 ## Limits stated in advance
 - Same model family as the first pass: this measures anchoring, not model-family independence.
 - Agreement does not prove correctness; it shows the result does not depend on showing the extractor the answer.
+
+## Addendum A (2026-09-24 ~23:45, before any blind output for these entries exists)
+Extends the same design, measure and classification, unchanged, to the 18 HELD count entries extracted for the F4
+schema (`extractions_held/`), whose packets likewise showed the extractor the held tuple. Blind packets drop `served`
+and `source` from `row.json`. Primary: per arm, same arm_id (after `source_label_id` normalisation) and same
+(events, total) as the first pass, `n of N` arms over the 18 entries' arms. A FIRST_PASS_ANCHORED entry loses its
+direction and observations in `F4B_DATA.json`.

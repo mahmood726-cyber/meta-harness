@@ -126,7 +126,7 @@ GENERIC = set("added usual standard care therapy including daily once weekly alo
               "antimicrobial named genera strains fermented products peri operative low dose supplementation acids "
               "fatty marine carboxylic ethyl inhibitor inhibitors buffered ovulation induction low-dose".split())
 CONTROL = re.compile(r"\b(placebo|usual care|standard care|standard of care|standard treatment|control|no probiotic|"
-                     r"no treatment|sham|dummy)\b", re.I)
+                     r"no treatment|sham|dummy)\b|^\s*no[- ][a-z]", re.I)   # 'no-colchicine': a named absence arm
 
 
 def i_terms(iline):
@@ -382,6 +382,20 @@ def check_row(r, jobs):
         rec["comparator_direction"] = {"experimental_arm_id": typed[e]["arm_id"], "comparator_arm_id": typed[c]["arm_id"],
                                        "experimental_label": typed[e]["arm_label"], "comparator_label": typed[c]["arm_label"],
                                        "basis": "served (ai,n1i) equals the source's (events,total) for the experimental arm and (ci,n2i) the comparator's; one-to-one"}
+    elif (len(typed) == 2 and slots["ai/n1i"] == slots["ci/n2i"] and len(match["ai/n1i"]) == 2
+          and not any(f.startswith(("G1 arm", "G2 arm", "G3 arm")) for f in fails)):
+        # IDENTICAL arms (e.g. 9/120 vs 9/120): numbers cannot say which slot is whose, and need not -- any mapping
+        # serves the same numbers. The slots are assigned by G6 direction alone; unresolved direction sets aside.
+        exp_j, dev = direction(typed, r.get("intervention_i_line"), r.get("registry_arms"))
+        rec["direction_evidence"] = dev
+        if exp_j is None:
+            fails.append("G6 DIRECTION_UNRESOLVED (identical arm pairs): nothing independent says which arm is experimental")
+        else:
+            e, c = exp_j, 1 - exp_j
+            typed[e]["f4b_slot"], typed[c]["f4b_slot"] = "ai/n1i", "ci/n2i"
+            rec["comparator_direction"] = {"experimental_arm_id": typed[e]["arm_id"], "comparator_arm_id": typed[c]["arm_id"],
+                                           "experimental_label": typed[e]["arm_label"], "comparator_label": typed[c]["arm_label"],
+                                           "basis": "identical (events,total) in both arms; slots assigned by G6 direction evidence"}
     elif any(f.startswith(("G1 arm", "G2 arm", "G3 arm")) for f in fails):
         fails.append("G4 not evaluated: an arm's events or denominator is not bound to a printed number (G1-G3), so no "
                      "comparison with the served slots is made -- SET_ASIDE, not a served-number difference")
