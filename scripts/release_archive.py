@@ -217,7 +217,9 @@ def build(slug: str, commit: str, out_root: Path) -> Path:
     zpath.write_bytes(buf.getvalue())
     (dest / "README.md").write_bytes(members["README.md"])
     (dest / "RELEASE.json").write_bytes(members["RELEASE.json"])
-    (dest / "SHA256SUMS").write_text(f"{_sha(buf.getvalue())}  {zpath.name}\n", encoding="utf-8")
+    # bytes, not write_text: on Windows write_text turns "\n" into CRLF, and `sha256sum -c` then reads the CR as part of
+    # the file name (served that way at 00b8337c; tests/test_release_archive.py::test_served_sha256sums_is_what_sha256sum_c_reads)
+    (dest / "SHA256SUMS").write_bytes(f"{_sha(buf.getvalue())}  {zpath.name}\n".encode("ascii"))
     print(f"wrote {zpath} ({len(buf.getvalue()):,} bytes, {len(files)} served files) sha256 {_sha(buf.getvalue())}")
     return zpath
 

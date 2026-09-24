@@ -1,0 +1,23 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_ test_served_sha256sums_is_what_sha256sum_c_reads[glp1-ra-mace-t2d/1b3b0b8dcf3d] _
+
+rel_json = WindowsPath('C:/mh-lanes/pva-wt/docs/releases/glp1-ra-mace-t2d/1b3b0b8dcf3d/RELEASE.json')
+
+    @pytest.mark.parametrize("rel_json", RELEASES, ids=lambda p: "/".join(p.parts[-3:-1]))
+    def test_served_sha256sums_is_what_sha256sum_c_reads(rel_json):
+        """`sha256sum -c SHA256SUMS` is the check the README invites. It reads each line as `<64 hex>  <name>` up to LF; a CR
+        becomes part of the file name and the check fails open-or-read (measured on the served file of 00b8337c, which a
+        Windows write_text had given CRLF). Every served text file of an archive is LF-only."""
+        d = rel_json.parent
+        for name in ("SHA256SUMS", "README.md", "RELEASE.json"):
+>           assert b"\r" not in (d / name).read_bytes(), f"{name} carries CR"
+E           AssertionError: SHA256SUMS carries CR
+E           assert b'\r' not in b'9018b00ac1f91cfa14f7e1f9d7be4e1dae18bed372b3a800553524e7b2d7f8e4  glp1-ra-mace-t2d-1b3b0b8dcf3d.zip\r\n'
+E            +  where b'9018b00ac1f91cfa14f7e1f9d7be4e1dae18bed372b3a800553524e7b2d7f8e4  glp1-ra-mace-t2d-1b3b0b8dcf3d.zip\r\n' = read_bytes()
+E            +    where read_bytes = (WindowsPath('C:/mh-lanes/pva-wt/docs/releases/glp1-ra-mace-t2d/1b3b0b8dcf3d') / 'SHA256SUMS').read_bytes
+
+tests\test_release_archive.py:51: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_release_archive.py::test_served_sha256sums_is_what_sha256sum_c_reads[glp1-ra-mace-t2d/1b3b0b8dcf3d]
+1 failed, 4 deselected in 0.92s

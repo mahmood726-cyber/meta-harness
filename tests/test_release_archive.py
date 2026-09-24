@@ -42,6 +42,19 @@ def _unpack(rel_json: Path, dest: Path) -> tuple[dict, Path]:
 
 
 @pytest.mark.parametrize("rel_json", RELEASES, ids=lambda p: "/".join(p.parts[-3:-1]))
+def test_served_sha256sums_is_what_sha256sum_c_reads(rel_json):
+    """`sha256sum -c SHA256SUMS` is the check the README invites. It reads each line as `<64 hex>  <name>` up to LF; a CR
+    becomes part of the file name and the check fails open-or-read (measured on the served file of 00b8337c, which a
+    Windows write_text had given CRLF). Every served text file of an archive is LF-only."""
+    d = rel_json.parent
+    for name in ("SHA256SUMS", "README.md", "RELEASE.json"):
+        assert b"\r" not in (d / name).read_bytes(), f"{name} carries CR"
+    lines = (d / "SHA256SUMS").read_bytes().decode("ascii").split("\n")
+    assert lines[-1] == "" and all(len(ln.split("  ", 1)[0]) == 64 and (d / ln.split("  ", 1)[1]).is_file()
+                                   for ln in lines[:-1]), lines
+
+
+@pytest.mark.parametrize("rel_json", RELEASES, ids=lambda p: "/".join(p.parts[-3:-1]))
 def test_archive_is_complete_and_every_digest_holds(rel_json, tmp_path):
     rel, root = _unpack(rel_json, tmp_path)
     sums = dict(reversed(line.split("  ", 1)) for line in (root / "SHA256SUMS").read_text(encoding="utf-8").splitlines())
