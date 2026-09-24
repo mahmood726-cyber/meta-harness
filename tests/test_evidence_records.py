@@ -221,3 +221,26 @@ def test_a_took_at_least_one_tablet_restriction_is_not_plain_itt():
     from draft_from_extraction import set_reading
     s = "the primary analyses for efficacy will be based on time to first event ... in all randomized patients who took at least 1 tablet of their assigned trial medication"
     assert set_reading(s) == "OTHER_SET_STATED"
+
+
+# The lane's EYE LABELS for real spans (read 2026-09-24, before this reader was rewritten). Fixture, not tuning:
+# any future reader change must keep these; a new eye-labelled case is added, never an old one edited to fit.
+EYE_LABELLED = [
+    ("We performed intention-to-treat (ITT) analysis of data from 214 patients and per-protocol (PP) analysis of data from 172 patients.", "ITT_STATED"),
+    ("Among the 152 randomized patients, AF occurred in 26 patients (17%), including 16% of patients in the colchicine group", "ITT_STATED"),
+    ("RESULT OUTCOME 2 DENOM Participants: Eplerenone=111; Placebo=110", "NOT_STATED"),
+    ("Intention-to-treat (ITT) analysis was performed on the available participants.", "OTHER_SET_STATED"),
+    ("The primary analysis was conducted using a modified intention\u2010to\u2010treat approach.", "OTHER_SET_STATED"),
+    ("POPULATION: (mITT) modified Intent To Treat Analysis Set", "OTHER_SET_STATED"),
+    ("Analyses were based on allocated treatment and included data from 246 children.", "OTHER_SET_STATED"),
+    ("There were 532 patients who were excluded from the analysis (486 patients subsequently refused to provide consent", "OTHER_SET_STATED"),
+    ("Outcomes were analyzed in all randomized patients treated with at least 1 dose of study drug (treated set) using the intention-to-treat principle.", "OTHER_SET_STATED"),
+    ("All analyses were performed according to the intention-to-treat principle.", "ITT_STATED"),
+    ("POPULATION: Randomized set - The randomized set includes all randomized subjects in the treatment groups to which they were randomized", "ITT_STATED"),
+]
+
+
+def test_analysis_set_reader_matches_the_lanes_eye_labels():
+    from draft_from_extraction import set_reading
+    wrong = [(s[:60], want, set_reading(s)) for s, want in EYE_LABELLED if set_reading(s) != want]
+    assert wrong == []
