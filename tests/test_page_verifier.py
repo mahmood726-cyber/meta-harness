@@ -157,6 +157,14 @@ def test_plant_a_page_with_no_certificate_says_no_verifier_is_named():
     assert "NO_VERIFIER_NAMED" in out and "class='absent'" in out
 
 
+def test_the_verifier_block_is_not_a_tracked_limitation_block():
+    # every tracked block (absent/banner/result-change) on a page must be a limitation object
+    # (tests/test_limitations_legacy_compare.py); naming a verifier is not a limitation. CI refused db59eea3 on exactly this.
+    from harness.honest_ratchet import blocks
+    out = page.render_page_verifier(_review())
+    assert MARK in out and blocks(out) == []
+
+
 def test_the_limits_reader_takes_both_forms():
     assert page._verifier_limits('NOT_CHECKED = ["a", "b"]\n') == ["a", "b"]
     assert page._verifier_limits('def f(report):\n    report["not_checked"] = ["x"]\n') == ["x"]

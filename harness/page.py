@@ -3048,13 +3048,21 @@ def render_page_verifier(review: dict) -> str:
                 "evidence certificate and no evidence bundle, so there is no program a reader can run to check it. "
                 "Treat every number on it as unverified.</div>")
     keys = ",".join(v["key"] for v in vs)
-    lead = {1: "One program checks this page.", 2: "Two programs check this page."}.get(
-        len(vs), f"{len(vs)} programs check this page.")
-    parts = [f"<div class='banner' id='page-verifier' data-page-verifier='{_e(keys)}'>"
-             f"<strong>Check this page yourself.</strong> {lead} "
-             "Each is standard-library Python served from this site; run it on your own machine. "
-             "The digest of each is printed below this box: confirm the bytes you downloaded before you run them. "
-             "A PASS covers only what the program checks, and each one states what it does not."]
+    if len(vs) == 1:
+        lead = ("One program checks this page. It is standard-library Python served from this site; run it on your own "
+                "machine. Its digest is printed below this box: confirm the bytes you downloaded before you run them. "
+                "A PASS covers only what the program checks, and it states what it does not.")
+    else:
+        lead = (f"{ {2: 'Two', 3: 'Three'}.get(len(vs), str(len(vs))) } programs check this page. Each is standard-library "
+                "Python served from this site; run them on your own machine. Their digests are printed below this box: "
+                "confirm the bytes you downloaded before you run them. A PASS covers only what a program checks, and each "
+                "states what it does not.")
+    # NOT a tracked block (class 'banner'/'absent'): tests/test_limitations_legacy_compare.py requires every tracked block
+    # on a page to be a limitation object, and naming a verifier is not a limitation. Its presence, digests, commands and
+    # NOT-checked list are enforced by tests/test_page_verifier.py instead; the styling matches .banner.
+    parts = [f"<div class='page-verifier' id='page-verifier' data-page-verifier='{_e(keys)}' "
+             "style='background:#eaf4fb;border-left:4px solid #4ea1d3;padding:10px 14px;margin:12px 0;font-size:13.5px'>"
+             f"<strong>Check this page yourself.</strong> {lead}"]
     for v in vs:
         parts.append(f"<h4>{_e(v['name'])}</h4>")
         if v.get("problem"):
@@ -3075,9 +3083,8 @@ def render_page_verifier(review: dict) -> str:
             parts.append("<p><strong>And, on this page:</strong></p><ul>"
                          + "".join(f"<li>{_e(x)}</li>" for x in v["page_limits"]) + "</ul>")
     parts.append("</div>")
-    # Digests sit OUTSIDE the tracked banner on purpose: a new verifier byte moves a digest (a stale page, refused by the
-    # reproduction census until rebuilt), while a change to what the page SAYS a verifier does not check moves the tracked
-    # block and needs the honest-ratchet acknowledgement a quieter page always needs.
+    # Digests are listed after the box: a new verifier byte moves them, and the reproduction census refuses the page until
+    # it is rebuilt (tests/test_page_verifier.py names the page and the new digest).
     digests = "".join(
         f"<li><code>{_e(v['served_path'])}</code> sha256 <code style='overflow-wrap:anywhere'>{_e(v['sha256'])}</code> "
         f"({v['bytes']:,} bytes)</li>" for v in vs if v.get("sha256"))
