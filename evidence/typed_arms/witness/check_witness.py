@@ -31,7 +31,7 @@ def token_value(t):
 def check_job(job):
     row = json.load(open(os.path.join(job, "row.json"), encoding="utf-8"))
     docs = {d["file"]: d for d in row["documents"] if d.get("file")}
-    rec = {"job": os.path.basename(job), "held_key": row["held_key"], "held_tuple": row["served"],
+    rec = {"job": os.path.basename(job), "held_key": row["held_key"], "held_tuple": row.get("served"),
            "registry_results": [r["nct"] for r in row.get("registry_results") or []], "state": None, "reasons": [],
            "flags": [], "arms": []}
     p = os.path.join(job, "out.json")
@@ -139,9 +139,9 @@ def check_job(job):
     if rec["registry_results"] and o.get("ownership_source") != "REGISTRY_GROUPS":
         rec["flags"].append("REGISTRY_NOT_USED: the entry's registry record has posted results; the extractor used prose -- "
                             "its notes must say the outcome is absent from the registry results (read by eye)")
-    s = row["served"]
+    s = row.get("served")  # absent in a BLIND packet: no comparison with a held tuple is possible there
     got = {a.get("role"): (a.get("events"), a.get("total")) for a in arms}
-    want = {"intervention": (s["ai"], s["n1i"]), "comparator": (s["ci"], s["n2i"])}
+    want = {"intervention": (s["ai"], s["n1i"]), "comparator": (s["ci"], s["n2i"])} if s else got
     if rec["reasons"]:
         rec["state"] = "INCOMPLETE"
     elif got != want:
