@@ -255,3 +255,15 @@ def test_incomplete_numbers_are_set_aside_not_queued_as_a_served_difference(tmp_
     out["arms"][0].update(events=None, events_span=None)
     rec = run(tmp_path, out=out)
     assert rec["state"] == "SET_ASIDE" and "G4 not evaluated" in codes(rec)
+
+
+def test_no_control_characters_in_the_lanes_sources():
+    """A shell heredoc turned '\b' into a literal backspace in a regex three times in this lane; a regex holding
+    \x08 still compiles and silently matches nothing. Refuse any C0 control byte except tab/newline/CR."""
+    import glob
+    base = os.path.join(HERE, "..")
+    files = (glob.glob(os.path.join(base, "evidence", "typed_arms", "scripts", "*.py"))
+             + glob.glob(os.path.join(base, "evidence", "p5_populations", "scripts", "*.py"))
+             + glob.glob(os.path.join(base, "tests", "test_typed_arms*.py")))
+    bad = [(f, b) for f in files for b in set(open(f, "rb").read()) if b < 32 and b not in (9, 10, 13)]
+    assert files and not bad, bad
