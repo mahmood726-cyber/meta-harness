@@ -18,5 +18,4 @@ out = os.path.join(job, "out.json")
 sys.stdout.buffer.write((json.dumps({"key": key, "stream": os.path.basename(stream), "model": model, "prompt": prompt,
                   "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(), "commands": cmds, "files_named": paths,
                   "outside_job_dir": outside, "tokens": usage, "errors": errors,
-                  "out_json_exists": os.path.exists(out) and os.path.getsize(out) > 0}, ensure_ascii=False) + "
-").encode("utf-8"))
+                  "out_json_exists": os.path.exists(out) and os.path.getsize(out) > 0}, ensure_ascii=False) + chr(10)).encode("utf-8"))

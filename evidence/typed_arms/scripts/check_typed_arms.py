@@ -25,6 +25,8 @@ A row is BOUND only if ALL of these hold, each checked mechanically against byte
       occur in the arm label, or -- when the family holds no registry arms -- a label-derived id typed as such.
 The gate never edits a served row."""
 import json, os, re, sys, hashlib, unicodedata
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import ownership  # noqa: E402  (G7)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BASE = os.path.abspath(os.path.join(HERE, ".."))
@@ -75,8 +77,27 @@ def span_ok(span, job, docs, fails, what):
     if at < 0:
         fails.append(f"G1 {what}: quoted text not found verbatim in {span['file']}: {span['text'][:90]!r}")
         return None
+    occ, i = [], at
+    while i >= 0:
+        occ.append(i)
+        i = text.find(span["text"], i + 1)
     return {"document": d["origin"], "document_sha256": d.get("origin_sha256"), "copy_sha256": d["sha256"],
-            "start": at, "end": at + len(span["text"]), "text": span["text"]}
+            "file": span["file"], "start": at, "end": at + len(span["text"]), "text": span["text"],
+            "occurrences": occ}
+
+
+def at_occurrence(loc, start):
+    out = dict(loc)
+    out["start"], out["end"] = start, start + len(loc["text"])
+    return out
+
+
+def own_everywhere(doc, loc, value, partner, j, typed, vals):
+    """Ownership for a span whose text may occur more than once. Location-free relations (adjacency, order, versus)
+    read only the span text. Location-bound ones (table column, registry group) are evaluated at EVERY occurrence and
+    must agree -- a span that is one thing here and another there has no single owner."""
+    rels = {ownership.owns(doc, at_occurrence(loc, s), value, partner, j, typed, vals) for s in loc["occurrences"]}
+    return rels.pop() if len(rels) == 1 else None
 
 
 def reg_words(a):
@@ -88,37 +109,6 @@ def reg_words(a):
     if isinstance(drug, dict):
         bits += [str(x) for x in (drug.get("value") or [])]
     return " ".join(bits).lower()
-
-
-def arm_id_for(arm, reg_arms, family_id, fails, idx, iline=None):
-    rid = arm.get("registry_arm_id")
-    if reg_arms:
-        by = {a.get("arm_id"): a for a in reg_arms}
-        if rid not in by:
-            fails.append(f"G5 arm {idx}: registry_arm_id {rid!r} is not an arm of family {family_id}")
-            return None, None
-        words = reg_words(by[rid])
-        label = (arm.get("arm_label") or "").lower()
-        toks = [w for w in re.findall(r"[a-z][a-z0-9-]{3,}", label) if w not in ("group", "arm", "patients", "participants", "assigned", "receive", "receiving", "with", "plus")]
-        hit = [w for w in toks if w in words]
-        if hit:
-            return rid, "REGISTRY_ARM (intervention word match: " + ", ".join(hit) + ")"
-        # G5b: no shared word, but the source label and the registry arm fall on the SAME side of the review's declared
-        # intervention line, and every other registry arm of the family falls on the other side (2-arm families only)
-        terms = i_terms(iline)
-        def side(t): return any(re.search(r"(?<![a-z])" + re.escape(w), t) for w in terms)
-        if len(reg_arms) == 2 and terms:
-            other = [a for a in reg_arms if a.get("arm_id") != rid][0]
-            if side(label) == side(words) and side(reg_words(other)) != side(words):
-                return rid, ("REGISTRY_ARM (role match via the review's intervention line: source label and registry arm "
-                             f"both {'on' if side(words) else 'off'} it; the family's other arm {'off' if side(words) else 'on'} it)")
-        fails.append(f"G5 arm {idx}: label {arm.get('arm_label')!r} shares no intervention word with registry arm {rid} ({words[:120]!r}) and no role match")
-        return None, None
-    lab = re.sub(r"[^a-z0-9]+", "-", (arm.get("arm_label") or "").lower()).strip("-")
-    if not lab:
-        fails.append(f"G5 arm {idx}: no arm label to derive an id from")
-        return None, None
-    return f"{family_id}#arm:{lab}", "SOURCE_LABEL (no registry arms held for this family)"
 
 
 # Static, disclosed: class words in the review's I-line expanded to the member names a source prints instead.
@@ -148,34 +138,118 @@ def i_terms(iline):
     return words
 
 
-def arm_text(t, reg_by_id):
-    bits = [t.get("arm_label") or ""]
-    a = reg_by_id.get(t.get("arm_id")) or {}
-    if a:
-        bits.append(reg_words(a))
-    return " ".join(bits).lower(), a
+def side(text, terms):
+    return any(re.search(r"(?<![a-z])" + re.escape(w), text) for w in terms)
+
+
+def label_side(label_txt, terms):
+    """A source arm label is ON the review's intervention line if it names the intervention and is not control vocabulary."""
+    return side(label_txt, terms) and not CONTROL.search(label_txt)
+
+
+def reg_side(a, terms):
+    """A registry arm is ON the line by its ACTIVE interventions, or by its own label when that label names the
+    intervention and carries no control vocabulary. Never by its drug field: a placebo arm's drug field often names the
+    drug it imitates ('Dapagliflozin matching placebo')."""
+    lab = a.get("label")
+    lab = str(lab.get("value") if isinstance(lab, dict) else (lab or "")).lower()
+    return (side(" ".join(str(x) for x in (a.get("active_interventions") or [])).lower(), terms)
+            or (side(lab, terms) and not CONTROL.search(lab)))
+
+
+def abbreviation(label, job, docs):
+    """If the label is an abbreviation the source defines ('prolonged-release melatonin (PRM)'), return the expansion
+    with its span. Only a definition printed in a held document of this row counts."""
+    core = re.sub(r"\b(group|arm)\b", "", label or "", flags=re.I).strip()
+    if not core or len(core) > 12:
+        return None
+    for f in docs:
+        text = open(os.path.join(job, f), "rb").read().decode("utf-8", errors="replace")
+        m = re.search(r"([A-Za-z][A-Za-z0-9\-]*(?:[ \u00a0][A-Za-z0-9\-]+){0,5})\s*\(\s*" + re.escape(core) + r"\s*\)", text)
+        if m:
+            return {"expansion": m.group(1), "file": f, "text": m.group(0), "start": m.start(), "end": m.end()}
+    return None
+
+
+def resolve_arm(arm, reg_arms, family_id, iline, fails, idx, expansion=None):
+    """-> (arm_id, basis). The extractor's registry_arm_id is a PROPOSAL; the gate re-derives the link itself."""
+    terms = i_terms(iline)
+    label = (arm.get("arm_label") or "")
+    label_txt = (label + " " + ((expansion or {}).get("expansion") or "")).lower()
+    lon = label_side(label_txt, terms)
+    rid = arm.get("registry_arm_id")
+    if not reg_arms:
+        lab = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+        if not lab:
+            fails.append(f"G5 arm {idx}: no arm label to derive an id from")
+            return None, None
+        return f"{family_id}#arm:{lab}", "SOURCE_LABEL (no registry arms held for this family)"
+    by = {a.get("arm_id"): a for a in reg_arms}
+    if rid is not None and rid not in by:
+        fails.append(f"G5 arm {idx}: registry_arm_id {rid!r} is not an arm of family {family_id}")
+        return None, None
+    toks = [w for w in re.findall(r"[a-z][a-z0-9-]{3,}", label_txt)
+            if w not in ("group", "arm", "patients", "participants", "assigned", "receive", "receiving", "with", "plus")]
+
+    def link(a):
+        if reg_side(a, terms) != lon:
+            return None
+        hit = [w for w in toks if w in reg_words(a)]
+        if hit:
+            return "intervention word match: " + ", ".join(sorted(set(hit)))
+        if len(reg_arms) == 2 and terms:
+            other = [x for x in reg_arms if x is not a][0]
+            if reg_side(other, terms) != lon:
+                return ("role match via the review's intervention line: source label and registry arm both "
+                        f"{'on' if lon else 'off'} it, the family's other arm {'off' if lon else 'on'} it")
+        return None
+    why = " (source defines the label: " + repr(expansion["text"]) + ")" if expansion else ""
+    if rid in by and link(by[rid]):
+        return rid, "REGISTRY_ARM (" + link(by[rid]) + ")" + why
+    oks = [a for a in reg_arms if link(a)]
+    if len(oks) == 1:
+        return oks[0]["arm_id"], ("REGISTRY_ARM derived by the gate (" + link(oks[0]) + "); extractor proposed "
+                                  + repr(rid)) + why
+    same_side = [a for a in reg_arms if reg_side(a, terms) == lon]
+    def factors(a):  # the arm's OTHER factor: active interventions that are not the review's intervention
+        return frozenset(x.lower() for x in (a.get("active_interventions") or []) if not side(str(x).lower(), terms))
+    other_side = [a for a in reg_arms if reg_side(a, terms) != lon]
+    is_factorial = (len({factors(a) for a in same_side}) == len(same_side) > 1
+                    and {factors(a) for a in same_side} == {factors(a) for a in other_side})
+    if len(reg_arms) > 2 and len(oks) > 1 and is_factorial and {a["arm_id"] for a in oks} == {a["arm_id"] for a in same_side}:
+        ids = sorted(a["arm_id"] for a in oks)
+        return "+".join(ids), ("FACTORIAL_MARGIN: the source arm pools every registry arm on its side of the review's "
+                               "intervention line, which differ only by a second factor mirrored on the other side ("
+                               + ", ".join(ids) + ")") + why
+    sig = {(re.sub(r"\d+", "", reg_words(a)).strip()) for a in reg_arms}
+    if len(sig) == 1:
+        lab = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+        return f"{family_id}#arm:{lab}", ("SOURCE_LABEL: registry arms are held but NON-DISCRIMINATING (every arm states "
+                                          f"the same interventions: {sorted(sig)[0][:80]!r}); ownership rests on the source")
+    fails.append(f"G5 arm {idx}: label {label!r} links to {len(oks)} registry arms of {family_id} (need exactly one)")
+    return None, None
 
 
 def direction(typed, iline, reg_arms):
-    """Return (index of experimental arm or None, evidence list). Never reads served slots."""
+    """Return (index of experimental arm or None, evidence list). Never reads served slots.
+    Score per arm: +1 label on the intervention line, -2 control vocabulary in the label, +1/-1 registry arm on/off the
+    line (0 when no registry arm is linked). Resolved only for two arms with a unique best that has no control
+    vocabulary, and only if some evidence is non-zero."""
     reg_by_id = {a.get("arm_id"): a for a in (reg_arms or [])}
     terms = i_terms(iline)
-    ev = []
-    score = []
+    ev, score = [], []
     for j, t in enumerate(typed):
-        txt, a = arm_text(t, reg_by_id)
-        hits = sorted(w for w in terms if re.search(r"(?<![a-z])" + re.escape(w), txt))
-        ctrl = bool(CONTROL.search(t.get("arm_label") or "")) and not hits
-        active = a.get("active_interventions") if a else None
-        ev.append({"arm": j, "i_line_hits": hits, "control_vocabulary": ctrl,
-                   "registry_active_interventions": active})
-        s = (1 if hits else 0) - (1 if ctrl else 0) + (0 if active is None else (1 if active else -1))
-        score.append(s)
+        label_txt = ((t.get("arm_label") or "") + " " + ((t.get("abbreviation") or {}).get("expansion") or "")).lower()
+        on = label_side(label_txt, terms)
+        ctrl = bool(CONTROL.search(label_txt))
+        members = [reg_by_id[x] for x in str(t.get("arm_id") or "").split("+") if x in reg_by_id]
+        rs = None if not members else all(reg_side(m, terms) for m in members)
+        ev.append({"arm": j, "label_on_intervention_line": on, "control_vocabulary": ctrl, "registry_on_line": rs})
+        score.append((1 if on else 0) - (2 if ctrl else 0) + (0 if rs is None else (1 if rs else -1)))
+    if len(typed) != 2:
+        return None, ev
     best = [j for j, s in enumerate(score) if s == max(score)]
-    if len(typed) == 2 and len(best) == 1 and max(score) > 0 and min(score) < max(score):
-        other = 1 - best[0]
-        if not ev[best[0]]["i_line_hits"] and not ev[other]["control_vocabulary"] and ev[other]["i_line_hits"]:
-            return None, ev
+    if len(best) == 1 and not ev[best[0]]["control_vocabulary"] and (max(score) > 0 or min(score) < 0):
         return best[0], ev
     return None, ev
 
@@ -227,12 +301,54 @@ def check_row(r, jobs):
                          f"{a.get('percentage_text')!r} does not stand in)")
         elif ts and not has_count(ts["text"], tot):
             fails.append(f"G3 arm {i}: total {tot} not printed as a count in its span (only as a percentage, or absent)")
-        aid, basis = arm_id_for(a, r.get("registry_arms"), r["family_id"], fails, i, r.get("intervention_i_line"))
+        abbr = abbreviation(a.get("arm_label"), job, docs)
+        aid, basis = resolve_arm(a, r.get("registry_arms"), r["family_id"], r.get("intervention_i_line"), fails, i, abbr)
         typed.append({"arm_id": aid, "arm_id_basis": basis, "arm_label": a.get("arm_label"), "arm_label_span": ls,
                       "events": ev, "total": tot, "total_basis": a.get("total_basis"),
                       "percentage_text": a.get("percentage_text"), "events_span": es, "total_span": ts,
                       "outcome": shared.get("outcome"), "population": shared.get("population"),
-                      "window": shared.get("window"), "f4b_slot": None})
+                      "window": shared.get("window"), "f4b_slot": None, "abbreviation": abbr,
+                      "events_ownership": None, "total_ownership": None})
+    # G7: every arm OWNS its events and its denominator in the text, by a named relation (ownership.py)
+    docs_text = {}
+    def doc_of(loc):
+        if loc and loc["file"] not in docs_text:
+            docs_text[loc["file"]] = open(os.path.join(job, loc["file"]), "rb").read().decode("utf-8")
+        return docs_text.get(loc["file"]) if loc else None
+    ev_vals = {j: t["events"] for j, t in enumerate(typed)}
+    tot_vals = {j: t["total"] for j, t in enumerate(typed)}
+    for j, t in enumerate(typed):
+        if t["events_span"] and isinstance(t["events"], int):
+            t["events_ownership"] = own_everywhere(doc_of(t["events_span"]), t["events_span"], t["events"], t["total"], j, typed, ev_vals)
+            if not t["events_ownership"]:
+                fails.append(f"G7 arm {j}: events {t['events']} are printed in the span but the text does not tie them to "
+                             f"{t['arm_label']!r} (OWNERSHIP_UNVERIFIED)")
+        if not (t["total_span"] and isinstance(t["total"], int)):
+            continue
+        tdoc = doc_of(t["total_span"])
+        if t.get("events_ownership") == "GROUP_ID" and '"groupId"' in t["total_span"]["text"]:
+            # registry JSON: the denominator is bound to the occurrence inside the SAME outcome measure as the events.
+            # The events' measure must be single-valued; exactly one denominator occurrence may sit in it.
+            edefs = {ownership.group_def(doc_of(t["events_span"]), at_occurrence(t["events_span"], s))[0]
+                     for s in t["events_span"]["occurrences"]}
+            same = [s for s in t["total_span"]["occurrences"]
+                    if len(edefs) == 1 and t["total_span"]["file"] == t["events_span"]["file"]
+                    and ownership.group_def(tdoc, at_occurrence(t["total_span"], s))[0] in edefs]
+            if len(same) == 1:
+                t["total_span"] = at_occurrence(t["total_span"], same[0])
+                t["total_span"]["occurrences"] = same
+                t["total_span"]["located_by"] = "the occurrence inside the events' outcome measure"
+                t["total_ownership"] = ownership.owns(tdoc, t["total_span"], t["total"], None, j, typed, tot_vals)
+            else:
+                t["total_ownership"] = None
+                fails.append(f"G7 arm {j}: denominator {t['total']}: {len(same)} occurrences of its quoted text lie in the "
+                             f"events' outcome measure (need exactly one)")
+                continue
+        else:
+            t["total_ownership"] = own_everywhere(tdoc, t["total_span"], t["total"], None, j, typed, tot_vals)
+        if not t["total_ownership"]:
+            fails.append(f"G7 arm {j}: denominator {t['total']} is printed in the span but the text does not tie it to "
+                         f"{t['arm_label']!r} (OWNERSHIP_UNVERIFIED)")
     s = r["served"]
     slots = {"ai/n1i": (s.get("ai"), s.get("n1i")), "ci/n2i": (s.get("ci"), s.get("n2i"))}
     match = {slot: [j for j, t in enumerate(typed) if (t["events"], t["total"]) == pair] for slot, pair in slots.items()}
@@ -259,6 +375,9 @@ def check_row(r, jobs):
         rec["comparator_direction"] = {"experimental_arm_id": typed[e]["arm_id"], "comparator_arm_id": typed[c]["arm_id"],
                                        "experimental_label": typed[e]["arm_label"], "comparator_label": typed[c]["arm_label"],
                                        "basis": "served (ai,n1i) equals the source's (events,total) for the experimental arm and (ci,n2i) the comparator's; one-to-one"}
+    elif any(f.startswith(("G1 arm", "G2 arm", "G3 arm")) for f in fails):
+        fails.append("G4 not evaluated: an arm's events or denominator is not bound to a printed number (G1-G3), so no "
+                     "comparison with the served slots is made -- SET_ASIDE, not a served-number difference")
     else:
         swapped = [slot for slot, pair in slots.items() for t in typed
                    if (t["events"], t["total"]) != pair and (t["events"] == pair[0] or t["total"] == pair[1])]
