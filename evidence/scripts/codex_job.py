@@ -20,6 +20,7 @@ sys.path.insert(0, ROOT)
 from reproducible_ai import model_call_live  # noqa: E402
 
 MODEL, EFFORT = "gpt-6-astra", "medium"
+NO_PACKET = {"setread"}
 S = {"type": "string"}
 NS = {"type": ["string", "null"]}
 
@@ -73,18 +74,20 @@ def main():
     full = os.path.join(FULL_PACKETS, f"{a.key}.json")   # includes local-only full texts; never committed
     packet = open(full if os.path.exists(full) else os.path.join(ROOT, "evidence", "packets", f"{a.key}.json"), "rb").read()
     parts = [b"You are given everything you need in this message; there are no files to read.\n\nBRIEF:\n", brief,
-             f"\n\nROW KEY: {a.key}\n\nPACKET (the only evidence; spans must be verbatim from sources[i].text):\n".encode(), packet]
-    digests = [{"ref": a.brief, "sha256": sha(brief), "what": "task brief"},
-               {"ref": f"evidence/packets/{a.key}.json", "sha256": sha(packet), "what": "the row's held sources, rendered"}]
+             f"\n\nROW KEY: {a.key}\n".encode()]
+    digests = [{"ref": a.brief, "sha256": sha(brief), "what": "task brief"}]
+    if a.kind not in NO_PACKET:   # a one-span classification needs no packet (lightweight jobs)
+        parts += [b"\nPACKET (the only evidence; spans must be verbatim from sources[i].text):\n", packet]
+        digests.append({"ref": f"evidence/packets/{a.key}.json", "sha256": sha(packet), "what": "the row's held sources, rendered"})
     if a.with_adjudication:
         adj = open(os.path.join(ROOT, "evidence", "adjudication", f"{a.key}.json"), "rb").read()
         parts += [b"\n\nTHE LANE'S RULING FOR THIS ROW (adjudication.json):\n", adj]
         digests.append({"ref": f"evidence/adjudication/{a.key}.json", "sha256": sha(adj), "what": "the lane's ruling"})
     if a.extra:
         ex = open(a.extra, "rb").read()
-        parts += [b"\n\nITEM TO JUDGE (served_row_citation.json):\n", ex]
-        digests.append({"ref": "served-row citation extract (evidence/sweeps/compat_endpoint_citation_u23.json row)",
-                        "sha256": sha(ex), "what": "the served citation and outcome to judge"})
+        parts += [b"\n\nITEM TO JUDGE:\n", ex]
+        digests.append({"ref": f"{a.kind} input for {a.key} (built from the committed sweep/adjudication files)",
+                        "sha256": sha(ex), "what": f"the item the {a.kind} brief asks to judge"})
     prompt = b"".join(parts)
     rec = model_call_live.call(prompt, schema=SCHEMAS[a.kind], model=MODEL, effort=EFFORT,
                                caller={"file": "evidence/scripts/codex_job.py", "line": sys._getframe().f_lineno,
