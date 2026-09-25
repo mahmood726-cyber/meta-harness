@@ -57,8 +57,9 @@
   - gap_analysis_set: `evidence/held/registry/NCT03611582.json` (sha256 bdaf55236501): "Overall number of participants analyzed = full analysis set (FAS) which comprised all randomized participants. Number Analyzed = number of participants with available data."
   - gap_follow_up: `evidence/held_local/33625476/PMC7905697.html` (sha256 3b7ef04fa8a8): "The co–primary end points, in the order planned for sequential hierarchic testing, were the percentage change in body weight and the proportion of participants who lost at least 5% of baseline weight by week 68"
   - gap_entry_age: `evidence/held_local/33625476/PMC7905697.html` (sha256 3b7ef04fa8a8): "Eligible participants were aged 18 years or older"
-  - treatment_strategy: `evidence/held/registry/NCT03611582.json` (sha256 bdaf55236501): "DESCRIPTION: Change in body weight from baseline (week 0) to week 68 is presented. The endpoint was evaluated based on the data from both in-trial and on-treatment periods. In-trial observation period: the uninterrupted time interval from the start of randomisation (week 0) to last trial-related subject-site contact (week 75)."
-- block sha256: bc0a427e1ab48853ca2a6726c5328bcbf7a5438237982cd5dafe7f3ed4028383
+  - intercurrent_event_strategy: `evidence/held/registry/NCT03611582.json` (sha256 bdaf55236501): "DESCRIPTION: Change in body weight from baseline (week 0) to week 68 is presented. The endpoint was evaluated based on the data from both in-trial and on-treatment periods. In-trial observation period: the uninterrupted time interval from the start of randomisation (week 0) to last trial-related subject-site contact (week 75)."
+  - treatment_strategy: `cache/semaglutide-obesity-weight/records.json#/records/117` (sha256 8779e517b6f0): "Participants were randomized (2:1) to semaglutide, 2.4 mg (n = 407) or placebo (n = 204), both combined with a low-calorie diet for the first 8 weeks and intensive behavioral therapy (ie, 30 counseling visits) during 68 weeks."
+- block sha256: c0fd1e52631098dfc70f32dab7021da25965c0476e10ab951f49c0fc42584222
 
 ### UA-033: semaglutide-obesity-weight / Percent change in body weight / PMID 33567185 (STEP 1)
 - state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED
@@ -79,8 +80,9 @@
   - gap_analysis_set: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "Overall number of participants analyzed = full analysis set (FAS) which comprised all randomized participants. Number Analyzed = number of participants with available data."
   - gap_follow_up: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "Change in body weight from baseline (week 0) to week 68 is presented."
   - gap_entry_age: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "Male or female, age greater than or equal to 18 years at the time of signing informed consent"
-  - treatment_strategy: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "DESCRIPTION: Change in body weight from baseline (week 0) to week 68 is presented. The endpoint was evaluated based on the data from both in-trial and on-treatment observation periods. In-trial observation period: the uninterrupted time interval from date of randomization (week 0) to date of last contact with trial site (week 75)."
-- block sha256: 641fd2105ace1174230a2abacf7469397495411427fa716100f5a49c7c07f1ca
+  - intercurrent_event_strategy: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "DESCRIPTION: Change in body weight from baseline (week 0) to week 68 is presented. The endpoint was evaluated based on the data from both in-trial and on-treatment observation periods. In-trial observation period: the uninterrupted time interval from date of randomization (week 0) to date of last contact with trial site (week 75)."
+  - treatment_strategy: `cache/semaglutide-obesity-weight/records.json#/records/118` (sha256 8779e517b6f0): "randomly assigned them, in a 2:1 ratio, to 68 weeks of treatment with once-weekly subcutaneous semaglutide (at a dose of 2.4 mg) or placebo, plus lifestyle intervention."
+- block sha256: 9d9c7e306603cdc8a84b8e7a88a79f57cee68adf2416d424dd208854c10ae01b
 
 ### UA-042: spironolactone-hfref-mortality / All-cause mortality / PMID 28824029 (J-EMPHASIS-HF)
 - state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED
@@ -101,4 +103,5 @@
   - gap_follow_up: `evidence/held/registry/NCT01115855.json` (sha256 adeecf86d9f3): "Randomization up to the date when the last enrolled participant had been followed up for 1 year (up to 1744 days)"
   - gap_entry_age: `evidence/held/registry/NCT01115855.json` (sha256 adeecf86d9f3): "ELIGIBILITY AGE/SEX: minimum age 55 Years | maximum age None | sex ALL"
   - treatment_strategy: `evidence/held_local/28824029/jstage_circj_82_1.html` (sha256 675e5ee29e43): "Eplerenone was initiated at a dose of 25 mg once daily provided that the serum potassium level was <5.0 mEq/L when dosage was initiated, and increased after 4 weeks to 50 mg once daily"
-- block sha256: 384a9a9215f5b5739eec4d51ceaf7c8f59d0dcdeb7ff35f9ca03ab3e390960d7
+  - intercurrent_event_strategy: `evidence/held_local/28824029/jstage_circj_82_1.html` (sha256 675e5ee29e43): "11 of 17 deaths in the eplerenone group occurred after study drug discontinuation"
+- block sha256: c3d81fb1b493de86223ecbfea28c860a90f5d2d469612052822c439df39efefb

@@ -264,6 +264,10 @@ EYE_LABELLED = [
     ("Subjects who were not eligible for randomization but who have been erroneously randomized into the study will be excluded from all analysis populations. The ITT population will consist of all randomized subjects", "OTHER_SET_STATED"),
     # CLEAR (NEJM 2025, repository PDF; the text layer hyphenates 'evalu- ated'): analysed as randomised = ITT
     ("For the primary analysis, patients were evalu- ated according to the groups to which they were randomly assigned.", "ITT_STATED"),
+    # adversarial-review corrections, 2026-09-25 (PDF text layers that run words together are kept verbatim)
+    ("Theintention-to-treat population included all randomized patients who received at least1doseofthestudydrug.", "OTHER_SET_STATED"),
+    ("Table 2. Adverse Events in the Intention-to-Treat Population.* Event Colchicine (N = 2762) Placebo (N = 2760)", "ITT_STATED"),
+    ("The exception was for frac - ture, amputation, cancer, and diabetic ketoaci - dosis outcomes, for which analyses included participants who received at least one dose of drug or placebo and had an event at any time during follow-up.", "OTHER_SET_STATED"),
 ]
 
 
