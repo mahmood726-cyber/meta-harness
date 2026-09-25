@@ -65,10 +65,12 @@ def _served_i_line(row_id):
 
 
 def protocol_terms(row):
-    """(intervention terms, comparator terms) for a packet row: its topic terms (held) or its review I-line (served)."""
+    """(intervention terms, comparator terms) for a packet row: its `arm_roles` block (the ARM_ROLE_ANCHOR contract:
+    the topic config's canonical terms, arm_roles.py), else its topic terms (held), else its review I-line (served)."""
     ta = _typed_arms()
-    i_terms = {t.lower() for t in (row.get("intervention_terms") or []) if t}
-    c_terms = {t.lower() for t in (row.get("comparator_terms") or []) if t}
+    roles = row.get("arm_roles") or {}
+    i_terms = {t.lower() for t in (roles.get("intervention") or row.get("intervention_terms") or []) if t}
+    c_terms = {t.lower() for t in (roles.get("comparator") or row.get("comparator_terms") or []) if t}
     i_terms |= ta.i_terms(" ".join(i_terms)) if i_terms else ta.i_terms(_served_i_line(row.get("row_id")))
     return i_terms, c_terms
 
@@ -335,6 +337,26 @@ def check_job(job):
         rec["arms"].append(out)
     if len(arms) != 2:
         rec["reasons"].append(f"{len(arms)} arms (need 2)")
+    # T5b: a registry-owned arm's group id must be the group the pipeline's classifier (_classify_arms, via the
+    # packet's arm_roles) assigns to that ROLE in the scope its witnesses sit in -- the group's own title decides the
+    # role, not the extraction (the F4 lane's item 36, integrated). An AE term's groups are the eventGroups.
+    reg_roles = (row.get("arm_roles") or {}).get("registry") or []
+    if scopes and reg_roles and o.get("ownership_source") == "REGISTRY_GROUPS":
+        measures = {e["scope"] for e in reg_roles if e["scope"] not in ("eventGroups", "baselineCharacteristicsModule",
+                                                                        "participantFlowModule")}
+        for i, fld, sc in scopes:
+            if fld != "event_witness" or not sc:
+                continue
+            label = sc[1] if sc[1] in measures else "eventGroups"
+            cls = [e for e in reg_roles if e["scope"] == label and e["state"] == "CLASSIFIED"]
+            role = arms[i].get("role")
+            if not cls:
+                rec["flags"].append(f"ROLE_REGISTRY_UNCLASSIFIED arm {i}: the classifier assigns no roles in {label!r}")
+            elif role in ("intervention", "comparator") and \
+                    arms[i].get("group_id") not in {e[f"{role}_group"] for e in cls}:
+                rec["reasons"].append(f"T5b arm {i}: declared {role!r} with group {arms[i].get('group_id')!r}, but the "
+                                      f"protocol's {role} group in {label!r} is "
+                                      f"{sorted({e[role + '_group'] for e in cls})}")
     if scopes:   # every registry witness of the row sits in ONE measure / AE term, and it is the row's registry item
         labels = {sc for _, _, sc in scopes}
         if len(labels) != 1:

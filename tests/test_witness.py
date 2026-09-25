@@ -324,3 +324,46 @@ def test_part_of_a_decimal_a_thin_space_group_or_a_hyphenated_word_is_not_a_toke
         (tmp_path / f"d{k}").mkdir()
         rec = job(tmp_path / f"d{k}", out, None, {"doc_p.txt": doc}, **TERMS)
         assert any(r.startswith("T3") for r in rec["reasons"]), (doc, rec["reasons"])
+
+
+# ---- producer arm_roles + T5b (the main lane's ARM_ROLE_ANCHOR, integrated 2026-09-25) ------------------------------
+OMAB = OM.replace('"Drugx"', '"Arm A"').replace('"Placebo"', '"Arm B"')
+
+
+def test_a_registry_arm_whose_role_contradicts_the_classifier_is_refused_even_when_names_say_nothing(tmp_path):
+    """Titles 'Arm A'/'Arm B' carry no protocol vocabulary, so T6 can only flag; the classifier's arm_roles decide."""
+    def R(t, nth=0):
+        return W(OMAB, t, nth, file="doc_registry_NCT0.json")
+    roles = {"intervention": ["drugx"], "comparator": ["placebo"], "source": "test",
+             "registry": [{"nct": "NCT0", "scope": "Mortality", "state": "CLASSIFIED",
+                           "intervention_group": "OG000", "comparator_group": "OG001"}]}
+    def out(swap):
+        a = [{"role": "intervention", "group_id": "OG000", "arm_name": "Arm A", "arm_name_witness": R("Arm A"),
+              "events": 20, "event_witness": R("20"), "total": 100, "total_witness": R("100")},
+             {"role": "comparator", "group_id": "OG001", "arm_name": "Arm B", "arm_name_witness": R("Arm B"),
+              "events": 10, "event_witness": R("10"), "total": 98, "total_witness": R("98")}]
+        if swap:
+            a[0]["role"], a[1]["role"] = "comparator", "intervention"
+        return {"ownership_source": "REGISTRY_GROUPS", "registry": {"item_title": "Mortality"}, "arms": a}
+    (tmp_path / "a").mkdir()
+    ok = job(tmp_path / "a", out(False), OM_SERVED, {"doc_registry_NCT0.json": OMAB}, registry=True, arm_roles=roles)
+    assert ok["state"] == "WITNESSED", ok["reasons"]
+    (tmp_path / "b").mkdir()
+    bad = job(tmp_path / "b", out(True), {"ai": 10, "n1i": 98, "ci": 20, "n2i": 100}, {"doc_registry_NCT0.json": OMAB},
+              registry=True, arm_roles=roles)
+    assert any(r.startswith("T5b") for r in bad["reasons"]), bad["reasons"]
+
+
+def test_arm_roles_come_from_the_topic_config_and_the_pipelines_classifier():
+    import sys
+    sys.path.insert(0, os.path.join(HERE, "..", "evidence", "typed_arms", "witness"))
+    import arm_roles
+    ta = os.path.join(HERE, "..", "evidence", "typed_arms")
+    r = arm_roles.arm_roles_for("pcsk9-mace", [os.path.join(ta, "registry", "NCT03872401.json")])
+    assert r["source"] == "topics/pcsk9-mace.json" and "evolocumab" in r["intervention"]
+    chd = [e for e in r["registry"] if e["scope"].startswith("Number of Participants Who Experienced Coronary Heart Disease")]
+    assert chd and chd[0]["state"] == "CLASSIFIED" and (chd[0]["intervention_group"], chd[0]["comparator_group"]) == ("OG001", "OG000")
+    for d in ("extractions_witness", "extractions_witness_served"):
+        for j in os.listdir(os.path.join(ta, d)):
+            row = json.load(open(os.path.join(ta, d, j, "row.json"), encoding="utf-8"))
+            assert row.get("arm_roles", {}).get("source"), (d, j, "every packet carries the protocol's arm_roles")
