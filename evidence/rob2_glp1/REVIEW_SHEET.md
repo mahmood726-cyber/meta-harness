@@ -2,10 +2,10 @@
 
 **Status: every judgement below is a PROPOSAL (`PROPOSAL_AWAITING_HUMAN_REVIEW`). None is final; the reviewer line is empty on purpose.**
 Result assessed: 3-point MACE hazard ratio, effect of assignment (ITT). Domains with held evidence: **50 of 50** (trials in the GLP-1 MACE pool (8 served + FLOW + ELIXA) x 5 RoB 2 domains).
-Proposals: low 40, some_concerns 10. `NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.
+Proposals: low 42, some_concerns 8. `NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.
 Stopped treatment is recorded separately (D2 context) and never used as missing outcome data (D3). A registry entry alone is never taken as proof of prespecification (D5).
 
-**Blind second read** (same model family -- blind, not independent; spans only): agreement 39 of 50 before reconciliation, 44 of 50 after. Disagreements KEPT for you to decide (6):
+**Blind second read** (same model family -- blind, not independent; spans only): agreement 39 of 50 before reconciliation, 42 of 50 after. Disagreements KEPT for you to decide (6):
 
 - PIONEER 6 D5_selection_of_reported_result: lane **low**, blind **some_concerns** -- blind's reason: The protocol span defines the MACE primary endpoint, and the SAP span says blinding lasts until database release, but neither shows the analysis plan was finalised before unblinding (5.1 NI).
 - SOUL D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Registry spans: completers 4755/4740, with 61 withdrawals and 94 lost to follow-up (roughly balanced), but no randomized denominator or vital-status ascertainment is given (3.1 NI).
@@ -14,7 +14,7 @@ Stopped treatment is recorded separately (D2 context) and never used as missing 
 - EXSCEL D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Paper span: 96.2% completed the trial and vital status was obtained for 98.8%, below the 99% level, with no per-arm balance or sensitivity analysis reported.
 - FLOW D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Paper span: vital status known in 98.6% only, below the 99% level, with no primary-outcome completeness or per-arm balance reported.
 
-## AMPLITUDE-O (PMID 34215025, NCT03496298) -- overall proposal: some_concerns
+## AMPLITUDE-O (PMID 34215025, NCT03496298) -- overall proposal: low
 
 | domain | proposal | why | witness sources | reviewer decision |
 |---|---|---|---|---|
@@ -22,7 +22,7 @@ Stopped treatment is recorded separately (D2 context) and never used as missing 
 | D2 deviations (assignment) | **low** | Identically appearing blinded syringes; efficacy analysis in the ITT population. | paper: `34215025/enlighten_246785.pdf`; sap: `NCT03496298/SAP_001.pdf` | ______ |
 | D3 missing outcome data | **low** | Vital status known for 99.9%; primary-outcome status known for 96.7% (the 3.3% gap is noted for the reviewer). | paper: `34215025/enlighten_246785.pdf` | ______ |
 | D4 outcome measurement | **low** | Independent end-point committee unaware of trial-group assignments. | paper: `34215025/enlighten_246785.pdf` | ______ |
-| D5 selection of reported result | **some_concerns** | [revised after blind second read, RoB 2 5.1] Protocol amendment approved 30 July 2018 (before the 2021 results) defines the adjudicated MACE outcome. The paper's sentence that analyses followed prespecified plans finalised before unblinding is NOT bound here (a line break in the held PDF defeats the anchor), so D5 rests on the protocol alone -- weigh accordingly. | protocol: `NCT03496298/Prot_000.pdf`; protocol: `NCT03496298/Prot_000.pdf` | ______ |
+| D5 selection of reported result | **low** | [low on NEW evidence bound after the blind read] The paper states the analyses followed two prespecified plans 'finalized before any unblinding occurred' (RoB 2 5.1 = Y); the protocol amendment (approved 30 July 2018) defines the adjudicated MACE outcome. | paper: `34215025/enlighten_246785.pdf`; protocol: `NCT03496298/Prot_000.pdf`; protocol: `NCT03496298/Prot_000.pdf` | ______ |
 
 Stopped treatment (D2 context, not missing data): exposure 88.9% vs 91.1% of follow-up time; followed to trial end regardless of adherence
 
@@ -62,7 +62,7 @@ Stopped treatment (D2 context, not missing data): premature discontinuation of t
 
 Stopped treatment (D2 context, not missing data): permanent discontinuation 28.8% (pooled); protocol keeps discontinuers in follow-up
 
-## HARMONY Outcomes (PMID 30291013, NCT02465515) -- overall proposal: some_concerns
+## HARMONY Outcomes (PMID 30291013, NCT02465515) -- overall proposal: low
 
 | domain | proposal | why | witness sources | reviewer decision |
 |---|---|---|---|---|
@@ -70,7 +70,7 @@ Stopped treatment (D2 context, not missing data): permanent discontinuation 28.8
 | D2 deviations (assignment) | **low** | All randomised patients analysed whether or not treatment was taken (ITT), matching placebo. | paper: `30291013/enlighten_170787.pdf` | ______ |
 | D3 missing outcome data | **low** | Vital status unknown for 61 of 9463 (0.6%). | paper: `30291013/enlighten_170787.pdf` | ______ |
 | D4 outcome measurement | **low** | Independent clinical events classification committee unaware of trial-group assignments. | paper: `30291013/enlighten_170787.pdf` | ______ |
-| D5 selection of reported result | **some_concerns** | [revised after blind second read, RoB 2 5.1: the RAP's own effective date is not bound] The Reporting and Analysis Plan (based on protocol amendment 3, 04-Apr-2017) specifies time to first MACE as the primary analysis, before database freeze. | sap: `NCT02465515/SAP_001.pdf`; sap: `NCT02465515/SAP_001.pdf` | ______ |
+| D5 selection of reported result | **low** | [low on NEW evidence bound after the blind read] The Reporting and Analysis Plan took effect 30-NOV-2017, while close-out visits (from 8 Nov 2017) ran to trial completion in March 2018, and the RAP fixes that planned analyses are performed after database freeze: the plan predates the unblinded data (RoB 2 5.1 = PY). The RAP specifies time to first MACE as the primary analysis. | sap: `NCT02465515/SAP_001.pdf`; sap: `NCT02465515/SAP_001.pdf`; paper: `30291013/enlighten_170787.pdf`; sap: `NCT02465515/SAP_001.pdf` | ______ |
 
 Stopped treatment (D2 context, not missing data): 24% vs 27% discontinued study medication prematurely (not death)
 
