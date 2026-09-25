@@ -12,3 +12,9 @@ The served row's `compat_dimensions.endpoint_definition.span` cites a DIFFERENT 
 - UA-039: the served note says DAPA-HF's primary includes urgent HF visits; true, but the served number is the registry's exact CV-death-or-HHF analysis (UA-039 adjudication), so the disclosure is stale for this row.
 
 - **S16-14** (EMPA-KIDNEY, Lower-limb amputation): the served endpoint citation is the trial's primary kidney/CV composite, not amputation. Eye label committed before a blind codex verdict (agree 16 of 16 on S16); lane WS flagged the same row.
+
+- **M-01** (LoDoCo2, Non-cardiovascular death): the served endpoint citation is the primary MACE composite.
+- **M-13** (ARISTOTLE, Major bleeding): the served endpoint citation is the primary stroke/systemic-embolism outcome.
+- **M-14** (CANVAS Program, Lower-limb amputation): the served endpoint citation is the primary CV composite.
+- M-06 (RE-COVER, Major bleeding): the citation names only 'bleeding events' (broader than major bleeding).
+(M rows: lane eye labels only; the codex budget was exhausted, so no blind second opinion.)
