@@ -386,7 +386,7 @@ def test_local_only_witnesses_reverify_when_their_held_copy_is_present():
                     continue
                 raw = open(f, "rb").read()
                 assert hashlib.sha256(raw).hexdigest() == w["document_sha256"]
-                t = raw.decode("utf-8")
+                t = raw.decode("latin-1" if "latin-1" in w.get("representation", "") else "utf-8")
                 assert t[w["start"]:w["end"]] == w["text"] == str(a["events"] if w["role"].endswith("events") else a["total"])
                 checked += 1
     if not checked:
