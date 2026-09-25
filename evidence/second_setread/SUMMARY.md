@@ -1,8 +1,8 @@
 # Blind cross-family reading of every analysis-set span behind a served-ITT count (2026-09-25)
 
 Recorded contract; the model saw only the span and the served label (no lane reading, no packet after the first 4).
-- 54 of 59 agree with the lane's reader (2 jobs crashed before calling the model while the runner script was being
-  edited; re-queued).
+- 56 of 61 agree with the lane's reader (the 2 jobs that crashed before calling the model while the runner script was being
+  edited were re-run and both agree).
 - 5 disagreements, each read by the lane:
   - ACCEPTED (3): P53-09 / P53-10 'ITT ... all randomized participants with valid informed consent' is a stated
     restriction; UA-046 'ITT ... complete case analysis with no imputation' is the non-missing restriction the lane
