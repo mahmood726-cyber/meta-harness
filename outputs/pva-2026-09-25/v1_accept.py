@@ -72,7 +72,7 @@ class Audit:
     def __init__(self, a):
         self.a = a
         self.rel = git("rev-parse", a.release).decode().strip()
-        self.prev = git("rev-parse", a.prev).decode().strip() if a.prev else None
+        self.prev = self.resolve_prev(a.prev, self.rel) if a.prev else None
         assert re.fullmatch(r"[0-9a-f]{40}", self.rel), f"release {a.release!r} does not resolve in {REPO}"
         self.work = Path(a.work)
         self.root = self.work / "site"
@@ -81,6 +81,23 @@ class Audit:
         self.results: dict[str, dict] = {}
         self.baseline_rows: dict = {}
         self.fetched: dict[str, str] = {}      # site-relative path -> sha256 of the bytes used
+
+    @staticmethod
+    def resolve_prev(prev: str, rel: str) -> str:
+        """--prev auto: the newest commit with an ATTESTED production record that is a proper ancestor of the release --
+        the release that was being served before this one. Printed, never silently guessed."""
+        if prev != "auto":
+            return git("rev-parse", prev).decode().strip()
+        git("fetch", "-q", "origin", "production-records")
+        for subj in git("log", "origin/production-records", "--format=%s").decode().splitlines():
+            m = re.match(r"production record ([0-9a-f]{12}): ATTESTED", subj)
+            if not m:
+                continue
+            full = git("rev-parse", m.group(1)).decode().strip()
+            if re.fullmatch(r"[0-9a-f]{40}", full) and full != rel and git_ok("merge-base", "--is-ancestor", full, rel):
+                print(f"--prev auto -> {full[:12]} ({subj})", flush=True)
+                return full
+        raise SystemExit("REFUSED: --prev auto found no attested ancestor of the release")
 
     # --------------------------------------------------------------------------------------------- acquisition
     def committed(self, rel_path: str) -> bytes | None:

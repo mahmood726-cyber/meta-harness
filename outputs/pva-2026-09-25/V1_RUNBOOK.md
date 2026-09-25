@@ -13,7 +13,7 @@ Work dirs: F:\claude-temp\claude\C--rmfw\8b65f96e-4468-481b-b9d4-307b02c07609\sc
 
 ## T0 = freeze (09:00): candidate sha announced by the main lane
 1. `git fetch origin`; identify the candidate commit `<V1>` and the previous served release `<PREV>` (the last commit with an
-   ATTESTED production record before V1).
+   ATTESTED production record before V1). `--prev auto` finds it and prints which it chose; check it.
 2. Rehearsal on git bytes (not acceptance):
    `python v1\v1_accept.py --release <V1> --prev <PREV> --work <F:>\v1cand --source git`
    Blockers to raise at once, in AUDIT + REPORT: P2 != 32/32, P3 FAIL (a page names a stale verifier -- rebuild), P4 any
