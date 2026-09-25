@@ -326,3 +326,21 @@ def test_find_span_returns_verbatim_render_substring(tmp_path, monkeypatch):
     s = find_span.locate("x", 'the "full analysis set" (all randomised patients), 2011-2014')
     assert s is not None and s in held and "\u2013" in s and "\u00a0" in s
     assert find_span.locate("x", "the full analysis set included everyone") is None
+
+
+def test_recorded_set_readings_are_current():
+    """A ruling's recorded source_reading must equal what the CURRENT reader says of its bound span, so a reader fix
+    cannot leave stale readings behind in the lane's rows (P53 rulings are Evidence lane two's since 2026-09-24; their
+    stale readings are handed over, not edited here)."""
+    import glob
+    from draft_from_extraction import set_reading
+    stale = []
+    for p in glob.glob(os.path.join(V.ROOT, "evidence", "adjudication", "*.json")):
+        a = json.load(open(p, encoding="utf-8"))
+        te = (a.get("typed_estimand") or {}).get("analysis_set")
+        sp = ((a.get("evidence") or {}).get("analysis_set") or {}).get("span")
+        if a["key"].startswith("P53") or not sp or not isinstance(te, dict) or not te.get("source_reading"):
+            continue
+        if te["source_reading"] != set_reading(sp):
+            stale.append((a["key"], te["source_reading"], set_reading(sp)))
+    assert stale == []
