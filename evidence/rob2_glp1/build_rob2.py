@@ -59,7 +59,7 @@ def check_domain(trial, dom, d, ws):
     if dom.startswith("D3"):
         for w in ws:
             if not D3_OUTCOME_WORDS.search(w["span"]):
-                return f"{trial} {dom}: R5 -- witness speaks only to treatment, not outcome ascertainment: {w['span'][:80]!r}"
+                return f"{trial} {dom}: R5 -- witness does not speak to outcome ascertainment (e.g. only treatment or a bare count): {w['span'][:80]!r}"
     return None
 
 
@@ -84,6 +84,8 @@ def build(spec):
             levels[d["proposal"]] += 1
             rec["domains"][dom] = {"status": STATUS, "proposal": d["proposal"], "why": d.get("why", ""),
                                    "signalling": d.get("signalling", {}), "witnesses": ws}
+        if len(rec["domains"]) < len(DOMAINS):
+            continue   # a refused domain is already in errs; the overall is not computed on a partial record
         td = t.get("D2_treatment_discontinuation")
         if td:
             try:

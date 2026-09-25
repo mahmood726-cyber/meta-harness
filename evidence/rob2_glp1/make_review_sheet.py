@@ -19,8 +19,17 @@ def main():
          "`NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.",
          "Stopped treatment is recorded separately (D2 context) and never used as missing outcome data (D3). "
          "A registry entry alone is never taken as proof of prespecification (D5).", ""]
+    bp = os.path.join(HERE, "BLIND_SECOND_READ.json")
+    if os.path.exists(bp):
+        b = json.load(open(bp, encoding="utf-8"))
+        kept = [r for r in b["rows"] if r["resolution"].startswith("KEPT")]
+        L += [f"**Blind second read** (same model family -- blind, not independent; spans only): agreement "
+              f"{b['agreement_before_reconciliation']} before reconciliation, {b['agreement_after']} after. "
+              f"Disagreements KEPT for you to decide ({len(kept)}):", ""]
+        L += [f"- {r['trial']} {r['domain']}: lane **{r['lane_now']}**, blind **{r['blind']}** -- blind's reason: {r['blind_why']}" for r in kept]
+        L.append("")
     for p in sorted(glob.glob(os.path.join(HERE, "*.json"))):
-        if os.path.basename(p) in ("SPEC.json", "SUMMARY.json"):
+        if os.path.basename(p) in ("SPEC.json", "SUMMARY.json", "BLIND_SECOND_READ.json", "BLIND_SECOND_READ_raw.json"):
             continue
         d = json.load(open(p, encoding="utf-8"))
         L += [f"## {d['trial']} (PMID {d['pmid']}, {d['nct']}) -- overall proposal: {d['overall']['proposal']}", "",

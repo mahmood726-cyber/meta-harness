@@ -2,10 +2,19 @@
 
 **Status: every judgement below is a PROPOSAL (`PROPOSAL_AWAITING_HUMAN_REVIEW`). None is final; the reviewer line is empty on purpose.**
 Result assessed: 3-point MACE hazard ratio, effect of assignment (ITT). Domains with held evidence: **50 of 50** (trials in the GLP-1 MACE pool (8 served + FLOW + ELIXA) x 5 RoB 2 domains).
-Proposals: low 45, some_concerns 5. `NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.
+Proposals: low 40, some_concerns 10. `NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.
 Stopped treatment is recorded separately (D2 context) and never used as missing outcome data (D3). A registry entry alone is never taken as proof of prespecification (D5).
 
-## AMPLITUDE-O (PMID 34215025, NCT03496298) -- overall proposal: low
+**Blind second read** (same model family -- blind, not independent; spans only): agreement 39 of 50 before reconciliation, 44 of 50 after. Disagreements KEPT for you to decide (6):
+
+- PIONEER 6 D5_selection_of_reported_result: lane **low**, blind **some_concerns** -- blind's reason: The protocol span defines the MACE primary endpoint, and the SAP span says blinding lasts until database release, but neither shows the analysis plan was finalised before unblinding (5.1 NI).
+- SOUL D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Registry spans: completers 4755/4740, with 61 withdrawals and 94 lost to follow-up (roughly balanced), but no randomized denominator or vital-status ascertainment is given (3.1 NI).
+- REWIND D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Registry spans give completers (4935 placebo, 4932 dulaglutide) with no randomized denominator, and the protocol span states only a requirement, not what was achieved (3.1 NI).
+- REWIND D4_outcome_measurement: lane **low**, blind **some_concerns** -- blind's reason: Protocol span: an independent CEC adjudicates all primary events, but no span states the CEC was blinded to assignment (4.3 NI).
+- EXSCEL D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Paper span: 96.2% completed the trial and vital status was obtained for 98.8%, below the 99% level, with no per-arm balance or sensitivity analysis reported.
+- FLOW D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Paper span: vital status known in 98.6% only, below the 99% level, with no primary-outcome completeness or per-arm balance reported.
+
+## AMPLITUDE-O (PMID 34215025, NCT03496298) -- overall proposal: some_concerns
 
 | domain | proposal | why | witness sources | reviewer decision |
 |---|---|---|---|---|
@@ -13,7 +22,7 @@ Stopped treatment is recorded separately (D2 context) and never used as missing 
 | D2 deviations (assignment) | **low** | Identically appearing blinded syringes; efficacy analysis in the ITT population. | paper: `34215025/enlighten_246785.pdf`; sap: `NCT03496298/SAP_001.pdf` | ______ |
 | D3 missing outcome data | **low** | Vital status known for 99.9%; primary-outcome status known for 96.7% (the 3.3% gap is noted for the reviewer). | paper: `34215025/enlighten_246785.pdf` | ______ |
 | D4 outcome measurement | **low** | Independent end-point committee unaware of trial-group assignments. | paper: `34215025/enlighten_246785.pdf` | ______ |
-| D5 selection of reported result | **low** | Protocol amendment approved 30 July 2018 (before the 2021 results) defines the adjudicated MACE outcome. The paper's sentence that analyses followed prespecified plans finalised before unblinding is NOT bound here (a line break in the held PDF defeats the anchor), so D5 rests on the protocol alone -- weigh accordingly. | protocol: `NCT03496298/Prot_000.pdf`; protocol: `NCT03496298/Prot_000.pdf` | ______ |
+| D5 selection of reported result | **some_concerns** | [revised after blind second read, RoB 2 5.1] Protocol amendment approved 30 July 2018 (before the 2021 results) defines the adjudicated MACE outcome. The paper's sentence that analyses followed prespecified plans finalised before unblinding is NOT bound here (a line break in the held PDF defeats the anchor), so D5 rests on the protocol alone -- weigh accordingly. | protocol: `NCT03496298/Prot_000.pdf`; protocol: `NCT03496298/Prot_000.pdf` | ______ |
 
 Stopped treatment (D2 context, not missing data): exposure 88.9% vs 91.1% of follow-up time; followed to trial end regardless of adherence
 
@@ -29,7 +38,7 @@ Stopped treatment (D2 context, not missing data): exposure 88.9% vs 91.1% of fol
 
 Stopped treatment (D2 context, not missing data): more discontinued lixisenatide early; exposures overall balanced
 
-## EXSCEL (PMID 28910237, NCT01144338) -- overall proposal: low
+## EXSCEL (PMID 28910237, NCT01144338) -- overall proposal: some_concerns
 
 | domain | proposal | why | witness sources | reviewer decision |
 |---|---|---|---|---|
@@ -37,7 +46,7 @@ Stopped treatment (D2 context, not missing data): more discontinued lixisenatide
 | D2 deviations (assignment) | **low** | Double-blind, matching placebo; Cox analyses in the intention-to-treat population. | paper: `PMC9792409/efetch.xml`; paper: `PMC9792409/efetch.xml` | ______ |
 | D3 missing outcome data | **low** | 96.2% completed; vital status obtained for 98.8%, including searches of health records for those lost or withdrawn. | paper: `PMC9792409/efetch.xml` | ______ |
 | D4 outcome measurement | **low** | Independent clinical events classification committee unaware of trial-group assignments. | paper: `PMC9792409/efetch.xml` | ______ |
-| D5 selection of reported result | **low** | Design paper (published before unblinding) fixes the primary CV composite and the ITT superiority analysis; SAP amendments (2016/2017, during blinded closeout) changed the event window -- noted for the reviewer. | paper: `SPIRAL_exscel/design.pdf` | ______ |
+| D5 selection of reported result | **some_concerns** | [revised after blind second read, RoB 2 5.1: the SAP's approval date is not bound] Design paper (published before unblinding) fixes the primary CV composite and the ITT superiority analysis; SAP amendments (2016/2017, during blinded closeout) changed the event window -- noted for the reviewer. | paper: `SPIRAL_exscel/design.pdf` | ______ |
 
 Stopped treatment (D2 context, not missing data): premature discontinuation of the regimen, driven by patient decision, was a major limitation
 
@@ -53,7 +62,7 @@ Stopped treatment (D2 context, not missing data): premature discontinuation of t
 
 Stopped treatment (D2 context, not missing data): permanent discontinuation 28.8% (pooled); protocol keeps discontinuers in follow-up
 
-## HARMONY Outcomes (PMID 30291013, NCT02465515) -- overall proposal: low
+## HARMONY Outcomes (PMID 30291013, NCT02465515) -- overall proposal: some_concerns
 
 | domain | proposal | why | witness sources | reviewer decision |
 |---|---|---|---|---|
@@ -61,7 +70,7 @@ Stopped treatment (D2 context, not missing data): permanent discontinuation 28.8
 | D2 deviations (assignment) | **low** | All randomised patients analysed whether or not treatment was taken (ITT), matching placebo. | paper: `30291013/enlighten_170787.pdf` | ______ |
 | D3 missing outcome data | **low** | Vital status unknown for 61 of 9463 (0.6%). | paper: `30291013/enlighten_170787.pdf` | ______ |
 | D4 outcome measurement | **low** | Independent clinical events classification committee unaware of trial-group assignments. | paper: `30291013/enlighten_170787.pdf` | ______ |
-| D5 selection of reported result | **low** | The Reporting and Analysis Plan (based on protocol amendment 3, 04-Apr-2017) specifies time to first MACE as the primary analysis, before database freeze. | sap: `NCT02465515/SAP_001.pdf`; sap: `NCT02465515/SAP_001.pdf` | ______ |
+| D5 selection of reported result | **some_concerns** | [revised after blind second read, RoB 2 5.1: the RAP's own effective date is not bound] The Reporting and Analysis Plan (based on protocol amendment 3, 04-Apr-2017) specifies time to first MACE as the primary analysis, before database freeze. | sap: `NCT02465515/SAP_001.pdf`; sap: `NCT02465515/SAP_001.pdf` | ______ |
 
 Stopped treatment (D2 context, not missing data): 24% vs 27% discontinued study medication prematurely (not death)
 
@@ -73,7 +82,7 @@ Stopped treatment (D2 context, not missing data): 24% vs 27% discontinued study 
 | D2 deviations (assignment) | **low** | Double-blind, matching placebo; all randomised included in the primary analysis. | paper: `PMC4985288/efetch.xml`; paper: `PMC4985288/efetch.xml` | ______ |
 | D3 missing outcome data | **low** | Vital status known for 99.7%; 96.8% completed a final visit, died or had a primary outcome. | paper: `PMC4985288/efetch.xml`; paper: `PMC4985288/efetch.xml` | ______ |
 | D4 outcome measurement | **low** | Adjudicated in a blinded fashion by an external independent committee. | paper: `PMC4985288/efetch.xml` | ______ |
-| D5 selection of reported result | **low** | The 2013 design paper (published before the 2016 results) fixes 3-point MACE as the primary end point; protocol and SAP published with the article (not held here). | paper: `24176437/europepmc_core.json`; paper: `PMC4985288/efetch.xml` | ______ |
+| D5 selection of reported result | **some_concerns** | [revised after blind second read, RoB 2 5.1: an outcome definition is not an analysis plan fixed before unblinding] The 2013 design paper (published before the 2016 results) fixes 3-point MACE as the primary end point; protocol and SAP published with the article (not held here). | paper: `24176437/europepmc_core.json`; paper: `PMC4985288/efetch.xml` | ______ |
 
 Stopped treatment (D2 context, not missing data): time on regimen 84% vs 83%; more stopped liraglutide for adverse events
 
@@ -107,7 +116,7 @@ Stopped treatment (D2 context, not missing data): more permanently discontinued 
 | D2 deviations (assignment) | **some_concerns** | Blinded (visually identical tablets), but the analysis population for MACE is not bound: the protocol's FAS text sits in a letter-spaced PDF text layer that does not render (2.6 = NI). | paper: `UCL_10169247/soul_design.pdf` | ______ |
 | D3 missing outcome data | **low** | Registry participant flow (rendered from V1.1): completed 4755/4825 vs 4740/4826 (98.5% vs 98.2%); not completed 70 vs 86 -- lost to follow-up 43 vs 51, withdrew 27 vs 34: small and balanced. This is TRIAL COMPLETION, not a vital-status figure (the results paper, which would give vital status, is not held) -- weigh accordingly. | registry: `registry/NCT03914326.json`; registry: `registry/NCT03914326.json`; registry: `registry/NCT03914326.json` | ______ |
 | D4 outcome measurement | **low** | Central adjudication by a masked external committee. | paper: `UCL_10169247/soul_design.pdf` | ______ |
-| D5 selection of reported result | **low** | The 2023 design paper (before the 2025 results) fixes 3-point MACE as the primary outcome. | paper: `UCL_10169247/soul_design.pdf` | ______ |
+| D5 selection of reported result | **some_concerns** | [revised after blind second read, RoB 2 5.1] The 2023 design paper (before the 2025 results) fixes 3-point MACE as the primary outcome, but no held span shows the analysis plan was finalised before unblinding. | paper: `UCL_10169247/soul_design.pdf` | ______ |
 
 ## SUSTAIN-6 (PMID 27633186, NCT01720446) -- overall proposal: some_concerns
 
