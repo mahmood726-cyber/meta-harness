@@ -2,10 +2,10 @@
 
 **Status: every judgement below is a PROPOSAL (`PROPOSAL_AWAITING_HUMAN_REVIEW`). None is final; the reviewer line is empty on purpose.**
 Result assessed: 3-point MACE hazard ratio, effect of assignment (ITT). Domains with held evidence: **50 of 50** (trials in the GLP-1 MACE pool (8 served + FLOW + ELIXA) x 5 RoB 2 domains).
-Proposals: low 42, some_concerns 8. `NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.
+Proposals: low 45, some_concerns 5. `NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.
 Stopped treatment is recorded separately (D2 context) and never used as missing outcome data (D3). A registry entry alone is never taken as proof of prespecification (D5).
 
-**Blind second read** (same model family -- blind, not independent; spans only): agreement 39 of 50 before reconciliation, 42 of 50 after. Disagreements KEPT for you to decide (6):
+**Blind second read** (same model family -- blind, not independent; spans only): agreement 39 of 50 before reconciliation, 39 of 50 after. Disagreements KEPT for you to decide (6):
 
 - PIONEER 6 D5_selection_of_reported_result: lane **low**, blind **some_concerns** -- blind's reason: The protocol span defines the MACE primary endpoint, and the SAP span says blinding lasts until database release, but neither shows the analysis plan was finalised before unblinding (5.1 NI).
 - SOUL D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Registry spans: completers 4755/4740, with 61 withdrawals and 94 lost to follow-up (roughly balanced), but no randomized denominator or vital-status ascertainment is given (3.1 NI).
@@ -13,6 +13,8 @@ Stopped treatment is recorded separately (D2 context) and never used as missing 
 - REWIND D4_outcome_measurement: lane **low**, blind **some_concerns** -- blind's reason: Protocol span: an independent CEC adjudicates all primary events, but no span states the CEC was blinded to assignment (4.3 NI).
 - EXSCEL D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Paper span: 96.2% completed the trial and vital status was obtained for 98.8%, below the 99% level, with no per-arm balance or sensitivity analysis reported.
 - FLOW D3_missing_outcome_data: lane **low**, blind **some_concerns** -- blind's reason: Paper span: vital status known in 98.6% only, below the 99% level, with no primary-outcome completeness or per-arm balance reported.
+
+**Direction warning:** 5 domains changed AFTER the blind read on newly bound evidence, and all 5 moved toward *low*: AMPLITUDE-O D5, HARMONY Outcomes D5, SOUL D2, SUSTAIN-6 D1, ELIXA D1. Each rests on a new span, but a one-directional pattern after a second opinion is exactly what a reviewer should weigh -- SUSTAIN-6 and ELIXA D1 in particular stand on incidental IV/WRS mentions.
 
 ## AMPLITUDE-O (PMID 34215025, NCT03496298) -- overall proposal: low
 
@@ -30,7 +32,7 @@ Stopped treatment (D2 context, not missing data): exposure 88.9% vs 91.1% of fol
 
 | domain | proposal | why | witness sources | reviewer decision |
 |---|---|---|---|---|
-| D1 randomisation | **some_concerns** | Randomised via IVRS (incidental mention) with similar baseline characteristics, but no held source describes sequence generation or concealment beyond that (1.1 = NI). | regulator: `FDA_208471/MedR.pdf` | ______ |
+| D1 randomisation | **low** | [low on NEW evidence bound after the blind read] Patients were randomised in the central Interactive Voice Response System (1.1/1.2 = PY, the same basis as SUSTAIN-6); baseline characteristics generally similar. The IVRS mention is incidental (a patient narrative) -- reviewer to confirm. | regulator: `FDA_208471/MedR.pdf`; regulator: `FDA_208471/MedR.pdf` | ______ |
 | D2 deviations (assignment) | **low** | Double-blind; MACE analyses in the ITT, all-as-randomised population. | regulator: `FDA_208471/MedR.pdf`; regulator: `FDA_208471/MedR.pdf` | ______ |
 | D3 missing outcome data | **low** | Vital status available for 99%; 71 lacked vital-status follow-up (42 placebo vs 29 lixisenatide). | regulator: `held/208471Orig1s000StatR.pdf` | ______ |
 | D4 outcome measurement | **low** | Cardiovascular adjudication committee blinded to treatment assignment. | regulator: `FDA_208471/MedR.pdf` | ______ |
@@ -113,16 +115,16 @@ Stopped treatment (D2 context, not missing data): more permanently discontinued 
 | domain | proposal | why | witness sources | reviewer decision |
 |---|---|---|---|---|
 | D1 randomisation | **low** | Central IWRS randomisation 1:1 (sequence and concealment via the system); baseline balance not held (1.3 = NI, which RoB 2 allows at low). | paper: `UCL_10169247/soul_design.pdf` | ______ |
-| D2 deviations (assignment) | **some_concerns** | Blinded (visually identical tablets), but the analysis population for MACE is not bound: the protocol's FAS text sits in a letter-spaced PDF text layer that does not render (2.6 = NI). | paper: `UCL_10169247/soul_design.pdf` | ______ |
+| D2 deviations (assignment) | **low** | [low on NEW evidence bound after the blind read] Blinded (visually identical tablets) and all analyses by intention-to-treat methods on the full analysis set of all unique randomised participants (2.6 = Y). | paper: `UCL_10169247/soul_design.pdf`; paper: `UCL_10169247/soul_design.pdf` | ______ |
 | D3 missing outcome data | **low** | Registry participant flow (rendered from V1.1): completed 4755/4825 vs 4740/4826 (98.5% vs 98.2%); not completed 70 vs 86 -- lost to follow-up 43 vs 51, withdrew 27 vs 34: small and balanced. This is TRIAL COMPLETION, not a vital-status figure (the results paper, which would give vital status, is not held) -- weigh accordingly. | registry: `registry/NCT03914326.json`; registry: `registry/NCT03914326.json`; registry: `registry/NCT03914326.json` | ______ |
 | D4 outcome measurement | **low** | Central adjudication by a masked external committee. | paper: `UCL_10169247/soul_design.pdf` | ______ |
 | D5 selection of reported result | **some_concerns** | [revised after blind second read, RoB 2 5.1] The 2023 design paper (before the 2025 results) fixes 3-point MACE as the primary outcome, but no held span shows the analysis plan was finalised before unblinding. | paper: `UCL_10169247/soul_design.pdf` | ______ |
 
-## SUSTAIN-6 (PMID 27633186, NCT01720446) -- overall proposal: some_concerns
+## SUSTAIN-6 (PMID 27633186, NCT01720446) -- overall proposal: low
 
 | domain | proposal | why | witness sources | reviewer decision |
 |---|---|---|---|---|
-| D1 randomisation | **some_concerns** | Stratified (9 strata) and balanced at baseline, but no held source describes sequence generation or allocation concealment (RoB 2 1.1/1.2 = NI); the FDA medical review also records stratification errors. | regulator: `FDA_209637/StatR.pdf`; regulator: `FDA_209637/MedR.pdf` | ______ |
+| D1 randomisation | **low** | [low on NEW evidence bound after the blind read] Randomisation registered in the central IV/WRS (sequence and concealment by the system: 1.1/1.2 = PY); baseline balanced. The stratification errors the FDA records were mis-entered strata, not a breach of concealment -- reviewer to confirm. | regulator: `FDA_209637/MedR.pdf`; regulator: `FDA_209637/StatR.pdf`; regulator: `FDA_209637/MedR.pdf` | ______ |
 | D2 deviations (assignment) | **low** | Double-blind within dose group; FAS analysed by ITT as randomised. | regulator: `FDA_209637/StatR.pdf`; regulator: `FDA_209637/StatR.pdf` | ______ |
 | D3 missing outcome data | **low** | Vital status for 99.6% of all randomised; 13 lacked it (6 vs 7). | regulator: `FDA_209637/StatR.pdf` | ______ |
 | D4 outcome measurement | **low** | External independent EAC adjudicating in a blinded manner. | regulator: `FDA_209637/StatR.pdf` | ______ |

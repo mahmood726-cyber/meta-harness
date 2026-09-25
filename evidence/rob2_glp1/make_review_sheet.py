@@ -27,6 +27,12 @@ def main():
               f"{b['agreement_before_reconciliation']} before reconciliation, {b['agreement_after']} after. "
               f"Disagreements KEPT for you to decide ({len(kept)}):", ""]
         L += [f"- {r['trial']} {r['domain']}: lane **{r['lane_now']}**, blind **{r['blind']}** -- blind's reason: {r['blind_why']}" for r in kept]
+        moved = [r for r in b["rows"] if "NEW evidence" in r["resolution"]]
+        if moved:
+            L += ["", f"**Direction warning:** {len(moved)} domains changed AFTER the blind read on newly bound evidence, "
+                  f"and all {len(moved)} moved toward *low*: " + ", ".join(f"{r['trial']} {r['domain'].split('_')[0]}" for r in moved)
+                  + ". Each rests on a new span, but a one-directional pattern after a second opinion is exactly what a "
+                  "reviewer should weigh -- SUSTAIN-6 and ELIXA D1 in particular stand on incidental IV/WRS mentions."]
         L.append("")
     for p in sorted(glob.glob(os.path.join(HERE, "*.json"))):
         if os.path.basename(p) in ("SPEC.json", "SUMMARY.json", "BLIND_SECOND_READ.json", "BLIND_SECOND_READ_raw.json"):
