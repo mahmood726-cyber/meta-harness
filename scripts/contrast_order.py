@@ -14,6 +14,7 @@ Arm identities are F4's: "<NCT>:<AACT design_group id>", read from the certified
 """
 from __future__ import annotations
 
+import math
 import re
 
 RATIO_MEASURES = ("HR", "OR", "RR", "IRR")
@@ -24,6 +25,10 @@ _SCALE_ALIASES = {"HR": "HR", "OR": "OR", "RR": "RR", "IRR": "IRR", "RATE RATIO"
 # the object of a comparison is the REFERENCE arm: "... than in the placebo group", "compared with placebo", "A versus B"
 _REFERENCE_MARK = re.compile(r"\b(?:as\s+)?(?:compared\s+(?:with|to)|versus|vs\.?|relative\s+to|than|(?:non-?)?inferior\s+to|superior\s+to)\s+"
                              r"(?:(?:in|on|with|among|receiving|assigned\s+to(?:\s+receive)?|those|patients|participants|the)\s+){0,4}$", re.I)
+# ... and a ratio 'for' an arm names that arm as the NUMERATOR: "hazard ratio for liraglutide, 0.87", "the hazard ratio for placebo versus ..."
+_NUMERATOR_MARK = re.compile(r"\b(?:hazard|odds|risk|rate)\s+ratios?\s*(?:\([A-Z]{2,3}\)\s*|\[[A-Z]{2,3}\]\s*)?,?\s*(?:for|with|of)\s+"
+                             r"(?:(?:the|patients|participants|those|in|receiving|assigned\s+to(?:\s+receive)?)\s+){0,4}$", re.I)
+_PCT = re.compile(r"(\d+(?:\.\d+)?)\s*%")
 _NOT_AN_ARM = re.compile(r"^-(?:controlled|matched|treated|based|like)", re.I)
 _GENERIC_REFERENCE = ("control",)          # names an arm only as '<control> group|arm'; 'glycaemic control' is not an arm
 
@@ -99,32 +104,68 @@ def family_arm_ids(fam, vocab):
     return by
 
 
+def rate_witness(clause, ms, num_side, estimate):
+    """Second, NUMERIC witness of orientation: the two per-arm percentages stated before the tuple ('608 of 4668 [13.0%] ... 694 of 4672
+    [14.9%]'), paired to their arms by position (all percentages precede their arm, or all follow it), must put the numerator arm on the
+    same side of 1 as the estimate. Informative only when both the crude ratio and the estimate are at least 5% from 1 (an HR and a crude
+    proportion ratio can straddle 1 near the null). CONTRADICTS makes the contrast UNORDERED: two witnesses that disagree order nothing."""
+    tuple_at = min([m.start() for _, rx in _CLAUSE_MEASURE for m in [re.search(rx, clause, re.I)] if m] or [len(clause)])
+    arms = []
+    for m in ms:
+        if m[0] < tuple_at and m[2] not in {a[2] for a in arms}:
+            arms.append(m)
+    pcts = [(m.start(), float(m.group(1))) for m in _PCT.finditer(clause[:tuple_at])]
+    out = {"state": "NOT_INFORMATIVE"}
+    if len(arms) != 2 or len(pcts) != 2 or estimate is None:
+        return dict(out, reason=f"{len(arms)} arm(s) and {len(pcts)} percentage(s) before the tuple; estimate {'given' if estimate is not None else 'absent'}")
+    (a1, a2), (p1, p2) = arms, pcts
+    if not (p1[0] < a1[0] < p2[0] < a2[0] or a1[0] < p1[0] < a2[0] < p2[0]):
+        return dict(out, reason="percentages and arms are not interleaved one-to-one")
+    rate = {a1[2]: p1[1], a2[2]: p2[1]}
+    ref_side = "REFERENCE" if num_side == "EXPERIMENTAL" else "EXPERIMENTAL"
+    if not rate[ref_side] or not rate[num_side] or float(estimate) <= 0:
+        return dict(out, reason="a zero rate or a non-positive estimate")
+    crude = rate[num_side] / rate[ref_side]
+    out.update(rates={"numerator": rate[num_side], "reference": rate[ref_side]}, crude_ratio=round(crude, 6), estimate=estimate)
+    if abs(math.log(crude)) < math.log(1.05) or abs(math.log(float(estimate))) < math.log(1.05):
+        return dict(out, reason="the crude ratio or the estimate is within 5% of 1")
+    return dict(out, state="AGREES" if (crude < 1) == (float(estimate) < 1) else "CONTRADICTS")
+
+
 def ordered_contrast(clause, values, vocab, fam=None):
     """Recompute the ordered contrast from the tuple's own clause.
+    Rule 0 (NUMERATOR_NAMED): 'hazard ratio for X' names X as the numerator.
     Rule 1 (COMPARATIVE_CONNECTIVE): an arm introduced by 'than (in the)', 'compared with', 'versus', 'relative to',
-      '(non)inferior/superior to' is the REFERENCE (the denominator). Both sides so marked -> UNRESOLVED.
-    Rule 2 (ORDER_OF_MENTION): with no connective, the first-named arm is the numerator ('X in the A group and Y in the B group
-      (HR ...)' reports A/B) -- the reporting convention, recorded as a weaker witness than rule 1.
-    One side named and marked as the object of a comparison ('HR vs placebo 0.87') -> the other side is the numerator."""
+      '(non)inferior/superior to' is the REFERENCE (the denominator).
+    Rule 2 (ORDER_OF_MENTION): with neither, the first-named arm is the numerator ('X in the A group and Y in the B group (HR ...)'
+      reports A/B) -- the reporting convention, recorded as a weaker witness.
+    Conflicting marks (both arms named numerator, both marked reference, or one arm marked both ways) -> UNORDERED.
+    Then the NUMERIC witness (rate_witness): per-arm percentages that contradict the ordering -> UNORDERED (fail closed)."""
     out = {"measure": clause_measure(clause), "experimental_arm": None, "reference_arm": None, "numerator_side": None,
            "estimate": values[0] if values else None, "ci_low": values[1] if values else None, "ci_high": values[2] if values else None,
-           "direction_witness": None, "state": "UNORDERED"}
+           "direction_witness": None, "rate_witness": None, "state": "UNORDERED"}
     if not clause:
         out["reason"] = "no result clause holds the effect tuple"
         return out
     ms = arm_mentions(clause, vocab)
     sides = {m[2] for m in ms}
-    marked = {m[2]: m for m in ms if _REFERENCE_MARK.search(clause[:m[0]])}
+    ref_marked = {m[2]: m for m in ms if _REFERENCE_MARK.search(clause[:m[0]])}
+    num_marked = {m[2]: m for m in ms if _NUMERATOR_MARK.search(clause[:m[0]])}
     first = {}
     for m in ms:
         first.setdefault(m[2], m)
-    if len(marked) == 2:
-        out["reason"] = "both arms are introduced as the object of a comparison: " + "; ".join(clause[max(0, m[0] - 30):m[1]] for m in marked.values())
+    if len(ref_marked) == 2 or len(num_marked) == 2 or set(ref_marked) & set(num_marked):
+        out["reason"] = "conflicting marks: " + "; ".join(clause[max(0, m[0] - 30):m[1]] for m in list(ref_marked.values()) + list(num_marked.values()))
         return out
-    if len(marked) == 1:
-        ref_side = next(iter(marked))
+    if num_marked:
+        num_side = next(iter(num_marked))
+        nm = num_marked[num_side]
+        lead = _NUMERATOR_MARK.search(clause[:nm[0]])
+        out["direction_witness"] = {"rule": "NUMERATOR_NAMED", "text": clause[lead.start():nm[1]], "clause_start": lead.start(), "clause_end": nm[1]}
+    elif ref_marked:
+        ref_side = next(iter(ref_marked))
         num_side = "EXPERIMENTAL" if ref_side == "REFERENCE" else "REFERENCE"
-        rm = marked[ref_side]
+        rm = ref_marked[ref_side]
         lead = _REFERENCE_MARK.search(clause[:rm[0]])
         out["direction_witness"] = {"rule": "COMPARATIVE_CONNECTIVE", "text": clause[lead.start():rm[1]], "clause_start": lead.start(), "clause_end": rm[1]}
     elif sides == {"EXPERIMENTAL", "REFERENCE"}:
@@ -134,6 +175,13 @@ def ordered_contrast(clause, values, vocab, fam=None):
                                     "note": "no comparative connective; the first-named arm is the numerator by the reporting convention"}
     else:
         out["reason"] = f"the clause names {sorted(sides) or 'no arm'} and no comparative connective orders them"
+        return out
+    rw = rate_witness(clause, ms, num_side, out["estimate"])
+    out["rate_witness"] = rw
+    if rw["state"] == "CONTRADICTS":
+        out["reason"] = (f"{out['direction_witness']['rule']} puts the {num_side} arm in the numerator, but the stated rates "
+                         f"({rw['rates']['numerator']}% vs {rw['rates']['reference']}%, crude {rw['crude_ratio']}) and the estimate {rw['estimate']} disagree")
+        out["direction_witness"] = None
         return out
     ids = family_arm_ids(fam, vocab)
     for s, key in (("EXPERIMENTAL", "experimental_arm"), ("REFERENCE", "reference_arm")):

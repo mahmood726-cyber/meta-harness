@@ -50,12 +50,16 @@ BATTERY = [
      "REFERENCE", "COMPARATIVE_CONNECTIVE"),
     ("Compared with placebo, liraglutide reduced the risk of the event (hazard ratio, 0.87; 95% CI, 0.78 to 0.97).",
      "EXPERIMENTAL", "COMPARATIVE_CONNECTIVE"),
-    ("The hazard ratio for placebo versus liraglutide was 1.15 (95% CI, 1.03 to 1.28).", "REFERENCE", "COMPARATIVE_CONNECTIVE"),
+    ("The hazard ratio for placebo versus liraglutide was 1.15 (95% CI, 1.03 to 1.28).", "REFERENCE", "NUMERATOR_NAMED"),   # rule 0 wins; rule 1 agrees
     ("Semaglutide vs placebo: hazard ratio 0.74 (95% CI 0.58 to 0.95).", "EXPERIMENTAL", "COMPARATIVE_CONNECTIVE"),
     ("The hazard ratio vs placebo was 0.87 (95% CI, 0.78 to 0.97).", "EXPERIMENTAL", "COMPARATIVE_CONNECTIVE"),
     ("In this placebo-controlled trial of liraglutide the hazard ratio was 0.87 (95% CI, 0.78 to 0.97).", None, None),
     ("With better glycaemic control the hazard ratio was 0.87 (95% CI, 0.78 to 0.97).", None, None),
     ("Liraglutide versus placebo, as compared with liraglutide: hazard ratio 0.87 (95% CI, 0.78 to 0.97).", None, None),
+    # from the blind reading (evidence/ordered_contrast/blind_reading/): a ratio 'for' an arm names the numerator -- the parser
+    # read this placebo/liraglutide by order of mention before rule 0 existed (item C09)
+    ("Events occurred in 694 placebo recipients and 608 liraglutide recipients (hazard ratio for liraglutide, 0.87; 95% CI, 0.78 to 0.97).",
+     "EXPERIMENTAL", "NUMERATOR_NAMED"),
 ]
 
 
@@ -71,6 +75,30 @@ def test_battery_orders_every_known_phrasing_and_refuses_to_guess(impl, clause, 
         assert oc["direction_witness"]["rule"] == rule, oc["direction_witness"]
         w = oc["direction_witness"]
         assert clause[w["clause_start"]:w["clause_end"]] == w["text"]          # the witness is a located span, not a paraphrase
+
+
+@pytest.mark.parametrize("impl", [vb, co], ids=["verifier", "producer"])
+def test_rates_that_contradict_the_convention_leave_the_contrast_unordered(impl):
+    """Item C05 of the blind reading: placebo is named first, so ORDER_OF_MENTION says placebo/semaglutide -- and so did the blind
+    reader -- but the stated rates (6.6% vs 8.9%) with an estimate of 0.74 can only be semaglutide/placebo. Two witnesses that disagree
+    order nothing: UNORDERED, never the convention's guess."""
+    c = "The outcome occurred in 8.9% of the placebo group and in 6.6% of the semaglutide group; the hazard ratio was 0.74 (95% CI, 0.58 to 0.95)."
+    oc = impl.ordered_contrast(c, [0.74, 0.58, 0.95], VOCAB, None)
+    assert oc["state"] == "UNORDERED" and oc["rate_witness"]["state"] == "CONTRADICTS" and "disagree" in oc["reason"]
+    agree = "The outcome occurred in 6.6% of the semaglutide group and in 8.9% of the placebo group; the hazard ratio was 0.74 (95% CI, 0.58 to 0.95)."
+    ok = impl.ordered_contrast(agree, [0.74, 0.58, 0.95], VOCAB, None)
+    assert ok["state"] == "ORDERED" and ok["numerator_side"] == "EXPERIMENTAL" and ok["rate_witness"]["state"] == "AGREES"
+    near_null = "In 12.0% of the exenatide group and 12.2% of the placebo group (hazard ratio, 0.98; 95% CI, 0.90 to 1.07)."
+    assert impl.ordered_contrast(near_null, [0.98, 0.9, 1.07], VOCAB, None)["rate_witness"]["state"] == "NOT_INFORMATIVE"
+
+
+def test_the_producer_copy_of_the_rules_is_byte_identical_to_the_verifiers():
+    """Two COPIES of one implementation, not two implementations (the independent readings are the blind reader and the AACT route).
+    What this pins is that the producer never serves a contrast the verifier would compute differently."""
+    v = open(VERIFIER, encoding="utf-8").read()
+    p = open(os.path.join(ROOT, "scripts", "contrast_order.py"), encoding="utf-8").read()
+    span = v[v.index('RATIO_MEASURES = ("HR", "OR", "RR", "IRR")'):v.index("def contrast_value_check(")].rstrip()
+    assert span in p
 
 
 @pytest.mark.parametrize("impl", [vb, co], ids=["verifier", "producer"])
@@ -131,6 +159,7 @@ def test_canonical_passes_every_row_orders_and_the_pool_is_one_measure(baseline)
         assert o["state"] == "ORDERED" and o["numerator_side"] == "EXPERIMENTAL", (pmid, o)
         assert o["measure"]["measure"] == "HR" and v["measure"] == "HR" and not v["p10"] and not v["p11"], (pmid, v)
         assert o["experimental_arm"]["arm_ids"] and o["reference_arm"]["arm_ids"], (pmid, o)        # F4 identities carried
+        assert o["rate_witness"]["state"] == "AGREES", (pmid, o["rate_witness"])                   # the numeric witness corroborates every row
         assert all(a.startswith(f"{a.split(':')[0]}:") and a.split(":")[0].startswith("NCT") for a in o["experimental_arm"]["arm_ids"])
     leader = ocs[LEADER]["recomputed"]
     assert leader["experimental_arm"]["arm_ids"] == ["NCT01179048:433876840"] and leader["reference_arm"]["arm_ids"] == ["NCT01179048:433876841"]
