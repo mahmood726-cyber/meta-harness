@@ -24,15 +24,16 @@ Arm identity, over the 64 arms of the 32 bound rows:
 
 Ownership of the events (G7), over the same 64 arms:
 - ADJACENT_LABEL: 43
-- PARALLEL_ORDER: 10
+- PARALLEL_ORDER: 6
 - TABLE_COLUMN: 6
+- VERSUS_ORDER: 5
 - GROUP_ID: 4
-- VERSUS_ORDER: 1
 
 Ownership of the denominator (G7), over the same 64 arms:
-- ADJACENT_LABEL: 47
-- PARALLEL_ORDER: 11
+- ADJACENT_LABEL: 48
+- PARALLEL_ORDER: 7
 - GROUP_ID: 4
+- VERSUS_ORDER: 3
 - TABLE_COLUMN: 2
 
 Denominator basis as the source states it, over the same 64 arms (a percentage never stands in):
@@ -88,7 +89,7 @@ metformin-pcos-ovulation / Ovulation with metformin added to clomifene / PMID 16
 | CD-corticosteroids-cap-mortality-1-0 | Hyperglycaemia | methylprednisolone group `NCT00908713:434377096` 11/61 | placebo group `NCT00908713:434377097` 7/59 | ADJACENT_LABEL, ADJACENT_LABEL | ADJACENT_LABEL, ADJACENT_LABEL |
 | CD-corticosteroids-cap-mortality-1-1 | Hyperglycaemia | dexamethasone `NCT01743755:433658679` 14/203 | placebo `NCT01743755:433658680` 1/198 | ADJACENT_LABEL, VERSUS_ORDER | ADJACENT_LABEL, ADJACENT_LABEL |
 | CD-corticosteroids-cap-mortality-1-3 | Hyperglycaemia | dexamethasone group `NCT00471640#arm:dexamethasone` 67/151 | placebo group `NCT00471640#arm:placebo` 35/153 | ADJACENT_LABEL, ADJACENT_LABEL | PARALLEL_ORDER, ADJACENT_LABEL |
-| CD-corticosteroids-covid19-mortality-1-0 | Serious adverse events | hydrocortisone `NCT04348305:434478834` 1/16 | placebo `NCT04348305:434478835` 0/14 | PARALLEL_ORDER, PARALLEL_ORDER | PARALLEL_ORDER, PARALLEL_ORDER |
+| CD-corticosteroids-covid19-mortality-1-0 | Serious adverse events | hydrocortisone `NCT04348305:434478834` 1/16 | placebo `NCT04348305:434478835` 0/14 | VERSUS_ORDER, VERSUS_ORDER | ADJACENT_LABEL, VERSUS_ORDER |
 | CD-dpp4-mace-t2d-1-0 | Adverse events | linagliptin `NCT01897532:434163212` 2697/3494 | placebo `NCT01897532:434163213` 2723/3485 | PARALLEL_ORDER, PARALLEL_ORDER | PARALLEL_ORDER, ADJACENT_LABEL |
 | CD-dpp4-mace-t2d-2-0 | Hypoglycemia | linagliptin `NCT01897532:434163212` 1036/3494 | placebo `NCT01897532:434163213` 1024/3485 | PARALLEL_ORDER, PARALLEL_ORDER | PARALLEL_ORDER, ADJACENT_LABEL |
 | CD-esketamine-trd-madrs-1-0 | Adverse events | Esketamine Plus AD `NCT03434041:433784606` 120/126 | AD Plus Placebo `NCT03434041:433784607` 89/126 | ADJACENT_LABEL, ADJACENT_LABEL | ADJACENT_LABEL, ADJACENT_LABEL |
@@ -99,7 +100,7 @@ metformin-pcos-ovulation / Ovulation with metformin added to clomifene / PMID 16
 | CD-omega3-cardiovascular-events-1-0 | Atrial fibrillation | Omega-3 `NCT00135226:434281137+NCT00135226:434281139` 166/7740 | Placebo Omega-3 `NCT00135226:434281138+NCT00135226:434281140` 135/7740 | GROUP_ID, GROUP_ID | GROUP_ID, GROUP_ID |
 | CD-probiotics-aad-prevention-0-1 | Antibiotic-associated diarrhoea | probiotic group `SYN-0419eae8aeb8#arm:probiotic` 106/549 | placebo group `SYN-0419eae8aeb8#arm:placebo` 103/577 | ADJACENT_LABEL, ADJACENT_LABEL | PARALLEL_ORDER, ADJACENT_LABEL |
 | CD-probiotics-aad-prevention-0-10 | Antibiotic-associated diarrhoea | lactobacilli group `SYN-750512ad72a7#arm:lactobacilli` 7/44 | placebo group `SYN-750512ad72a7#arm:placebo` 16/45 | ADJACENT_LABEL, ADJACENT_LABEL | ADJACENT_LABEL, ADJACENT_LABEL |
-| CD-probiotics-aad-prevention-0-6 | Antibiotic-associated diarrhoea | S. boulardii `SYN-962dc41d54af#arm:s-boulardii` 4/119 | placebo `SYN-962dc41d54af#arm:placebo` 22/127 | PARALLEL_ORDER, PARALLEL_ORDER | PARALLEL_ORDER, PARALLEL_ORDER |
+| CD-probiotics-aad-prevention-0-6 | Antibiotic-associated diarrhoea | S. boulardii `SYN-962dc41d54af#arm:s-boulardii` 4/119 | placebo `SYN-962dc41d54af#arm:placebo` 22/127 | VERSUS_ORDER, VERSUS_ORDER | VERSUS_ORDER, VERSUS_ORDER |
 | CD-probiotics-aad-prevention-0-7 | Antibiotic-associated diarrhoea | Lactobacillus GG `SYN-0b772df8adc9#arm:lactobacillus-gg` 39/133 | placebo `SYN-0b772df8adc9#arm:placebo` 40/134 | ADJACENT_LABEL, ADJACENT_LABEL | ADJACENT_LABEL, ADJACENT_LABEL |
 | CD-probiotics-aad-prevention-0-9 | Antibiotic-associated diarrhoea | Lactobacillus group `SYN-2163745e2514#arm:lactobacillus` 4/103 | placebo group `SYN-2163745e2514#arm:placebo` 8/111 | ADJACENT_LABEL, ADJACENT_LABEL | ADJACENT_LABEL, ADJACENT_LABEL |
 | CD-probiotics-aad-prevention-1-0 | Any adverse events | Active `SYN-dd9903025721#arm:active` 64/125 | Control `SYN-dd9903025721#arm:control` 69/130 | TABLE_COLUMN, TABLE_COLUMN | ADJACENT_LABEL, ADJACENT_LABEL |
