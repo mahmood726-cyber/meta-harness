@@ -92,8 +92,9 @@ def main():
         else:
             meta[nct] = {"error": f"ctgov status {st}"}
         time.sleep(0.4)
-    json.dump(ledger, open(LEDGER, "w", encoding="utf-8"), indent=1, sort_keys=True)
-    json.dump(meta, open(os.path.join(HELD, "europepmc_meta.json"), "w", encoding="utf-8"), indent=1, sort_keys=True)
+    # held/** is -text (bytes kept as written), so the writer itself must emit LF like the rest of the tree
+    json.dump(ledger, open(LEDGER, "w", encoding="utf-8", newline="\n"), indent=1, sort_keys=True)
+    json.dump(meta, open(os.path.join(HELD, "europepmc_meta.json"), "w", encoding="utf-8", newline="\n"), indent=1, sort_keys=True)
     oa = sum(1 for m in meta.values() if m.get("isOpenAccess") == "Y")
     print(f"pmids {len(pids)}; OA full text {oa}; ncts {len(ncts)}; ledger files {len(ledger)}")
 
