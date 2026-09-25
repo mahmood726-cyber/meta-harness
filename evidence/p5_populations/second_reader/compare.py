@@ -3,10 +3,13 @@ Every quote must be found verbatim (whitespace collapsed) in the WHOLE document 
 it was shown -- else the fact is QUOTE_NOT_FOUND (recorded with the quote, never discarded).
 Agreement: RECOVERED<->STATED, ESTABLISHED_ABSENT<->STATED_OPPOSITE, UNRESOLVED<->NOT_STATED.
 Usage: compare.py <jobs_dir> <out_json> <out_md>"""
-import collections, json, os, re, sys
+import collections, importlib.util, json, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LED = json.load(open(os.path.join(HERE, "..", "ledger.json"), encoding="utf-8"))
+_spec = importlib.util.spec_from_file_location("make_packets", os.path.join(HERE, "make_packets.py"))
+MP = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(MP)
 AGREE = {"RECOVERED": "STATED", "ESTABLISHED_ABSENT": "STATED_OPPOSITE", "UNRESOLVED": "NOT_STATED"}
 REG = re.compile(r"\b(?:NCT\s*\d{8}|ISRCTN\s*\d{8}|ACTRN\s*\d{14}|IRCT\d{8,}[A-Z]\d+|ChiCTR[-\w]+|UMIN\d{9}|DRKS\d{8}|EUCTR[-\w]+|\d{4}-\d{6}-\d{2})\b")
 
@@ -15,12 +18,35 @@ def ws(s):
     return re.sub(r"\s+", " ", s).strip()
 
 
-def quote_found(job, q):
+def quote_found(job, q, shown):
+    """The quote must be >= 20 characters, in a file the packet LISTED, whose bytes equal the projection re-derived
+    from its recorded origin (so a stale or edited file in the job folder cannot count)."""
     name = os.path.basename(q.get("file") or "")
-    p = os.path.join(job, name)
-    if not name.startswith("doc") or not os.path.exists(p):
-        return False
-    return ws(q.get("text") or "") != "" and ws(q["text"]) in ws(open(p, encoding="utf-8").read())
+    text = ws(q.get("text") or "")
+    return name in shown and len(text) >= 20 and text in ws(shown[name])
+
+
+def shown_documents(job):
+    """{file: text} for the files row.json lists, each re-derived from its origin by make_packets.project and required
+    to equal the bytes in the job folder; a mismatch or a missing origin drops the file (and is reported)."""
+    row = json.load(open(os.path.join(job, "row.json"), encoding="utf-8"))
+    pmid = (re.search(r"PMID (\d+)", row.get("trial") or "") or [None, None])[1]
+    shown, problems = {}, []
+    for d in row["documents"]:
+        fp, _, ptr = d["origin"].partition("#")
+        src = MP.origin_file(fp)
+        p = os.path.join(job, d["file"])
+        if not os.path.exists(src) or not os.path.exists(p):
+            problems.append(f"{d['file']}: origin or job file missing")
+            continue
+        _, text = MP.project(src, ptr, pmid)
+        if open(p, encoding="utf-8").read() != text:
+            problems.append(f"{d['file']}: job file differs from its re-derived projection")
+            continue
+        shown[d["file"]] = text
+    listed = {d["origin"] for d in row["documents"]}
+    dropped = [p for p in MP.row_documents(next(r for r in LED["rows"] if r["key"] == row["key"])) if p not in listed]
+    return shown, problems, dropped
 
 
 def main(jobs, out_json, out_md):
@@ -29,6 +55,7 @@ def main(jobs, out_json, out_md):
         job = os.path.join(jobs, r["key"])
         op = os.path.join(job, "out.json")
         got = {}
+        shown, problems, dropped = shown_documents(job) if os.path.exists(os.path.join(job, "row.json")) else ({}, ["no row.json"], [])
         if os.path.exists(op):
             try:
                 o = json.load(open(op, encoding="utf-8"))
@@ -44,14 +71,17 @@ def main(jobs, out_json, out_md):
             else:
                 v = g.get("verdict")
                 qs = g.get("quotes") or []
-                bad = [q for q in qs if not quote_found(job, q)]
-                rec.update(reader=v, quotes=qs, note=g.get("note"), other_trial=bool(g.get("other_trial")))
+                bad = [q for q in qs if not quote_found(job, q, shown)]
+                rec.update(reader=v, quotes=qs, note=g.get("note"), other_trial=bool(g.get("other_trial")),
+                           packet_problems=problems, documents_not_shown=dropped)
                 if v in ("STATED", "STATED_OPPOSITE") and (not qs or bad):
                     rec["cls"] = "QUOTE_NOT_FOUND"
                     rec["unfound"] = bad or "no quote"
                 elif v == "STATED" and f["fact_id"] == "registry_parent" and not any(REG.search(q["text"]) for q in qs):
                     rec["cls"] = "NO_IDENTIFIER_IN_QUOTE"
-                elif v == AGREE.get(f["state"]):
+                elif v == "NOT_STATED" and (problems or dropped):
+                    rec["cls"] = "NOT_STATED_ON_AN_INCOMPLETE_PACKET"   # agreement cannot be claimed from a doc not shown
+                elif f["state"] in AGREE and v == AGREE[f["state"]]:
                     rec["cls"] = "AGREE"
                 else:
                     rec["cls"] = "DISAGREE"

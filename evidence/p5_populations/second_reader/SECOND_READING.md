@@ -12,13 +12,22 @@ Per row: `SECOND_READING.json` -> `readers`. Two rows (P53-19, P53-42) were read
 runners were stopped, and a Claude batch then overwrote those two `out.json` files (my batching error). Codex's verdicts,
 recovered from its logged command stream, are identical to the Claude readings kept; the counts below use the Claude files.
 
-**Result.** 162 of 165 facts agree with the ledger (codex 112 of 114, Claude 50 of 51). The 3 disagreements, adjudicated:
+**Result (final, after the review-tightened comparison).** **163 of 165 facts agree with the ledger** (per reader:
+codex 107 of 108; Claude 50 of 51; the 2 rows read by both 6 of 6). Two disagreements remain, both ruled for the ledger:
 
 | row | fact | ledger | reader | ruling |
 |---|---|---|---|---|
-| P53-41 | entry_population | RECOVERED | NOT_STATED | **the reader was right about the cited span** -- evidence corrected, fact stays RECOVERED on the trial's own full text |
 | P53-43 | randomized_contrast | RECOVERED | NOT_STATED | ledger stands: the registration defines exactly two arms with allocation RANDOMIZED, parallel |
 | P53-50 | entry_population | ESTABLISHED_ABSENT | STATED | ledger stands: the reader's own note gives the ledger's reason (>=70 is a post hoc subgroup) |
+
+History: P53-41 entry_population first read NOT_STATED (codex) -- **the reader was right about the span the ledger then
+cited**. The evidence was corrected at the source (below), the row was re-read blind with the trial's own full text in
+the packet, and now agrees. The first reading is kept (`readings/P53-41.v1_without_full_text.json`).
+
+**Comparison rules** (tightened after a fresh-eyes review found `compare.py` accepted any `doc*` file in the folder and
+one-word quotes): a quote must be at least 20 characters, in a file the packet LISTS, whose bytes equal the projection
+re-derived from its recorded origin; AGREE only for the three declared state pairs; a NOT_STATED on a packet that lacks
+a document the ledger cites is not counted as agreement (that rule is what caught P53-41's stale packet).
 
 **The defect P53-41 exposed, fixed at the source.** `build_ledger.py` marked an entry fact RECOVERED whenever the evid
 lane had ruled it ESTABLISHED and its span was re-found in the bytes -- which proves the words exist, not that they

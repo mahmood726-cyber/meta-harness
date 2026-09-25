@@ -9,7 +9,7 @@ REGISTRY_CARRIES_OUTCOME_EQUAL (ownership should come from the registry); unequa
 Nothing here edits a v2 observation: the output is evidence/typed_arms/reglink/REGISTRY_LINKS.json, a neutral format
 awaiting the schema owner's answer on where registry arm identity lives when the outcome is not a registry measure.
 usage: check_reglink.py <jobs_dir> <out.json>"""
-import hashlib, json, os, sys
+import hashlib, json, os, re, sys
 
 
 def resolve(doc, ptr):
@@ -18,8 +18,22 @@ def resolve(doc, ptr):
     o = doc
     for part in ptr[1:].split("/"):
         part = part.replace("~1", "/").replace("~0", "~")
-        o = o[int(part)] if isinstance(o, list) else o[part]
+        if isinstance(o, list):
+            if not re.fullmatch(r"0|[1-9][0-9]*", part):   # RFC 6901: no sign, no leading zero
+                raise KeyError(f"bad array index {part!r}")
+            o = o[int(part)]
+        else:
+            o = o[part]
     return o
+
+
+def within(ptr, scope):
+    """Whole-segment containment: '/a/1/x' is within '/a/1', '/a/10' is not."""
+    return isinstance(ptr, str) and (ptr == scope or ptr.startswith(scope + "/"))
+
+
+def parent(ptr):
+    return ptr.rsplit("/", 1)[0]
 
 
 def num(x):
@@ -64,7 +78,11 @@ def check_job(job):
                 links.append({"pointer": ln.get("pointer"), "group_id": ln.get("id"), "title": ln.get("title"),
                               "state": "LINKED" if ok else "LINK_REFUSED", "why": why})
                 if ok:
-                    gid_role[(ln["pointer"].rsplit("/groups/", 1)[0].rsplit("/eventGroups/", 1)[0], ln["id"])] = arm["role"]
+                    key = (ln["pointer"].rsplit("/groups/", 1)[0].rsplit("/eventGroups/", 1)[0], ln["id"])
+                    if gid_role.get(key, arm["role"]) != arm["role"]:
+                        links[-1].update(state="LINK_REFUSED", why=f"group {ln['id']} in {key[0]} is already linked to the other arm")
+                    else:
+                        gid_role[key] = arm["role"]
             rec["arms"].append({"role": arm["role"], "arm_name": arm["arm_name"], "links": links})
         want = {a["role"]: (a["events"], a["total"]) for a in row["arms"]}
         for c in g.get("outcome_candidates", []):
@@ -80,14 +98,23 @@ def check_job(job):
                 for fld in ("value", "denominator"):
                     p = pg.get(f"{fld}_pointer")
                     try:
+                        if not within(p, c.get("pointer") or "\0"):
+                            raise ValueError("outside the candidate's own measure")
                         v = resolve(reg, p)
-                        if isinstance(v, dict):   # an AE stats object carries both numbers
-                            v = v.get("value", v.get("numAffected") if fld == "value" else v.get("numAtRisk"))
-                        if num(v) != num(pg.get(fld)):
+                        holder = v if isinstance(v, dict) else resolve(reg, parent(p))
+                        if isinstance(v, dict):   # an AE stats object carries both numbers; a measurement only 'value'
+                            if fld == "value":
+                                v = v["value"] if "value" in v else v.get("numAffected")
+                            else:
+                                v = v.get("numAtRisk") if "numAtRisk" in v else (v["value"] if "counts" in parent(p) else None)
+                        gid = holder.get("groupId") if isinstance(holder, dict) else None
+                        if gid != pg.get("group_id"):
+                            cand["problems"].append(f"{pg.get('group_id')} {fld}: pointer belongs to group {gid!r}")
+                        elif num(v) is None or num(v) != num(pg.get(fld)):
                             cand["problems"].append(f"{pg.get('group_id')} {fld}: pointer holds {v!r}, reader copied {pg.get(fld)!r}")
-                    except Exception:
-                        cand["problems"].append(f"{pg.get('group_id')} {fld}: pointer does not resolve")
-                roles = {r for (scope, gid), r in gid_role.items() if gid == pg.get("group_id") and (c.get("pointer") or "").startswith(scope)}
+                    except Exception as e:
+                        cand["problems"].append(f"{pg.get('group_id')} {fld}: pointer refused ({type(e).__name__}: {e})")
+                roles = {r for (scope, gid), r in gid_role.items() if gid == pg.get("group_id") and within(c.get("pointer"), scope)}
                 item["role"] = roles.pop() if len(roles) == 1 else None
                 if item["role"]:
                     got_roles[item["role"]] = (num(pg.get("value")), num(pg.get("denominator")))
@@ -124,7 +151,9 @@ def main(jobs, out):
     for r in rows:
         for c in r["outcome_candidates"]:
             cands[c["state"]] = cands.get(c["state"], 0) + 1
-    doc["summary"] = {"rows": len(rows), "row_states": tally, "outcome_candidate_states": cands}
+    errors = [{"nct": g["nct"], "error": g["error"]} for g in doc["registrations"] if g.get("error")]
+    doc["summary"] = {"rows": len(rows), "row_states": tally, "outcome_candidate_states": cands,
+                      "registrations": len(doc["registrations"]), "registration_errors": errors}
     json.dump(doc, open(out, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
     print(json.dumps(doc["summary"]))
 

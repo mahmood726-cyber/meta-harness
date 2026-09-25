@@ -27,15 +27,18 @@ LOCAL_HELD = os.environ.get("EVID2_HELD", r"C:\mh-lanes\evid2-held")
 
 
 def refind_adjudicated(adj):
-    """Re-find an adjudicated span. Repo refs: in the bytes (raw or textrep render) whose sha256 is recorded.
-    LOCAL_ONLY refs (not redistributable): re-found when the held copy is present with the recorded sha256; otherwise the
-    recorded sha256 is all a checkout can show, and the result says so."""
+    """Re-find an adjudicated span; returns how it was found, or None. Repo refs: in the bytes (raw or textrep render)
+    whose sha256 is recorded. LOCAL_ONLY refs (not redistributable): only when the held copy is present with the
+    recorded sha256 -- an absent copy is None (the caller records RECOVERED_LOCAL_UNCHECKED, never RECOVERED). A span of
+    fewer than 5 words is None: an empty or one-word span is 'in' any text."""
     import html, re
     ref = adj["ref"]
+    if len((adj.get("span") or "").split()) < 5:   # an empty or one-word span is 'in' any text
+        return None
     if ref.startswith("LOCAL_ONLY:"):
         p = os.path.join(LOCAL_HELD, ref.split(":", 1)[1])
         if not os.path.exists(p):
-            return "LOCAL_ONLY copy not present in this checkout (sha256 recorded, not re-checked here)"
+            return None   # absent is NOT re-found: the fact must not reach RECOVERED on the adjudication's word alone
         raw = open(p, "rb").read()
         if hashlib.sha256(raw).hexdigest() != adj["sha256"]:
             return None
@@ -147,6 +150,10 @@ for r in EV["rows"]:
                                         "sha256": adj["sha256"], "why": adj["why"]})
             elif srch and srch.get("result") == "UNRESOLVED":
                 rec["state"], rec["basis"], rec["search"] = "UNRESOLVED", srch.get("why"), srch
+            elif adj and adj.get("ref", "").startswith("LOCAL_ONLY:"):
+                rec["state"] = "RECOVERED_LOCAL_UNCHECKED"
+                rec["basis"] = ("evid2's adjudicated span is in a LOCAL_ONLY document not present in this checkout, so it "
+                                "was not re-found here; NOT counted as RECOVERED")
             else:
                 rec["state"], rec["basis"] = "SEARCH_PENDING", "evid's span re-found but not adjudicated by evid2 as stating entry"
             rec["notes"].append("CONFIG_DEFECT: population_any terms describe the outcome, not entry (EV53 MENTIONS_ONLY)")

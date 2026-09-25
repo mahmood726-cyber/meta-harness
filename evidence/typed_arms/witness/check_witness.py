@@ -21,6 +21,9 @@ WORDS = {w: i for i, w in enumerate("zero one two three four five six seven eigh
                                     "fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
 
 
+SEP = ",\u2008\u202f"
+
+
 def token_value(t):
     t = (t or "").strip()
     if re.fullmatch(r"\d{1,3}(?:,\d{3})+|\d+", t):
@@ -34,6 +37,7 @@ def token_value(t):
 
 
 _TA = None
+STRONG_CONTROL = re.compile(r"\b(placebo|sham|dummy|no treatment|no probiotic)\b|^\s*no[- ][a-z]", re.I)
 
 
 def _typed_arms():
@@ -72,11 +76,27 @@ def role_anchor(rec, row, arms):
     if not i_terms:
         rec["flags"].append("ROLE_UNANCHORED: no protocol terms for this row; the declared role was not checked")
         return
+    bad = [a.get("role") for a in arms if a.get("role") not in ("intervention", "comparator")]
+    if bad:
+        rec["reasons"].append(f"ARM_ROLE_INVALID: role must be exactly 'intervention' or 'comparator', got {bad!r}")
+    if len(arms) == 2 and arms[0].get("role") == arms[1].get("role"):
+        rec["reasons"].append(f"ARM_ROLE_DUPLICATE: both arms declared {arms[0].get('role')!r}")
     sides = []
     for a in arms:
         name = str(a.get("arm_name") or "").lower()
-        sides.append("comparator" if ta.CONTROL.search(name) else "intervention" if ta.side(name, i_terms)
-                     else "comparator" if ta.side(name, c_terms) else None)
+        on_i, on_c = ta.side(name, i_terms), ta.side(name, c_terms)
+        strong = STRONG_CONTROL.search(name)   # placebo / sham / dummy / a named absence: never the intervention
+        weak = ta.CONTROL.search(name)         # 'usual care', 'control': an add-on arm can carry these words
+        if strong or (weak and not on_i):
+            sides.append("comparator")
+        elif on_i and on_c:
+            sides.append(None)                 # shares vocabulary with both (valsartan vs sacubitril/valsartan)
+        elif on_i:
+            sides.append("intervention")
+        elif on_c:
+            sides.append("comparator")
+        else:
+            sides.append(None)
     for i, (a, side) in enumerate(zip(arms, sides)):
         role = a.get("role")
         if side is None:
@@ -142,6 +162,13 @@ def check_job(job):
             edge = r"[A-Za-z0-9]" if spelled else r"[0-9]"
             if (s > 0 and re.match(edge, text[s - 1])) or (e < len(text) and re.match(edge, text[e])):
                 rec["reasons"].append(f"T3 {what}: {w['text']!r} at {s} is part of a longer token")
+                return None
+            # a thousands group on either side makes this a PART of a grouped number ("10" or "033" of "10,033" /
+            # "10<U+2008>033"): found by review, 2026-09-25
+            if not spelled and ((e + 4 <= len(text) and text[e] in SEP and text[e + 1:e + 4].isdigit()
+                                 and (e + 4 == len(text) or not text[e + 4].isdigit()))
+                                or (s >= 2 and text[s - 1] in SEP and text[s - 2].isdigit() and len(w["text"]) == 3)):
+                rec["reasons"].append(f"T3 {what}: {w['text']!r} at {s} is one group of a grouped number")
                 return None
         key = (f, s, e)
         if key in used and used[key] != what:

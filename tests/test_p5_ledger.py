@@ -1,6 +1,9 @@
-"""P5 population ledger (evidence/p5_populations): an entry fact is never RECOVERED on another lane's ruling alone.
-The blind second reading found a cited span that exists in the bytes but does not state the fact (P53-41); the gate
-now requires evid2's own adjudicated span, re-found in sha-pinned bytes. Plants must be refused."""
+"""P5 population ledger (evidence/p5_populations): an entry fact is never RECOVERED on the EVID LANE'S ruling alone.
+The blind second reading found a cited span that exists in the bytes but does not state the fact (P53-41); that branch
+now requires evid2's own adjudicated span, re-found in sha-pinned bytes. Plants must be refused.
+Scope, stated so the title does not claim more than it tests: the 24 entry facts RECOVERED through EV53's own
+ESTABLISHES ruling are NOT adjudicated here; their semantic check is the blind second reading, which agreed on all 24
+(second_reader/SECOND_READING.json)."""
 import json, os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -37,3 +40,17 @@ def test_a_planted_span_that_is_not_in_the_bytes_is_refused():
     assert refind(real)
     assert refind(dict(real, span=real["span"] + " and every participant was taking antibiotics.")) is None
     assert refind(dict(real, sha256="0" * 64)) is None
+
+
+def test_an_empty_or_short_span_and_an_absent_local_copy_are_never_re_found(monkeypatch):
+    refind = _gate()
+    adj = json.load(open(os.path.join(PP, "entry_adjudications.json"), encoding="utf-8"))
+    real = next(a for a in adj.values() if not a["ref"].startswith("LOCAL_ONLY:"))
+    for span in ("", "the", "were randomly assigned"):
+        assert refind(dict(real, span=span)) is None
+    local = next(a for a in adj.values() if a["ref"].startswith("LOCAL_ONLY:"))
+    src = open(os.path.join(PP, "scripts", "build_ledger.py"), encoding="utf-8").read()
+    env = {"__file__": os.path.join(PP, "scripts", "build_ledger.py"), "__name__": "bl"}
+    monkeypatch.setenv("EVID2_HELD", os.path.join(HERE, "no-such-dir"))
+    exec(compile(src[:src.index("rows_out, tally, by_fact")], "build_ledger", "exec"), env)
+    assert env["refind_adjudicated"](local) is None

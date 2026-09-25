@@ -43,13 +43,20 @@ def strings(o, path=""):
 
 
 def origin_file(fp):
-    return os.path.join(LOCAL, fp[6:]) if fp.startswith("LOCAL:") else os.path.join(ROOT, fp)
+    for pre in ("LOCAL_ONLY:", "LOCAL:"):   # a document held local-only (not redistributable)
+        if fp.startswith(pre):
+            return os.path.join(LOCAL, fp[len(pre):])
+    return os.path.join(ROOT, fp)
 
 
 def project(src, ptr, pmid):
     """(raw bytes, text shown to the reader). JSON: the pointed object, or the trial's own records; else verbatim."""
     raw = open(src, "rb").read()
     dec = gzip.decompress(raw) if src.endswith(".gz") else raw
+    if src.endswith(".html"):   # a web page: scripts/styles removed, tags stripped, entities unescaped
+        import html
+        t = re.sub(r"(?s)<(script|style)[^>]*>.*?</>", "", dec.decode("utf-8", "replace"))
+        return raw, html.unescape(re.sub(r"[ 	]+", " ", re.sub(r"<[^>]+>", " ", t)))
     if not (src.endswith(".json") or src.endswith(".json.gz")):
         return raw, dec.decode("utf-8", "replace")
     o = json.loads(dec)
@@ -86,24 +93,31 @@ def main(out):
     rows = {r["index"]: r for r in EV["rows"]}
     for r in LED["rows"]:
         j = os.path.join(out, r["key"])
+        if os.path.isdir(j):   # never let a stale file from an earlier run sit in a job folder
+            for f in os.listdir(j):
+                os.remove(os.path.join(j, f))
         os.makedirs(j, exist_ok=True)
+        not_shown = []
         pmid = (re.search(r"PMID (\d+)", r["trial"]) or [None, None])[1]
         docs = []
         for i, p in enumerate(row_documents(r)):
             fp, _, ptr = p.partition("#")
             src = origin_file(fp)
             if not os.path.exists(src):
+                not_shown.append({"origin": p, "why": "origin not present in this checkout"})
                 continue
             raw, text = project(src, ptr, pmid)
             if not text.strip():
+                not_shown.append({"origin": p, "why": "projection empty"})
                 continue
             name = f"doc{i:02d}_" + re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(fp)) + ".txt"
             open(os.path.join(j, name), "w", encoding="utf-8", newline="\n").write(text)
-            docs.append({"file": name, "origin": p, "origin_sha256": hashlib.sha256(raw).hexdigest(), "projection": PROJECTION})
+            docs.append({"file": name, "origin": p, "origin_sha256": hashlib.sha256(raw).hexdigest(), "projection": PROJECTION,
+                         "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest()})
         row = {"key": r["key"], "trial": r["trial"], "family_id": r.get("family_id"), "slug": r["slug"],
                "topic_requirements": rows[r["index"]].get("topic_requirements"),
                "facts": [{"fact_id": f["fact_id"], "question": FACTS.get(f["fact_id"], f["fact_id"])} for f in r["facts"]],
-               "documents": docs}
+               "documents": docs, "documents_not_shown": not_shown}
         json.dump(row, open(os.path.join(j, "row.json"), "w", encoding="utf-8"), indent=1)
     print(len(LED["rows"]), "packets")
 
