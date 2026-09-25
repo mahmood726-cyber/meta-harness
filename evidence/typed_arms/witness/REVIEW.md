@@ -67,3 +67,18 @@ Held population after the same re-run: WITNESSED 23 -> v2 written for 23 of 34.
 - S4 (a registry match that is only a thresholded non-serious term, CARMELINA) was not answered; the row stays written
   from prose and flagged.
 Result: held 26 of 34 written (was 24), served 31 of 35 (unchanged).
+
+## Adversarial ownership audit of every written v2 row (2026-09-25, `v2/ownership_audit/`)
+232 witnesses of the 58 written rows (27 held + 31 served), each shown in +-700 characters of its held document to a
+blind auditor (two Claude subagents; same model family as the lane). **215 of 232 OWNED, 0 NOT_OWNED, 17 UNCLEAR; no
+arm swap anywhere.** The 17 UNCLEAR, ruled:
+- 10 (PCSK9 x2 registry rows, omega-3 AF): the window did not reach the registry group titles or measure title --
+  ownership was already decided mechanically (T5, innermost scoping object; `group_id_scope`). OWNED.
+- 1 (colchicine secondary prevention, placebo total 129): printed 129, but the source's own "3 (2.5%)" implies 120.
+  Already recorded (`percentage_corroboration` agrees:false); the served value equals the printed number. Not changed.
+- 2 (colchicine post-op AF 32720823, held only): the label "Treatment discontinuation" is broader than the source's
+  "diarrhea ... necessitated treatment discontinuation in one patient in each group". Recorded, not queued (not served).
+- 4 (COVID STEROID 34138478, held + served): "serious adverse reactions" -- per the trial's full text a prespecified
+  4-event composite at day 14 -- served as "Serious adverse events". **Queued as Q3** (`SIGNATURE_QUEUE.md`).
+Noted, OWNED: two probiotic rows whose table heading reads "Severe Adverse Events" while the next row, "Unexpected SAE",
+prints the same counts (the auditor read them as serious; a reader who takes "severe" literally would not).

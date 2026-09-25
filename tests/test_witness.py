@@ -25,7 +25,7 @@ def W(doc, text, nth=0, file="doc_p.txt"):
     return {"file": file, "start": at, "end": at + len(text), "text": text}
 
 
-def job(tmp_path, out, served, docs, registry=False):
+def job(tmp_path, out, served, docs, registry=False, **row_extra):
     j = tmp_path / "HE-x"
     j.mkdir()
     rows = []
@@ -33,7 +33,7 @@ def job(tmp_path, out, served, docs, registry=False):
         (j / name).write_bytes(text.encode("utf-8"))
         rows.append({"file": name, "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(), "origin": name})
     (j / "row.json").write_text(json.dumps({"held_key": "x/1", "served": served, "documents": rows,
-                                            "registry_results": [{"nct": "NCT0"}] if registry else []}), encoding="utf-8")
+                                            "registry_results": [{"nct": "NCT0"}] if registry else [], **row_extra}), encoding="utf-8")
     (j / "out.json").write_text(json.dumps(out), encoding="utf-8")
     return cw.check_job(str(j))
 
@@ -155,3 +155,91 @@ def test_a_typographic_thousands_separator_is_one_token_and_a_plain_space_is_not
     assert cw.token_value("10 033") is None          # ten and thirty-three, never joined
     assert cw.token_value("1\u20080330") is None     # a separator must start a group of exactly three
     assert cw.token_value("10,033") == 10033 and cw.token_value("twenty") == 20
+
+
+TERMS = {"intervention_terms": ["drugx"], "comparator_terms": ["placebo"]}
+
+
+def test_role_is_anchored_to_the_protocol_when_terms_exist(tmp_path):
+    rec = job(tmp_path, prose_out(), SERVED_P, {"doc_p.txt": PROSE}, **TERMS)
+    assert rec["state"] == "WITNESSED" and not [f for f in rec["flags"] if f.startswith("ROLE_")]
+
+
+def test_a_consistently_reversed_object_is_refused(tmp_path):
+    """The F4 lane's reproduction: placebo declared 'intervention' AND the tuple reversed to match. T5 alone passed it."""
+    out = prose_out()
+    for a in out["arms"]:
+        a["role"] = {"intervention": "comparator", "comparator": "intervention"}[a["role"]]
+    reversed_served = {"ai": 9, "n1i": 98, "ci": 9, "n2i": 100}
+    rec = job(tmp_path, out, reversed_served, {"doc_p.txt": PROSE}, **TERMS)
+    assert rec["state"] == "INCOMPLETE" and sum("ARM_ROLE_MISMATCH" in r for r in rec["reasons"]) == 2
+
+
+def test_without_protocol_terms_the_role_is_flagged_unanchored_never_silently_passed(tmp_path):
+    rec = job(tmp_path, prose_out(), SERVED_P, {"doc_p.txt": PROSE})
+    assert any(f.startswith("ROLE_UNANCHORED") for f in rec["flags"])
+
+
+def test_a_named_absence_arm_is_the_comparator_and_an_unknown_name_is_fixed_by_its_partner(tmp_path):
+    out = prose_out()
+    out["arms"][1]["arm_name"] = "no-drugx"
+    out["arms"][1]["arm_name_witness"] = None
+    rec = job(tmp_path, out, SERVED_P, {"doc_p.txt": PROSE}, **TERMS)
+    assert not any("ARM_ROLE" in r for r in rec["reasons"])
+    out = prose_out()
+    out["arms"][0]["arm_name"], out["arms"][0]["arm_name_witness"] = "study drug", None   # neither vocabulary
+    for a in out["arms"]:
+        a["role"] = {"intervention": "comparator", "comparator": "intervention"}[a["role"]]
+    (tmp_path / "b").mkdir()
+    rec = job(tmp_path / "b", out, {"ai": 9, "n1i": 98, "ci": 9, "n2i": 100}, {"doc_p.txt": PROSE}, **TERMS)
+    assert any("ARM_ROLE_MISMATCH arm 0" in r for r in rec["reasons"])
+
+
+# ---- review fixes, 2026-09-25 -------------------------------------------------------------------------------------
+GROUPED = "Randomly assigned: drugx (n=10\u2008033) or placebo (n=9985). Events: 30 and 34, respectively.\n"
+
+
+def grouped_out(total_text, total_value):
+    at = GROUPED.index(total_text)
+    return {"ownership_source": "PROSE_OR_TABLE", "arms": [
+        {"role": "intervention", "group_id": None, "arm_name": "drugx", "arm_name_witness": W(GROUPED, "drugx"),
+         "events": 30, "event_witness": W(GROUPED, "30"), "total": total_value,
+         "total_witness": {"file": "doc_p.txt", "start": at, "end": at + len(total_text), "text": total_text}},
+        {"role": "comparator", "group_id": None, "arm_name": "placebo", "arm_name_witness": W(GROUPED, "placebo"),
+         "events": 34, "event_witness": W(GROUPED, "34"), "total": 9985, "total_witness": W(GROUPED, "9985")}]}
+
+
+def test_one_group_of_a_grouped_number_is_not_a_token(tmp_path):
+    whole = job(tmp_path, grouped_out("10\u2008033", 10033), {"ai": 30, "n1i": 10033, "ci": 34, "n2i": 9985}, {"doc_p.txt": GROUPED}, **TERMS)
+    assert whole["state"] == "WITNESSED", whole["reasons"]
+    for i, (text, value) in enumerate((("10", 10), ("033", 33))):
+        d = tmp_path / f"g{i}"
+        d.mkdir()
+        out = grouped_out(text, value) if text == "10" else grouped_out("\u2008033", 33)
+        if text == "033":   # the tail group itself
+            at = GROUPED.index("\u2008033") + 1
+            out["arms"][0]["total_witness"] = {"file": "doc_p.txt", "start": at, "end": at + 3, "text": "033"}
+        rec = job(d, out, {"ai": 30, "n1i": value, "ci": 34, "n2i": 9985}, {"doc_p.txt": GROUPED}, **TERMS)
+        assert any("grouped number" in r for r in rec["reasons"]), (text, rec["reasons"])
+
+
+def test_a_role_outside_the_two_values_or_a_duplicate_role_is_refused(tmp_path):
+    out = prose_out()
+    out["arms"][0]["role"] = "Intervention"
+    rec = job(tmp_path, out, None, {"doc_p.txt": PROSE}, **TERMS)
+    assert any(r.startswith("ARM_ROLE_INVALID") for r in rec["reasons"])
+    out = prose_out()
+    out["arms"][1]["role"] = "intervention"
+    (tmp_path / "b").mkdir()
+    rec = job(tmp_path / "b", out, None, {"doc_p.txt": PROSE}, **TERMS)
+    assert any(r.startswith("ARM_ROLE_DUPLICATE") for r in rec["reasons"])
+
+
+def test_an_add_on_arm_named_with_usual_care_is_still_the_intervention():
+    rec = {"reasons": [], "flags": []}
+    arms = [{"role": "intervention", "arm_name": "Drugx plus usual care"}, {"role": "comparator", "arm_name": "Usual care"}]
+    cw.role_anchor(rec, TERMS, arms)
+    assert not rec["reasons"], rec["reasons"]
+    rec = {"reasons": [], "flags": []}
+    cw.role_anchor(rec, TERMS, [{"role": "intervention", "arm_name": "Placebo drugx"}, {"role": "comparator", "arm_name": "Drugx"}])
+    assert any("ARM_ROLE_MISMATCH" in r for r in rec["reasons"])   # 'placebo' is never the intervention

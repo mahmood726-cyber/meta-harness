@@ -42,3 +42,45 @@ text resolves the window. The pooled estimate must be recomputed by the pipeline
 ```
 
 sha256 of the block above: `8a8e7d12fd2f8b28bbb5b4c9c923bdf808031ea8f5e111763efb578618d9955c`
+
+## Q3
+
+```
+PROPOSED OUTCOME-IDENTITY CHANGE ON A SERVED ROW -- for Mahmood's individual decision (derived by evid2; NOT landed)
+Page: corticosteroids-covid19-mortality | Outcome: Serious adverse events (harm) | Trial: COVID STEROID, PMID 34138478, NCT04348305
+SERVED: hydrocortisone 1/16 vs placebo 0/14, labelled "Serious adverse events" -- from the held abstract: "the number of
+  serious adverse reactions 1/16 vs 0/14".
+THE TRIAL'S OWN FULL TEXT (PMC8441888, free to read, not open access; held local-only, sha256 4b8347da3b75...):
+  "The secondary outcomes were: Number of participants with one or more serious adverse reactions at day 14 defined as
+  new episodes of septic shock, invasive fungal infection, clinically important gastrointestinal bleeding, or
+  anaphylactic reaction." and "In total, there was 1 patient with one or more SARs in the trial (hydrocortisone: 1/16;
+  placebo 0/14)."
+So the served count is a prespecified 4-event composite of serious adverse REACTIONS at day 14, served under the broader
+label serious adverse EVENTS; the trial reports no all-cause SAE count in the held or acquired text. The registry record
+has no posted results. Found by the adversarial ownership audit (2026-09-25), then confirmed in the full text.
+OPTIONS (Mahmood's decision): A. keep 1/16 vs 0/14 and relabel this trial's row "Serious adverse reactions (septic
+shock, invasive fungal infection, GI bleeding, anaphylaxis; day 14)" -- the row then no longer pools with SAE rows;
+B. keep it in the SAE pool with a derived notice that it is a narrower composite; C. set the row aside from the SAE
+outcome. A or C changes the pooled SAE estimate, which must be recomputed by the pipeline. Nothing here is applied.
+```
+
+sha256 of the block above: `3522dc53556c3c7b07fec92f2927ea1da8c11598b4877e60f92f9cb6bed33be4`
+
+## Q2a (addendum to Q2)
+
+```
+ADDENDUM TO Q2 (Q2 above is unchanged; its sha256 still binds it) -- derived by evid2, NOT landed
+COVACTA's full text (PMC7953459, free to read, not open access; held local-only, sha256 909fd806e081...) establishes
+the cause Q2 left open -- the ASSESSMENT WINDOW:
+  "In the safety population, adverse events were reported in 77.3% of 295 patients in the tocilizumab group and in
+  81.1% of 143 patients in the placebo group through day 28 ( Table 3 ); serious adverse events were reported in 34.9%
+  and 38.5%, respectively." Table 3 (Safety Population): "Any serious adverse event ... Patients with >=1 event 103
+  (34.9) 55 (38.5)". The paper also states: "The primary analysis was performed at day 28, and the final trial visit
+  occurred at day 60."
+So: served 103/295 vs 55/143 = serious adverse events through DAY 28 (publication); registry 116/295 vs 64/143 =
+through DAY 60 (registry timeFrame "60 days"). Same safety population and denominators; both are correct for their
+window. Q2's options stand; under A the served window changes from 28 to 60 days and must be stated; under B the row
+should carry its window (28 days). Nothing here is applied.
+```
+
+sha256 of the block above: `5ed6bca548d662c73f435a9eb7f1c7ff2baa33c05385da417c11b4348cd0cae8`

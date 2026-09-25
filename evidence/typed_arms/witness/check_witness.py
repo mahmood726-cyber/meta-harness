@@ -21,6 +21,9 @@ WORDS = {w: i for i, w in enumerate("zero one two three four five six seven eigh
                                     "fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
 
 
+SEP = ",\u2008\u202f"
+
+
 def token_value(t):
     t = (t or "").strip()
     if re.fullmatch(r"\d{1,3}(?:,\d{3})+|\d+", t):
@@ -31,6 +34,91 @@ def token_value(t):
     if re.fullmatch(r"\d{1,3}(?:[\u2008\u202f]\d{3})+", t):
         return int(re.sub(r"[\u2008\u202f]", "", t))
     return WORDS.get(t.lower())
+
+
+_TA = None
+STRONG_CONTROL = re.compile(r"\b(placebo|sham|dummy|no treatment|no probiotic)\b|^\s*no[- ][a-z]", re.I)
+
+
+def _typed_arms():
+    """check_typed_arms.py's G6 vocabulary (i_terms, side, CONTROL), so both gates share one definition of a control arm."""
+    global _TA
+    if _TA is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("check_typed_arms", os.path.join(HERE, "..", "scripts", "check_typed_arms.py"))
+        _TA = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_TA)
+    return _TA
+
+
+def _served_i_line(row_id):
+    p = os.path.join(HERE, "..", "population.json")
+    if not row_id or not os.path.exists(p):
+        return None
+    pop = json.load(open(p, encoding="utf-8"))
+    rows = pop["rows"] if isinstance(pop, dict) else pop
+    return next((r.get("intervention_i_line") for r in rows if r.get("row_id") == row_id), None)
+
+
+def protocol_terms(row):
+    """(intervention terms, comparator terms) for a packet row: its topic terms (held) or its review I-line (served)."""
+    ta = _typed_arms()
+    i_terms = {t.lower() for t in (row.get("intervention_terms") or []) if t}
+    c_terms = {t.lower() for t in (row.get("comparator_terms") or []) if t}
+    i_terms |= ta.i_terms(" ".join(i_terms)) if i_terms else ta.i_terms(_served_i_line(row.get("row_id")))
+    return i_terms, c_terms
+
+
+def protocol_side(name, i_terms, c_terms):
+    """'intervention', 'comparator' or None (unknown / shares both vocabularies) for an arm or group name."""
+    ta = _typed_arms()
+    name = str(name or "").lower()
+    on_i, on_c = ta.side(name, i_terms), ta.side(name, c_terms)
+    strong = STRONG_CONTROL.search(name)   # placebo / sham / dummy / a named absence: never the intervention
+    weak = ta.CONTROL.search(name)         # 'usual care', 'control': an add-on arm can carry these words
+    if strong or (weak and not on_i):
+        return "comparator"
+    if on_i and on_c:
+        return None                        # shares vocabulary with both (valsartan vs sacubitril/valsartan)
+    return "intervention" if on_i else "comparator" if on_c else None
+
+
+def role_anchor(rec, row, arms):
+    """T6: the DECLARED role must agree with the protocol, not only with the object. Reported by the F4 lane
+    (2026-09-25): T5 proves number -> groupId -> title, and the tuple comparison is keyed by the object's own role, so a
+    consistently reversed object -- placebo declared 'intervention', tuple reversed to match -- was WITNESSED.
+    Protocol side of an arm name: control vocabulary (incl. a named absence 'no-X') -> comparator; the topic's
+    intervention terms -> intervention; the topic's comparator terms -> comparator. Terms: the packet's
+    intervention_terms/comparator_terms (held packets), else the served row's review I-line (population.json).
+    A declared role on the other side is ARM_ROLE_MISMATCH (refused). No terms -> ROLE_UNANCHORED; a name on neither
+    side -> ROLE_UNMATCHED: both flagged, never a silent pass."""
+    ta = _typed_arms()
+    i_terms, c_terms = protocol_terms(row)
+    if not i_terms:
+        rec["flags"].append("ROLE_UNANCHORED: no protocol terms for this row; the declared role was not checked")
+        return
+    bad = [a.get("role") for a in arms if a.get("role") not in ("intervention", "comparator")]
+    if bad:
+        rec["reasons"].append(f"ARM_ROLE_INVALID: role must be exactly 'intervention' or 'comparator', got {bad!r}")
+    if len(arms) == 2 and arms[0].get("role") == arms[1].get("role"):
+        rec["reasons"].append(f"ARM_ROLE_DUPLICATE: both arms declared {arms[0].get('role')!r}")
+    sides = [protocol_side(a.get("arm_name"), i_terms, c_terms) for a in arms]
+    for i, (a, side) in enumerate(zip(arms, sides)):
+        role = a.get("role")
+        if side is None:
+            # a two-arm row whose OTHER arm is anchored fixes this arm's role by elimination; otherwise flag it
+            other = sides[1 - i] if len(arms) == 2 else None
+            if other and role in ("intervention", "comparator") and other == role:
+                rec["reasons"].append(f"ARM_ROLE_MISMATCH arm {i}: declared {role!r}, but the other arm is the protocol's "
+                                      f"{other}, so this one cannot be")
+            elif not other:
+                rec["flags"].append(f"ROLE_UNMATCHED arm {i}: {a.get('arm_name')!r} matches neither the protocol's "
+                                    f"intervention nor its comparator vocabulary, and nor does the other arm")
+        elif role in ("intervention", "comparator") and side != role:
+            rec["reasons"].append(f"ARM_ROLE_MISMATCH arm {i}: declared {role!r} but {a.get('arm_name')!r} is the protocol's "
+                                  f"{side}; role must come from the protocol, not from the object")
+    if len(arms) == 2 and sides[0] and sides[0] == sides[1]:
+        rec["flags"].append(f"ROLE_AMBIGUOUS: both arm names read as the protocol's {sides[0]}")
 
 
 def check_job(job):
@@ -80,6 +168,13 @@ def check_job(job):
             edge = r"[A-Za-z0-9]" if spelled else r"[0-9]"
             if (s > 0 and re.match(edge, text[s - 1])) or (e < len(text) and re.match(edge, text[e])):
                 rec["reasons"].append(f"T3 {what}: {w['text']!r} at {s} is part of a longer token")
+                return None
+            # a thousands group on either side makes this a PART of a grouped number ("10" or "033" of "10,033" /
+            # "10<U+2008>033"): found by review, 2026-09-25
+            if not spelled and ((e + 4 <= len(text) and text[e] in SEP and text[e + 1:e + 4].isdigit()
+                                 and (e + 4 == len(text) or not text[e + 4].isdigit()))
+                                or (s >= 2 and text[s - 1] in SEP and text[s - 2].isdigit() and len(w["text"]) == 3)):
+                rec["reasons"].append(f"T3 {what}: {w['text']!r} at {s} is one group of a grouped number")
                 return None
         key = (f, s, e)
         if key in used and used[key] != what:
@@ -171,6 +266,7 @@ def check_job(job):
         rec["arms"].append(out)
     if len(arms) != 2:
         rec["reasons"].append(f"{len(arms)} arms (need 2)")
+    role_anchor(rec, row, arms)
     if rec["registry_results"] and o.get("ownership_source") != "REGISTRY_GROUPS":
         rec["flags"].append("REGISTRY_NOT_USED: the entry's registry record has posted results; the extractor used prose -- "
                             "its notes must say the outcome is absent from the registry results (read by eye)")
