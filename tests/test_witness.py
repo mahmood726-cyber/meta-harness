@@ -324,3 +324,127 @@ def test_part_of_a_decimal_a_thin_space_group_or_a_hyphenated_word_is_not_a_toke
         (tmp_path / f"d{k}").mkdir()
         rec = job(tmp_path / f"d{k}", out, None, {"doc_p.txt": doc}, **TERMS)
         assert any(r.startswith("T3") for r in rec["reasons"]), (doc, rec["reasons"])
+
+
+# ---- producer arm_roles + T5b (the main lane's ARM_ROLE_ANCHOR, integrated 2026-09-25) ------------------------------
+OMAB = OM.replace('"Drugx"', '"Arm A"').replace('"Placebo"', '"Arm B"')
+
+
+def test_a_registry_arm_whose_role_contradicts_the_classifier_is_refused_even_when_names_say_nothing(tmp_path):
+    """Titles 'Arm A'/'Arm B' carry no protocol vocabulary, so T6 can only flag; the classifier's arm_roles decide."""
+    def R(t, nth=0):
+        return W(OMAB, t, nth, file="doc_registry_NCT0.json")
+    roles = {"intervention": ["drugx"], "comparator": ["placebo"], "source": "test",
+             "registry": [{"nct": "NCT0", "scope": "Mortality", "state": "CLASSIFIED",
+                           "intervention_group": "OG000", "comparator_group": "OG001"}]}
+    def out(swap):
+        a = [{"role": "intervention", "group_id": "OG000", "arm_name": "Arm A", "arm_name_witness": R("Arm A"),
+              "events": 20, "event_witness": R("20"), "total": 100, "total_witness": R("100")},
+             {"role": "comparator", "group_id": "OG001", "arm_name": "Arm B", "arm_name_witness": R("Arm B"),
+              "events": 10, "event_witness": R("10"), "total": 98, "total_witness": R("98")}]
+        if swap:
+            a[0]["role"], a[1]["role"] = "comparator", "intervention"
+        return {"ownership_source": "REGISTRY_GROUPS", "registry": {"item_title": "Mortality"}, "arms": a}
+    (tmp_path / "a").mkdir()
+    ok = job(tmp_path / "a", out(False), OM_SERVED, {"doc_registry_NCT0.json": OMAB}, registry=True, arm_roles=roles)
+    assert ok["state"] == "WITNESSED", ok["reasons"]
+    (tmp_path / "b").mkdir()
+    bad = job(tmp_path / "b", out(True), {"ai": 10, "n1i": 98, "ci": 20, "n2i": 100}, {"doc_registry_NCT0.json": OMAB},
+              registry=True, arm_roles=roles)
+    assert any(r.startswith("T5b") for r in bad["reasons"]), bad["reasons"]
+
+
+def test_arm_roles_come_from_the_topic_config_and_the_pipelines_classifier():
+    import sys
+    sys.path.insert(0, os.path.join(HERE, "..", "evidence", "typed_arms", "witness"))
+    import arm_roles
+    ta = os.path.join(HERE, "..", "evidence", "typed_arms")
+    r = arm_roles.arm_roles_for("pcsk9-mace", [os.path.join(ta, "registry", "NCT03872401.json")])
+    assert r["source"] == "topics/pcsk9-mace.json" and "evolocumab" in r["intervention"]
+    chd = [e for e in r["registry"] if e["scope"].startswith("Number of Participants Who Experienced Coronary Heart Disease")]
+    assert chd and chd[0]["state"] == "CLASSIFIED" and (chd[0]["intervention_group"], chd[0]["comparator_group"]) == ("OG001", "OG000")
+    for d in ("extractions_witness", "extractions_witness_served"):
+        for j in os.listdir(os.path.join(ta, d)):
+            row = json.load(open(os.path.join(ta, d, j, "row.json"), encoding="utf-8"))
+            assert row.get("arm_roles", {}).get("source"), (d, j, "every packet carries the protocol's arm_roles")
+
+
+def test_local_only_witnesses_reverify_when_their_held_copy_is_present():
+    """A witness in a non-redistributable full text is held beside v2 (witness/local_only/). Where the held copy exists
+    (evid2's machine), its sha256 and every token offset must still hold; elsewhere the test says so and skips."""
+    import glob, hashlib, pytest
+    recs = glob.glob(os.path.join(HERE, "..", "evidence", "typed_arms", "witness", "local_only", "*.json"))
+    assert recs
+    held = os.environ.get("EVID2_HELD", r"C:\mh-lanes\evid2-held")
+    checked = 0
+    for p in recs:
+        rec = json.load(open(p, encoding="utf-8"))
+        for a in rec["arms"]:
+            for w in (a["event_witness"], a["total_witness"]):
+                f = os.path.join(held, w["document"].split(":", 1)[1])
+                if not os.path.exists(f):
+                    continue
+                raw = open(f, "rb").read()
+                assert hashlib.sha256(raw).hexdigest() == w["document_sha256"]
+                t = raw.decode("latin-1" if "latin-1" in w.get("representation", "") else "utf-8")
+                assert t[w["start"]:w["end"]] == w["text"] == str(a["events"] if w["role"].endswith("events") else a["total"])
+                checked += 1
+    if not checked:
+        pytest.skip("no local-only held copy in this checkout (sha256 recorded)")
+
+
+# ---- review 5 (2026-09-25): classification only when unambiguous; T5b per registration, per kind, never silent -----
+def _roles_mod():
+    import sys
+    sys.path.insert(0, os.path.join(HERE, "..", "evidence", "typed_arms", "witness"))
+    import arm_roles
+    return arm_roles
+
+
+def test_the_classifier_is_accepted_only_for_a_single_unambiguous_contrast():
+    a = _roles_mod()
+    assert a.classify([{"id": "OG000", "title": "Drugx"}, {"id": "OG001", "title": "Placebo"}], ["drugx"], ["placebo"])[0] == ("OG000", "OG001")
+    # 'placebo' inside the drug arm's title reversed the roles in _classify_arms
+    assert a.classify([{"id": "OG000", "title": "Placebo"}, {"id": "OG001", "title": "Drugx plus placebo-matched"}], ["drugx"], ["placebo"])[0] is None
+    # a subgroup / follow-up phase / factorial: the last match used to win
+    four = [{"id": f"OG00{k}", "title": t} for k, t in enumerate(["Drugx", "Placebo", "Drugx subgroup", "Placebo subgroup"])]
+    assert a.classify(four, ["drugx"], ["placebo"])[0] is None
+
+
+def _t5b_job(tmp_path, name, roles, swap=False, doc=None):
+    doc = doc or OMAB
+    def R(t, nth=0):
+        return W(doc, t, nth, file="doc_registry_NCT0.json")
+    arms = [{"role": "intervention", "group_id": "OG000", "arm_name": "Arm A", "arm_name_witness": R("Arm A"),
+             "events": 20, "event_witness": R("20"), "total": 100, "total_witness": R("100")},
+            {"role": "comparator", "group_id": "OG001", "arm_name": "Arm B", "arm_name_witness": R("Arm B"),
+             "events": 10, "event_witness": R("10"), "total": 98, "total_witness": R("98")}]
+    served = OM_SERVED
+    if swap:
+        arms[0]["role"], arms[1]["role"] = "comparator", "intervention"
+        served = {"ai": 10, "n1i": 98, "ci": 20, "n2i": 100}
+    (tmp_path / name).mkdir()
+    return job(tmp_path / name, {"ownership_source": "REGISTRY_GROUPS", "registry": {"item_title": "Mortality"}, "arms": arms},
+               served, {"doc_registry_NCT0.json": doc}, registry=True, arm_roles=roles)
+
+
+def _entry(nct, i, c, scope="Mortality", kind="measure"):
+    return {"nct": nct, "scope": scope, "kind": kind, "state": "CLASSIFIED", "intervention_group": i, "comparator_group": c}
+
+
+def test_t5b_never_unions_disagreeing_entries_and_reads_only_the_witness_registration(tmp_path):
+    base = {"intervention": ["drugx"], "comparator": ["placebo"], "source": "t"}
+    two = dict(base, registry=[_entry("NCT0", "OG000", "OG001"), _entry("NCT0", "OG001", "OG000")])
+    rec = _t5b_job(tmp_path, "a", two, swap=True)
+    assert any("disagree" in r for r in rec["reasons"]), rec["reasons"]
+    other_reg = dict(base, registry=[_entry("NCT0", "OG000", "OG001"), _entry("NCT9", "OG001", "OG000")])
+    rec = _t5b_job(tmp_path, "b", other_reg, swap=True)          # the other registration's entry must not rescue it
+    assert any(r.startswith("T5b") for r in rec["reasons"]), rec["reasons"]
+
+
+def test_t5b_missing_scope_is_a_reason_and_no_classification_is_a_flag(tmp_path):
+    base = {"intervention": ["drugx"], "comparator": ["placebo"], "source": "t"}
+    rec = _t5b_job(tmp_path, "a", dict(base, registry=[_entry("NCT0", "OG000", "OG001", scope="Another measure")]))
+    assert any("ROLE_REGISTRY_SCOPE_MISSING" in r for r in rec["reasons"])
+    rec = _t5b_job(tmp_path, "b", dict(base, registry=[]))
+    assert any(f.startswith("ROLE_REGISTRY_NOT_CHECKED") for f in rec["flags"])
