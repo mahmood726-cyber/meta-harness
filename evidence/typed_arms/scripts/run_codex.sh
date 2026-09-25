@@ -10,5 +10,8 @@ for k in "$@"; do
   codex exec --json --sandbox workspace-write --skip-git-repo-check --ephemeral -m "$MODEL" \
      -c model_reasoning_effort=medium -c project_doc_max_bytes=0 -C "$d" "$PROMPT" \
      < /dev/null > "$LOGS/$k.$ts.jsonl" 2> "$LOGS/$k.$ts.stderr"
-  python "$(dirname "$0")/log_call.py" "$k" "$d" "$LOGS/$k.$ts.jsonl" "$MODEL" "$PROMPT" >> "$LOGS/CALL_LOG.jsonl"
+  # one summary file per call, then CALL_LOG.jsonl rebuilt by concatenation: two slots appending to one file on
+  # Windows lost one line and interleaved another (2026-09-25); a rebuild from complete per-call files cannot.
+  python "$(dirname "$0")/log_call.py" "$k" "$d" "$LOGS/$k.$ts.jsonl" "$MODEL" "$PROMPT" > "$LOGS/$k.$ts.call.json"
+  cat "$LOGS"/*.call.json > "$LOGS/CALL_LOG.jsonl.$$.tmp" && mv -f "$LOGS/CALL_LOG.jsonl.$$.tmp" "$LOGS/CALL_LOG.jsonl"
 done

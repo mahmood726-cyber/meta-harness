@@ -64,8 +64,6 @@ All 385 EV53 citations re-located by evid2 at checkout `66087f30`: EMPTY_SPAN 1,
 - P53-39 PMID 7872284 `entry_population`: CONFIG_DEFECT: population_any terms describe the outcome, not entry (EV53 MENTIONS_ONLY)
 - P53-40 PMID 21165295 `entry_population`: CONFIG_DEFECT: population_any terms describe the outcome, not entry (EV53 MENTIONS_ONLY)
 - P53-41 PMID 18026577 `entry_population`: CONFIG_DEFECT: population_any terms describe the outcome, not entry (EV53 MENTIONS_ONLY)
-- P53-46 PMID 26378978 `entry_population`: evid lane entry ruling: PARTLY
-- P53-47 PMID 30415602 `entry_population`: evid lane entry ruling: PARTLY
 - P53-48 PMID 10471456 `entry_population`: evid lane entry ruling: PARTLY
 
 ## HARMONY

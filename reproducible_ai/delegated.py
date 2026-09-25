@@ -21,13 +21,14 @@ import json
 from pathlib import Path
 from typing import Any
 
+from harness.result_changes import DELEGATED_BASIS, DELEGATED_STATUS
 from reproducible_ai import model_source as ms
 
-STATUS = "DELEGATED_BULK_ACCEPTANCE"
+STATUS = DELEGATED_STATUS          # the type is defined once, in the served gate that refuses it
 DISPLAY = "AI-proposed, accepted under delegated authority without individual human review"
 AUTHORISED_BY = "Mahmood Ahmad"
 DATE = "2026-09-24"
-HOW = "Dispatch chat relay; blanket instruction; no item-by-item review"
+HOW = DELEGATED_BASIS
 INSTRUCTION = "yes record as bulk acceptance"
 CONTEXT = ('Reply to the offer of a truthful bulk-delegated record, made after Mahmood asked for the proposals to be '
            '"sign all for me" and signing in his name was declined.')

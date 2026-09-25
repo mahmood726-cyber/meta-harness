@@ -106,6 +106,28 @@ def notice_for(notices: list[dict[str, Any]], slug: str, outcome: str, before: d
 SIGNATURE_STATES = ("OPEN", "SEEN_AND_SIGNED", "BATCH_SEEN_AND_SIGNED")
 SIGNED_STATES = ("SEEN_AND_SIGNED", "BATCH_SEEN_AND_SIGNED")
 
+# A DELEGATED BULK ACCEPTANCE is a different TYPE of record from a countersignature: a blanket instruction, recorded as
+# such, with no item-by-item review (reproducible_ai/delegated.py writes it and imports this definition). It is never a
+# signature, whatever state it is dressed in: the gate refuses it by its type -- its status, the fields only that type
+# carries, and the basis it records -- never by matching words a human might also use in an honest relayed signature.
+DELEGATED_STATUS = "DELEGATED_BULK_ACCEPTANCE"
+DELEGATED_BASIS = "Dispatch chat relay; blanket instruction; no item-by-item review"
+DELEGATION_FIELDS = ("status", "authorised_by", "instruction_text", "accepted_decision", "proposal_sha256")
+
+
+def _delegation_problem(sig: Any, notice: dict[str, Any]) -> str | None:
+    """Why a countersignature is in fact a delegated acceptance, or None."""
+    if not isinstance(sig, dict):
+        return None
+    if sig.get("state") == DELEGATED_STATUS or sig.get("status") == DELEGATED_STATUS:
+        return "its state/status is the delegated-acceptance type"
+    carried = [f for f in DELEGATION_FIELDS if f in sig]
+    if carried:
+        return f"it carries the delegated-acceptance record's own fields {carried}"
+    if sig.get("how_it_reached_the_reviewer") == DELEGATED_BASIS:
+        return "its recorded basis is the delegated-acceptance basis (a blanket instruction, no item-by-item review)"
+    return None
+
 
 def rendered_sha256(block_html: str) -> str:
     """The identity of what the reviewer saw: the rendered notice block, whitespace-normalised."""
@@ -121,6 +143,10 @@ def signature_problem(notice: dict[str, Any], block_html: str) -> str | None:
     sig = notice.get("reviewer_countersignature")
     if not isinstance(sig, dict):
         return "reviewer_countersignature missing: the notice has not been put in front of the reviewer"
+    why = _delegation_problem(sig, notice)
+    if why:
+        return (f"DELEGATED_IS_NOT_A_SIGNATURE: {why}. A delegated bulk acceptance is recorded as its own status and "
+                "can never publish a notice that needs a human countersignature")
     state = sig.get("state")
     if state not in SIGNATURE_STATES:
         return f"reviewer_countersignature.state {state!r} is not a recognised act (OPEN / SEEN_AND_SIGNED / BATCH_SEEN_AND_SIGNED)"

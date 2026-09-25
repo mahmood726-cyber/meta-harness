@@ -122,3 +122,29 @@ def test_a_count_inside_the_group_object_itself_is_owned_by_that_group(tmp_path)
     (tmp_path / "HE-x").rename(tmp_path / "old")
     rec = job(tmp_path, out, {"ai": 20, "n1i": 100, "ci": 10, "n2i": 98}, {"doc_registry_NCT0.json": reg}, registry=True)
     assert rec["state"] == "INCOMPLETE" and any(r.startswith("T5") for r in rec["reasons"])
+
+
+def test_group_ids_are_resolved_inside_their_own_outcome_measure(tmp_path):
+    """OG000 is 'Aspirin' in measure 1 and 'Omega-3' in measure 2; with sorted keys a measure's groups come AFTER
+    its counts. The title must come from the measure that contains the witness."""
+    reg = json.dumps({"outcomeMeasuresModule": {"outcomeMeasures": [
+        {"title": "Aspirin comparison", "denoms": [{"counts": [{"groupId": "OG000", "value": "500"}, {"groupId": "OG001", "value": "501"}]}],
+         "classes": [{"categories": [{"measurements": [{"groupId": "OG000", "value": "50"}, {"groupId": "OG001", "value": "51"}]}]}],
+         "groups": [{"id": "OG000", "title": "Aspirin"}, {"id": "OG001", "title": "Placebo Aspirin"}]},
+        {"title": "AF", "denoms": [{"counts": [{"groupId": "OG000", "value": "7740"}, {"groupId": "OG001", "value": "7741"}]}],
+         "classes": [{"categories": [{"measurements": [{"groupId": "OG000", "value": "166"}, {"groupId": "OG001", "value": "135"}]}]}],
+         "groups": [{"id": "OG000", "title": "Omega-3"}, {"id": "OG001", "title": "Placebo Omega-3"}]}]}}, indent=1, sort_keys=True)
+    def R(t):
+        return W(reg, t, file="doc_registry_NCT0.json")
+    out = {"ownership_source": "REGISTRY_GROUPS", "arms": [
+        {"role": "intervention", "group_id": "OG000", "arm_name": "Omega-3", "arm_name_witness": R("Omega-3"),
+         "events": 166, "event_witness": R("166"), "total": 7740, "total_witness": R("7740")},
+        {"role": "comparator", "group_id": "OG001", "arm_name": "Placebo Omega-3", "arm_name_witness": R("Placebo Omega-3"),
+         "events": 135, "event_witness": R("135"), "total": 7741, "total_witness": R("7741")}]}
+    served = {"ai": 166, "n1i": 7740, "ci": 135, "n2i": 7741}
+    rec = job(tmp_path, out, served, {"doc_registry_NCT0.json": reg}, registry=True)
+    assert rec["state"] == "WITNESSED", rec["reasons"]
+    out["arms"][0]["arm_name"] = "Aspirin"   # the other measure's meaning of OG000
+    (tmp_path / "HE-x").rename(tmp_path / "old")
+    rec = job(tmp_path, out, served, {"doc_registry_NCT0.json": reg}, registry=True)
+    assert rec["state"] == "INCOMPLETE" and any(r.startswith("T5") for r in rec["reasons"])
