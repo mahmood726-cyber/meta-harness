@@ -1,0 +1,142 @@
+{
+ "schema": "model_call_record/1",
+ "state": "RAN_OK",
+ "model": {
+  "id_requested": "gpt-6-astra",
+  "id_reported": "gpt-6-astra",
+  "provider": "openai",
+  "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"
+ },
+ "params": {
+  "reasoning_effort": "medium",
+  "sandbox": "read-only",
+  "ephemeral": true,
+  "ignore_user_config": true,
+  "project_doc_max_bytes": 0,
+  "output_schema": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "key": {
+     "type": "string"
+    },
+    "reading": {
+     "type": "string",
+     "enum": [
+      "ITT_STATED",
+      "OTHER_SET_STATED",
+      "NOT_STATED"
+     ]
+    },
+    "why": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "key",
+    "reading",
+    "why"
+   ]
+  },
+  "timeout_s": 1200,
+  "workdir_files": {
+   "LANE_CONTEXT.md": "6a54920438d488c48fb1202f1e02c71a76012e7025f9f00b44acc1909432762e",
+   "schema.json": "the output_schema above"
+  }
+ },
+ "not_controllable": [
+  "temperature",
+  "top_p",
+  "seed",
+  "client system instructions (codex built-in, not exposed)",
+  "server-side model revision behind the model id"
+ ],
+ "client": {
+  "name": "codex exec",
+  "version": "codex-cli 0.153.4",
+  "argv": [
+   "codex",
+   "exec",
+   "--ephemeral",
+   "--skip-git-repo-check",
+   "--ignore-user-config",
+   "--sandbox",
+   "read-only",
+   "--cd",
+   "<workdir>",
+   "--output-schema",
+   "<workdir>\\schema.json",
+   "--output-last-message",
+   "<workdir>\\last.txt",
+   "-m",
+   "gpt-6-astra",
+   "-c",
+   "model_reasoning_effort=medium",
+   "-c",
+   "project_doc_max_bytes=0",
+   "-"
+  ]
+ },
+ "request_utc": "2026-09-25T03:29:24Z",
+ "response_utc": "2026-09-25T03:29:29Z",
+ "caller": {
+  "file": "evidence/scripts/codex_job.py",
+  "line": 93,
+  "purpose": "evidence lane setread job for row P53-06 (brief evidence/SETREAD_BRIEF.md)",
+  "lane": "evid/evidence-records",
+  "kind": "setread",
+  "key": "P53-06"
+ },
+ "input_digests": [
+  {
+   "ref": "evidence/SETREAD_BRIEF.md",
+   "sha256": "1bcbba2cd8a1ba713f695740843109a719a965e10a1606cf2adf3799a7edbd81",
+   "what": "task brief"
+  },
+  {
+   "ref": "setread input for P53-06 (built from the committed sweep/adjudication files)",
+   "sha256": "524b5f3b99afc127b33bc1945d7c99f834cd9e8e3157aaf068d510dc88f78813",
+   "what": "the item the setread brief asks to judge"
+  },
+  {
+   "ref": "client-injected:~/.codex/AGENTS.md (content not copied)",
+   "sha256": "7d532874e6ce2e57b076a02bd8a7a52fe4bf0e029fed5582d6177035c719d912",
+   "what": "user-level instructions the client may prepend; recorded so a reader knows the prompt bytes are not the whole context"
+  },
+  {
+   "ref": "output-schema (inline in params)",
+   "sha256": "36bd3014e183a85cf1ddc2847ddb112e1576805b7bcffb595d46fc1faef5a029",
+   "what": "JSON schema the client constrains the final message to"
+  }
+ ],
+ "prompt": {
+  "sha256": "3d9f9e39d7c5b10b9a34d784c40fd9871b96f8035163ec5ff692753c1ac56803",
+  "bytes": 1175,
+  "b64": null,
+  "note": "prompt bytes withheld (may contain local-only full text); full record kept locally"
+ },
+ "response": {
+  "b64": "eyJrZXkiOiJQNTMtMDYiLCJyZWFkaW5nIjoiT1RIRVJfU0VUX1NUQVRFRCIsIndoeSI6IlRoZSBzZXQgaXMgcmVzdHJpY3RlZCB0byByYW5kb21pemVkIHBhcnRpY2lwYW50cyB3aXRoIGJhc2VsaW5lIGFuZCBhdCBsZWFzdCBvbmUgcG9zdGJhc2VsaW5lIHZlcnRlYnJhbCBmcmFjdHVyZSBldmFsdWF0aW9uIGF0IG9yIGJlZm9yZSAzIHllYXJzLiJ9",
+  "sha256": "49b292bc725352831f2ac9df95afc444c4af077a798f01eede9ddd510ef06969",
+  "bytes": 198
+ },
+ "client_evidence": {
+  "header": {
+   "model": "gpt-6-astra",
+   "provider": "openai",
+   "approval": "never",
+   "sandbox": "read-only",
+   "reasoning effort": "medium",
+   "reasoning summaries": "none",
+   "session id": "01a0d69c-5537-7c72-b99c-1de8acdd0e69",
+   "tokens used": "4,540",
+   "client banner": "v0.153.4"
+  },
+  "stdout_sha256": "22e512b6e529a6bc614ee57b236fc969ce37332b0a1e3f7137a28462a6e480b7",
+  "stdout_bytes": 199,
+  "stderr_sha256": "f723d55a94682b98b101d2c55da77926314ef0879978249c56f78e5825b89af9",
+  "stderr_bytes": 1654,
+  "note": "raw client streams are hashed, not stored: they carry a local path (workdir) and echo the prompt; the header's model/provider/effort/session are copied above"
+ },
+ "record_id": "mc-80d80ef2b531b52c43ff3003c3d417a7"
+}

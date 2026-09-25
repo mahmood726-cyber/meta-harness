@@ -240,7 +240,11 @@ EYE_LABELLED = [
     # second eye pass (the SUPPORTED spans), 2026-09-24
     ("All randomized participants with a non-missing primary endpoint (n/N: 59/2609; 71/2635, in apixaban, enoxaparin/warfarin, respectively). Intent-to-treat population.", "OTHER_SET_STATED"),
     ("Full Analysis Set (FAS) included all randomized patients but the following two exclusions: 6 patients who did not qualify for randomization", "OTHER_SET_STATED"),
-    ("All analyses were done on an intention-to-treat basis. For each binary outcome, we calculated risk ratios and 95% CIs", "ITT_STATED"),
+    # REVISED 2026-09-25 (was ITT_STATED): a blind cross-family reading pointed out that the full sentence continues
+    # 'We did a complete case analysis with no imputation' -- the same non-missing restriction the lane labels OTHER for
+    # AMPLIFY; the old label was inconsistent. Revised on the lane's own consistency rule, recorded here, not tuned.
+    ("All analyses were done on an intention-to-treat basis. For each binary outcome, we calculated risk ratios and 95% CIs and two-sided p values. We did a complete case analysis with no imputation for missing data.", "OTHER_SET_STATED"),
+    ("The intention-to-treat (ITT) population consisted of all randomized participants with valid informed consent.", "OTHER_SET_STATED"),
     ("The efficacy objectives were evaluated in all randomized patients using analysis of time from randomization to the first event.", "ITT_STATED"),
     # 'mITT' matched inside 'comMITTee' (case-insensitive, no word boundary) and flipped PLATO to CONTRADICTED
     ("Intention To Treat (ITT) analysis of whole population. Events were adjudicated by an endpoint committee. | POPULATION: The population was the full analysis set, which included all randomized patients", "ITT_STATED"),
