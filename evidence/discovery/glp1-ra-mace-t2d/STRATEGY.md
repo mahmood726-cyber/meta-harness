@@ -72,3 +72,8 @@ counts screened out by rule id. Recall is reported as `n of 10`; no precision cl
 (drug-class reviews, textbook chapters, HTA reports) -- were retrieved but not parsed. No query changes: `retain_books.py`
 re-fetches exactly those 14 PMIDs and parses them as book records (title, abstract, publication type "Book"), and they
 join `records_pubmed` so that every hit is retained. They are not trial reports; the deterministic screen decides them.
+
+## Amendment 2 -- 2026-09-25, after the search ran (a code fix, disclosed)
+`screen.py` crashed on an NCT that a publication names but that the registry search did not retrieve (a trial member
+with no record). It now keeps that NCT in the trial, marked "not retrieved by the registry search", with no screen
+decision. No criterion, query or sample changes.

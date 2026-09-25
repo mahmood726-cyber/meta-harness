@@ -90,6 +90,10 @@ def main(d):
         for m in t["members"]:
             kind, ident = m.split(":", 1)
             r = pubs.get(m) or regs.get(m)
+            if r is None:   # an NCT a publication names that the registry search did not retrieve (amendment 2)
+                t["records"].append({"key": m, "id_type": "nct", "note": "named by a publication in this trial; "
+                                     "not retrieved by the registry search", "screen": None})
+                continue
             idt = r.get("id_type")
             t["records"].append({"key": m, "id_type": idt, "title": r.get("title"), "year": r.get("year"),
                                  "source": r.get("source"), "screen": by.get((idt, str(r["id"])))})
