@@ -152,3 +152,24 @@ def test_a_union_of_registrations_is_refused_as_derived(tmp_path):
     u = wv.union_components(row, "Mortality", {"ai": 15, "n1i": 150, "ci": 26, "n2i": 170})
     assert u and [c["events"]["value"] for c in u["intervention"]] == [10, 5] and [c["total"]["value"] for c in u["comparator"]] == [110, 60]
     assert wv.union_components(row, "Mortality", {"ai": 16, "n1i": 150, "ci": 26, "n2i": 170}) is None
+
+
+# ---- second review, 2026-09-25 ------------------------------------------------------------------------------------
+def test_a_marker_that_belongs_to_another_number_licenses_nothing(tmp_path):
+    doc = _dist_setup(tmp_path, "We assigned drugx (n=100) or placebo (n=98). Treatment was stopped in one patient given drugx, and two in each group had rash.")
+    assert "t/1" in doc["not_written_rows"] and not doc["rows"]
+
+
+def test_percentages_round_half_up_and_never_skip_across_versus():
+    assert wv.pct_corroboration(" (13%)", 1, 8) == [{"reported": "13", "agrees": True}]        # 12.5 -> 13 half-up
+    assert wv.pct_corroboration(" versus placebo (10%)", 20, 100) == []                       # the other arm's percentage
+    assert wv.pct_corroboration(" (95% CI 1 to 2)", 20, 100) == []                            # a CI level
+
+
+def test_a_component_token_must_be_a_whole_value_of_its_own_group():
+    text = json.dumps({"measurements": [{"groupId": "OG000", "value": "16"}, {"groupId": "OG001", "value": "10"}]}, indent=1)
+    at = text.index('"10"') + 1
+    assert wv.component_problem(text, {"start": at, "end": at + 1}, "OG000") == "not a whole number token"
+    assert wv.component_problem(text, {"start": at, "end": at + 2}, "OG000").startswith("token sits in group 'OG001'")
+    at16 = text.index('"16"') + 1
+    assert wv.component_problem(text, {"start": at16, "end": at16 + 2}, "OG000") is None

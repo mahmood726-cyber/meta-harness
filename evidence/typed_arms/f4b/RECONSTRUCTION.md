@@ -33,3 +33,9 @@ Reconstruction: `tests/test_count_observations.py tests/test_f4d.py tests/test_a
 ## Limit
 This is a reconstruction, not the F4 lane's tree. Any observation evid2 supplies must be re-derived by the F4 lane's
 own code when it lands; `observation_mismatch()` will refuse it if the two differ, which is the intended protection.
+
+## Note, 2026-09-25 (after the gate review)
+The G1-G7 gate was hardened after a fresh-eyes review (11 findings). Re-gating the 18 held extractions under the new
+gate changes one state: SMART (balanced crystalloids, 29485925) BOUND -> SET_ASIDE (G6: 'saline' is an active
+comparator, so only one direction vote remains). The records in `f4b/records/` are the v1 data and predate the review;
+they are superseded by the v2 token witnesses (`../v2/`), where SMART is refused as a derived union anyway.
