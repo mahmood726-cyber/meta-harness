@@ -35,8 +35,9 @@ def decision_witnesses():
     """(6) Every witness in a result-level decision file (evidence/glp1_adjudication/<TRIAL>.json) still has the
     sha256 it was cut from and is still verbatim in that file's render."""
     out, n = [], 0
-    for p in sorted(glob.glob(os.path.join(ROOT, "evidence/glp1_adjudication/*.json"))):
-        if os.path.basename(p) == "BEFORE_AFTER.json":
+    files = glob.glob(os.path.join(ROOT, "evidence/glp1_adjudication/*.json")) + glob.glob(os.path.join(ROOT, "evidence/rob2_glp1/*.json"))
+    for p in sorted(files):
+        if os.path.basename(p) in ("BEFORE_AFTER.json", "SPEC.json", "SUMMARY.json"):
             continue
         stack = [json.load(open(p, encoding="utf-8"))]
         while stack:
@@ -44,7 +45,9 @@ def decision_witnesses():
             if isinstance(o, dict):
                 if "span" in o and "ref" in o and "sha256" in o:
                     n += 1
-                    if V.file_sha(o["ref"]) != o["sha256"]:
+                    if o["ref"].startswith("evidence/held_local/") and not os.path.exists(os.path.join(ROOT, o["ref"])):
+                        pass   # local-only, not redistributable: absent on a fresh clone; re-fetch from LOCAL_ACQUISITIONS
+                    elif V.file_sha(o["ref"]) != o["sha256"]:
                         out.append(f"{os.path.basename(p)}: witness source changed: {o['ref']}")
                     elif o["span"] not in textrep.render(o["ref"]):
                         out.append(f"{os.path.basename(p)}: witness no longer verbatim in {o['ref']}")
