@@ -68,3 +68,23 @@ All 19 sign commands were replayed exactly as printed, with a test signer and a 
 a signature the gate accepts.
 
 When he pushes, lane NR verifies from the fetched bytes and hands you the valid set.
+
+## 5. At the freeze (Sat 09:00), what lane NR needs from the candidate
+The runbook is `nr-2026-09-25/rederive/V1_NOTICE_RUNBOOK.md` on `nr/notice-anchors`. It was rehearsed end to end on
+25 Sep: a synthetic candidate went through re-derivation, registry, sign branch and judgement; all 41 commands were
+replayed and gave 41 VALID; and a superseded signing command was refused.
+1. **Announce the candidate sha.** Lane NR re-derives every served-number change from its pages against the last
+   attested release (`scripts/rederive_notices.py`).
+2. **The candidate's ledger must cover every served-number change exactly.**
+   - Withdraw the 11 notices the P5 fix removes.
+   - Regenerate the 7 it changes.
+   - Add the NOAC Major bleeding notice.
+   A change with no notice, or a notice whose change doesn't happen, is reported as a V1 blocker, and nothing
+   is signable until it is fixed.
+3. **Include `nr-p5-fix/trial_family.patch`** (P5 matching plus the arm-contrast rule) and, if you accept it,
+   **`notice_wording_W1_W2.patch`**. Without the P5 fix, the 11 notices it removes stay in V1 and are listed to hold,
+   not to sign.
+4. **Lane NR then builds the sign branch.** That is `nr/v1-sign-<c12>`: your candidate plus the signing tools plus
+   the audit registry. It judges every notice against your pages and gives Mahmood the final list, with his clone
+   `C:\mh-sign-v1` and his branch `sign/mahmood-v1`. After he pushes, you get the VALID set; merge only
+   `docs/result_changes.json` from his branch and rebuild.
