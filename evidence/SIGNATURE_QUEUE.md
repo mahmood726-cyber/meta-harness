@@ -20,7 +20,8 @@
   - entry_population_reading: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "we recruited patients aged 18 years or older with community-acquired pneumonia from seven tertiary care hospitals in Switzerland within 24 h of presentation"
   - arm_sizes: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "785 patients were randomly assigned to either the prednisone group (n=392) or the placebo group (n=393)"
   - counts_and_or: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "The prednisone group had a higher incidence of in-hospital hyperglycaemia needing insulin treatment (76 [19%] vs 43 [11%]; OR 1·96, 95% CI 1·31-2·93, p=0·0010)."
-- block sha256: 4e198a21da23fcbbfd18cf32796e497ee999000dc4dc35c6c8f599fdaa1a1362
+  - analysis_set: `evidence/held/24974155/PMC4083867.xml` (sha256 a7a522ff84fa): "Following the intention-to-treat principle, all patients receiving at least one dose of study medication will be included in the analysis with group allocation as randomized; patients violating inclusion criteria or meeting exclusion criteria due to information that was not available at study entry will be excluded post randomization in a blinded manner [ ]."
+- block sha256: 792bc9281612b2316d93d3569c5943ee5f1d99a19ed78ae06d1aae36a45a0317
 
 ### P53-23: noac-vs-warfarin-af-stroke / Stroke or systemic embolism / PMID 19717844 (RE-LY, dabigatran 150 mg)
 - state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED
@@ -99,4 +100,5 @@
   - gap_analysis_set: `evidence/held/registry/NCT01115855.json` (sha256 adeecf86d9f3): "Full analysis set included all randomized participants."
   - gap_follow_up: `evidence/held/registry/NCT01115855.json` (sha256 adeecf86d9f3): "Randomization up to the date when the last enrolled participant had been followed up for 1 year (up to 1744 days)"
   - gap_entry_age: `evidence/held/registry/NCT01115855.json` (sha256 adeecf86d9f3): "ELIGIBILITY AGE/SEX: minimum age 55 Years | maximum age None | sex ALL"
-- block sha256: 281d19c7f5fbc2f13397ca8b4bb3284433f40022c27ce4e62ac4d42bdd82d11d
+  - treatment_strategy: `evidence/held_local/28824029/jstage_circj_82_1.html` (sha256 675e5ee29e43): "Eplerenone was initiated at a dose of 25 mg once daily provided that the serum potassium level was <5.0 mEq/L when dosage was initiated, and increased after 4 weeks to 50 mg once daily"
+- block sha256: 384a9a9215f5b5739eec4d51ceaf7c8f59d0dcdeb7ff35f9ca03ab3e390960d7
