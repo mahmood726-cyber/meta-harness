@@ -20,7 +20,10 @@ Work dirs: F:\claude-temp\claude\C--rmfw\8b65f96e-4468-481b-b9d4-307b02c07609\sc
    UNSIGNED, P5 baseline not PASS, P6 regressions vs the rehearsal table, P5b missing (checklist B4 not met).
 3. Build the archive from the candidate (git bytes; no deploy needed):
    `python scripts\release_archive.py build-release --commit <V1> --out <F:>\arch_v1` then `check` it.
-3b. Producer leg (B3/D1): `git -C <F:>\scratchpad\prodwt checkout --detach <V1>` then
+3b. Producer leg (B3/D1): the old prodwt was removed 25 Sep 23:10 to keep F: above the captain's 3 GB floor. Recreate it on
+   whichever drive has >3.5 GB after the captain's regeneration: `git -C C:/mh-lanes/pva worktree add --no-checkout --detach <dir> <V1>`,
+   sparse patterns /harness/ /scripts/ /cache/glp1-ra-mace-t2d/ /topics/ /protocols/ /registry/ /docs/ /outputs/handover/glp1_regulatory/
+   /regex_layer/ /reproducible_ai/ (~430 MB), then
    `python v1\producer_probe.py <F:>\scratchpad\prodwt` -- a planted row must be refused AND leave the pool.
 4. Mechanical checks on the candidate: served numbers vs PREV (P4 detail) cross-checked with
    `served_numbers_diff.py <PREV> <V1>`; notice signatures listed; nothing signed by this lane, ever.
