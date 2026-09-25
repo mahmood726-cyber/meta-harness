@@ -499,6 +499,12 @@ DEFAULT_REGISTERED = {"analysis_set": "intention-to-treat (registered primary-an
                       "analysis_window": "on-study, treatment-policy (registered primary-analysis default)",
                       "contrast": "intervention vs placebo; effect < 1 favours intervention (topic registration)",
                       "estimator": "UNSTATED"}
+# A value the source states OUTSIDE the owning evidence cannot be a witness, but a departing one must not vanish either: these are
+# the values that make an unowned mention fail closed (UNRESOLVED) instead of letting the registered default stand in silence.
+# the result object a method sentence must name to be LINKED to the effect (and that the effect clause itself names)
+_OC_RESULT_OBJECT = re.compile(r"\b(primary[- ](?:composite[- ])?(?:outcome|end[- ]?point)|primary cardiovascular (?:composite )?(?:outcome|end[- ]?point)|"
+                               r"major adverse cardiovascular events?|MACE|composite (?:outcome|end[- ]?point))\b", re.I)
+_DEPARTING = {"analysis_set": {"per-protocol", "as-treated", "on-treatment population"}, "analysis_window": {"on-treatment"}, "estimator": set()}
 
 
 def _sentence_at(text, pos):
@@ -508,53 +514,106 @@ def _sentence_at(text, pos):
     return s, e
 
 
+def _locate_clause(parsed, result_clause):
+    """(representation, text, start, end) of the effect clause: PARSED_SOURCE when verbatim, else NORMALIZED_SOURCE; None if absent."""
+    rc = result_clause or ""
+    if not rc:
+        return None
+    i = parsed.find(rc)
+    if i >= 0:
+        return "PARSED_SOURCE", parsed, i, i + len(rc)
+    npar, nrc = normalize(parsed), normalize(rc)
+    j = npar.find(nrc)
+    return ("NORMALIZED_SOURCE", npar, j, j + len(nrc)) if j >= 0 else None
+
+
 def estimand_evidence(parsed, result_clause):
-    """Per field: STATED (value + located sentence with code-point offsets in PARSED_SOURCE), DEFAULT_REGISTERED (no statement in the
-    held representation), or ESTIMAND_UNBOUND (the same source states >= 2 differing values for the field)."""
+    """Per field: STATED_IN_OWNING_EVIDENCE (value + the OWNING span with code-point offsets), REGISTERED_DEFAULT (no owned
+    statement), or UNRESOLVED. EFFECT-SCOPED (lane OC, 2026-09-25, external audit: the estimator witness of LEADER's HR 0.87 was the
+    methods / noninferiority-margin sentence, hits[0] of a whole-document scan, which does not hold 0.87). A mention OWNS the effect only if
+      owner EFFECT_CLAUSE      -- it lies inside the tuple's own result clause (the estimator is resolved here FIRST), or
+      owner LINKED_METHOD_SPAN -- its sentence carries a typed link to the same result object: it names the primary outcome /
+                                  composite endpoint, as the effect clause does (link.result_object records the phrase on both sides).
+    Any other mention is UNOWNED: listed, never a witness. An unowned mention of a DEPARTING value (on-treatment, per-protocol ...)
+    with no owned statement fails closed (UNRESOLVED), so effect-scoping can never make a stated departure disappear. Two owned
+    values for one field -> UNRESOLVED (for the estimator only when the clause itself does not settle it)."""
     out = {}
+    loc = _locate_clause(parsed, result_clause)
+    clause_rep = loc[0] if loc else None
+    clause_obj = _OC_RESULT_OBJECT.search(result_clause or "")
     for field, pats in _ESTIMAND.items():
         hits = []
         for rx, value in pats:
             for m in re.finditer(rx, parsed, re.I):
                 s, e = _sentence_at(parsed, m.start())
-                hits.append({"value": value, "matched": m.group(0), "start": s, "end": e, "span": parsed[s:e].strip()})
-        values = {h["value"] for h in hits}
-        if field == "analysis_window":
-            strategies = {v for v in values if v in ("on-treatment", "on-study")}
-            if len(strategies) >= 2:
-                out[field] = {"state": "UNRESOLVED", "values": sorted(values), "evidence": hits[:4],
-                              "rule": "the same source states two strategies for the analysis; the field cannot default"}
-                continue
-            if "on-treatment" in values and "on-study" not in values:
-                pick = next(h for h in hits if h["value"] == "on-treatment")
-                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "on-treatment", **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
-                continue
-            prefer = [h for h in hits if h["value"] == "on-study"] or [h for h in hits if h["value"].startswith("time-to")] or [h for h in hits if h["value"] == "follow-up stated"]
-            if prefer:
-                pick = prefer[0]
-                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE",
-                              "also_stated": sorted(values - {pick["value"]})}
-            else:
-                out[field] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED[field]}
+                hits.append({"value": value, "matched": m.group(0), "at": m.start(), "start": s, "end": e, "span": parsed[s:e].strip()})
+        in_clause = []
+        if loc:
+            rep, text, cs, ce = loc
+            for rx, value in pats:
+                for m in re.finditer(rx, text[cs:ce], re.I):
+                    in_clause.append({"value": value, "matched": m.group(0)})
+        linked = []
+        for h in hits:
+            sent_obj = _OC_RESULT_OBJECT.search(h["span"])
+            if clause_obj and sent_obj and not (loc and loc[0] == "PARSED_SOURCE" and loc[2] <= h["at"] < loc[3]):
+                linked.append(dict(h, link={"kind": "SAME_RESULT_OBJECT", "result_object": clause_obj.group(0).lower(),
+                                            "named_in_method_span": sent_obj.group(0).lower(),
+                                            "rule": "the method sentence and the effect clause both name the primary outcome / composite endpoint"}))
+        owned_link_ats = {h["at"] for h in linked}
+        unowned = [h for h in hits if h["at"] not in owned_link_ats and not (loc and loc[0] == "PARSED_SOURCE" and loc[2] <= h["at"] < loc[3])]
+        clause_values = {h["value"] for h in in_clause}
+        linked_values = {h["value"] for h in linked}
+        rec = {"unowned_mentions": [{"value": h["value"], "matched": h["matched"], "start": h["start"], "end": h["end"]} for h in unowned[:6]]}
+        if field == "analysis_window" and len({v for v in {h["value"] for h in hits} if v in ("on-treatment", "on-study")}) >= 2:
+            out[field] = {"state": "UNRESOLVED", "values": sorted({h["value"] for h in hits}), "evidence": hits[:4],
+                          "rule": "the same source states two strategies for the analysis; the field cannot default", **rec}
             continue
-        if len(values) >= 2:
-            out[field] = {"state": "UNRESOLVED", "values": sorted(values), "evidence": hits[:4]}
-        elif hits:
-            pick = hits[0]
-            out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": pick["value"], **{k: pick[k] for k in ("start", "end", "span")}, "parent_representation": "PARSED_SOURCE"}
+        if field == "estimator" and len(clause_values) == 1:
+            v = next(iter(clause_values))
+            out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": v, "start": loc[2], "end": loc[3], "span": loc[1][loc[2]:loc[3]],
+                          "parent_representation": clause_rep, "owner": "EFFECT_CLAUSE", **rec}
+            continue
+        if field == "estimator" and len(clause_values) >= 2:
+            out[field] = {"state": "UNRESOLVED", "values": sorted(clause_values), "owner": "EFFECT_CLAUSE",
+                          "rule": "the effect clause itself names two estimators", **rec}
+            continue
+        if field != "estimator" and clause_values:
+            owned_values, owner = clause_values, "EFFECT_CLAUSE"
         else:
-            out[field] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED[field]}
+            owned_values, owner = linked_values, "LINKED_METHOD_SPAN"
+        if field == "analysis_window" and owned_values:
+            # the old preference order, now among OWNED mentions only: a stated on-treatment strategy wins, then on-study, then
+            # time-to-first-event, then a stated follow-up
+            order = ["on-treatment", "on-study", "time-to-first-event (treatment-policy)", "follow-up stated"]
+            owned_values = {next(v for v in order if v in owned_values)}
+        if len(owned_values) >= 2:
+            out[field] = {"state": "UNRESOLVED", "values": sorted(owned_values), "owner": owner,
+                          "rule": "two owned statements disagree", **rec}
+        elif owned_values:
+            v = next(iter(owned_values))
+            if owner == "EFFECT_CLAUSE":
+                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": v, "start": loc[2], "end": loc[3], "span": loc[1][loc[2]:loc[3]],
+                              "parent_representation": clause_rep, "owner": owner, **rec}
+            else:
+                pick = next(h for h in linked if h["value"] == v)
+                out[field] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": v, "start": pick["start"], "end": pick["end"], "span": pick["span"],
+                              "parent_representation": "PARSED_SOURCE", "owner": owner, "link": pick["link"], **rec}
+        elif any(h["value"] in _DEPARTING[field] for h in unowned):
+            dep = sorted({h["value"] for h in unowned if h["value"] in _DEPARTING[field]})
+            out[field] = {"state": "UNRESOLVED", "values": dep,
+                          "rule": "the source states a departing value outside the owning evidence; it cannot witness this effect and it cannot be "
+                                  "ignored either (fail closed)", **rec}
+        else:
+            out[field] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED[field], **rec}
     rc = result_clause or ""
-    if "placebo" in rc.lower():
-        i = parsed.find(rc)
-        if i >= 0:
-            out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": rc,
-                               "start": i, "end": i + len(rc), "parent_representation": "PARSED_SOURCE"}
-        else:   # the clause exists only after normalisation (e.g. Lancet middle dots): offsets in NORMALIZED_SOURCE coordinates
-            nrc, npar = normalize(rc), normalize(parsed)
-            j = npar.find(nrc)
-            out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": nrc,
-                               "start": j if j >= 0 else None, "end": (j + len(nrc)) if j >= 0 else None, "parent_representation": "NORMALIZED_SOURCE"}
+    if "placebo" in rc.lower() and loc:
+        out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": loc[1][loc[2]:loc[3]],
+                           "start": loc[2], "end": loc[3], "parent_representation": clause_rep, "owner": "EFFECT_CLAUSE"}
+    elif "placebo" in rc.lower():
+        nrc = normalize(rc)
+        out["contrast"] = {"state": "STATED_IN_OWNING_EVIDENCE", "value": "vs placebo (named in the result clause)", "span": nrc,
+                           "start": None, "end": None, "parent_representation": "NORMALIZED_SOURCE", "owner": "EFFECT_CLAUSE"}
     else:
         out["contrast"] = {"state": "REGISTERED_DEFAULT", "value": DEFAULT_REGISTERED["contrast"]}
     return out
@@ -813,20 +872,40 @@ def contrast_value_check(served_row, oc, ee_re, vocab, regd):
                  if a != b]
         if diffs:
             p10.append(("COMPARATOR_DIRECTION_MISMATCH", f"the served ordered_contrast object disagrees with the recomputation on {diffs}"))
-    # --- estimator VALUE: the served label and the served estimator field must be the measure the source states ---
+    # --- estimator IDENTITY, source-bound (auditor, 2026-09-25): VALUE and OWNERSHIP, before any class / compatibility logic ---
+    # The measure is the one the OWNING evidence states: the tuple's own clause first; a linked method span only when the clause names
+    # none (estimand_evidence's owner rule). A label class (HR and RR both 'first-event ratios') never authenticates anything here.
     cm = oc.get("measure") or {}
     srv_scale = scale_measure(eff.get("scale"))
     est_field = ai.get("estimator") or {}
     est_re = (ee_re or {}).get("estimator") or {}
-    detail["served_scale"], detail["clause_measure"] = srv_scale, cm.get("measure")
-    if cm.get("state") == "STATED" and srv_scale != cm["measure"]:
-        p10.append(("ESTIMATOR_MISMATCH", f"served effect.scale {eff.get('scale')!r} but the tuple's own clause states {cm['matched']!r} ({cm['measure']})"))
-    elif cm.get("state") != "STATED" and srv_scale is None:
-        p10.append(("ESTIMATOR_MISMATCH", f"served effect.scale {eff.get('scale')!r} is not an identified measure and the clause states {cm.get('state')}"))
+    owned = (cm.get("measure") if cm.get("state") == "STATED" else
+             _ESTIMATOR_MEASURE.get(est_re.get("value")) if est_re.get("state") == "STATED_IN_OWNING_EVIDENCE" else None)
+    detail["served_scale"], detail["clause_measure"], detail["owned_measure"] = srv_scale, cm.get("measure"), owned
+    detail["estimator_owner"] = est_re.get("owner")
+    if owned is None:
+        p10.append(("ESTIMATOR_VALUE_MISMATCH", f"served effect.scale {eff.get('scale')!r}: neither the tuple's clause ({cm.get('state')}) nor a linked "
+                    f"method span ({est_re.get('state')}) states the estimator of this effect"))
+    elif srv_scale != owned:
+        p10.append(("ESTIMATOR_VALUE_MISMATCH", f"served effect.scale {eff.get('scale')!r} but the owning evidence states "
+                    f"{cm.get('matched') if cm.get('state') == 'STATED' else est_re.get('value')!r} ({owned}); a shared label class does not make them equal"))
     if est_field.get("basis") == "STATED_IN_OWNING_EVIDENCE" and est_re.get("state") == "STATED_IN_OWNING_EVIDENCE" and est_field.get("value") != est_re.get("value"):
-        p10.append(("ESTIMATOR_MISMATCH", f"served estimator {est_field.get('value')!r}, recomputed from the source {est_re.get('value')!r}"))
+        p10.append(("ESTIMATOR_MISMATCH", f"served estimator {est_field.get('value')!r}, recomputed from the owning evidence {est_re.get('value')!r}"))
     if est_field.get("value") and _ESTIMATOR_MEASURE.get(est_field.get("value")) and srv_scale and _ESTIMATOR_MEASURE[est_field["value"]] != srv_scale:
         p10.append(("ESTIMATOR_MISMATCH", f"served estimator {est_field.get('value')!r} and served effect.scale {eff.get('scale')!r} name different measures"))
+    # OWNERSHIP of every stated estimand field: the served witness must be the span the owner rule selects -- a sentence that merely
+    # mentions the same word elsewhere in the abstract (LEADER's noninferiority-margin sentence) owns nothing
+    for fname, src in (("estimator", "estimator"), ("analysis_set", "analysis_set"), ("treatment_strategy", "analysis_window"),
+                       ("follow_up_window", "analysis_window"), ("comparator_direction", "contrast")):
+        fv, rv = ai.get(fname), (ee_re or {}).get(src) or {}
+        if not (isinstance(fv, dict) and fv.get("basis") == "STATED_IN_OWNING_EVIDENCE" and rv.get("state") == "STATED_IN_OWNING_EVIDENCE"):
+            continue
+        served_at = (fv.get("start"), fv.get("end"), fv.get("parent_representation"))
+        owner_at = (rv.get("start"), rv.get("end"), rv.get("parent_representation"))
+        if served_at != owner_at or (fv.get("owner") is not None and fv.get("owner") != rv.get("owner")):
+            code = "ESTIMATOR_OWNER_MISMATCH" if fname == "estimator" else "ESTIMAND_OWNER_MISMATCH"
+            p10.append((code, f"{fname}: the served witness {served_at} (owner {fv.get('owner')!r}) is not the owning evidence {owner_at} "
+                        f"(owner {rv.get('owner')!r}{', linked via ' + repr((rv.get('link') or {}).get('named_in_method_span')) if rv.get('link') else ''})"))
     # --- declared normalisation: the only admissible way a reversed contrast reaches the pool ---
     stated = {k: eff.get(k) for k in ("estimate", "ci_low", "ci_high")}
     norm = eff.get("normalisation")
@@ -854,7 +933,8 @@ def contrast_value_check(served_row, oc, ee_re, vocab, regd):
     # --- P11: what enters the pool must be the REGISTERED contrast and estimator ---
     reg_num = served_orientation({"value": (regd or {}).get("contrast")}, vocab)
     reg_measure = next((m for w, m in _ESTIMATOR_MEASURE.items() if w in str((regd or {}).get("estimator") or "").lower()), None)
-    detail["registered_numerator_side"], detail["registered_measure"] = reg_num, reg_measure
+    permitted = [scale_measure(x) for x in ((regd or {}).get("estimators_permitted") or ([reg_measure] if reg_measure else []))]
+    detail["registered_numerator_side"], detail["registered_measure"], detail["estimators_permitted"] = reg_num, reg_measure, permitted
     if (regd or {}).get("contrast") not in (None, "UNSTATED"):
         if reg_num is None:
             p11.append("contrast (the registered contrast names no arm this topic's vocabulary resolves)")
@@ -862,8 +942,8 @@ def contrast_value_check(served_row, oc, ee_re, vocab, regd):
             p11.append(f"contrast (pooled orientation puts the {pooled_num} arm in the numerator; registered {regd.get('contrast')!r})")
         elif oc.get("experimental_arm") and oc["experimental_arm"].get("term") is None and oc.get("state") == "ORDERED":
             pass   # 'HR vs placebo': the experimental arm is implied, not named -- the registered class is not contradicted
-    if (regd or {}).get("estimator") not in (None, "UNSTATED") and reg_measure and srv_scale != reg_measure:
-        p11.append(f"estimator (served {eff.get('scale')!r}; registered {regd.get('estimator')!r})")
+    if (regd or {}).get("estimator") not in (None, "UNSTATED") and permitted and srv_scale not in permitted:
+        p11.append(f"estimator (served {eff.get('scale')!r}; registered {regd.get('estimator')!r}, permitted {permitted})")
     return {"p10": p10, "p11": p11, "detail": detail, "pooled": pooled, "pooled_numerator_side": pooled_num, "measure": srv_scale}
 
 
@@ -881,7 +961,7 @@ def pool_measure_guard(inputs, rows_by_pmid, declared_scale):
         cv = r
         m = cv.get("measure")
         measures[pid] = m
-        if m is None or "ESTIMATOR_MISMATCH" in cv.get("p10", []):
+        if m is None or any(c.startswith("ESTIMATOR_") for c in cv.get("p10", [])):
             problems.append(("POOL_MEASURE_UNIDENTIFIED", f"{pid}: the row's measure is not identified (served {m!r}; clause {(cv.get('detail') or {}).get('clause_measure')!r})"))
         want = cv.get("pooled") or {}
         if want and any(want.get(k) is None or abs(float(i.get(src)) - float(want[k])) > 1e-12
@@ -955,6 +1035,32 @@ def _oc_set_contrast(br, value):
 
 def _oc_recip(x, nd=4):
     return round(1.0 / float(x), nd)
+
+
+def _oc_reemit(store, slug, br, t, parsed, fam):
+    """What a CONSISTENT producer would serve after a meaning-preserving source edit: the estimator field from the owner rule and the
+    typed ordered contrast, both recomputed from the edited source. Used only by CONTROL limbs, never by an attack."""
+    vals = [t["effect"], t["ci_low"], t["ci_high"]]
+    cl = clause_with_effect(t["endpoint_result_span"], vals)
+    ev = estimand_evidence(parsed, cl)["estimator"]
+    fv = br["analysis_identity"]["estimator"]
+    if ev["state"] == "STATED_IN_OWNING_EVIDENCE":
+        fv.update(value=ev["value"], basis=ev["state"], span=ev["span"], start=ev["start"], end=ev["end"],
+                  parent_representation=ev["parent_representation"], owner=ev.get("owner"))
+        fv.pop("link", None)
+        if ev.get("link"):
+            fv["link"] = ev["link"]
+        if isinstance(fv.get("observed"), dict):
+            fv["observed"].update(value=ev["value"], span=ev["span"], start=ev["start"], end=ev["end"], parent_representation=ev["parent_representation"])
+    br["analysis_identity"]["comparator_direction"]["ordered_contrast"] = ordered_contrast(
+        cl, vals, contrast_vocabulary(store.json(f"topics/{slug}.json")), fam)
+
+
+# the estimator fixtures (LEADER's primary clause): the measure word as held, abbreviated, absent, and a genuinely different estimator
+_OC_EST_HELD = "(hazard ratio, 0.87; 95% confidence interval [CI], 0.78 to 0.97"
+_OC_EST_ABBREV = "(HR, 0.87; 95% confidence interval [CI], 0.78 to 0.97"
+_OC_EST_NONE = "(0.87; 95% confidence interval [CI], 0.78 to 0.97"
+_OC_EST_RR = "(relative risk, 0.87; 95% confidence interval [CI], 0.78 to 0.97"
 
 
 # ---- CI level: the level the source STATES vs the level the derivation ASSUMED --------------------------------------
@@ -1241,7 +1347,8 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             br["span"]["representation_sha256"] = sha256_text(rec_by_pmid[pmid]["abstract"]) if br["span"].get("parent_representation") == "PARSED_SOURCE" else sha256_text(normalize(rec_by_pmid[pmid]["abstract"]))
         elif limb in ("contrast_reverse", "contrast_reverse_served", "contrast_reverse_declared", "contrast_reverse_declared_permitted",
                       "contrast_reverse_declared_forbidden", "contrast_reverse_declared_away", "estimator_swap", "measure_unidentified",
-                      "pool_input_reciprocal"):
+                      "pool_input_reciprocal", "estimator_owner_methods", "estimator_claim_or", "estimator_label_rr",
+                      "estimator_hr_abbrev", "estimator_linked_method", "estimator_genuine_rr", "estimator_genuine_rr_permitted"):
             # lane OC: ordered contrast / estimator / measure limbs (fixtures: LEADER's primary clause; see _OC_LEADER_*)
             regd_ = bundle.setdefault("registered_estimand", {})
             pin = next(i for i in bundle["pooled_reference"]["inputs"] if str(i["id"]).replace("PMID ", "") == pmid)
@@ -1279,6 +1386,33 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
                     est["observed"]["value"] = "odds ratio"
             elif limb == "measure_unidentified":            # the label dropped: log() would be taken of a number of unknown kind
                 t["scale"] = br["effect"]["scale"] = None
+            elif limb == "estimator_owner_methods":         # auditor F1: the estimator witness pointed at the methods / noninferiority sentence
+                fv = br["analysis_identity"]["estimator"]
+                ab = rec_by_pmid[pmid]["abstract"]
+                i = ab.find("The primary hypothesis was that liraglutide would be noninferior")
+                j = ab.find(". ", i) + 1
+                fv.update(span=ab[i:j], start=i, end=j, parent_representation="PARSED_SOURCE")
+                if isinstance(fv.get("observed"), dict):
+                    fv["observed"].update(span=ab[i:j], start=i, end=j)
+            elif limb == "estimator_claim_or":              # auditor F1 paired test: only the claimed VALUE, authentic bytes
+                fv = br["analysis_identity"]["estimator"]
+                fv["value"] = "odds ratio"
+                if isinstance(fv.get("observed"), dict):
+                    fv["observed"]["value"] = "odds ratio"
+            elif limb == "estimator_label_rr":              # auditor F2: ONLY the stored estimator HR -> RR; span, estimate, CI, endpoint, arms unchanged
+                t["scale"] = br["effect"]["scale"] = "RR"
+            elif limb == "estimator_hr_abbrev":             # control: 'HR' abbreviation in the effect clause
+                _oc_source_edit(store, bundle, rec_by_pmid, t, br, pmid, _OC_EST_HELD, _OC_EST_ABBREV)
+                _oc_reemit(store, slug, br, t, rec_by_pmid[pmid]["abstract"], fam_certified.get(t.get("family_id")))
+            elif limb == "estimator_linked_method":         # control: no measure word in the clause; the linked method sentence owns it
+                _oc_source_edit(store, bundle, rec_by_pmid, t, br, pmid, _OC_EST_HELD, _OC_EST_NONE)
+                _oc_reemit(store, slug, br, t, rec_by_pmid[pmid]["abstract"], fam_certified.get(t.get("family_id")))
+            elif limb in ("estimator_genuine_rr", "estimator_genuine_rr_permitted"):   # a source that genuinely states a relative risk
+                _oc_source_edit(store, bundle, rec_by_pmid, t, br, pmid, _OC_EST_HELD, _OC_EST_RR)
+                t["scale"] = br["effect"]["scale"] = "RR"
+                _oc_reemit(store, slug, br, t, rec_by_pmid[pmid]["abstract"], fam_certified.get(t.get("family_id")))
+                if limb.endswith("_permitted"):
+                    regd_["estimators_permitted"] = ["HR", "RR"]
             elif limb == "pool_input_reciprocal":           # the row stays canonical; its POOL INPUT is the reciprocal
                 pin.update(effect=_oc_recip(t["effect"]), ci_low=_oc_recip(t["ci_high"]), ci_high=_oc_recip(t["ci_low"]))
                 bundle["pooled_reference"]["expected"] = pool(bundle["pooled_reference"]["inputs"])
@@ -1401,6 +1535,8 @@ def run(store: Store, slug: str, corrupt: tuple[str, str] | None, anchor_live: b
             else:
                 report.setdefault("disclosed_refusals", []).append(f"{code} {pmid}: {why}")
         P["P10_estimand_evidence"] = ee_ok
+        # P15: estimator identity bound to the source that owns THIS effect (value + ownership), decided before compatibility or pooling
+        P["P15_estimator_source_bound"] = not any(c.startswith("ESTIMATOR_") for c, _ in cv["p10"])
         # P11: the bound identity must be the REGISTERED one -- from the RECOMPUTED evidence
         dep = []
         if ee_re["analysis_set"]["state"] == "STATED_IN_OWNING_EVIDENCE" and ee_re["analysis_set"]["value"] != regd.get("analysis_set"):
@@ -1644,7 +1780,7 @@ def main(argv=None):
     g.add_argument("--root", help="directory mirroring the site root (e.g. docs)")
     g.add_argument("--url", help="site root URL")
     ap.add_argument("--slug", required=True)
-    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|nontarget_span|unlisted_span|fragment|ci_high_rounded|ci_low_truncated|duplicate_span_no_offsets|default_as_statement|served_basis_lie|regulatory_strategy_swap|regulatory_consistent_swap|container|contrast_reverse|contrast_reverse_served|contrast_reverse_declared[_permitted|_forbidden|_away]|estimator_swap|measure_unidentified|pool_input_reciprocal")
+    ap.add_argument("--corrupt", nargs=2, metavar=("PMID", "LIMB"), help="mutate one limb of one row in memory: span|effect|components|eligibility|conflict|binding|nontarget_span|unlisted_span|fragment|ci_high_rounded|ci_low_truncated|duplicate_span_no_offsets|default_as_statement|served_basis_lie|regulatory_strategy_swap|regulatory_consistent_swap|container|contrast_reverse|contrast_reverse_served|contrast_reverse_declared[_permitted|_forbidden|_away]|estimator_swap|measure_unidentified|pool_input_reciprocal|estimator_owner_methods|estimator_claim_or|estimator_label_rr|estimator_hr_abbrev|estimator_linked_method|estimator_genuine_rr[_permitted]")
     ap.add_argument("--anchor", choices=["live"], help="live: re-fetch EFetch XML from PubMed now and compare to the retained acquisition and the cached abstract")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)

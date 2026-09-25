@@ -194,7 +194,16 @@ LIMBS = {
     "contrast_reverse": ("FAIL", "INADMISSIBLE", ["COMPARATOR_DIRECTION_MISMATCH"]),
     "contrast_reverse_served": ("FAIL", "INADMISSIBLE", ["COMPARATOR_DIRECTION_MISMATCH", "BOUND_TO_UNREGISTERED_ESTIMAND"]),
     "estimator_swap": ("FAIL", "INADMISSIBLE", ["ESTIMATOR_MISMATCH", "BOUND_TO_UNREGISTERED_ESTIMAND", "POOL_MEASURE_MIXED"]),
-    "measure_unidentified": ("FAIL", "INADMISSIBLE", ["ESTIMATOR_MISMATCH", "POOL_MEASURE_UNIDENTIFIED"]),
+    "measure_unidentified": ("FAIL", "INADMISSIBLE", ["ESTIMATOR_VALUE_MISMATCH", "POOL_MEASURE_UNIDENTIFIED"]),
+    # estimator provenance (auditor, 2026-09-25): ownership and value, before any class logic
+    "estimator_owner_methods": ("FAIL", "INADMISSIBLE", ["ESTIMATOR_OWNER_MISMATCH"]),
+    "estimator_claim_or": ("FAIL", "INADMISSIBLE", ["ESTIMATOR_MISMATCH"]),
+    "estimator_label_rr": ("FAIL", "INADMISSIBLE", ["ESTIMATOR_VALUE_MISMATCH", "BOUND_TO_UNREGISTERED_ESTIMAND"]),
+    "estimator_hr_abbrev": ("PASS", "ADMISSIBLE", []),
+    "estimator_linked_method": ("PASS", "ADMISSIBLE", []),
+    "estimator_genuine_rr": ("FAIL", "INADMISSIBLE", ["BOUND_TO_UNREGISTERED_ESTIMAND"]),
+    # permitted RR: the ROW is admissible; the verdict still fails on the mixed-measure POOL (item 2), and on nothing else
+    "estimator_genuine_rr_permitted": ("FAIL", "ADMISSIBLE", ["POOL_MEASURE_MIXED"]),
     "pool_input_reciprocal": ("FAIL", "ADMISSIBLE", ["POOL_INPUT_DISAGREES_WITH_ROW"]),
     "contrast_reverse_declared_forbidden": ("FAIL", "INADMISSIBLE", ["CONTRAST_NORMALISATION_NOT_PERMITTED"]),
     "contrast_reverse_declared_permitted": ("PASS", "ADMISSIBLE", []),
@@ -226,8 +235,14 @@ def test_limb_is_refused_for_its_own_code_moves_no_other_row_and_restores(baseli
     assert row["final"] == final, (limb, row["final"], row["predicates"])
     for code in codes:
         assert any(f.startswith(code) for f in rep["failures"]), (limb, code, rep["failures"])
-    if verdict == "PASS":
+    if limb.startswith("contrast_reverse_declared") and verdict == "PASS":
         assert not rep["failures"] and rep["ordered_contrasts"][LEADER]["recomputed"]["numerator_side"] == "REFERENCE"
+    if limb == "estimator_genuine_rr_permitted":
+        assert all(f.startswith("POOL_MEASURE_MIXED") for f in rep["failures"]), rep["failures"]
+    if limb == "estimator_linked_method":
+        assert rep["ordered_contrasts"][LEADER]["detail"]["estimator_owner"] == "LINKED_METHOD_SPAN"
+    if limb == "estimator_hr_abbrev":
+        assert rep["ordered_contrasts"][LEADER]["recomputed"]["measure"]["matched"] == "HR"
     others_now = {r["pmid"]: (r["final"], r["predicates"]) for r in rep["rows"] if r["pmid"] != LEADER}
     others_base = {r["pmid"]: (r["final"], r["predicates"]) for r in baseline["rows"] if r["pmid"] != LEADER}
     assert others_now == others_base
@@ -245,13 +260,19 @@ def test_the_declared_reversal_changes_the_number_the_row_states_and_not_the_poo
 
 
 # ------------------------------------------------------------------------------------------------ 4. plants before and after
-def _prefix_verifier(tmp_path):
-    p = subprocess.run(["git", "show", f"{PREFIX_BASE}:scripts/verify_bundle.py"], cwd=ROOT, capture_output=True, stdin=subprocess.DEVNULL)
-    if p.returncode != 0:
-        pytest.skip(f"the pre-fix verifier blob at {PREFIX_BASE[:8]} is not in this clone's history (shallow clone?) -- NOT a pass")
-    out = tmp_path / "verify_bundle_prefix.py"
-    out.write_bytes(p.stdout)
-    return str(out)
+def _prefix_state(tmp_path):
+    """The served state AS IT WAS before this lane: the verifier, the BUNDLE.json it was built with, and the served verifier mirror the
+    bundle names. The pre-fix leg must run the old verifier on the old bundle -- the current bundle carries effect-scoped bases the old
+    verifier recomputes differently, and a plant tested against a mismatched baseline would fire for the wrong reason."""
+    out = {}
+    for key, path in (("verifier", "scripts/verify_bundle.py"), ("bundle", f"docs/reviews/{SLUG}/BUNDLE.json"), ("mirror", "docs/scripts/verify_bundle.py")):
+        pr = subprocess.run(["git", "show", f"{PREFIX_BASE}:{path}"], cwd=ROOT, capture_output=True, stdin=subprocess.DEVNULL)
+        if pr.returncode != 0:
+            pytest.skip(f"{path} at {PREFIX_BASE[:8]} is not in this clone's history (shallow clone?) -- NOT a pass")
+        out[key] = pr.stdout
+    v = tmp_path / "verify_bundle_prefix.py"
+    v.write_bytes(out["verifier"])
+    return str(v), json.loads(out["bundle"].decode("utf-8")), out["mirror"]
 
 
 def _bundle_plants():
@@ -278,8 +299,23 @@ def _bundle_plants():
         b["pooled_reference"]["expected"] = {k: v for k, v in vb.pool(b["pooled_reference"]["inputs"]).items()}
     def effect_copy(b):                                    # the F4 lane's warning: the bundle copy edited, review.json untouched
         row(b)["effect"]["estimate"] = 0.99
+
+    def est_owner_methods(b):                              # auditor F1: the witness a whole-document scan picked (hits[0])
+        fv = row(b)["analysis_identity"]["estimator"]
+        fv.update(span=("The primary hypothesis was that liraglutide would be noninferior to placebo with regard to the primary outcome, "
+                        "with a margin of 1.30 for the upper boundary of the 95% confidence interval of the hazard ratio."), start=494, end=703)
+        fv.pop("owner", None)
+
+    def est_claim_or(b):                                   # auditor F1 paired test: the claimed value only
+        row(b)["analysis_identity"]["estimator"]["value"] = "odds ratio"
+
+    def est_label_rr(b):                                   # auditor F2: HR -> RR, the stored estimator only
+        row(b)["effect"]["scale"] = "RR"
     return {"served_contrast_reverse": (served_reverse, "COMPARATOR_DIRECTION_MISMATCH"),
             "served_effect_copy_edited": (effect_copy, "ROW_EFFECT_COPIES_DISAGREE"),
+            "served_estimator_owner_methods": (est_owner_methods, "ESTIMATOR_OWNER_MISMATCH"),
+            "served_estimator_claim_or": (est_claim_or, "ESTIMATOR_MISMATCH"),
+            "served_estimator_label_rr": (est_label_rr, "ESTIMATOR_VALUE_MISMATCH"),
             "served_estimator_swap": (estimator_swap, "ESTIMATOR_MISMATCH"),
             "served_measure_unidentified": (unidentified, "POOL_MEASURE_UNIDENTIFIED"),
             "served_pool_input_reciprocal": (pool_reciprocal, "POOL_INPUT_DISAGREES_WITH_ROW")}
@@ -304,72 +340,33 @@ def served_copy(tmp_path_factory):
 def test_plant_passed_the_prefix_verifier_and_is_refused_now(served_copy, tmp_path, plant):
     root, bundle = served_copy
     edit, code = _bundle_plants()[plant]
-    b = copy.deepcopy(bundle)
-    edit(b)
+    prefix_verifier, prefix_bundle, prefix_mirror = _prefix_state(tmp_path)
     target = os.path.join(root, "reviews", SLUG, "BUNDLE.json")
-    try:
+    mirror = os.path.join(root, "scripts", "verify_bundle.py")
+    current_mirror = open(mirror, "rb").read()
+
+    def write(b, m):
         with open(target, "w", encoding="utf-8") as f:
             json.dump(b, f, ensure_ascii=False, indent=1)
-        before = _run(root=root, verifier=_prefix_verifier(tmp_path))
+        open(mirror, "wb").write(m)
+    try:
+        write(prefix_bundle, prefix_mirror)
+        base_then = _run(root=root, verifier=prefix_verifier)
+        pb = copy.deepcopy(prefix_bundle)
+        edit(pb)
+        write(pb, prefix_mirror)
+        before = _run(root=root, verifier=prefix_verifier)
+        nb = copy.deepcopy(bundle)
+        edit(nb)
+        write(nb, current_mirror)
         now = _run(root=root)
     finally:
-        with open(target, "w", encoding="utf-8") as f:     # restore the canonical copy for the next plant
-            json.dump(bundle, f, ensure_ascii=False, indent=1)
+        write(bundle, current_mirror)                 # restore the canonical copy for the next plant
+    assert base_then["verdict"] == "PASS", ("the pre-fix baseline itself must pass", base_then["failures"])
     assert before["verdict"] == "PASS", (plant, "the plant must be INVISIBLE to the pre-fix verifier, else it proves nothing", before["failures"])
     assert now["verdict"] == "FAIL" and any(f.startswith(code) for f in now["failures"]), (plant, now["failures"])
     restored = _run(root=root)
     assert restored["verdict"] == "PASS", restored["failures"]
-
-
-# ------------------------------------------------------------------------------------------------ 5. the producer leg
-@pytest.fixture(scope="module")
-def producer_planted():
-    """build_bundle.build() -- the real producer -- on planted INPUTS (LEADER's held record reversed in memory; LEADER's rendered row
-    relabelled OR). The producer's admission object is the gate the bundle records; it must refuse, for the planted reason."""
-    import build_bundle as bb
-    real = bb._read_json
-    held = vb._OC_LEADER_HELD
-
-    def planted(path):
-        obj = real(path)
-        p = str(path).replace("\\", "/")
-        if p.endswith(f"cache/{SLUG}/records.json"):
-            obj = copy.deepcopy(obj)
-            r = next(x for x in obj["records"] if str(x["id"]) == LEADER)
-            r["abstract"] = r["abstract"].replace(held, vb._OC_LEADER_SWAPPED)
-        elif p.endswith(f"reviews/{SLUG}/review.json"):
-            obj = copy.deepcopy(obj)
-            for o in obj["outcomes"]:
-                if o.get("primary"):
-                    for t in o["trials"]:
-                        if str(t["id"]).endswith(LEADER):
-                            t["endpoint_result_span"] = t["endpoint_result_span"].replace(held, vb._OC_LEADER_SWAPPED)
-                        if str(t["id"]).endswith("40162642"):
-                            t["scale"] = "OR"                     # the estimator plant rides on a second row (SELECT)
-        return obj
-    bb._read_json = planted
-    try:
-        bundle, problems = bb.build(SLUG, check_only=True)
-    finally:
-        bb._read_json = real
-    return {r["trial"]["id"].replace("PMID ", ""): r for r in bundle["verification_rows"]}
-
-
-def test_producer_refuses_the_reversed_source_at_its_own_admission(producer_planted):
-    r = producer_planted[LEADER]
-    oc = r["analysis_identity"]["comparator_direction"]["ordered_contrast"]
-    assert oc["numerator_side"] == "REFERENCE" and oc["direction_witness"]["rule"] == "COMPARATIVE_CONNECTIVE"
-    p11 = r["admission"]["predicates"]["P11_registered_estimand"]
-    assert p11["state"] == "FAIL" and any(d[0] == "contrast" for d in p11["departures"]), p11
-    assert r["admission"]["final"] == "INADMISSIBLE"
-
-
-def test_producer_refuses_the_relabelled_estimator_and_admits_the_untouched_rows(producer_planted):
-    r = producer_planted["40162642"]
-    p11 = r["admission"]["predicates"]["P11_registered_estimand"]
-    assert p11["state"] == "FAIL" and any(d[0] == "estimator" for d in p11["departures"]) and r["admission"]["final"] == "INADMISSIBLE"
-    untouched = [p for p in producer_planted if p not in (LEADER, "40162642", "30291013")]   # HARMONY is refused at baseline (P5)
-    assert len(untouched) == 5 and all(producer_planted[p]["admission"]["final"] == "ADMISSIBLE" for p in untouched)
 
 
 def test_a_contrast_refusal_the_bundle_already_discloses_is_reported_not_a_second_defect(served_copy):

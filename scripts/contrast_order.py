@@ -259,8 +259,9 @@ def registered_departures(oc, scale, regd, vocab, normalisation=None):
             out.append(("contrast", f"the pooled orientation puts the {num} arm in the numerator; registered {regd.get('contrast')!r}"))
     reg_measure = next((m for w, m in _ESTIMATOR_MEASURE.items() if w in str((regd or {}).get("estimator") or "").lower()), None)
     cm = (oc.get("measure") or {})
-    if reg_measure and scale_measure(scale) != reg_measure:
-        out.append(("estimator", f"served scale {scale!r}; registered {regd.get('estimator')!r}"))
+    permitted = [scale_measure(x) for x in ((regd or {}).get("estimators_permitted") or ([reg_measure] if reg_measure else []))]
+    if permitted and scale_measure(scale) not in permitted:
+        out.append(("estimator", f"served scale {scale!r}; registered {regd.get('estimator')!r}, permitted {permitted}"))
     elif cm.get("state") == "STATED" and scale_measure(scale) != cm.get("measure"):
         out.append(("estimator", f"served scale {scale!r}; the tuple's clause states {cm.get('matched')!r}"))
     return out

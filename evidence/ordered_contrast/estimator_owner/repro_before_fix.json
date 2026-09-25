@@ -1,0 +1,157 @@
+{
+ "bundle_sha256": "3b9ca63edbe299efa3254cdc68a46f0ab7382785f76e8bac906b0999a24830dc",
+ "runs": {
+  "prefix_c9d665e0": {
+   "baseline": {
+    "verdict": "PASS",
+    "leader_final": "ADMISSIBLE",
+    "leader_failed_predicates": [],
+    "failures": []
+   },
+   "F1_claimed_odds_ratio_value": {
+    "verdict": "PASS",
+    "leader_final": "ADMISSIBLE",
+    "leader_failed_predicates": [],
+    "failures": []
+   },
+   "F2_label_HR_to_RR": {
+    "verdict": "PASS",
+    "leader_final": "ADMISSIBLE",
+    "leader_failed_predicates": [],
+    "failures": []
+   },
+   "F2_label_and_field_HR_to_RR": {
+    "verdict": "PASS",
+    "leader_final": "ADMISSIBLE",
+    "leader_failed_predicates": [],
+    "failures": []
+   },
+   "restore": {
+    "verdict": "PASS",
+    "leader_final": "ADMISSIBLE",
+    "leader_failed_predicates": [],
+    "failures": []
+   }
+  },
+  "branch_before_owner_fix": {
+   "baseline": {
+    "verdict": "PASS",
+    "leader_final": "ADMISSIBLE",
+    "leader_failed_predicates": [],
+    "failures": []
+   },
+   "F1_claimed_odds_ratio_value": {
+    "verdict": "FAIL",
+    "leader_final": "INADMISSIBLE",
+    "leader_failed_predicates": [
+     "P10_estimand_evidence"
+    ],
+    "failures": [
+     "ESTIMATOR_MISMATCH 27295427: served estimator 'odds ratio', recomputed from the source 'hazard ratio'",
+     "ESTIMATOR_MISMATCH 27295427: served estimator 'odds ratio' and served effect.scale 'HR' name different measures",
+     "ROW_VERDICT_DISAGREES 27295427: verifier says INADMISSIBLE, bundle recorded ADMISSIBLE",
+     "POOL_MEASURE_UNIDENTIFIED 27295427: the row's measure is not identified (served 'HR'; clause 'HR')"
+    ]
+   },
+   "F2_label_HR_to_RR": {
+    "verdict": "FAIL",
+    "leader_final": "INADMISSIBLE",
+    "leader_failed_predicates": [
+     "P10_estimand_evidence",
+     "P11_registered_estimand"
+    ],
+    "failures": [
+     "ESTIMATOR_MISMATCH 27295427: served effect.scale 'RR' but the tuple's own clause states 'hazard ratio' (HR)",
+     "ESTIMATOR_MISMATCH 27295427: served estimator 'hazard ratio' and served effect.scale 'RR' name different measures",
+     "ROW_EFFECT_COPIES_DISAGREE 27295427: bundle row {'estimate': 0.87, 'ci_low': 0.78, 'ci_high': 0.97} 'RR' vs rendered row [0.87, 0.78, 0.97] 'HR'",
+     "BOUND_TO_UNREGISTERED_ESTIMAND 27295427: [\"estimator (served 'RR'; registered 'hazard ratio, time to first event')\"]",
+     "ROW_VERDICT_DISAGREES 27295427: verifier says INADMISSIBLE, bundle recorded ADMISSIBLE",
+     "POOL_MEASURE_UNIDENTIFIED 27295427: the row's measure is not identified (served 'RR'; clause 'HR')",
+     "POOL_MEASURE_MIXED inputs carry ['HR', 'RR']: log(HR), log(OR), log(RR) are different quantities"
+    ]
+   },
+   "F2_label_and_field_HR_to_RR": {
+    "verdict": "FAIL",
+    "leader_final": "INADMISSIBLE",
+    "leader_failed_predicates": [
+     "P10_estimand_evidence",
+     "P11_registered_estimand"
+    ],
+    "failures": [
+     "ESTIMATOR_MISMATCH 27295427: served effect.scale 'RR' but the tuple's own clause states 'hazard ratio' (HR)",
+     "ESTIMATOR_MISMATCH 27295427: served estimator 'risk ratio', recomputed from the source 'hazard ratio'",
+     "ROW_EFFECT_COPIES_DISAGREE 27295427: bundle row {'estimate': 0.87, 'ci_low': 0.78, 'ci_high': 0.97} 'RR' vs rendered row [0.87, 0.78, 0.97] 'HR'",
+     "BOUND_TO_UNREGISTERED_ESTIMAND 27295427: [\"estimator (served 'RR'; registered 'hazard ratio, time to first event')\"]",
+     "ROW_VERDICT_DISAGREES 27295427: verifier says INADMISSIBLE, bundle recorded ADMISSIBLE",
+     "POOL_MEASURE_UNIDENTIFIED 27295427: the row's measure is not identified (served 'RR'; clause 'HR')",
+     "POOL_MEASURE_MIXED inputs carry ['HR', 'RR']: log(HR), log(OR), log(RR) are different quantities"
+    ]
+   },
+   "restore": {
+    "verdict": "PASS",
+    "leader_final": "ADMISSIBLE",
+    "leader_failed_predicates": [],
+    "failures": []
+   }
+  }
+ },
+ "served_leader_estimator_witness": {
+  "value": "hazard ratio",
+  "basis": "STATED_IN_OWNING_EVIDENCE",
+  "span": "The primary hypothesis was that liraglutide would be noninferior to placebo with regard to the primary outcome, with a margin of 1.30 for the upper boundary of the 95% confidence interval of the hazard ratio.",
+  "span_holds_0.87": false
+ },
+ "gate": {
+  "canonical": {
+   "ok": false,
+   "reasons": [
+    "L1: live census reproduced 1 failure(s): served index.html byte-matches re-render of review.json"
+   ]
+  },
+  "leader_relabelled_RR": {
+   "ok": false,
+   "reasons": [
+    "L1: live census reproduced 2 failure(s): review_sha256 reproduces from committed review.json; served index.html byte-matches re-render of review.json",
+    "CERTIFICATE.json differs from rendered reproduction certificate",
+    "L1: claimgraph violations remain (stale dependent result-bearing object): [{\"code\": \"STALE_DEPENDENT\", \"kind\": \"membership_state\", \"claim_id\": \"8c1385440b30af05\", \"detail\": \"/outcomes/0/declared_absent_trials/0 depends on ed1aa3e68e5abdb66e7df021c7bf51ab000bc24fd0543160b3dbbd2276e3d3b0, current input_set_version is 286eed17bf155adb93640375682db96a97e0939d044c51090361d5f9625f624b\", \"object_path\": \"/outcomes/0/declared_absent_trials/0\"}, {\"code\": \"STALE_DEPENDENT\", \"kind\": \"outcome_result\", \"claim_id\": \"733bd6639b70e965\", \"detail\": \"/outcomes/0/result depends on ed1aa3e68e5abdb66e7df021c7bf51ab000bc24fd0543160b3dbbd2276e3d3b0, current input_set_version is 286eed17bf155adb93640375682db96a97e0939d044c51090361d5f9625f624b\", \"object_path\": \"/outcomes/0/result\"}, {\"code\": \"STALE_DEPENDENT\", \"kind\": \"dependent\", \"claim_id\": \"glp1-ra-mace-t2d::primary::known_missing_sensitivity\", \"detail\": \"/outcomes/0/known_missing_sensitivity depends on ed1aa3e68e5abdb66e7df021c7bf51ab000bc24fd0543160b3dbbd2276e3d3b0, current input_set_version is 286eed17bf155adb93640375682db96a97e0939d044c51090361d5f9625f624b\", \"object_path\": \"/outcomes/0/known_missing_sensitivity\"}, {\"code\": \"STALE_DEPENDENT\", \"kind\": \"rob_sensitivity.full\", \"claim_id\": \"190d6a1656d40b26\", \"detail\": \"/rob_sensitivity/full depends on ed1aa3e68e5abdb66e7df021c7bf51ab000bc24fd0543160b3dbbd2276e3d3b0, current input_set_version is 286eed17bf155adb93640375682db96a97e0939d044c51090361d5f9625f624b\", \"object_path\": \"/rob_sensitivity/full\"}, {\"code\": \"STALE_DEPENDENT\", \"kind\": \"rob_sensitivity.drop_high\", \"claim_id\": \"17d22274a184b2f5\", \"detail\": \"/rob_sensitivity/drop_high depends on ed1aa3e68e5abdb66e7df021c7bf51ab000bc24fd0543160b3dbbd2276e3d3b0, current input_set_version is 286eed17bf155adb93640375682db96a97e0939d044c51090361d5f9625f624b\", \"object_path\": \"/rob_sensitivity/drop_high\"}, {\"code\": \"STALE_DEPENDENT\", \"kind\": \"rob_sensitivity.low_only\", \"claim_id\": \"0352ca6efcab7100\", \"detail\": \"/rob_sensitivity/low_only depends on ed1aa3e68e5abdb66e7df021c7bf51ab000bc24fd0543160b3dbbd2276e3d3b0, current input_set_version is 286eed17bf155adb93640375682db96a97e0939d044c51090361d5f9625f624b\", \"object_path\": \"/rob_sensitivity/low_only\"}]"
+   ]
+  },
+  "row_before": {
+   "scale": "HR",
+   "effect_object": {
+    "reported_label": "HR",
+    "statistical_model": null,
+    "canonical_estimand": "HAZARD_RATIO_FIRST_EVENT"
+   }
+  },
+  "estmeasure_after_relabel": {
+   "row": {
+    "reported_label": "RR",
+    "statistical_model": null,
+    "canonical_estimand": "RISK_RATIO"
+   },
+   "pool": {
+    "status": "compatible_labels",
+    "classes": [
+     "FIRST_EVENT_RATIO"
+    ],
+    "canonicals": [
+     "HAZARD_RATIO_FIRST_EVENT",
+     "RISK_RATIO"
+    ],
+    "labels": [
+     "HR",
+     "RR"
+    ]
+   }
+  },
+  "new_reasons": [
+   "CERTIFICATE.json differs from rendered reproduction certificate",
+   "L1: claimgraph violations remain (stale dependent result-bearing object): [{\"code\": \"STALE_DEPENDENT\", \"kind\": \"membership_state\", \"claim_id\": \"8c1385440b30af05\", \"detail\": \"/outcomes/0/declared_absent_trials/0 depends on ed1aa3e68e5abdb66e7df021c7bf51ab000bc24fd0543160b3dbbd2276e3d3b0, current input_set_version is 286eed17bf155adb93640375682db96a97e0939d044c51090361d5f9625f624b\", \"object_path\": \"/outcomes/0/declared_absent_trials/0\"}, {\"code\": \"STALE_DEPENDENT\", \"kind\": \"outcome_result\", \"claim_id\": \"733bd6639b70e965\", \"detail\": \"/outcomes/0/result depends on ed1aa3e68e5abdb66e7df021c7bf51ab000bc24fd0543160b3dbbd2276e3d3b0, current input_set_version is 286eed17bf155adb93640375682db96a97e0939d044c51090361d5f9625f624b\", \"object_path\": \"/outcomes/0/result\"}, {\"code\": \"STALE_DEPENDENT\", \"kind\": \"dependent\", \"claim_id\": \"glp1-ra-mace-t2d::primary::known_missing_sensitivity\", \"detail\": \"/outcomes/0/known_missing_sensitivity depends on ed1aa3e68e5abdb66e7df021c7bf51ab000bc24fd0543160b3dbbd2276e3d3b0, current input_set_version is 286eed17bf155adb93640375682db96a97e0939d044c51090361d5f9625f624b\", \"object_path\": \"/outcomes/0/known_missing_sensitivity\"}, {\"code\": \"STALE_DEPENDENT\", \"kind\": \"rob_sensitivity.full\", \"claim_id\": \"190d6a1656d40b26\", \"detail\": \"/rob_sensitivity/full depends on ed1aa3e68e5abdb66e7df021c7bf51ab000bc24fd0543160b3dbbd2276e3d3b0, current input_set_version is 286eed17bf155adb93640375682db96a97e0939d044c51090361d5f9625f624b\", \"object_path\": \"/rob_sensitivity/full\"}, {\"code\": \"STALE_DEPENDENT\", \"kind\": \"rob_sensitivity.drop_high\", \"claim_id\": \"17d22274a184b2f5\", \"detail\": \"/rob_sensitivity/drop_high depends on ed1aa3e68e5abdb66e7df021c7bf51ab000bc24fd0543160b3dbbd2276e3d3b0, current input_set_version is 286eed17bf155adb93640375682db96a97e0939d044c51090361d5f9625f624b\", \"object_path\": \"/rob_sensitivity/drop_high\"}, {\"code\": \"STALE_DEPENDENT\", \"kind\": \"rob_sensitivity.low_only\", \"claim_id\": \"0352ca6efcab7100\", \"detail\": \"/rob_sensitivity/low_only depends on ed1aa3e68e5abdb66e7df021c7bf51ab000bc24fd0543160b3dbbd2276e3d3b0, current input_set_version is 286eed17bf155adb93640375682db96a97e0939d044c51090361d5f9625f624b\", \"object_path\": \"/rob_sensitivity/low_only\"}]",
+   "L1: live census reproduced 2 failure(s): review_sha256 reproduces from committed review.json; served index.html byte-matches re-render of review.json"
+  ],
+  "reasons_gone": [
+   "L1: live census reproduced 1 failure(s): served index.html byte-matches re-render of review.json"
+  ]
+ }
+}
