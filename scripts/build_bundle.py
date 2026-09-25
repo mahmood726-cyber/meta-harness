@@ -60,14 +60,24 @@ sys.path.insert(0, str(ROOT))
 
 from harness import certificate  # noqa: E402
 from harness import synth  # noqa: E402
+from harness import contrast_order  # noqa: E402
 from harness.target_endpoint import _components_from_text  # noqa: E402
 from harness.canonical import canonical_json, review_core, sha256_text  # noqa: E402
 
 SITE_ROOT = "https://mahmood726-cyber.github.io/meta-harness/"
 REPO_URL = "https://github.com/mahmood726-cyber/meta-harness.git"
 SCHEMA_VERSION = 3
-FORMAT_REVISION = "3.17"
+FORMAT_REVISION = "3.18"
 FORMAT_CHANGELOG = [
+    "3.18 (2026-09-25, lane OC, external audit: ordered contrast and estimator VALUE-checked, not state-checked): analysis_identity."
+    "comparator_direction.value is the ORDERED contrast ('<numerator arm> vs <reference arm>') recomputed from the tuple's own clause, with "
+    "ordered_contrast {measure, experimental_arm, reference_arm (F4 arm ids <NCT>:<AACT design_group id> from the certified families.json), "
+    "numerator_side, estimate, ci_low, ci_high, direction_witness (COMPARATIVE_CONNECTIVE | ORDER_OF_MENTION, located)}; "
+    "effect_less_than_1_favours is derived from numerator_side instead of asserted; registered_estimand.contrast is read from the protocol's "
+    "estimand line (it was hard-coded 'GLP-1 RA vs placebo' for every slug) and carries contrast_normalisation (reciprocal PERMITTED_WHEN_DECLARED, "
+    "a harness policy, registered_in_protocol false); P11 adds contrast and estimator departures. A row carries its tuple AS STATED; a "
+    "re-orientation is only a declared effect.normalisation. Verifier side: P10 compares VALUES (COMPARATOR_DIRECTION_MISMATCH, ESTIMATOR_MISMATCH, "
+    "CONTRAST_NORMALISATION_*), P11 the registered contrast/estimator, and the pool refuses mixed or unidentified measures BEFORE any log is taken.",
     "3.17 (2026-09-20, pcsk9-mace third live wrong pool): every row carries pooled_state (EXACT_TARGET_POOLED / NEAR_MATCH_POOLED / UNBOUND_POOLED) with extra_components and missing_components RENDERED beside components_as_classified; P13_no_extra_components and P14_missing_components_consistent added to the admission predicates in both copies (ODYSSEY's fields fail both); limit L15; served sweeps strict_subset_sweep.json and pooled_class_sweep.json.",
     "3.16 (2026-09-20): exclusion statements are also read from the DOCUMENT NEIGHBOURHOOD of the located span (+/-400 code points in the representation where P2 located it), so a footnote or a sentence outside both of the row's spans still cuts; P9 reports exclusion_scope_searched. Row-span and definition-span scope (3.15) was measured relational, not sentence-scoped, on E1-E10; this closes the remaining hole named in the 3.15 report (the scope was the row's spans, not the document).",
     "3.15 (2026-09-20, panel exclusion fixtures E1-E10): exclusion is read RELATIONALLY across the whole span, not the clause -- an exclusion statement in the next sentence or a footnote after the result ('X and Y were not included in / excluded from the primary analysis', 'neither X nor Y contributed') cuts those components from the target claim and is reported in exclusion_statements; a cue inside a parenthetical is scoped to the parenthetical and a qualifier on a component ('nonfatal MI (excluding silent infarction)') excludes nothing; a POPULATION exclusion ('patients with a prior stroke were excluded from enrolment') cuts nothing. Pre-fix on 3.14: E5 and E8 admitted, E9 refused.",
@@ -1223,7 +1233,7 @@ def extraction_objects_coverage(slug: str, review: dict, cert: dict) -> dict:
     }
 
 
-def _analysis_identity(t: dict, review: dict, ee: dict) -> dict:
+def _analysis_identity(t: dict, review: dict, ee: dict, oc: dict | None = None) -> dict:
     """Endpoint identity is not estimand identity -- and an estimand field without evidence is a producer assertion. Every field
     here is {value, basis, span, start, end, parent_representation}; the review-target fallback ('trial end' on every row) is gone."""
     reg = registered_estimand(review["slug"])
@@ -1251,8 +1261,12 @@ def _analysis_identity(t: dict, review: dict, ee: dict) -> dict:
         "treatment_strategy": field("treatment_strategy", window, strategy_value),
         "follow_up_window": field("follow_up_window", window, window.get("span") if window["state"] == "STATED_IN_OWNING_EVIDENCE" and window.get("value") == "follow-up stated"
                                   else window.get("value")),
-        "comparator_direction": {**field("comparator_direction", ee["contrast"]),
-                                 "effect_less_than_1_favours": "experimental (ratio measures; the row's own clause names the comparator arm when STATED)"},
+        "comparator_direction": {**field("comparator_direction", ee["contrast"], contrast_order.contrast_value(oc or {}) if ee["contrast"]["state"] == "STATED_IN_OWNING_EVIDENCE" else None),
+                                 # lane OC: the VALUE, not the state -- which arm is the numerator, with F4 arm ids and the witness that orders them
+                                 "ordered_contrast": oc,
+                                 "effect_less_than_1_favours": ("the experimental arm" if (oc or {}).get("numerator_side") == "EXPERIMENTAL" else
+                                                                "the reference arm" if (oc or {}).get("numerator_side") == "REFERENCE" else
+                                                                "UNORDERED: the clause does not order the arms")},
         "estimator": {**field("estimator", ee["estimator"]),
                       "producer_fields": {"method": se.get("estimator_method"), "reported_label": (t.get("effect_object") or {}).get("reported_label"),
                                           "canonical_estimand": (t.get("effect_object") or {}).get("canonical_estimand")}},
@@ -1282,6 +1296,7 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
     certified = _read_json(ROOT / "cache" / slug / "families.json")
     fam_by_id = {f.get("family_id"): f for f in certified.get("families", []) if isinstance(f, dict)}   # AUTHORITATIVE: trial_family_map_sha256
     rec_ref = f"cache/{slug}/records.json"
+    vocab = contrast_order.contrast_vocabulary(_read_json(ROOT / "topics" / f"{slug}.json"))
     rec_raw_sha = art_by_ref[rec_ref]["sha256"]
     rec_canon_sha = art_by_ref[rec_ref]["declared_digest"]
     rows = []
@@ -1311,6 +1326,7 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
         cov = (doc.get("coverage_status") or {}).get("value")
         located = loc["match"] in ("VERBATIM", "NORMALISED")
         ee = estimand_evidence(parsed, eff_clause)
+        oc = contrast_order.ordered_contrast(eff_clause, values, vocab, fam)
         predicates = {
             "P1_source_bytes": {"state": "PASS" if art_by_ref[rec_ref]["sha256"] == (doc.get("representations", {}).get("PARSED_SOURCE", {}).get("container_sha256")) else "FAIL",
                                 "declared": art_by_ref[rec_ref]["sha256"], "container": rec_ref},
@@ -1350,11 +1366,14 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
             unregistered.append(("treatment_strategy", "on-treatment"))
         if aset["state"] == "UNRESOLVED" or win["state"] == "UNRESOLVED":
             unregistered.append(("estimand", "UNRESOLVED"))
+        unregistered += contrast_order.registered_departures(oc, effect["scale"], reg, vocab, t.get("contrast_normalisation"))
         cil = ci_level_record(eff_clause, (t.get("study_effect") or {}).get("standard_error"), t.get("ci_low"), t.get("ci_high"))
         predicates["P12_ci_level"] = {"state": "FAIL" if cil["level_agreement"] == "MISMATCH" else "PASS", **{k: cil.get(k) for k in ("source_ci_pct", "basis", "level_agreement", "assumed_ci_pct")}}
-        predicates["P11_registered_estimand"] = {"state": "PASS" if not unregistered else "FAIL", "registered": {k: reg[k] for k in ("analysis_set", "treatment_strategy")},
+        predicates["P11_registered_estimand"] = {"state": "PASS" if not unregistered else "FAIL", "registered": {k: reg[k] for k in ("analysis_set", "treatment_strategy", "contrast", "estimator")},
                                                  "protocol_ref": reg["protocol_ref"], "protocol_span_start": reg["start"], "departures": unregistered,
-                                                 "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails"}
+                                                 "rule": "a stated field must agree with the registered estimand; a REGISTERED_DEFAULT agrees by construction; UNRESOLVED fails; "
+                                                         "the ORDERED contrast that enters the pool must be the registered one and the measure the registered estimator's "
+                                                         "(a reversal only as a declared reciprocal under contrast_normalisation)"}
         csc = component_set_checks(t, components_canonical, canonical_components)
         predicates["P13_no_extra_components"] = {"state": "PASS" if csc["P13_no_extra_components"] else "FAIL", "extra_components": csc["extra_components"],
                                                  "pooled_state": csc["pooled_state"],
@@ -1400,9 +1419,10 @@ def verification_rows(slug: str, review: dict, docs_by_id: dict, art_by_ref: dic
                          "population": {"analysis_set": t.get("analysis_set"), "population_age": t.get("population_age")},
                          "intervention": t.get("intervention_ontology"), "comparator": "placebo (topic config)", "timepoint": t.get("follow_up_window"),
                          "estimand": (t.get("effect_object") or {}).get("canonical_estimand"), "endpoint_definition": t.get("endpoint_definition")},
-            "effect": {**effect, "number_tokens": tokens, "study_effect": t.get("study_effect")},
+            "effect": {**effect, "number_tokens": tokens, "study_effect": t.get("study_effect"),
+                       **({"normalisation": t["contrast_normalisation"]} if t.get("contrast_normalisation") else {})},
             "estimand_evidence": ee,
-            "analysis_identity": _analysis_identity(t, review, ee),
+            "analysis_identity": _analysis_identity(t, review, ee, oc),
             "spans": _spans_for_row(t, span, loc, parsed) + [
                 {"role": "analysis_method", "field": k, "text": v["span"], "parent_representation": v.get("parent_representation"),
                  "start": v.get("start"), "end": v.get("end"), "match": "VERBATIM" if v.get("start") is not None else "NORMALISED"}
@@ -1674,6 +1694,12 @@ def _strategy_of(kind: str, text: str) -> str:
     return "UNSTATED"
 
 
+def _registered_contrast(line: str) -> str:
+    """'... assignment to GLP-1 RA versus placebo on ...' -> 'GLP-1 RA vs placebo' (was hard-coded to that string for every slug)."""
+    m = re.search(r"assignment to\s+(.+?)\s+(?:versus|vs\.?)\s+(.+?)\s+(?:on|for|in)\b", line or "", re.I)
+    return f"{m.group(1).strip()} vs {m.group(2).strip()}" if m else "UNSTATED"
+
+
 def registered_estimand(slug: str) -> dict:
     """The estimand the protocol registers, read from the served protocol text with its line located, so 'bound to an identity'
     can be checked against 'bound to the REGISTERED identity'."""
@@ -1688,7 +1714,14 @@ def registered_estimand(slug: str) -> dict:
         "analysis_set": "intention-to-treat" if "intention-to-treat" in low else "UNSTATED",
         "treatment_strategy": "on-study (ITT)",
         "treatment_strategy_basis": "the protocol registers the intention-to-treat effect during the prespecified randomised follow-up: a treatment-policy (on-study) strategy",
-        "contrast": "GLP-1 RA vs placebo" if "versus placebo" in low or "vs placebo" in low else "UNSTATED",
+        "contrast": _registered_contrast(line),
+        "contrast_basis": "read from the protocol's estimand line ('assignment to <A> versus <B>'); UNSTATED when the line names no ordered pair",
+        "contrast_normalisation": {"reciprocal_for_ratio_measures": "PERMITTED_WHEN_DECLARED",
+                                   "registered_in_protocol": False,
+                                   "basis": "harness policy (lane OC, 2026-09-25), not a protocol statement: for HR/OR/RR/IRR, A/B = 1/(B/A) exactly and "
+                                            "the interval's endpoints swap. A row carries its tuple AS STATED; a re-orientation is a declared "
+                                            "effect.normalisation {operation: RECIPROCAL, orientation, estimate, ci_low, ci_high} that the verifier "
+                                            "recomputes. An undeclared reversal is refused (COMPARATOR_DIRECTION_MISMATCH)."},
         "estimator": "hazard ratio, time to first event" if "time to first" in low else "UNSTATED",
         "rule": "a binding whose identity differs from the registered estimand on analysis set or treatment strategy is BOUND_TO_UNREGISTERED_ESTIMAND -- "
                 "internally consistent is necessary and not sufficient",

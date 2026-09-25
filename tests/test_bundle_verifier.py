@@ -205,7 +205,9 @@ def test_verifier_reports_its_non_claims_and_reproduces_digest_scopes(baseline):
     assert "does NOT check" in src and "PRODUCTION admission path" in src
     # 1001 at 3.10; 1200 bound set then; 1233 after M1 (certificate-pin invariants + execution-record cross-link, +34 lines) -- bound moved to 1300
     # and the move is stated here and in the commit message; the 200-500 target was for a minimal checker
-    assert len(src.splitlines()) <= 1300
+    # 2026-09-25 lane OC: ordered contrast + estimator VALUE checks, the pre-log measure guard and nine --corrupt limbs (+~420 lines); the
+    # enforcement-gate branch alone reaches 1300 -- bound moved to 1750, stated here and in the commit message
+    assert len(src.splitlines()) <= 1750
 
 
 def _copy_served_tree(bundle, dst):

@@ -11,25 +11,26 @@ Purpose: keep merges textual-conflict-free. Regions are named by function / sect
 | statistics: `_betacf`, `betainc`, `t_cdf`, `t_ppf`, `_wmean`, `paule_mandel`, **`pool()`** | **main** | OC does not edit. OC's measure guard runs *before* `pool()` is called, never inside it. |
 | `locate()` and the functions main added after it (table co-location) | **main** | nothing |
 | step `# 5b. regulatory facts` (whole section) | **main** | nothing |
-| step `# 6. pool`: from `got = pool(inputs)` to the end of the section | **main** | nothing |
-| step `# 6. pool`: the lines between `exp = bundle["pooled_reference"]["expected"]` and `got = pool(inputs)` | **OC** | OC inserts ONE guarded block: `measure_guard = pool_measure_guard(...)`; if it refuses, `got` is not computed from logs. The `pool()` call line itself is not edited. |
+| step `# 6. pool`: from `report["binding_states"]` to the end of the section | **main** | nothing |
+| step `# 6. pool`: from `inputs = bundle["pooled_reference"]["inputs"]` through the `POOL_NOT_REPRODUCED` append (the guard `mg = pool_measure_guard(...)`, `got = pool(inputs) if not mg["refused"] else None`, the `report["pool"]` dict) and the matching `pool k=` print in `main()` | **OC** | *(amended at the first code commit: refusing BEFORE logs means `got` must not be computed, so the call line and its consumers had to change; enforcement-gate @ 1fa77f2c does not touch these lines)* |
 | `_ESTIMAND`, `DEFAULT_REGISTERED`, `estimand_evidence()` (contrast + estimator fields) | **OC** | nothing |
 | NEW section `# ---- ordered contrast` between `estimand_evidence()` and `# ---- CI level` | **OC** | nothing |
 | step `# 4. predicates per row`: the block from `# estimand evidence: a stated field must reproduce` through the `BOUND_TO_UNREGISTERED_ESTIMAND` append (P10 / P11) | **OC** | nothing |
-| `--corrupt` dispatch: OC adds its limbs (`contrast_reverse`, `contrast_reverse_declared`, `contrast_reverse_served`, `estimator_swap`, `measure_mix`, `measure_unidentified`) as `elif` branches immediately **before** `elif limb == "container":` | **OC** (its branches only) | main adds its own limbs anywhere else in the chain |
+| `--corrupt` dispatch: OC adds ONE `elif limb in (...)` branch holding its nine limbs (`contrast_reverse`, `contrast_reverse_served`, `contrast_reverse_declared[_permitted|_forbidden|_away]`, `estimator_swap`, `measure_unidentified`, `pool_input_reciprocal`) as `elif` branches immediately **before** `elif limb == "container":` | **OC** (its branches only) | main adds its own limbs anywhere else in the chain |
 | module docstring `Usage` block | shared | append-only lines |
 
 ## scripts/build_bundle.py (the producer)
 
 | Region | Owner |
 |---|---|
-| `estimand_evidence()`, `registered_estimand()` (contrast/estimator fields), `_analysis_identity()` entries `comparator_direction` and `estimator`, the P11 producer predicate block in `verification_rows()` | **OC** |
+| `FORMAT_REVISION` + the newest `FORMAT_CHANGELOG` entry (3.18), `_registered_contrast()` (new), `estimand_evidence()`, `registered_estimand()` (contrast/estimator/normalisation fields), `_analysis_identity()` entries `comparator_direction` and `estimator`, the P11 producer predicate block in `verification_rows()` | **OC** |
 | everything else | **main** |
 
 ## harness/
 
 | File / region | Owner |
 |---|---|
+| `harness/contrast_order.py` (new) | **OC** (the producer's ordered-contrast implementation; the verifier keeps its own stdlib copy) |
 | `harness/armcontrast.py` | **OC** (new orientation API; `contrast_status()` output left byte-identical so no served review.json moves) |
 | `harness/page.py` / `harness/limitations.py` arm-contrast disclosure blocks (`_AC_LABEL`, `_arm_contrast_block`) | **main** (touched by enforcement-gate). OC's wording change ("eligibility, not direction") is QUEUED as a patch for after enforcement-gate lands; it re-renders served pages, so it goes through the signature queue with a derived notice. |
 | F4 typed arm schema (`{role, group_id, arm_id, events, total, witnesses}`, `evidence/typed_arms/**`) | **main / evid2**. OC *reuses* its identities (`arm_id = "<NCT>:<AACT design_group id>"`, as in `cache/<slug>/families.json` arms and `randomised_contrasts`) and never redefines them. |
@@ -43,5 +44,6 @@ never hand-merge. CERTIFICATE.json, review.json and index.html are not touched b
 
 ## Tests
 
-OC's tests live in NEW files only (`tests/test_ordered_contrast*.py`), so `tests/test_bundle.py` /
-`tests/test_bundle_verifier.py` (both touched by enforcement-gate) are not edited by OC.
+OC's tests live in NEW files only (`tests/test_ordered_contrast*.py`), with ONE exception: the verifier line-count bound in
+`tests/test_bundle_verifier.py::test_verifier_reports_its_non_claims_and_reproduces_digest_scopes` moves 1300 -> 1750 (enforcement-gate's
+verifier is exactly 1300 lines on its own; that assertion line lies outside every enforcement-gate hunk in the file).
