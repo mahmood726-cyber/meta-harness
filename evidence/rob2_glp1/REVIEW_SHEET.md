@@ -1,8 +1,8 @@
 # RoB 2 (outcome-specific) -- GLP-1 RA 3-point MACE: PROPOSALS awaiting human review
 
 **Status: every judgement below is a PROPOSAL (`PROPOSAL_AWAITING_HUMAN_REVIEW`). None is final; the reviewer line is empty on purpose.**
-Result assessed: 3-point MACE hazard ratio, effect of assignment (ITT). Domains with held evidence: **49 of 50** (trials in the GLP-1 MACE pool (8 served + FLOW + ELIXA) x 5 RoB 2 domains).
-Proposals: NO_EVIDENCE_HELD 1, low 43, some_concerns 6. `NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.
+Result assessed: 3-point MACE hazard ratio, effect of assignment (ITT). Domains with held evidence: **50 of 50** (trials in the GLP-1 MACE pool (8 served + FLOW + ELIXA) x 5 RoB 2 domains).
+Proposals: low 45, some_concerns 5. `NO_EVIDENCE_HELD` means no held source speaks to the domain -- it is NOT a risk level and is never relabelled high.
 Stopped treatment is recorded separately (D2 context) and never used as missing outcome data (D3). A registry entry alone is never taken as proof of prespecification (D5).
 
 ## AMPLITUDE-O (PMID 34215025, NCT03496298) -- overall proposal: low
@@ -89,23 +89,23 @@ Stopped treatment (D2 context, not missing data): time on regimen 84% vs 83%; mo
 
 Stopped treatment (D2 context, not missing data): more permanently discontinued oral semaglutide (11.6% vs 6.5%); follow-up continued
 
-## REWIND (PMID 31189511, NCT01394952) -- overall proposal: some_concerns
+## REWIND (PMID 31189511, NCT01394952) -- overall proposal: low
 
 | domain | proposal | why | witness sources | reviewer decision |
 |---|---|---|---|---|
 | D1 randomisation | **low** | Computer-generated random sequence via IVRS (concealed), 1:1, stratified by site. | protocol: `NCT01394952/Prot_000.pdf` | ______ |
 | D2 deviations (assignment) | **low** | Double-blind treatment period; primary analyses by intent-to-treat. | protocol: `NCT01394952/Prot_000.pdf`; protocol: `NCT01394952/Prot_000.pdf` | ______ |
-| D3 missing outcome data | **some_concerns** | Only the protocol's REQUIREMENT to ascertain vital status is held; the achieved completeness is not (results paper not held, registry flow not rendered). 3.1 = NI. | protocol: `NCT01394952/Prot_000.pdf` | ______ |
+| D3 missing outcome data | **low** | Registry participant flow (rendered from V1.1): 'completers' include participants whose vital status was ascertained at close-out; completed 4935/4952 vs 4932/4949 (99.7% each arm); not completed 17 vs 17. The protocol required vital status for all randomised. | registry: `registry/NCT01394952.json`; registry: `registry/NCT01394952.json`; protocol: `NCT01394952/Prot_000.pdf` | ______ |
 | D4 outcome measurement | **low** | Independent CEC adjudicates all primary endpoint events; the trial is double-blind (assessors' awareness: 4.3 = PN). Blinding of the CEC is not stated verbatim in held text -- flagged for review. | protocol: `NCT01394952/Prot_000.pdf` | ______ |
 | D5 selection of reported result | **low** | SAP version 1 approved 21 Nov 2011 before the first unblinding; the protocol fixes the 3-point composite as the primary efficacy measure. | sap: `NCT01394952/SAP_001.pdf`; protocol: `NCT01394952/Prot_000.pdf` | ______ |
 
-## SOUL (PMID 40162642, NCT03914326) -- overall proposal: NOT_PROPOSED (one or more domains lack evidence)
+## SOUL (PMID 40162642, NCT03914326) -- overall proposal: some_concerns
 
 | domain | proposal | why | witness sources | reviewer decision |
 |---|---|---|---|---|
 | D1 randomisation | **low** | Central IWRS randomisation 1:1 (sequence and concealment via the system); baseline balance not held (1.3 = NI, which RoB 2 allows at low). | paper: `UCL_10169247/soul_design.pdf` | ______ |
 | D2 deviations (assignment) | **some_concerns** | Blinded (visually identical tablets), but the analysis population for MACE is not bound: the protocol's FAS text sits in a letter-spaced PDF text layer that does not render (2.6 = NI). | paper: `UCL_10169247/soul_design.pdf` | ______ |
-| D3 missing outcome data | **NO_EVIDENCE_HELD** | The NEJM results paper is not held (no PMC copy; the repository returned 403) and the registry participant flow is not in the lane's render: no vital-status or completeness figure is held. NOT relabelled high. | -- | ______ |
+| D3 missing outcome data | **low** | Registry participant flow (rendered from V1.1): completed 4755/4825 vs 4740/4826 (98.5% vs 98.2%); not completed 70 vs 86 -- lost to follow-up 43 vs 51, withdrew 27 vs 34: small and balanced. This is TRIAL COMPLETION, not a vital-status figure (the results paper, which would give vital status, is not held) -- weigh accordingly. | registry: `registry/NCT03914326.json`; registry: `registry/NCT03914326.json`; registry: `registry/NCT03914326.json` | ______ |
 | D4 outcome measurement | **low** | Central adjudication by a masked external committee. | paper: `UCL_10169247/soul_design.pdf` | ______ |
 | D5 selection of reported result | **low** | The 2023 design paper (before the 2025 results) fixes 3-point MACE as the primary outcome. | paper: `UCL_10169247/soul_design.pdf` | ______ |
 

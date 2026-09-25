@@ -78,6 +78,21 @@ def _ctgov(d):
     if di:
         L.append(f"DESIGN: allocation {di.get('allocation')} | model {di.get('interventionModel')} | masking {mk.get('masking')}"
                  f" | who masked {', '.join(mk.get('whoMasked', []) or []) or None}")
+    # (append-only, V1.1 2026-09-25) participant flow: completion and drop/withdraw counts per arm -- the per-arm
+    # evidence for RoB 2 D3 (missing outcome data). Appended after every earlier line, so no pinned span moves.
+    pf = rs.get("participantFlowModule", {}) or {}
+    if pf:
+        ft = {g.get("id"): g.get("title") for g in pf.get("groups", []) or []}
+        if pf.get("preAssignmentDetails"):
+            L.append(f"PARTICIPANT FLOW PRE-ASSIGNMENT: {_ws(pf.get('preAssignmentDetails'))}")
+        for p in pf.get("periods", []) or []:
+            for m in p.get("milestones", []) or []:
+                L.append(f"PARTICIPANT FLOW {p.get('title')} MILESTONE {m.get('type')}: " + "; ".join(
+                    f"{ft.get(a.get('groupId'))}={a.get('numSubjects')}" for a in m.get("achievements", []) or [])
+                    + (f" | COMMENT: {_ws(m.get('comment'))}" if m.get("comment") else ""))
+            for dw in p.get("dropWithdraws", []) or []:
+                L.append(f"PARTICIPANT FLOW {p.get('title')} NOT COMPLETED, {dw.get('type')}: " + "; ".join(
+                    f"{ft.get(r.get('groupId'))}={r.get('numSubjects')}" for r in dw.get("reasons", []) or []))
     return "\n".join(L)
 
 
