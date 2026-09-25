@@ -367,3 +367,27 @@ def test_arm_roles_come_from_the_topic_config_and_the_pipelines_classifier():
         for j in os.listdir(os.path.join(ta, d)):
             row = json.load(open(os.path.join(ta, d, j, "row.json"), encoding="utf-8"))
             assert row.get("arm_roles", {}).get("source"), (d, j, "every packet carries the protocol's arm_roles")
+
+
+def test_local_only_witnesses_reverify_when_their_held_copy_is_present():
+    """A witness in a non-redistributable full text is held beside v2 (witness/local_only/). Where the held copy exists
+    (evid2's machine), its sha256 and every token offset must still hold; elsewhere the test says so and skips."""
+    import glob, hashlib, pytest
+    recs = glob.glob(os.path.join(HERE, "..", "evidence", "typed_arms", "witness", "local_only", "*.json"))
+    assert recs
+    held = os.environ.get("EVID2_HELD", r"C:\mh-lanes\evid2-held")
+    checked = 0
+    for p in recs:
+        rec = json.load(open(p, encoding="utf-8"))
+        for a in rec["arms"]:
+            for w in (a["event_witness"], a["total_witness"]):
+                f = os.path.join(held, w["document"].split(":", 1)[1])
+                if not os.path.exists(f):
+                    continue
+                raw = open(f, "rb").read()
+                assert hashlib.sha256(raw).hexdigest() == w["document_sha256"]
+                t = raw.decode("utf-8")
+                assert t[w["start"]:w["end"]] == w["text"] == str(a["events"] if w["role"].endswith("events") else a["total"])
+                checked += 1
+    if not checked:
+        pytest.skip("no local-only held copy in this checkout (sha256 recorded)")
