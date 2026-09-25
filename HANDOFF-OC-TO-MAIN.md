@@ -1,3 +1,40 @@
+# STATUS FOR THE RELEASE CAPTAIN: P10/P11 ARE DONE, NOT "NOT STARTED"
+
+Pieces (1) effect-scoped estimator witness + P10 value check + ESTIMATOR_VALUE_MISMATCH incl. HR->RR, (2) P11 registered
+contrast/estimator + COMPARATOR_DIRECTION_MISMATCH + declared reciprocal (PERMITTED, the owner's decision) and (3) the pre-log
+pooling refusal are on branch `oc/ordered-contrast` (pointer branch `oc/V1-READY-p10-p11`). It is merged with origin/main
+e3a20ff1, and CI `verify` (full verify_all, complete tree) ran green on a557d240 (run 36123517783) and on 812840f2
+(run 36126221747). Reproduce every piece in about a minute from the repo root:
+
+    sh evidence/ordered_contrast/prove_pieces.sh
+
+Output on 812840f2 (also in evidence/ordered_contrast/PROOF_on_812840f2.txt):
+
+```
+(1) effect-scoped estimator witness + P10 value + ESTIMATOR_VALUE_MISMATCH incl. HR->RR
+canonical (witness = LEADER's result clause) verdict PASS LEADER ADMISSIBLE   codes []
+estimator_owner_methods                      verdict FAIL LEADER INADMISSIBLE codes ['ESTIMATOR_OWNER_MISMATCH', 'POOL_MEASURE_UNIDENTIFIED']
+estimator_claim_or                           verdict FAIL LEADER INADMISSIBLE codes ['ESTIMATOR_MISMATCH', 'POOL_MEASURE_UNIDENTIFIED']
+estimator_label_rr (HR->RR, class matches)   verdict FAIL LEADER INADMISSIBLE codes ['BOUND_TO_UNREGISTERED_ESTIMAND', 'ESTIMATOR_MISMATCH', 'ESTIMATOR_VALUE_MISMATCH', 'POOL_MEASURE_MIXED', 'POOL_MEASURE_UNIDENTIFIED']
+estimator_hr_abbrev (control)                verdict PASS LEADER ADMISSIBLE   codes []
+estimator_linked_method (control)            verdict PASS LEADER ADMISSIBLE   codes []
+(2) P11 registered contrast/estimator + COMPARATOR_DIRECTION_MISMATCH + declared reciprocal (PERMITTED)
+contrast_reverse (no reciprocal)             verdict FAIL LEADER INADMISSIBLE codes ['COMPARATOR_DIRECTION_MISMATCH']
+contrast_reverse_served                      verdict FAIL LEADER INADMISSIBLE codes ['BOUND_TO_UNREGISTERED_ESTIMAND', 'COMPARATOR_DIRECTION_MISMATCH']
+contrast_reverse_declared (served policy)    verdict PASS LEADER ADMISSIBLE   codes []
+contrast_reverse_declared_forbidden          verdict FAIL LEADER INADMISSIBLE codes ['BOUND_TO_UNREGISTERED_ESTIMAND', 'CONTRAST_NORMALISATION_NOT_PERMITTED', 'POOL_INPUT_DISAGREES_WITH_ROW']
+contrast_reverse_declared_away (0.87->1.149) verdict FAIL LEADER INADMISSIBLE codes ['BOUND_TO_UNREGISTERED_ESTIMAND']
+estimator_genuine_rr (RR not registered)     verdict FAIL LEADER INADMISSIBLE codes ['BOUND_TO_UNREGISTERED_ESTIMAND', 'POOL_MEASURE_MIXED']
+(3) measure-agnostic pooling refused before any log
+measure_unidentified                         verdict FAIL LEADER INADMISSIBLE codes ['BOUND_TO_UNREGISTERED_ESTIMAND', 'ESTIMATOR_VALUE_MISMATCH', 'POOL_MEASURE_UNIDENTIFIED']
+pool_input_reciprocal                        verdict FAIL LEADER ADMISSIBLE   codes ['POOL_INPUT_DISAGREES_WITH_ROW']
+estimator_genuine_rr_permitted (row ok, pool mixed) verdict FAIL LEADER ADMISSIBLE   codes ['POOL_MEASURE_MIXED']
+restore
+canonical again                              verdict PASS LEADER ADMISSIBLE   codes []
+```
+
+---
+
 # Lane OC → main lane (release captain): what is ready for V1, what is held
 
 Branch `oc/ordered-contrast`. Each piece below is on the pushed branch, tested and plant-proven, and names the commit that carries
