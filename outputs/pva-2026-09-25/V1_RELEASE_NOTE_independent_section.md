@@ -1,71 +1,81 @@
-# What V1 proves, and what it does not — the independent section
+# V1 release note -- independent section: what V1 proves, and what it does not
 
-*Written by the page-verifier and archive lane, which did not build V1. Every claim below is tied to a probe that was
-run on the bytes the site served for the V1 release, not on a working tree. The probe results are in the acceptance
-scorecard shipped inside the V1 archive (`ACCEPTANCE.json`). **STATUS: DRAFT, written before the freeze from rehearsals
-on candidate commits. Finalised only after the served-bytes run; every "V1:" line is filled from that run, and a line
-with no served-bytes result is deleted, not guessed.***
+*Written by the page-verifier and archive lane, which did not build V1. Every claim cites a probe or a commit and was run on bytes
+this lane fetched or took from git, not on anyone's working tree. **STATUS: DRAFT (25 Sep, ~21:00), written against main
+29f0a719 before the freeze.** At the freeze and after the deploy, each line marked **V1:** is filled from this lane's run on the
+SERVED V1 bytes, or deleted. No line is carried forward from a rehearsal.*
 
-## What V1 proves, if its acceptance run passes
+## 1. Reproductions
 
-1. **The site serves exactly the committed bytes.** For every file the audit reads (each page, its review core,
-   certificate, manifest, the verifiers, and the GLP-1 bundle's replay set), sha256(fetched from the site) =
-   sha256(`git show <V1>:docs/<path>`). The deploy job also attests *n* of *n* served files. (P0, P1)
-2. **Every one of the 32 review pages reproduces its certificate from four downloaded files.** The served certificate
-   auditor, run on `CERTIFICATE.json`, `review.json`, `manifest.json` and `index.html`, prints `RESULT REPRODUCED` at full
-   scope. So the page, the review core and the manifest agree with each other and with a pinned code set. (P2)
-3. **Every page names its verifier and what that verifier does not check.** It gives the path, the sha256 of the exact
-   bytes served, and the commands to run. A page that names a verifier whose bytes changed fails the build's own test,
-   which is not hypothetical: it fired on the ordered-contrast branch on 25 September. (P3)
-4. **No served number changed without a signed notice.** Every outcome and trial value that differs from the previous
-   release corresponds to a result-change notice countersigned `SEEN_AND_SIGNED` or `BATCH_SEEN_AND_SIGNED` whose
-   `after` equals what is served. (P4; checklist E)
-5. **For the one page with an evidence bundle (GLP-1), the served package is internally checked.** The pool follows
-   from the rows to 1e-9. The admission predicates are recomputed from the served records, not read from the bundle.
-   The named deliberate errors are refused (see the table in the scorecard: SUSTAIN-6 non-target and component spans,
-   AMPLITUDE-O unlisted and missing spans, the FREEDOM-CVO mixed tuple, numeric-prefix CIs, identity erasure,
-   duplicate IDs, pool substitution). (P5, P6)
-6. **The release is frozen and can be re-checked offline.** The V1 archive replays with no network and no git: every
-   file matches its sums, the auditor reproduces N of N pages, the GLP-1 bundle verifies, and a control that damages one
-   value must, and does, fail. `SITE_SHA256SUMS` lets anyone check any other served file of V1 by hash.
+- **The served GLP-1 pool is reproduced by an outside party and by this lane.** An independent audit of the served page (hash
+  `90c01bcf`, 16 Sep) reported **k = 8, HR 0.856 (0.809-0.906)**. The served result is **0.8560 (0.8086-0.9061)**, equal to the three
+  decimals the auditor printed. This lane recomputed it with the served verifier's own `pool()` from the served inputs (Paule-Mandel
+  tau^2, HKSJ on t_{k-1}) and got the same result. The evidence lane's independent BEFORE computation through the production path
+  (`harness.known_missing` -> `harness.synth.pool`) gets it too. **V1: re-run on the served V1 bundle.**
+- **What that reproduction does not show.** The published Hasebe 2025 meta-analysis (k = 10, HR 0.86 [0.82-0.91]) matches our
+  number. The project's own record calls this **accidental**: Hasebe restricts to oral or bolus subcutaneous GLP-1RAs and we do not.
+  Agreement under a different protocol is a coincidence, not validation.
+- **Every page reproduces its certificate from four downloaded files.** On the live site after the tabs deploy, **32 of 32** pages
+  printed `RESULT REPRODUCED` at full scope with the served auditor. **V1: re-run on served V1.**
+- **The served bytes are the committed bytes.** 284 of 284 fetched files equal `git show` at the release commit, and the deploy
+  attests 1194 of 1194. **V1: re-run.**
 
-## What V1 does not prove
+## 2. Auditor findings closed, with the test evidence (all on main before the freeze)
 
-- **That any pooled estimate is scientifically right.** The verifiers check identity, location, arithmetic and the stated
-  admission rules; they do not check clinical interpretation or whether the question was the right one.
-- **That the held sources faithfully represent the publications.** Most rows are bound to abstracts. The verifiers
-  list "upstream fidelity of any representation" under `NOT checked`. For GLP-1, SOUL's held abstract is known to omit
-  sentences that the full publication carries.
-- **That the search found every eligible trial.** Completeness of the source set is outside every verifier.
-- **That "verifier PASS" means "admissible".** On the served GLP-1 bundle, HARMONY Outcomes (PMID 30291013) fails P5
-  (entry population not established) and remains in the k=8 pool, while the verifier reports PASS. The admissible-only
-  pool (k=7, 0.866 [0.814, 0.922]) is computed "for information" and is not on the page. Checklist C names this
-  exactly. V1 separates the four verdicts (byte integrity, arithmetic, admissibility, publication eligibility) only
-  if P5b passes. **V1: fill from P5b.**
-- **That a row the system refuses is kept out of the pool.** Run on planted inputs, the producer records the damaged row INADMISSIBLE for the right reason and still pools it, and the published estimate moves (measured: 0.855993 -> 0.854643 for one truncated CI). No gate on main reads admission at pooling. HARMONY is the served instance. Checklist D(1) and B3 are met only if V1 generates pooling inputs from admissible rows or carries the enforcement gate. **V1: fill from producer_probe.py on the V1 commit.**
-- **That the bundle's own copies of the evidence are checked.** A pooled row's `span.text` in `BUNDLE.json` can be
-  replaced with a sentence that is not in the abstract and the verifier still passes (PVA-D11, measured on main and on
-  the ordered-contrast branch). On main's verifier the same holds for the row's `effect` and `analysis_identity` copies.
-  **V1: fill from P6 (`span_text_replaced`, `mixed_tuple:LEADER`, `estimand_*`, `rewind_arm_swap`).**
-- **Row-level refusals do not stop the verdict.** In the verifier's `--corrupt` demonstrations, the damaged row turns
-  INADMISSIBLE while the overall verdict stays PASS, by design. A reader must read the row lines, not the verdict line.
-- **Row-level verification on 31 of 32 pages.** Only GLP-1 serves an evidence bundle. The other 31 pages are
-  certificate-reproducible (claim 2): they are consistent with a pinned code set, but no bundle-level row verification
-  exists for them.
-- **Who signed.** A countersignature records a name, a time and the digest of the rendered block that was signed. The
-  tool accepts any name (EG-F2), so V1 shows that a named signature is attached, not who applied it.
-- **The external auditor's own probes.** The mutations in claim 5 are this lane's implementations of the mutations the
-  release checklist names. The external auditor's scripts are not in the repository and were not re-run.
-- **What a reader sees in the ten minutes after a deploy.** The CDN caches each file separately for 600 s, and
-  request-side cache control is ignored. For up to ten minutes after a deploy, a reader can receive files from two
-  releases, and the certificate auditor then reports a generic MISMATCH rather than naming the mixed view (CDN-1,
-  CDN-D2 open). Wait ten minutes and re-run.
-- **Checklist §F.** The main lane keeps an "§F audit contract" that is not published on any branch, so it was not audited.
+| finding | fixed in | evidence the fix is real |
+|---|---|---|
+| The served extractor read a FRAGMENT of a number (`n = 2` out of `2,523`, `211` out of `1,211`, `3` out of `7.3`) | c82e86bd (R1+R4) | 5 of 5 plants read the fragment on the pre-fix served regexes; post-fix 14/14 tests pass; 0 of 256 served values changed |
+| Arm-swap routes in the typed-arm gate (5 of 11 REWIND-style) | f3034ecc (G1-G7) | the 9 new tests fail on the old gate and pass on the new one (this lane ran both) |
+| The witness accepted one group of a grouped number (`033` of `10,033` / `10<U+2008>033`) | c6205f0d (EVID2-C6) | 8 of 8 edge cases through the real check (left, middle and right groups refused; whole numbers kept) |
+| Witness role not anchored to the protocol | 54a09dc1 (T6) | both refusal limbs are killed when disabled (mutation test) |
+| Held files could have their fetch provenance rewritten | 0a2a7a4b | a re-fetch of identical bytes keeps the first ledger entry |
+| The evidence lane's renderer deleted text after a literal `<` (113 of 359 renders) | 8db26154 | failing-first test; all pinned spans still verify |
+| Every page must name the program that checks it, its sha256 and its limits | 41f3e2d0, 752e9c1f | a page naming a stale verifier fails CI (it fired on a lane branch on 25 Sep) |
+| **"All the tabs are empty"** (reported by Mahmood): the verifier box and certificate sat above every tab | c23a7e91 | on the LIVE site, **2,304 of 2,304** browser checks (32 pages x 1280 and 375 px x 12 tabs x 3 click scenarios); a layout test on every page plus 5 plants |
 
-## Known latent defects with measured zero served impact
+## 3. Named limitations
 
-- `harness/hand_binding._present` accepts a number that is only the leading fragment of another (CI bound 1.0 in "1.03";
-  count 10 in "10,033"). Re-testing all 132 values of the 39 served hand-bound rows against their own spans with a strict
-  boundary found 0 that depend on a fragment; the census flags both planted cases (PVA-D12).
-- Nine regex sites in `harness/` build their pattern by concatenation and are invisible to the regex inventory, so they
-  are neither counted nor planted (RAI-C13).
+- **Search.** **No V1 page claims a systematic search.** Every page carries a retrieval label: 17 of 32 TITLE-SEEDED RETRIEVAL, 11
+  KNOWN-ITEM RETRIEVAL, 4 HAND-WRITTEN KEYWORD SEARCH (counted on the served pages). A registered discovery search for GLP-1
+  (`evid2/v11-discovery-glp1`) is V1.1 work, not in V1.
+- **Risk of bias.** The ratings are **model- and registry-derived domain ratings, not reviewer-judged RoB 2 assessments.** A different
+  model family spot-checked a seeded sample: 32 of 33 scoreable ratings agree, and 12 of 45 were unscoreable. Outcome-specific RoB 2
+  *proposals* (`evid/v1.1-rob2`) are V1.1 work.
+- **Tag stripping in the served absence code (PVA-D15).** `harness/absence.py` strips tags with `<[^>]+>`, so a literal `P<0.001` in
+  an abstract deletes text up to the next `>`, and its "abstracts are a no-op" guard does not hold. Measured on main: 7 of 670 served
+  absence claims sit on text it deletes; **0 of 670 decisions change** when the text is restored; the check is plant-proved. It is a
+  live defect with no served consequence today. **V1: say whether it is fixed in V1.**
+- **Retrospective protocol amendments.** 11 of 32 protocols carry a RETROSPECTIVE amendment: a rule written after registration and
+  labelled as such on the page. Those rules are disclosed, not pre-registered.
+- **DELIVER retrospective clarification.** The release plan names one. This lane did not find it on main or on any lane branch as of
+  29f0a719: the dapagliflozin-HFpEF protocol, whose pivotal trial is DELIVER, carries no RETROSPECTIVE amendment. **V1: the release
+  captain states where it is recorded, and this line quotes it; otherwise the line is removed.**
+- **Verifier PASS is not "admissible".** On the served GLP-1 bundle, HARMONY Outcomes fails the family-eligibility predicate and is
+  still in the k = 8 pool with verdict PASS. The admissible-only pool (k = 7, 0.866 [0.814-0.922]) is not on the page. The checklist
+  requires four separate verdicts (byte integrity, arithmetic, admissibility, publication eligibility); **neither verifier emits them
+  on any candidate this lane has seen.** A recovery of HARMONY's entry population exists on the evidence lane (P53-17) and would move
+  no number. **V1: fill from P5b / P7.**
+- **A refused row can still be pooled.** Run on planted inputs, the real producer records a damaged row INADMISSIBLE and still pools
+  it, so the published estimate moves (0.855993 -> 0.854643 for one truncated CI). No gate on main reads admission at pooling.
+  **V1: fill from producer_probe.py on the V1 commit.**
+- **The bundle's own copies of the evidence are not all checked.** A pooled row's `span.text` in BUNDLE.json can be replaced with a
+  sentence that is not in the abstract and the verifier still passes (PVA-D11). **V1: fill from P6.**
+- **Who signed.** A countersignature records a name, a time and the digest of what was signed. Nothing authenticates who applied it
+  (EG-F2); the signature verifier binds the bytes, not the person.
+- **The ten minutes after a deploy.** The CDN caches each file for 600 s and ignores request-side cache control, so a reader can briefly
+  get files from two releases, and the auditor reports a generic MISMATCH. Wait ten minutes and re-run.
+
+### Not merged by the freeze (as of 29f0a719; **V1: re-check at the freeze**)
+- ordered-contrast and estimator checks P10/P11 and the pool guard (oc 88f07c74 .. 23642e0d);
+- rai's R1+R4 pinned landing re-certification (409d98c4); it predates the tabs fix and must be regenerated, not merged as generated files;
+- the 41 result-change notices: **0 of 41 signed**; the notice anchors and the P5 check patch (nr) are on branches;
+- the GLP-1 FLOW + ELIXA admission (k 8 -> 10, 0.856 -> 0.861): queued for Mahmood's signature, not landed; this lane reproduced its
+  before -> after exactly;
+- the four separate verdicts (checklist B4) and the admission gate at pooling (checklist D1, B3).
+
+## 4. What we do not claim
+
+**V1 claims auditability, not correctness. Every served number can be traced to the bytes it came from and re-run by anyone, and each
+page states what its checks do not cover. V1 does not claim that any pooled estimate is clinically right, that any search was
+systematic, that any risk-of-bias rating is a reviewer's judgement, that the held sources are the complete publications, or that a
+verifier PASS means the evidence is admissible.**
