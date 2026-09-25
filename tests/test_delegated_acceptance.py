@@ -109,5 +109,5 @@ def test_the_delegation_written_as_a_signature_is_still_refused(world):
         "rendered_sha256": result_changes.rendered_sha256(ms.render_proposal_block(e, rec)),
         "how_it_reached_the_reviewer": delegated.HOW}
     probs = ms.gate_problems(e, rec, held[e["item_id"]])
-    assert any(p.startswith("DELEGATED_IS_NOT_A_SIGNATURE") for p in probs), probs
+    assert any("DELEGATED_IS_NOT_A_SIGNATURE" in p for p in probs), probs      # now refused by the served gate itself
     assert ms.status_of(e, rec, held[e["item_id"]]) == "PROPOSED"
