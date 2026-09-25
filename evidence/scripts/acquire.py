@@ -24,11 +24,22 @@ def get(url, tries=3):
 
 
 def store(rel, body, url, ledger, kind):
+    """A held file is pinned by adjudications, so it is written ONCE: a re-fetch with identical bytes keeps the first
+    ledger entry (the true provenance), and a re-fetch whose bytes differ is refused, never overwritten."""
     p = os.path.join(HELD, rel)
+    digest = hashlib.sha256(body).hexdigest()
+    if os.path.exists(p):
+        held = hashlib.sha256(open(p, "rb").read()).hexdigest()
+        if held != digest:
+            print(f"REFUSED: {rel} is held with different bytes; the source changed since it was pinned -- not overwritten")
+            return
+        if rel in ledger:
+            return
     os.makedirs(os.path.dirname(p), exist_ok=True)
     open(p, "wb").write(body)
-    ledger[rel] = {"url": url, "kind": kind, "fetched_utc": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
-                   "sha256": hashlib.sha256(body).hexdigest(), "bytes": len(body)}
+    ledger[rel] = {"url": url, "kind": kind,
+                   "fetched_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                   "sha256": digest, "bytes": len(body)}
 
 
 def main():

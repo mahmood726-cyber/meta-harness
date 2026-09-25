@@ -46,13 +46,13 @@ def main():
         # carries a local-only source as a reference + sha256 only -- its text is not ours to redistribute (an earlier
         # version committed it; see evidence/DECISIONS.md, 2026-09-24)
         os.makedirs(LOCAL, exist_ok=True)
-        json.dump(pk, open(os.path.join(LOCAL, f"{w['key']}.json"), "w", encoding="utf-8"), indent=1)
+        json.dump(pk, open(os.path.join(LOCAL, f"{w['key']}.json"), "w", encoding="utf-8", newline="\n"), indent=1)
         pub = dict(pk, sources=[{"ref": s_["ref"], "local_only": True, "text": None,
                                  "sha256_of_held_file": textrep_sha(s_["ref"]),
                                  "note": "LOCAL-ONLY source (not open access): text withheld from the committed packet; "
                                          "re-fetch from evidence/LOCAL_ACQUISITIONS.json and check the sha256"}
                                 if s_["ref"].startswith("evidence/held_local/") else s_ for s_ in pk["sources"]])
-        json.dump(pub, open(os.path.join(od, f"{w['key']}.json"), "w", encoding="utf-8"), indent=1)
+        json.dump(pub, open(os.path.join(od, f"{w['key']}.json"), "w", encoding="utf-8", newline="\n"), indent=1)
     print("packets", len(wl["rows"]))
 
 

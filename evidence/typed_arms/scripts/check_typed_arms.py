@@ -40,18 +40,25 @@ def sha(b):
 
 
 def numbers_in(text):
-    """(value, is_percentage) for every number token in text. '4,949' and '4 949' are 4949; '47·4%' is a percentage.
-    Spelled numbers up to twenty are read ('four of 119')."""
+    """(value, is_not_a_count) for every number token in text. '4,949' and '4 949' are 4949; '47·4%' is a
+    percentage. Spelled numbers up to twenty are read ('four of 119'). Not a count (review, 2026-09-25): a percentage
+    in words ('20 percent'), a per-mille, a European decimal ('20,5%'), a dose ('10 mg'), a rate denominator
+    ('per 100 patient-years'), a name's number ('GLP-1', 'COVID-19'), and 'one' in 'at least one'."""
     t = unicodedata.normalize("NFKC", text).replace(" ", " ").replace(" ", " ")
     out = []
-    for m in re.finditer(r"(?<![\d.·])(\d{1,3}(?:[, ]\d{3})+|\d+)(?:[.·]\d+)?(\s*%)?", t):
+    for m in re.finditer(r"(?<![\d.·])(?<![A-Za-z]-)(\d{1,3}(?:[, ]\d{3})+|\d+)(?:[.·]\d+|,\d{1,2}(?!\d))?"
+                         r"(\s*(?:%|‰|percent\b|per\s*cent\b))?", t):
         raw = m.group(1)
         if " " in raw and not re.fullmatch(r"\d{1,3}(?: \d{3})+", raw):
             continue
         whole = m.group(0)
-        is_dec = bool(re.search(r"[.·]\d", whole))
-        out.append((int(re.sub(r"[, ]", "", raw)), bool(m.group(2)) or is_dec))
-    for m in re.finditer(r"\b(" + "|".join(WORDS) + r")\b", t, flags=re.I):
+        is_dec = bool(re.search(r"[.·]\d|,\d{1,2}$", whole))
+        not_count = re.match(r"\s*(?:mg|µg|mcg|g|ml|mmol|IU|units?)\b|\s*(?:patient|person)-years", t[m.end():], re.I) \
+            or re.search(r"\bper\s*$", t[max(0, m.start() - 5):m.start()], re.I)
+        out.append((int(re.sub(r"[, ]", "", raw)), bool(m.group(2)) or is_dec or bool(not_count)))
+    for m in re.finditer(r"\b(" + "|".join(WORDS) + r")\b(?!-[a-z])", t, flags=re.I):
+        if re.search(r"\b(?:at least|more than|fewer than|less than)\s*$", t[max(0, m.start() - 12):m.start()], re.I):
+            continue
         out.append((WORDS[m.group(1).lower()], False))
     return out
 
@@ -100,6 +107,15 @@ def own_everywhere(doc, loc, value, partner, j, typed, vals):
     return rels.pop() if len(rels) == 1 else None
 
 
+def reg_active_words(a):
+    """What a registry arm actively gives: its active interventions, and its label with every 'placebo X' /
+    'matching X' / 'dummy X' phrase removed (a placebo arm's label names the drug it imitates)."""
+    lab = a.get("label")
+    lab = str(lab.get("value") if isinstance(lab, dict) else (lab or "")).lower()
+    lab = re.sub(r"\b(?:placebo|matching|dummy)(?:\s+(?:to|for|of))?\s+[\w+-]+", " ", lab)
+    return " ".join([lab] + [str(x).lower() for x in (a.get("active_interventions") or [])])
+
+
 def reg_words(a):
     """The words a registry arm states about itself: its design-group label value, its intervention names."""
     lab = a.get("label")
@@ -117,21 +133,28 @@ CLASS_MEMBERS = {
     "probiotics": ["probiotic", "lactobacillus", "lactobacilli", "saccharomyces", "boulardii", "bifidobacterium", "bifidobacteria", "streptococcus", "yogurt", "yoghurt", "kefir", "synbiotic", "vsl", "clostridium", "bacillus"],
     "dpp-4": ["sitagliptin", "saxagliptin", "alogliptin", "linagliptin", "gliptin"],
     "glp-1": ["liraglutide", "semaglutide", "dulaglutide", "albiglutide", "efpeglenatide", "exenatide", "lixisenatide"],
-    "omega-3": ["omega-3", "omega", "fish oil", "icosapent", "epa", "dha", "n-3"],
+    "omega-3": ["omega-3", "fish oil", "icosapent", "epa", "dha", "n-3"],
     "crystalloid": ["balanced", "plasma-lyte", "plasmalyte", "ringer", "lactated", "multiple electrolyte"],
 }
 GENERIC = set("added usual standard care therapy including daily once weekly alone same background regimen trial arms both "
               "specifically solution supportive medical guideline based heart failure receptor antagonist agonist "
               "interleukin development name subcutaneous intranasal newly initiated oral antidepressant systemic "
               "antimicrobial named genera strains fermented products peri operative low dose supplementation acids "
-              "fatty marine carboxylic ethyl inhibitor inhibitors buffered ovulation induction low-dose".split())
+              "fatty marine carboxylic ethyl inhibitor inhibitors buffered ovulation induction low-dose acid "
+              "heart failure alone medical therapy guideline newly initiated peri operative once weekly".split())
+# control vocabulary, including a NEGATED intervention ('non-probiotic', 'steroid-free', 'without corticosteroids',
+# 'heat-killed Lactobacillus', 'vehicle', 'observation') -- review, 2026-09-25: these read as the intervention before
 CONTROL = re.compile(r"\b(placebo|usual care|standard care|standard of care|standard treatment|control|no probiotic|"
-                     r"no treatment|sham|dummy)\b|^\s*no[- ][a-z]", re.I)   # 'no-colchicine': a named absence arm
+                     r"no treatment|sham|dummy|vehicle|observation|without|heat[- ]killed|inactivated|pasteuri[sz]ed)\b|"
+                     r"\bnon[- ][a-z]|\b[a-z]+-free\b|^\s*no[- ][a-z]|\balone\b", re.I)
 
 
 def i_terms(iline):
-    t = (iline or "").lower()
-    words = {w for w in re.findall(r"[a-z][a-z0-9+-]{2,}", t) if w not in GENERIC and len(w) >= 4}
+    """Intervention words from the review's I-line. Only what precedes 'added to' / 'in addition to' / 'on top of':
+    the background therapy an intervention is added to is not the intervention (review, 2026-09-25)."""
+    t = re.split(r"\b(?:added to|in addition to|on top of|alone or)\b", (iline or "").lower())[0]
+    words = {w for w in re.findall(r"[a-z][a-z0-9+-]{2,}", t)
+             if w not in GENERIC and len(w) >= 4 and not all(p in GENERIC for p in w.split("-") if p)}
     for cls, members in CLASS_MEMBERS.items():
         if cls.split("-")[0] in t:
             words.update(members)
@@ -139,7 +162,9 @@ def i_terms(iline):
 
 
 def side(text, terms):
-    return any(re.search(r"(?<![a-z])" + re.escape(w), text) for w in terms)
+    """A term matches as a whole word (an optional plural 's'): 'acid' is not in 'acids'-less 'folic acid' unless it
+    is a term, and 'omega-3' never matches 'omega-6' (review, 2026-09-25: prefix matching)."""
+    return any(re.search(r"(?<![a-z0-9])" + re.escape(w) + r"(?:e?s)?(?![a-z0-9])", text) for w in terms)
 
 
 def label_side(label_txt, terms):
@@ -199,11 +224,18 @@ def resolve_arm(arm, reg_arms, family_id, iline, fails, idx, expansion=None):
             if w not in ("group", "arm", "patients", "participants", "assigned", "receive", "receiving", "with", "plus")]
 
     def link(a):
+        if not CONTROL.search(label_txt):
+            # an intervention label is linked by the registry arm's OWN active words -- its active interventions and
+            # its label with 'placebo X' / 'matching X' removed -- which is evidence independent of the label's side
+            # (review, 2026-09-25); an arm that only imitates the drug ('Placebo Drugx') never matches
+            hit = [w for w in toks if re.search(r"(?<![a-z0-9])" + re.escape(w) + r"(?![a-z0-9])", reg_active_words(a))]
+            if hit:
+                return "intervention word match: " + ", ".join(sorted(set(hit)))
         if reg_side(a, terms) != lon:
             return None
-        hit = [w for w in toks if w in reg_words(a)]
-        if hit:
-            return "intervention word match: " + ", ".join(sorted(set(hit)))
+        hit = [w for w in toks if re.search(r"(?<![a-z0-9])" + re.escape(w) + r"(?![a-z0-9])", reg_words(a))]
+        if hit:   # matched only on the label's own side: NOT independent evidence for G6
+            return "side-coupled label match: " + ", ".join(sorted(set(hit)))
         if len(reg_arms) == 2 and terms:
             other = [x for x in reg_arms if x is not a][0]
             if reg_side(other, terms) != lon:
@@ -244,21 +276,107 @@ def direction(typed, iline, reg_arms):
     vocabulary, and only if some evidence is non-zero."""
     reg_by_id = {a.get("arm_id"): a for a in (reg_arms or [])}
     terms = i_terms(iline)
-    ev, score = [], []
+    ev = []
     for j, t in enumerate(typed):
         label_txt = ((t.get("arm_label") or "") + " " + ((t.get("abbreviation") or {}).get("expansion") or "")).lower()
         on = label_side(label_txt, terms)
         ctrl = bool(CONTROL.search(label_txt))
         members = [reg_by_id[x] for x in str(t.get("arm_id") or "").split("+") if x in reg_by_id]
-        rs = None if not members else all(reg_side(m, terms) for m in members)
+        # the registry arm is INDEPENDENT evidence only when it was linked by its own words; a link made through the
+        # label's side ('role match') merely echoes the label and is not counted (review, 2026-09-25)
+        independent = bool(members) and "word match" in str(t.get("arm_id_basis") or "")
+        rs = all(reg_side(m, terms) for m in members) if independent else None
         ev.append({"arm": j, "label_on_intervention_line": on, "control_vocabulary": ctrl, "registry_on_line": rs})
-        score.append((1 if on else 0) - (2 if ctrl else 0) + (0 if rs is None else (1 if rs else -1)))
     if len(typed) != 2:
         return None, ev
-    best = [j for j, s in enumerate(score) if s == max(score)]
-    if len(best) == 1 and not ev[best[0]]["control_vocabulary"] and (max(score) > 0 or min(score) < 0):
-        return best[0], ev
+    # every piece of evidence VOTES for an experimental arm; resolved only with >= 2 votes, all for the same arm
+    # (review, 2026-09-25: one matched substring against nothing used to resolve)
+    votes = []
+    for j, e in enumerate(ev):
+        o = 1 - j
+        if e["label_on_intervention_line"] and not e["control_vocabulary"]:
+            votes.append(["label", j])
+        if e["control_vocabulary"] and not e["label_on_intervention_line"]:
+            votes.append(["control_vocabulary", o])
+        if e["registry_on_line"] is True:
+            votes.append(["registry", j])
+        elif e["registry_on_line"] is False:
+            votes.append(["registry", o])
+    ev.append({"votes": votes})
+    voted = {j for _, j in votes}
+    # an explicit control label on one arm alone is sufficient ('Active' vs 'Control'); any other single vote -- a
+    # label merely containing an intervention word -- is not
+    if len(voted) == 1 and (len(votes) >= 2 or votes[0][0] == "control_vocabulary"):
+        return voted.pop(), ev
     return None, ev
+
+
+OUTCOME_STOP = set("with from after within during least one episode development primary secondary outcome outcomes "
+                   "endpoint endpoints measure measures main rate rates number patients participants those were that this "
+                   "events event occurred severe serious any all cause total overall reported study".split())
+OUTCOME_SYN = {"death": ("death", "died", "dead", "mortal", "fatal"), "mortal": ("death", "died", "dead", "mortal", "fatal")}
+
+
+def outcome_stems(*texts):
+    """Content-word stems (first 5 letters) of the outcome span and the served outcome name, plus abbreviations
+    ('POAF', 'AAD') and a closed death/mortality synonym set."""
+    stems = set()
+    for t in texts:
+        stems.update(a.lower() for a in re.findall(r"\b[A-Z]{2,6}\b", t or ""))   # abbreviations: 'AAD', 'POAF'
+        for w in re.findall(r"[A-Za-z][A-Za-z-]{3,}", t or ""):
+            lw = w.lower()
+            if lw in OUTCOME_STOP:
+                continue
+            if w.isupper() and len(w) <= 6:
+                stems.add(lw)                       # an abbreviation matches whole
+                continue
+            stems.update(OUTCOME_SYN.get(lw[:5] if lw[:5] in OUTCOME_SYN else lw[:6], ()) or (lw[:5],))
+    return stems
+
+
+def sentence_at(doc, pos):
+    """The sentence holding pos. A break is '. ' before a capital or '(', or a newline -- not ';', which also sits
+    inside '(6.2%; 95% CI ...)'. A sentence opening with an anaphor ('They', 'These', 'This', 'It', 'Such') is
+    joined to the one before it, which names what it refers to."""
+    brk = re.compile(r"\.\s+(?=[A-Z(])|\n")
+    starts = [0] + [m.end() for m in brk.finditer(doc, 0, pos)]
+    a = starts[-1]
+    m = brk.search(doc, pos)
+    b = m.start() if m else len(doc)
+    if re.match(r"\s*(?:They|These|Those|This|It|Such)\b", doc[a:b]) and len(starts) >= 2:
+        a = starts[-2]
+    return doc[a:b]
+
+
+def outcome_tied(job, es, oc, outcome_name=None):
+    """True when the events span is tied to the outcome (review, 2026-09-25, 'a nausea sentence bound as the death
+    count'): the events span's OWN sentence names the outcome (a content-word stem of the outcome span or the served
+    outcome name), or the events span overlaps / shares the sentence, <table> or registry measure/AE term of an
+    occurrence of the outcome span."""
+    doc = open(os.path.join(job, es["file"]), "rb").read().decode("utf-8")
+    sent = (sentence_at(doc, es["start"]) + " " + es["text"]).lower()
+    for st in outcome_stems(oc["text"], outcome_name):
+        if re.search(r"(?<![a-z])" + re.escape(st), sent):
+            return True
+    if es["file"] != oc["file"]:
+        return False
+    for o in oc.get("occurrences") or [oc["start"]]:
+        oe = o + len(oc["text"])
+        if o < es["end"] and es["start"] < oe:
+            return True
+        a, b = sorted((o, es["start"]))
+        if b - a < 600 and not re.search(r"[.;]\s+[A-Z(]|\n\s*\n", doc[a:b]):
+            return True
+        t0 = doc.rfind("<table", 0, es["start"])
+        if t0 >= 0 and t0 == doc.rfind("<table", 0, o) and doc.find("</table>", t0) > max(o, es["start"]):
+            return True
+        spans = sorted((sp for sp in ownership.object_spans(doc) if sp[0] <= es["start"] < sp[1] and sp[0] <= o < sp[1]),
+                       key=lambda sp: sp[1] - sp[0])
+        for sa, sb in spans[:1]:
+            body = doc[sa:sb]
+            if '"groups":' in body or '"term":' in body or '"eventGroups":' in body:
+                return True
+    return False
 
 
 def check_row(r, jobs):
@@ -316,6 +434,25 @@ def check_row(r, jobs):
                       "outcome": shared.get("outcome"), "population": shared.get("population"),
                       "window": shared.get("window"), "f4b_slot": None, "abbreviation": abbr,
                       "events_ownership": None, "total_ownership": None})
+    # G5: two source arms never share a registry arm (review, 2026-09-25: a code-named arm and 'placebo' both resolved
+    # to the placebo arm and bound)
+    idsets = [set(str(t["arm_id"]).split("+")) for t in typed if t["arm_id"]]
+    if any(idsets[a] & idsets[b] for a in range(len(idsets)) for b in range(a + 1, len(idsets))):
+        fails.append("G5 two source arms resolve to the same registry arm")
+    # G10: the label span must name the arm it labels (the label feeds G5 and G6)
+    for i, t in enumerate(typed):
+        ls = t.get("arm_label_span")
+        names = [re.sub(r"\b(group|arm)s?\b", "", (t.get("arm_label") or ""), flags=re.I).strip(" ,.:").lower(),
+                 ((t.get("abbreviation") or {}).get("expansion") or "").lower()]
+        if ls and not any(n and n in re.sub(r"\s+", " ", ls["text"].lower()) for n in names):
+            fails.append(f"G10 arm {i}: its label span does not name {t.get('arm_label')!r}")
+    # G9: each events span must be tied to the OUTCOME -- it overlaps an occurrence of the outcome span, or shares its
+    # sentence, table or registry measure (review, 2026-09-25: a nausea sentence bound as the death count)
+    oc = shared.get("outcome") and shared["outcome"].get("span")
+    for i, t in enumerate(typed):
+        es = t.get("events_span")
+        if es and oc and not outcome_tied(job, es, oc, r.get("outcome_name")):
+            fails.append(f"G9 arm {i}: the events span is not in the outcome's sentence, table or registry measure")
     # G7: every arm OWNS its events and its denominator in the text, by a named relation (ownership.py)
     docs_text = {}
     def doc_of(loc):

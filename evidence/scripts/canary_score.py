@@ -22,10 +22,14 @@ def main():
         st = (v.get("served_compare") or {}).get("state")
         want_match = adj["ruling"] == "SERVED_CONFIRMED"
         ok = not v["errors"] and ((st == "MATCH") == want_match or st in ("NOT_COMPARABLE", "MATCH_POINT_CI_LEVEL_DIFFERS", None))
+        if not ok and not v["errors"] and st == "DIFFERS" and adj.get("open_question"):
+            c["known_open_question"] += 1   # the row's recorded open question (e.g. a timepoint choice) resurfacing
+            continue
         c["agree" if ok else "diverge"] += 1
         if not ok:
             div.append((os.path.basename(p), adj["ruling"], st, v["errors"][:1]))
-    print(f"canaries: {len(files)}; agree {c['agree']} of {len(files)}; diverge {c['diverge']}")
+    print(f"canaries: {len(files)}; agree {c['agree']}, diverge {c['diverge']}, "
+          f"known open question resurfacing {c['known_open_question']} (of {len(files)})")
     for d in div:
         print("  DIVERGE", d)
 

@@ -1,12 +1,12 @@
 """Morning report, every number computed from the adjudication files and the verification ledger (none typed by
-hand). Usage: python report.py OUT.md [--since COMMIT]"""
+hand). Usage: python report.py OUT.md [--since COMMIT] [--notes NOTES.md]"""
 import json, os, sys, glob, collections, subprocess, datetime
 sys.path.insert(0, os.path.dirname(__file__))
 import textrep
 ROOT = textrep.ROOT
 
 
-def main(out, since=None):
+def main(out, since=None, notes=None):
     wl = json.load(open(os.path.join(ROOT, "evidence/worklist.json"), encoding="utf-8"))["rows"]
     ver = json.load(open(os.path.join(ROOT, "evidence/extractions/verification.json"), encoding="utf-8"))
     adj = {os.path.basename(p)[:-5]: json.load(open(p, encoding="utf-8"))
@@ -16,7 +16,8 @@ def main(out, since=None):
          "the lane's commits land on main only after CI, fast-forward, and never change a served page (docs/). Every count below is computed by `evidence/scripts/report.py` from the committed records.", ""]
     for pop, N, name in (("P53", 53, "pooled primary rows inadmissible on P5 at 38c04411"),
                          ("U23", 23, "served rows lane UA found with no locatable source"),
-                         ("S16", 16, "served rows that DO carry a located source (UA's other 23, less 2 main-lane and 5 evid2 rows)")):
+                         ("S16", 16, "served rows that DO carry a located source (UA's other 23, less 2 main-lane and 5 evid2 rows)"),
+                         ("M", 15, "served effect rows on current main outside P53/U23/S16, added 2026-09-25 from the census")):
         rows = [w for w in wl if w["kind"] == pop]
         assert len(rows) == N
         a = [adj[w["key"]] for w in rows if w["key"] in adj]
@@ -79,6 +80,30 @@ def main(out, since=None):
         L += ["", "## Served endpoint-definition citations (U23; `evidence/CITATION_CORRECTIONS.md`, queued, not landed)", "",
               "- labels by eye: " + ", ".join(f"{k} {v}" for k, v in x["labels_by_eye"].items()),
               f"- agreement with lane WS: {x['agreement_with_lane_WS']}; blind codex second opinion: {x.get('second_opinion_agreement')}", ""]
+    for tag, f in (("S16", "compat_endpoint_citation_s16_eye.json"), ("M", "compat_endpoint_citation_m_eye.json")):
+        p_ = os.path.join(ROOT, "evidence/sweeps", f)
+        if os.path.exists(p_):
+            x = json.load(open(p_, encoding="utf-8"))
+            c_ = collections.Counter(v.split(" (")[0] for v in x["labels"].values())
+            L += [f"- {tag} endpoint-definition citations, by eye (of {len(x['labels'])}): " + ", ".join(f"{k} {v}" for k, v in sorted(c_.items()))
+                  + (f"; second opinion: {x['second_opinion_agreement']}" if x.get("second_opinion_agreement") else "; no blind second opinion")]
+    fm = os.path.join(ROOT, "evidence/sweeps/followup_age_citation_m.json")
+    if os.path.exists(fm):
+        x = json.load(open(fm, encoding="utf-8"))
+        L += [f"- M served follow-up citations (of {x['population']['N']}): " + ", ".join(f"{k} {v}" for k, v in x["follow_up"].items())
+              + "; the lane's own follow-up spans by eye: " + ", ".join(f"{k} {v}" for k, v in x["lane_span_eye"].items())
+              + "; served age: " + ", ".join(f"{k} {v}" for k, v in x["age"].items())]
+    lc = os.path.join(ROOT, "evidence/LABEL_CORRECTIONS.md")
+    if os.path.exists(lc):
+        n_ = sum(1 for l in open(lc, encoding="utf-8") if l.startswith("- **"))
+        L += [f"- served analysis-set label corrections listed row by row in `evidence/LABEL_CORRECTIONS.md`: {n_} (queued, not landed)"]
+    rc2 = os.path.join(ROOT, "evidence/second_adjudication_claude/RECONCILIATION.json")
+    if os.path.exists(rc2):
+        x = json.load(open(rc2, encoding="utf-8"))
+        L += ["", "## Second adjudication of the M rows (Claude, adversarial; SAME family as the lane, so not decorrelated)", "",
+              f"- quotes: {x['quotes_verbatim']}; number {x['number']}; entry {x['entry']}",
+              "- reconciled against the source: " + "; ".join(f"{k}: {v}" for k, v in x["reconciled"].items())]
+    L.append("")
     rp = os.path.join(ROOT, "evidence/extractions/RETEST_RESULT.json")
     if os.path.exists(rp):
         rt = json.load(open(rp, encoding="utf-8"))
@@ -107,10 +132,25 @@ def main(out, since=None):
           "evidence for Mahmood's D04, not an admission; no route that admits a row exists or was created.",
           "- Most held sources are abstracts or registry records; open-access full text was held or acquired for a "
           "minority. 'Analysis set NOT STATED' usually means 'not in an abstract', not 'not in the paper'.",
-          "- One source is held LOCAL-ONLY (not redistributable): URL and sha256 in evidence/LOCAL_ACQUISITIONS.json.", ""]
+          "- M-02..M-15 were extracted by Claude subagents after the codex budget ran out (M-01 by codex): extractor and "
+          "adjudicator are the same family for those rows, so their rulings rest on the byte-level span and number gates "
+          "plus a same-family adversarial review, not a cross-family one.",
+          f"- Sources held LOCAL-ONLY (not redistributable): "
+          f"{sum(1 for v in json.load(open(os.path.join(ROOT, 'evidence/LOCAL_ACQUISITIONS.json'), encoding='utf-8')).values() if isinstance(v, dict) and v.get('sha256'))}"
+          "; URL and sha256 in "
+          "evidence/LOCAL_ACQUISITIONS.json.", ""]
+    if notes:   # blockers / next are judgement, not counts: kept apart and labelled as the lane's own words
+        L[4:4] = ["## Blockers and next (the lane's notes, hand-written; not computed)", "",
+                  open(notes, encoding="utf-8").read().strip(), ""]
+    if since:   # derived from git, never typed: this branch's own commits (first parent: merged-in main/evid2 commits are not this lane's)
+        log = subprocess.run(["git", "log", "--first-parent", "--no-merges", "--reverse", "--format=%h %s", f"{since}..HEAD"],
+                             cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip().splitlines()
+        L[4:4] = [f"## What changed since `{since}` ({len(log)} commits, from git)", ""] + [f"- {l}" for l in log] + [""]
     open(out, "w", encoding="utf-8", newline="\n").write("\n".join(L))
     print("\n".join(L))
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    a = sys.argv[1:]
+    opt = lambda f: a[a.index(f) + 1] if f in a else None
+    main(a[0], since=opt("--since"), notes=opt("--notes"))
