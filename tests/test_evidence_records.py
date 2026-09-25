@@ -280,3 +280,19 @@ def test_a_leading_en_dash_is_a_minus_but_a_range_dash_is_not():
     assert V.canon("\u20135.7") == -5.7
     assert V.num_tokens("difference, \u201312.0 to \u20138.6") >= {"-12.0", "-8.6"}
     assert V.num_tokens("95% CI 0.65\u20131.84") >= {"0.65", "1.84"} and "-1.84" not in V.num_tokens("95% CI 0.65\u20131.84")
+
+
+def test_held_file_is_written_once(tmp_path, monkeypatch, capsys):
+    """A held file is pinned by adjudications: an identical re-fetch keeps the FIRST ledger entry (provenance), and a
+    re-fetch with different bytes is refused and leaves the held bytes alone (plant: a changed source)."""
+    import acquire as A
+    monkeypatch.setattr(A, "HELD", str(tmp_path))
+    led = {}
+    A.store("1/core.json", b"first", "u", led, "k")
+    first = dict(led["1/core.json"])
+    led["1/core.json"]["fetched_utc"] = "2000-01-01T00:00:00Z"   # mark it, so a rewrite would show
+    A.store("1/core.json", b"first", "u", led, "k")
+    assert led["1/core.json"]["fetched_utc"] == "2000-01-01T00:00:00Z" and led["1/core.json"]["sha256"] == first["sha256"]
+    A.store("1/core.json", b"CHANGED", "u", led, "k")
+    assert "REFUSED" in capsys.readouterr().out
+    assert (tmp_path / "1" / "core.json").read_bytes() == b"first" and led["1/core.json"]["sha256"] == first["sha256"]
