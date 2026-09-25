@@ -67,3 +67,18 @@ strict addition of search, never a relaxation of what counts as evidence: its hi
 **What a hit does.** Candidates are fetched (open-access full text or the registry record), recorded with URL, time and
 sha256, and read; a fact moves to `RECOVERED` only under the unchanged definition above. Every query is logged with its
 result count even when zero.
+
+## Amendment B -- 2026-09-25, written AFTER amendment A's first run was seen (disclosed as such)
+**What was wrong.** Amendment A's queries were run with `pageSize=25` and no paging, so only the first 25 hits of each
+query were fetched and screened (396 screened of 16,555 returned). evid2 then wrote that the stopping rule was "fully
+reached" -- an overstatement, found by a code review the same day. Fetch failures were also indistinguishable from
+zero hits in the search scripts.
+**What changes, and why this is not tuned to a result.** No fact's state depends on the change being in its favour:
+it can only ADD candidates.
+- **4a** (author-limited; 417 hits over the 12 trials): paged to EVERY hit and every hit screened.
+- **4b** (the first five title words ANDed; up to 4,992 hits, almost all unrelated): the first 25 by Europe PMC
+  relevance, stated as such in every record. Screening thousands of unrelated titles is not a search a reviewer would
+  run; saying so is the honest stopping rule, not "fully reached".
+- **2b**: paged to every registration.
+- A fetch that fails (non-200, empty or non-JSON body, a JSON error body) is recorded FETCH_FAILED, never as zero, and a
+  fact whose search has a failed step is not UNRESOLVED by that step.

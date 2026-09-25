@@ -65,9 +65,14 @@ def main():
             for m in REG.finditer(ft_text):
                 hits.append({"id": m.group(0), "where": f"full text {pmcid} (the article's own text)",
                              "context": ft_text[max(0, m.start() - 160): m.end() + 80]})
+        # a failed fetch is never a zero (review 4, 2026-09-25): a non-200, an empty body, or a core record that did not
+        # parse makes the whole PMID FETCH_FAILED, and its 'no registration found' is not a result
+        failed = [x for x in log if x["status"] != 200 or not x["bytes"]]
         out.append({"pmid": pmid, "pmcid": pmcid, "open_access": rec.get("isOpenAccess"), "in_epmc": rec.get("inEPMC"),
                     "title": rec.get("title"), "year": rec.get("pubYear"), "full_text_chars": len(ft_text),
-                    "registration_hits": hits, "requests": log})
+                    "registration_hits": hits, "requests": log,
+                    "fetch_state": "FETCH_FAILED" if (failed or not rec) else "OK",
+                    "failed_requests": [{"url": x["url"], "status": x["status"]} for x in failed]})
         time.sleep(0.5)
     sys.stdout.buffer.write(json.dumps(out, indent=1, ensure_ascii=False).encode("utf-8"))
 
