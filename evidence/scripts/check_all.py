@@ -1,12 +1,34 @@
 """The lane's one gate. Exit 0 only when (1) every held file matches its acquisition sha256, (2) every
 adjudication's cited spans are still verbatim in the same bytes they were pinned to (same sha256), and (3) every
 CANDIDATE_REJECTED ruling is still marked unlanded, and (4) the served row each ruling judged is still the row the
-served tree holds (a ruling on a number main has since changed is stale). Extraction records that fail verification are REPORTED
+served tree holds (a ruling on a number main has since changed is stale), and (5) the derived owner-facing files
+equal their regeneration. Extraction records that fail verification are REPORTED
 (they are candidates, not claims) but do not fail the gate; an adjudication is a claim and does."""
 import json, os, re, sys, glob, hashlib
 sys.path.insert(0, os.path.dirname(__file__))
 import textrep, verify_records as V, stale_check
 ROOT = textrep.ROOT
+
+
+DERIVED = ("evidence/SIGNATURE_QUEUE.md", "evidence/OPEN_QUESTIONS.md", "evidence/LABEL_CORRECTIONS.md")
+
+
+def derived_drift():
+    """(5) The derived owner-facing files must equal what their generators produce from the committed records: a hand
+    edit would be wiped on the next regeneration, and a stale file shows the owner a queue that no longer exists.
+    Regenerate, compare bytes, and put the originals back either way (the gate never rewrites the tree)."""
+    import contextlib, io, signature_queue, label_corrections
+    before = {f: open(os.path.join(ROOT, f), "rb").read() for f in DERIVED}
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            signature_queue.main(); label_corrections.main()
+        return [f"{f}: differs from its regeneration (hand-edited or stale)"
+                for f in DERIVED if open(os.path.join(ROOT, f), "rb").read() != before[f]]
+    except SystemExit as e:
+        return [f"derived files: a generator refused: {e}"]
+    finally:
+        for f, b in before.items():
+            open(os.path.join(ROOT, f), "wb").write(b)
 
 
 def main():
@@ -48,6 +70,7 @@ def main():
             d = {"json_ref": repr(e)[:120]}
         if d:
             bad.append(f"{a['key']}: served row changed since the ruling {json.dumps(d, ensure_ascii=False)[:200]}")
+    bad += derived_drift()
     print(f"held files {len(led)}; adjudications {len(adj)}; refusals {len(bad)}; local-only files absent here: {len(absent_local)} {absent_local}")
     for b in bad:
         print("  REFUSED", b)
