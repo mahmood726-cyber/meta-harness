@@ -37,6 +37,12 @@ def test_all_certificate_blocks_and_downloads():
                     url = f"http://127.0.0.1:{port}/docs/reviews/{directory.name}/"
                     assert page.goto(url + "index.html").status == 200
                     block = page.locator("#evidence-certificate")
+                    # REQUIREMENT: a reader can reach, read and download the certificate. Since the tabs fix (2026-09-25) the
+                    # certificate lives in the "Verify this page" tab, reached from the one-line summary above the tabs; it is
+                    # deliberately NOT visible on load (above the tabs it pushed every tab ~6,500 px down -- "all tabs empty").
+                    assert not block.is_visible(), "the certificate is back above the tabs"
+                    page.locator("#verify-line a").click()
+                    assert page.locator("#tab-verify").is_visible()
                     assert block.is_visible()
                     assert block.locator("p").first.inner_text() == "release_sha256 " + cert["release_sha256"]
                     assert json.loads(block.locator("pre").inner_text()) == cert
