@@ -87,32 +87,213 @@ def pct_corroboration(after, events, total):
     return [{"reported": p, "agrees": f"{100 * events / total:.{dec}f}" == p}]
 
 
+CLOSED_MARKERS = ("in each group", "in both groups", "in each arm", "in both arms", "per group", "per arm")
+
+
+def object_spans(text):
+    """[start, end) of every JSON object, by a brace scanner that skips string contents."""
+    out, stack, i, n, in_str = [], [], 0, len(text), False
+    while i < n:
+        c = text[i]
+        if in_str:
+            if c == "\\":
+                i += 1
+            elif c == '"':
+                in_str = False
+        elif c == '"':
+            in_str = True
+        elif c == "{":
+            stack.append(i)
+        elif c == "}" and stack:
+            out.append((stack.pop(), i + 1))
+        i += 1
+    return out
+
+
+def scope_of(text, pos):
+    """group_id_scope: the outcome measure (by its title) or the eventGroups list the witness's group id is defined in."""
+    for a, b in sorted((sp for sp in object_spans(text) if sp[0] <= pos < sp[1]), key=lambda sp: sp[1] - sp[0]):
+        body = text[a:b]
+        if '"groups":' in body:
+            try:
+                return "outcomeMeasuresModule: " + json.loads(body).get("title", "?")
+            except ValueError:
+                return None
+        if '"eventGroups":' in body:
+            return "adverseEventsModule.eventGroups"
+    return None
+
+
+def measure_components(text, title):
+    """Per group of the outcome measure titled `title`: (group_id, group title, events, events offset, total, total offset)."""
+    out = []
+    for a, b in object_spans(text):
+        body = text[a:b]
+        if '"groups":' not in body or not re.search(r'"title":\s*"%s"' % re.escape(title), body):
+            continue
+        try:
+            obj = json.loads(body)
+        except ValueError:
+            continue
+        if obj.get("title") != title:
+            continue
+        titles = {g["id"]: g.get("title") for g in obj.get("groups", [])}
+        ci, di, gi = body.find('"classes":'), body.find('"denoms":'), body.find('"groups":')
+        meas = {m.group(1): (int(m.group(2)), a + m.start(2)) for m in re.finditer(r'"groupId":\s*"(\w+)",\s*"value":\s*"(\d+)"', body[ci:di])} if 0 <= ci < di else {}
+        meas = {k: (v, o + ci) for k, (v, o) in meas.items()}
+        den = {m.group(1): (int(m.group(2)), a + di + m.start(2)) for m in re.finditer(r'"groupId":\s*"(\w+)",\s*"value":\s*"(\d+)"', body[di:gi])} if 0 <= di < gi else {}
+        for gid, t in titles.items():
+            if gid in meas and gid in den:
+                out.append({"group_id": gid, "title": t, "events": meas[gid][0], "events_at": meas[gid][1],
+                            "total": den[gid][0], "total_at": den[gid][1]})
+        break
+    return out
+
+
+def union_components(row, title, held_tuple):
+    """S1: an arm that is the UNION of registered groups across registrations. Returns per-role components if, taking
+    exactly one group per role in every registry file, the sums equal the held tuple; else None."""
+    import itertools
+    files = [d for d in row["documents"] if (d.get("file") or "").startswith("doc_registry_")]
+    per_file = []
+    for d in files:
+        ref = d["origin"]
+        _, text, _ = held(ref)
+        comps = measure_components(text, title)
+        if len(comps) != 2:
+            continue
+        per_file.append((ref, text, comps))
+    if len(per_file) < 2:
+        return None
+    for choice in itertools.product((0, 1), repeat=len(per_file)):
+        roles = {"intervention": [], "comparator": []}
+        for (ref, text, comps), c in zip(per_file, choice):
+            roles["intervention"].append((ref, text, comps[c]))
+            roles["comparator"].append((ref, text, comps[1 - c]))
+        s = {r: (sum(x[2]["events"] for x in v), sum(x[2]["total"] for x in v)) for r, v in roles.items()}
+        if s == {"intervention": (held_tuple["ai"], held_tuple["n1i"]), "comparator": (held_tuple["ci"], held_tuple["n2i"])}:
+            out = {}
+            for r, v in roles.items():
+                out[r] = [{"group_id": c["group_id"], "group_id_scope": "outcomeMeasuresModule: " + title, "group_title": c["title"],
+                           "document_ref": ref, "events": {"value": c["events"], "start": c["events_at"], "end": c["events_at"] + len(str(c["events"]))},
+                           "total": {"value": c["total"], "start": c["total_at"], "end": c["total_at"] + len(str(c["total"]))}}
+                          for ref, text, c in v]
+                for comp, (ref, text, c) in zip(out[r], v):
+                    for k in ("events", "total"):
+                        assert text[comp[k]["start"]:comp[k]["end"]] == str(comp[k]["value"])
+            return out
+    return None
+
+
+def licensed_distributive(w):
+    """Schema v2 S3: a shared witness is licensed only by a closed-list marker lying INSIDE the witness text."""
+    d = w.get("distributive")
+    if not d or d.get("marker") not in CLOSED_MARKERS:
+        return False
+    ms, me = d["span"]
+    return w["start"] <= ms < me <= w["end"] and w["text"][ms - w["start"]:me - w["start"]] == d["marker"]
+
+
+def distributive_fill(rec, packet, row):
+    """The one arm whose events are 'not stated' because the source states ONE count for both arms: take the other
+    arm's event token, and require a closed-list marker to follow it within the same clause (<= 40 characters, no
+    sentence break). The shared witness spans token..marker; its value is the token's."""
+    have = [a for a in rec["arms"] if a.get("event_witness")]
+    if len(have) != 1:
+        return None
+    w, err = to_held(have[0]["event_witness"], packet, row, "shared.events")
+    if err:
+        return None
+    text = held(w["document_ref"])[1]
+    tail = text[w["end"]:w["end"] + 60]
+    for m in CLOSED_MARKERS:
+        i = tail.find(m)
+        if 0 <= i <= 40 and not re.search(r"[.;]", tail[:i]):
+            ms, me = w["end"] + i, w["end"] + i + len(m)
+            sw = {"document_ref": w["document_ref"], "document_sha256": w["document_sha256"], "text": text[w["start"]:me],
+                  "representation": REP, "start": w["start"], "end": me, "context": w["context"],
+                  "distributive": {"marker": m, "span": [ms, me]}, "after": text[me:me + 40]}
+            return {"value": int(have[0]["events"]), "witness": sw}
+    return None
+
+
 def main():
     pop_name, recdir, packets, out_path = sys.argv[1:5]
     written, refused = {}, {}
     for f in sorted(os.listdir(recdir)):
         rec = json.load(open(os.path.join(recdir, f), encoding="utf-8"))
         key = rec["held_key"]
-        if rec["state"] != "WITNESSED":
-            refused[key] = {"state": rec["state"], "reasons": rec["reasons"]}
-            continue
         packet = os.path.join(packets, rec["job"])
         row = json.load(open(os.path.join(packet, "row.json"), encoding="utf-8"))
-        obs, why = [], []
+        # S1 (schema owner, 2026-09-25): an arm that is the union of registered groups -> derived denominator ->
+        # refused under the reported-only contract; recorded with its located components, never written
+        if rec["state"] == "DIFFERS" and (rec.get("registry") or {}).get("item_title") and rec.get("held_tuple"):
+            u = union_components(row, rec["registry"].get("item_title"), rec["held_tuple"])
+            if u:
+                refused[key] = {"state": "COUNT_DENOMINATOR_DERIVED_UNION", "components": u,
+                                "reasons": ["the held numbers are exactly the per-arm sums of several registrations' groups; "
+                                            "a union denominator is DERIVED, refused under the reported-only contract"]}
+                continue
+        # S3: a single printed count stated distributively ('one patient in each group') for BOTH arms
+        dist = None
+        if rec["state"] == "INCOMPLETE" and len(rec["reasons"]) == 1 and rec["reasons"][0].endswith("events: not stated"):
+            dist = distributive_fill(rec, packet, row)
+            if dist is None:
+                refused[key] = {"state": rec["state"], "reasons": rec["reasons"]}
+                continue
+        elif rec["state"] != "WITNESSED":
+            refused[key] = {"state": rec["state"], "reasons": rec["reasons"]}
+            continue
+        o_out = json.loads(open(os.path.join(packet, "out.json"), "rb").read().decode("utf-8-sig"))
+        comps, why = {}, []
+        for a in o_out.get("arms") or []:
+            cs = []
+            for c in a.get("component_corroboration") or []:
+                w, err = to_held(c.get("witness") or {}, packet, row, f"{a.get('role')}.component")
+                if err or str(c.get("value")) != (w or {}).get("text"):
+                    why.append(f"{a.get('role')} component_corroboration: {err or 'value token mismatch'}")
+                    continue
+                w.pop("after", None)
+                w["group_id_scope"] = scope_of(held(w["document_ref"])[1], w["start"])
+                cs.append({"group_id": c.get("group_id"), "class_title": c.get("class_title"), "value": int(c["value"]), "witness": w})
+            if cs:
+                comps[a.get("role")] = cs
+        obs = []
         for arm in sorted(rec["arms"], key=lambda a: 0 if a["role"] == "intervention" else 1):
-            ew, er = to_held(arm["event_witness"], packet, row, f"{arm['role']}.events")
+            if dist:
+                arm = dict(arm, events=dist["value"])
+                ew, er = dict(dist["witness"], role=f"{arm['role']}.events"), None
+            else:
+                ew, er = to_held(arm["event_witness"], packet, row, f"{arm['role']}.events")
             tw, tr = to_held(arm["total_witness"], packet, row, f"{arm['role']}.total")
             why += [x for x in (er, tr) if x]
             if ew and tw:
-                obs.append({"role": arm["role"], "group_id": arm["group_id"], "arm_name": arm["arm_name"],
+                tw["derivation"] = None   # reported: located verbatim (schema v2: required on every *.total witness)
+                scope = None
+                if arm["group_id"]:
+                    src = ew if ew["document_ref"].startswith("evidence/typed_arms/registry/") else None
+                    corr_w = [c for c in comps.get(arm["role"], []) if c.get("witness")]
+                    if src:
+                        scope = scope_of(held(src["document_ref"])[1], src["start"])
+                    elif corr_w:
+                        scope = corr_w[0]["witness"]["group_id_scope"]
+                    if not scope:
+                        why.append(f"{arm['role']}: group_id {arm['group_id']} has no locatable group_id_scope")
+                obs.append({"role": arm["role"], "group_id": arm["group_id"], "group_id_scope": scope, "arm_name": arm["arm_name"],
                             "arm_id": arm["arm_name"].lower().strip(), "events": int(arm["events"]),
                             "total": int(arm["total"]), "n": int(arm["total"]),
                             "event_witness": ew, "total_witness": tw, "outcome": row.get("outcome_name"),
                             "population": None, "window": None,
                             "percentage_corroboration": pct_corroboration(ew["after"], arm["events"], arm["total"]),
-                            "context_state": {"population": "NO_EVIDENCE", "window": "NO_EVIDENCE"}})
+                            "context_state": {"population": "NO_EVIDENCE", "window": "NO_EVIDENCE"},
+                            **({"component_corroboration": comps[arm["role"]],
+                                "component_corroboration_agrees": sum(c["value"] for c in comps[arm["role"]]) == int(arm["events"])}
+                               if comps.get(arm["role"]) else {})})
         keys = [(w["document_ref"], w["start"], w["end"]) for o in obs for w in (o["event_witness"], o["total_witness"])]
-        if len(obs) == 2 and len(set(keys)) != 4:
+        shared = len(obs) == 2 and len(set(keys)) != 4
+        licensed = (shared and len(set(keys)) == 3 and keys[0] == keys[2]
+                    and all(licensed_distributive(o["event_witness"]) for o in obs))
+        if shared and not licensed:
             why.append("ARM_WITNESS_NOT_INJECTIVE: two role-specific fields share one source coordinate")
         for o in obs:
             for w in (o["event_witness"], o["total_witness"]):
