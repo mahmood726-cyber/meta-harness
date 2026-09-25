@@ -372,7 +372,6 @@ DETECTS.update({
         "trigger": r"10\.\d|doi|pmc|pdf|rights reserved|copyright",
         "text_source": _PROSE, "lowercased": False},
     "hand_binding.py:sub:7b4eac99d8": _fmt("whitespace normalisation in _plain; matches formatting, not meaning", _XML),
-    "hand_binding.py:sub:caf616cd71": _fmt("XML tag stripper in _plain; matches markup, not meaning", _XML),
     "hand_binding.py:split:59b745f04e": _fmt("sentence splitter after ').' before a digit; matches formatting, not meaning",
                                              _PROSE),
     "hand_binding.py:findall:1af9a0dc3c": _fmt("JATS table-cell extractor; matches markup, not meaning", _XML),
@@ -395,7 +394,6 @@ DETECTS.update({
     "hand_binding.py:sub:2abf06a9a2": _fmt("JATS front/back-matter element remover; matches markup, not meaning", _XML),
     "hand_binding.py:sub:e6e9990818": _fmt("JATS <article-id> remover; matches markup, not meaning", _XML),
     "hand_binding.py:sub:8782f4efdb": _fmt("JATS <xref> citation-marker remover; matches markup, not meaning", _XML),
-    "hand_binding.py:sub:caf616cd71#2": _fmt("XML tag stripper in prose_of; matches markup, not meaning", _XML),
     "hand_binding.py:sub:575187a28f": _fmt("word-final 's' stripper for plural tolerance; matches spelling, not meaning",
                                            "folded result text (target_endpoint._fold)", True),
     "hand_binding.py:sub:575187a28f#2": _fmt("word-final 's' stripper for plural tolerance; matches spelling, not meaning",
@@ -431,11 +429,12 @@ DETECTS.update({
         "detects": "the sentence reports a ratio effect estimate (RR / OR / HR / IRR / relative risk with its value), "
                    "not merely the conjunction 'or' before a number",
         "trigger": r"ratio|\brr\b|\bor\b|\bhr\b|\birr\b|relative risk", "text_source": _ABS_SENT, "lowercased": False},
+    "markup.py:MARKUP": _fmt("markup-token stripper: tag syntax only (a literal P<0.001 / age < 65 is text, not a tag)",
+                             "a held abstract, full text or API value (raw JATS/HTML, or prose containing '<' and '>')"),
     "absence.py:_ARMS": {
         "detects": "the sentence reports arm counts (events out of patients, e.g. 12/200, 25 of 400), not a ratio like a "
                    "blood-pressure reading",
         "trigger": r"\d\s*/\s*\d|\bof\s+\d", "text_source": _ABS_SENT, "lowercased": False},
-    "absence.py:_TAG": _fmt("XML/HTML tag stripper; matches markup, not meaning", "a held full text (raw JATS/HTML)"),
     "absence.py:_COUNT_WITH_PERCENT": {
         "detects": "the sentence reports an arm count together with its percentage",
         "trigger": r"%|percent", "text_source": _ABS_SENT, "lowercased": False},
@@ -552,7 +551,6 @@ DETECTS.update({
         "detects": "the text is (or carries) a EudraCT trial number",
         "trigger": r"\d{4}-\d{5,6}-\d{2}|eudract", "text_source": _REG_HTML, "lowercased": False},
     "registry_multi.py:_ICTRP_ROW_RE": _fmt("ICTRP result-row extractor; matches markup, not meaning", _REG_HTML),
-    "registry_multi.py:sub:caf616cd71": _fmt("tag stripper in _clean_text; matches markup, not meaning", _REG_HTML),
     "registry_multi.py:pattern": {
         "detects": "the query uses the spelling variant being swapped (here British 'haemorrhage')",
         "trigger": r"ha?emorrhag", "text_source": "a registry search query string", "lowercased": False},
@@ -616,7 +614,6 @@ DETECTS.update({
                           "trigger": r"\d", "text_source": _REF, "lowercased": False},
     "cites.py:_DOI_RE": {"detects": "the text carries a DOI",
                          "trigger": r"10\.\d|doi", "text_source": _REF, "lowercased": False},
-    "cites.py:_TAG_RE": _fmt("tag stripper; matches markup, not meaning", _REF),
     "cites.py:sub:dd5e50e9d6": _fmt("doi.org resolver-prefix stripper; matches DOI formatting, not meaning", _REF),
     "cites.py:sub:4e68c4d713": _fmt("'doi:' label stripper; matches DOI formatting, not meaning", _REF),
     "cites.py:sub:e3839b281a": _fmt("punctuation-to-space title fold; matches formatting, not meaning", _REF, True),
@@ -705,7 +702,6 @@ DETECTS.update({
         "detects": "the parity sentence names this trial identity (here SELECT) as a whole word",
         "trigger": r"select", "text_source": _PARITY_SENT, "lowercased": False},
     # ---- harness/reason_audit.py -------------------------------------------------------------------------------------
-    "reason_audit.py:_TAG": _fmt("tag stripper; matches markup, not meaning", _RA_TEXT),
     "reason_audit.py:_NCT_OR_PMID": {
         "detects": "the trial id carries an NCT number or a PMID (not another registry's number)",
         "trigger": r"nct|pmid|\d{6}", "text_source": "a trial id / label string (reason_audit.canonical_trial_id)",

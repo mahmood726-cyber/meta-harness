@@ -228,10 +228,6 @@ SITE_SPECS: dict = {
     "hand_binding.py:sub:7b4eac99d8": {
         "kind": "search", "what": "_plain: collapse whitespace runs",
         "plants": {"accept": [("0.87  (0.78-0.97)", None), ("Death\nfrom", None)], "refuse": ["0.87", "Death"]}},
-    "hand_binding.py:sub:caf616cd71": {
-        "kind": "search", "what": "_plain: strip XML tags from a cell / caption",
-        "plants": {"accept": [("<td>0.87</td>", None), ("<italic>n</italic> (%)", None)],
-                   "refuse": ["p &lt; 0.05", "n (%)"]}},
     "hand_binding.py:split:59b745f04e": {
         "kind": "split", "what": "_sentences: split after ').' when a digit starts the next sentence",
         "plants": {"accept": [("p=0.067). 2347 (47.4%) participants", ["p=0.067).", "2347 (47.4%) participants"])],
@@ -299,10 +295,6 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "prose_of: drop citation markers (<xref> ... </xref>)",
         "plants": {"accept": [('<xref ref-type="bibr" rid="R10">10</xref>', None)],
                    "refuse": ["<ext-link>x</ext-link>", "xref 10"]}},
-    "hand_binding.py:sub:caf616cd71#2": {
-        "kind": "search", "what": "prose_of: strip the remaining XML tags",
-        "plants": {"accept": [("<p>Death occurred</p>", None), ("<sec id='s1'>", None)],
-                   "refuse": ["p &lt; 0.05", "Death occurred"]}},
     "hand_binding.py:sub:575187a28f": {
         "kind": "search", "what": "_family_match_tolerant: strip a word-final s (plural tolerance, folded text side)",
         "plants": {"accept": [("gastrointestinal adverse events", None)], "refuse": ["an adverse event", "death"]}},

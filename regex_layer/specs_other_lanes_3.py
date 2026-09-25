@@ -21,9 +21,6 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_reference_doi: a DOI inside an unstructured reference",
         "plants": {"accept": [("10.1056/NEJMoa1603827", None), ("doi:10.1016/S0140-6736(19)32345-0.", None)],
                    "refuse": ["10.5 mg", "10.1/x"]}},
-    "cites.py:_TAG_RE": {
-        "kind": "search", "what": "_clean_text: an XML/HTML tag",
-        "plants": {"accept": [("<i>x</i>", None)], "refuse": ["a &lt; b", "plain"]}},
     "cites.py:sub:dd5e50e9d6": {
         "kind": "search", "what": "_normalise_doi: a doi.org resolver prefix",
         "plants": {"accept": [("https://doi.org/10.1056/x", None), ("http://dx.doi.org/10.1/x", None)],
@@ -166,9 +163,6 @@ SITE_SPECS: dict = {
         "bind": {"identity": "SELECT"},
         "plants": {"accept": [("SELECT was excluded", None), ("select", None)], "refuse": ["SELECTED", "PRESELECT"]}},
     # ---- harness/reason_audit.py -------------------------------------------------------------------------------------
-    "reason_audit.py:_TAG": {
-        "kind": "search", "what": "_plain: an XML/HTML tag",
-        "plants": {"accept": [("<p>x</p>", None)], "refuse": ["a &lt; b", "plain"]}},
     "reason_audit.py:_NCT_OR_PMID": {
         "kind": "search", "what": "canonical_trial_id: the trial's NCT number or PMID",
         "plants": {"accept": [("NCT01179048", ("NCT01179048",)), ("PMID 27633186", ("27633186",))],

@@ -26,9 +26,11 @@ SITE_SPECS: dict = {
         "plants": {"accept": [("12/200 in the colchicine group", None), ("25 of 400 patients", None),
                               ("three of 120 patients", None)],
                    "refuse": ["the 3 of us", "a PA ≥ 130/80 mm Hg at baseline"]}},
-    "absence.py:_TAG": {
-        "kind": "search", "what": "_strip_markup: an XML/HTML tag in a held full text",
-        "plants": {"accept": [("<p>x</p>", None), ("<sup>2</sup>", None)], "refuse": ["p &lt; 0.05", "no tags here"]}},
+    "markup.py:MARKUP": {
+        "kind": "search", "what": "strip_markup: a MARKUP token (tag, comment, CDATA, PI, DOCTYPE) -- never a literal '<' in scientific text",
+        "plants": {"accept": [("<p>x</p>", None), ("<sup>2</sup>", None), ('<xref rid="r1" ref-type="bibr">', None),
+                              ("<!-- note -->", None), ("<br/>", None)],
+                   "refuse": ["(P<0.001), HR 0.82 (95% CI 0.70 to 0.96; P>0.2)", "age < 65", "p<.05", "<=10 mg", "p &lt; 0.05"]}},
     "absence.py:_COUNT_WITH_PERCENT": {
         "kind": "search", "what": "_count_candidates: an arm count written with its percentage (N/M (x%), x% (N/M), N patients (x%))",
         "plants": {"accept": [("12/200 (6.0%)", None), ("6.0% (12/200)", None), ("37 patients (18.5%)", None),
@@ -228,9 +230,6 @@ SITE_SPECS: dict = {
         "kind": "search", "what": "_parse_ictrp_html: one ICTRP result row",
         "plants": {"accept": [('<tr valign="top"><td>x</td></tr>', None)],
                    "refuse": ["<tr><td>x</td></tr>", '<tr valign="middle"><td>x</td>']}},
-    "registry_multi.py:sub:caf616cd71": {
-        "kind": "search", "what": "_clean_text: strip tags from a registry field",
-        "plants": {"accept": [("<b>Colchicine</b>", None)], "refuse": ["Colchicine", "a &lt; b"]}},
     "registry_multi.py:pattern": {
         "kind": "search", "what": "_query_variants: the spelling being swapped (compiled with old='haemorrhage')",
         "bind": {"old": "haemorrhage"},
