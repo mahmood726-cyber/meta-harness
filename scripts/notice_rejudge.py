@@ -12,7 +12,9 @@
       audited notice has a verdict entry that (a) names exactly the anchor digests this command recomputes -- a
       verdict is bound to the bytes judged, as `sign --expect-digest` binds a signature -- (b) is HOLDS or
       HOLDS_WITH_DEFECT from both the bulk reader and the lane (a DIFFERS from either refuses), and (c) every
-      mechanical check passes. HOLDS_WITH_DEFECT means the notice records the transition between the judged pages
+      mechanical check passes. The working registry must equal HEAD's (judge committed bytes). A verdict may also
+      carry `departure_binding` (per departing trial: the constraint that actually failed the admission check, as
+      the lane read it) and `second_reader`. HOLDS_WITH_DEFECT means the notice records the transition between the judged pages
       correctly but its rendered words carry a defect the reviewer must be shown (`defects`); the walker prints it
       above the signing command. It is never a recommendation to sign. Prior judgements are kept unchanged
       (append-only); the previous working-tree digests are kept under `superseded_anchors` as history.
@@ -241,8 +243,8 @@ def cmd_packets(args) -> int:
 def cmd_append(args) -> int:
     served, proposed = _resolve(args.served), _resolve(args.proposed)
     audit_bytes = AUDIT.read_bytes()
-    if _show(proposed, "registry/notice_adjudication.json") != audit_bytes:
-        raise anchor.AnchorRefused("the working registry differs from the proposed commit's; judge committed bytes")
+    if _show("HEAD", "registry/notice_adjudication.json") != audit_bytes:
+        raise anchor.AnchorRefused("the working registry differs from HEAD's; judge committed bytes (commit first)")
     verdicts = {v["audit_id"]: v for v in json.loads(Path(args.verdicts).read_text(encoding="utf-8"))["verdicts"]}
     _, checks = build(served, proposed)
     by_id = {c["audit_id"]: c for c in checks}
@@ -277,6 +279,7 @@ def cmd_append(args) -> int:
             "bulk_reader": v.get("bulk_reader"), "bulk_verdict": v["bulk_verdict"],
             "lane_verdict": v["lane_verdict"], "lane_notes": v.get("lane_notes", ""),
             "defects": v.get("defects", []), "bulk_concerns": v.get("bulk_concerns", []),
+            "departure_binding": v.get("departure_binding", []), "second_reader": v.get("second_reader"),
             "before_after": v["before_after"], "rendered_block_sha256": v["rendered_block_sha256"],
         })
     if problems:

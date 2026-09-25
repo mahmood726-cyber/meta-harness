@@ -74,6 +74,37 @@ nowhere in the repository; this file is its record.
   - found five rendered-wording defects F4 did not report (N30, N32, N39, N06, N17).
   The F4 patch is not landed, so the branch carries one implementation, not two.
 
+- **E13. Judgement B2: why each trial actually left.** Every notice's "why" says a trial's family eligibility is
+  "not established by the held record". I tested that sentence against the held rows for all 78 departing
+  memberships. Only 18 of 78 are rows that genuinely do not establish the population or contrast, plus 1
+  INELIGIBLE.
+  - **34 are the check misreading rows the site holds:**
+    - 16 ACTIVE_COMPARATOR: `randomised_contrasts` only records a contrast when two arms differ by the agent
+      alone, so drug-vs-active-drug trials can never pass. That covers all 4 NOAC-vs-warfarin trials, PLATO,
+      PARADIGM-HF and the DOAC-vs-VKA trials.
+    - 10 TERM_FORM_MISMATCH: 'Diabetes Mellitus, Type 2' against 'type 2 diabetes', and
+      'Depressive Disorder, Treatment-Resistant' against 'treatment-resistant depression'.
+    - 2 WILDCARD_NOT_HONOURED: `antibiotic-associated diarr*` is tested as a literal substring.
+    - 4 CONTROL_CODED_AS_ACTIVE.
+    - 2 LEXICON_GAP.
+  - **25 are sources the check cannot read:** 20 have no registry parent linked, and 5 are anchored to a
+    registry other than ClinicalTrials.gov, while the check reads AACT rows only.
+  - **How the labels were checked:**
+    - The labels were recorded before a blind second read (`b2-binding/lane_classes.json`, sha256 346c8d4b…).
+    - A Claude subagent agreed on 70 of 78 labels and 75 of 78 buckets. It is the same model family as the lane:
+      codex NR-C02 on the same packet hit its usage limit.
+    - Seven cases were executed on `harness.trial_family.screen_family` with only the blamed field changed: DELIVER,
+      CARMELINA, TRANSFORM, a probiotics trial, ROCKET AF, PLATO and PARADIGM-HF. All 7 became ELIGIBLE. The control,
+      which re-derives contrasts and changes nothing, stayed NOT_PROVEN (`b2-binding/screen_plants.txt`).
+  - **What this means for signing.** For 12 notices every departure is a misread by both readers: N08, N09, N15,
+    N17, N18, N19, N20, N21, N25, N32, N39 and N40. For N23 it is a misread by the lane's label only. N20 is the
+    case that matters most: its newly significant benefit exists only because a word-order mismatch removed two
+    trials.
+  - Each notice records accurately what the gate did. The lane's recommendation, which is not a decision, is to
+    fix the check (a `harness/` change, re-certification and new notices) before countersigning these.
+  - B2 re-pins the same bytes as B1. It is appended and B1 is unchanged; the walker prints each trial's binding
+    constraint above the command.
+
 ## Measured facts (2026-09-25)
 - Anchors: all 78 intact at `1fa77f2c`. Against served main `c9d665e0`: 53 broken (26 review.json, 24 index.html,
   3 harness sources) and 25 intact (24 `git:38c04411:` plus one cache record). The brief said 51 / 27, measured at

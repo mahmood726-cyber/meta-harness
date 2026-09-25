@@ -198,6 +198,14 @@ def present(audit: dict, notices: list[dict], chains: list[dict], mapping: dict[
     if judgement.get("lane_notes"):
         lines.append(f"RE-JUDGEMENT NOTE ({judgement['judgement_id']}; the lane's reading, not Mahmood's decision): "
                      + judgement["lane_notes"])
+    binding = judgement.get("departure_binding") or []
+    if binding:
+        misread = sum(b["bucket"] == "CHECK_MISREADS_HELD_ROWS" for b in binding)
+        lines.append(f"WHY EACH TRIAL LEFT, as the lane read it ({judgement['judgement_id']}; not Mahmood's decision): "
+                     f"{misread} of {len(binding)} departures fail the admission check because of how the check reads "
+                     "rows the site already holds, not because the evidence is absent.")
+        for b in binding:
+            lines.append(f"  {b['trial_id']} ({b['family_id']}): {b['gate_code']} -> {b['class']} [{b['bucket']}]: {b['basis']}")
     for concern in judgement.get("bulk_concerns") or []:
         lines.append(f"Bulk reader concern ({judgement.get('bulk_reader') or 'bulk reader'}; not a decision): " + concern)
     lines += ["HARNESS-TEAM ADJUDICATION (recommendation, not Mahmood's decision): " + row["recommendation_reason"],

@@ -42,6 +42,9 @@ def rows() -> list[dict]:
             "before_after": j["before_after"], "rendered_block_sha256": sha,
             "judgement_id": j["judgement_id"], "lane_verdict": j["lane_verdict"], "defects": j["defects"],
             "lane_notes": j["lane_notes"],
+            "departures_misread_by_check": sum(b["bucket"] == "CHECK_MISREADS_HELD_ROWS"
+                                               for b in j.get("departure_binding") or []),
+            "departures": len(j.get("departure_binding") or []),
             "gate_requires_individual_signature": row["gate_requires_per_notice_signature"],
             "audit_recommendation": row["recommendation"],
             "how_it_reached_the_reviewer": (
@@ -60,12 +63,12 @@ def rows() -> list[dict]:
 
 def markdown(items: list[dict]) -> str:
     lines = ["| # | Notice | Review / outcome | Before → after (as judged) | Rendered-block sha256 | Judgement | "
-             "Lane verdict | Signature | Audit recommendation |",
-             "|---|---|---|---|---|---|---|---|---|"]
+             "Lane verdict | Departures the check misread | Signature | Audit recommendation |",
+             "|---|---|---|---|---|---|---|---|---|---|"]
     for r in items:
         lines.append(f"| {r['position']} | {r['audit_id']} (ledger {r['ledger_index']}) | {r['slug']} / {r['outcome']} "
                      f"| {r['before_after']} | `{r['rendered_block_sha256']}` | {r['judgement_id']} | "
-                     f"{r['lane_verdict']} | {'individual' if r['gate_requires_individual_signature'] else 'batch-eligible'}"
+                     f"{r['lane_verdict']} | {r['departures_misread_by_check']} of {r['departures']} | {'individual' if r['gate_requires_individual_signature'] else 'batch-eligible'}"
                      f" | {r['audit_recommendation']} |")
     return "\n".join(lines) + "\n"
 

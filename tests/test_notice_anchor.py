@@ -53,6 +53,9 @@ def test_every_audited_notice_has_a_commit_pinned_judgement_whose_anchors_attach
         assert all(a["ref"].startswith("git:") for a in judgement["anchors"])
         assert judgement["bulk_verdict"] in rejudge.VERDICTS and judgement["lane_verdict"] in rejudge.VERDICTS
         assert (judgement["lane_verdict"] == "HOLDS_WITH_DEFECT") == bool(judgement["defects"])
+        # every departing trial carries the constraint that actually failed admission (judgement B2 onward)
+        assert sorted(b["trial_id"] for b in judgement["departure_binding"]) == sorted(row["left_pool"])
+        assert all(b["bucket"] and b["class"] and b["basis"] for b in judgement["departure_binding"])
         assert all(v for k, v in judgement["mechanical_checks"].items()
                    if k not in ("direction_recomputed", "rendered_block_sha256"))
     assert all(ref.startswith("git:") for ref in audit["source_digests"])
@@ -238,6 +241,8 @@ def test_walker_offers_the_judgement_it_verified(loaded):
         command_at = out.index("python scripts/countersign_result_change.py sign")
         for text in j["defects"] + ([j["lane_notes"]] if j["lane_notes"] else []) + j["bulk_concerns"]:
             assert out.index(text) < command_at  # every finding is read before the command is offered
+        if j["departure_binding"]:
+            assert out.index("WHY EACH TRIAL LEFT") < command_at
 
 
 # ------------------------------------------------------------------ the re-judgement's own direction rule, planted
