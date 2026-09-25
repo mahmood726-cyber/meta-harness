@@ -18,66 +18,20 @@ from regex_layer.measure import held_sentences
 from regex_layer.specs import ROLES, SPECS
 
 ROOT = Path(__file__).resolve().parents[1]
-SEP = "    ,"          # thin space, narrow nbsp, nbsp, space, comma
-_BEFORE = re.compile(rf"\d[{SEP}]$")
-_AFTER = re.compile(rf"^[{SEP}]\d{{3}}(?!\d)")
-_DEC_BEFORE = re.compile(r"\d\.$")        # '3' read out of '7.3'
-_DEC_AFTER = re.compile(r"^\.\d")         # '7' read out of '7.3'
-_DIGIT_BEFORE = re.compile(r"\d$")        # '23' read out of '123'
-_DIGIT_AFTER = re.compile(r"^\d")
-
-
-def fragment_groups(m: re.Match) -> list[int]:
-    """Group numbers of match `m` that capture a fragment of a number in m.string (grouped, decimal or digit run)."""
-    text, out = m.string, []
-    for gi in range(1, (m.re.groups or 0) + 1):
-        if m.group(gi) is None or not re.fullmatch(r"\d+(?:\.\d+)?", m.group(gi)):
-            continue
-        s, e = m.span(gi)
-        head, tail = text[max(0, s - 2):s], text[e:e + 5]
-        grouped = (_BEFORE.search(head) and re.fullmatch(r"\d{3}", m.group(gi))) or _AFTER.search(tail)
-        decimal = _DEC_BEFORE.search(head) or (_DEC_AFTER.search(tail) and "." not in m.group(gi))
-        run = _DIGIT_BEFORE.search(head) or _DIGIT_AFTER.search(tail)
-        if grouped or decimal or run:
-            out.append(gi)
-    return out
+# the single definition lives in the served code; this module only measures with it
+from harness.whole_numbers import SEP, WholeNumbers as RefusePartial, fragment_groups  # noqa: E402,F401
 
 
 def partial_groups(name: str, sentence: str) -> list[dict]:
-    """Every group of every match of `name` on `sentence` that is a fragment of a number."""
+    """Every group of every match of `name`'s RAW pattern on `sentence` that is a fragment of a number (the served
+    pattern may be wrapped in harness.whole_numbers and refuse these itself; the scan measures what the raw regex reads)."""
     out = []
-    for m in getattr(extract, name).finditer(sentence):
+    rx = getattr(extract, name)
+    for m in getattr(rx, "rx", rx).finditer(sentence):
         for gi in fragment_groups(m):
             s, e = m.span(gi)
             out.append({"group": gi, "value": m.group(gi), "context": sentence[max(0, s - 12):e + 12]})
     return out
-
-
-class RefusePartial:
-    """A compiled pattern whose matches that read a fragment of a number are REFUSED (dropped, never repaired).
-    Used only to measure the radius of R4 -- not installed anywhere served."""
-
-    def __init__(self, rx: re.Pattern):
-        self.rx, self.pattern, self.flags, self.groups = rx, rx.pattern, rx.flags, rx.groups
-
-    def finditer(self, s, *a):
-        return (m for m in self.rx.finditer(s, *a) if not fragment_groups(m))
-
-    def search(self, s, *a):
-        return next(self.finditer(s, *a), None)
-
-    def findall(self, s, *a):
-        ms = list(self.finditer(s, *a))
-        if self.rx.groups == 0:
-            return [m.group(0) for m in ms]
-        return [m.group(1) if self.rx.groups == 1 else m.groups("") for m in ms]
-
-    def match(self, s, *a):
-        m = self.rx.match(s, *a)
-        return None if m is None or fragment_groups(m) else m
-
-    def sub(self, *a, **k):
-        return self.rx.sub(*a, **k)
 
 
 def scan() -> dict:

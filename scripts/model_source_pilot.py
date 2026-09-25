@@ -44,9 +44,9 @@ from reproducible_ai import model_source as ms  # noqa: E402
 
 MODEL = "gpt-6-astra"
 # a second reader must be a different model id; same vendor (OpenAI via codex) -- stated, not hidden
-MODEL_BY_TASK = {"screening_reader2": "gpt-5.5", "screening_excluded_reader2": "gpt-5.5", "screening_excluded_x1_reader2": "gpt-5.5", "screening_excluded_agree_reader2": "gpt-5.5", "comparator_k_reader2": "gpt-5.5"}
+MODEL_BY_TASK = {"screening_reader2": "gpt-5.5", "screening_excluded_reader2": "gpt-5.5", "screening_excluded_x1_reader2": "gpt-5.5", "screening_excluded_agree_reader2": "gpt-5.5", "comparator_k_reader2": "gpt-5.5", "regex_label_reader2": "gpt-5.5", "site_label_v2_reader2": "gpt-5.5", "regex_label_deep_reader2": "gpt-5.5", "site_label_deep_reader2": "gpt-5.5", "site_label_ol_reader2": "gpt-5.5", "site_label_ol2_reader2": "gpt-5.5", "site_label_deep2_reader2": "gpt-5.5"}
 EFFORT = "medium"
-BATCH = {"screening": 6, "estimand": 3, "outcome_identity": 1, "locate": 1, "screening_reader2": 6, "screening_excluded": 6, "screening_excluded_x1": 6, "screening_excluded_reader2": 6, "screening_excluded_x1_reader2": 6, "screening_excluded_agree_reader2": 6, "regex_label": 8, "comparator_k": 1, "comparator_k_reader2": 1, "site_label": 8}
+BATCH = {"screening": 6, "estimand": 3, "outcome_identity": 1, "locate": 1, "screening_reader2": 6, "screening_excluded": 6, "screening_excluded_x1": 6, "screening_excluded_reader2": 6, "screening_excluded_x1_reader2": 6, "screening_excluded_agree_reader2": 6, "regex_label": 8, "comparator_k": 1, "comparator_k_reader2": 1, "site_label": 8, "site_label_v2": 8, "regex_label_reader2": 8, "site_label_v2_reader2": 8, "site_label_ol": 8, "regex_label_deep": 8, "site_label_deep": 8, "regex_label_deep_reader2": 8, "site_label_deep_reader2": 8, "site_label_ol2": 8, "site_label_deep2": 8, "site_label_ol_reader2": 8, "site_label_ol2_reader2": 8, "site_label_deep2_reader2": 8}
 REC_DIR = ROOT / ms.RECORD_DIR
 Q_DIR = ROOT / ms.PROPOSAL_DIR
 
@@ -324,6 +324,37 @@ def candidates_site_label() -> list[dict]:
     return sorted(out, key=lambda i: i["item_id"])
 
 
+def candidates_regex_label_deep() -> list[dict]:
+    """The SAME sampling rule as regex_label with up to 40 per pool instead of 15: exactly the items after the first 15
+    in each pool's sha256 order (the first 15 are regex_label's and are not re-asked)."""
+    from regex_layer import measure
+    first = {f"{c['pattern']}::{c['held_sha256'][:16]}" for c in measure.candidates(15)}
+    out = []
+    for c in measure.candidates(40):
+        iid = f"{c['pattern']}::{c['held_sha256'][:16]}"
+        if iid in first:
+            continue
+        out.append({"task": "regex_label_deep", "slug": c["pattern"], "pattern": c["pattern"], "sample": c["sample"],
+                    "item_id": iid, "held_ref": c["held_ref"], "held_text": c["sentence"], "held_sha256": c["held_sha256"],
+                    "rule_decision": f"regex sample {c['sample']}"})
+    return sorted(out, key=lambda i: i["item_id"])
+
+
+def candidates_site_label_deep() -> list[dict]:
+    """site_label_v2 / site_label_ol's rule with up to 40 per pool: the items after the first 15 (not re-asked)."""
+    from regex_layer import site_measure
+    first = {f"{c['site']}::{c['held_sha256'][:16]}" for c in site_measure.candidates(15)}
+    out = []
+    for c in site_measure.candidates(40):
+        iid = f"{c['site']}::{c['held_sha256'][:16]}"
+        if iid in first:
+            continue
+        out.append({"task": "site_label_deep", "slug": c["site"], "pattern": c["site"], "sample": c["sample"],
+                    "item_id": iid, "held_ref": c["held_ref"], "held_text": c["text"], "held_sha256": c["held_sha256"],
+                    "rule_decision": f"site sample {c['sample']}"})
+    return sorted(out, key=lambda i: i["item_id"])
+
+
 def candidates_regex_label() -> list[dict]:
     """R2 of the regex layer: sampled held sentences per compiled pattern of harness/extract.py (regex_layer.measure).
     `slug` is set to the PATTERN so each batch asks about one pattern; the regex's output is never in the prompt."""
@@ -342,7 +373,20 @@ def candidates_screening_reader2() -> list[dict]:
 
 
 CANDIDATES = {"screening": candidates_screening, "estimand": candidates_estimand,
-              "regex_label": candidates_regex_label, "comparator_k": candidates_comparator_k, "comparator_k_reader2": candidates_comparator_k_reader2, "site_label": candidates_site_label,
+              "regex_label": candidates_regex_label, "regex_label_reader2": lambda: [dict(i, task="regex_label_reader2") for i in candidates_regex_label()], "comparator_k": candidates_comparator_k, "comparator_k_reader2": candidates_comparator_k_reader2, "site_label": candidates_site_label, "site_label_v2": lambda: [dict(i, task="site_label_v2") for i in candidates_site_label()],
+              "site_label_v2_reader2": lambda: [dict(i, task="site_label_v2_reader2") for i in candidates_site_label()],
+              "regex_label_deep": candidates_regex_label_deep, "site_label_deep": candidates_site_label_deep,
+              "regex_label_deep_reader2": lambda: [dict(i, task="regex_label_deep_reader2") for i in candidates_regex_label_deep()],
+              "site_label_deep_reader2": lambda: [dict(i, task="site_label_deep_reader2") for i in candidates_site_label_deep()],
+              "site_label_ol_reader2": lambda: [dict(i, task="site_label_ol_reader2") for i in CANDIDATES["site_label_ol"]()],
+              "site_label_ol2_reader2": lambda: [dict(i, task="site_label_ol2_reader2") for i in CANDIDATES["site_label_ol2"]()],
+              "site_label_deep2_reader2": lambda: [dict(i, task="site_label_deep2_reader2") for i in CANDIDATES["site_label_deep2"]()],
+              "site_label_deep2": lambda: [dict(i, task="site_label_deep2") for i in candidates_site_label_deep()
+                                           if i["pattern"].split(":")[0] in ("gate.py", "protocol_compiler.py", "absence.py", "registry_multi.py", "pipeline.py")],
+              "site_label_ol2": lambda: [dict(i, task="site_label_ol2") for i in candidates_site_label()
+                                         if i["pattern"].split(":")[0] in ("gate.py", "protocol_compiler.py", "absence.py", "registry_multi.py", "pipeline.py")],
+              "site_label_ol": lambda: [dict(i, task="site_label_ol") for i in candidates_site_label()
+                                        if i["pattern"].split(":")[0] in ("rob2.py", "funding.py", "hand_binding.py")],
               "screening_reader2": candidates_screening_reader2,
               "screening_excluded": lambda: [dict(i, task="screening_excluded") for i in candidates_screening()],
               "screening_excluded_x1": lambda: [dict(i, task="screening_excluded_x1") for i in candidates_screening()],
@@ -363,7 +407,7 @@ SELECT = {"screening": lambda i: i["rule_decision"] == "include",
           # phase B: X1 'not an RCT' (publication type / design words); a missing pubtype can wrongly exclude a trial
           "screening_excluded_x1": lambda i: i["rule_decision"] == "exclude" and i.get("rule_id") == "X1",
           "screening_excluded_reader2": lambda i: True, "screening_excluded_x1_reader2": lambda i: True,
-          "screening_excluded_agree_reader2": lambda i: True, "regex_label": lambda i: True, "comparator_k": lambda i: True, "comparator_k_reader2": lambda i: True, "site_label": lambda i: True}
+          "screening_excluded_agree_reader2": lambda i: True, "regex_label": lambda i: True, "comparator_k": lambda i: True, "comparator_k_reader2": lambda i: True, "site_label": lambda i: True, "site_label_v2": lambda i: True, "regex_label_reader2": lambda i: True, "site_label_v2_reader2": lambda i: True, "site_label_ol": lambda i: True, "regex_label_deep": lambda i: True, "site_label_deep": lambda i: True, "regex_label_deep_reader2": lambda i: True, "site_label_deep_reader2": lambda i: True, "site_label_ol2": lambda i: True, "site_label_deep2": lambda i: True, "site_label_ol_reader2": lambda i: True, "site_label_ol2_reader2": lambda i: True, "site_label_deep2_reader2": lambda i: True}
 SELECTION_RULE = {"screening": "screened records with decision == include on the committed review pages",
                   "estimand": "estimand fields whose bundle state != STATED_IN_OWNING_EVIDENCE on the served bundles",
                   "outcome_identity": "every candidate CT.gov outcome measure of every topic with a committed "
@@ -388,7 +432,24 @@ SELECTION_RULE = {"screening": "screened records with decision == include on the
                                   "CONTROLS (item_id control::), the rest data (item_id data::)",
                   "comparator_k_reader2": "the comparator_k items, read by a second model (gpt-5.5)",
                   "site_label": "per labellable regex site outside extract.py whose text source is held here: up to 15 "
-                                "texts where it fires and up to 15 where only its broad trigger fires (sha256 order)"}
+                                "texts where it fires and up to 15 where only its broad trigger fires (sha256 order)",
+                  "site_label_v2": "site_label's rule, with protocol lines de-duplicated by text (site_label froze 56 "
+                                   "duplicate ids); the output schema is strict",
+                  "regex_label_reader2": "the regex_label items, read by a second model (gpt-5.5)",
+                  "site_label_v2_reader2": "the site_label_v2 items, read by a second model (gpt-5.5)",
+                  "site_label_ol": "site_label's rule for the regex sites of harness/rob2.py, funding.py and hand_binding.py "
+                                   "(the other lane's files: measured and planted from regex_layer/ only)",
+                  "regex_label_deep": "regex_label's rule with up to 40 per pool: the items after the first 15 in sha256 order",
+                  "site_label_deep": "the site label rule with up to 40 per pool: the items after the first 15",
+                  "regex_label_deep_reader2": "the regex_label_deep items, read by a second model (gpt-5.5)",
+                  "site_label_deep_reader2": "the site_label_deep items, read by a second model (gpt-5.5)",
+                  "site_label_ol2": "site_label's rule for the sites of gate.py, protocol_compiler.py, absence.py, "
+                                    "registry_multi.py and pipeline.py (the other lane's files; read-only)",
+                  "site_label_deep2": "site_label_deep's rule (items 16-40 per pool) for the site_label_ol2 files, whose "
+                                      "sites were planted after site_label_deep was frozen",
+                  "site_label_ol_reader2": "the site_label_ol items, read by a second model (gpt-5.5)",
+                  "site_label_ol2_reader2": "the site_label_ol2 items, read by a second model (gpt-5.5)",
+                  "site_label_deep2_reader2": "the site_label_deep2 items, read by a second model (gpt-5.5)"}
 FROZEN_KEYS = ("item_id", "slug", "held_ref", "held_sha256", "state", "rule_decision", "rule_id", "field", "rule_state", "prior",
                "pattern", "sample")
 
@@ -435,7 +496,11 @@ def pilot_items(task: str) -> list[dict]:
 
 TASKS = ("estimand", "screening", "outcome_identity", "locate", "screening_reader2", "screening_excluded",
          "screening_excluded_x1", "screening_excluded_reader2", "screening_excluded_x1_reader2",
-         "screening_excluded_agree_reader2", "regex_label", "comparator_k", "comparator_k_reader2", "site_label")
+         "screening_excluded_agree_reader2", "regex_label", "comparator_k", "comparator_k_reader2", "site_label", "site_label_v2", "regex_label_reader2", "site_label_v2_reader2", "site_label_ol", "regex_label_deep", "site_label_deep",
+         "regex_label_deep_reader2", "site_label_deep_reader2", "site_label_ol2", "site_label_deep2",
+         "site_label_ol_reader2", "site_label_ol2_reader2", "site_label_deep2_reader2")
+# retired: kept as the record of what ran (a frozen population is never edited); never run again
+RETIRED_TASKS = ("site_label",)
 SCREEN_TASKS = ("screening", "screening_reader2", "screening_excluded", "screening_excluded_x1",
                 "screening_excluded_reader2", "screening_excluded_x1_reader2", "screening_excluded_agree_reader2")
 N_NAME = {"screening": "screened-in records across committed review pages",
@@ -451,14 +516,40 @@ N_NAME = {"screening": "screened-in records across committed review pages",
           "regex_label": "sampled held sentences per compiled pattern of harness/extract.py",
           "comparator_k": "comparator review abstracts, one per topic (controls counted apart)",
           "comparator_k_reader2": "comparator review abstracts, second reader (controls counted apart)",
-          "site_label": "sampled held texts per labellable regex site outside extract.py"}
+          "site_label": "sampled held texts per labellable regex site outside extract.py (RETIRED: duplicate ids)",
+          "site_label_v2": "sampled held texts per labellable regex site outside extract.py",
+          "regex_label_reader2": "sampled held sentences per compiled pattern of harness/extract.py, second reader",
+          "site_label_v2_reader2": "sampled held texts per labellable regex site outside extract.py, second reader",
+          "site_label_ol": "sampled held texts per labellable regex site of rob2.py / funding.py / hand_binding.py",
+          "regex_label_deep": "held sentences 16-40 per pool per compiled pattern of harness/extract.py",
+          "site_label_deep": "held texts 16-40 per pool per labellable regex site",
+          "regex_label_deep_reader2": "held sentences 16-40 per pool per extract.py pattern, second reader",
+          "site_label_deep_reader2": "held texts 16-40 per pool per labellable regex site, second reader",
+          "site_label_ol2": "sampled held texts per labellable site of gate / protocol_compiler / absence / registry_multi / pipeline",
+          "site_label_deep2": "held texts 16-40 per pool for the site_label_ol2 sites",
+          "site_label_ol_reader2": "the site_label_ol texts, second reader",
+          "site_label_ol2_reader2": "the site_label_ol2 texts, second reader",
+          "site_label_deep2_reader2": "the site_label_deep2 texts, second reader"}
+
+
+def check_unique_ids(task: str, items: list) -> None:
+    """A population whose items share an id cannot be queued without silently collapsing some -- refused."""
+    seen, dup = set(), set()
+    for i in items:
+        (dup if i["item_id"] in seen else seen).add(i["item_id"])
+    if dup:
+        sys.exit(f"refused: {task} has {len(dup)} duplicated item ids (e.g. {sorted(dup)[:3]}); the queue would collapse "
+                 "them and shrink the denominator")
 
 
 def cmd_freeze(task: str, base: str):
+    if task in RETIRED_TASKS:
+        sys.exit(f"refused: {task} is retired")
     p = population_path(task)
     if p.exists():
         sys.exit(f"refused: {p.name} exists; a population is frozen once (a new pilot is a new task name)")
     sel = _current_selection(task)
+    check_unique_ids(task, sel)
     doc = {"task": task, "selection_rule": SELECTION_RULE[task], "frozen_from_commit": base, "N": len(sel),
            "note": "Frozen pilot population. Held text is NOT copied (it is re-read from the tree and must match "
                    "held_sha256); the rule's later decisions are recorded per item, never by dropping one.",
@@ -520,9 +611,11 @@ Answer every sentence, using its "item" key exactly. Return only the JSON object
 """
 
 
-def site_label_prompt(site: str, keyed: list) -> str:
+def site_label_prompt(site: str, keyed: list, strict: bool = False) -> str:
     from regex_layer.site_detects import DETECTS
-    how = ('If it does, give "quote": the words of the text that state it, copied EXACTLY, and "instances": []. '
+    how = ('If it does, give "quote": the words of the text that state it, copied EXACTLY. If it does not, give "quote": null.'
+           if strict else
+           'If it does, give "quote": the words of the text that state it, copied EXACTLY, and "instances": []. '
            'If it does not, give "quote": null and "instances": [].')
     body = REGEX_LABEL_INSTR.format(spec=DETECTS[site]["detects"], how=how).replace("sentences from trial abstracts",
                                                                                     "short texts from trial reports")
@@ -558,13 +651,19 @@ def _schema(task: str) -> dict:
                              "quote": {"type": ["string", "null"]}, "count_text": {"type": ["string", "null"]}}}
         return {"type": "object", "additionalProperties": False, "required": ["items"],
                 "properties": {"items": {"type": "array", "items": it}}}
+    if task in ("site_label_v2", "site_label_v2_reader2", "site_label_ol", "site_label_deep", "site_label_deep_reader2",
+                "site_label_ol2", "site_label_deep2", "site_label_ol_reader2", "site_label_ol2_reader2", "site_label_deep2_reader2"):
+        it = {"type": "object", "additionalProperties": False, "required": ["item", "states", "quote"],
+              "properties": {"item": {"type": "string"}, "states": {"type": "boolean"}, "quote": {"type": ["string", "null"]}}}
+        return {"type": "object", "additionalProperties": False, "required": ["items"],
+                "properties": {"items": {"type": "array", "items": it}}}
     if task == "site_label":
         it = {"type": "object", "additionalProperties": False, "required": ["item", "states", "quote", "instances"],
               "properties": {"item": {"type": "string"}, "states": {"type": "boolean"}, "quote": {"type": ["string", "null"]},
                              "instances": {"type": "array", "maxItems": 0, "items": {"type": "object"}}}}
         return {"type": "object", "additionalProperties": False, "required": ["items"],
                 "properties": {"items": {"type": "array", "items": it}}}
-    if task == "regex_label":
+    if task in ("regex_label", "regex_label_reader2", "regex_label_deep", "regex_label_deep_reader2"):
         field = {"type": "object", "additionalProperties": False, "required": ["field", "quote"],
                  "properties": {"field": {"type": "string"}, "quote": {"type": ["string", "null"]}}}
         inst = {"type": "object", "additionalProperties": False, "required": ["fields"],
@@ -616,10 +715,14 @@ def batches(task: str, items: list[dict]) -> list[dict]:
                 for key, i in keyed:
                     body += f"\n=== RECORD item={key} ===\n{i['held_text']}\n"
                 digests = cd + digests
-            elif task == "regex_label":
+            elif task in ("regex_label", "regex_label_deep"):
                 body = regex_label_prompt(slug, keyed)
-            elif task == "site_label":
-                body = site_label_prompt(slug, keyed)
+            elif task in ("regex_label_reader2", "regex_label_deep_reader2"):
+                body = READER2_HEADER + regex_label_prompt(slug, keyed)
+            elif task in ("site_label", "site_label_v2", "site_label_ol", "site_label_deep", "site_label_ol2", "site_label_deep2"):
+                body = site_label_prompt(slug, keyed, strict=(task != "site_label"))
+            elif task in ("site_label_v2_reader2", "site_label_deep_reader2", "site_label_ol_reader2", "site_label_ol2_reader2", "site_label_deep2_reader2"):
+                body = READER2_HEADER + site_label_prompt(slug, keyed, strict=True)
             elif task == "estimand":
                 vocab = "\n".join(f"  {f}: {', '.join(ms.estimand_vocabulary(f))}" for f in ("analysis_set", "analysis_window"))
                 body = ESTIMAND_INSTR.format(vocab=vocab)
@@ -680,6 +783,8 @@ def cmd_items(task):
 
 
 def cmd_run(task, limit):
+    if task in RETIRED_TASKS:
+        sys.exit(f"refused: {task} is retired")
     from reproducible_ai import model_call_live
     items = pilot_items(task)
     have = _records_by_prompt()
@@ -698,7 +803,9 @@ def cmd_run(task, limit):
 
 def decision_of(task: str, claim, verification: dict):
     """What a re-ask must reproduce for the proposal to count as stable: the DERIVED decision, not the wording."""
-    if task in ("regex_label", "site_label"):
+    if task in ("regex_label", "regex_label_reader2", "site_label", "site_label_v2", "site_label_v2_reader2", "site_label_ol",
+                "regex_label_deep", "site_label_deep", "regex_label_deep_reader2", "site_label_deep_reader2",
+                "site_label_ol2", "site_label_deep2", "site_label_ol_reader2", "site_label_ol2_reader2", "site_label_deep2_reader2"):
         return verification.get("label")
     if task in ("comparator_k", "comparator_k_reader2"):
         return [(claim or {}).get("state"), verification.get("k")]

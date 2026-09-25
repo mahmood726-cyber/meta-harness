@@ -39,7 +39,9 @@ SPECS = {
     "_NEQ": {"kind": "extractor", "fields": ["n"],
              "spec": "a sample size written as n = NUMBER",
              "trigger": r"\bn\b", "plants": {"accept": [("placebo (n = 150)", ("150",))],
-                                             "refuse": ["n-3 fatty acids", "in 150 patients"]}},
+                                             "refuse": ["n-3 fatty acids", "in 150 patients",
+                                                        "P for interaction = 0.92",       # 'n' ends a word
+                                                        "trials (n = 2,523 patients)"]}},  # R4: a fragment is refused
     "_EFFECT": {"kind": "extractor", "fields": ["measure", "point", "lower", "upper"],
                 "spec": "a relative effect estimate with its confidence interval: the MEASURE name or abbreviation "
                         "(relative risk, risk ratio, rate ratio, odds ratio, hazard ratio, RR, OR, HR, relative risk "
@@ -172,3 +174,15 @@ INLINE_SPECS.update(_TARGET_ENDPOINT)
 from regex_layer.specs_eligibility_compat import SITE_SPECS as _ELIGIBILITY_COMPAT  # noqa: E402
 
 INLINE_SPECS.update(_ELIGIBILITY_COMPAT)
+
+# Sites in files the OTHER lane owns (harness/rob2.py, funding.py, hand_binding.py): planted and measured here, read
+# only -- they are not in sites_without_plants.json's owned_files, and a located defect's fix belongs to that lane.
+from regex_layer.specs_other_lanes import SITE_SPECS as _OTHER_LANES  # noqa: E402
+
+INLINE_SPECS.update(_OTHER_LANES)
+
+# Second batch of other-lane sites (harness/gate.py, protocol_compiler.py, absence.py, registry_multi.py, pipeline.py):
+# read only, same discipline as specs_other_lanes.
+from regex_layer.specs_other_lanes_2 import SITE_SPECS as _OTHER_LANES_2  # noqa: E402
+
+INLINE_SPECS.update(_OTHER_LANES_2)
