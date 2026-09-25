@@ -48,3 +48,10 @@ Primary: per arm FIELD (events, total), does the blind pass cite a token with th
 occurrence (file, start, end)? Reported as n of N fields for value and, separately, for occurrence. A value
 disagreement on a WITNESSED entry is read by eye and classified as in the main design; an occurrence-only disagreement
 (same value, different printed place) is reported, not treated as an error.
+
+## Addendum C (2026-09-25, before any blind output for the SERVED witness packets exists)
+The design of addendum B, unchanged, applied to the 35 served-row witness packets (`extractions_witness_served/`),
+whose packets showed the extractor the served tuple: blind packets drop `served` and `source`; per arm field, value
+agreement and occurrence agreement with the first served witness pass (after its logged CARMELINA re-run), n of N.
+A value disagreement on a row written to v2 (`v2/OBSERVATIONS_served.json`) is read by eye; if the first pass is
+FIRST_PASS_ANCHORED the row is withdrawn from the v2 file before landing.
