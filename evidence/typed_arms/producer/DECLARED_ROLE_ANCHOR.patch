@@ -1,0 +1,94 @@
+--- a/harness/count_observations.py
++++ b/harness/count_observations.py
+@@ -29,16 +29,47 @@
+     return int(value.replace(",", ""))
+ 
+ 
++# control vocabulary: a name carrying it is the comparator whatever its position (placebo / sham / a named absence)
++CONTROL_WORDS = re.compile(r"\b(placebo|sham|dummy|vehicle|usual care|standard care|standard of care|control|controls)\b"
++                           r"|^\s*no[- ][a-z]|\bnon[- ][a-z]|\b[a-z]+-free\b|\bwithout\b", re.I)
++
++
++def classify_declared(name, arm_terms):
++    """The PROTOCOL side of one arm name from a declared 'A vs B' label -- never its position in the label.
++    Same principle as ctgov_results._classify_arms: comparator vocabulary first, then the configured terms."""
++    low = normalized(name).lower()
++    comp = [normalized(t).lower() for t in (arm_terms or {}).get("comparator") or [] if t]
++    intv = [normalized(t).lower() for t in (arm_terms or {}).get("intervention") or [] if t]
++    if CONTROL_WORDS.search(low) or any(re.search(r"(?<![\w-])" + re.escape(c) + r"(?![\w-])", low) for c in comp):
++        on_i = any(re.search(r"(?<![\w-])" + re.escape(i) + r"(?![\w-])", low) for i in intv)
++        return "comparator" if not on_i or CONTROL_WORDS.search(low) else None
++    if any(re.search(r"(?<![\w-])" + re.escape(i) + r"(?![\w-])", low) for i in intv):
++        return "intervention"
++    return None
++
++
++def declared_roles(declared, arm_terms):
++    """(role by name, reversed?) for a declared 'A vs B' label. Positional stamping was the defect: the first name of
++    the label became the intervention (evid2, 2026-09-25, from the main lane's item 36 note). A name the protocol cannot
++    place contributes nothing; a label whose order is the protocol's reverse is reported, not silently re-stamped."""
++    pair = re.fullmatch(r"\s*(.+?)\s+(?:vs\.?|versus)\s+(.+?)\s*", declared or "", re.I)
++    if not pair:
++        return {}, False
++    sides = [classify_declared(n, arm_terms) for n in pair.groups()]
++    roles = {n: sd for n, sd in zip(pair.groups(), sides) if sd}
++    return roles, sides == ["comparator", "intervention"]
++
++
+ def names(arm_terms, declared=None):
+     terms = {s: list((arm_terms or {}).get(s) or []) for s in SIDES}
+     for side in SIDES:
+         if "control" in terms[side]:
+             terms[side].append("controls")
+     if declared:
+-        pair = re.fullmatch(r"\s*(.+?)\s+(?:vs\.?|versus)\s+(.+?)\s*", declared, re.I)
+-        if pair:
+-            for side, term in zip(SIDES, pair.groups()):
+-                terms[side].append(term)
++        roles, _ = declared_roles(declared, arm_terms)
++        if len(set(roles.values())) == len(roles):     # two names on the same side place neither
++            for name, side in roles.items():
++                terms[side].append(name)
+     return terms
+ 
+ 
+@@ -172,6 +203,9 @@
+ 
+ 
+ def bind(doc, cand, tup, spec, arm_terms, declared=None):
++    if declared and declared_roles(declared, arm_terms)[1]:
++        return None, "DECLARED_DIRECTION_REVERSED", ("the row's declared 'A vs B' names the protocol's comparator "
++                                                      "first; roles come from the protocol, never the label's order")
+     terms = names(arm_terms, declared)
+     observations = []
+     facts = table_events(cand, terms) if cand["kind"] == "table_row" else prose_events(cand["text"], terms)
+--- a/tests/test_count_observations.py
++++ b/tests/test_count_observations.py
+@@ -442,3 +442,27 @@
+     args = parser.parse_args()
+     supplement() if args.supplement else capture(args.capture)
+ 
++
++# ---- evid2, 2026-09-25: roles from the protocol, never from the declared label's word order ------------------------
++def _codes(out):
++    return json.dumps(out["absent"])
++
++
++def test_a_declared_label_in_reversed_order_is_refused_not_restamped():
++    text = "Nausea occurred in 7 of 101 participants on treatment and 11 of 99 participants on placebo."
++    out = constructed(text, comparator_direction="placebo vs treatment")
++    assert not out["trials"] and "DECLARED_DIRECTION_REVERSED" in _codes(out)
++
++
++def test_names_the_protocol_cannot_place_get_no_role_from_their_position():
++    """'high dose vs standard dose': neither name is a configured term or control vocabulary. The old names() made the
++    first the intervention by position; now neither is placed, and the row cannot bind on the label alone."""
++    text = "Nausea occurred in 7 of 101 participants on high dose and 11 of 99 participants on standard dose."
++    out = constructed(text, comparator_direction="high dose vs standard dose")
++    assert not out["trials"]
++
++
++def test_the_protocol_order_still_binds():
++    text = "Nausea occurred in 7 of 101 participants on treatment and 11 of 99 participants on placebo."
++    out = constructed(text, comparator_direction="treatment vs placebo")
++    assert [(o["arm"]["role"], o["events"]) for o in out["trials"][0]["observations"]] == [("intervention", 7), ("comparator", 11)]
