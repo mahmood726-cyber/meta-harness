@@ -38,6 +38,14 @@ Work dirs: F:\claude-temp\claude\C--rmfw\8b65f96e-4468-481b-b9d4-307b02c07609\sc
 9. Finalise the release-note section from the served scorecard: fill every "V1:" line or delete it; no line without a
    served-bytes result. Deliver to the main lane (commit on this lane's branch; path in REPORT).
 
+## Measured timings (dress rehearsal, 25 Sep 13:40, local-only commit main 880eb6b5 + oc 6fadca05 = 877a2814)
+battery (git mode) 157 s; archive build+check 120 s; producer probe 97 s -> about 6 min at T0. **CI takes 20-35 min per commit and
+is the long pole.** So: at T0, build the archive from the candidate (no ACCEPTANCE inside), commit it on `pva/v1-archive` cut FROM THE
+CANDIDATE, and push, so its CI runs while the main lane deploys. After deploy: served battery (~4 min + the 11 min CDN wait), then
+land the archive commit (fast-forward once V1 is main) and publish the served scorecard BESIDE it as
+`docs/releases/v1/<c12>/ACCEPTANCE.json` in a second small commit. The archive's README says the acceptance is NOT_INCLUDED inside the zip,
+which is true: the zip is frozen from git bytes at the freeze, and the acceptance is a separate served-bytes record.
+
 ## If time runs out
 The archive and scorecard are built from git bytes at T0, so a late deploy leaves only steps 5-9, about 25 minutes of
 wall clock (11 of them waiting on the CDN). If the deploy lands after 15:00, report the served audit as NOT RUN rather
