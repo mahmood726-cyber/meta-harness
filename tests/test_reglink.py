@@ -137,3 +137,12 @@ def test_rfc6901_array_indexes_are_strict():
         with pytest.raises(KeyError):
             cr.resolve({"a": [1, 2]}, bad)
     assert cr.resolve({"a": [1, 2]}, "/a/1") == 2
+
+
+def test_a_link_whose_group_title_names_the_other_arm_is_refused(tmp_path, monkeypatch):
+    """Review item 11: LINKED used to mean only 'the pointer holds what the reader copied'."""
+    monkeypatch.setattr(cr, "row_terms", lambda row: ({"drugx"}, {"placebo"}))
+    bad = reading()
+    bad["rows"][0]["arms"][0]["links"] = [{"pointer": f"{M}/groups/1", "id": "OG001", "title": "Placebo"}]   # intervention -> placebo group
+    r = job(tmp_path, bad)
+    assert r["arms"][0]["links"][0]["state"] == "LINK_REFUSED" and "protocol's comparator" in r["arms"][0]["links"][0]["why"]

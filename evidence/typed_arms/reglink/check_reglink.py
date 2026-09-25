@@ -43,6 +43,35 @@ def num(x):
         return None
 
 
+_CW = None
+
+
+def _cw():
+    global _CW
+    if _CW is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("check_witness", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "witness", "check_witness.py"))
+        _CW = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_CW)
+    return _CW
+
+
+def row_terms(row):
+    """Protocol terms for a linkage row: the held witness packet's topic terms, or the served row's review I-line."""
+    ta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+    if row["population"] == "held":
+        for d in ("extractions_witness",):
+            base = os.path.join(ta, d)
+            for j in os.listdir(base) if os.path.isdir(base) else []:
+                p = os.path.join(base, j, "row.json")
+                if os.path.exists(p):
+                    r = json.load(open(p, encoding="utf-8"))
+                    if r.get("held_key") == row["row_key"]:
+                        return _cw().protocol_terms(r)
+        return set(), set()
+    return _cw().protocol_terms({"row_id": row["row_key"]})
+
+
 def check_job(job):
     rows = json.load(open(os.path.join(job, "rows.json"), encoding="utf-8"))
     p = os.path.join(job, rows["registry_file"])
@@ -64,6 +93,7 @@ def check_job(job):
                "registry_file": f"evidence/typed_arms/registry/{rows['nct']}.json", "registry_sha256": rows["registry_sha256"],
                "outcome": row["outcome"], "arm_correspondence": g.get("arm_correspondence"), "arms": [], "outcome_candidates": []}
         gid_role = {}
+        i_terms, c_terms = row_terms(row)
         for arm in row["arms"]:
             ga = next((a for a in g.get("arms", []) if a.get("role") == arm["role"]), {})
             links = []
@@ -75,8 +105,12 @@ def check_job(job):
                     why = None if ok else f"pointer resolves to id={rid!r} title={o.get('title')!r}"
                 except (KeyError, IndexError, ValueError, TypeError, AttributeError) as e:
                     ok, why = False, f"pointer does not resolve ({type(e).__name__})"
+                side = _cw().protocol_side(ln.get("title"), i_terms, c_terms) if ok and i_terms else None
+                if ok and side and side != arm["role"]:   # the group's own title names the OTHER arm
+                    ok, why = False, f"group title {ln.get('title')!r} is the protocol's {side}, not the {arm['role']}"
                 links.append({"pointer": ln.get("pointer"), "group_id": ln.get("id"), "title": ln.get("title"),
-                              "state": "LINKED" if ok else "LINK_REFUSED", "why": why})
+                              "state": "LINKED" if ok else "LINK_REFUSED", "why": why,
+                              "title_side": side if i_terms else "UNANCHORED"})
                 if ok:
                     key = (ln["pointer"].rsplit("/groups/", 1)[0].rsplit("/eventGroups/", 1)[0], ln["id"])
                     if gid_role.get(key, arm["role"]) != arm["role"]:

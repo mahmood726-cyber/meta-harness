@@ -60,6 +60,29 @@ def _served_i_line(row_id):
     return next((r.get("intervention_i_line") for r in rows if r.get("row_id") == row_id), None)
 
 
+def protocol_terms(row):
+    """(intervention terms, comparator terms) for a packet row: its topic terms (held) or its review I-line (served)."""
+    ta = _typed_arms()
+    i_terms = {t.lower() for t in (row.get("intervention_terms") or []) if t}
+    c_terms = {t.lower() for t in (row.get("comparator_terms") or []) if t}
+    i_terms |= ta.i_terms(" ".join(i_terms)) if i_terms else ta.i_terms(_served_i_line(row.get("row_id")))
+    return i_terms, c_terms
+
+
+def protocol_side(name, i_terms, c_terms):
+    """'intervention', 'comparator' or None (unknown / shares both vocabularies) for an arm or group name."""
+    ta = _typed_arms()
+    name = str(name or "").lower()
+    on_i, on_c = ta.side(name, i_terms), ta.side(name, c_terms)
+    strong = STRONG_CONTROL.search(name)   # placebo / sham / dummy / a named absence: never the intervention
+    weak = ta.CONTROL.search(name)         # 'usual care', 'control': an add-on arm can carry these words
+    if strong or (weak and not on_i):
+        return "comparator"
+    if on_i and on_c:
+        return None                        # shares vocabulary with both (valsartan vs sacubitril/valsartan)
+    return "intervention" if on_i else "comparator" if on_c else None
+
+
 def role_anchor(rec, row, arms):
     """T6: the DECLARED role must agree with the protocol, not only with the object. Reported by the F4 lane
     (2026-09-25): T5 proves number -> groupId -> title, and the tuple comparison is keyed by the object's own role, so a
@@ -70,9 +93,7 @@ def role_anchor(rec, row, arms):
     A declared role on the other side is ARM_ROLE_MISMATCH (refused). No terms -> ROLE_UNANCHORED; a name on neither
     side -> ROLE_UNMATCHED: both flagged, never a silent pass."""
     ta = _typed_arms()
-    i_terms = {t.lower() for t in (row.get("intervention_terms") or []) if t}
-    c_terms = {t.lower() for t in (row.get("comparator_terms") or []) if t}
-    i_terms |= ta.i_terms(" ".join(i_terms)) if i_terms else ta.i_terms(_served_i_line(row.get("row_id")))
+    i_terms, c_terms = protocol_terms(row)
     if not i_terms:
         rec["flags"].append("ROLE_UNANCHORED: no protocol terms for this row; the declared role was not checked")
         return
@@ -81,22 +102,7 @@ def role_anchor(rec, row, arms):
         rec["reasons"].append(f"ARM_ROLE_INVALID: role must be exactly 'intervention' or 'comparator', got {bad!r}")
     if len(arms) == 2 and arms[0].get("role") == arms[1].get("role"):
         rec["reasons"].append(f"ARM_ROLE_DUPLICATE: both arms declared {arms[0].get('role')!r}")
-    sides = []
-    for a in arms:
-        name = str(a.get("arm_name") or "").lower()
-        on_i, on_c = ta.side(name, i_terms), ta.side(name, c_terms)
-        strong = STRONG_CONTROL.search(name)   # placebo / sham / dummy / a named absence: never the intervention
-        weak = ta.CONTROL.search(name)         # 'usual care', 'control': an add-on arm can carry these words
-        if strong or (weak and not on_i):
-            sides.append("comparator")
-        elif on_i and on_c:
-            sides.append(None)                 # shares vocabulary with both (valsartan vs sacubitril/valsartan)
-        elif on_i:
-            sides.append("intervention")
-        elif on_c:
-            sides.append("comparator")
-        else:
-            sides.append(None)
+    sides = [protocol_side(a.get("arm_name"), i_terms, c_terms) for a in arms]
     for i, (a, side) in enumerate(zip(arms, sides)):
         role = a.get("role")
         if side is None:
