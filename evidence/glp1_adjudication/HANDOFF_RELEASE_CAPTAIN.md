@@ -25,3 +25,13 @@ The same pattern is in harness/ at: absence.py:25, cites.py:33, hand_binding.py:
 
 ## 3. Note, not a defect claim
 With τ² = 0, the declared prediction interval `mu ± t_(k-1)·sqrt(tau² + se²)` equals the HKSJ CI. The "+ FLOW only" scenario shows it: k=9, PI = CI = 0.8095–0.9008. It is consistent with the declared formula, but readers take PI = CI as a red flag, so it may deserve a one-line disclosure on the page.
+
+## 4. Addendum (2026-09-25 evening): a source conflict on ELIXA's 3-point MACE, found during V1.1 RoB 2 work. The ruling and the value are unchanged.
+The ELIXA decision describes 3-point MACE as a prespecified secondary endpoint, citing the FDA statistical review of NDA 208471 ("two secondary endpoints – time to first secondary MACE event (defined as CV death, non-fatal MI and non-fatal stroke) … were also evaluated"; "The pre-specified Cox proportional hazards analysis resulted in …"). Two other sources disagree:
+- the FDA **summary** review of the same NDA calls it a sensitivity analysis: "Sensitivity analyses relying on the three component MACE endpoint (CV-death, non-fatal MI and non-fatal stroke) … were consistent with the results of the primary analysis." (https://www.accessdata.fda.gov/drugsatfda_docs/nda/2016/208471Orig1s000SumR.pdf; held local-only on the V1.1 branch, sha256 0fdddabd…);
+- the registry lists 3-point MACE as neither a primary nor a secondary outcome.
+
+Effects:
+- **eligibility:** unaffected. The protocol's B-prime admits "3-point MACE, **or its exact three components**, … prospectively specified and systematically ascertained", and ELIXA's components were prospectively adjudicated (the protocol itself names ELIXA eligible on that basis).
+- **value:** unaffected. The bound result is the regulator's own on-study ITT row, HR 1.02 (0.887–1.172), 400 vs 392.
+- **for the reviewer / signer:** the word "prespecified secondary" in ELIXA.json should be read as "one FDA review says so; another calls it a sensitivity analysis". The V1.1 RoB 2 proposal rates ELIXA D5 "some concerns" for this reason (branch evid/v1.1-rob2).
