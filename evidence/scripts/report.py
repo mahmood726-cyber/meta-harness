@@ -106,6 +106,12 @@ def main(out, since=None, notes=None):
                 if s not in ("RULING_SPAN", "GAP_VERIFIED"):
                     L.append(f"  - {k} {f}: {str(s)[:240]}")
         L.append("")
+    cc = os.path.join(ROOT, "evidence/sweeps/citation_corrections_proposed.json")
+    if os.path.exists(cc):
+        x = json.load(open(cc, encoding="utf-8"))
+        L += [f"- replacement endpoint citations proposed for the {x['population']['N']} wrong citations "
+              f"({x['population']['denominator']}): " + ", ".join(f"{k} {v}" for k, v in sorted(collections.Counter(
+                  r["kind"] for r in x["rows"].values()).items())) + " -- verified spans, queued in `evidence/CITATION_CORRECTIONS.md`, not landed"]
     lc = os.path.join(ROOT, "evidence/LABEL_CORRECTIONS.md")
     if os.path.exists(lc):
         n_ = sum(1 for l in open(lc, encoding="utf-8") if l.startswith("- **"))
