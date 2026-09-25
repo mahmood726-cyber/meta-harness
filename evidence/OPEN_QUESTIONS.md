@@ -13,3 +13,6 @@
 - **P53-53**:  SCALE: RECOVERY reports a Cox-model mortality rate ratio; the page pools it with risk ratios/odds ratios from other trials. Whether a rate ratio may be pooled on a risk-ratio scale is a method decision for Mahmood; no number is changed here.
 
 - **S16-13**: TIMEPOINT (EMPA-KIDNEY): the served HR 0.72 (0.64-0.82) is the published interventional-period result (median 2.0 years). The registry reports the same composite through post-trial follow-up (up to 1869 days) as HR 0.79 (0.72-0.87). The outcome declares 'trial end / longest trial-reported follow-up'; the post-trial period is off randomised treatment. Same question as EMPHASIS-HF (P53-49) and RE-COVER (P53-07/08): which window a 'longest follow-up' outcome means. A method decision for Mahmood; no number changed.
+
+## Bleeding rows served as 'trial-reported follow-up' but bound to on-treatment windows (M-05, M-06, M-08, M-10, M-11) -- 2026-09-25
+The held registry time frames count bleeding from first intake to last intake plus a washout (RE-COVER I/II), or as treatment-emergent (EINSTEIN-PE). The served timepoint says 'trial-reported follow-up'. The numbers are faithful, but the timepoint label misdescribes the estimand. The owner can relabel it on-treatment or leave it. This is a label change, so it is queued and nothing lands. See evidence/sweeps/followup_age_citation_m.json.
