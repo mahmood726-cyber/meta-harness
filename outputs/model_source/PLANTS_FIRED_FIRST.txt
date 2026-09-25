@@ -665,3 +665,12 @@ tests\test_model_source.py:332: AssertionError
     signature. tests/test_delegated_acceptance.py::test_the_delegation_written_as_a_signature_is_still_refused failed
     first; model_source.gate_problems now refuses a blanket / delegated basis (DELEGATED_IS_NOT_A_SIGNATURE).
     signature_problem itself (harness/result_changes.py) is the main lane's file and is unchanged -- noted for it.
+#21 site_label's output schema declared `instances.items` as a bare object; the API's strict mode requires
+    additionalProperties:false on every object, so 113 of 113 calls were RAN_ERROR (invalid_json_schema) -- a 100%
+    failure that measured the harness. tests/test_pilot_contracts.py::test_every_live_task_schema_is_strict now holds
+    every live task's schema to the strict rule (the checker is itself shown able to fail).
+#22 site_label froze N = 825 of which 56 items were the same boilerplate protocol line in several protocol files; the
+    queue, keyed by item_id, collapsed them to 769 -- the denominator shrank without a word. freeze now refuses
+    duplicate ids (::test_a_population_with_duplicate_item_ids_is_refused); protocol lines are de-duplicated by text.
+    site_label is RETIRED (kept as the record of what ran; run/freeze refuse it); its successor site_label_v2 froze
+    N = 803 with unique ids, and a one-call probe returned RAN_OK before the full run.

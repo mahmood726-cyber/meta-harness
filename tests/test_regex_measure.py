@@ -24,7 +24,9 @@ def test_a_partial_number_is_never_agreement():
     s = "The event occurred in 48 488 (98.1%) of 49 419 participants."
     lab = _claim({"count": "48 488", "percent": "98.1%", "denominator": "49 419"})
     m = measure.measure([("_ARM", s, lab)])["_ARM"]
-    assert m["tp"] == 0 and m["fp"] >= 1 and m["fn"] == 1
+    # the requirement: a fragment never counts as agreement. Since R4 the served pattern REFUSES the fragment (fp 0);
+    # before R4 it read "488" (fp 1). Either way the true value is a miss.
+    assert m["tp"] == 0 and m["fn"] == 1 and m["fp"] == 0
 
 
 def test_a_quote_not_in_the_sentence_is_refused():

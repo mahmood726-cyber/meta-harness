@@ -9,3 +9,7 @@ Both run through the repository's recorded model-call contract (records in evide
 - Gap re-runs vs the earlier (pre-contract) gap extractions, analysis-set reading: same 21 of 22; the one change
   (UA-009) is the recorded run FINDING the modified-ITT sentence the lane had hand-bound after the earlier run
   returned NOT_FOUND -- an independent confirmation of the hand binding.
+
+## S16 (served rows with a located source), 2026-09-25
+- 16 of 16 quote sets verbatim; entry AGREE 16 of 16; number AGREE 15, DISAGREE 1 -- S16-13 (EMPA-KIDNEY), the
+  interventional-vs-post-trial window, already queued as an OPEN QUESTION; the served number itself is not disputed.

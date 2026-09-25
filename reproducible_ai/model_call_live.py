@@ -79,6 +79,52 @@ def prepare_workdir(work: Path, schema: dict) -> None:
     (work / "LANE_CONTEXT.md").write_text(LANE_CONTEXT, encoding="utf-8", newline="\n")
 
 
+# CODEX-2: every real call is logged to a per-lane record -- what the model saw besides the prompt, every tool call it
+# attempted and how that ended, the files it read, and the tokens the client reported. The prompt itself is in the call
+# record (by digest here); the client transcript is kept with the prompt echo replaced by that digest and the local
+# work-dir path replaced by <workdir>.
+LANE = "rai"
+LANE_LOG = Path(__file__).resolve().parents[1] / "registry" / "model_calls" / "lane_log" / f"{LANE}.jsonl"
+_TOKENS = re.compile(r"tokens used\s*\n\s*([\d,]+)")
+_EXEC = re.compile(r"^exec\s*\n(?P<cmd>.+?)\n(?P<outcome>\s*(?:succeeded|failed|exited)[^\n]*)", re.M)
+_REJECT = re.compile(r"exec_command failed: (?P<why>[^\n]{0,400})")
+_READ_CMD = re.compile(r"(?:Get-Content|cat|type|more|head|tail|sed -n|rg|grep|Select-String|findstr)\b[^\n]*?"
+                       r"(?P<path>[\w.\\/:-]+\.(?:md|txt|json|py|csv|html|toml|yaml|yml))", re.I)
+
+
+def transcript_facts(stderr_text: str, prompt: bytes, workdir_hint: str = "") -> dict:
+    """Tokens, tool calls (with outcome) and files read, parsed from the client's stderr; plus the redacted transcript."""
+    t = stderr_text.replace("\r\n", "\n")
+    m = _TOKENS.search(t)
+    tokens = int(m.group(1).replace(",", "")) if m else None
+    calls = [{"command": x.group("cmd").strip()[:400], "outcome": x.group("outcome").strip()[:200]} for x in _EXEC.finditer(t)]
+    calls += [{"command": None, "outcome": "REJECTED: " + x.group("why")[:300]} for x in _REJECT.finditer(t)]
+    files = sorted({r.group("path") for c in calls if c["command"] for r in _READ_CMD.finditer(c["command"])})
+    red = t
+    p = prompt.decode("utf-8", "replace").replace("\r\n", "\n").strip()
+    if p and p in red:
+        red = red.replace(p, f"<prompt sha256 {hashlib.sha256(prompt).hexdigest()}>")
+    red = re.sub(r"[A-Za-z]:[\\/][^\s'\"]*mcall-[\w]+", "<workdir>", red)
+    return {"tokens_used": tokens, "tool_calls": calls, "tool_calls_n": len(calls),
+            "tool_calls_rejected_n": sum(1 for c in calls if c["outcome"].startswith("REJECTED")),
+            "files_read": files, "transcript_redacted": red}
+
+
+def log_call(record: dict, facts: dict, path: Path = LANE_LOG) -> None:
+    line = {"lane": LANE, "record_id": record["record_id"], "state": record["state"],
+            "request_utc": record.get("request_utc"), "caller": record.get("caller"),
+            "model_requested": (record.get("model") or {}).get("id_requested"),
+            "model_reported": (record.get("model") or {}).get("id_reported"),
+            "prompt_sha256": (record.get("prompt") or {}).get("sha256"),
+            "response_sha256": (record.get("response") or {}).get("sha256"),
+            "workdir_files": (record.get("params") or {}).get("workdir_files"),
+            **{k: facts[k] for k in ("tokens_used", "tool_calls_n", "tool_calls_rejected_n", "tool_calls", "files_read",
+                                     "transcript_redacted")}}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8", newline="\n") as f:
+        f.write(json.dumps(line, sort_keys=True, ensure_ascii=True) + "\n")
+
+
 HEADER_KEYS = ("model", "provider", "approval", "sandbox", "reasoning effort", "reasoning summaries", "session id")
 
 
@@ -158,7 +204,8 @@ def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, 
     elif header.get("reasoning effort") not in (None, effort):
         err = f"client reported reasoning effort {header.get('reasoning effort')!r} but {effort!r} was set"
     state = "RAN_ERROR" if err else "RAN_OK"
-    return model_source.build_record(
+    facts = transcript_facts(se.decode("utf-8", "replace"), prompt)
+    rec = model_source.build_record(
         prompt_bytes=prompt, response_bytes=last if state == "RAN_OK" else b"",
         model={"id_requested": model, "id_reported": rep or "UNREPORTED", "provider": header.get("provider") or "UNREPORTED",
                "reported_by": "client header (codex exec stderr); not a server attestation of the model revision"},
@@ -170,5 +217,12 @@ def call(prompt: bytes, *, schema: dict, model: str, effort: str, caller: dict, 
         request_utc=t0, response_utc=t1, caller=caller, input_digests=digests, state=state, error=err,
         client_evidence={"header": header, "stdout_sha256": hashlib.sha256(so).hexdigest(), "stdout_bytes": len(so),
                          "stderr_sha256": hashlib.sha256(se).hexdigest(), "stderr_bytes": len(se),
-                         "note": "raw client streams are hashed, not stored: they carry a local path (workdir) and echo "
-                                 "the prompt; the header's model/provider/effort/session are copied above"})
+                         "tokens_used": facts["tokens_used"], "tool_calls_n": facts["tool_calls_n"],
+                         "tool_calls_rejected_n": facts["tool_calls_rejected_n"], "files_read": facts["files_read"],
+                         "transcript_redacted_sha256": hashlib.sha256(facts["transcript_redacted"].encode("utf-8")).hexdigest(),
+                         "lane_log": f"registry/model_calls/lane_log/{LANE}.jsonl",
+                         "note": "raw client streams are hashed; the redacted transcript (prompt echo -> its digest, work "
+                                 "dir -> <workdir>) is in the lane log with every tool call and file read"})
+    if runner is codex_runner:                  # a real call is logged; a test's fake runner is not
+        log_call(rec, facts)
+    return rec

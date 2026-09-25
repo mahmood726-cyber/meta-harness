@@ -70,7 +70,32 @@ def plant_dead_extractors():
             setattr(extract, n, rx)
 
 
-CHANGES = {"refuse_partial": refuse_partial, "plant_dead_extractors": plant_dead_extractors}
+@contextlib.contextmanager
+def _swap(name: str, rx: re.Pattern):
+    old = getattr(extract, name)
+    try:
+        setattr(extract, name, rx)
+        yield
+    finally:
+        setattr(extract, name, old)
+
+
+# R4 candidate fixes, each measured on its own before it may enter the pinned patch
+NEQ_BOUNDARY = re.compile(r"(?<![A-Za-z])n\s*=\s*(\d+)", re.I)      # 'interactio[n = 0].92' is not n = 0
+DENOM_EACH_FIXED = re.compile(r"(\d+)\s+(?:patients?\s+)?(?:were\s+)?(?:randomly\s+)?(?:assigned|allocated|randomi[sz]ed)\s+to\s+each",
+                              re.I)                                  # RX-D1: 'patients were randomly assigned to each'
+
+
+def neq_boundary():
+    return _swap("_NEQ", NEQ_BOUNDARY)
+
+
+def denom_each_fix():
+    return _swap("_DENOM_EACH", DENOM_EACH_FIXED)
+
+
+CHANGES = {"refuse_partial": refuse_partial, "plant_dead_extractors": plant_dead_extractors,
+           "neq_boundary": neq_boundary, "denom_each_fix": denom_each_fix}
 
 
 def outcomes(cfg: dict) -> list[dict]:

@@ -24,34 +24,40 @@ sys.path.insert(0, str(ROOT))
 from regex_layer import measure  # noqa: E402
 from regex_layer.specs import ROLES, SPECS  # noqa: E402
 
-QUEUE = ROOT / "registry" / "model_proposals" / "regex_label.json"
-OUT = ROOT / "outputs" / "regex_layer"
+# default: every first-reader label (the first 15 per pool, and the deep sample 16-40); a named queue measures it alone
+QUEUES = [ROOT / "registry" / "model_proposals" / f"{t}.json"
+          for t in ([sys.argv[1]] if len(sys.argv) > 1 else ["regex_label", "regex_label_deep"])]
+OUT = ROOT / "outputs" / "regex_layer" / ("reader2" if len(sys.argv) > 1 and "reader2" in sys.argv[1] else "")
 
 
 def main() -> int:
-    q = json.loads(QUEUE.read_text(encoding="utf-8"))
-    cands = {f"{c['pattern']}::{c['held_sha256'][:16]}": c for c in measure.candidates(15)}
+    items = [e for qp in QUEUES if qp.exists() for e in json.loads(qp.read_text(encoding="utf-8"))["items"]]
+    # a labelled item is found by the sha256 of its held sentence over EVERY held sentence -- never through today's
+    # sampler, whose pools move when a pattern changes (R4 refuses fragments), which would silently drop frozen items
+    by_sha = {}
+    for _slug, _rid, _k, sent in measure.held_sentences():
+        by_sha.setdefault(hashlib.sha256(sent.encode("utf-8")).hexdigest(), sent)
+    pools = {c["pattern"]: c["pool_sizes"] for c in measure.candidates(40)}
     by_pattern: dict[str, dict] = {}
     labelled = []
-    for e in q["items"]:
-        c = cands.get(e["item_id"])
+    for e in items:
+        sent = by_sha.get(e.get("held_sha256"))
         pat = (e.get("context") or {}).get("pattern") or e["item_id"].split("::")[0]
         row = by_pattern.setdefault(pat, {"frozen": 0, "measured": 0, "states": {}, "pools": None, "reasked": 0, "stable": 0})
         row["frozen"] += 1
         v = e.get("verification") or {}
         state = v.get("state") if e.get("status") == "PROPOSED" else e.get("status")
-        if c is None or hashlib.sha256(c["sentence"].encode("utf-8")).hexdigest() != e.get("held_sha256"):
+        if sent is None:
             state = "HELD_TEXT_MISMATCH"
         row["states"][state] = row["states"].get(state, 0) + 1
-        if c is not None:
-            row["pools"] = c["pool_sizes"]
+        row["pools"] = pools.get(pat)
         rq = e.get("reask")
         if isinstance(rq, dict) and rq.get("records"):
             row["reasked"] += 1
             row["stable"] += bool(rq.get("same_derived_decision"))
         if state == "VERIFIER_PASS":
             row["measured"] += 1
-            labelled.append((pat, c["sentence"], e["claim"], c["sample"]))
+            labelled.append((pat, sent, e["claim"], (e.get("context") or {}).get("sample")))
     per = measure.measure([(p, s, cl) for p, s, cl, _ in labelled])
     rows = []
     for name in sorted(SPECS):
@@ -62,7 +68,7 @@ def main() -> int:
                      "precision": m.get("precision", "0 of 0"), "sampled_recall": m.get("recall", "0 of 0"),
                      "fp_examples": m.get("fp_examples", []), "fn_examples": m.get("fn_examples", [])})
     OUT.mkdir(parents=True, exist_ok=True)
-    res = {"source": "registry/model_proposals/regex_label.json", "labels": "recorded model proposals, NOT countersigned",
+    res = {"source": [q.relative_to(ROOT).as_posix() for q in QUEUES if q.exists()], "labels": "recorded model proposals, NOT countersigned",
            "patterns": len(rows), "patterns_measured": sum(1 for r in rows if r["measured_n"]), "rows": rows}
     (OUT / "MEASUREMENT.json").write_text(json.dumps(res, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     md = ["# Regex layer R2 -- per-pattern precision / recall (harness/extract.py)", "",

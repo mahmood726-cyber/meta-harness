@@ -13,9 +13,10 @@ def main(out, since=None):
            for p in glob.glob(os.path.join(ROOT, "evidence/adjudication/*.json"))}
     L = [f"# Evidence lane report: {datetime.date.today().isoformat()}",
          "", f"Branch `evid/evidence-records` @ `{subprocess.run(['git','rev-parse','--short=8','HEAD'],cwd=ROOT,capture_output=True,text=True).stdout.strip()}`; "
-         "main `38c04411` unchanged by this lane. Every count below is computed by `evidence/scripts/report.py` from the committed records.", ""]
+         "the lane's commits land on main only after CI, fast-forward, and never change a served page (docs/). Every count below is computed by `evidence/scripts/report.py` from the committed records.", ""]
     for pop, N, name in (("P53", 53, "pooled primary rows inadmissible on P5 at 38c04411"),
-                         ("U23", 23, "served rows lane UA found with no locatable source")):
+                         ("U23", 23, "served rows lane UA found with no locatable source"),
+                         ("S16", 16, "served rows that DO carry a located source (UA's other 23, less 2 main-lane and 5 evid2 rows)")):
         rows = [w for w in wl if w["kind"] == pop]
         assert len(rows) == N
         a = [adj[w["key"]] for w in rows if w["key"] in adj]
@@ -66,6 +67,18 @@ def main(out, since=None):
               f"- served 'intention-to-treat' label, of {sw['served_itt_label']['N']} rows carrying it: supported by a span "
               f"{sw['served_itt_label']['SUPPORTED']}, contradicted by a span {sw['served_itt_label']['CONTRADICTED']}, "
               f"unsupported (no span states a set) {sw['served_itt_label']['UNSUPPORTED']} -- labels only; no number moves", ""]
+    for name, f in (("exploratory, U23 rows outside the pre-registered 20", "RETEST_EXTENSION_U23.json"), ("exploratory, S16", "RETEST_S16.json")):
+        ep_ = os.path.join(ROOT, "evidence/extractions", f)
+        if os.path.exists(ep_):
+            x = json.load(open(ep_, encoding="utf-8"))
+            L += [f"- retest ({name}): bound numbers " + ", ".join(f"{k} {v}" for k, v in x["primary_bound_numbers"].items())
+                  + f" of {x['N']}; verdict agree {x['verdict']['AGREE']}, entry agree {x['entry_reading']['AGREE']}"]
+    cp_ = os.path.join(ROOT, "evidence/sweeps/compat_endpoint_citation_u23.json")
+    if os.path.exists(cp_):
+        x = json.load(open(cp_, encoding="utf-8"))
+        L += ["", "## Served endpoint-definition citations (U23; `evidence/CITATION_CORRECTIONS.md`, queued, not landed)", "",
+              "- labels by eye: " + ", ".join(f"{k} {v}" for k, v in x["labels_by_eye"].items()),
+              f"- agreement with lane WS: {x['agreement_with_lane_WS']}; blind codex second opinion: {x.get('second_opinion_agreement')}", ""]
     rp = os.path.join(ROOT, "evidence/extractions/RETEST_RESULT.json")
     if os.path.exists(rp):
         rt = json.load(open(rp, encoding="utf-8"))

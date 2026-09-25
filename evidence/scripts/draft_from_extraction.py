@@ -10,10 +10,12 @@ sys.path.insert(0, os.path.dirname(__file__))
 import verify_records as V
 ROOT = V.ROOT
 ITT = re.compile(r"intent(?:ion)?[-‐‑–\s]to[-‐‑–\s]treat|\bITT\b|all randomi[sz]ed (participants|patients|subjects)"
-                 r"|among (the|all)? ?[\d,  ]+ randomi[sz]ed (participants|patients|subjects)|randomi[sz]ed set", re.I)
+                 r"|among (the|all)? ?[\d,  ]+ randomi[sz]ed (participants|patients|subjects)|randomi[sz]ed set"
+                 r"|all (unique )?randomi[sz]ed (participants|patients|subjects)"
+                 r"|all (the )?(patients|participants|subjects) who (underwent randomi[sz]ation|were randomi[sz]ed)", re.I)
 RESTRICT = re.compile(r"at least (one|1) (dose|tablet|capsule|injection|infusion)|who (took|received) (at least|any)|≥ ?1"
                       r"|available|who (had|have)|modified|\bmITT\b|treated set|excluded from the analysis|with the exception"
-                      r"|non-missing|but the following|exclusions?\b", re.I)
+                      r"|non-missing|but the following|exclusions?\b|with valid informed consent|complete[- ]case", re.I)
 SET_WORDS = re.compile(r"analysis set|population|analy[sz]ed|analys[ie]s|per[- ]protocol|modified|\bmITT\b|available|\bFAS\b|treated set"
                        r"|at least (one|1)|excluded|data from|allocated treatment|intent|\bITT\b|randomi[sz]ed set", re.I)
 

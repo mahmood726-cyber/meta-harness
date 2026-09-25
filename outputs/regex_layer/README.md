@@ -26,3 +26,15 @@ Everything here is measured against a population the code derives itself. No num
 - The labels are model **proposals**, not countersigned. Every precision/recall figure says it is measured against recorded proposals.
 - Recall is **sampled** recall. Sentences with no trigger word are never examined.
 - `_DEF_CUE` is read only together with `_ANCHOR_RX`, so its standalone precision (1 of 15) is not its contract. Four patterns have **no reader** in `harness/` (`_DOSE_ARM`, `_RATE_UNIT`, `_MORT_Y`, `_MORT_D`): their numbers cannot move a served value.
+
+## How much the R2 numbers depend on who labelled
+- A second reader (gpt-5.5) labelled the same 641 extract.py sentences. The two readers agree on **586 of 640**
+  labels where both pass the verifier. Each reader has its own table: `MEASUREMENT.md` and `reader2/MEASUREMENT.md`.
+- Findings that hold under both readers:
+  - `_RATE_EVPT` precision is 0 of 28;
+  - `_MED_IQR` recall is 1 of 18;
+  - `_K` precision is 3 of 15 and 2 of 14;
+  - `_FACTORIAL`, `_MORT_*`, `_ARM3` and `_DENOM_EACH` are at or near perfect.
+- Reader-dependent: `_ARM2` recall (34 of 34 vs 34 of 51), `_RATE_EVPT` recall (0 of 1 vs 0 of 13), and every figure
+  for `_DOSE_ARM` (21 vs 7 of 23; no reader in harness/). Quote these as a range, never as one reader's number.
+- Label noise within one reader: 636 of 641 (extract.py) and 782 of 803 (other sites) reproduce on a re-ask.
