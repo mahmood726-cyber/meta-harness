@@ -49,3 +49,21 @@ search can show.
 - Nothing here changes a served number. If a search surfaces a served-number defect, it is queued for Mahmood's
   hash-bound signature with a derived notice, never landed.
 - Counts are reported as `n of 53` (rows) and `n of F` (facts), with the kinds of item enumerated before the number.
+
+## Amendment A -- 2026-09-25, written BEFORE running what it describes
+**What changed.** Step 4 had not been executed for any of the 15 UNRESOLVED facts (their search records show steps 1-3
+only). It is executed now, with its two queries fixed mechanically in advance so that no query is chosen after seeing a
+result, and one registry step is added.
+- **4a** Europe PMC: `AUTH:"<first author surname>" AND PUB_YEAR:[<year-4> TO <year+1>] AND (TITLE:protocol OR
+  TITLE:design OR TITLE:rationale OR TITLE:baseline OR TITLE:methods)`.
+- **4b** Europe PMC: the first five content words of the trial's title (stop-words removed) as a phrase-free AND
+  query, `AND (protocol OR design OR rationale OR baseline)`.
+- **2b (added)** ClinicalTrials.gov v2 reverse lookup: `query.term=AREA[ReferencePMID]<pmid>`, i.e. registrations whose
+  own references cite the trial's report. A registration counts only if its reference to the PMID is typed `RESULT`
+  or `DERIVED` (the registry's own statement that the article reports THIS registration); a `BACKGROUND` citation is
+  recorded as context and never recovers the fact.
+**Why.** Step 4 is in the declared stopping rule; recording `UNRESOLVED` without it stopped short of the rule. 2b is a
+strict addition of search, never a relaxation of what counts as evidence: its hits still need a span of the same trial.
+**What a hit does.** Candidates are fetched (open-access full text or the registry record), recorded with URL, time and
+sha256, and read; a fact moves to `RECOVERED` only under the unchanged definition above. Every query is logged with its
+result count even when zero.
