@@ -58,10 +58,17 @@ def trials(pm, ct, ep):
             union(k, f"NCT:{ncts[0]}")
         elif len(ncts) > 1:
             multi[k] = ncts
+    # amendment 3: the same one-to-one guard in the other direction -- a publication cited as RESULT/DERIVED by
+    # SEVERAL registrations (a pooled analysis, a review) links none of them; without it 15 such hubs chained 25 NCTs
+    cited = {}
+    for k, r in regs.items():
+        for p in r.get("reference_pmids") or []:
+            if (r.get("reference_types") or {}).get(p) in ("RESULT", "DERIVED") and f"PMID:{p}" in pubs:
+                cited.setdefault(p, set()).add(k)
     for k, r in regs.items():
         find(k)
         for p in r.get("reference_pmids") or []:
-            if (r.get("reference_types") or {}).get(p) in ("RESULT", "DERIVED") and f"PMID:{p}" in pubs:
+            if (r.get("reference_types") or {}).get(p) in ("RESULT", "DERIVED") and len(cited.get(p, ())) == 1:
                 union(k, f"PMID:{p}")
     groups = {}
     for x in list(parent):

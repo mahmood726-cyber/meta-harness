@@ -77,3 +77,12 @@ join `records_pubmed` so that every hit is retained. They are not trial reports;
 `screen.py` crashed on an NCT that a publication names but that the registry search did not retrieve (a trial member
 with no record). It now keeps that NCT in the trial, marked "not retrieved by the registry search", with no screen
 decision. No criterion, query or sample changes.
+
+## Amendment 3 -- 2026-09-25, AFTER the reference set was read (a deduplication defect, disclosed as such)
+Found when the performance report was first computed: `trials()` guarded publication->registration links (a publication
+naming several NCTs links none) but not registration->publication links. 15 publications (pooled analyses, a Cochrane
+review) cited as RESULT/DERIVED by several registrations acted as hubs and chained 25 NCTs into one "trial" of 150
+records (T00072). Fix: the same one-to-one guard in the reverse direction. No query, criterion, screen decision or AI
+sample changes (SCREEN.json and AI_SAMPLE.json are byte-identical after the rerun); only the trial grouping changes
+(4,323 -> 4,362 trials; 71 -> 91 included). The as-registered grouping is kept as `run/TRIALS_as_registered.json`.
+Because this fix was made after the reference set was seen, the report states recall under both groupings.
