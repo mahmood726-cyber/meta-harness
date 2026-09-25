@@ -56,7 +56,8 @@
   - gap_analysis_set: `evidence/held/registry/NCT03611582.json` (sha256 bdaf55236501): "Overall number of participants analyzed = full analysis set (FAS) which comprised all randomized participants. Number Analyzed = number of participants with available data."
   - gap_follow_up: `evidence/held_local/33625476/PMC7905697.html` (sha256 3b7ef04fa8a8): "The co–primary end points, in the order planned for sequential hierarchic testing, were the percentage change in body weight and the proportion of participants who lost at least 5% of baseline weight by week 68"
   - gap_entry_age: `evidence/held_local/33625476/PMC7905697.html` (sha256 3b7ef04fa8a8): "Eligible participants were aged 18 years or older"
-- block sha256: eaff6799d1a0e67a5445a608fb9f27acfde3de45a419bcdda962a667fad6b2f6
+  - treatment_strategy: `evidence/held/registry/NCT03611582.json` (sha256 bdaf55236501): "DESCRIPTION: Change in body weight from baseline (week 0) to week 68 is presented. The endpoint was evaluated based on the data from both in-trial and on-treatment periods. In-trial observation period: the uninterrupted time interval from the start of randomisation (week 0) to last trial-related subject-site contact (week 75)."
+- block sha256: bc0a427e1ab48853ca2a6726c5328bcbf7a5438237982cd5dafe7f3ed4028383
 
 ### UA-033: semaglutide-obesity-weight / Percent change in body weight / PMID 33567185 (STEP 1)
 - state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED
@@ -77,7 +78,8 @@
   - gap_analysis_set: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "Overall number of participants analyzed = full analysis set (FAS) which comprised all randomized participants. Number Analyzed = number of participants with available data."
   - gap_follow_up: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "Change in body weight from baseline (week 0) to week 68 is presented."
   - gap_entry_age: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "Male or female, age greater than or equal to 18 years at the time of signing informed consent"
-- block sha256: 7279ac0fe2be1eda90aee59767af009b4674e9e36f2a2dbc09950a2cdc6809d1
+  - treatment_strategy: `evidence/held/registry/NCT03548935.json` (sha256 eea955ece75b): "DESCRIPTION: Change in body weight from baseline (week 0) to week 68 is presented. The endpoint was evaluated based on the data from both in-trial and on-treatment observation periods. In-trial observation period: the uninterrupted time interval from date of randomization (week 0) to date of last contact with trial site (week 75)."
+- block sha256: 641fd2105ace1174230a2abacf7469397495411427fa716100f5a49c7c07f1ca
 
 ### UA-042: spironolactone-hfref-mortality / All-cause mortality / PMID 28824029 (J-EMPHASIS-HF)
 - state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED
