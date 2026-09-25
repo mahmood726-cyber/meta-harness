@@ -72,3 +72,34 @@ five would be suppressed, or re-pooled on the single majority measure with the o
 > *Result withdrawn pending a single-measure analysis.* This pooled estimate combined hazard ratios with risk ratios on one log scale.
 > They estimate different quantities, and the harness now refuses to pool them before any logarithm is taken. The per-trial results
 > are unchanged and still shown.
+
+---
+
+## OC-Q3 — the publication gate and estmeasure authenticate the CLAIMED estimator label
+
+`harness/gate.py` has no estimator-identity check, and `harness/estmeasure.py` derives the canonical estimand from the claimed label
+("the label already fixes the class"), with HR and RR in one class, `compatible_labels`. Both files are certificate-pinned.
+
+**Reproduced before the fix** (`estimator_owner/repro_before_fix.json`). The real `gate_page` ran on the GLP-1 page with LEADER
+relabelled RR (every certificate digest recomputed) and was compared differentially with the canonical page. Every new reason was
+integrity or staleness (certificate, claimgraph `STALE_DEPENDENT`, census); none concerned the estimator. `estmeasure` reported
+`compatible_labels`.
+
+**Landed on the branch instead, with no pinned file touched:** estimator identity is source-bound in the bundle verifier and the
+bundle producer (`P15_estimator_source_bound`), and it runs before the pool guard.
+
+**Measured exposure on the SERVED surface** (all 32 live `review.json` from Pages; `estimator_label_census.py`, output
+`served_estimator_label_census_2026-09-25.json`, sha256 `552898bc4dce3aa93a34d82abfd05fa9105eebbbf830fd452b7f9bea627de1f4` of the committed LF bytes). 111 pooled trial rows:
+
+| kind | rows |
+|---|---|
+| MATCH (label = the measure the row's own clause states) | 41 |
+| **LABEL_DISAGREES_WITH_CLAUSE** | **0** |
+| NO_CLAUSE_LOCATED (no clause holds the row's tuple) | 35 |
+| COUNTS_ONLY (the ratio is computed from a 2x2; no stated estimator to bind) | 28 |
+| CONTINUOUS (outside this check) | 6 |
+| CLAUSE_UNSTATED | 1 |
+
+**Proposed:** a gate check that refuses **disagreement** (it would falsely refuse 0 of today's rows), and `estmeasure.classify` taking
+the source-bound measure instead of the claimed label. **Status: proposal.** A check that *requires* a bound estimator would refuse
+36 served rows; that is a policy choice about hand-extracted and count-derived rows, not a bug fix. Both files re-release every page.

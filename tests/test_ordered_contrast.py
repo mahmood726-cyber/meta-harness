@@ -184,7 +184,8 @@ def test_producer_and_verifier_implementations_agree_on_every_served_clause(base
         assert served["value"] == co.contrast_value(typed) and "placebo" in served["value"]
         assert served["effect_less_than_1_favours"] == "the experimental arm"
     reg = bundle["registered_estimand"]
-    assert reg["contrast"] == "GLP-1 RA vs placebo" and reg["contrast_normalisation"]["reciprocal_for_ratio_measures"] == "FORBIDDEN"
+    assert reg["contrast"] == "GLP-1 RA vs placebo" and reg["contrast_normalisation"]["reciprocal_for_ratio_measures"] == "PERMITTED_WHEN_DECLARED"
+    assert "Mahmood" in reg["contrast_normalisation"]["decided_by"]
     assert reg["contrast_normalisation"]["registered_in_protocol"] is False          # a harness policy, stated as one
 
 
@@ -207,10 +208,10 @@ LIMBS = {
     "pool_input_reciprocal": ("FAIL", "ADMISSIBLE", ["POOL_INPUT_DISAGREES_WITH_ROW"]),
     "contrast_reverse_declared_forbidden": ("FAIL", "INADMISSIBLE", ["CONTRAST_NORMALISATION_NOT_PERMITTED"]),
     "contrast_reverse_declared_permitted": ("PASS", "ADMISSIBLE", []),
-    # the served bundle's own policy: the protocol registers no re-orientation, so the producer emits FORBIDDEN (fail closed) and
-    # even a correctly declared reciprocal is refused; under an in-memory PERMITTED policy (above) the same limb passes, and a
-    # reciprocal AWAY from registration (LEADER 0.87 -> 1.149 pooled as placebo/liraglutide) is refused at P11 whatever the policy
-    "contrast_reverse_declared": ("FAIL", "INADMISSIBLE", ["CONTRAST_NORMALISATION_NOT_PERMITTED"]),
+    # the served bundle's own policy: PERMITTED_WHEN_DECLARED (the review author's decision, 2026-09-25, recorded as a decision, not a
+    # protocol statement) -- a declared reciprocal INTO the registered orientation passes; under an in-memory FORBIDDEN policy the same
+    # limb is refused; a reciprocal AWAY from registration (LEADER 0.87 -> 1.149 pooled as placebo/liraglutide) is refused at P11
+    "contrast_reverse_declared": ("PASS", "ADMISSIBLE", []),
     "contrast_reverse_declared_away": ("FAIL", "INADMISSIBLE", ["BOUND_TO_UNREGISTERED_ESTIMAND"]),
 }
 
@@ -260,19 +261,26 @@ def test_the_declared_reversal_changes_the_number_the_row_states_and_not_the_poo
 
 
 # ------------------------------------------------------------------------------------------------ 4. plants before and after
+_PREFIX_SERVED = [f"reviews/{SLUG}/BUNDLE.json", f"reviews/{SLUG}/EXECUTION_RECORD.json", f"reviews/{SLUG}/REPRODUCTION.json",
+                  f"reviews/{SLUG}/index.html", f"reviews/{SLUG}/manifest.json", "scripts/verify_bundle.py"]
+
+
 def _prefix_state(tmp_path):
-    """The served state AS IT WAS before this lane: the verifier, the BUNDLE.json it was built with, and the served verifier mirror the
-    bundle names. The pre-fix leg must run the old verifier on the old bundle -- the current bundle carries effect-scoped bases the old
-    verifier recomputes differently, and a plant tested against a mismatched baseline would fire for the wrong reason."""
-    out = {}
-    for key, path in (("verifier", "scripts/verify_bundle.py"), ("bundle", f"docs/reviews/{SLUG}/BUNDLE.json"), ("mirror", "docs/scripts/verify_bundle.py")):
-        pr = subprocess.run(["git", "show", f"{PREFIX_BASE}:{path}"], cwd=ROOT, capture_output=True, stdin=subprocess.DEVNULL)
-        if pr.returncode != 0:
-            pytest.skip(f"{path} at {PREFIX_BASE[:8]} is not in this clone's history (shallow clone?) -- NOT a pass")
-        out[key] = pr.stdout
+    """The served state AS IT WAS before this lane: the verifier, and every served file the old BUNDLE.json names that this lane has
+    since regenerated (the bundle, the execution / reproduction records, the page, the manifest, the served verifier mirror). The
+    pre-fix leg must run the old verifier on that state -- a plant tested against a mismatched baseline fires for the wrong reason."""
+    pr = subprocess.run(["git", "show", f"{PREFIX_BASE}:scripts/verify_bundle.py"], cwd=ROOT, capture_output=True, stdin=subprocess.DEVNULL)
+    if pr.returncode != 0:
+        pytest.skip(f"the verifier at {PREFIX_BASE[:8]} is not in this clone's history (shallow clone?) -- NOT a pass")
     v = tmp_path / "verify_bundle_prefix.py"
-    v.write_bytes(out["verifier"])
-    return str(v), json.loads(out["bundle"].decode("utf-8")), out["mirror"]
+    v.write_bytes(pr.stdout)
+    files = {}
+    for rel in _PREFIX_SERVED:
+        q = subprocess.run(["git", "show", f"{PREFIX_BASE}:docs/{rel}"], cwd=ROOT, capture_output=True, stdin=subprocess.DEVNULL)
+        if q.returncode != 0:
+            pytest.skip(f"docs/{rel} at {PREFIX_BASE[:8]} is not in this clone's history -- NOT a pass")
+        files[rel] = q.stdout
+    return str(v), files
 
 
 def _bundle_plants():
@@ -340,28 +348,29 @@ def served_copy(tmp_path_factory):
 def test_plant_passed_the_prefix_verifier_and_is_refused_now(served_copy, tmp_path, plant):
     root, bundle = served_copy
     edit, code = _bundle_plants()[plant]
-    prefix_verifier, prefix_bundle, prefix_mirror = _prefix_state(tmp_path)
+    prefix_verifier, prefix_files = _prefix_state(tmp_path)
     target = os.path.join(root, "reviews", SLUG, "BUNDLE.json")
-    mirror = os.path.join(root, "scripts", "verify_bundle.py")
-    current_mirror = open(mirror, "rb").read()
+    current = {rel: open(os.path.join(root, *rel.split("/")), "rb").read() for rel in _PREFIX_SERVED}
 
-    def write(b, m):
-        with open(target, "w", encoding="utf-8") as f:
-            json.dump(b, f, ensure_ascii=False, indent=1)
-        open(mirror, "wb").write(m)
+    def put(files, b=None):
+        for rel, data in files.items():
+            open(os.path.join(root, *rel.split("/")), "wb").write(data)
+        if b is not None:
+            with open(target, "w", encoding="utf-8") as f:
+                json.dump(b, f, ensure_ascii=False, indent=1)
     try:
-        write(prefix_bundle, prefix_mirror)
+        put(prefix_files)
         base_then = _run(root=root, verifier=prefix_verifier)
-        pb = copy.deepcopy(prefix_bundle)
+        pb = json.loads(prefix_files[f"reviews/{SLUG}/BUNDLE.json"].decode("utf-8"))
         edit(pb)
-        write(pb, prefix_mirror)
+        put(prefix_files, pb)
         before = _run(root=root, verifier=prefix_verifier)
         nb = copy.deepcopy(bundle)
         edit(nb)
-        write(nb, current_mirror)
+        put(current, nb)
         now = _run(root=root)
     finally:
-        write(bundle, current_mirror)                 # restore the canonical copy for the next plant
+        put(current)                                   # restore the canonical copy for the next plant
     assert base_then["verdict"] == "PASS", ("the pre-fix baseline itself must pass", base_then["failures"])
     assert before["verdict"] == "PASS", (plant, "the plant must be INVISIBLE to the pre-fix verifier, else it proves nothing", before["failures"])
     assert now["verdict"] == "FAIL" and any(f.startswith(code) for f in now["failures"]), (plant, now["failures"])
