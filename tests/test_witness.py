@@ -243,3 +243,84 @@ def test_an_add_on_arm_named_with_usual_care_is_still_the_intervention():
     rec = {"reasons": [], "flags": []}
     cw.role_anchor(rec, TERMS, [{"role": "intervention", "arm_name": "Placebo drugx"}, {"role": "comparator", "arm_name": "Drugx"}])
     assert any("ARM_ROLE_MISMATCH" in r for r in rec["reasons"])   # 'placebo' is never the intervention
+
+
+# ---- second review, 2026-09-25: T5 key/list/scope, T3 decimals/thin spaces/hyphens, unchecked group ids ------------
+OM = json.dumps({"outcomeMeasuresModule": {"outcomeMeasures": [
+    {"title": "Mortality", "denoms": [{"counts": [{"groupId": "OG000", "value": "100"}, {"groupId": "OG001", "value": "98"}]}],
+     "classes": [{"categories": [{"measurements": [{"groupId": "OG000", "value": "20", "lowerLimit": "11"}, {"groupId": "OG001", "value": "10"}]}]}],
+     "groups": [{"id": "OG000", "title": "Drugx", "description": "drugx; 97 randomised"}, {"id": "OG001", "title": "Placebo"}]},
+    {"title": "Some other outcome", "denoms": [{"counts": [{"groupId": "OG000", "value": "101"}, {"groupId": "OG001", "value": "98"}]}],
+     "classes": [{"categories": [{"measurements": [{"groupId": "OG000", "value": "21"}, {"groupId": "OG001", "value": "10"}]}]}],
+     "groups": [{"id": "OG000", "title": "Drugx"}, {"id": "OG001", "title": "Placebo"}]}]}}, indent=1, sort_keys=True)
+
+
+def om_out():
+    def R(t, nth=0):
+        return W(OM, t, nth, file="doc_registry_NCT0.json")
+    return {"ownership_source": "REGISTRY_GROUPS", "registry": {"item_title": "Mortality"}, "arms": [
+        {"role": "intervention", "group_id": "OG000", "arm_name": "Drugx", "arm_name_witness": R("Drugx"),
+         "events": 20, "event_witness": R("20"), "total": 100, "total_witness": R("100")},
+        {"role": "comparator", "group_id": "OG001", "arm_name": "Placebo", "arm_name_witness": R("Placebo"),
+         "events": 10, "event_witness": R("10"), "total": 98, "total_witness": R("98")}]}
+
+
+OM_SERVED = {"ai": 20, "n1i": 100, "ci": 10, "n2i": 98}
+
+
+def _om(tmp_path, out, served=OM_SERVED, name="HE-x"):
+    d = tmp_path / name
+    d.mkdir()
+    return job(d, out, served, {"doc_registry_NCT0.json": OM}, registry=True, **TERMS)
+
+
+def test_registry_counts_in_one_measure_are_witnessed(tmp_path):
+    rec = _om(tmp_path, om_out())
+    assert rec["state"] == "WITNESSED", rec["reasons"]
+
+
+def test_a_registry_token_from_a_non_count_field_or_another_measure_is_refused(tmp_path):
+    out = om_out()   # the intervention's events from the OTHER measure (21 there, so pick its 101 total instead)
+    out["arms"][0]["total"] = 101
+    out["arms"][0]["total_witness"] = W(OM, "101", file="doc_registry_NCT0.json")
+    rec = _om(tmp_path, out, {"ai": 20, "n1i": 101, "ci": 10, "n2i": 98}, "a")
+    assert any("different scopes" in r for r in rec["reasons"]), rec["reasons"]
+    out = om_out()   # comparator events from a lowerLimit field
+    out["arms"][0]["events"], out["arms"][0]["event_witness"] = 11, W(OM, "11", file="doc_registry_NCT0.json")
+    rec = _om(tmp_path, out, {"ai": 11, "n1i": 100, "ci": 10, "n2i": 98}, "b")
+    assert any("not a count field" in r for r in rec["reasons"]), rec["reasons"]
+    out = om_out()   # a total from a group description
+    out["arms"][0]["total"], out["arms"][0]["total_witness"] = 97, W(OM, "97", file="doc_registry_NCT0.json")
+    rec = _om(tmp_path, out, {"ai": 20, "n1i": 97, "ci": 10, "n2i": 98}, "c")
+    assert rec["state"] == "INCOMPLETE" and any(r.startswith("T5") for r in rec["reasons"]), rec["reasons"]
+
+
+def test_a_registry_row_without_group_ids_and_an_unchecked_group_id_on_prose(tmp_path):
+    out = om_out()
+    for a in out["arms"]:
+        a["group_id"] = None
+    rec = _om(tmp_path, out, name="a")
+    assert any("must carry its group_id" in r for r in rec["reasons"])
+    out = prose_out()
+    out["arms"][0]["group_id"], out["arms"][1]["group_id"] = "OG001", "OG000"   # asserted, never checked
+    (tmp_path / "b").mkdir()
+    rec = job(tmp_path / "b", out, SERVED_P, {"doc_p.txt": PROSE}, **TERMS)
+    assert rec["state"] == "WITNESSED" and all(a["group_id"] is None for a in rec["arms"])
+    assert sum(f.startswith("GROUP_ID_UNCHECKED_DROPPED") for f in rec["flags"]) == 2
+
+
+def test_part_of_a_decimal_a_thin_space_group_or_a_hyphenated_word_is_not_a_token(tmp_path):
+    cases = [("Deaths: drugx 20.5 (n=100) vs placebo 10 (n=98).", "20", 20),
+             ("Deaths: drugx 20 (n=10\u2009033) vs placebo 10 (n=98).", "10", 10),
+             ("Deaths: drugx twenty-one (n=100) vs placebo 10 (n=98).", "twenty", 20)]
+    for k, (doc, tok, val) in enumerate(cases):
+        at = doc.index(tok)
+        out = {"ownership_source": "PROSE_OR_TABLE", "arms": [
+            {"role": "intervention", "group_id": None, "arm_name": "drugx", "arm_name_witness": W(doc, "drugx"),
+             "events": val, "event_witness": {"file": "doc_p.txt", "start": at, "end": at + len(tok), "text": tok},
+             "total": 100, "total_witness": W(doc, "100") if "n=100" in doc else W(doc, "033")},
+            {"role": "comparator", "group_id": None, "arm_name": "placebo", "arm_name_witness": W(doc, "placebo"),
+             "events": 10, "event_witness": W(doc, "10", 1 if k == 1 else 0), "total": 98, "total_witness": W(doc, "98")}]}
+        (tmp_path / f"d{k}").mkdir()
+        rec = job(tmp_path / f"d{k}", out, None, {"doc_p.txt": doc}, **TERMS)
+        assert any(r.startswith("T3") for r in rec["reasons"]), (doc, rec["reasons"])

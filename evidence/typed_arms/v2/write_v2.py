@@ -53,6 +53,9 @@ def to_held(w, packet, row, role_field):
         ref = f"cache/{row['slug']}/records.json#PMID-{pid}"
         sha, text, rec = held(ref)
         prefix = f"TITLE: {(rec or {}).get('title') or ''}\n\n"
+        pf = os.path.join(packet, f)
+        if os.path.exists(pf) and norm(open(pf, encoding="utf-8").read()) != prefix + text + "\n":
+            return None, f"{role_field}: the packet document is not the held record rebuilt (title + abstract) -- held source changed"
         s, e = w["start"] - len(prefix), w["end"] - len(prefix)
         if s < 0:
             return None, f"{role_field}: token lies in the title, not in the held abstract"
@@ -79,12 +82,14 @@ def to_held(w, packet, row, role_field):
 def pct_corroboration(after, events, total):
     """Only the percentage printed immediately after THIS event token ('26 (14.5%)', '26 patients (14.5%)'):
     a wider window picks up the other arm's percentage."""
-    m = re.match(r"\s*(?:[A-Za-z-]+\s+){0,2}?[\[(]\s*(\d+(?:\.\d+)?)\s*%", after or "")
+    m = re.match(r"\s*(?:(?!(?:versus|vs|and|or|compared|than)\b)[A-Za-z-]+\s+){0,2}?[\[(]\s*(\d+(?:\.\d+)?)\s*%(?!\s*(?:CI|confidence))",
+                 after or "", re.I)
     if not m:
         return []
+    from decimal import Decimal, ROUND_HALF_UP
     p = m.group(1)
-    dec = len(p.partition(".")[2])
-    return [{"reported": p, "agrees": f"{100 * events / total:.{dec}f}" == p}]
+    q = Decimal(1).scaleb(-len(p.partition(".")[2]))
+    return [{"reported": p, "agrees": (Decimal(100) * events / total).quantize(q, rounding=ROUND_HALF_UP) == Decimal(p)}]
 
 
 CLOSED_MARKERS = ("in each group", "in both groups", "in each arm", "in both arms", "per group", "per arm")
@@ -185,6 +190,22 @@ def union_components(row, title, held_tuple):
     return None
 
 
+def component_problem(text, w, gid):
+    """A component witness must be a whole number token (not a digit of a longer number) that is the "value" of a flat
+    object whose groupId is the component's group. None when sound."""
+    s, e = w["start"], w["end"]
+    if (s > 0 and (text[s - 1].isdigit() or text[s - 1] in ",.")) or (e < len(text) and (text[e].isdigit() or text[e] in ",.")):
+        return "not a whole number token"
+    if not re.search(r'"value":\s*"$', text[max(0, s - 20):s]):
+        return "token is not the value of a 'value' key"
+    spans = sorted((sp for sp in object_spans(text) if sp[0] <= s < sp[1]), key=lambda sp: sp[1] - sp[0])
+    try:
+        g = json.loads(text[spans[0][0]:spans[0][1]]).get("groupId") if spans else None
+    except ValueError:
+        g = None
+    return None if g == gid else f"token sits in group {g!r}, not {gid!r}"
+
+
 def licensed_distributive(w):
     """Schema v2 S3: a shared witness is licensed only by a closed-list marker lying INSIDE the witness text."""
     d = w.get("distributive")
@@ -208,7 +229,10 @@ def distributive_fill(rec, packet, row):
     tail = text[w["end"]:w["end"] + 60]
     for m in CLOSED_MARKERS:
         i = tail.find(m)
-        if 0 <= i <= 40 and not re.search(r"[.;]", tail[:i]):
+        # between the count and the marker: nothing but an optional closed-list noun ("one PATIENT in each group");
+        # any other word could put a different number or arm in between (found by review, 2026-09-25)
+        if 0 <= i and re.fullmatch(r"\s+(?:(?:patients?|participants?|subjects?|deaths?|cases?|events?|women|men|"
+                                   r"children|infants|people|persons?)\s+)?", tail[:i]):
             ms, me = w["end"] + i, w["end"] + i + len(m)
             sw = {"document_ref": w["document_ref"], "document_sha256": w["document_sha256"], "text": text[w["start"]:me],
                   "representation": REP, "start": w["start"], "end": me, "context": w["context"],
@@ -244,6 +268,12 @@ def main():
         elif rec["state"] != "WITNESSED":
             refused[key] = {"state": rec["state"], "reasons": rec["reasons"]}
             continue
+        if dist and rec.get("held_tuple"):
+            t = rec["held_tuple"]
+            if (t["ai"], t["ci"]) != (dist["value"], dist["value"]):
+                refused[key] = {"state": "DISTRIBUTIVE_DIFFERS", "reasons": [f"the shared count {dist['value']} is not the held "
+                                                                              f"events ({t['ai']}, {t['ci']})"]}
+                continue
         o_out = json.loads(open(os.path.join(packet, "out.json"), "rb").read().decode("utf-8-sig"))
         comps, why = {}, []
         for a in o_out.get("arms") or []:
@@ -253,11 +283,22 @@ def main():
                 if err or str(c.get("value")) != (w or {}).get("text"):
                     why.append(f"{a.get('role')} component_corroboration: {err or 'value token mismatch'}")
                     continue
+                ctext = held(w["document_ref"])[1]
+                bad = component_problem(ctext, w, c.get("group_id"))
+                if bad:
+                    why.append(f"{a.get('role')} component_corroboration {c.get('group_id')}: {bad}")
+                    continue
                 w.pop("after", None)
-                w["group_id_scope"] = scope_of(held(w["document_ref"])[1], w["start"])
+                w["group_id_scope"] = scope_of(ctext, w["start"])
                 cs.append({"group_id": c.get("group_id"), "class_title": c.get("class_title"), "value": int(c["value"]), "witness": w})
             if cs:
+                if len({c["witness"]["group_id_scope"] for c in cs}) != 1:
+                    why.append(f"{a.get('role')} component_corroboration: components sit in different scopes")
                 comps[a.get("role")] = cs
+        shared_g = {(c["witness"]["group_id_scope"], c["group_id"]) for c in comps.get("intervention", [])} & \
+                   {(c["witness"]["group_id_scope"], c["group_id"]) for c in comps.get("comparator", [])}
+        if shared_g:
+            why.append(f"component_corroboration: one registry group corroborates both arms {sorted(shared_g)}")
         obs = []
         for arm in sorted(rec["arms"], key=lambda a: 0 if a["role"] == "intervention" else 1):
             if dist:
