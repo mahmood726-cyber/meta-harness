@@ -96,7 +96,7 @@ def protocol_criteria(md_text: str) -> dict[str, Criterion]:
             "population_context", "ovulation_induction_or_subfertility",
             _sentence_containing(md_text, "ovulation-induction/subfertility context"),
         )
-    if m := re.search(r"\*\*Population\*\*\s*[-:]\s*([^\n.]+)", md_text, re.I):
+    if m := re.search(r"\*\*Population(?::\*\*|\*\*\s*[-:–—])\s*([^\n.]+)", md_text, re.I):
         pop = _fold(m.group(1))
         if "intention" in pop or "itt" in pop:
             out["analysis_set"] = Criterion("analysis_set", "intention-to-treat", m.group(0))
@@ -109,7 +109,7 @@ def protocol_criteria(md_text: str) -> dict[str, Criterion]:
             "analysis_set", "intention-to-treat",
             _sentence_containing(md_text, "intention-to-treat"),
         )
-    if m := re.search(r"\*\*Timepoint\*\*\s*[-:]\s*([^\n.]+)", md_text, re.I):
+    if m := re.search(r"\*\*Timepoint(?::\*\*|\*\*\s*[-:–—])\s*([^\n.]+)", md_text, re.I):
         out["follow_up_window"] = Criterion("follow_up_window", _fold(m.group(1)), m.group(0))
     elif "in-hospital / index-admission" in tl:
         out["follow_up_window"] = Criterion(
@@ -223,6 +223,19 @@ def _span(text: str, needle: str) -> str:
     return ("..." if a else "") + _norm(text[a:b]) + ("..." if b < len(text) else "")
 
 
+def _typed_reading(fn):
+    """R1: a reader's (value, span) pair is returned as a Reading -- equal to the tuple, named where it is made."""
+    import functools
+    from harness.extract_values import Reading
+
+    @functools.wraps(fn)
+    def wrapped(*a, **k):
+        r = fn(*a, **k)
+        return Reading(*r) if isinstance(r, tuple) and len(r) == 2 else r
+    return wrapped
+
+
+@_typed_reading
 def _design_value(text: str, rec: dict[str, Any] | None = None) -> tuple[str, str]:
     tl = _fold(text)
     masking = _fold((rec or {}).get("masking"))
@@ -254,6 +267,7 @@ def _passes_design(value: str, contract: str | None) -> bool | None:
     return None
 
 
+@_typed_reading
 def _follow_up_value(pid: str, text: str) -> tuple[str, str]:
     known = {
         "25172965": ("3 months", "within 3 months / 1- and 3-month visits"),
@@ -273,6 +287,7 @@ def _follow_up_value(pid: str, text: str) -> tuple[str, str]:
     return "not_stated", ""
 
 
+@_typed_reading
 def _analysis_set_value(pid: str, text: str) -> tuple[str, str]:
     tl = _fold(text)
     if pid == "42132185":

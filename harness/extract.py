@@ -9,9 +9,10 @@ Fails CLOSED: if a number is not corroborated it is declared absent, never guess
 No hand-typed numbers: everything comes from the cached source text.
 """
 from __future__ import annotations
+import itertools
 import re
 
-from harness.extract_values import (ArmCounts, ArmHit, ContinuousArms, Effect,  # noqa: E402  R1 typed values
+from harness.extract_values import (ArmCounts, ArmHit, ArmPercentHit, ContinuousArms, Effect,  # noqa: E402  R1 typed values
                                      MeanSDHit, RateArms, RateHit)
 from harness.whole_numbers import whole_numbers  # noqa: E402  R4 refuse number fragments
 
@@ -39,6 +40,12 @@ _WORDNUM = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "sev
             "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
             "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
             "nineteen": 19, "twenty": 20}
+
+
+def _pairs_disagree(hits) -> bool:
+    """R4 ambiguity: >2 per-arm hits where choosing a different two (the extractor takes the first two in reading
+    order) would give a different value."""
+    return len(hits) > 2 and len({(tuple(a[1:]), tuple(b[1:])) for a, b in itertools.combinations(hits, 2)}) > 1
 
 
 def _norm(text: str) -> str:
@@ -169,7 +176,7 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
         cands = denom_each if isinstance(denom_each, (list, tuple, set)) else [denom_each]
         cands = [int(c) for c in cands if c]
         arm_ns = arm_ns or {}
-        armp = [(m.start(), int(m.group(1)), float(m.group(2)))
+        armp = [ArmPercentHit(m.start(), int(m.group(1)), float(m.group(2)))
                 for m in _ARMP.finditer(sentence) if not _negated(sentence, m.start())]
         ipos = min((low_s.find(t.lower()) for t in interv_terms if t.lower() in low_s), default=-1)
         cpos = min((low_s.find(t.lower()) for t in comp_terms if t.lower() in low_s), default=-1)
@@ -199,8 +206,16 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
                     if den > 0 and ev <= den and abs(ev / den * 100 - pct) <= 1.0:
                         if best is None or abs(ev / den * 100 - pct) < abs(ev / best * 100 - pct):
                             best = den
+                if len({den for den in cands if den > 0 and ev <= den and abs(ev / den * 100 - pct) <= 1.0}) > 1:
+                    return None  # R4 ambiguity: several stated denominators corroborate this count; refused
                 if best:
                     groups.append(ArmHit(pos, ev, best))
+    # R4 ambiguity: two readings at the SAME position that disagree on (count, denominator) -> refused
+    _bypos = {}
+    for g in groups:
+        _bypos.setdefault(g[0], set()).add((g[1], g[2]))
+    if any(len(v) > 1 for v in _bypos.values()):
+        return None
     # de-duplicate overlapping matches at the same position
     seen, uniq = set(), []
     for g in sorted(groups):
@@ -230,11 +245,15 @@ def extract_arm_counts(sentence, interv_terms, comp_terms, denom_each=None, arm_
 # vascular event, log-rank rate ratio" -- both first-event, both wrongly typed IRR, which manufactured
 # omega3's estimand-incompatibility). Tight, bounded patterns only -- prose inference here previously
 # over-fired, so we require an explicit recurrence/person-time token, never a bare "recurrent"/"total".
+# R4 (RX-X31..X36): 'N times' as a multiplier ('1.38 times higher') or a dosing frequency ('3 times a week') is not a
+# recurrence count; recurrent hospitalisations/exacerbations, 'number of recurrences', per 1000 / 10 000 person-time and
+# patient-cycles are. Measured radius in extract_trial: 0 of 10,098 (outputs/regex_layer/RADIUS_fix_recurrent_persontime).
 _RECURRENT_PERSONTIME = re.compile(
-    r"\b\d[\d,]*\s+times\b"
-    r"|per\s+(?:100\s+)?(?:patient|person)[-\s]?years?"
+    r"(?<![\d.,])\d[\d,]*\s+times\b(?!\s+(?:more|less|higher|lower|greater|smaller|larger|as|stronger|weaker|a|an|per|daily|weekly|monthly|each|every)\b)"
+    r"|per\s+(?:1[,\s]?000\s+|100\s+|10[,\s]?000\s+)?(?:patient|person)[-\s]?(?:years?|months?|cycles?|days?)"
     r"|\btotal\s+(?:number\s+of\s+)?[\w\s]{0,30}?(?:hospitali[sz]ation|event)s\b"
-    r"|recurrent[-\s]events?\b",
+    r"|recurrent[-\s](?:events?|hospitali[sz]ations?|admissions?|exacerbations?|episodes?)\b"
+    r"|\bnumber\s+of\s+(?:recurrences|exacerbations|episodes|relapses)\b",
     re.I)
 
 
@@ -285,10 +304,10 @@ GENERIC_ANCHORS = {"primary outcome", "primary end point", "primary endpoint",
 # definition sentence here would wrongly turn on the "primary outcome" anchor and let a
 # trial whose SECONDARY is ours (but whose PRIMARY is a different composite) have its primary
 # grabbed — FIGARO-DKD's CV primary (458/3686) being read as the kidney topic's outcome.
-_ANCHOR_RX = re.compile(
+_ANCHOR_RX = re.compile(  # R4 (RX-X30): the plural 'primary endpoints / outcomes' names them too
     r"\b(?:co-?primary|primary)\s+"
     r"(?:composite\s+|study\s+|efficacy\s+|main\s+|clinical\s+)*"
-    r"(?:outcome|end[\s-]?point)\b", re.I)
+    r"(?:outcome|end[\s-]?point)s?\b", re.I)
 # A relaxed-anchor match counts as an outcome-DEFINITION sentence only when it also carries a
 # definition cue ("the primary composite outcome ... WAS ...", "... DEFINED AS ...", "a
 # COMPOSITE OF ..."). This distinguishes a genuine definition from a narrative RESULT mention
@@ -419,10 +438,11 @@ def _is_factorial(abstract):
     return bool(_FACTORIAL.search(abstract or ""))
 
 
+# R4 (RX-X27..X29): 'among patients with/who' names the trial's OWN population (it refused whole-trial results);
+# plural 'subgroups' / 'sensitivity analyses' / 'exploratory analyses' are subgroup language.
 _SUBGROUP = re.compile(
-    r"\bper[-\s]?protocol\b|\bpost[-\s]?hoc\b|\bsubgroup\b|\bsensitivity analysis\b|"
-    r"\bas[-\s]?treated\b|\blowest in\b|\bhighest in\b|\bamong (?:those|patients) (?:with|who)\b|"
-    r"\brestricted to\b|\bexploratory analysis\b", re.I)
+    r"\bper[-\s]?protocol\b|\bpost[-\s]?hoc\b|\bsubgroups?\b|\bsensitivity analys[ie]s\b|\bas[-\s]?treated\b|\blowest in\b|"
+    r"\bhighest in\b|\bamong those (?:with|who)\b|\brestricted to\b|\bexploratory analys[ie]s\b", re.I)
 
 
 def _is_subgroup_sentence(sentence):
@@ -724,6 +744,8 @@ def extract_continuous(sentence, interv_terms, comp_terms, n_by_arm=None):
     if i_pos < 0 or c_pos < 0:
         return None
     vals.sort()
+    if _pairs_disagree(vals):
+        return None  # R4 ambiguity: which two mean/SD statements are the arms is not determined; refused
     (_, m1, s1), (_, m2, s2) = vals[0], vals[1]
     return ContinuousArms(m1, s1, n1, m2, s2, n2) if i_pos <= c_pos else ContinuousArms(m2, s2, n2, m1, s1, n1)
 
@@ -747,6 +769,8 @@ def extract_rate(sentence, interv_terms, comp_terms):
     if i_pos < 0 or c_pos < 0:
         return None
     pairs.sort()
+    if _pairs_disagree(pairs):
+        return None  # R4 ambiguity: which two events/person-time statements are the arms is not determined
     (_, e1, t1), (_, e2, t2) = pairs[0], pairs[1]
     return RateArms(e1, t1, e2, t2) if i_pos <= c_pos else RateArms(e2, t2, e1, t1)
 
@@ -767,6 +791,8 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
     abstract = _norm(abstract)
     _skip_composite = not declared_composite
     dm = _DENOM_EACH.search(abstract)
+    if dm and len({int(x) for x in _DENOM_EACH.findall(abstract)}) > 1:
+        dm = None  # R4 ambiguity: several different per-arm sizes are stated; none is taken
     cand = [int(x) for x in _NEQ.findall(abstract)]
     if dm:
         cand.append(int(dm.group(1)))
@@ -803,6 +829,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
             if eff and eff[0] == "HR":
                 return {"effect": eff[1], "ci_low": eff[2], "ci_high": eff[3], "scale": "HR",
                         "source": f"abstract source-reported HR (registered estimand): " + s.strip()[:200]}
+    _arm_res = []
     for s in sents:
         if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
                 or (_skip_composite and _names_composite(s))
@@ -820,13 +847,22 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
                 if d:
                     rep = (d["scale"], d["effect"], d.get("ci_low"), d.get("ci_high"))
             if rep and not _roundtrip_ok(arms[0], arms[1], arms[2], arms[3], rep[0], rep[1]):
-                return {"absent": True,
+                _arm_res.append({"absent": True,
                         "reason": (f"round-trip mismatch: extracted counts {arms[0]}/{arms[1]} vs "
                                    f"{arms[2]}/{arms[3]} imply "
                                    f"{round(_rr_from_counts(*arms) or 0, 3)} but the source reports "
-                                   f"{rep[0]} {rep[1]} — counts likely belong to a different outcome; refused")}
-            return {"ai": arms[0], "n1i": arms[1], "ci": arms[2], "n2i": arms[3],
-                    "source": "abstract arm-level counts (percentage-corroborated): " + s.strip()[:200]}
+                                   f"{rep[0]} {rep[1]} — counts likely belong to a different outcome; refused")})
+                continue
+            _arm_res.append({"ai": arms[0], "n1i": arms[1], "ci": arms[2], "n2i": arms[3],
+                             "source": "abstract arm-level counts (percentage-corroborated): " + s.strip()[:200]})
+    if _arm_res:
+        if _arm_res[0].get("absent"):
+            return _arm_res[0]
+        if len({tuple(sorted((k, v) for k, v in r.items() if k != "source"))
+                for r in _arm_res if not r.get("absent")}) > 1:
+            return {"absent": True, "reason": ("ambiguous: admissible sentences state different "
+                    "percentage-corroborated arm counts for this outcome; refused rather than take the first (R4)")}
+        return _arm_res[0]
     for s in sents:
         if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
                 or (_skip_composite and _names_composite(s))
@@ -838,6 +874,7 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
                     "source": f"abstract effect+CI ({eff[0]}): " + s.strip()[:200]}
     # Incidence-rate fallback: explicit per-arm events + person-time (recurrent-event class).
     # Lowest priority so binary counts / ratio effects are preferred; refuses ambiguous rates.
+    _rates = []
     for s in sents:
         if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
                 or (_skip_composite and _names_composite(s))
@@ -845,11 +882,18 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
             continue
         rate = extract_rate(s, interv_terms, comp_terms)
         if rate:
-            return {"e1i": rate[0], "t1i": rate[1], "e2i": rate[2], "t2i": rate[3],
-                    "measure": "IRR",
-                    "source": "abstract events + person-time (incidence-rate ratio): " + s.strip()[:200]}
+            _rates.append((rate, s))
+    if len({r for r, _ in _rates}) > 1:
+        return {"absent": True, "reason": ("ambiguous: admissible sentences state different events + "
+                "person-time for this outcome; refused rather than take the first (R4)")}
+    if _rates:
+        rate, s = _rates[0]
+        return {"e1i": rate[0], "t1i": rate[1], "e2i": rate[2], "t2i": rate[3],
+                "measure": "IRR",
+                "source": "abstract events + person-time (incidence-rate ratio): " + s.strip()[:200]}
     # Continuous fallback: mean-difference from per-arm mean+/-SD (+ per-arm n from the abstract).
     ns = _arm_ns(abstract, interv_terms, comp_terms)
+    _conts = []
     for s in sents:
         if (_is_subgroup_sentence(s) or (factorial and not _interv_in(s, interv_terms))
                 or (_skip_composite and _names_composite(s))
@@ -857,9 +901,15 @@ def extract_trial(abstract, outcome_kws, interv_terms, comp_terms, declared_comp
             continue
         cont = extract_continuous(s, interv_terms, comp_terms, ns)
         if cont:
-            return {"mean1": cont[0], "sd1": cont[1], "nc1": cont[2],
-                    "mean2": cont[3], "sd2": cont[4], "nc2": cont[5], "measure": "MD",
-                    "source": "abstract mean+/-SD per arm (mean difference): " + s.strip()[:200]}
+            _conts.append((cont, s))
+    if len({c for c, _ in _conts}) > 1:
+        return {"absent": True, "reason": ("ambiguous: admissible sentences state different per-arm "
+                "mean/SD for this outcome; refused rather than take the first (R4)")}
+    if _conts:
+        cont, s = _conts[0]
+        return {"mean1": cont[0], "sd1": cont[1], "nc1": cont[2],
+                "mean2": cont[3], "sd2": cont[4], "nc2": cont[5], "measure": "MD",
+                "source": "abstract mean+/-SD per arm (mean difference): " + s.strip()[:200]}
     if factorial:
         return {"absent": True, "reason": ("factorial-design trial: no extraction sentence explicitly "
                 "names the intervention, so the effect cannot be attributed to our comparison "
@@ -928,11 +978,10 @@ def extract_meta(abstract, outcome_kws):
     abstract = _norm(abstract)
     eff = None
     for pool_sents in (_outcome_sentences(abstract, outcome_kws), _sentences(abstract)):
-        for s in pool_sents:
-            e = extract_effect(s)
-            if e:
+        found = [(e, s) for s in pool_sents for e in [extract_effect(s)] if e]
+        if found:
+            if len({e for e, _ in found}) == 1:  # R4 ambiguity: different effects in the pool -> refused
+                e, s = found[0]
                 eff = {"effect": e[1], "ci_low": e[2], "ci_high": e[3], "scale": e[0], "source": s.strip()[:220]}
-                break
-        if eff:
             break
     return {"primary": eff, "k": _parse_k(abstract)}

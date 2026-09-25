@@ -616,7 +616,7 @@ def _comparator_age_scope(review: dict[str, Any], records: dict[str, Any] | None
         age = trial.get("population_age") or ((trial.get("compat_dimensions") or {}).get("population_age") or {}).get("value")
         if age:
             ages.append({"trial_id": _pid(trial.get("id") or trial.get("label")), "age": age})
-    adult_only_comp = bool(re.search(r"\badults?\b|\badult population\b", comp_text))
+    adult_only_comp = bool(re.search(r"(?<!children and )(?<!children or )(?<!paediatric and )(?<!pediatric and )\badults?\b(?! and children| or children)|\badult population\b", comp_text))
     paed = [x for x in ages if x.get("age") == "paediatric"]
     if adult_only_comp and paed:
         scope["population_match"] = False

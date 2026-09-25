@@ -96,7 +96,7 @@ DETECTS: dict = {
                    "read as cardiovascular death",
         "trigger": r"non[- ]?\s?(?:cardio|cv)",
         "text_source": _COMPONENTS_SRC, "lowercased": True},
-    "target_endpoint.py:search:714a13cd06": {
+    "target_endpoint.py:search:05aff607b5": {
         "detects": "the text names cardiovascular death as an outcome component (not non-cardiovascular death, not "
                    "all-cause death, not a cardiovascular non-fatal event)",
         "trigger": r"cardiovascular|\bcv\b|cardiac",
@@ -105,7 +105,7 @@ DETECTS: dict = {
         "detects": "the text names cardiovascular death using the abbreviation CV (e.g. CV-death, death (CV))",
         "trigger": r"\bcv|cardiovascular",
         "text_source": _COMPONENTS_SRC + "; non-cardiovascular masked", "lowercased": True},
-    "target_endpoint.py:search:aa4a355e65": {
+    "target_endpoint.py:search:e0e9b4f7fb": {
         "detects": "the text names vascular death / death from vascular causes as cardiovascular death (not "
                    "cerebrovascular death, not non-vascular death)",
         "trigger": r"vascular",
@@ -123,7 +123,7 @@ DETECTS: dict = {
         "detects": "the text refers to hospitalization / being hospitalized (here, for heart failure)",
         "trigger": r"hospi|admi",
         "text_source": _COMPONENTS_SRC, "lowercased": True},
-    "target_endpoint.py:search:4a4f5b989a": {
+    "target_endpoint.py:search:2535b7ece1": {
         "detects": "the text names death from heart failure (fatal HF / heart-failure death) as a component -- not a "
                    "non-fatal HF event",
         "trigger": r"fatal|death|died|mortality",
@@ -190,12 +190,12 @@ DETECTS: dict = {
         "detects": "the protocol requires trials that are both double-blind AND placebo-controlled (stated with 'and')",
         "trigger": r"blind|mask|placebo",
         "text_source": _PROTOCOL_SRC, "lowercased": True},
-    "eligibility_chain.py:search:3a8e5df5f4": {
+    "eligibility_chain.py:search:9a073711ca": {
         "detects": "the line is the protocol's labelled Population field and gives its value (read for the analysis "
                    "set: ITT, as randomised, per-protocol)",
         "trigger": r"population",
         "text_source": "raw protocol markdown (a '**Population**' field line)", "lowercased": False},
-    "eligibility_chain.py:search:47eac977e0": {
+    "eligibility_chain.py:search:2f21bc603b": {
         "detects": "the line is the protocol's labelled Timepoint field and gives its value (the follow-up window)",
         "trigger": r"time ?point|follow",
         "text_source": "raw protocol markdown (a '**Timepoint**' field line)", "lowercased": False},
@@ -214,7 +214,7 @@ DETECTS: dict = {
         "trigger": r"day|\bd\b",
         "text_source": "a derived per-trial follow-up window value string (e.g. '56 days', 'within 8 weeks')",
         "lowercased": False},
-    "compat_check.py:search:854c55479d": {
+    "compat_check.py:search:f092a0af63": {
         "detects": "the comparator review is restricted to ADULTS only (not children, not children and adults together)",
         "trigger": r"adult|aged|years|age\b|older",
         "text_source": "comparator review name + journal + record title + abstract", "lowercased": True},

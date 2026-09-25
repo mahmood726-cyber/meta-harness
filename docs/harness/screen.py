@@ -12,6 +12,7 @@ from . import arm_object
 from . import lexicon
 from . import armcontrast
 from . import screen_entry
+from .extract_values import ScreenDecision  # R1 typed values
 
 # Token-boundary matcher cache: a bare-substring `in` test matched a screening term inside a
 # longer word, so 'rat' (population_none animal term) matched 'prepaRATion' / 'administRATion'
@@ -397,7 +398,7 @@ def screen_record(rec, inc, neg_pmids):
         return over
     if not _is_rct(rec):
         pts = ", ".join(rec.get("pubtypes", [])) or "(no publication types)"
-        return ("exclude", "X1", f"not a randomized controlled trial (record: {label}).",
+        return ScreenDecision("exclude", "X1", f"not a randomized controlled trial (record: {label}).",
                 f"publication types: {pts}")
     bad = None
     # NESTED-TERMINOLOGY guard (audit 16): an excluded phenotype term whose occurrence in the record's own
@@ -410,7 +411,7 @@ def screen_record(rec, inc, neg_pmids):
     if bad and _all_occurrences_qualified(poptext, bad, ("mildly ", "or preserved ", "preserved or ", "mid-range ")):
         bad = None
     if bad:
-        return ("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
+        return ScreenDecision("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
                 _span(raw_pop, bad))
     # PREVENTION_TRIAL_TITLE_OMITS_OUTCOME: a prevention trial names the ENROLLED POPULATION it recruits
     # ("Colchicine in Cardiac Surgery", "Post-CABG Arrhythmia"), not the outcome it prevents. Requiring
@@ -422,13 +423,13 @@ def screen_record(rec, inc, neg_pmids):
     pop_haystack_raw = _text_raw(rec) if inc.get("prevention") else raw_pop
     bad = screen_entry.population_exclusion(pop_haystack, inc, _has, _all_occurrences_qualified)
     if bad:
-        return ("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
+        return ScreenDecision("exclude", "X2", f"wrong population: title/conditions mention '{bad}'.",
                 _span(pop_haystack_raw, bad))
     population_any = list(inc.get("population_any") or []) + list(inc.get("population_any_extra") or [])
     popok = _has(pop_haystack, population_any)
     if population_any and not popok:
         _where = "title/conditions/abstract" if inc.get("prevention") else "title/conditions"
-        return ("exclude", "X2",
+        return ScreenDecision("exclude", "X2",
                 f"population not on-topic: {_where} do not mention any of {population_any}"
                 + ("" if inc.get("prevention") else " (an incidental abstract mention does not qualify)") + ".",
                 f"examined {_where}: “{_quote(pop_haystack_raw)}”")
@@ -441,7 +442,7 @@ def screen_record(rec, inc, neg_pmids):
     itext_raw = raw_pop if anchor else raw_all
     matched_int = matched_intervention(rec, inc)
     if inc.get("intervention_any") and not matched_int:
-        return ("exclude", "X3",
+        return ScreenDecision("exclude", "X3",
                 f"the randomised intervention is not {inc['intervention_any']} "
                 f"(not named in title/conditions; an incidental abstract mention does not qualify).",
                 f"examined: “{_quote(itext_raw)}”")
@@ -454,28 +455,28 @@ def screen_record(rec, inc, neg_pmids):
     # intervention_any matched. Negation-aware (via _has), so "not a receptor agonist" would not fire.
     bad_int = _has(itext, inc.get("intervention_none"))
     if bad_int:
-        return ("exclude", "X3", f"intervention is the wrong form: matches excluded '{bad_int}' "
+        return ScreenDecision("exclude", "X3", f"intervention is the wrong form: matches excluded '{bad_int}' "
                 f"(receptor agonist/analogue, combination, or measured-not-randomised).",
                 _span(itext_raw, bad_int))
     comparator_any = list(inc.get("comparator_any") or []) + list(inc.get("comparator_any_extra") or [])
     comp = _has(text, comparator_any)
     comp_override = screen_entry.comparator_override(rec, inc)
     if comparator_any and not comp and not comp_override:
-        return ("exclude", "X3", f"no eligible comparator (none of {comparator_any}).",
+        return ScreenDecision("exclude", "X3", f"no eligible comparator (none of {comparator_any}).",
                 f"examined: “{_quote(raw_all)}”")
     comp_term = comp or (comp_override or {}).get("term")
     if inc.get("design_double_blind") and not _double_blind(rec, text):
         masking = rec.get("masking") or "(masking not stated)"
-        return ("exclude", "X-DESIGN", f"not double-blind/placebo-controlled (record: {label}).",
+        return ScreenDecision("exclude", "X-DESIGN", f"not double-blind/placebo-controlled (record: {label}).",
                 f"no 'placebo'/'double-blind'/'masked' in text; registry masking = {masking}")
     design_bad = _has(text, inc.get("design_none"))
     if design_bad:
-        return ("exclude", "X-DESIGN", f"excluded design/context: record mentions '{design_bad}'.",
+        return ScreenDecision("exclude", "X-DESIGN", f"excluded design/context: record mentions '{design_bad}'.",
                 _span(raw_all, design_bad))
     design_terms = inc.get("design_any")
     design_ok = _has(text, design_terms)
     if design_terms and not design_ok:
-        return ("exclude", "X-DESIGN",
+        return ScreenDecision("exclude", "X-DESIGN",
                 f"required design/context absent: record does not mention any of {design_terms}.",
                 f"examined: â€œ{_quote(raw_all)}â€")
     # include: quote the actual matched population and comparator words
@@ -489,7 +490,7 @@ def screen_record(rec, inc, neg_pmids):
     # for non-blindable interventions (prone positioning). Design clause reflects what was required.
     design_clause = ("double-blind/placebo-controlled RCT" if inc.get("design_double_blind")
                      else "randomised controlled trial")
-    return ("include", "INCLUDE",
+    return ScreenDecision("include", "INCLUDE",
             f"eligible {design_clause}: intervention {matched_int or '(as configured)'}, "
             f"comparator {comp_term or '(as configured)'}, population {popok or 'the target population'} "
             f"— P/I/C/design met.",

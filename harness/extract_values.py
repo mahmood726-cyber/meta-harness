@@ -16,6 +16,14 @@ class ArmHit(NamedTuple):
     n: int
 
 
+class ArmPercentHit(NamedTuple):
+    """One arm's count read with a percentage and no denominator ('N patients (P%)'): where it was read, the count, the
+    stated percentage (the denominator is inferred elsewhere and must corroborate it)."""
+    pos: int
+    events: int
+    percent: float
+
+
 class ArmCounts(NamedTuple):
     """Two arms' counts, INTERVENTION first: ai events of n1i, ci events of n2i."""
     ai: int
@@ -60,3 +68,18 @@ class RateArms(NamedTuple):
     t1: float
     e2: int
     t2: float
+
+
+class ScreenDecision(NamedTuple):
+    """harness/screen.py screen_record's verdict: include / exclude, the rule that decided, its reason, and the evidence
+    it read (a span or the fields examined)."""
+    decision: str
+    rule_id: str
+    reason: str
+    evidence: str
+
+
+class Reading(NamedTuple):
+    """A value read from a record by harness/eligibility_chain.py, with the span it was read from ('' when none)."""
+    value: str
+    span: str
