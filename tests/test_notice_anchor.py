@@ -235,8 +235,9 @@ def test_walker_offers_the_judgement_it_verified(loaded):
         j = anchor.current_judgement(row)
         assert f"--judgement {j['judgement_id']}" in out
         assert f"judgement {j['judgement_id']} on {j['judged_utc']}" in out and j["before_after"] in out
-        for defect in j["defects"]:
-            assert out.index(defect) < out.index("python scripts/countersign_result_change.py sign")
+        command_at = out.index("python scripts/countersign_result_change.py sign")
+        for text in j["defects"] + ([j["lane_notes"]] if j["lane_notes"] else []) + j["bulk_concerns"]:
+            assert out.index(text) < command_at  # every finding is read before the command is offered
 
 
 # ------------------------------------------------------------------ the re-judgement's own direction rule, planted

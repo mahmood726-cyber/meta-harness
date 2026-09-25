@@ -195,6 +195,11 @@ def present(audit: dict, notices: list[dict], chains: list[dict], mapping: dict[
     for defect in judgement.get("defects") or []:
         lines.append(f"RE-JUDGEMENT DEFECT ({judgement['judgement_id']}; the lane's finding, not Mahmood's decision): "
                      + defect)
+    if judgement.get("lane_notes"):
+        lines.append(f"RE-JUDGEMENT NOTE ({judgement['judgement_id']}; the lane's reading, not Mahmood's decision): "
+                     + judgement["lane_notes"])
+    for concern in judgement.get("bulk_concerns") or []:
+        lines.append(f"Bulk reader concern ({judgement.get('bulk_reader') or 'bulk reader'}; not a decision): " + concern)
     lines += ["HARNESS-TEAM ADJUDICATION (recommendation, not Mahmood's decision): " + row["recommendation_reason"],
               "HARNESS-TEAM RECOMMENDATION: " + row["recommendation"],
               "Departing-trial adjudication and held evidence (harness-team audit):"]
