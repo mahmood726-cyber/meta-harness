@@ -105,6 +105,24 @@ nowhere in the repository; this file is its record.
   - B2 re-pins the same bytes as B1. It is appended and B1 is unchanged; the walker prints each trial's binding
     constraint above the command.
 
+- **E14. Signature check, P5 fix and the final signing list (after Mahmood said "I have signed").**
+  - **Signatures:** 0 of 41 found on any branch, in any local clone or commit, or in any recent file. The valid
+    set is empty.
+  - **The fix:** `p5-fix/trial_family.patch`, for the main lane to apply and re-certify; nothing is applied here.
+    - D1: active comparators via the declared `comparator_any`.
+    - D2: fold, `*` as a prefix, and MeSH inversion.
+    - D3: three protocol synonyms, which are Mahmood's call.
+  - **How it was proven:**
+    - 2,393 of 2,393 families behave identically to the in-memory sweep, and the control has 0 mismatches.
+    - The fix is monotone: no eligible family is lost.
+    - The repo's own tests show 0 new failures.
+    - Every readmitted trial is pooled, because its P8 failures are `unbound_legacy`.
+  - **Effect:** 11 notices vanish, 7 change, 23 are unchanged, and 1 new notice appears (NOAC Major bleeding).
+  - **The final list:** 17 to sign, 4 held for wording (N06, N27, N28, N38), 2 needing Mahmood's ruling (N08,
+    N23). All 19 sign commands were replayed against a temporary ledger, and all write signatures the gate
+    accepts.
+  - **Where he signs:** his laptop clone `C:\mh-sign`, on branch `sign/mahmood-2026-09-25`.
+
 ## Measured facts (2026-09-25)
 - Anchors: all 78 intact at `1fa77f2c`. Against served main `c9d665e0`: 53 broken (26 review.json, 24 index.html,
   3 harness sources) and 25 intact (24 `git:38c04411:` plus one cache record). The brief said 51 / 27, measured at
