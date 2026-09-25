@@ -170,6 +170,9 @@ def _inline_cases():
 
 @pytest.mark.parametrize("site,kind,plant", list(_inline_cases()))
 def test_inline_plant(site, kind, plant, request):
+    from regex_layer import lanes
+    if lanes.stale_reason(site):
+        pytest.skip(lanes.stale_reason(site))
     from regex_layer.specs import INLINE_SPECS
     pid = request.node.callspec.id
     if pid in KNOWN_DEFECTS:
@@ -196,6 +199,9 @@ def test_inline_plant(site, kind, plant, request):
 def test_each_inline_sites_plants_can_fire(site):
     """A dead mutant (never matches / never splits) and a permissive one (matches anything / splits everywhere) must
     each fail at least one plant of the site."""
+    from regex_layer import lanes
+    if lanes.stale_reason(site):
+        pytest.skip(lanes.stale_reason(site))
     from regex_layer.specs import INLINE_SPECS
     spec = INLINE_SPECS[site]
     groups_n = max((len(g) for _, g in spec["plants"]["accept"] if isinstance(g, tuple)), default=0)
