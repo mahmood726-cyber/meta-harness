@@ -23,3 +23,18 @@ committed artefacts and the held repo bytes.
 
 What the client may inject that is not ours: the user-level `~/.codex/AGENTS.md`. The predecessor lane's committed
 transcripts leaked that content; this lane never commits a transcript.
+
+## 2026-09-25 daytime -- codex budget exhausted; the rest of the reading done by Claude
+Codex calls this session: 36 second-reader calls (`evidence/p5_populations/second_reader/CALL_LOG.pop2.jsonl`), 0 outside
+their job dir; 34 readings kept, 2 (P53-19, P53-42) overwritten by a Claude batch -- verdicts recovered, identical. At ~08:38
+Mahmood reported codex at 2%: no new codex job was launched after that; the two in flight (P53-20, P53-43) were left to
+finish, their runner loops were stopped so nothing further started, and their call records were written from the raw
+streams by hand (same `log_call.py`).
+Everything after that was read by Claude -- the lane itself or Claude Code subagents given the identical BRIEF.md and
+LANE_CONTEXT.md, told to read only the job directory, and checked by the same mechanical gates:
+- 19 second-reader rows (P53-19, 21-27, 42, 44-53) -- `SECOND_READING.json` records the reader of every row;
+- 12 step-4 screening jobs (`second_reader/step4_screening/`);
+- 8 registry-linkage jobs (`typed_arms/reglink/extractions/`), every pointer resolved by `check_reglink.py`;
+- the WOMAN re-witness (by the lane directly; every coordinate checked by `check_witness.py`).
+Claude is the lane's own model family, so these are blind or independent readings but not cross-family ones; that is
+stated wherever an agreement rate is quoted.

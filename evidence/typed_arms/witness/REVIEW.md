@@ -52,3 +52,33 @@ measure and 'Omega-3' in the AF measure) -- now the innermost object defining gr
 CARMELINA hypoglycaemia (served and held): the first witness took the registry's thresholded non-serious term; re-run
 with a logged addendum, now witnessed from the trial report (1036/3494 vs 1024/3485 -- the served numbers).
 Held population after the same re-run: WITNESSED 23 -> v2 written for 23 of 34.
+
+## Applied: the schema owner's answers (F4_ANSWERS_to_evid2, 2026-09-25 07:36)
+- `derivation`: null on every `*.total` witness (all denominators written are reported) -- 52 of 52 held, 62 of 62 served.
+- `group_id_scope`: emitted with every registry `group_id`, computed from the registry structure around the witness
+  (the outcome measure by title, or `adverseEventsModule.eventGroups`).
+- S1 SMART: `COUNT_DENOMINATOR_DERIVED_UNION`, not written; its 8 components (2 registrations x 2 groups x events/total)
+  are located token by token and recorded in the not-written entry.
+- S2 J-EMPHASIS-HF: re-witnessed (logged addendum) from the prose totals 17 and 10, with the registry's time-window
+  components as `component_corroboration` (6+1+10 and 5+1+4; `agrees: true`) -- written.
+- S3 colchicine-postop-af 32720823: one shared event witness "one patient in each group" with
+  `distributive: {marker: "in each group", span}` inside the witness text -- written. The closed marker list is the
+  owner's; evid2 met no phrasing outside it.
+- S4 (a registry match that is only a thresholded non-serious term, CARMELINA) was not answered; the row stays written
+  from prose and flagged.
+Result: held 26 of 34 written (was 24), served 31 of 35 (unchanged).
+
+## Adversarial ownership audit of every written v2 row (2026-09-25, `v2/ownership_audit/`)
+232 witnesses of the 58 written rows (27 held + 31 served), each shown in +-700 characters of its held document to a
+blind auditor (two Claude subagents; same model family as the lane). **215 of 232 OWNED, 0 NOT_OWNED, 17 UNCLEAR; no
+arm swap anywhere.** The 17 UNCLEAR, ruled:
+- 10 (PCSK9 x2 registry rows, omega-3 AF): the window did not reach the registry group titles or measure title --
+  ownership was already decided mechanically (T5, innermost scoping object; `group_id_scope`). OWNED.
+- 1 (colchicine secondary prevention, placebo total 129): printed 129, but the source's own "3 (2.5%)" implies 120.
+  Already recorded (`percentage_corroboration` agrees:false); the served value equals the printed number. Not changed.
+- 2 (colchicine post-op AF 32720823, held only): the label "Treatment discontinuation" is broader than the source's
+  "diarrhea ... necessitated treatment discontinuation in one patient in each group". Recorded, not queued (not served).
+- 4 (COVID STEROID 34138478, held + served): "serious adverse reactions" -- per the trial's full text a prespecified
+  4-event composite at day 14 -- served as "Serious adverse events". **Queued as Q3** (`SIGNATURE_QUEUE.md`).
+Noted, OWNED: two probiotic rows whose table heading reads "Severe Adverse Events" while the next row, "Unexpected SAE",
+prints the same counts (the auditor read them as serious; a reader who takes "severe" literally would not).

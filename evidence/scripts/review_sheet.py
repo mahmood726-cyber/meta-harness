@@ -14,7 +14,7 @@ for k in sys.argv[1:]:
     print("  verify:", v["errors"] or "OK", (v["served_compare"] or {}).get("state"), rec.get("verdict"), rec.get("set_aside_reason"))
     for f in V.FIELDS:
         x = (rec.get("fields") or {}).get(f)
-        print(f"  {f:18}", (x["ref"].split("/")[-1][:22] + ": " + x["span"][:230]) if x else "-- " + str((rec.get("absent_reason") or {}).get(f))[:150])
+        print(f"  {f:18}", (x["ref"].split("/")[-1][:22] + ": " + x["span"][:230]) if x else "-- " + str((rec.get("absent_reason") if isinstance(rec.get("absent_reason"), dict) else {f: rec.get("absent_reason")}).get(f))[:150])
     e = rec.get("entry_population_matches_question") or {}
     print("  ENTRY:", e.get("value"), "|", (e.get("why") or "")[:250])
     print("  MISMATCH:", (rec.get("served_mismatch") or "")[:400])

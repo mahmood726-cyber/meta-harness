@@ -1,6 +1,20 @@
 # Open questions for Mahmood (method decisions the evidence cannot settle; no number changed)
 
-4 of 92 adjudicated rows carry one.
+11 of 107 adjudicated rows carry one.
+
+- **M-03**: Scale label. The outcome declares RR; the served row (k=1) is the printed HR 0.80 (0.67-0.95), labelled HR on the row, and the pooled output says HR, so the number is faithful. The registry (NCT00089791, full analysis set = all randomised) prints the counts 238/3902 vs 293/3906 (denosumab vs placebo), giving RR 0.813. The options for the owner are to relabel the outcome's declared estimand HR, or to serve the derived RR. Either one changes served text, so neither lands unsigned.
+
+- **M-04**: Scale label. The outcome declares RR; the served row (k=1) is the printed HR 0.60 (0.37-0.97), labelled HR on the row, and the pooled output says HR, so the number is faithful. The registry (NCT00089791, full analysis set = all randomised) prints the counts 26/3902 vs 43/3906 (denosumab vs placebo), giving RR 0.605. The options for the owner are to relabel the outcome's declared estimand HR, or to serve the derived RR. Either one changes served text, so neither lands unsigned.
+
+- **M-05**: Timepoint label. The served timepoint says 'trial-reported follow-up', but the held registry window for this bleeding outcome is on-treatment (': From first intake of study drug to last intake of study drug + 6 days washout | POPULATION: Treated set (TS)'). The number is faithful. The choice is to relabel the timepoint as on-treatment or leave it. It is a label change, so nothing lands unsigned. See evidence/sweeps/followup_age_citation_m.json.
+
+- **M-06**: Timepoint label. The served timepoint says 'trial-reported follow-up', but the held registry window for this bleeding outcome is on-treatment ('iteria from above. | TIME FRAME: From first intake of study drug to last intake of study drug + 6 days washout'). The number is faithful. The choice is to relabel the timepoint as on-treatment or leave it. It is a label change, so nothing lands unsigned. See evidence/sweeps/followup_age_citation_m.json.
+
+- **M-08**: Timepoint label. The served timepoint says 'trial-reported follow-up', but the held registry window for this bleeding outcome is on-treatment ('Participants With Clinically Relevant Bleeding, Treatment-emergent (Time Window: Until 2 Days After Last Dose)'). The number is faithful. The choice is to relabel the timepoint as on-treatment or leave it. It is a label change, so nothing lands unsigned. See evidence/sweeps/followup_age_citation_m.json.
+
+- **M-10**: Timepoint label. The served timepoint says 'trial-reported follow-up', but the held registry window for this bleeding outcome is on-treatment ('iteria from above. | TIME FRAME: From first intake of study drug to last intake of study drug + 6 days washout'). The number is faithful. The choice is to relabel the timepoint as on-treatment or leave it. It is a label change, so nothing lands unsigned. See evidence/sweeps/followup_age_citation_m.json.
+
+- **M-11**: Timepoint label. The served timepoint says 'trial-reported follow-up', but the held registry window for this bleeding outcome is on-treatment ('iteria from above. | TIME FRAME: From first intake of study drug to last intake of study drug + 6 days washout'). The number is faithful. The choice is to relabel the timepoint as on-treatment or leave it. It is a label change, so nothing lands unsigned. See evidence/sweeps/followup_age_citation_m.json.
 
 - **P53-05**:  SCALE: RECOVERY reports a Cox-model mortality rate ratio; the page pools it with risk ratios/odds ratios from other trials. Whether a rate ratio may be pooled on a risk-ratio scale is a method decision for Mahmood; no number is changed here.
 

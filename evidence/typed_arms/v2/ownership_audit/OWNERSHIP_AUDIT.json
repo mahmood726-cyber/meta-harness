@@ -1,0 +1,1434 @@
+{
+ "what": "adversarial ownership audit of every written v2 row: each of the 4 witnessed tokens shown in +-700 chars of its held document, judged OWNED / NOT_OWNED / UNCLEAR",
+ "auditor": "2 Claude subagents (same family as the lane), blind to states and to each other",
+ "packets": "make_ownership_audit.py (reproducible from the committed OBSERVATIONS files)",
+ "tally": {
+  "OWNED": 215,
+  "UNCLEAR": 17
+ },
+ "N": 232,
+ "rulings_on_unclear": {
+  "held::pcsk9-mace/25773378": {
+   "ruling": "OWNED (mechanical)",
+   "why": "the window did not reach the eventGroups titles; check_witness T5 resolved EG001 -> \"Alirocumab 150 mg Q2W\" and EG000 -> \"Placebo Q2W\" in the innermost scoping object; group_id_scope records adverseEventsModule.eventGroups"
+  },
+  "held::pcsk9-mace/41211925": {
+   "ruling": "OWNED (mechanical)",
+   "why": "the window did not reach the measure groups; T5 resolved OG001/OG000 to Evolocumab 140 mg Q2W / Placebo Q2W within the CHD death, MI or ischemic stroke measure (group_id_scope)"
+  },
+  "served::CD-omega3-cardiovascular-events-1-0": {
+   "ruling": "OWNED (mechanical)",
+   "why": "the window cut the measure title; group_id_scope is \"Number of Participants With Event: Atrial Fibrillation (Omega-3 Comparison Only)\", resolved by T5"
+  },
+  "served::CD-colchicine-secondary-cv-prevention-1-0": {
+   "ruling": "OWNED as printed; SOURCE_INCONSISTENT",
+   "why": "129 is the printed placebo denominator; the source's own \"3 (2.5%)\" implies 120 (3/129 = 2.3%). v2 already records percentage_corroboration agrees:false. The served value equals the printed number; not changed, recorded"
+  },
+  "held::colchicine-postop-af/32720823": {
+   "ruling": "LABEL_BROADER_THAN_SOURCE (held only)",
+   "why": "the held outcome \"Treatment discontinuation\" is served nowhere; the source counts discontinuation due to diarrhoea (\"necessitated treatment discontinuation in one patient in each group\"). Recorded, not queued (held-only)"
+  },
+  "held::corticosteroids-covid19-mortality/34138478": {
+   "ruling": "LABEL_BROADER_THAN_SOURCE -> Q3",
+   "why": "\"serious adverse reactions\" (a prespecified 4-event composite at day 14, per the full text) served as \"Serious adverse events\"; queued as Q3"
+  },
+  "served::CD-corticosteroids-covid19-mortality-1-0": {
+   "ruling": "LABEL_BROADER_THAN_SOURCE -> Q3",
+   "why": "as above; queued as Q3 for Mahmood"
+  }
+ },
+ "verdicts": [
+  {
+   "audit_id": "held::colchicine-postop-af/27502857",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "Printed as \"26 (14.5%) in the colchicine group and 37 (20.5%) in the no-colchicine group\" / randomized n=179 vs 181, percentages consistent with these denominators."
+  },
+  {
+   "audit_id": "held::colchicine-postop-af/27502857",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "Printed as \"26 (14.5%) in the colchicine group and 37 (20.5%) in the no-colchicine group\" / randomized n=179 vs 181, percentages consistent with these denominators."
+  },
+  {
+   "audit_id": "held::colchicine-postop-af/27502857",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "Printed as \"26 (14.5%) in the colchicine group and 37 (20.5%) in the no-colchicine group\" / randomized n=179 vs 181, percentages consistent with these denominators."
+  },
+  {
+   "audit_id": "held::colchicine-postop-af/27502857",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "Printed as \"26 (14.5%) in the colchicine group and 37 (20.5%) in the no-colchicine group\" / randomized n=179 vs 181, percentages consistent with these denominators."
+  },
+  {
+   "audit_id": "held::colchicine-postop-af/32720823",
+   "witness_id": "intervention.events",
+   "verdict": "UNCLEAR",
+   "reason": "Token sits in \"Diarrhea ... necessitated treatment discontinuation in one patient in each group\" - diarrhoea-caused discontinuation only; all-cause treatment discontinuation per arm is not printed."
+  },
+  {
+   "audit_id": "held::colchicine-postop-af/32720823",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "Randomized \"colchicine (n = 81) or placebo (n = 71)\"; POAF percentages (13/81=16.1%, 13/71=18.3%) confirm these are the analysed denominators."
+  },
+  {
+   "audit_id": "held::colchicine-postop-af/32720823",
+   "witness_id": "comparator.events",
+   "verdict": "UNCLEAR",
+   "reason": "Token sits in \"Diarrhea ... necessitated treatment discontinuation in one patient in each group\" - diarrhoea-caused discontinuation only; all-cause treatment discontinuation per arm is not printed."
+  },
+  {
+   "audit_id": "held::colchicine-postop-af/32720823",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "Randomized \"colchicine (n = 81) or placebo (n = 71)\"; POAF percentages (13/81=16.1%, 13/71=18.3%) confirm these are the analysed denominators."
+  },
+  {
+   "audit_id": "held::colchicine-recurrent-pericarditis/24694983",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"nine patients in the colchicine group vs nine in the placebo group\" for GI intolerance; 120 per arm is the whole ITT group (\"120 were assigned to each group\"), no separate safety denominator printed."
+  },
+  {
+   "audit_id": "held::colchicine-recurrent-pericarditis/24694983",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"nine patients in the colchicine group vs nine in the placebo group\" for GI intolerance; 120 per arm is the whole ITT group (\"120 were assigned to each group\"), no separate safety denominator printed."
+  },
+  {
+   "audit_id": "held::colchicine-recurrent-pericarditis/24694983",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"nine patients in the colchicine group vs nine in the placebo group\" for GI intolerance; 120 per arm is the whole ITT group (\"120 were assigned to each group\"), no separate safety denominator printed."
+  },
+  {
+   "audit_id": "held::colchicine-recurrent-pericarditis/24694983",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"nine patients in the colchicine group vs nine in the placebo group\" for GI intolerance; 120 per arm is the whole ITT group (\"120 were assigned to each group\"), no separate safety denominator printed."
+  },
+  {
+   "audit_id": "held::corticosteroids-cap-mortality/21636122",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls\" - arm order and outcome match."
+  },
+  {
+   "audit_id": "held::corticosteroids-cap-mortality/21636122",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls\" - arm order and outcome match."
+  },
+  {
+   "audit_id": "held::corticosteroids-cap-mortality/21636122",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls\" - arm order and outcome match."
+  },
+  {
+   "audit_id": "held::corticosteroids-cap-mortality/21636122",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"67 (44%) of 151 patients in the dexamethasone group had hyperglycaemia compared with 35 (23%) of 153 controls\" - arm order and outcome match."
+  },
+  {
+   "audit_id": "held::corticosteroids-cap-mortality/33446608",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"hyperglycaemia (14 (7%) versus 1 (1%))\" dexamethasone-first order; randomized n=203/198 consistent with printed percentages."
+  },
+  {
+   "audit_id": "held::corticosteroids-cap-mortality/33446608",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"hyperglycaemia (14 (7%) versus 1 (1%))\" dexamethasone-first order; randomized n=203/198 consistent with printed percentages."
+  },
+  {
+   "audit_id": "held::corticosteroids-cap-mortality/33446608",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"hyperglycaemia (14 (7%) versus 1 (1%))\" dexamethasone-first order; randomized n=203/198 consistent with printed percentages."
+  },
+  {
+   "audit_id": "held::corticosteroids-cap-mortality/33446608",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"hyperglycaemia (14 (7%) versus 1 (1%))\" dexamethasone-first order; randomized n=203/198 consistent with printed percentages."
+  },
+  {
+   "audit_id": "held::corticosteroids-covid19-mortality/34138478",
+   "witness_id": "intervention.events",
+   "verdict": "UNCLEAR",
+   "reason": "Text reports \"the number of serious adverse reactions 1/16 vs 0/14\" - reactions (drug-related) are not the same as serious adverse events, and SAE counts are not printed."
+  },
+  {
+   "audit_id": "held::corticosteroids-covid19-mortality/34138478",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"serious adverse reactions 1/16 vs 0/14\" in hydrocortisone vs placebo order; 16/14 are also the mortality denominators."
+  },
+  {
+   "audit_id": "held::corticosteroids-covid19-mortality/34138478",
+   "witness_id": "comparator.events",
+   "verdict": "UNCLEAR",
+   "reason": "Text reports \"the number of serious adverse reactions 1/16 vs 0/14\" - reactions (drug-related) are not the same as serious adverse events, and SAE counts are not printed."
+  },
+  {
+   "audit_id": "held::corticosteroids-covid19-mortality/34138478",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"serious adverse reactions 1/16 vs 0/14\" in hydrocortisone vs placebo order; 16/14 are also the mortality denominators."
+  },
+  {
+   "audit_id": "held::dapagliflozin-hfpef-hosp/34711976",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "Table 3 Safety analyses: \"All reported adverse events\" 44 (27.2%) vs 38 (23.5%) under Dapagliflozin (n = 162) / Placebo (n = 162)."
+  },
+  {
+   "audit_id": "held::dapagliflozin-hfpef-hosp/34711976",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "Table 3 Safety analyses: \"All reported adverse events\" 44 (27.2%) vs 38 (23.5%) under Dapagliflozin (n = 162) / Placebo (n = 162)."
+  },
+  {
+   "audit_id": "held::dapagliflozin-hfpef-hosp/34711976",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "Table 3 Safety analyses: \"All reported adverse events\" 44 (27.2%) vs 38 (23.5%) under Dapagliflozin (n = 162) / Placebo (n = 162)."
+  },
+  {
+   "audit_id": "held::dapagliflozin-hfpef-hosp/34711976",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "Table 3 Safety analyses: \"All reported adverse events\" 44 (27.2%) vs 38 (23.5%) under Dapagliflozin (n = 162) / Placebo (n = 162)."
+  },
+  {
+   "audit_id": "held::dpp4-mace-t2d/30418475/0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"Adverse events occurred in 2697 (77.2%) and 2723 (78.1%) patients in the linagliptin and placebo groups\"; n=3494/3485 consistent with percentages."
+  },
+  {
+   "audit_id": "held::dpp4-mace-t2d/30418475/0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"Adverse events occurred in 2697 (77.2%) and 2723 (78.1%) patients in the linagliptin and placebo groups\"; n=3494/3485 consistent with percentages."
+  },
+  {
+   "audit_id": "held::dpp4-mace-t2d/30418475/0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"Adverse events occurred in 2697 (77.2%) and 2723 (78.1%) patients in the linagliptin and placebo groups\"; n=3494/3485 consistent with percentages."
+  },
+  {
+   "audit_id": "held::dpp4-mace-t2d/30418475/0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"Adverse events occurred in 2697 (77.2%) and 2723 (78.1%) patients in the linagliptin and placebo groups\"; n=3494/3485 consistent with percentages."
+  },
+  {
+   "audit_id": "held::dpp4-mace-t2d/30418475/1",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"1036 (29.7%) and 1024 (29.4%) had 1 or more episodes of hypoglycemia\" in linagliptin/placebo order; percentages match n=3494/3485."
+  },
+  {
+   "audit_id": "held::dpp4-mace-t2d/30418475/1",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"1036 (29.7%) and 1024 (29.4%) had 1 or more episodes of hypoglycemia\" in linagliptin/placebo order; percentages match n=3494/3485."
+  },
+  {
+   "audit_id": "held::dpp4-mace-t2d/30418475/1",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"1036 (29.7%) and 1024 (29.4%) had 1 or more episodes of hypoglycemia\" in linagliptin/placebo order; percentages match n=3494/3485."
+  },
+  {
+   "audit_id": "held::dpp4-mace-t2d/30418475/1",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"1036 (29.7%) and 1024 (29.4%) had 1 or more episodes of hypoglycemia\" in linagliptin/placebo order; percentages match n=3494/3485."
+  },
+  {
+   "audit_id": "held::esketamine-trd-madrs/37025256",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "Table 4 TEAEs 120 (95.2) vs 89 (70.6) under Esketamine Plus AD (n=126) / AD Plus Placebo (n=126)."
+  },
+  {
+   "audit_id": "held::esketamine-trd-madrs/37025256",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "Table 4 TEAEs 120 (95.2) vs 89 (70.6) under Esketamine Plus AD (n=126) / AD Plus Placebo (n=126)."
+  },
+  {
+   "audit_id": "held::esketamine-trd-madrs/37025256",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "Table 4 TEAEs 120 (95.2) vs 89 (70.6) under Esketamine Plus AD (n=126) / AD Plus Placebo (n=126)."
+  },
+  {
+   "audit_id": "held::esketamine-trd-madrs/37025256",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "Table 4 TEAEs 120 (95.2) vs 89 (70.6) under Esketamine Plus AD (n=126) / AD Plus Placebo (n=126)."
+  },
+  {
+   "audit_id": "held::glp1-ra-mace-t2d/27295427",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "Table 2 \"Adverse event leading to permanent discontinuation ... Any adverse event\" 444 (9.5) vs 339 (7.3) under Liraglutide (N = 4668) / Placebo (N = 4672)."
+  },
+  {
+   "audit_id": "held::glp1-ra-mace-t2d/27295427",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "Table 2 \"Adverse event leading to permanent discontinuation ... Any adverse event\" 444 (9.5) vs 339 (7.3) under Liraglutide (N = 4668) / Placebo (N = 4672)."
+  },
+  {
+   "audit_id": "held::glp1-ra-mace-t2d/27295427",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "Table 2 \"Adverse event leading to permanent discontinuation ... Any adverse event\" 444 (9.5) vs 339 (7.3) under Liraglutide (N = 4668) / Placebo (N = 4672)."
+  },
+  {
+   "audit_id": "held::glp1-ra-mace-t2d/27295427",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "Table 2 \"Adverse event leading to permanent discontinuation ... Any adverse event\" 444 (9.5) vs 339 (7.3) under Liraglutide (N = 4668) / Placebo (N = 4672)."
+  },
+  {
+   "audit_id": "held::glp1-ra-mace-t2d/31189511",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"2347 (47.4%) participants assigned to dulaglutide reported a gastrointestinal adverse event ... compared with 1687 (34.1%) ... placebo\"; randomized 4949/4952 consistent."
+  },
+  {
+   "audit_id": "held::glp1-ra-mace-t2d/31189511",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"2347 (47.4%) participants assigned to dulaglutide reported a gastrointestinal adverse event ... compared with 1687 (34.1%) ... placebo\"; randomized 4949/4952 consistent."
+  },
+  {
+   "audit_id": "held::glp1-ra-mace-t2d/31189511",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"2347 (47.4%) participants assigned to dulaglutide reported a gastrointestinal adverse event ... compared with 1687 (34.1%) ... placebo\"; randomized 4949/4952 consistent."
+  },
+  {
+   "audit_id": "held::glp1-ra-mace-t2d/31189511",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"2347 (47.4%) participants assigned to dulaglutide reported a gastrointestinal adverse event ... compared with 1687 (34.1%) ... placebo\"; randomized 4949/4952 consistent."
+  },
+  {
+   "audit_id": "held::melatonin-primary-insomnia-sol/20712869",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "Double-blind-period columns: \"No. of patients\" 394 / 395 and \"Any AE\" 136 (34.5%) / 142 (35.9%) under PRM / Placebo (extension columns 534/177 not used)."
+  },
+  {
+   "audit_id": "held::melatonin-primary-insomnia-sol/20712869",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "Double-blind-period columns: \"No. of patients\" 394 / 395 and \"Any AE\" 136 (34.5%) / 142 (35.9%) under PRM / Placebo (extension columns 534/177 not used)."
+  },
+  {
+   "audit_id": "held::melatonin-primary-insomnia-sol/20712869",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "Double-blind-period columns: \"No. of patients\" 394 / 395 and \"Any AE\" 136 (34.5%) / 142 (35.9%) under PRM / Placebo (extension columns 534/177 not used)."
+  },
+  {
+   "audit_id": "held::melatonin-primary-insomnia-sol/20712869",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "Double-blind-period columns: \"No. of patients\" 394 / 395 and \"Any AE\" 136 (34.5%) / 142 (35.9%) under PRM / Placebo (extension columns 534/177 not used)."
+  },
+  {
+   "audit_id": "held::pcsk9-mace/25773378",
+   "witness_id": "intervention.events",
+   "verdict": "UNCLEAR",
+   "reason": "Registry JSON shows only \"groupId\": \"EG000\"/\"EG001\" for Injection site reaction; no group titles in context, so which of Alirocumab 150 mg Q2W / Placebo Q2W is EG001 cannot be confirmed (2:1 at-risk ratio 1550:788 is suggestive only)."
+  },
+  {
+   "audit_id": "held::pcsk9-mace/25773378",
+   "witness_id": "intervention.total",
+   "verdict": "UNCLEAR",
+   "reason": "Registry JSON shows only \"groupId\": \"EG000\"/\"EG001\" for Injection site reaction; no group titles in context, so which of Alirocumab 150 mg Q2W / Placebo Q2W is EG001 cannot be confirmed (2:1 at-risk ratio 1550:788 is suggestive only)."
+  },
+  {
+   "audit_id": "held::pcsk9-mace/25773378",
+   "witness_id": "comparator.events",
+   "verdict": "UNCLEAR",
+   "reason": "Registry JSON shows only \"groupId\": \"EG000\"/\"EG001\" for Injection site reaction; no group titles in context, so which of Alirocumab 150 mg Q2W / Placebo Q2W is EG001 cannot be confirmed (2:1 at-risk ratio 1550:788 is suggestive only)."
+  },
+  {
+   "audit_id": "held::pcsk9-mace/25773378",
+   "witness_id": "comparator.total",
+   "verdict": "UNCLEAR",
+   "reason": "Registry JSON shows only \"groupId\": \"EG000\"/\"EG001\" for Injection site reaction; no group titles in context, so which of Alirocumab 150 mg Q2W / Placebo Q2W is EG001 cannot be confirmed (2:1 at-risk ratio 1550:788 is suggestive only)."
+  },
+  {
+   "audit_id": "held::pcsk9-mace/41211925",
+   "witness_id": "intervention.events",
+   "verdict": "UNCLEAR",
+   "reason": "Context shows only \"groupId\": \"OG000\"/\"OG001\" measurements with no group titles; arm mapping (OG000 = Placebo Q2W) appears only in the totals witnesses' contexts, not this one."
+  },
+  {
+   "audit_id": "held::pcsk9-mace/41211925",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "Denoms block for this measure, with groups listed as OG000 = \"Placebo Q2W\" and OG001 = evolocumab 140 mg, 3-point composite (CHD death, MI, ischemic stroke)."
+  },
+  {
+   "audit_id": "held::pcsk9-mace/41211925",
+   "witness_id": "comparator.events",
+   "verdict": "UNCLEAR",
+   "reason": "Context shows only \"groupId\": \"OG000\"/\"OG001\" measurements with no group titles; arm mapping (OG000 = Placebo Q2W) appears only in the totals witnesses' contexts, not this one."
+  },
+  {
+   "audit_id": "held::pcsk9-mace/41211925",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "Denoms block for this measure, with groups listed as OG000 = \"Placebo Q2W\" and OG001 = evolocumab 140 mg, 3-point composite (CHD death, MI, ischemic stroke)."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/15740542/0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"four of 119 (3.4%) vs. 22 of 127 (17.3%)\" for antibiotic-associated diarrhoea, S. boulardii vs placebo."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/15740542/0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"four of 119 (3.4%) vs. 22 of 127 (17.3%)\" for antibiotic-associated diarrhoea, S. boulardii vs placebo."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/15740542/0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"four of 119 (3.4%) vs. 22 of 127 (17.3%)\" for antibiotic-associated diarrhoea, S. boulardii vs placebo."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/15740542/0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"four of 119 (3.4%) vs. 22 of 127 (17.3%)\" for antibiotic-associated diarrhoea, S. boulardii vs placebo."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/18026577/0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"seven of 44 patients (15.9%) in the lactobacilli group and in 16 of 45 patients (35.6%) in the placebo group\" for AAD."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/18026577/0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"seven of 44 patients (15.9%) in the lactobacilli group and in 16 of 45 patients (35.6%) in the placebo group\" for AAD."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/18026577/0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"seven of 44 patients (15.9%) in the lactobacilli group and in 16 of 45 patients (35.6%) in the placebo group\" for AAD."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/18026577/0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"seven of 44 patients (15.9%) in the lactobacilli group and in 16 of 45 patients (35.6%) in the placebo group\" for AAD."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/26973849/1",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"Eighteen of 245 (7.3%) participants in the S boulardii group and 12 of 222 (5.4%) ... placebo group had at least 1 adverse event\" (safety population)."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/26973849/1",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"Eighteen of 245 (7.3%) participants in the S boulardii group and 12 of 222 (5.4%) ... placebo group had at least 1 adverse event\" (safety population)."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/26973849/1",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"Eighteen of 245 (7.3%) participants in the S boulardii group and 12 of 222 (5.4%) ... placebo group had at least 1 adverse event\" (safety population)."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/26973849/1",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"Eighteen of 245 (7.3%) participants in the S boulardii group and 12 of 222 (5.4%) ... placebo group had at least 1 adverse event\" (safety population)."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/34541475/0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "Primary outcome row \"AAD - Abx+30d\": 45% (59 / 131) LcS vs 42.1% (53 /126) placebo."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/34541475/0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "Primary outcome row \"AAD - Abx+30d\": 45% (59 / 131) LcS vs 42.1% (53 /126) placebo."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/34541475/0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "Primary outcome row \"AAD - Abx+30d\": 45% (59 / 131) LcS vs 42.1% (53 /126) placebo."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/34541475/0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "Primary outcome row \"AAD - Abx+30d\": 45% (59 / 131) LcS vs 42.1% (53 /126) placebo."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/34541475/2",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "Table 2 \"Severe Adverse Events\" 2.2% (4) vs 3.4% (6) under LcS n = 181 / Placebo n = 178; the following \"Unexpected SAE 4 / 6\" row equates them with SAEs."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/34541475/2",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "Table 2 \"Severe Adverse Events\" 2.2% (4) vs 3.4% (6) under LcS n = 181 / Placebo n = 178; the following \"Unexpected SAE 4 / 6\" row equates them with SAEs."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/34541475/2",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "Table 2 \"Severe Adverse Events\" 2.2% (4) vs 3.4% (6) under LcS n = 181 / Placebo n = 178; the following \"Unexpected SAE 4 / 6\" row equates them with SAEs."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/34541475/2",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "Table 2 \"Severe Adverse Events\" 2.2% (4) vs 3.4% (6) under LcS n = 181 / Placebo n = 178; the following \"Unexpected SAE 4 / 6\" row equates them with SAEs."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/39529939/0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"9.2% (26/282) developed AAD, whereas 25.3% (69/273) of the participants receiving placebo\"."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/39529939/0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"9.2% (26/282) developed AAD, whereas 25.3% (69/273) of the participants receiving placebo\"."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/39529939/0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"9.2% (26/282) developed AAD, whereas 25.3% (69/273) of the participants receiving placebo\"."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/39529939/0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"9.2% (26/282) developed AAD, whereas 25.3% (69/273) of the participants receiving placebo\"."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/39529939/1",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"2.5% (7/285) in the studied probiotic mix and 1.1% (3/279) in the placebo group\" experienced an AE (safety analysis)."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/39529939/1",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"2.5% (7/285) in the studied probiotic mix and 1.1% (3/279) in the placebo group\" experienced an AE (safety analysis)."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/39529939/1",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"2.5% (7/285) in the studied probiotic mix and 1.1% (3/279) in the placebo group\" experienced an AE (safety analysis)."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/39529939/1",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"2.5% (7/285) in the studied probiotic mix and 1.1% (3/279) in the placebo group\" experienced an AE (safety analysis)."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/39529939/2",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "Table 2 \"Serious AE\" 1 (0.4) vs 0 (0.0) under Probiotic Mix n = 285 / Placebo n = 279."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/39529939/2",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "Table 2 \"Serious AE\" 1 (0.4) vs 0 (0.0) under Probiotic Mix n = 285 / Placebo n = 279."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/39529939/2",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "Table 2 \"Serious AE\" 1 (0.4) vs 0 (0.0) under Probiotic Mix n = 285 / Placebo n = 279."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/39529939/2",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "Table 2 \"Serious AE\" 1 (0.4) vs 0 (0.0) under Probiotic Mix n = 285 / Placebo n = 279."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/41699149/0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "Table 4 \"Total Number of People with AEs\" 64 vs 69 under Active (N = 125) / Control (N = 130); footnote proportions 0.51/0.53 confirm."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/41699149/0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "Table 4 \"Total Number of People with AEs\" 64 vs 69 under Active (N = 125) / Control (N = 130); footnote proportions 0.51/0.53 confirm."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/41699149/0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "Table 4 \"Total Number of People with AEs\" 64 vs 69 under Active (N = 125) / Control (N = 130); footnote proportions 0.51/0.53 confirm."
+  },
+  {
+   "audit_id": "held::probiotics-aad-prevention/41699149/0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "Table 4 \"Total Number of People with AEs\" 64 vs 69 under Active (N = 125) / Control (N = 130); footnote proportions 0.51/0.53 confirm."
+  },
+  {
+   "audit_id": "held::semaglutide-obesity-mace/37952131",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"Adverse events leading to permanent discontinuation ... 1461 patients (16.6%) in the semaglutide group and 718 patients (8.2%) in the placebo group\"; 8803/8801 assigned."
+  },
+  {
+   "audit_id": "held::semaglutide-obesity-mace/37952131",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"Adverse events leading to permanent discontinuation ... 1461 patients (16.6%) in the semaglutide group and 718 patients (8.2%) in the placebo group\"; 8803/8801 assigned."
+  },
+  {
+   "audit_id": "held::semaglutide-obesity-mace/37952131",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"Adverse events leading to permanent discontinuation ... 1461 patients (16.6%) in the semaglutide group and 718 patients (8.2%) in the placebo group\"; 8803/8801 assigned."
+  },
+  {
+   "audit_id": "held::semaglutide-obesity-mace/37952131",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"Adverse events leading to permanent discontinuation ... 1461 patients (16.6%) in the semaglutide group and 718 patients (8.2%) in the placebo group\"; 8803/8801 assigned."
+  },
+  {
+   "audit_id": "held::spironolactone-hfref-mortality/28824029",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"A total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died\"; n=111/110 consistent."
+  },
+  {
+   "audit_id": "held::spironolactone-hfref-mortality/28824029",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"A total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died\"; n=111/110 consistent."
+  },
+  {
+   "audit_id": "held::spironolactone-hfref-mortality/28824029",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"A total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died\"; n=111/110 consistent."
+  },
+  {
+   "audit_id": "held::spironolactone-hfref-mortality/28824029",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"A total of 17 patients (15.3%) in the eplerenone group and 10 patients (9.1%) in the placebo group died\"; n=111/110 consistent."
+  },
+  {
+   "audit_id": "held::tranexamic-acid-pph/28456509",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "Table row \"Thromboembolic events\" denominators 10 033 / 9985 and \"Any event\" 30 (0.3%) / 34 (0.3%) under Tranexamic acid / Placebo columns."
+  },
+  {
+   "audit_id": "held::tranexamic-acid-pph/28456509",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "Table row \"Thromboembolic events\" denominators 10 033 / 9985 and \"Any event\" 30 (0.3%) / 34 (0.3%) under Tranexamic acid / Placebo columns."
+  },
+  {
+   "audit_id": "held::tranexamic-acid-pph/28456509",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "Table row \"Thromboembolic events\" denominators 10 033 / 9985 and \"Any event\" 30 (0.3%) / 34 (0.3%) under Tranexamic acid / Placebo columns."
+  },
+  {
+   "audit_id": "held::tranexamic-acid-pph/28456509",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "Table row \"Thromboembolic events\" denominators 10 033 / 9985 and \"Any event\" 30 (0.3%) / 34 (0.3%) under Tranexamic acid / Placebo columns."
+  },
+  {
+   "audit_id": "served::CD-balanced-crystalloids-vs-saline-mortality-0-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"Death within 90 days ... 530 of 2433 patients (21.8%) in the BMES group and in 530 of 2413 patients (22.0%) in the saline group\"."
+  },
+  {
+   "audit_id": "served::CD-balanced-crystalloids-vs-saline-mortality-0-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"Death within 90 days ... 530 of 2433 patients (21.8%) in the BMES group and in 530 of 2413 patients (22.0%) in the saline group\"."
+  },
+  {
+   "audit_id": "served::CD-balanced-crystalloids-vs-saline-mortality-0-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"Death within 90 days ... 530 of 2433 patients (21.8%) in the BMES group and in 530 of 2413 patients (22.0%) in the saline group\"."
+  },
+  {
+   "audit_id": "served::CD-balanced-crystalloids-vs-saline-mortality-0-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"Death within 90 days ... 530 of 2433 patients (21.8%) in the BMES group and in 530 of 2413 patients (22.0%) in the saline group\"."
+  },
+  {
+   "audit_id": "served::CD-balanced-crystalloids-vs-saline-mortality-2-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "\"New renal-replacement therapy was initiated in 306 of 2403 patients (12.7%) in the BMES group and in 310 of 2394 patients (12.9%) in the saline group\"."
+  },
+  {
+   "audit_id": "served::CD-balanced-crystalloids-vs-saline-mortality-2-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "\"New renal-replacement therapy was initiated in 306 of 2403 patients (12.7%) in the BMES group and in 310 of 2394 patients (12.9%) in the saline group\"."
+  },
+  {
+   "audit_id": "served::CD-balanced-crystalloids-vs-saline-mortality-2-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "\"New renal-replacement therapy was initiated in 306 of 2403 patients (12.7%) in the BMES group and in 310 of 2394 patients (12.9%) in the saline group\"."
+  },
+  {
+   "audit_id": "served::CD-balanced-crystalloids-vs-saline-mortality-2-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "\"New renal-replacement therapy was initiated in 306 of 2403 patients (12.7%) in the BMES group and in 310 of 2394 patients (12.9%) in the saline group\"."
+  },
+  {
+   "audit_id": "served::CD-colchicine-postop-af-0-1",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for colchicine group for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-colchicine-postop-af-0-1",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for colchicine group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-colchicine-postop-af-0-1",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo group for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-colchicine-postop-af-0-1",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-colchicine-postop-af-0-2",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for colchicine for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-colchicine-postop-af-0-2",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for colchicine, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-colchicine-postop-af-0-2",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-colchicine-postop-af-0-2",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-colchicine-secondary-cv-prevention-1-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for colchicine group for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-colchicine-secondary-cv-prevention-1-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for colchicine group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-colchicine-secondary-cv-prevention-1-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo group for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-colchicine-secondary-cv-prevention-1-0",
+   "witness_id": "comparator.total",
+   "verdict": "UNCLEAR",
+   "reason": "129 is the number assigned to placebo, but the GI outcome prints \"3 (2.5%) in the controls\", and 3/129 is 2.3% while 3/120 is 2.5%, so the analysed denominator cannot be confirmed as 129."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-0-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for hydrocortisone group for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-0-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for hydrocortisone group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-0-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo group for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-0-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-0-1",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for methylprednisolone for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-0-1",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for methylprednisolone, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-0-1",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-0-1",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-1-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for methylprednisolone for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-1-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for methylprednisolone, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-1-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-1-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-1-1",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for dexamethasone for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-1-1",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for dexamethasone, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-1-1",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-1-1",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-1-3",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for dexamethasone group for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-1-3",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for dexamethasone group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-1-3",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for controls for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-cap-mortality-1-3",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for controls, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-covid19-mortality-1-0",
+   "witness_id": "intervention.events",
+   "verdict": "UNCLEAR",
+   "reason": "The source counts \"serious adverse reactions 1/16\" (drug-related SAEs, a narrower category), not serious adverse events, so it may not be this outcome."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-covid19-mortality-1-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for hydrocortisone, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-covid19-mortality-1-0",
+   "witness_id": "comparator.events",
+   "verdict": "UNCLEAR",
+   "reason": "The source counts \"serious adverse reactions ... 0/14\" (drug-related SAEs, a narrower category), not serious adverse events, so it may not be this outcome."
+  },
+  {
+   "audit_id": "served::CD-corticosteroids-covid19-mortality-1-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-dapagliflozin-hfpef-hosp-1-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for Dapagliflozin for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-dapagliflozin-hfpef-hosp-1-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for Dapagliflozin, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-dapagliflozin-hfpef-hosp-1-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for Placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-dapagliflozin-hfpef-hosp-1-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for Placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-dpp4-mace-t2d-1-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for linagliptin for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-dpp4-mace-t2d-1-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for linagliptin, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-dpp4-mace-t2d-1-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-dpp4-mace-t2d-1-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-dpp4-mace-t2d-2-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for linagliptin for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-dpp4-mace-t2d-2-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for linagliptin, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-dpp4-mace-t2d-2-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-dpp4-mace-t2d-2-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-esketamine-trd-madrs-1-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for Esketamine Plus AD for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-esketamine-trd-madrs-1-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for Esketamine Plus AD, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-esketamine-trd-madrs-1-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for AD Plus Placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-esketamine-trd-madrs-1-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for AD Plus Placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-glp1-ra-mace-t2d-1-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for dulaglutide for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-glp1-ra-mace-t2d-1-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for dulaglutide, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-glp1-ra-mace-t2d-1-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-glp1-ra-mace-t2d-1-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-glp1-ra-mace-t2d-2-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for Liraglutide for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-glp1-ra-mace-t2d-2-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for Liraglutide, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-glp1-ra-mace-t2d-2-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for Placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-glp1-ra-mace-t2d-2-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for Placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-melatonin-primary-insomnia-sol-1-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for PRM for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-melatonin-primary-insomnia-sol-1-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for PRM, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-melatonin-primary-insomnia-sol-1-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for Placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-melatonin-primary-insomnia-sol-1-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for Placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-metformin-pcos-ovulation-0-2",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for metformin for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-metformin-pcos-ovulation-0-2",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for metformin, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-metformin-pcos-ovulation-0-2",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-metformin-pcos-ovulation-0-2",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-omega3-cardiovascular-events-1-0",
+   "witness_id": "intervention.events",
+   "verdict": "UNCLEAR",
+   "reason": "The measure title is not in the context; the only text says \"Includes fatal and non-fatal events\" (the preceding measure is \"Unspecified Cancer\"), so the outcome cannot be confirmed as atrial fibrillation, though the arm mapping OG000=Omega-3 / OG001=Placebo Omega-3 is correct."
+  },
+  {
+   "audit_id": "served::CD-omega3-cardiovascular-events-1-0",
+   "witness_id": "intervention.total",
+   "verdict": "UNCLEAR",
+   "reason": "The measure title is not in the context; the only text says \"Includes fatal and non-fatal events\" (the preceding measure is \"Unspecified Cancer\"), so the outcome cannot be confirmed as atrial fibrillation, though the arm mapping OG000=Omega-3 / OG001=Placebo Omega-3 is correct."
+  },
+  {
+   "audit_id": "served::CD-omega3-cardiovascular-events-1-0",
+   "witness_id": "comparator.events",
+   "verdict": "UNCLEAR",
+   "reason": "The measure title is not in the context; the only text says \"Includes fatal and non-fatal events\" (the preceding measure is \"Unspecified Cancer\"), so the outcome cannot be confirmed as atrial fibrillation, though the arm mapping OG000=Omega-3 / OG001=Placebo Omega-3 is correct."
+  },
+  {
+   "audit_id": "served::CD-omega3-cardiovascular-events-1-0",
+   "witness_id": "comparator.total",
+   "verdict": "UNCLEAR",
+   "reason": "The measure title is not in the context; the only text says \"Includes fatal and non-fatal events\" (the preceding measure is \"Unspecified Cancer\"), so the outcome cannot be confirmed as atrial fibrillation, though the arm mapping OG000=Omega-3 / OG001=Placebo Omega-3 is correct."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-1",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for probiotic group for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-1",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for probiotic group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-1",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo group for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-1",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-10",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "Printed as the word \"seven\" of 44 in the lactobacilli group for antibiotic-associated diarrhoea."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-10",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for lactobacilli group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-10",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo group for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-10",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-6",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "Printed as the word \"four\" of 119 for the defined antibiotic-associated diarrhoea outcome (not the broader \"nine of 119\" diarrhoea figure)."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-6",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for S. boulardii, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-6",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-6",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-7",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for Lactobacillus GG for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-7",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for Lactobacillus GG, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-7",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-7",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-9",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for Lactobacillus group for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-9",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for Lactobacillus group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-9",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo group for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-0-9",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-1-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for Active for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-1-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for Active, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-1-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for Control for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-1-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for Control, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-1-1",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for studied probiotic mix for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-1-1",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for studied probiotic mix, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-1-1",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo group for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-1-1",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-2-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "Table is labelled \"Severe Adverse Events\" but its rows are \"Unexpected SAE\"/\"Nature of SAE\" with the same 4 vs 6, and 4/181=2.2% matches, so this is the LcS SAE count."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-2-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for LcS group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-2-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "Table is labelled \"Severe Adverse Events\" but its rows are \"Unexpected SAE\" with the same 4 vs 6, and 6/178=3.4% matches, so this is the placebo SAE count."
+  },
+  {
+   "audit_id": "served::CD-probiotics-aad-prevention-2-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for Placebo group, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-semaglutide-obesity-mace-2-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for semaglutide for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-semaglutide-obesity-mace-2-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for semaglutide, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-semaglutide-obesity-mace-2-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-semaglutide-obesity-mace-2-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for placebo, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-ticagrelor-vs-clopidogrel-acs-1-0",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "Registry measure described as \"Participants with major ... bleed\", OG000 value 961 over denominator 9235."
+  },
+  {
+   "audit_id": "served::CD-ticagrelor-vs-clopidogrel-acs-1-0",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for TICAGRELOR, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-ticagrelor-vs-clopidogrel-acs-1-0",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "Registry measure described as \"Participants with major ... bleed\", OG001 value 929 over denominator 9186."
+  },
+  {
+   "audit_id": "served::CD-ticagrelor-vs-clopidogrel-acs-1-0",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for CLOPIDOGREL, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-tocilizumab-covid19-mortality-1-1",
+   "witness_id": "intervention.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for Tocilizumab for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-tocilizumab-covid19-mortality-1-1",
+   "witness_id": "intervention.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for Tocilizumab, and it matches the denominator implied for this outcome."
+  },
+  {
+   "audit_id": "served::CD-tocilizumab-covid19-mortality-1-1",
+   "witness_id": "comparator.events",
+   "verdict": "OWNED",
+   "reason": "The marked token is the count printed for Placebo for this outcome, in the correct arm position."
+  },
+  {
+   "audit_id": "served::CD-tocilizumab-covid19-mortality-1-1",
+   "witness_id": "comparator.total",
+   "verdict": "OWNED",
+   "reason": "The marked token is the n printed for Placebo, and it matches the denominator implied for this outcome."
+  }
+ ]
+}

@@ -50,3 +50,8 @@ evid2 now owns the 34 count rows (typed per-arm observations) and the 53 P5 popu
 ## Stopped to avoid duplication
 
 - evid's blind re-extraction extension over the other 56 rows was stopped on 2026-09-24 ~22:20 when evid2's scope was announced; the pre-registered 20-row test-retest result stands (`evidence/extractions/RETEST_RESULT.json`).
+
+## Addendum 2026-09-25 (evid, day): P53 items found after the handoff
+- **Served analysis-set labels:** 23 P53 rows are served as 'intention-to-treat' but the held source contradicts the label or does not state a set. They are listed row by row, with the bound span, in `evidence/LABEL_CORRECTIONS.md` (derived by `evidence/scripts/label_corrections.py`). They are labels only, and no number moves. They are yours to adopt or re-rule. evid has not changed any P53 ruling since the handoff.
+- **Staleness gate:** `evidence/scripts/stale_check.py` (now condition 4 of `check_all.py`) says whether main has changed a served row since it was ruled on. All 53 P53 rulings match current main as of this addendum.
+- **Scale rule:** the M-02 vs M-03/M-04 rule in `evidence/DECISIONS.md` ('Served scale != declared estimand') also bears on the P53-05 and P53-53 scale-label defects recorded earlier.

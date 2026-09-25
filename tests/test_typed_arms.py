@@ -362,3 +362,88 @@ def test_aact_rows_attributed_to_the_wrong_group_are_refused(tmp_path):
     row["served"] = {"ai": 10, "n1i": 98, "ci": 20, "n2i": 100}
     rec = run(tmp_path, out=_aact_out(swap=True), row=row, doc=DOC_AACT, packet_doc=DOC_AACT)
     assert rec["state"] != "BOUND" and "G7 arm 0" in codes(rec)
+
+
+# ---- review of G1-G7, 2026-09-25: each route by which a swap or a wrong number bound ------------------------------
+OWN = cta.ownership
+A2 = [{"arm_label": "drugx"}, {"arm_label": "placebo"}]
+
+
+def _own(text, arm_i, values):
+    return OWN.owns(None, {"text": text, "start": 0, "end": len(text)}, values[arm_i], None, arm_i, A2, values)
+
+
+def test_the_arm_after_compared_with_never_owns_the_first_number():
+    text = "Compared with placebo, the event occurred in 20 (20.0%) vs 10 (10.2%) participants."
+    swapped = {0: 10, 1: 20}          # truth: drugx 20, placebo 10
+    assert _own(text, 1, swapped) is None and _own(text, 0, swapped) is None
+    text_b = "Compared with placebo, drugx reduced the event: 10 (10.2%) vs 20 (20.0%)"
+    assert _own(text_b, 1, {0: 20, 1: 10}) is None   # truth: drugx 10
+
+
+def test_parallel_order_is_anchored_to_one_clause():
+    wide = ("Patients receiving drugx or placebo were followed; the event occurred in 20 and 10 participants in the "
+            "placebo and drugx groups, respectively")
+    assert _own(wide, 0, {0: 20, 1: 10}) is None          # the swapped claim
+    assert _own(wide, 0, {0: 10, 1: 20}) == "PARALLEL_ORDER"
+    dose = "In the placebo and drugx groups, 20 and 10 events occurred; drugx was given at 20 mg daily."
+    assert _own(dose, 0, {0: 20, 1: 10}) is None
+    assert _own(dose, 0, {0: 10, 1: 20}) == "PARALLEL_ORDER"
+
+
+def test_group_id_reads_the_numbers_own_object_and_refuses_a_span_across_objects():
+    doc = json.dumps({"groups": [{"id": "OG000", "title": "Drugx"}, {"id": "OG001", "title": "Placebo"}],
+                      "measurements": [{"groupId": "OG000", "value": "20"}, {"groupId": "OG001", "value": "10"}]}, indent=1)
+    cross = doc[doc.index('"groupId": "OG000"'):doc.index('"value": "10"') + len('"value": "10"')]
+    sp = {"text": cross, "start": doc.index(cross), "end": doc.index(cross) + len(cross)}
+    assert not OWN.group_id(doc, sp, A2[0], A2, 10)       # drugx claims OG001's 10 through a span starting in OG000
+    own = doc[doc.index('"groupId": "OG000"'):doc.index('"value": "20"') + len('"value": "20"')]
+    sp = {"text": own, "start": doc.index(own), "end": doc.index(own) + len(own)}
+    assert OWN.group_id(doc, sp, A2[0], A2, 20)
+
+
+def test_counts_are_not_percent_words_doses_rates_or_name_numbers():
+    for t, v in (("20 percent", 20), ("20,5%", 20), ("10 mg daily", 10), ("per 100 patient-years", 100), ("GLP-1 users", 1),
+                 ("at least one event", 1)):
+        assert not cta.has_count(t, v), t
+    assert cta.has_count("4,949 patients", 4949) and cta.has_count("four of 119", 4)
+
+
+def test_a_negated_or_background_arm_is_never_the_intervention():
+    typed = [{"arm_label": "Non-drugx dairy drink"}, {"arm_label": "drugx"}]
+    exp, _ = cta.direction(typed, "drugx added to heart-failure therapy", None)
+    assert exp == 1
+    typed = [{"arm_label": "Heart-failure therapy alone"}, {"arm_label": "Drugx"}]
+    assert cta.direction(typed, "drugx added to heart-failure therapy", None)[0] == 1
+    # 'omega-3' no longer matches 'omega-6' (whole-word terms); one weak vote then leaves it unresolved -- never the
+    # comparator, which is the requirement
+    assert cta.direction([{"arm_label": "Omega-6 corn oil"}, {"arm_label": "Omega-3"}], "omega-3 fatty acids", None)[0] != 0
+
+
+def test_one_weak_vote_does_not_resolve_direction():
+    """A label that merely contains an intervention word, against a label with nothing, is not enough."""
+    assert cta.direction([{"arm_label": "drugx"}, {"arm_label": "group B"}], "drugx", None)[0] is None
+
+
+def test_two_arms_resolving_to_one_registry_arm_are_refused(tmp_path, monkeypatch):
+    monkeypatch.setattr(cta, "resolve_arm", lambda *a, **k: ("NCTX:2", "forced"))
+    assert "G5 two source arms resolve to the same registry arm" in codes(run(tmp_path))
+
+
+def test_an_events_span_from_another_outcomes_sentence_is_refused(tmp_path):
+    doc = DOC.replace("Adults aged", "Nausea occurred in 30 of 100 and 5 of 98 patients. Adults aged")
+    out = copy.deepcopy(GOOD)
+    out["outcome"] = {"text": "Death", "span": {"file": "doc_x.txt", "text": "the event occurred"}}
+    for a, t in zip(out["arms"], ("30 of 100", "5 of 98")):
+        a["events_span"] = {"file": "doc_x.txt", "text": t}
+    out["arms"][0]["events"], out["arms"][1]["events"] = 30, 5
+    row = copy.deepcopy(ROW)
+    row["served"], row["outcome_name"] = {"ai": 30, "n1i": 100, "ci": 5, "n2i": 98}, "Death"
+    rec = run(tmp_path, out=out, row=row, doc=doc, packet_doc=doc)
+    assert "G9 arm 0" in codes(rec)
+
+
+def test_a_label_span_that_names_another_arm_is_refused(tmp_path):
+    out = copy.deepcopy(GOOD)
+    out["arms"][0]["arm_label_span"] = span("placebo (n=98)")
+    assert "G10 arm 0" in codes(run(tmp_path, out=out))

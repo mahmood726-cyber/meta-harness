@@ -1,6 +1,26 @@
 # Signature queue: served numbers the evidence lane proposes to change (NONE LANDED)
 
-4 of 92 adjudicated rows reject the served candidate. Each block is DERIVED and UNSIGNED. A served number moves only after Mahmood signs the block's sha256 and a rebuild runs.
+5 of 107 adjudicated rows reject the served candidate. Each block is DERIVED and UNSIGNED. A served number moves only after Mahmood signs the block's sha256 and a rebuild runs.
+
+### M-02: corticosteroids-cap-mortality / Hyperglycaemia / PMID 25608756 (Blum 2015)
+- state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED
+- served now: OR 1.96 (1.31-2.93) -- an odds ratio on an RR-declared outcome
+- proposed (derived, unsigned): counts 76/392 vs 43/393 (RR 1.77, derived)
+- pooled effect: NOT COMPUTED here: moves only on a rebuild after signature
+- mechanism: the printed OR was served though the outcome declares RR and the arm counts are printed
+- coordination: hyperglycaemia is an adverse-event count outcome; Evidence lane two owns TYPED count rows -- this row is served as an effect (OR), so it is in this lane's census; flag to evid2 if its typed-arm work covers it
+- reason: OR served on an RR-declared outcome while the counts that give the RR are printed.
+- evidence (verbatim, re-verified against held bytes when the adjudication was written):
+  - population: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "we recruited patients aged 18 years or older with community-acquired pneumonia from seven tertiary care hospitals in Switzerland within 24 h of presentation"
+  - endpoint: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "The prednisone group had a higher incidence of in-hospital hyperglycaemia needing insulin treatment"
+  - estimate: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "The prednisone group had a higher incidence of in-hospital hyperglycaemia needing insulin treatment (76 [19%] vs 43 [11%]; OR 1·96, 95% CI 1·31-2·93, p=0·0010)."
+  - ci: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "OR 1·96, 95% CI 1·31-2·93, p=0·0010"
+  - treatment_strategy: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "Patients were randomly assigned (1:1 ratio) to receive either prednisone 50 mg daily for 7 days or placebo."
+  - follow_up: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "in-hospital hyperglycaemia needing insulin treatment"
+  - entry_population_reading: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "we recruited patients aged 18 years or older with community-acquired pneumonia from seven tertiary care hospitals in Switzerland within 24 h of presentation"
+  - arm_sizes: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "785 patients were randomly assigned to either the prednisone group (n=392) or the placebo group (n=393)"
+  - counts_and_or: `cache/corticosteroids-cap-mortality/records.json#/records/83` (sha256 ce1169669dd2): "The prednisone group had a higher incidence of in-hospital hyperglycaemia needing insulin treatment (76 [19%] vs 43 [11%]; OR 1·96, 95% CI 1·31-2·93, p=0·0010)."
+- block sha256: 4e198a21da23fcbbfd18cf32796e497ee999000dc4dc35c6c8f599fdaa1a1362
 
 ### P53-23: noac-vs-warfarin-af-stroke / Stroke or systemic embolism / PMID 19717844 (RE-LY, dabigatran 150 mg)
 - state: QUEUED_FOR_MAHMOOD_SIGNATURE_NOT_LANDED

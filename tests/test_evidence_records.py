@@ -280,3 +280,40 @@ def test_a_leading_en_dash_is_a_minus_but_a_range_dash_is_not():
     assert V.canon("\u20135.7") == -5.7
     assert V.num_tokens("difference, \u201312.0 to \u20138.6") >= {"-12.0", "-8.6"}
     assert V.num_tokens("95% CI 0.65\u20131.84") >= {"0.65", "1.84"} and "-1.84" not in V.num_tokens("95% CI 0.65\u20131.84")
+
+
+def test_held_file_is_written_once(tmp_path, monkeypatch, capsys):
+    """A held file is pinned by adjudications: an identical re-fetch keeps the FIRST ledger entry (provenance), and a
+    re-fetch with different bytes is refused and leaves the held bytes alone (plant: a changed source)."""
+    import acquire as A
+    monkeypatch.setattr(A, "HELD", str(tmp_path))
+    led = {}
+    A.store("1/core.json", b"first", "u", led, "k")
+    first = dict(led["1/core.json"])
+    led["1/core.json"]["fetched_utc"] = "2000-01-01T00:00:00Z"   # mark it, so a rewrite would show
+    A.store("1/core.json", b"first", "u", led, "k")
+    assert led["1/core.json"]["fetched_utc"] == "2000-01-01T00:00:00Z" and led["1/core.json"]["sha256"] == first["sha256"]
+    A.store("1/core.json", b"CHANGED", "u", led, "k")
+    assert "REFUSED" in capsys.readouterr().out
+    assert (tmp_path / "1" / "core.json").read_bytes() == b"first" and led["1/core.json"]["sha256"] == first["sha256"]
+
+
+def test_stale_check_names_a_changed_served_row():
+    """Plant: main changes a served CI bound (or moves the row to another trial) after the ruling. The unchanged
+    control must read clean first, else a red plant proves nothing."""
+    import stale_check as S
+    then = {"effect": 0.82, "ci_low": 0.70, "ci_high": 0.96, "scale": "HR"}
+    assert S.diff(then, dict(then, id="PMID 1"), "PMID 1") == {}
+    assert S.diff(then, dict(then, ci_high=0.97, id="PMID 1"), "PMID 1") == {"ci_high": [0.96, 0.97]}
+    assert "id" in S.diff(then, dict(then, id="PMID 2"), "PMID 1")
+
+
+def test_find_span_returns_verbatim_render_substring(tmp_path, monkeypatch):
+    """A web copy with plain hyphen/space/quote must map back to the held bytes' own characters (en dash, NBSP,
+    curly quote), and a quote the source does not contain must come back None (plant: a paraphrase)."""
+    import find_span, textrep
+    held = "Methods.\nAnalyses were done in the \u201cfull analysis set\u201d (all randomised\u00a0patients), 2011\u20132014."
+    monkeypatch.setattr(textrep, "render", lambda ref: held)
+    s = find_span.locate("x", 'the "full analysis set" (all randomised patients), 2011-2014')
+    assert s is not None and s in held and "\u2013" in s and "\u00a0" in s
+    assert find_span.locate("x", "the full analysis set included everyone") is None
