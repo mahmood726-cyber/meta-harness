@@ -21,6 +21,36 @@ _spec = _iu.spec_from_file_location("textrep", P("evidence", "scripts", "textrep
 textrep = _iu.module_from_spec(_spec); _spec.loader.exec_module(textrep)
 SEARCH_PATH = P("evidence", "p5_populations", "searches.json")
 SEARCHES = json.load(open(SEARCH_PATH, encoding="utf-8")) if os.path.exists(SEARCH_PATH) else {}
+ADJ_PATH = P("evidence", "p5_populations", "entry_adjudications.json")
+ENTRY_ADJ = json.load(open(ADJ_PATH, encoding="utf-8")) if os.path.exists(ADJ_PATH) else {}
+LOCAL_HELD = os.environ.get("EVID2_HELD", r"C:\mh-lanes\evid2-held")
+
+
+def refind_adjudicated(adj):
+    """Re-find an adjudicated span. Repo refs: in the bytes (raw or textrep render) whose sha256 is recorded.
+    LOCAL_ONLY refs (not redistributable): re-found when the held copy is present with the recorded sha256; otherwise the
+    recorded sha256 is all a checkout can show, and the result says so."""
+    import html, re
+    ref = adj["ref"]
+    if ref.startswith("LOCAL_ONLY:"):
+        p = os.path.join(LOCAL_HELD, ref.split(":", 1)[1])
+        if not os.path.exists(p):
+            return "LOCAL_ONLY copy not present in this checkout (sha256 recorded, not re-checked here)"
+        raw = open(p, "rb").read()
+        if hashlib.sha256(raw).hexdigest() != adj["sha256"]:
+            return None
+        t = re.sub(r"(?s)<(script|style)[^>]*>.*?</\1>", "", raw.decode("utf-8", errors="replace"))
+        t = html.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", t)))
+        return "re-found in the LOCAL_ONLY held copy (sha256 equal)" if adj["span"] in t else None
+    sha, text = pointer_text(ref)
+    if sha != adj["sha256"]:
+        return None
+    if text and adj["span"] in text:
+        return "re-found in the held bytes"
+    try:
+        return "re-found in the textrep render of the held bytes" if adj["span"] in textrep.render(ref) else None
+    except Exception:
+        return None
 
 
 def pointer_text(ref):
@@ -102,11 +132,23 @@ for r in EV["rows"]:
                 rec["notes"].append("SCREEN_VS_CONFIG: the topic config accepts usual care as a comparator, but the screen's "
                                     "placebo check demands a literal placebo arm (EV53); the trial is correctly NOT placebo-controlled")
         elif f["fact_id"] == "entry_population" and evid_ruling == "ESTABLISHED" and any(s["found"] for s in evid_spans):
-            rec["state"] = "RECOVERED"
-            rec["basis"] = ("evid's entry span re-found by evid2 in the held record; the P5 screen still reads the topic's "
-                            "configured population terms, which here name the OUTCOME -- a config defect, recorded, not "
-                            "repaired here")
+            # evid's ruling is a LOCATOR, not the fact: a re-found span proves the words exist, not that they state entry.
+            # The blind second reading (2026-09-25) showed one such span (P53-41) did not state it. So the fact is
+            # RECOVERED only through evid2's own adjudicated span (entry_adjudications.json), re-found here.
+            adj = ENTRY_ADJ.get(key)
+            hit = adj and adj.get("verdict") == "STATES" and refind_adjudicated(adj)
             rec["evidence"] += [s for s in evid_spans if s["found"]]
+            if hit:
+                rec["state"] = "RECOVERED"
+                rec["basis"] = ("evid2's adjudicated span states entry (entry_adjudications.json), " + hit + "; evid's span "
+                                "kept as the locator. The P5 screen still reads the topic's configured population terms, "
+                                "which here name the OUTCOME -- a config defect, recorded, not repaired here")
+                rec["evidence"].append({"from": "evid2 entry adjudication", "ref": adj["ref"], "span": adj["span"],
+                                        "sha256": adj["sha256"], "why": adj["why"]})
+            elif srch and srch.get("result") == "UNRESOLVED":
+                rec["state"], rec["basis"], rec["search"] = "UNRESOLVED", srch.get("why"), srch
+            else:
+                rec["state"], rec["basis"] = "SEARCH_PENDING", "evid's span re-found but not adjudicated by evid2 as stating entry"
             rec["notes"].append("CONFIG_DEFECT: population_any terms describe the outcome, not entry (EV53 MENTIONS_ONLY)")
         elif srch and srch.get("result") == "RECOVERED" and srch.get("evidence"):
             rec["state"], rec["basis"] = "RECOVERED", "found by evid2's documented search (searches.json)"
