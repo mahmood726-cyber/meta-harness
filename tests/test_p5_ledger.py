@@ -145,3 +145,18 @@ def test_a_failed_fetch_is_never_a_zero(monkeypatch):
     total, hits, ok = s4.epmc_all("q", ".", [], "t", 25)
     assert ok is False and hits == []
     assert s4.core("1", ".", []) is None
+
+
+def test_an_isrctn_record_counts_only_when_its_publication_fields_name_the_article():
+    import importlib.util, sys
+    sys.path.insert(0, os.path.join(PP, "scripts"))
+    spec = importlib.util.spec_from_file_location("s2c", os.path.join(PP, "scripts", "search_step2c.py"))
+    s2c = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(s2c)
+    title = s2c.norm("A randomized trial of drugx in the prevention of antibiotic-associated diarrhoea")
+    assert s2c.names_publication('<outputs><externalLink url="https://pubmed.ncbi.nlm.nih.gov/16769748/"/></outputs>', "16769748", "", title)
+    assert not s2c.names_publication("<ethics>06/16769748</ethics>", "16769748", "", title)            # not a PubMed reference
+    assert not s2c.names_publication("<outputs>doi 10.1136/bmj.b12345</outputs>", "", "10.1136/bmj.b1", title)  # prefix
+    assert s2c.names_publication("<outputs>doi 10.1136/bmj.b1 </outputs>", "", "10.1136/bmj.b1", title)
+    longer = "<outputs>" + "A randomized trial of drugx in the prevention of antibiotic-associated diarrhoea syndromes" + "</outputs>"
+    assert not s2c.names_publication(longer, "", "", title)                                              # not whole words

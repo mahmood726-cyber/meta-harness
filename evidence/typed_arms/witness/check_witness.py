@@ -231,11 +231,17 @@ def check_job(job):
                 d = json.loads(text[a:b])
             except ValueError:
                 continue
-            if isinstance(d, dict) and ("groups" in d or "term" in d):
-                scope = (a, d.get("title") if "groups" in d else d.get("term"))
+            if isinstance(d, dict) and "term" in d:
+                scope = (a, d.get("term"), "term")                        # an AE term: its groups are the eventGroups
+                break
+            if isinstance(d, dict) and "groups" in d:
+                kind = "measure" if "title" in d else "module"
+                label = d.get("title") if kind == "measure" else (
+                    "baselineCharacteristicsModule" if "measures" in d else "participantFlowModule" if "periods" in d else None)
+                scope = (a, label, kind)
                 break
             if isinstance(d, dict) and "eventGroups" in d:
-                scope = (a, "eventGroups")
+                scope = (a, "eventGroups", "eventGroups")
                 break
         return key, lst, scope
 
@@ -341,22 +347,42 @@ def check_job(job):
     # packet's arm_roles) assigns to that ROLE in the scope its witnesses sit in -- the group's own title decides the
     # role, not the extraction (the F4 lane's item 36, integrated). An AE term's groups are the eventGroups.
     reg_roles = (row.get("arm_roles") or {}).get("registry") or []
+    if scopes and o.get("ownership_source") == "REGISTRY_GROUPS" and not reg_roles:
+        rec["flags"].append("ROLE_REGISTRY_NOT_CHECKED: registry-owned witnesses but the packet carries no arm_roles "
+                            "registry classification (T5b did not run)")
     if scopes and reg_roles and o.get("ownership_source") == "REGISTRY_GROUPS":
-        measures = {e["scope"] for e in reg_roles if e["scope"] not in ("eventGroups", "baselineCharacteristicsModule",
-                                                                        "participantFlowModule")}
         for i, fld, sc in scopes:
             if fld != "event_witness" or not sc:
                 continue
-            label = sc[1] if sc[1] in measures else "eventGroups"
-            cls = [e for e in reg_roles if e["scope"] == label and e["state"] == "CLASSIFIED"]
+            ev_file = (rec["arms"][i]["event_witness"] or {}).get("file") if i < len(rec["arms"]) else None
+            ev_file = ev_file or ((arms[i].get("event_witness") or {}).get("file") or "")
+            m_nct = re.search(r"NCT\d{8}", ev_file or "")
+            kind = sc[2] if len(sc) > 2 else "measure"
+            if kind in ("term", "eventGroups"):
+                want = ("eventGroups", "eventGroups")
+            elif kind == "module":
+                want = (sc[1], "module")
+            else:
+                want = (sc[1], "measure")
+            ents = [e for e in reg_roles if (e["scope"], e.get("kind", "measure" if e["scope"] not in (
+                "eventGroups", "baselineCharacteristicsModule", "participantFlowModule") else "x")) == want
+                    and (not m_nct or e.get("nct") == m_nct.group(0))]
             role = arms[i].get("role")
+            if not ents:
+                rec["reasons"].append(f"T5b arm {i}: ROLE_REGISTRY_SCOPE_MISSING -- no arm_roles entry for {want[0]!r} "
+                                      f"in {m_nct.group(0) if m_nct else 'its registration'}")
+                continue
+            cls = [e for e in ents if e["state"] == "CLASSIFIED"]
             if not cls:
-                rec["flags"].append(f"ROLE_REGISTRY_UNCLASSIFIED arm {i}: the classifier assigns no roles in {label!r}")
-            elif role in ("intervention", "comparator") and \
-                    arms[i].get("group_id") not in {e[f"{role}_group"] for e in cls}:
+                rec["flags"].append(f"ROLE_REGISTRY_UNCLASSIFIED arm {i}: the classifier assigns no single contrast in "
+                                    f"{want[0]!r} ({ents[0].get('why')})")
+                continue
+            pairs = {(e["intervention_group"], e["comparator_group"]) for e in cls}
+            if len(pairs) > 1 or len(cls) != len(ents):
+                rec["reasons"].append(f"T5b arm {i}: {len(ents)} arm_roles entries for {want[0]!r} disagree {sorted(pairs)}")
+            elif role in ("intervention", "comparator") and arms[i].get("group_id") != next(iter(pairs))[0 if role == "intervention" else 1]:
                 rec["reasons"].append(f"T5b arm {i}: declared {role!r} with group {arms[i].get('group_id')!r}, but the "
-                                      f"protocol's {role} group in {label!r} is "
-                                      f"{sorted({e[role + '_group'] for e in cls})}")
+                                      f"protocol's {role} group in {want[0]!r} is {next(iter(pairs))[0 if role == 'intervention' else 1]!r}")
     if scopes:   # every registry witness of the row sits in ONE measure / AE term, and it is the row's registry item
         labels = {sc for _, _, sc in scopes}
         if len(labels) != 1:

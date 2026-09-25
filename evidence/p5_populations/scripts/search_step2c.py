@@ -20,6 +20,37 @@ def norm(s):
     return re.sub(r"[^a-z0-9]+", " ", (s or "").lower()).strip()
 
 
+PUB_FIELDS = ("outputs", "publicationDetails", "results")   # where an ISRCTN record lists its publications
+
+
+def publication_text(trial_el):
+    """The text of the record's PUBLICATION fields only (review 5: the whole record matched its own title, a longer
+    title containing the paper's, and an ethics reference '06/16769748')."""
+    out = []
+    for el in trial_el.iter():
+        if el.tag.split("}")[-1] in PUB_FIELDS:
+            out.append(ET.tostring(el, encoding="unicode"))
+    return " ".join(out)
+
+
+def names_publication(pub_xml, pmid, doi, title):
+    hits = []
+    if pmid and re.search(r"(?:pubmed[^\s\"<]*?/|PMID:?\s*)" + pmid + r"(?!\d)", pub_xml, re.I):
+        hits.append(f"PMID {pmid}")
+    if doi:
+        esc = re.escape(doi)
+        if re.search(r"(?<![\w.\-/])" + esc + r"(?![\w.\-/])", pub_xml.lower()):
+            hits.append(f"DOI {doi}")
+    # the title as a whole citation element: its words in order, starting at a word boundary and ENDING where a
+    # citation's title ends (punctuation or the field's end) -- a longer title that merely contains it is another paper
+    plain = re.sub(r"<[^>]+>", " \n ", pub_xml).lower()
+    if title and len(title) > 30:
+        pat = r"(?<![a-z0-9])" + r"[^a-z0-9]+".join(map(re.escape, title.split())) + r"(?=[ \t]*(?:[.;:?!]|\n|$))"
+        if re.search(pat, plain):
+            hits.append("the article's exact title (a whole citation element, in a publication field)")
+    return hits
+
+
 def main(held, out_path):
     os.makedirs(held, exist_ok=True)
     out = {}
@@ -28,10 +59,14 @@ def main(held, out_path):
             continue
         pmid = (re.search(r"PMID (\d+)", r["trial"]) or [None, None])[1]
         log = []
-        rec = core(pmid, held, log) if pmid else None
         res = {"trial": r["trial"], "pmid": pmid, "queries": [], "requests": log, "registrations": []}
+        if not pmid:
+            res["fetch_state"], res["counted"] = "NO_PMID", None
+            out[r["key"]] = res
+            continue
+        rec = core(pmid, held, log)
         if rec is None:
-            res["fetch_state"] = "FETCH_FAILED"
+            res["fetch_state"], res["counted"] = "FETCH_FAILED", None
             out[r["key"]] = res
             continue
         doi, title = (rec.get("doi") or "").lower(), norm(rec.get("title"))
@@ -45,31 +80,30 @@ def main(held, out_path):
             b = get(API + urllib.parse.quote(q), held, log, f"isrctn_{label}_{pmid}")
             try:
                 root = ET.fromstring(b)
+                if root.tag != "{%s}allTrials" % NS["i"] or root.get("totalCount") is None:
+                    raise ValueError("not an ISRCTN allTrials response")
                 trials = root.findall("i:fullTrial", NS)
-                res["queries"].append({"step": label, "query": q, "totalCount": root.get("totalCount"),
-                                       "fetched": len(trials), "fetch_state": "OK"})
+                total = int(root.get("totalCount"))
+                if len(trials) < min(total, 100):
+                    raise ValueError(f"{len(trials)} records for totalCount {total}")
+                res["queries"].append({"step": label, "query": q, "totalCount": total, "fetched": len(trials),
+                                       "fetch_state": "OK"})
             except Exception as e:
-                res["queries"].append({"step": label, "query": q, "fetch_state": "FETCH_FAILED", "error": type(e).__name__})
+                res["queries"].append({"step": label, "query": q, "fetch_state": "FETCH_FAILED", "error": f"{type(e).__name__}: {e}"})
                 continue
             for t in trials:
                 isrctn = t.find("i:trial/i:isrctn", NS)
                 key = isrctn.text if isrctn is not None else None
                 if not key or key in seen:
                     continue
-                text = ET.tostring(t, encoding="unicode")
-                flat = norm(re.sub(r"<[^>]+>", " ", text))
-                names_it = []
-                if pmid and re.search(r"(?<!\d)" + pmid + r"(?!\d)", text):
-                    names_it.append(f"PMID {pmid}")
-                if doi and doi in text.lower():
-                    names_it.append(f"DOI {doi}")
-                if title and len(title) > 30 and title in flat:
-                    names_it.append("the article's exact title")
+                names_it = names_publication(publication_text(t), pmid, doi, title)
                 ttl = t.find("i:trial/i:trialDescription/i:title", NS)
                 seen[key] = {"isrctn": "ISRCTN" + key, "title": ttl.text if ttl is not None else None, "query": label,
                              "names_the_publication": names_it, "counts": bool(names_it)}
         res["registrations"] = list(seen.values())
-        res["counted"] = [x["isrctn"] for x in seen.values() if x["counts"]]
+        failed = any(q.get("fetch_state") == "FETCH_FAILED" for q in res["queries"])
+        res["fetch_state"] = "FETCH_FAILED" if failed else "OK"
+        res["counted"] = None if failed else [x["isrctn"] for x in seen.values() if x["counts"]]
         out[r["key"]] = res
         time.sleep(0.5)
     json.dump(out, open(out_path, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)

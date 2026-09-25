@@ -1,6 +1,6 @@
 --- a/harness/count_observations.py
 +++ b/harness/count_observations.py
-@@ -29,16 +29,47 @@
+@@ -29,16 +29,54 @@
      return int(value.replace(",", ""))
  
  
@@ -15,11 +15,16 @@
 +    low = normalized(name).lower()
 +    comp = [normalized(t).lower() for t in (arm_terms or {}).get("comparator") or [] if t]
 +    intv = [normalized(t).lower() for t in (arm_terms or {}).get("intervention") or [] if t]
-+    if CONTROL_WORDS.search(low) or any(re.search(r"(?<![\w-])" + re.escape(c) + r"(?![\w-])", low) for c in comp):
-+        on_i = any(re.search(r"(?<![\w-])" + re.escape(i) + r"(?![\w-])", low) for i in intv)
-+        return "comparator" if not on_i or CONTROL_WORDS.search(low) else None
-+    if any(re.search(r"(?<![\w-])" + re.escape(i) + r"(?![\w-])", low) for i in intv):
++    on_i = any(re.search(r"(?<![\w-])" + re.escape(i) + r"(?![\w-])", low) for i in intv)
++    on_c = any(re.search(r"(?<![\w-])" + re.escape(c) + r"(?![\w-])", low) for c in comp)
++    # the CONFIGURED terms decide first (review 5: 'non-operative' is a configured intervention term, 'non-invasive
++    # ventilation' too -- control vocabulary must not override them); control words only place a name no term places
++    if on_i and not on_c:
 +        return "intervention"
++    if on_c and not on_i:
++        return "comparator"
++    if not on_i and not on_c and CONTROL_WORDS.search(low):
++        return "comparator"
 +    return None
 +
 +
@@ -32,6 +37,8 @@
 +        return {}, False
 +    sides = [classify_declared(n, arm_terms) for n in pair.groups()]
 +    roles = {n: sd for n, sd in zip(pair.groups(), sides) if sd}
++    if sides[0] and sides[0] == sides[1]:
++        return roles, "one-sided"          # both names on one side: the label says nothing usable about direction
 +    return roles, sides == ["comparator", "intervention"]
 +
 +
@@ -45,18 +52,21 @@
 -        if pair:
 -            for side, term in zip(SIDES, pair.groups()):
 -                terms[side].append(term)
-+        roles, _ = declared_roles(declared, arm_terms)
-+        if len(set(roles.values())) == len(roles):     # two names on the same side place neither
++        roles, flag = declared_roles(declared, arm_terms)
++        if flag != "one-sided":                        # two names on the same side place neither
 +            for name, side in roles.items():
 +                terms[side].append(name)
      return terms
  
  
-@@ -172,6 +203,9 @@
+@@ -172,6 +210,12 @@
  
  
  def bind(doc, cand, tup, spec, arm_terms, declared=None):
-+    if declared and declared_roles(declared, arm_terms)[1]:
++    flag = declared_roles(declared, arm_terms)[1] if declared else False
++    if flag == "one-sided":
++        return None, "DECLARED_LABEL_ONE_SIDED", "both names of the row's declared 'A vs B' are the protocol's same arm"
++    if flag:
 +        return None, "DECLARED_DIRECTION_REVERSED", ("the row's declared 'A vs B' names the protocol's comparator "
 +                                                      "first; roles come from the protocol, never the label's order")
      terms = names(arm_terms, declared)
@@ -64,7 +74,7 @@
      facts = table_events(cand, terms) if cand["kind"] == "table_row" else prose_events(cand["text"], terms)
 --- a/tests/test_count_observations.py
 +++ b/tests/test_count_observations.py
-@@ -442,3 +442,27 @@
+@@ -442,3 +442,40 @@
      args = parser.parse_args()
      supplement() if args.supplement else capture(args.capture)
  
@@ -92,3 +102,16 @@
 +    text = "Nausea occurred in 7 of 101 participants on treatment and 11 of 99 participants on placebo."
 +    out = constructed(text, comparator_direction="treatment vs placebo")
 +    assert [(o["arm"]["role"], o["events"]) for o in out["trials"][0]["observations"]] == [("intervention", 7), ("comparator", 11)]
++
++
++def test_configured_terms_decide_before_control_words():
++    """review 5: 'non-operative' / 'non-invasive ventilation' are CONFIGURED intervention terms; control vocabulary must
++    not flip them, and a label with both names on one side is its own refusal."""
++    from harness import count_observations as co
++    terms = {"intervention": ["non-operative", "antibiotic"], "comparator": ["appendectomy", "surgery"]}
++    assert co.classify_declared("non-operative treatment", terms) == "intervention"
++    assert co.declared_roles("appendectomy vs non-operative treatment", terms)[1] is True       # reversed -> refused
++    assert co.declared_roles("non-operative treatment vs appendectomy", terms)[1] is False
++    niv = {"intervention": ["non-invasive ventilation"], "comparator": ["high flow oxygen", "oxygen"]}
++    assert co.classify_declared("non-invasive ventilation", niv) == "intervention"
++    assert co.declared_roles("placebo vs usual care", {"intervention": ["drugx"], "comparator": []})[1] == "one-sided"

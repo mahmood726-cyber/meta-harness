@@ -391,3 +391,60 @@ def test_local_only_witnesses_reverify_when_their_held_copy_is_present():
                 checked += 1
     if not checked:
         pytest.skip("no local-only held copy in this checkout (sha256 recorded)")
+
+
+# ---- review 5 (2026-09-25): classification only when unambiguous; T5b per registration, per kind, never silent -----
+def _roles_mod():
+    import sys
+    sys.path.insert(0, os.path.join(HERE, "..", "evidence", "typed_arms", "witness"))
+    import arm_roles
+    return arm_roles
+
+
+def test_the_classifier_is_accepted_only_for_a_single_unambiguous_contrast():
+    a = _roles_mod()
+    assert a.classify([{"id": "OG000", "title": "Drugx"}, {"id": "OG001", "title": "Placebo"}], ["drugx"], ["placebo"])[0] == ("OG000", "OG001")
+    # 'placebo' inside the drug arm's title reversed the roles in _classify_arms
+    assert a.classify([{"id": "OG000", "title": "Placebo"}, {"id": "OG001", "title": "Drugx plus placebo-matched"}], ["drugx"], ["placebo"])[0] is None
+    # a subgroup / follow-up phase / factorial: the last match used to win
+    four = [{"id": f"OG00{k}", "title": t} for k, t in enumerate(["Drugx", "Placebo", "Drugx subgroup", "Placebo subgroup"])]
+    assert a.classify(four, ["drugx"], ["placebo"])[0] is None
+
+
+def _t5b_job(tmp_path, name, roles, swap=False, doc=None):
+    doc = doc or OMAB
+    def R(t, nth=0):
+        return W(doc, t, nth, file="doc_registry_NCT0.json")
+    arms = [{"role": "intervention", "group_id": "OG000", "arm_name": "Arm A", "arm_name_witness": R("Arm A"),
+             "events": 20, "event_witness": R("20"), "total": 100, "total_witness": R("100")},
+            {"role": "comparator", "group_id": "OG001", "arm_name": "Arm B", "arm_name_witness": R("Arm B"),
+             "events": 10, "event_witness": R("10"), "total": 98, "total_witness": R("98")}]
+    served = OM_SERVED
+    if swap:
+        arms[0]["role"], arms[1]["role"] = "comparator", "intervention"
+        served = {"ai": 10, "n1i": 98, "ci": 20, "n2i": 100}
+    (tmp_path / name).mkdir()
+    return job(tmp_path / name, {"ownership_source": "REGISTRY_GROUPS", "registry": {"item_title": "Mortality"}, "arms": arms},
+               served, {"doc_registry_NCT0.json": doc}, registry=True, arm_roles=roles)
+
+
+def _entry(nct, i, c, scope="Mortality", kind="measure"):
+    return {"nct": nct, "scope": scope, "kind": kind, "state": "CLASSIFIED", "intervention_group": i, "comparator_group": c}
+
+
+def test_t5b_never_unions_disagreeing_entries_and_reads_only_the_witness_registration(tmp_path):
+    base = {"intervention": ["drugx"], "comparator": ["placebo"], "source": "t"}
+    two = dict(base, registry=[_entry("NCT0", "OG000", "OG001"), _entry("NCT0", "OG001", "OG000")])
+    rec = _t5b_job(tmp_path, "a", two, swap=True)
+    assert any("disagree" in r for r in rec["reasons"]), rec["reasons"]
+    other_reg = dict(base, registry=[_entry("NCT0", "OG000", "OG001"), _entry("NCT9", "OG001", "OG000")])
+    rec = _t5b_job(tmp_path, "b", other_reg, swap=True)          # the other registration's entry must not rescue it
+    assert any(r.startswith("T5b") for r in rec["reasons"]), rec["reasons"]
+
+
+def test_t5b_missing_scope_is_a_reason_and_no_classification_is_a_flag(tmp_path):
+    base = {"intervention": ["drugx"], "comparator": ["placebo"], "source": "t"}
+    rec = _t5b_job(tmp_path, "a", dict(base, registry=[_entry("NCT0", "OG000", "OG001", scope="Another measure")]))
+    assert any("ROLE_REGISTRY_SCOPE_MISSING" in r for r in rec["reasons"])
+    rec = _t5b_job(tmp_path, "b", dict(base, registry=[]))
+    assert any(f.startswith("ROLE_REGISTRY_NOT_CHECKED") for f in rec["flags"])

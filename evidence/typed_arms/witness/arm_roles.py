@@ -29,20 +29,46 @@ def topic_terms(slug):
 
 
 def registry_scopes(reg):
-    """(scope label, groups) for every groups-defining object of a ClinicalTrials.gov v2 record, labelled the way
-    check_witness.token_place labels a witness's scope (a measure by its title, the AE module as 'eventGroups')."""
+    """(scope label, kind, measure index, groups) for every groups-defining object of a ClinicalTrials.gov v2 record,
+    labelled the way check_witness.token_place labels a witness's scope: a measure by its title (kind 'measure', with
+    its index -- titles can repeat), the AE groups as 'eventGroups', the baseline and participant-flow modules by name."""
     rs = reg.get("resultsSection") or {}
     out = []
-    for m in (rs.get("outcomeMeasuresModule") or {}).get("outcomeMeasures") or []:
-        out.append((m.get("title"), m.get("groups") or []))
+    for k, m in enumerate((rs.get("outcomeMeasuresModule") or {}).get("outcomeMeasures") or []):
+        out.append((m.get("title"), "measure", k, m.get("groups") or []))
     ae = rs.get("adverseEventsModule") or {}
     if ae.get("eventGroups"):
-        out.append(("eventGroups", ae["eventGroups"]))
-    for mod, key in (("baselineCharacteristicsModule", "groups"), ("participantFlowModule", "groups")):
-        g = (rs.get(mod) or {}).get(key)
+        out.append(("eventGroups", "eventGroups", None, ae["eventGroups"]))
+    for mod in ("baselineCharacteristicsModule", "participantFlowModule"):
+        g = (rs.get(mod) or {}).get("groups")
         if g:
-            out.append((mod, g))
+            out.append((mod, "module", None, g))
     return out
+
+
+def classify(groups, il, cl):
+    """The pipeline's _classify_arms, accepted ONLY when it is unambiguous (review 5, 2026-09-25: on a multi-arm scope
+    its last match wins -- a subgroup, a follow-up phase, a factorial cell -- and a title matching both vocabularies,
+    'Drugx plus placebo-matched ...', or a substring such as 'placebo' inside the drug arm's title, reversed the roles).
+    A group is decisively the intervention when its title carries an intervention term and no comparator term, and
+    decisively the comparator when the reverse; CLASSIFIED needs exactly one of each (or, in a two-group scope, one
+    decisive group and one matching neither), and _classify_arms must agree. Otherwise UNCLASSIFIED, with the reason."""
+    def has(title, terms):
+        return any(t and t in title for t in terms)
+    dec_i = [g.get("id") for g in groups if has((g.get("title") or "").lower(), il) and not has((g.get("title") or "").lower(), cl)]
+    dec_c = [g.get("id") for g in groups if has((g.get("title") or "").lower(), cl) and not has((g.get("title") or "").lower(), il)]
+    neither = [g.get("id") for g in groups if not has((g.get("title") or "").lower(), il) and not has((g.get("title") or "").lower(), cl)]
+    gi, gc = _classify_arms(groups, il, cl)
+    if len(dec_i) == 1 and len(dec_c) == 1:
+        want = (dec_i[0], dec_c[0])
+    elif len(groups) == 2 and len(neither) == 1 and len(dec_i) + len(dec_c) == 1:
+        want = (dec_i[0], neither[0]) if dec_i else (neither[0], dec_c[0])
+    else:
+        return None, (f"{len(groups)} groups: {len(dec_i)} decisively intervention, {len(dec_c)} decisively comparator"
+                      f" -- not a single contrast")
+    if (gi, gc) != want:
+        return None, f"_classify_arms says {(gi, gc)}, the decisive titles say {want}"
+    return want, None
 
 
 def arm_roles_for(slug, registry_paths=()):
@@ -55,12 +81,12 @@ def arm_roles_for(slug, registry_paths=()):
     for p in registry_paths:
         reg = json.load(open(p, encoding="utf-8"))
         nct = ((reg.get("protocolSection") or {}).get("identificationModule") or {}).get("nctId") or os.path.basename(p)
-        for label, groups in registry_scopes(reg):
-            gi, gc = _classify_arms(groups, il, cl)
-            entry = {"nct": nct, "scope": label, "n_groups": len(groups)}
-            if gi and gc and gi != gc:
-                entry.update(intervention_group=gi, comparator_group=gc, state="CLASSIFIED")
+        for label, kind, idx, groups in registry_scopes(reg):
+            pair, why = classify(groups, il, cl)
+            entry = {"nct": nct, "scope": label, "kind": kind, "index": idx, "n_groups": len(groups)}
+            if pair:
+                entry.update(intervention_group=pair[0], comparator_group=pair[1], state="CLASSIFIED")
             else:
-                entry.update(state="UNCLASSIFIED")
+                entry.update(state="UNCLASSIFIED", why=why)
             roles["registry"].append(entry)
     return roles
