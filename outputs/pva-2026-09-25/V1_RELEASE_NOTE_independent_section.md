@@ -44,7 +44,9 @@ SERVED V1 bytes, or deleted. No line is carried forward from a rehearsal.*
 - **Tag stripping in the served absence code (PVA-D15).** `harness/absence.py` strips tags with `<[^>]+>`, so a literal `P<0.001` in
   an abstract deletes text up to the next `>`, and its "abstracts are a no-op" guard does not hold. Measured on main: 7 of 670 served
   absence claims sit on text it deletes; **0 of 670 decisions change** when the text is restored; the check is plant-proved. It is a
-  live defect with no served consequence today. **V1: say whether it is fixed in V1.**
+  live defect with no served consequence today. The ordered-contrast lane measured it independently on the live pages, with the same
+  denominator and the same zero (670 rows, 0 changes), and has a tested fix on a **V1.1 branch** (oc/v11-tag-strip: 7 plants fail
+  pre-fix). **V1: state it is not fixed in V1 unless that branch lands by the freeze.**
 - **Retrospective protocol amendments.** 11 of 32 protocols carry a RETROSPECTIVE amendment: a rule written after registration and
   labelled as such on the page. Those rules are disclosed, not pre-registered.
 - **The "DELIVER" retrospective clarification is misidentified.** The signing plan (nr, 9460d047) asks for a protocol-scope
