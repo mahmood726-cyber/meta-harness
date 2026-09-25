@@ -24,9 +24,13 @@ WORDS = {w: str(i) for i, w in enumerate("zero one two three four five six seven
                                          "fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
 
 
+LEADING_EN_DASH = re.compile(r"(?:^|(?<=[\s(\[;:=]))–(?=\d)")   # '–5.7' is minus 5.7; '0.65–1.84' is a range
+
+
 def num_tokens(s):
     words = {WORDS[w.lower()] for w in re.findall(r"[A-Za-z]+", s or "") if w.lower() in WORDS}
-    return words | set(re.findall(r"(?<![\d.])-?\d+(?:[.·]\d+)?", (s or "").replace("·", ".").replace("−", "-")))
+    s = LEADING_EN_DASH.sub("-", (s or "").replace("·", ".").replace("−", "-"))
+    return words | set(re.findall(r"(?<![\d.])-?\d+(?:[.·]\d+)?", s))
 
 
 def _num_tokens_text(text):
@@ -41,7 +45,7 @@ def canon(v):
         return float(WORDS[str(v).strip().lower()])
     try:
         v = re.sub(r"(?<=\d)[  ](?=\d{3}\b)", "", str(v))   # '10 036' is ten thousand thirty-six
-        return float(str(v).replace("·", ".").replace("−", "-").replace("%", "").replace(",", ""))
+        return float(LEADING_EN_DASH.sub("-", str(v).strip()).replace("·", ".").replace("−", "-").replace("%", "").replace(",", ""))
     except ValueError:
         return None
 
