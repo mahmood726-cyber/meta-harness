@@ -6,7 +6,9 @@ written from. Every witness is a character span of ONE number token in sha256-pi
 (`check_witness.py`: T1 offsets, T2 value, T3 whole token, T4 no occurrence witnesses two arm fields, T5 registry
 groupId ownership). Registry records: 22 acquired ClinicalTrials.gov v2 records (`../registry/`), 15 with posted results.
 
-## Counts (of 34): WITNESSED 22, DIFFERS 5, INCOMPLETE 7
+## Counts (of 34) at the FIRST witness run: WITNESSED 22, DIFFERS 5, INCOMPLETE 7
+(This file is a log, oldest first. Current counts, from `SUMMARY.json` after every later re-run and fix: **WITNESSED 26,
+DIFFERS 4, INCOMPLETE 4**; held v2 written **27 of 34**, served **31 of 35**.)
 - Ownership from registry groupIds: used wherever the registry's posted results carry the outcome.
 - Prose/table used although posted results exist: 8 entries -- every one read by eye below; in all 8 the extractor
   searched the registry results and the outcome is NOT there as the served aggregate (only individual AE terms,
