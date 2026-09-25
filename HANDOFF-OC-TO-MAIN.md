@@ -71,3 +71,7 @@ it. The V1 integration freeze is Saturday 09:00; items in "Held" are disclosed l
   continuous, 1 is unstated. A gate check that refuses on disagreement would falsely refuse nothing today; one that *requires*
   binding would refuse 36 rows. **V1 limitation:** estimator identity is source-bound in the bundle verifier and the bundle
   producer (P15), not yet in the publication gate.
+
+## CI
+
+`verify` run 36123517783 on `a557d240` (branch tip at handoff, merged with origin/main e3a20ff1): **success**. That is the full `scripts/verify_all.py` standard in the complete tree (unit tests, offline reproduction of every live page, publication gate on every page, index currency, fix-state). Local lane suites after the merge: 241 passed, 6 deselected (they copy the whole tree; CI ran them).
