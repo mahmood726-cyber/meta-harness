@@ -485,6 +485,31 @@ class Audit:
                            "verifier_verdict": r.get("verdict"), "four_verdicts": self.four(r),
                            "admissible_only_pool": adm})
 
+    def p8(self):
+        """The external audit's two-values report (CDN-1): on the bytes this audit read, every CERTIFICATE.json, every
+        review.json's embedded certificate and every served bundle must carry ONE analysis_code_sha256, and each page's
+        release_sha256 must agree across its certificate, review.json and (if present) BUNDLE.json. Two values in one
+        read = a mixed view (CDN window) or a real mismatch; P1 says which (a mixed view also fails P1)."""
+        rx = re.compile(r'"analysis_code_sha256"\s*:\s*"([0-9a-f]{64})"')
+        rr = re.compile(r'"release_sha256"\s*:\s*"([0-9a-f]{64})"')
+        codes, per_page_release = {}, {}
+        for s in self.pages:
+            rels = set()
+            for f in ("CERTIFICATE.json", "review.json", "BUNDLE.json"):
+                fp = self.root / "reviews" / s / f
+                if not fp.is_file():
+                    continue
+                t = fp.read_text(encoding="utf-8", errors="replace")
+                for v in rx.findall(t):
+                    codes.setdefault(v, set()).add(f"{s}/{f}")
+                if f in ("CERTIFICATE.json", "review.json"):
+                    rels |= set(rr.findall(t)[:1] if f == "CERTIFICATE.json" else [])
+            per_page_release[s] = sorted(rels)
+        ok = len(codes) == 1
+        self.record("P8", "one analysis_code_sha256 across every served certificate/review/bundle read (the CDN-1 check)", ok,
+                    {"distinct_values": {k[:12]: len(v) for k, v in codes.items()},
+                     "where_if_more_than_one": ({k[:12]: sorted(v)[:10] for k, v in codes.items()} if not ok else None)})
+
     # --------------------------------------------------------------------------------------------- output
     def write(self):
         self.work.mkdir(parents=True, exist_ok=True)
@@ -507,13 +532,13 @@ def main():
     ap.add_argument("--work", required=True)
     ap.add_argument("--site", default=SITE)
     ap.add_argument("--source", choices=["served", "git"], default="served")
-    ap.add_argument("--only", default="P0,P1,P2,P3,P4,P5,P6,P7")
+    ap.add_argument("--only", default="P0,P1,P2,P3,P4,P5,P6,P7,P8")
     a = ap.parse_args()
     au = Audit(a)
     only = set(a.only.split(","))
     print(f"release {au.rel} prev {au.prev} mode {au.mode}", flush=True)
     au.acquire()
-    for pid in ("P0", "P2", "P3", "P4", "P5", "P6", "P7"):
+    for pid in ("P0", "P2", "P3", "P4", "P5", "P6", "P7", "P8"):
         if pid in only:
             try:
                 getattr(au, pid.lower())()
